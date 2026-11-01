@@ -12,9 +12,9 @@ comes from test cases, never from the AI.
 
 | Workspace | Mock interview |
 |---|---|
-| ![Workspace with AI code review](docs/screenshots/02-workspace-review.png) | ![Live mock interview](docs/screenshots/06-interview-live.png) |
+| ![Workspace with AI code review](docs/screenshots/premium-workspace.png) | ![Live mock interview](docs/screenshots/premium-interview-live.png) |
 | **Interview feedback** | **Dashboard** |
-| ![Rubric feedback](docs/screenshots/07-interview-feedback.png) | ![Progress dashboard](docs/screenshots/03-dashboard.png) |
+| ![Rubric feedback](docs/screenshots/premium-interview-feedback.png) | ![Progress dashboard](docs/screenshots/premium-dashboard.png) |
 | **Judged in the gVisor sandbox** | |
 | ![Submission passed](docs/screenshots/08-judged-pass.png) | |
 
@@ -35,7 +35,7 @@ comes from test cases, never from the AI.
 | Analytics | Solved/attempted by topic and difficulty, streaks, 28-day activity, acceptance rate, weakest topics |
 | Recommendations | Explainable next problems: retry unfinished, strengthen weak topics, difficulty ladder |
 | Web app | React + TypeScript: landing, auth, problem library (URL-synced filters), resizable 3-panel workspace with Monaco and autosaved drafts, hint ladder, reviews that highlight the flagged line, dashboard (stat tiles, activity heatmap, topic progress), history; mobile layout |
-| Engineering | 232 backend tests (SQLite **and** PostgreSQL, incl. 70 that run in the real gVisor sandbox), 28 runner tests, 57 frontend tests, 5 Playwright end-to-end journeys against the real backend; ruff, mypy, ESLint, strict TypeScript; API types generated from OpenAPI; Alembic; Docker Compose (db, migrate, api, web + judge profile: sandbox image, runner, worker); GitHub Actions; pip-audit, npm audit, Dependabot; Prometheus metrics, JSON logs, request IDs, health checks; CSP and security headers |
+| Engineering | 232 backend tests (SQLite **and** PostgreSQL, incl. 70 that run in the real gVisor sandbox), 28 runner tests, 75 frontend tests, 7 Playwright end-to-end journeys against the real backend; ruff, mypy, ESLint, strict TypeScript; API types generated from OpenAPI; Alembic; Docker Compose (db, migrate, api, web + judge profile: sandbox image, runner, worker); GitHub Actions; pip-audit, npm audit, Dependabot; Prometheus metrics, JSON logs, request IDs, health checks; CSP and security headers |
 
 ## Architecture
 
@@ -43,7 +43,7 @@ comes from test cases, never from the AI.
 React + TypeScript ──HTTPS/JSON──▶ FastAPI (modular monolith) ──▶ PostgreSQL
                                         │
                                         ├──▶ AI provider adapter (offline | Claude)
-                                        └──▶ Isolated Java runner (designed, not built)
+                                        └──▶ Isolated Java runner (Docker + gVisor)
 ```
 Full write-up: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -71,7 +71,7 @@ uvicorn app.main:app --reload                          # http://localhost:8000
 ```
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev                                            # http://localhost:5173
 ```
 
@@ -93,7 +93,7 @@ pip-audit -r requirements.txt             # known-vulnerability scan
 cd frontend
 npm run lint && npm run typecheck         # ESLint + strict TypeScript
 npm run api:check                         # generated API types match docs/openapi.json
-npm test                                  # 57 unit + integration tests (Vitest, MSW)
+npm test                                  # 75 unit + integration tests (Vitest, MSW)
 npm run build                             # production bundle
 PYTHON=../backend/.venv/bin/python npm run e2e   # Playwright: real browser + real backend
 ```
@@ -116,7 +116,8 @@ Docker builds: [.github/workflows/ci.yml](.github/workflows/ci.yml).
 | [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | Measured API latency/throughput and judge throughput, with the exact setup |
 | [docs/AI_EVALUATION.md](docs/AI_EVALUATION.md) | How the AI coach is measured: labelled samples, held-out results, limitations |
 | [docs/SECURITY.md](docs/SECURITY.md) | Implemented controls, AI safeguards, sandbox threat model and design |
-| [docs/FRONTEND_HANDOFF.md](docs/FRONTEND_HANDOFF.md) | Screens, states, components, tokens and test-safe restyling rules for the design pass |
+| [docs/FRONTEND_HANDOFF.md](docs/FRONTEND_HANDOFF.md) | Original frontend engineering handoff |
+| [docs/FRONTEND_PROGRESS.md](docs/FRONTEND_PROGRESS.md) | Premium frontend changes, architecture decisions, validation and development workflow |
 | [docs/openapi.json](docs/openapi.json) | Machine-readable API contract (kept in sync by a test) |
 | [RESUME_LIFTER.md](RESUME_LIFTER.md) | How to explain this project in interviews and on a resume |
 

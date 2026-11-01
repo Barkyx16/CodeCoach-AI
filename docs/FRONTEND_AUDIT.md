@@ -1,6 +1,8 @@
 # Premium frontend: audit and proposal
 
-Status: Phase 1 audit. Proposed design awaits approval; application code is unchanged.
+Historical baseline: Phase 1 audit. The user subsequently approved implementation.
+See [FRONTEND_PROGRESS.md](FRONTEND_PROGRESS.md) for delivered changes and current validation.
+The findings below describe the original audited commit, before implementation.
 
 Review the [visual design board](screenshots/frontend-design-proposal.png) and its
 [standalone HTML source](FRONTEND_DESIGN_PROPOSAL.html). These are design documentation,
