@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
 // Real judging: browser → API → worker → runner → Docker + gVisor. Run with E2E_JUDGE=1.
@@ -53,6 +54,9 @@ test("submissions are judged in the gVisor sandbox", async ({ page, context }) =
   await expect(why.getByText("Wrong answer on a public test.")).toBeVisible();
   await expect(why.getByText(/Public test 2 \(nums = \[3, 2, 4\], target = 6\): expected \[1, 2\], got \[0, 1\]/)).toBeVisible();
   await page.screenshot({ path: "e2e/screenshots/10-explain-failure.png" });
+  // Real judged results and the explanation card pass the same WCAG 2.1 A/AA scan as e2e/a11y.spec.ts.
+  const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+  expect(axe.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
 
   // The right answer passes every public and hidden test.
   await paste(page, CORRECT);

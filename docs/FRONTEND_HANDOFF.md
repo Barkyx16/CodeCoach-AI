@@ -178,6 +178,12 @@ States per card: idle · saving · saved confirmation (`role="status"`) · error
 - **Motion:** respect `prefers-reduced-motion` (durations already go to 0).
 - **Live regions:** save status, submission results and review results use `aria-live` /
   `role="status"`. Keep those wrappers.
+- **Visible text is the name:** if a control shows words, its accessible name must contain them
+  (WCAG 2.5.3, so voice-control users can say what they see). Don't add an `aria-label` that
+  replaces visible text; the menu button is named "Menu" and `aria-expanded` gives its state.
+- **Automated gate:** `e2e/a11y.spec.ts` runs axe-core (WCAG 2.1 A/AA) on every main screen
+  on desktop and a phone, and the judge journey scans judged results and the explanation card.
+  A new violation fails CI.
 
 ## 6. Responsive breakpoints in use
 `≤ 960px` library sidebar stacks · `≤ 900px` workspace switches to tabs · `≤ 860px`
@@ -186,7 +192,7 @@ dashboard is one column · `≤ 720px` header hides the brand name and user name
 
 ## 7. Rules that keep the tests green
 
-The automated tests (57 unit/integration + 5 Playwright end-to-end) find elements **by their
+The automated tests (78 unit/integration + 11 Playwright end-to-end, incl. 4 accessibility scans) find elements **by their
 accessible role and name**, not by CSS. Restyling is safe as long as you **don't change**:
 - visible button, tab and link text used as names (e.g. "Get a hint", "Unlock level 2: Concept",
   "Review my code", "Submit", "Show table", "Sign in", "Create account", "Try it now, no sign-up",

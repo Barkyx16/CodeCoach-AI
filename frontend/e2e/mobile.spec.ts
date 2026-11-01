@@ -10,19 +10,19 @@ test("signed-in navigation fits narrow screens and keeps account settings access
   for (const width of [320, 375, 390, 768]) {
     await page.setViewportSize({ width, height: 812 });
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.getByRole("button", { name: "Open navigation" }).click();
+    await page.getByRole("button", { name: "Menu" }).click();
     await expect(page.getByRole("link", { name: "Dashboard", exact: true })).toBeVisible();
     await page.keyboard.press("Escape");
-    await expect(page.getByRole("button", { name: "Open navigation" })).toBeFocused();
+    await expect(page.getByRole("button", { name: "Menu" })).toBeFocused();
   }
-  await page.getByRole("button", { name: "Open navigation" }).click();
+  await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("link", { name: "Guest, account settings" }).click();
   await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
   for (const width of [320, 375, 390, 768]) {
     await page.setViewportSize({ width, height: 812 });
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
-  await expect(page.getByRole("button", { name: "Open navigation" })).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByRole("button", { name: "Menu" })).toHaveAttribute("aria-expanded", "false");
   expect(errors).toEqual([]);
 });
 

@@ -45,7 +45,7 @@ export function Layout() {
           <span className="brand__name">CodeCoach AI</span>
         </NavLink>
         <button className="menu-toggle btn btn--ghost btn--md" type="button" ref={toggleRef}
-          aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-expanded={menuOpen}
+          aria-expanded={menuOpen}
           aria-controls="primary-navigation" onClick={() => setOpenPath(menuOpen ? null : pathname)}>
           <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.7">
             <path d={menuOpen ? "m6 6 12 12M6 18 18 6" : "M4 6h16M4 12h16M4 18h16"} />

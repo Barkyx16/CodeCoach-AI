@@ -126,3 +126,6 @@
 .card { box-shadow: var(--shadow-sm); }
 .input::placeholder { color: var(--color-text-subtle); opacity: 1; }
 @media (pointer: coarse) { .btn--sm { min-height: 44px; } }
+
+/* An empty state that is the whole page (404) keeps the empty-state look for its <h1>. */
+.state__title { margin: 0; font-size: var(--text-md); font-weight: var(--weight-semibold); }

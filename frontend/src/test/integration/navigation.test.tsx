@@ -29,7 +29,7 @@ it("supports arrow, Home and End navigation through the product tour", async () 
 
 it("dismisses navigation with Escape and returns focus to its toggle", async () => {
   const { user } = renderApp("/", { signedIn: true });
-  const toggle = screen.getByRole("button", { name: "Open navigation" });
+  const toggle = screen.getByRole("button", { name: "Menu" });
   await user.click(toggle);
   expect(toggle).toHaveAttribute("aria-expanded", "true");
   await user.keyboard("{Escape}");

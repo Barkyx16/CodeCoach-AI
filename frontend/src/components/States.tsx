@@ -27,11 +27,15 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
   );
 }
 
-export function EmptyState({ title, children, action }: { title: string; children?: ReactNode; action?: ReactNode }) {
+export function EmptyState({ title, children, action, pageTitle = false }: {
+  title: string; children?: ReactNode; action?: ReactNode;
+  /** Render the title as the page's <h1> (for pages that are only an empty state, like 404). */
+  pageTitle?: boolean;
+}) {
   return (
     <div className="state state--empty">
       <span className="state__icon"><Icon name="book" size={22} /></span>
-      <strong>{title}</strong>
+      {pageTitle ? <h1 className="state__title">{title}</h1> : <strong>{title}</strong>}
       {children && <div className="muted">{children}</div>}
       {action}
     </div>
