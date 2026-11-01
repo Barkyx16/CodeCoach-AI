@@ -35,7 +35,7 @@ comes from test cases, never from the AI.
 | Analytics | Solved/attempted by topic and difficulty, streaks, 28-day activity, acceptance rate, weakest topics |
 | Recommendations | Explainable next problems: retry unfinished, strengthen weak topics, difficulty ladder |
 | Web app | React + TypeScript: landing, auth, problem library (URL-synced filters), resizable 3-panel workspace with Monaco and autosaved drafts, hint ladder, reviews that highlight the flagged line, dashboard (stat tiles, activity heatmap, topic progress), history; mobile layout |
-| Engineering | 172 backend tests (SQLite **and** PostgreSQL, incl. 18 against the real sandbox), 28 runner tests, 57 frontend tests, 5 Playwright end-to-end journeys against the real backend; ruff, mypy, ESLint, strict TypeScript; API types generated from OpenAPI; Alembic; Docker Compose (db, migrate, api, web); GitHub Actions; pip-audit, npm audit, Dependabot; Prometheus metrics, JSON logs, request IDs, health checks; CSP and security headers |
+| Engineering | 232 backend tests (SQLite **and** PostgreSQL, incl. 70 that run in the real gVisor sandbox), 28 runner tests, 57 frontend tests, 5 Playwright end-to-end journeys against the real backend; ruff, mypy, ESLint, strict TypeScript; API types generated from OpenAPI; Alembic; Docker Compose (db, migrate, api, web + judge profile: sandbox image, runner, worker); GitHub Actions; pip-audit, npm audit, Dependabot; Prometheus metrics, JSON logs, request IDs, health checks; CSP and security headers |
 
 ## Architecture
 

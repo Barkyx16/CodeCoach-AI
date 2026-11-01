@@ -444,6 +444,8 @@ These are moments where the obvious path was wrong and a deliberate decision was
 - `docs/AI_EVALUATION.md`, `docs/PERFORMANCE.md`; `scripts/loadtest.py` with raw results.
 - Measured: API p95 18 ms (1 client) / 86 ms at ~254 req/s (10 clients); judge ~4 s per
   submission, 15.5/min (1 worker) → 29.3/min (2 workers), no double-judging.
+- Totals now: 232 backend tests (70 in the real gVisor sandbox), 28 runner, 57 frontend,
+  5 Playwright journeys.
 
 **Not yet verified / not built:**
 - Claude's review quality (run `python -m evals.run --provider anthropic` once a key exists).

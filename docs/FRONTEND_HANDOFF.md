@@ -185,7 +185,7 @@ dashboard is one column · `≤ 720px` header hides the brand name and user name
 
 ## 7. Rules that keep the tests green
 
-The automated tests (48 unit/integration + 4 Playwright end-to-end) find elements **by their
+The automated tests (57 unit/integration + 5 Playwright end-to-end) find elements **by their
 accessible role and name**, not by CSS. Restyling is safe as long as you **don't change**:
 - visible button, tab and link text used as names (e.g. "Get a hint", "Unlock level 2: Concept",
   "Review my code", "Submit", "Show table", "Sign in", "Create account", "Try it now, no sign-up",
