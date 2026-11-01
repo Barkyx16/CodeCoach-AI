@@ -58,6 +58,7 @@ describe("useDraft", () => {
     const draft = renderHook(({ scope }) => useDraft("two-sum", "starter", scope, 600), { initialProps: { scope: "u1" } });
     act(() => draft.result.current.setCode("alice"));
     act(() => window.dispatchEvent(new Event("pagehide")));
+    expect(draft.result.current.saveState).toBe("saved");
     draft.rerender({ scope: "u2" });
     expect(draft.result.current.code).toBe("starter");
     act(() => draft.result.current.setCode("bob"));

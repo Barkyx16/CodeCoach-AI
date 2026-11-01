@@ -46,6 +46,7 @@ export function CoachPanel({ problemSlug, maxLevel, code, submissionId, enabled,
           </span>
         )}
       </div>
+      {usage.data && <p className="coach__provider subtle">{usage.data.provider === "offline" ? "Built-in coach · curated hints and static analysis" : `Coach provider: ${usage.data.provider}`}</p>}
       <Tabs label="Coach mode" tabs={[{ id: "hints", label: "Hints" }, { id: "review", label: "Code review" }] as const}
         value={tab} onChange={setTab} panelClassName="coach__tab-panel">
       {!enabled ? (

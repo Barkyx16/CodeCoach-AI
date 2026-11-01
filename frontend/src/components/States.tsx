@@ -4,6 +4,7 @@ import { describeError } from "@/lib/errors";
 
 import { Button } from "./Button";
 import { Spinner } from "./Spinner";
+import { Icon } from "./Icon";
 
 export function LoadingState({ label = "Loading…" }: { label?: string }) {
   return (
@@ -29,6 +30,7 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
 export function EmptyState({ title, children, action }: { title: string; children?: ReactNode; action?: ReactNode }) {
   return (
     <div className="state state--empty">
+      <span className="state__icon"><Icon name="book" size={22} /></span>
       <strong>{title}</strong>
       {children && <div className="muted">{children}</div>}
       {action}

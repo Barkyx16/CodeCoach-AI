@@ -3,6 +3,7 @@ import { StatusBadge } from "@/components/Badge";
 import { Spinner } from "@/components/Spinner";
 import { ErrorState } from "@/components/States";
 import { formatArgs, formatValue, timeAgo } from "@/lib/format";
+import { Icon } from "@/components/Icon";
 
 const STATUS_COPY: Partial<Record<Submission["status"], string>> = {
   PASSED: "All tests passed. Nice work.",
@@ -19,6 +20,8 @@ export function SubmissionPanel({ submission, error }: { submission: Submission 
   if (!submission) {
     return (
       <div className="results results--empty">
+        <Icon name="terminal" size={24} />
+        <strong>Your next result starts with an attempt.</strong>
         <p className="muted">Submit your solution to save an attempt. <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd></p>
       </div>
     );
@@ -30,6 +33,7 @@ export function SubmissionPanel({ submission, error }: { submission: Submission 
   const result = submission.result;
   return (
     <div className="results" aria-live="polite">
+      <h2 className="section-title results__label"><Icon name="terminal" size={15} />Execution results</h2>
       <div className="results__header">
         <StatusBadge status={submission.status} />
         {running && <Spinner size="sm" label="Judging" />}

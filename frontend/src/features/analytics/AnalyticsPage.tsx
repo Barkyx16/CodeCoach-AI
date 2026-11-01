@@ -20,7 +20,7 @@ export default function AnalyticsPage() {
       <Metric label="Solved" value={`${p.solved} / ${p.total_problems}`} detail="Problems in the library" />
       <Metric label="Attempted" value={`${p.attempted}`} detail="Distinct problems" />
       <Metric label="Acceptance rate" value={percent(p.acceptance_rate)} detail={`${p.accepted_submissions} accepted submissions`} />
-      <Metric label="Best streak" value={`${p.longest_streak_days} days`} detail={`${p.current_streak_days} days in your current streak`} />
+      <Metric label="Best streak" value={`${p.longest_streak_days} ${p.longest_streak_days === 1 ? "day" : "days"}`} detail={`${p.current_streak_days} ${p.current_streak_days === 1 ? "day" : "days"} in your current streak`} />
     </section>
     <p className="subtle analytics__scope">Statistics above cover all recorded practice. Activity below covers the last 28 days and includes problem opens, submissions, coaching and completed interviews.</p>
     <div className="dashboard__grid">

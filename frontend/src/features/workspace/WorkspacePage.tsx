@@ -15,6 +15,8 @@ import { CodeEditor } from "./CodeEditor";
 import { ProblemStatement } from "./ProblemStatement";
 import { SubmissionPanel } from "./SubmissionPanel";
 import { useDraft, type SaveState } from "./useDraft";
+import { WorkspaceFrame } from "./WorkspaceFrame";
+import { Icon } from "@/components/Icon";
 
 const SAVE_LABEL: Record<SaveState, string> = { saved: "Draft saved", saving: "Saving…", unsaved: "Unsaved changes", error: "Draft not saved — browser storage unavailable" };
 
@@ -69,7 +71,7 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
 
   const toolbar = (
     <div className="editor-toolbar">
-      <span className="editor-toolbar__lang">Java</span>
+      <span className="editor-toolbar__lang"><Icon name="code" size={15} />Solution.java</span>
       <span className={`save-state save-state--${draft.saveState}`} aria-live="polite">{SAVE_LABEL[draft.saveState]}</span>
       <div className="editor-toolbar__actions">
         <Button size="sm" variant="ghost" aria-expanded={showSettings} aria-controls={settingsId}
@@ -80,13 +82,13 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
         </Button>
         <Button size="sm" variant="primary" loading={submit.isPending} disabled={judging} onClick={() => void handleSubmit()}
           title="Submit (Ctrl/⌘ + Enter)">
-          Submit
+          Submit <Icon name="arrow" size={14} />
         </Button>
       </div>
     </div>
   );
 
-  const statement = <div className="panel-scroll"><ProblemStatement problem={problem} /></div>;
+  const statement = <section className="panel-scroll" aria-label="Problem description" tabIndex={0}><ProblemStatement problem={problem} /></section>;
   const editor = (
     <div className="editor-pane">
       {toolbar}
@@ -96,9 +98,9 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
     </div>
   );
   const results = (
-    <div className="panel-scroll">
+    <section className="panel-scroll" aria-label="Submission results" tabIndex={0}>
       <SubmissionPanel submission={submission.data} error={submit.error ?? submission.error} />
-    </div>
+    </section>
   );
   const coach = (
     <div className="panel-scroll">
@@ -114,17 +116,17 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
       { id: "coach", label: "Coach", content: coach },
     ];
     return (
-      <div className="workspace workspace--stacked">
+      <WorkspaceFrame title={problem.title}><div className="workspace workspace--stacked">
         <Tabs label="Workspace" tabs={tabs} value={mobileTab} onChange={setMobileTab}
           className="workspace__tab-system" listClassName="workspace__tabs" panelClassName="workspace__mobile-panel">
           {tabs.find((t) => t.id === mobileTab)?.content}
         </Tabs>
-      </div>
+      </div></WorkspaceFrame>
     );
   }
 
   return (
-    <div className="workspace">
+    <WorkspaceFrame title={problem.title}><div className="workspace">
       <Group orientation="horizontal" className="workspace__group">
         <Panel id="statement" defaultSize="30" minSize="18" className="workspace__panel">{statement}</Panel>
         <Separator className="resize-handle" />
@@ -138,6 +140,6 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
         <Separator className="resize-handle" />
         <Panel id="coach" defaultSize="26" minSize="18" className="workspace__panel">{coach}</Panel>
       </Group>
-    </div>
+    </div></WorkspaceFrame>
   );
 }

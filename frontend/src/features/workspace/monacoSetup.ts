@@ -14,7 +14,12 @@ loader.config({ monaco });
 monaco.editor.defineTheme("codecoach-dark", {
   base: "vs-dark",
   inherit: true,
-  rules: [],
+  rules: [
+    { token: "comment", foreground: "99AAC4" },
+    { token: "keyword", foreground: "A4BCFF" },
+    { token: "number", foreground: "C5D7FB" },
+    { token: "string", foreground: "A5D8CE" },
+  ],
   colors: {
     "editor.background": "#0b1220",
     "editor.lineHighlightBackground": "#17243a",

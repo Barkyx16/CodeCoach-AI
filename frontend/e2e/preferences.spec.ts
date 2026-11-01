@@ -4,6 +4,8 @@ test("editor preferences survive reload and navigating away saves the latest key
   await page.goto("/");
   await page.getByRole("button", { name: /try it now/i }).click();
   await expect(page.locator(".monaco-editor")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1)).toBe(true);
+  await expect.poll(() => page.getByRole("region", { name: "Problem description" }).evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
   await page.getByRole("button", { name: "Editor settings", exact: true }).click();
   await page.getByLabel("Font size", { exact: true }).selectOption("18");
   await page.getByLabel("Wrap long lines").check();

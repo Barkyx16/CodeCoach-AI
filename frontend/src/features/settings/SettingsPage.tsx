@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
 import { useAIUsage } from "@/api/queries";
@@ -10,6 +11,8 @@ import { InlineError } from "@/components/States";
 import { fieldErrorsFrom } from "@/features/auth/fieldErrors";
 import { formatDateTime } from "@/lib/format";
 import { EditorPreferencesControls } from "./EditorPreferencesControls";
+import { EditorAppearancePreview } from "./EditorAppearancePreview";
+import { Icon } from "@/components/Icon";
 
 export function SettingsPage() {
   const { user } = useAuth();
@@ -18,15 +21,18 @@ export function SettingsPage() {
     <div className="page settings">
       <div className="page__header">
         <div>
+          <p className="eyebrow">YOUR WORKSPACE, YOUR WAY</p>
           <h1 className="page__title">Settings</h1>
           <p className="page__subtitle">
             {user.is_guest ? "Guest session" : user.email} · member since {formatDateTime(user.created_at)}
           </p>
         </div>
+        <Link className="btn btn--secondary btn--md" to="/history"><Icon name="file" size={16} />View practice history</Link>
       </div>
+      <div className="account-summary"><div className="account-summary__avatar" aria-hidden="true">{(user.display_name ?? user.email ?? "Guest").trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "C"}</div><div><strong>{user.display_name ?? user.email ?? "Guest"}</strong><p className="subtle">{user.is_guest ? "A temporary session for exploring CodeCoach." : user.email}</p></div><span className="badge">{user.is_guest ? "Guest account" : "Your account"}</span></div>
       <div className="settings__grid">
         <ProfileCard />
-        <Card className="stack" aria-labelledby="editor-preferences-title"><h2 id="editor-preferences-title" className="section-title">Editor preferences</h2><EditorPreferencesControls /></Card>
+        <Card className="stack" aria-labelledby="editor-preferences-title"><h2 id="editor-preferences-title" className="section-title"><Icon name="code" size={17} />Editor preferences</h2><EditorAppearancePreview /><EditorPreferencesControls /></Card>
         {!user.is_guest && <PasswordCard />}
         <AIPrivacyCard />
         <DataCard />
@@ -67,7 +73,8 @@ function ProfileCard() {
   return (
     <Card>
       <form className="stack" onSubmit={onSubmit} aria-labelledby="profile-title">
-        <h2 id="profile-title" className="section-title">Profile</h2>
+        <h2 id="profile-title" className="section-title"><Icon name="user" size={17} />Profile</h2>
+        <p className="subtle">A name to make this workspace your own.</p>
         <Field label="Display name" maxLength={40} value={name} onChange={(e) => setName(e.target.value)}
           hint="Shown in the header and on your dashboard." error={fieldErrorsFrom(form.error).display_name} />
         {!fieldErrorsFrom(form.error).display_name && <InlineError error={form.error} />}
@@ -97,7 +104,7 @@ function PasswordCard() {
   return (
     <Card>
       <form className="stack" onSubmit={onSubmit} aria-labelledby="password-title">
-        <h2 id="password-title" className="section-title">Password</h2>
+        <h2 id="password-title" className="section-title"><Icon name="shield" size={17} />Password</h2>
         <Field label="Current password" type="password" autoComplete="current-password" value={current}
           onChange={(e) => setCurrent(e.target.value)} />
         <Field label="New password" type="password" autoComplete="new-password" value={next}
@@ -117,7 +124,7 @@ function AIPrivacyCard() {
   const usage = useAIUsage();
   return (
     <Card className="stack" aria-labelledby="ai-title">
-      <h2 id="ai-title" className="section-title">AI coach & privacy</h2>
+      <h2 id="ai-title" className="section-title"><Icon name="spark" size={17} />AI coach & privacy</h2>
       {usage.data && (
         <p>
           You've used <strong>{usage.data.used_today}</strong> of <strong>{usage.data.daily_limit}</strong> AI requests
@@ -147,7 +154,7 @@ function DataCard() {
   }, "Downloaded codecoach-data.json");
   return (
     <Card className="stack" aria-labelledby="data-title">
-      <h2 id="data-title" className="section-title">Your data</h2>
+      <h2 id="data-title" className="section-title"><Icon name="file" size={17} />Your data</h2>
       <p className="muted">Download everything we store about you: profile, submissions with your code, AI feedback,
         interview transcripts and activity.</p>
       <div className="row">

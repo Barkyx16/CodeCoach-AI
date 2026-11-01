@@ -4,6 +4,14 @@ import { http, HttpResponse } from "msw";
 import { renderApp } from "../render";
 import { API, server } from "../server";
 
+it("moves focus to the content and updates the title after route navigation", async () => {
+  const { user } = renderApp("/", { signedIn: true });
+  await user.click(screen.getByRole("link", { name: "Analytics" }));
+  expect(await screen.findByRole("heading", { name: "Analytics" })).toBeInTheDocument();
+  expect(document.getElementById("main")).toHaveFocus();
+  expect(document.title).toBe("Analytics | CodeCoach AI");
+});
+
 it("supports arrow, Home and End navigation through the product tour", async () => {
   const { user } = renderApp("/");
   const code = screen.getByRole("tab", { name: "Write your solution" });

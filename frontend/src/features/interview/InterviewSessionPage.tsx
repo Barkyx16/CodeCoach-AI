@@ -24,6 +24,7 @@ import { OVERALL_LABELS } from "./phases";
 import { RubricChart } from "./RubricChart";
 import { Transcript } from "./Transcript";
 import { formatClock, useCountdown } from "./useCountdown";
+import { Icon } from "@/components/Icon";
 
 export default function InterviewSessionPage() {
   const { id = "" } = useParams();
@@ -82,13 +83,14 @@ function LiveInterview({ iv }: { iv: Interview }) {
     <div className="interview">
       <header className="interview__bar">
         <div className="row">
-          <strong>{iv.problem.title}</strong>
+          <h1 className="interview__title">{iv.problem.title}</h1>
           <DifficultyBadge difficulty={iv.problem.difficulty} />
-          <Link to={`/problems/${iv.problem.slug}`} target="_blank" rel="noreferrer" className="subtle">Problem statement ↗</Link>
+          <Link to={`/problems/${iv.problem.slug}`} target="_blank" rel="noreferrer" className="subtle interview__statement-link">Problem statement <Icon name="arrow" size={14} /><span className="visually-hidden">(opens in a new tab)</span></Link>
         </div>
         <PhaseStepper phaseIndex={iv.phase_index} />
         <div className="row">
           <span className={`clock${lowTime ? " clock--low" : ""}`} role="timer" aria-label={`${formatClock(seconds)} remaining`}>
+            <Icon name="clock" size={17} />
             {formatClock(seconds)}
           </span>
           <Button size="sm" variant="ghost" loading={abandon.isPending} disabled={busy}

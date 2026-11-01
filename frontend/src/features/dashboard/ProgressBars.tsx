@@ -28,7 +28,7 @@ export function ProgressBars({ rows, showAttempted = true }: { rows: Row[]; show
           const text = `${r.solved}/${r.total} solved${pending ? `, ${pending} in progress` : ""}`;
           return (
             <li key={r.key} className="pbars__row">
-              <span className="pbars__label">{r.label}</span>
+              <span className="pbars__label" title={r.label}>{r.label}</span>
               <span className="pbars__bar" role="img" aria-label={`${r.label}: ${text}`}>
                 {solvedPct > 0 && <span className="pbars__seg pbars__seg--solved" style={{ width: `${solvedPct}%` }} />}
                 {pendingPct > 0 && <span className="pbars__seg pbars__seg--attempted" style={{ width: `${pendingPct}%` }} />}

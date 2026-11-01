@@ -9,8 +9,9 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
 import { timeAgo } from "@/lib/format";
+import { Icon } from "@/components/Icon";
 
-import { OVERALL_LABELS, PHASES } from "./phases";
+import { DIMENSION_LABELS, OVERALL_LABELS, PHASES } from "./phases";
 
 const DURATIONS = [15, 30, 45];
 
@@ -38,15 +39,18 @@ export function InterviewStartPage() {
     <div className="page interview-start">
       <div className="page__header">
         <div>
+          <p className="eyebrow">THINK CLEARLY. EXPLAIN CONFIDENTLY.</p>
           <h1 className="page__title">Mock interview</h1>
           <p className="page__subtitle">A timed, realistic coding interview with an AI interviewer, then rubric feedback.</p>
         </div>
       </div>
+      <div className="interview-overview"><span><Icon name="clock" size={18} />15–45 minutes</span><span><Icon name="code" size={18} />Java workspace</span><span><Icon name="chart" size={18} />Feedback on {Object.keys(DIMENSION_LABELS).length} skills</span></div>
 
       <div className="interview-start__grid">
         <Card>
           <form className="stack" onSubmit={onSubmit} aria-labelledby="start-title">
-            <h2 id="start-title" className="section-title">Set up</h2>
+            <h2 id="start-title" className="section-title"><Icon name="target" size={17} />Set up</h2>
+            <p className="interview-start__lead">Make space to think.</p><p className="subtle">Choose your challenge and the time you want to spend on it.</p>
             <div className="field">
               <label className="field__label" htmlFor="iv-problem">Problem</label>
               <select id="iv-problem" className="select" value={slug} onChange={(e) => setSlug(e.target.value)}>
@@ -73,7 +77,7 @@ export function InterviewStartPage() {
             ) : (
               <InlineError error={start.error} />
             )}
-            <Button type="submit" variant="primary" loading={start.isPending}>Start interview</Button>
+            <Button type="submit" variant="primary" loading={start.isPending}>Start interview <Icon name="arrow" size={16} /></Button>
           </form>
         </Card>
 

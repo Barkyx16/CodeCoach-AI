@@ -1,8 +1,16 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 
 import { renderApp } from "../render";
 
 describe("Problem library", () => {
+  it("updates the search field and results when the URL changes", async () => {
+    const { router } = renderApp("/problems?q=zzz");
+    expect(await screen.findByText("No problems match")).toBeInTheDocument();
+    await act(async () => { await router.navigate("/problems?q=sum"); });
+    expect(screen.getByRole("searchbox", { name: /search problems/i })).toHaveValue("sum");
+    expect(await screen.findByText("Two Sum")).toBeInTheDocument();
+    expect(screen.queryByText("No problems match")).not.toBeInTheDocument();
+  });
   it("lists problems with difficulty and topics", async () => {
     renderApp("/problems");
     expect(await screen.findByText("Two Sum")).toBeInTheDocument();

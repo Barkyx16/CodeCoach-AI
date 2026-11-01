@@ -20,7 +20,7 @@ export function Transcript({ turns, pending }: { turns: Interview["turns"]; pend
           <div key={t.seq}>
             {divider && <div className="transcript__divider">{PHASES.find((p) => p.id === t.phase)?.label}</div>}
             <div className={`bubble bubble--${t.role}`}>
-              <span className="bubble__who">{t.role === "interviewer" ? "Interviewer" : "You"}</span>
+              <div className="bubble__meta"><span className="bubble__who">{t.role === "interviewer" ? "Interviewer" : "You"}</span><time dateTime={t.created_at}>{new Date(t.created_at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}</time></div>
               <p className="bubble__text">{t.content}</p>
             </div>
           </div>

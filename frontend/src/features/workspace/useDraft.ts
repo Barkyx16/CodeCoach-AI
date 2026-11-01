@@ -55,12 +55,16 @@ export function useDraft(slug: string, starterCode: string, scope = "anon", dela
 
   useEffect(() => {
     const flush = () => { window.clearTimeout(timer.current); persist(); };
-    const onVisibility = () => { if (document.visibilityState === "hidden") flush(); };
-    window.addEventListener("pagehide", flush);
+    const onHide = () => {
+      window.clearTimeout(timer.current);
+      if (pending.current) setSaveState(persist() ? "saved" : "error");
+    };
+    const onVisibility = () => { if (document.visibilityState === "hidden") onHide(); };
+    window.addEventListener("pagehide", onHide);
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
       flush(); // Navigation must save even before the debounce delay has elapsed.
-      window.removeEventListener("pagehide", flush);
+      window.removeEventListener("pagehide", onHide);
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [storageKey, persist]);
