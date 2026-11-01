@@ -78,6 +78,36 @@ scale. That matches the blueprint principle: no microservices without a demonstr
 all policy and never import FastAPI request types, so they can be unit-tested directly and
 reused by a future worker process.
 
+## 3b. Frontend layout
+
+```
+frontend/src/
+  api/          client.ts (typed fetch + ApiError), endpoints.ts, queries.ts (TanStack Query),
+                schema.d.ts (GENERATED from docs/openapi.json), types.ts (friendly aliases)
+  auth/         AuthProvider (token in memory + localStorage, expiry timer, 401 → sign out),
+                RequireAuth route guard, session helpers
+  app/          router (lazy-loads the workspace), layout, providers
+  components/   Button, Badge, Card, Field, Spinner, Loading/Error/Empty states
+  features/     landing · auth · problems · workspace (Monaco, drafts, coach, results)
+                · dashboard (stat tiles, heatmap, progress bars) · history
+  styles/       tokens.css (every visual value) + base/components/layout/features CSS
+  test/         MSW mock server, fixtures, full-app integration tests
+e2e/            Playwright journeys against the real backend
+```
+
+**Frontend decisions**
+
+| Decision | Why |
+|---|---|
+| Types generated from the OpenAPI spec | The backend contract is the single source of truth; `npm run api:check` fails CI if they drift. |
+| TanStack Query for server state | Caching, de-duplication, retries (never for 4xx) and polling, without hand-written effects. Submission polling stops when `execution_enabled` is false. |
+| No global state library | Server state lives in the query cache; the only client state is auth (one context) and local UI state. |
+| Monaco bundled locally, lazy-loaded | No third-party CDN script (strict CSP) and no Monaco download on the landing page: the initial JS is ~98 KB gzipped; Monaco loads only with the workspace. |
+| Plain CSS + design tokens | The design pass can restyle everything by editing tokens and CSS without touching logic. |
+| URL as state for filters | Shareable, refresh-safe library views. |
+| Drafts in localStorage, scoped per user and problem | Never lose work; no server round-trip per keystroke. |
+| Tests by role and name (Testing Library, Playwright) | Tests assert what users see and what screen readers announce, so a restyle doesn't break them. |
+
 ## 4. Key request flows
 
 ### 4.1 Hint request
@@ -153,7 +183,7 @@ or API key.
 | Phase | Status | Scope |
 |---|---|---|
 | 1. Backend foundation | ✅ done | Auth, problems, submissions (queued), AI hint/review, progress, recommendations, migrations, Docker, CI |
-| 2. Frontend vertical slice | next | React + TS app: library, workspace (Monaco), coach panel, dashboard |
-| 3. Mock interviews | planned | Interview sessions as a state machine, timed turns, rubric scoring, history |
+| 2. Frontend vertical slice | ✅ done | React + TS app: library, workspace (Monaco), coach panel, dashboard, history, e2e tests |
+| 3. Mock interviews | next | Interview sessions as a state machine, timed turns, rubric scoring, history |
 | 4. Isolated runner | **awaiting design approval** | See SECURITY.md §4 |
 | 5. Production | planned | Deployment, managed Postgres, Redis rate limits, refresh tokens, AI eval suite |

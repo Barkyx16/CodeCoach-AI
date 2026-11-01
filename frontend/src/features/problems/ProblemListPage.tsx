@@ -1,0 +1,166 @@
+import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+
+import { useProblems, useProgress, useRecommendations, useTopics } from "@/api/queries";
+import type { Difficulty, Progress } from "@/api/types";
+import { useAuth } from "@/auth/useAuth";
+import { DifficultyBadge, TopicTag } from "@/components/Badge";
+import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
+import { EmptyState, ErrorState, LoadingState } from "@/components/States";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+
+const PAGE_SIZE = 20;
+const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard"];
+
+type ProblemStatus = Progress["problems"][number]["status"];
+const STATUS_ICON: Record<ProblemStatus, { icon: string; label: string }> = {
+  solved: { icon: "✓", label: "Solved" },
+  attempted: { icon: "◐", label: "Attempted" },
+  in_progress: { icon: "•", label: "In progress" },
+  not_started: { icon: "", label: "Not started" },
+};
+
+export function ProblemListPage() {
+  const { isAuthenticated } = useAuth();
+  const [params, setParams] = useSearchParams();
+  const difficulty = (params.get("difficulty") ?? "") as Difficulty | "";
+  const topic = params.get("topic") ?? "";
+  const page = Math.max(1, Number(params.get("page") ?? 1) || 1);
+  const [search, setSearch] = useState(params.get("q") ?? "");
+  const q = useDebouncedValue(search.trim(), 300);
+
+  // Keep the URL as the source of truth so filtered views are shareable and survive refresh.
+  function update(next: Record<string, string>) {
+    const merged = new URLSearchParams(params);
+    for (const [k, v] of Object.entries(next)) {
+      if (v) merged.set(k, v);
+      else merged.delete(k);
+    }
+    if (!("page" in next)) merged.delete("page");
+    setParams(merged, { replace: true });
+  }
+
+  useEffect(() => {
+    if ((params.get("q") ?? "") !== q) update({ q });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
+
+  const filters = { difficulty, topic, q, page, page_size: PAGE_SIZE };
+  const problems = useProblems(filters);
+  const topics = useTopics();
+  const progress = useProgress(isAuthenticated);
+  const statusBySlug = useMemo(
+    () => new Map(progress.data?.problems.map((p) => [p.slug, p.status]) ?? []),
+    [progress.data],
+  );
+  const hasFilters = Boolean(difficulty || topic || q);
+  const totalPages = problems.data ? Math.max(1, Math.ceil(problems.data.total / PAGE_SIZE)) : 1;
+
+  return (
+    <div className="page problems">
+      <div className="page__header">
+        <div>
+          <h1 className="page__title">Practice problems</h1>
+          <p className="page__subtitle">
+            {problems.data ? `${problems.data.total} problem${problems.data.total === 1 ? "" : "s"}` : "Curated Java interview problems"}
+            {progress.data && ` · ${progress.data.solved} solved`}
+          </p>
+        </div>
+      </div>
+
+      <div className="problems__layout">
+        <section aria-label="Problem list" className="stack">
+          <div className="filters" role="search">
+            <label className="field filters__search">
+              <span className="visually-hidden">Search problems</span>
+              <input className="input" type="search" placeholder="Search by title or description…" value={search}
+                onChange={(e) => setSearch(e.target.value)} />
+            </label>
+            <label className="field">
+              <span className="visually-hidden">Difficulty</span>
+              <select className="select" value={difficulty} onChange={(e) => update({ difficulty: e.target.value })}>
+                <option value="">All difficulties</option>
+                {DIFFICULTIES.map((d) => <option key={d} value={d}>{d[0]?.toUpperCase() + d.slice(1)}</option>)}
+              </select>
+            </label>
+          </div>
+
+          {topics.data && (
+            <div className="chips" role="group" aria-label="Filter by topic">
+              {topics.data.map((t) => (
+                <button key={t.topic} type="button" className={`chip${topic === t.topic ? " chip--active" : ""}`}
+                  aria-pressed={topic === t.topic} onClick={() => update({ topic: topic === t.topic ? "" : t.topic })}>
+                  {t.topic.replace(/-/g, " ")} <span className="chip__count">{t.count}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {problems.isPending ? (
+            <LoadingState label="Loading problems…" />
+          ) : problems.isError ? (
+            <ErrorState error={problems.error} onRetry={() => problems.refetch()} />
+          ) : problems.data.items.length === 0 ? (
+            <EmptyState title="No problems match"
+              action={hasFilters ? <Button onClick={() => { setSearch(""); setParams({}, { replace: true }); }}>Clear filters</Button> : undefined}>
+              Try a different search or topic.
+            </EmptyState>
+          ) : (
+            <ul className="problem-list" aria-busy={problems.isFetching}>
+              {problems.data.items.map((p) => {
+                const status = statusBySlug.get(p.slug) ?? "not_started";
+                return (
+                  <li key={p.slug}>
+                    <Link to={`/problems/${p.slug}`} className="problem-row">
+                      <span className={`problem-row__status problem-row__status--${status}`}
+                        title={STATUS_ICON[status].label} aria-label={STATUS_ICON[status].label}>
+                        {STATUS_ICON[status].icon}
+                      </span>
+                      <span className="problem-row__main">
+                        <span className="problem-row__title">{p.title}</span>
+                        <span className="problem-row__summary">{p.summary}</span>
+                      </span>
+                      <span className="problem-row__meta">
+                        {p.topics.slice(0, 2).map((t) => <TopicTag key={t} topic={t} />)}
+                        <DifficultyBadge difficulty={p.difficulty} />
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {problems.data && totalPages > 1 && (
+            <nav className="pagination" aria-label="Pagination">
+              <Button size="sm" disabled={page <= 1} onClick={() => update({ page: String(page - 1) })}>Previous</Button>
+              <span className="subtle">Page {page} of {totalPages}</span>
+              <Button size="sm" disabled={page >= totalPages} onClick={() => update({ page: String(page + 1) })}>Next</Button>
+            </nav>
+          )}
+        </section>
+
+        {isAuthenticated && <RecommendationsAside />}
+      </div>
+    </div>
+  );
+}
+
+function RecommendationsAside() {
+  const recs = useRecommendations(3);
+  if (recs.isPending || recs.isError || recs.data.length === 0) return null;
+  return (
+    <aside aria-label="Recommended for you">
+      <Card className="stack">
+        <h2 className="section-title">Recommended for you</h2>
+        {recs.data.map((r) => (
+          <Link key={r.slug} to={`/problems/${r.slug}`} className="rec">
+            <span className="row"><strong>{r.title}</strong><DifficultyBadge difficulty={r.difficulty} /></span>
+            <span className="subtle">{r.reason}</span>
+          </Link>
+        ))}
+      </Card>
+    </aside>
+  );
+}

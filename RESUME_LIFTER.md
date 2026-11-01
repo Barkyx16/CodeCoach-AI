@@ -12,9 +12,10 @@ The "Session log" at the bottom tracks exactly what that is.
 > programmer. Learners solve curated problems in a browser editor and get progressive AI hints
 > and structured code reviews. The key design decision is that correctness never comes from
 > the AI: a deterministic test judge decides pass or fail, and the AI is an advisor grounded in
-> that verdict. The backend is FastAPI and PostgreSQL with JWT auth, Alembic migrations, a
-> provider-agnostic AI layer with structured outputs and cost controls, and 100+ tests that
-> run on both SQLite and Postgres in GitHub Actions."
+> that verdict. It's a React and TypeScript frontend with a Monaco editor on top of a FastAPI
+> and PostgreSQL backend, with JWT auth, a provider-agnostic AI layer with structured outputs
+> and cost controls, and about 150 automated tests, including real-browser end-to-end tests
+> that run in GitHub Actions."
 
 ## 2. The 2-minute walkthrough (whiteboard order)
 
@@ -50,6 +51,12 @@ The "Session log" at the bottom tracks exactly what that is.
   against both SQLite and PostgreSQL in CI.
 - Curated a library of **12 Java problems with 88 public and hidden test cases**, and
   automated verification that compiles and runs reference solutions against every case in CI.
+- Built a **React + TypeScript** frontend (Vite, TanStack Query, Monaco editor) with a
+  resizable three-panel workspace, autosaved drafts, a progress dashboard and a mobile layout,
+  with API types **generated from the OpenAPI contract** so frontend and backend can't drift.
+- Wrote **41 frontend unit and integration tests** (Vitest + MSW) and **Playwright end-to-end
+  tests** that drive a real browser against the real backend; served the production build
+  from unprivileged nginx with a **strict Content-Security-Policy**.
 
 *Add after they're built and measured, never before:* runner throughput or latency,
 p50/p95 API latency under load, AI hint-quality evaluation scores, frontend test coverage.
@@ -103,6 +110,27 @@ Redis (AI budgets are already in the database, so they're exact across replicas)
 queue between the API and runner workers; and cache the problem list. I'd measure before
 optimizing, and `/metrics` already exports per-route latency histograms.
 
+**"Walk me through the frontend architecture."**
+Server state lives in TanStack Query (caching, retries, polling), so there's no Redux. The
+only global client state is auth. API types are generated from the backend's OpenAPI spec,
+and CI fails if they drift. Monaco is bundled locally and lazy-loaded with the workspace
+route, so the landing page ships about 98 KB of gzipped JS, and there's no third-party script,
+which keeps the CSP strict. All styling goes through design tokens, so a designer can restyle
+the app without touching logic.
+
+**"How did you test the frontend?"**
+Three layers. Unit tests for pure logic like draft autosave and date formatting. Integration
+tests that render the *whole* app with real routes and providers, with the network mocked at
+the fetch level by MSW, so the real API client runs. And Playwright tests in real Chromium
+against the real FastAPI backend, which caught bugs the others couldn't. Tests find elements
+by role and accessible name, the way users and screen readers do, so restyling doesn't break them.
+
+**"Tell me about a bug you found."**
+Pick one from §5. The nginx one is a good story: security headers were configured, but
+`curl -I` showed they weren't being sent, because nginx drops server-level `add_header`
+directives inside any `location` block that sets its own. I only caught it because I verified
+the headers instead of assuming they worked.
+
 **"What would you do differently?"**
 Add refresh tokens with an HttpOnly cookie, build the AI evaluation set earlier, and put
 topics in a join table instead of JSON once the library grows.
@@ -123,6 +151,17 @@ These are moments where the obvious path was wrong and a deliberate decision was
    the blueprint said "minimize stored prompts." Resolution: store the structured feedback
    shown to the user, never the prompt that contained their code.
 5. **404 instead of 403** for other users' resources, so attackers can't confirm IDs exist.
+6. **Security headers that weren't being sent.** The nginx config looked right, but `curl -I`
+   showed no CSP. Cause: nginx's `add_header` inheritance rule. Fixed with a shared include
+   and verified in a browser.
+7. **Monaco loaded on every page.** A manual bundle-chunking rule made the landing page
+   preload the 700 KB editor. Removing it let the lazy route split it out, and I verified it
+   in the built `index.html`.
+8. **An accessibility bug found by a test.** The password field's label wrapped its help
+   text, so screen readers would announce the whole hint as the field's name. Fixed with a
+   reusable `Field` component that uses `aria-describedby`.
+9. **Chart colors validated, not eyeballed.** The first dashboard color pair failed a
+   colorblind-safety check, so I switched to a validated one-hue ordinal ramp.
 
 ## 6. Python concepts used here (for a Java developer)
 
@@ -144,15 +183,29 @@ These are moments where the obvious path was wrong and a deliberate decision was
 `api/deps.py` → `services/ai/service.py` → `services/ai/offline.py` →
 `services/ai/anthropic_provider.py` → `tests/test_ai_coach.py`.
 
+**Frontend concepts (TypeScript/React for a Java developer):**
+
+| Frontend | Closest Java idea | Where |
+|---|---|---|
+| TypeScript `interface` / generated types | DTO classes generated from an OpenAPI spec | `frontend/src/api/schema.d.ts` |
+| React component (a function returning JSX) | A view class whose render output depends only on its inputs | `frontend/src/features/` |
+| `useState` / `useEffect` hooks | Fields + lifecycle callbacks | `useDraft.ts` |
+| Context (`AuthProvider`) | A request-scoped singleton bean | `frontend/src/auth/` |
+| TanStack Query | A caching repository layer with retry policy | `frontend/src/api/queries.ts` |
+| MSW in tests | WireMock | `frontend/src/test/server.ts` |
+| Playwright | Selenium | `frontend/e2e/` |
+
 ## 7. How to demo it in an interview (5 minutes)
 
-1. `docker compose up --build`, then open `http://localhost:8000/docs`.
-2. `POST /api/v1/auth/guest` → copy the token → **Authorize**.
-3. `GET /api/v1/problems/two-sum` and point out `hidden_test_count`; the hidden tests aren't in the payload.
-4. `POST /api/v1/ai/hint` with level 3 → **409 hint_locked**. Then level 1 works.
-5. `POST /api/v1/ai/review` with a nested-loop solution → structured review flags O(n²) at line 3.
-6. `GET /api/v1/me/progress` and `/me/recommendations`, showing explainable reasons.
-7. Show the CI run and `pytest` passing on Postgres.
+1. `docker compose up --build`, then open `http://localhost:3000`.
+2. Click **Try it now**: a guest session opens *Two Sum* in the three-panel workspace.
+3. Paste a nested-loop solution. Note "Draft saved"; refresh, and it's still there.
+4. **Get a hint**, then unlock level 2. Explain that level 3 can't be requested early: the
+   server enforces the order (show the 409 in `/docs` if asked).
+5. **Code review** → it flags O(n²) vs. target O(n); click **line 3** and the editor highlights it.
+6. **Submit**: an honest "saved, not run yet" message. Explain the sandbox decision.
+7. **Dashboard**: stats, heatmap, topic bars, and the recommendation reasons.
+8. Show the GitHub Actions run: backend on Postgres, frontend, Playwright e2e.
 
 ---
 
@@ -171,7 +224,26 @@ These are moments where the obvious path was wrong and a deliberate decision was
 - Docker image built and run as non-root; the full `docker compose` stack (db → migrate →
   api) came up healthy.
 
-**Not yet verified / not built:**
+**Not yet verified / not built (as of the end of session 1):**
 - The live Claude API path (no API key in the build environment). Unit-tested with a fake client only.
-- GitHub Actions has not run yet. It runs on the first push or pull request.
-- Frontend (Phase 2), mock interviews (Phase 3), code execution (Phase 4, awaiting approval).
+- GitHub Actions had not run yet.
+
+### Session 1 (continued): frontend vertical slice (Phase 2)
+**Built and verified:**
+- React 18 + TypeScript + Vite app: landing, register/login/guest, problem library,
+  workspace (Monaco, resizable panels, autosaved drafts, Ctrl/⌘+Enter submit), hint ladder
+  restored from history, structured review with line highlighting, results panel, dashboard
+  (stat tiles, 28-day heatmap with table view, topic and difficulty progress), history, 404,
+  and a mobile tab layout.
+- API types generated from `docs/openapi.json`, with a drift check.
+- 41 Vitest tests passing; 3 Playwright journeys passing in Chromium against the real backend.
+- ESLint (0 warnings), strict TypeScript, production build; landing page loads about 98 KB of
+  gzipped JS, with Monaco lazy-loaded.
+- Production image (nginx-unprivileged) built; the full 4-service compose stack ran; CSP and
+  security headers verified with `curl` and in the browser (no console errors).
+- Backend copy fixes (pluralization, readable topic names): 103 backend tests passing.
+
+**Not yet verified / not built:**
+- The live Claude API path (still unit-tested with a fake client only).
+- GitHub Actions: workflows are committed; check the first run's result on GitHub.
+- Mock interviews (Phase 3); code execution (Phase 4, awaiting approval of the sandbox design).

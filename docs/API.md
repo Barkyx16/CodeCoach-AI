@@ -398,7 +398,7 @@ told the verdict is authoritative and must never contradict it.
 ```json
 {
   "review": {
-    "summary": "1 thing(s) to look at. Most important: Nested loops make this roughly O(n^2), but an O(n) approach exists.",
+    "summary": "1 thing to look at. Most important: Nested loops make this roughly O(n^2), but an O(n) approach exists.",
     "complexity": {"time": "O(n^2)", "space": "O(1)"},
     "issues": [{
       "severity": "medium",
@@ -474,7 +474,7 @@ Every recommendation has a human-readable `reason` and a `kind`:
 ```json
 [
   {"slug": "two-sum", "title": "Two Sum", "difficulty": "easy", "topics": ["arrays", "hash-maps"],
-   "reason": "You've submitted this 1 time(s) without a pass. Finish it while it's fresh.", "kind": "retry"},
+   "reason": "You've submitted this once without a pass. Finish it while it's fresh.", "kind": "retry"},
   {"slug": "find-largest-number", "title": "Find Largest Number", "difficulty": "easy", "topics": ["arrays", "iteration"],
    "reason": "Builds your weakest area so far: arrays.", "kind": "weak_topic"}
 ]

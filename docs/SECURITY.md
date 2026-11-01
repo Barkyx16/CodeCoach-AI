@@ -20,7 +20,9 @@ built yet**. Nothing in the "designed" sections should be described as working.
 | Error hygiene | Unexpected errors return a generic 500 with a request id; the stack trace only goes to logs | `errors.py` | — |
 | Health endpoints | Reveal no versions or infrastructure details | `routes/health.py` | ✅ |
 | Container | Non-root user, slim base image, no secrets baked in | `backend/Dockerfile` | ✅ (built and run) |
-| Dependencies | Pinned versions, `pip-audit` in CI, Dependabot | CI | ✅ |
+| Dependencies | Pinned versions, `pip-audit` and `npm audit --omit=dev` in CI, Dependabot for pip, npm and Actions | CI | ✅ |
+| Frontend headers | CSP (`script-src 'self'`, no third-party origins, `frame-ancestors 'none'`), `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options` on every response | `frontend/nginx.conf`, `security-headers.conf` | ✅ (verified in a browser, no CSP violations) |
+| XSS surface | React escapes output; Markdown is rendered without raw HTML; no `dangerouslySetInnerHTML`; no third-party scripts (Monaco is self-hosted) | `frontend/src` | — |
 
 ## 2. AI-specific safeguards
 
@@ -115,6 +117,9 @@ this design is approved.**
 - The AI evaluation suite (30+ labeled samples, spoiler and hallucination rates) is not built,
   so no AI accuracy claims are made anywhere.
 - Code execution is disabled (see §4).
+- `npm audit` reports a moderate `minimatch` advisory inside `openapi-typescript`, a
+  dev-only tool that runs on our own spec file at build time and never ships to browsers.
+  Production dependencies audit clean, and CI enforces that with `npm audit --omit=dev`.
 
 ## 6. Reporting
 

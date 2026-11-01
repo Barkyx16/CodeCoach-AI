@@ -70,7 +70,7 @@ class OfflineCoach:
             next_step = "Walk through the smallest edge cases by hand, then submit."
         else:
             top = issues[0]
-            summary = f"{len(issues)} thing(s) to look at. Most important: {top.detail}"
+            summary = f"{len(issues)} {'thing' if len(issues) == 1 else 'things'} to look at. Most important: {top.detail}"
             next_step = top.suggestion
 
         if ctx.judge_status:

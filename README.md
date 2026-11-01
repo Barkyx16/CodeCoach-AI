@@ -5,10 +5,15 @@ Learners solve curated data-structures-and-algorithms problems in a browser edit
 progressive AI hints and structured code reviews, and track their progress. Correctness always
 comes from test cases, never from the AI.
 
-> **Status: Phase 1 of 5 (backend foundation) complete.** The API, database, AI coach,
-> analytics, tests, Docker setup and CI are built and verified. The React frontend is next.
-> Running submitted Java is deliberately **disabled** until an isolated sandbox is approved;
-> see [docs/SECURITY.md](docs/SECURITY.md#4-secure-java-execution-design-not-yet-built-needs-approval).
+> **Status: Phases 1–2 of 5 complete.** The full-stack vertical slice works end to end:
+> React app → FastAPI → PostgreSQL, with the AI coach, analytics and history, verified by
+> unit, integration and real-browser tests. Running submitted Java is deliberately
+> **disabled** until an isolated sandbox is approved; see
+> [docs/SECURITY.md](docs/SECURITY.md#4-secure-java-execution-design-not-yet-built-needs-approval).
+
+| Workspace | Dashboard |
+|---|---|
+| ![Workspace with AI code review](docs/screenshots/02-workspace-review.png) | ![Progress dashboard](docs/screenshots/03-dashboard.png) |
 
 ## What works today
 
@@ -24,7 +29,8 @@ comes from test cases, never from the AI.
 | Submissions | Asynchronous job API with the full judge status model (queued; execution disabled) |
 | Analytics | Solved/attempted by topic and difficulty, streaks, 28-day activity, acceptance rate, weakest topics |
 | Recommendations | Explainable next problems: retry unfinished, strengthen weak topics, difficulty ladder |
-| Engineering | 102 pytest tests on SQLite **and** PostgreSQL, ruff, mypy, Alembic, Docker Compose, GitHub Actions, pip-audit, Prometheus metrics, JSON logs, request IDs, health checks |
+| Web app | React + TypeScript: landing, auth, problem library (URL-synced filters), resizable 3-panel workspace with Monaco and autosaved drafts, hint ladder, reviews that highlight the flagged line, dashboard (stat tiles, activity heatmap, topic progress), history; mobile layout |
+| Engineering | 103 backend tests (SQLite **and** PostgreSQL), 41 frontend tests, 3 Playwright end-to-end journeys against the real backend; ruff, mypy, ESLint, strict TypeScript; API types generated from OpenAPI; Alembic; Docker Compose (db, migrate, api, web); GitHub Actions; pip-audit, npm audit, Dependabot; Prometheus metrics, JSON logs, request IDs, health checks; CSP and security headers |
 
 ## Architecture
 
@@ -43,15 +49,20 @@ Full write-up: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 cp .env.example .env        # optional for local dev
 docker compose up --build
 ```
-Then open <http://localhost:8000/docs> for interactive API docs.
+Open the app at <http://localhost:3000> and the interactive API docs at <http://localhost:8000/docs>.
 
-**Without Docker:**
+**Without Docker** (two terminals):
 ```bash
 cd backend
 python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
 export DATABASE_URL=sqlite:///./codecoach.db           # or point at your PostgreSQL
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload                          # http://localhost:8000
+```
+```bash
+cd frontend
+npm install
+npm run dev                                            # http://localhost:5173
 ```
 
 **Use Claude for the AI coach (optional):** set `AI_PROVIDER=anthropic` and
@@ -61,15 +72,23 @@ uvicorn app.main:app --reload
 
 ```bash
 cd backend
-pytest                                    # 102 tests (SQLite)
+pytest                                    # 103 tests (SQLite)
 TEST_DATABASE_URL=postgresql+psycopg://codecoach:codecoach@localhost:5432/codecoach_test pytest
 ruff check . && ruff format --check .     # lint + formatting
 mypy app                                  # type check
 python scripts/verify_reference_solutions.py   # needs a JDK: proves every test case is correct
 pip-audit -r requirements.txt             # known-vulnerability scan
 ```
-CI runs all of the above on every push and pull request, plus a migration round-trip and a
-Docker build: [.github/workflows/ci.yml](.github/workflows/ci.yml).
+```bash
+cd frontend
+npm run lint && npm run typecheck         # ESLint + strict TypeScript
+npm run api:check                         # generated API types match docs/openapi.json
+npm test                                  # 41 unit + integration tests (Vitest, MSW)
+npm run build                             # production bundle
+PYTHON=../backend/.venv/bin/python npm run e2e   # Playwright: real browser + real backend
+```
+CI runs all of the above on every push and pull request, plus a migration round-trip and
+Docker builds: [.github/workflows/ci.yml](.github/workflows/ci.yml).
 
 ## Documentation
 
@@ -79,7 +98,7 @@ Docker build: [.github/workflows/ci.yml](.github/workflows/ci.yml).
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Components, data flow, AI design, decisions and trade-offs, roadmap |
 | [docs/DATABASE.md](docs/DATABASE.md) | Tables, relationships, indexes, migrations |
 | [docs/SECURITY.md](docs/SECURITY.md) | Implemented controls, AI safeguards, sandbox threat model and design |
-| [docs/FRONTEND_HANDOFF.md](docs/FRONTEND_HANDOFF.md) | Screens, states, components and tokens for the design pass (arrives with the frontend) |
+| [docs/FRONTEND_HANDOFF.md](docs/FRONTEND_HANDOFF.md) | Screens, states, components, tokens and test-safe restyling rules for the design pass |
 | [docs/openapi.json](docs/openapi.json) | Machine-readable API contract (kept in sync by a test) |
 | [RESUME_LIFTER.md](RESUME_LIFTER.md) | How to explain this project in interviews and on a resume |
 
@@ -88,7 +107,7 @@ Docker build: [.github/workflows/ci.yml](.github/workflows/ci.yml).
 ```
 backend/     FastAPI app, models, services, migrations, tests, Dockerfile
 docs/        Architecture, API, database, security, frontend handoff
-frontend/    React + TypeScript app (Phase 2)
+frontend/    React + TypeScript app, Vitest tests, Playwright e2e, nginx Dockerfile
 .github/     CI workflow and Dependabot
 docker-compose.yml, .env.example
 ```
@@ -96,8 +115,8 @@ docker-compose.yml, .env.example
 ## Roadmap
 
 1. ✅ Backend foundation
-2. ⏳ Frontend vertical slice: library → workspace (Monaco) → hints/review → dashboard
-3. Mock interviews: timed sessions, interviewer follow-ups, rubric scoring, history
+2. ✅ Frontend vertical slice: library → workspace (Monaco) → hints/review → dashboard → history
+3. ⏳ Mock interviews: timed sessions, interviewer follow-ups, rubric scoring, history
 4. Isolated Java runner: **awaiting approval of the sandbox design**
 5. Deployment, refresh tokens, Redis-backed limits, AI evaluation suite
 

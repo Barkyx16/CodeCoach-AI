@@ -12,4 +12,6 @@ def test_committed_openapi_matches_code(client):
     if not OPENAPI_PATH.exists():
         pytest.skip("docs/openapi.json not present (e.g. inside the Docker build context)")
     committed = json.loads(OPENAPI_PATH.read_text())
-    assert committed == client.app.openapi(), "API changed: run `python -m app.cli openapi` and commit the result"
+    assert committed == client.app.openapi(), (
+        "API changed: run `python -m app.cli openapi` and commit the result"
+    )

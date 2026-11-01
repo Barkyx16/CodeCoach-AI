@@ -65,6 +65,14 @@ class _ProblemFacts:
         return "in_progress" if (self.opened or self.hints or self.reviews) else "not_started"
 
 
+def _times(n: int) -> str:
+    return {1: "once", 2: "twice"}.get(n, f"{n} times")
+
+
+def _topic_label(topic: str) -> str:
+    return topic.replace("-", " ")
+
+
 def _aware(dt: datetime) -> datetime:
     # SQLite returns naive datetimes; Postgres returns aware ones. Normalize to UTC.
     return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
@@ -254,7 +262,7 @@ class ProgressService:
         ):
             add(
                 f,
-                f"You've submitted this {f.submissions} time(s) without a pass. Finish it while it's fresh.",
+                f"You've submitted this {_times(f.submissions)} without a pass. Finish it while it's fresh.",
                 "retry",
             )
 
@@ -271,7 +279,7 @@ class ProgressService:
                 key=lambda f: (_DIFFICULTY_RANK[f.problem.difficulty], f.problem.order_index),
             )
             for f in candidates[:1]:
-                add(f, f"Builds your weakest area so far: {topic}.", "weak_topic")
+                add(f, f"Builds your weakest area so far: {_topic_label(topic)}.", "weak_topic")
 
         # 3. Difficulty ladder over everything not yet touched.
         fresh = [f for f in values if not f.solved and not f.attempted]
@@ -284,7 +292,7 @@ class ProgressService:
 
         for f in sorted(fresh, key=ladder_key):
             if f.problem.difficulty == Difficulty.EASY:
-                reason = f"A solid {', '.join(f.problem.topics[:2])} fundamental."
+                reason = f"A solid {' and '.join(_topic_label(t) for t in f.problem.topics[:2])} fundamental."
             elif set(f.problem.topics) & solved_easy_topics:
                 reason = "You've solved an easy problem in this area. Ready for a step up."
             else:
