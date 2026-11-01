@@ -43,6 +43,17 @@ class ChangePasswordRequest(APIModel):
         return _password_rules(v)
 
 
+class UpdateProfileRequest(APIModel):
+    display_name: str | None = Field(default=None, min_length=1, max_length=40)
+
+
+class DeleteAccountRequest(APIModel):
+    password: str | None = Field(
+        default=None, max_length=128, description="Required for email/password accounts; omitted for guests"
+    )
+    confirm: str = Field(description='Must be the word "DELETE" to prevent accidents', examples=["DELETE"])
+
+
 class UserOut(APIModel):
     id: str
     email: str | None

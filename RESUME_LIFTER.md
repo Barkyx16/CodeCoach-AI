@@ -235,6 +235,15 @@ These are moments where the obvious path was wrong and a deliberate decision was
 15. **A config fix that never applied.** My earlier `env.py` fix for migrations silently
     didn't apply (the text had been reformatted), and the next migration had the same bug. I
     fixed it, verified the output, and added a test that fails if any migration imports app code.
+16. **Account deletion that wouldn't have deleted.** SQLite ignores foreign keys unless you
+    switch them on per connection, so "delete my account" would have left orphaned data in
+    local runs while PostgreSQL cascaded correctly. I turned FK enforcement on, and a test now
+    counts every table's rows for the deleted user on both databases.
+17. **Signing out sent people to the login page.** After deleting an account, the router
+    (which renders navigations as transitions) still had the protected Settings page mounted,
+    and its guard redirected to login. The fix is semantic: the auth state records a
+    *deliberate* sign-out, so guards send the user home, while an *expired* session still goes
+    to login with an explanation.
 
 ## 6. Python concepts used here (for a Java developer)
 
@@ -373,3 +382,17 @@ These are moments where the obvious path was wrong and a deliberate decision was
 - Peak-memory measurement per submission (`memory_kb` stays `null` rather than invented).
 - Production deployment on a dedicated gVisor VM (Phase 5).
 - The new CI `sandbox` job's first run on GitHub (it installs gVisor on GitHub's runners).
+
+### Session 2 (continued): account & privacy settings
+**Built and verified:**
+- `PATCH /api/v1/auth/me` (display name), `DELETE /api/v1/auth/me` (password + typed
+  confirmation; cascading delete), `GET /api/v1/me/export` (everything about the user except credentials).
+- SQLite foreign-key enforcement, so cascades behave the same as on PostgreSQL.
+- Settings page: profile, password change (adopts the new token), AI & privacy notice, data
+  download, delete account. Accessible header link to it.
+- Deliberate sign-out goes home; an expired or revoked session goes to login.
+- 7 backend account tests (both databases), 6 new frontend tests, and the Playwright account
+  journey now renames and deletes the account in a real browser.
+- **CI on GitHub: all 7 jobs green for Phase 4, including the sandbox job that installed gVisor
+  on GitHub's runners and attacked it with the threat-model suite.**
+- Totals: 172 backend tests (18 in the real sandbox), 28 runner, 57 frontend, 5 Playwright journeys.

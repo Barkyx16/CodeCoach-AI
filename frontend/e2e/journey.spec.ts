@@ -120,4 +120,23 @@ test("account journey: register, filter library, sign out, sign in", async ({ pa
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByText("Ada's progress")).toBeVisible();
+
+  // Settings: rename, then permanently delete the account.
+  await page.getByRole("link", { name: /account settings/ }).click();
+  await page.getByLabel("Display name").fill("Ada L.");
+  await page.getByRole("button", { name: "Save profile" }).click();
+  await expect(page.getByRole("banner").getByText("Ada L.")).toBeVisible();
+  await page.screenshot({ path: "e2e/screenshots/09-settings.png", fullPage: true });
+  const danger = page.getByRole("form", { name: "Delete account" });
+  await danger.getByLabel("Password").fill("CorrectHorse42");
+  await danger.getByLabel('Type "DELETE" to confirm').fill("DELETE");
+  await danger.getByRole("button", { name: "Delete my account" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
+  // The account is really gone.
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill("CorrectHorse42");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page.getByRole("alert")).toContainText("Incorrect email or password");
 });

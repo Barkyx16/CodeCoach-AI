@@ -165,6 +165,9 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 | GET | `/api/v1/auth/me` | 🔒 | Current user |
 | POST | `/api/v1/auth/logout` | 🔒 | Revoke all of this user's tokens |
 | POST | `/api/v1/auth/password` | 🔒 | Change password → new token |
+| PATCH | `/api/v1/auth/me` | 🔒 | Update display name |
+| DELETE | `/api/v1/auth/me` | 🔒 | Permanently delete the account and all data |
+| GET | `/api/v1/me/export` | 🔒 | Download all of your data (JSON) |
 | GET | `/api/v1/problems` | – | List / filter / search problems |
 | GET | `/api/v1/topics` | – | Topics with counts (for filter chips) |
 | GET | `/api/v1/problems/{slug}` | optional | Problem workspace data |
@@ -256,6 +259,25 @@ No body. Every token previously issued to this user stops working.
 ```
 Returns a fresh `TokenResponse`; all older tokens are revoked. `401 invalid_credentials`
 if the current password is wrong (or the user is a guest).
+
+#### `PATCH /api/v1/auth/me` 🔒 → `200`
+`{"display_name": "Grace"}` (1–40 chars, or `null` to clear). Returns the updated `user`.
+
+#### `DELETE /api/v1/auth/me` 🔒 → `204`
+```json
+{"password": "CorrectHorse42", "confirm": "DELETE"}
+```
+`confirm` must be exactly `DELETE` (`400 confirmation_required` otherwise). `password` is
+required for email/password accounts (`401 invalid_credentials` if wrong) and omitted for
+guests. Submissions, results, AI feedback, interviews and activity are deleted in the same
+transaction (database `ON DELETE CASCADE`), and all tokens stop working. The email can be
+registered again afterwards.
+
+#### `GET /api/v1/me/export` 🔒 → `200`
+A downloadable JSON document (`Content-Disposition: attachment`, `Cache-Control: no-store`):
+`{export_version, exported_at, profile, submissions[], ai_feedback[], interviews[], activity[]}`.
+Submissions include your source code and results; interviews include full transcripts and
+evaluations. Credentials (password hash, token version) are never included.
 
 ### Problems
 

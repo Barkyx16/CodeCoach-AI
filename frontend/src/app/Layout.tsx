@@ -25,9 +25,10 @@ export function Layout() {
         <div className="header__account">
           {isAuthenticated ? (
             <>
-              <span className="header__user" title={user?.email ?? "Guest session: progress is saved on this device's session only"}>
+              <NavLink to="/settings" className="header__user" title="Account settings"
+                aria-label={`${user?.is_guest ? "Guest" : (user?.display_name ?? user?.email ?? "")}, account settings`}>
                 {user?.is_guest ? <span className="badge">Guest</span> : (user?.display_name ?? user?.email)}
-              </span>
+              </NavLink>
               <Button variant="ghost" size="sm" onClick={async () => { await logout(); navigate("/"); }}>
                 Sign out
               </Button>

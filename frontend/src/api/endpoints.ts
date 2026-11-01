@@ -47,6 +47,13 @@ export const api = {
     }),
   me: () => apiRequest<User>("/api/v1/auth/me"),
   logout: () => apiRequest<void>("/api/v1/auth/logout", { method: "POST" }),
+  updateProfile: (body: { display_name: string | null }) =>
+    apiRequest<User>("/api/v1/auth/me", { method: "PATCH", body }),
+  changePassword: (body: { current_password: string; new_password: string }) =>
+    apiRequest<TokenResponse>("/api/v1/auth/password", { method: "POST", body }),
+  deleteAccount: (body: { password?: string; confirm: string }) =>
+    apiRequest<void>("/api/v1/auth/me", { method: "DELETE", body }),
+  exportData: () => apiRequest<Record<string, unknown>>("/api/v1/me/export"),
 
   // problems
   problems: (filters: ProblemFilters = {}, signal?: AbortSignal) =>

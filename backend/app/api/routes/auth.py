@@ -11,10 +11,12 @@ from app.errors import AppError, ConflictError, RateLimitedError, UnauthorizedEr
 from app.models import User, new_id
 from app.schemas.auth import (
     ChangePasswordRequest,
+    DeleteAccountRequest,
     GuestSessionRequest,
     LoginRequest,
     RegisterRequest,
     TokenResponse,
+    UpdateProfileRequest,
     UserOut,
 )
 from app.schemas.common import error_responses
@@ -166,3 +168,35 @@ def change_password(
     user.token_version += 1
     db.commit()
     return _token_response(user, settings)
+
+
+@router.patch("/me", response_model=UserOut, responses=_ERRORS, summary="Update your profile")
+def update_me(
+    body: UpdateProfileRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> User:
+    user.display_name = body.display_name.strip() if body.display_name else None
+    db.commit()
+    return user
+
+
+@router.delete(
+    "/me",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses=_ERRORS,
+    summary="Permanently delete your account and all of your data",
+)
+def delete_me(
+    body: DeleteAccountRequest,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    _throttle(request)
+    if body.confirm != "DELETE":
+        raise AppError('Type "DELETE" to confirm.', code="confirmation_required")
+    if not user.is_guest and not verify_password(user.password_hash, body.password or ""):
+        raise UnauthorizedError("Password is incorrect", code="invalid_credentials")
+    # Submissions, results, AI interactions, interview sessions/turns and progress events are
+    # removed by ON DELETE CASCADE foreign keys, in the same transaction.
+    db.delete(user)
+    db.commit()

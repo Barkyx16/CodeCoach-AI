@@ -24,7 +24,7 @@ comes from test cases, never from the AI.
 |---|---|
 | Problem library | 12 curated Java problems (10 easy, 2 medium), 88 test cases (public + hidden), search, filters, pagination |
 | Verified test data | Every problem ships with a trusted reference solution, and CI compiles and runs all of them against every test case |
-| Accounts | Register and login (Argon2id + JWT), guest demo sessions, logout-everywhere, password change, brute-force limiting |
+| Accounts | Register and login (Argon2id + JWT), guest demo sessions, logout-everywhere, password change, brute-force limiting; settings page with profile edit, **full data export** and **account deletion** (cascading, verified on SQLite and PostgreSQL) |
 | AI hints | 4-level progressive ladder (nudge → concept → pseudocode → explanation), unlock order enforced by the server |
 | AI code review | Structured JSON: complexity, issues with severity, category and line, strengths, next step, confidence |
 | AI providers | `offline` (curated hints + static analysis; free, deterministic) or `anthropic` (Claude via structured outputs) with automatic fallback |
@@ -34,7 +34,7 @@ comes from test cases, never from the AI.
 | Analytics | Solved/attempted by topic and difficulty, streaks, 28-day activity, acceptance rate, weakest topics |
 | Recommendations | Explainable next problems: retry unfinished, strengthen weak topics, difficulty ladder |
 | Web app | React + TypeScript: landing, auth, problem library (URL-synced filters), resizable 3-panel workspace with Monaco and autosaved drafts, hint ladder, reviews that highlight the flagged line, dashboard (stat tiles, activity heatmap, topic progress), history; mobile layout |
-| Engineering | 165 backend tests (SQLite **and** PostgreSQL, incl. 18 against the real sandbox), 28 runner tests, 51 frontend tests, 5 Playwright end-to-end journeys against the real backend; ruff, mypy, ESLint, strict TypeScript; API types generated from OpenAPI; Alembic; Docker Compose (db, migrate, api, web); GitHub Actions; pip-audit, npm audit, Dependabot; Prometheus metrics, JSON logs, request IDs, health checks; CSP and security headers |
+| Engineering | 172 backend tests (SQLite **and** PostgreSQL, incl. 18 against the real sandbox), 28 runner tests, 57 frontend tests, 5 Playwright end-to-end journeys against the real backend; ruff, mypy, ESLint, strict TypeScript; API types generated from OpenAPI; Alembic; Docker Compose (db, migrate, api, web); GitHub Actions; pip-audit, npm audit, Dependabot; Prometheus metrics, JSON logs, request IDs, health checks; CSP and security headers |
 
 ## Architecture
 
@@ -92,7 +92,7 @@ pip-audit -r requirements.txt             # known-vulnerability scan
 cd frontend
 npm run lint && npm run typecheck         # ESLint + strict TypeScript
 npm run api:check                         # generated API types match docs/openapi.json
-npm test                                  # 51 unit + integration tests (Vitest, MSW)
+npm test                                  # 57 unit + integration tests (Vitest, MSW)
 npm run build                             # production bundle
 PYTHON=../backend/.venv/bin/python npm run e2e   # Playwright: real browser + real backend
 ```

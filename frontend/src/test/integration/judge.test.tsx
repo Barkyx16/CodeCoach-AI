@@ -15,9 +15,11 @@ function serveSequence(states: Submission[]) {
   let calls = 0;
   server.use(
     http.post(`${API}/api/v1/submissions`, () => HttpResponse.json(states[0], { status: 202 })),
+    // Each GET returns the next state in order: the job is seen QUEUED, then RUNNING, then judged.
     http.get(`${API}/api/v1/submissions/:id`, () => {
+      const state = states[Math.min(calls, states.length - 1)];
       calls += 1;
-      return HttpResponse.json(states[Math.min(calls, states.length - 1)]);
+      return HttpResponse.json(state);
     }),
   );
   return () => calls;

@@ -12,6 +12,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [session, setSession] = useState<Session | null>(() => loadSession());
   const [signedOutReason, setSignedOutReason] = useState<string | null>(null);
+  // True after the user chose to leave (logout, account deletion), so route guards send them
+  // home instead of to the login page.
+  const [signedOutDeliberately, setSignedOutDeliberately] = useState(false);
   // A ref lets the API client read the current token synchronously without re-wiring.
   const sessionRef = useRef(session);
   useLayoutEffect(() => {
@@ -22,6 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     saveSession(null);
     setSession(null);
     setSignedOutReason(reason);
+    setSignedOutDeliberately(reason === null);
     queryClient.removeQueries({ queryKey: ["me"] });
   }, [queryClient]);
 
@@ -49,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionRef.current = next;
     setSession(next);
     setSignedOutReason(null);
+    setSignedOutDeliberately(false);
     queryClient.removeQueries({ queryKey: ["me"] });
     return next.user;
   }, [queryClient]);
@@ -57,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user: session?.user ?? null,
     isAuthenticated: session !== null,
     signedOutReason,
+    signedOutDeliberately,
     login: async (body) => adopt(await api.login(body)),
     register: async (body) => adopt(await api.register(body)),
     continueAsGuest: async (displayName) => adopt(await api.guest(displayName)),
@@ -68,7 +74,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       clear(null);
     },
-  }), [session, signedOutReason, adopt, clear]);
+    setUser: (user) => {
+      setSession((current) => {
+        if (!current) return current;
+        const next = { ...current, user };
+        saveSession(next);
+        return next;
+      });
+    },
+    adoptToken: (response) => {
+      adopt(response);
+    },
+    forget: () => clear(null),
+  }), [session, signedOutReason, signedOutDeliberately, adopt, clear]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

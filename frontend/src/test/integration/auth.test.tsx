@@ -61,4 +61,11 @@ describe("Authentication", () => {
     await waitFor(() => expect(revoked).toBe(true));
     expect(await screen.findByRole("link", { name: "Sign in" })).toBeInTheDocument();
   });
+
+  it("sends a deliberate sign-out from a protected page home, not to login", async () => {
+    const { user, router } = renderApp("/dashboard", { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Sign out" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/"));
+    expect(screen.queryByText(/Your session/)).not.toBeInTheDocument();
+  });
 });

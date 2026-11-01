@@ -23,7 +23,7 @@
 .nav__link:hover { color: var(--color-text); background: var(--color-surface-raised); text-decoration: none; }
 .nav__link--active { color: var(--color-text); background: var(--color-surface-raised); }
 .header__account { margin-left: auto; display: flex; align-items: center; gap: var(--space-3); }
-.header__user { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); color: var(--color-text-muted); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.header__user { color: var(--color-text-muted); text-decoration: none; display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); color: var(--color-text-muted); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 @media (max-width: 720px) {
   .header { gap: var(--space-3); padding: 0 var(--space-3); }

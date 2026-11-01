@@ -8,6 +8,7 @@ import { LoginPage, RegisterPage } from "@/features/auth/AuthPages";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
 import { HistoryPage } from "@/features/history/HistoryPage";
 import { InterviewStartPage } from "@/features/interview/InterviewStartPage";
+import { SettingsPage } from "@/features/settings/SettingsPage";
 import { LandingPage } from "@/features/landing/LandingPage";
 import { ProblemListPage } from "@/features/problems/ProblemListPage";
 
@@ -47,6 +48,7 @@ export const routes: RouteObject[] = [
       },
       { path: "/dashboard", element: <RequireAuth><DashboardPage /></RequireAuth> },
       { path: "/history", element: <RequireAuth><HistoryPage /></RequireAuth> },
+      { path: "/settings", element: <RequireAuth><SettingsPage /></RequireAuth> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

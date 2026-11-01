@@ -140,7 +140,15 @@ Tabs: **Submissions** (table: problem, status, submitted, runtime) and **AI feed
   Focus next time, a collapsible transcript, and the final code.
 - History has an **Interviews** tab using the same row component.
 
-### 3.8 Global
+### 3.8 Settings — `/settings` (`features/settings/SettingsPage.tsx`) · `09-settings.png`
+Reached by clicking the user's name in the header. Cards: **Profile** (display name) ·
+**Password** (hidden for guests; changing it signs out other devices) · **AI coach & privacy**
+(budget used, which coach is active, plain-language notes on what's sent and stored) · **Your
+data** (JSON download) · **Delete account** (danger styling; password + typing `DELETE` enables
+the button; afterwards the user lands on the home page, signed out).
+States per card: idle · saving · saved confirmation (`role="status"`) · error.
+
+### 3.9 Global
 - Header: brand, nav (Practice, plus Interview, Dashboard and History when signed in), account area
   (name, or a "Guest" badge, with Sign out; signed-out users see Sign in and Create account).
 - Session-ended banner under the header when a token expires or is revoked.
