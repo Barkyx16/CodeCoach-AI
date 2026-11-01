@@ -505,6 +505,8 @@ These are moments where the obvious path was wrong and a deliberate decision was
   judge journey now asks for an explanation.
 - Totals: 286 backend tests (79 in the real gVisor sandbox), 28 runner,
   60 frontend, 5 Playwright journeys.
+- **CI on GitHub: all 7 jobs green**, including the sandbox job running the 9 explain scenarios
+  and the judge journey on GitHub's runners with gVisor.
 
 **Not yet verified / not built:**
 - Claude's explanations with a live key (fake-client tests only, as for hints and reviews).
