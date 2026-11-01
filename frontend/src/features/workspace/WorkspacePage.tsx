@@ -2,7 +2,8 @@ import { useId, useState, type ReactNode } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
-import { useProblem, useSubmission, useSubmit } from "@/api/queries";
+import { useCapabilities, useProblem, useSubmission, useSubmit } from "@/api/queries";
+import type { SubmissionMode } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/Button";
 import { ErrorState, LoadingState } from "@/components/States";
@@ -42,6 +43,8 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
   const isNarrow = useMediaQuery("(max-width: 900px)");
   const draft = useDraft(problem.slug, problem.starter_code, user?.id ?? "anon");
   const submit = useSubmit();
+  const canRun = useCapabilities().data?.execution_enabled === true;
+  const [pendingMode, setPendingMode] = useState<SubmissionMode>("submit");
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const submission = useSubmission(submissionId);
   const [highlightLine, setHighlightLine] = useState<number | null>(null);
@@ -52,11 +55,12 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
 
   const goSignIn = () => navigate("/login", { state: { from: `/problems/${problem.slug}` } });
 
-  async function handleSubmit() {
+  async function handleSubmit(mode: SubmissionMode = "submit") {
     if (!isAuthenticated) return goSignIn();
     if (submit.isPending || judging) return;
+    setPendingMode(mode);
     try {
-      const created = await submit.mutateAsync({ problem_slug: problem.slug, language: "java", source_code: draft.code });
+      const created = await submit.mutateAsync({ problem_slug: problem.slug, language: "java", source_code: draft.code, mode });
       setSubmissionId(created.id);
       if (isNarrow) setMobileTab("code");
     } catch {
@@ -80,7 +84,15 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
           onClick={() => { if (window.confirm("Reset to the starter code? Your draft will be lost.")) draft.reset(); }}>
           Reset
         </Button>
-        <Button size="sm" variant="primary" loading={submit.isPending} disabled={judging} onClick={() => void handleSubmit()}
+        {canRun && (
+          <Button size="sm" variant="secondary" loading={submit.isPending && pendingMode === "run"}
+            disabled={judging || (submit.isPending && pendingMode !== "run")} onClick={() => void handleSubmit("run")}
+            title="Run the public tests only (Ctrl/⌘ + ')">
+            Run
+          </Button>
+        )}
+        <Button size="sm" variant="primary" loading={submit.isPending && pendingMode === "submit"}
+          disabled={judging || (submit.isPending && pendingMode !== "submit")} onClick={() => void handleSubmit()}
           title="Submit (Ctrl/⌘ + Enter)">
           Submit <Icon name="arrow" size={14} />
         </Button>
@@ -94,7 +106,7 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
       {toolbar}
       {showSettings && <div id={settingsId} className="editor-options"><EditorPreferencesControls /></div>}
       <CodeEditor value={draft.code} onChange={(v) => { draft.setCode(v); setHighlightLine(null); }}
-        onSubmit={() => void handleSubmit()} highlightLine={highlightLine} />
+        onSubmit={() => void handleSubmit()} onRun={canRun ? () => void handleSubmit("run") : undefined} highlightLine={highlightLine} />
     </div>
   );
   const results = (

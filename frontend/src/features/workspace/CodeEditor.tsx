@@ -11,24 +11,29 @@ interface CodeEditorProps {
   value: string;
   onChange(value: string): void;
   onSubmit?(): void;
+  /** Ctrl/Cmd + ' runs the public tests (when the deployment supports running code). */
+  onRun?(): void;
   /** 1-based line to reveal and highlight (e.g. from an AI review issue). */
   highlightLine?: number | null;
 }
 
-export function CodeEditor({ value, onChange, onSubmit, highlightLine }: CodeEditorProps) {
+export function CodeEditor({ value, onChange, onSubmit, onRun, highlightLine }: CodeEditorProps) {
   const { preferences } = useEditorPreferences();
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const decorations = useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
   const submitRef = useRef(onSubmit);
+  const runRef = useRef(onRun);
   useEffect(() => {
     submitRef.current = onSubmit;
-  }, [onSubmit]);
+    runRef.current = onRun;
+  }, [onSubmit, onRun]);
 
   const handleMount: OnMount = (editor, monacoApi) => {
     editorRef.current = editor;
     decorations.current = editor.createDecorationsCollection();
     // Ctrl/Cmd + Enter submits, matching most online judges.
     editor.addCommand(monacoApi.KeyMod.CtrlCmd | monacoApi.KeyCode.Enter, () => submitRef.current?.());
+    editor.addCommand(monacoApi.KeyMod.CtrlCmd | monacoApi.KeyCode.Quote, () => runRef.current?.());
   };
 
   useEffect(() => {

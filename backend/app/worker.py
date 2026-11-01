@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session, selectinload, sessionmaker
 
 from app.config import Settings, get_settings
 from app.db.session import make_engine, make_session_factory
-from app.models import ProgressEvent, ProgressEventType, Submission, SubmissionStatus
+from app.models import ProgressEvent, ProgressEventType, Submission, SubmissionMode, SubmissionStatus
 from app.observability import configure_logging
 from app.services.judge.judge import STATUS_DETAIL, JudgeInfrastructureError, judge_submission
 from app.services.judge.runner_client import HttpRunner, Runner, RunnerUnavailable
@@ -117,7 +117,7 @@ class JudgeWorker:
             sub.judged_at = _now()
             sub.test_version = max((t.version for t in tests), default=None)
             sub.result = verdict.result
-            if verdict.status == SubmissionStatus.PASSED:
+            if verdict.status == SubmissionStatus.PASSED and sub.mode == SubmissionMode.SUBMIT:
                 db.add(
                     ProgressEvent(
                         user_id=sub.user_id, problem_id=sub.problem_id, event_type=ProgressEventType.SOLVED

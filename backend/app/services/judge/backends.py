@@ -33,6 +33,11 @@ class JudgeBusyError(AppError):
     code = "judge_busy"
 
 
+class ExecutionDisabledError(AppError):
+    status_code = 503
+    code = "execution_disabled"
+
+
 class ExecutionBackend(Protocol):
     name: str
     enabled: bool

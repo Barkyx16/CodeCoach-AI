@@ -2,6 +2,7 @@
 import { apiRequest } from "./client";
 import type {
   AIHistoryAction,
+  Capabilities,
   AIHistoryItem,
   AIUsage,
   Difficulty,
@@ -63,6 +64,8 @@ export const api = {
   topics: () => apiRequest<TopicCount[]>("/api/v1/topics"),
   problem: (slug: string, signal?: AbortSignal) =>
     apiRequest<ProblemDetail>(`/api/v1/problems/${encodeURIComponent(slug)}`, { signal }),
+
+  capabilities: () => apiRequest<Capabilities>("/api/v1/capabilities"),
 
   // submissions
   submit: (body: SubmissionCreate) => apiRequest<Submission>("/api/v1/submissions", { method: "POST", body }),

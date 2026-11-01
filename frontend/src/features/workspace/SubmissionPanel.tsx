@@ -21,6 +21,8 @@ const STATUS_COPY: Partial<Record<Submission["status"], string>> = {
   INTERNAL_ERROR: "The judge had a problem. This wasn't your fault; try again.",
 };
 
+const isRunMode = (s: Submission) => s.mode === "run";
+
 /** Verdicts caused by the learner's code, which the coach can explain. */
 const EXPLAINABLE: ReadonlySet<Submission["status"]> = new Set([
   "FAILED", "COMPILE_ERROR", "RUNTIME_ERROR", "TIME_LIMIT", "MEMORY_LIMIT",
@@ -45,16 +47,20 @@ export function SubmissionPanel({ submission, error, onHighlightLine }: Submissi
   }
   const running = !submission.is_terminal && submission.execution_enabled;
   const statusText = running
-    ? submission.status === "RUNNING" ? "Running your code against the tests…" : submission.status_detail
+    ? submission.status === "RUNNING"
+      ? isRunMode(submission) ? "Running your code against the public tests…" : "Running your code against the tests…"
+      : submission.status_detail
     : null;
   const result = submission.result;
+  const isRun = submission.mode === "run";
   return (
     <div className="results" aria-live="polite">
       <h2 className="section-title results__label"><Icon name="terminal" size={15} />Execution results</h2>
       <div className="results__header">
         <StatusBadge status={submission.status} />
         {running && <Spinner size="sm" label="Judging" />}
-        <span className="subtle">Submitted {timeAgo(submission.created_at)}</span>
+        {isRun && <span className="badge badge--info">Run · public tests only</span>}
+        <span className="subtle">{isRun ? "Ran" : "Submitted"} {timeAgo(submission.created_at)}</span>
       </div>
       {statusText && <p className="subtle" role="status">{statusText}</p>}
 
@@ -67,7 +73,9 @@ export function SubmissionPanel({ submission, error, onHighlightLine }: Submissi
 
       {submission.is_terminal && STATUS_COPY[submission.status] && (
         <p className={submission.status === "PASSED" ? "results__verdict results__verdict--pass" : "results__verdict"}>
-          {STATUS_COPY[submission.status]}
+          {isRun && submission.status === "PASSED"
+            ? "All public tests passed. Submit to check the hidden tests and record the attempt."
+            : STATUS_COPY[submission.status]}
         </p>
       )}
 

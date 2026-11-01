@@ -10,6 +10,7 @@ from app.models import (
     ProgressEvent,
     ProgressEventType,
     Submission,
+    SubmissionMode,
     SubmissionStatus,
     User,
 )
@@ -19,6 +20,7 @@ from app.schemas.submission import (
     SubmissionDetail,
     SubmissionListItem,
 )
+from app.services.judge.backends import ExecutionDisabledError
 from app.services.judge.views import public_result_view
 
 router = APIRouter(prefix="/api/v1", tags=["submissions"])
@@ -32,6 +34,7 @@ def to_detail(sub: Submission, execution_enabled: bool) -> SubmissionDetail:
         problem_slug=sub.problem.slug,
         problem_title=sub.problem.title,
         language=sub.language,
+        mode=sub.mode,
         status=sub.status,
         status_detail=sub.status_detail,
         is_terminal=sub.status.is_terminal,
@@ -67,18 +70,25 @@ def create_submission(
     if problem is None:
         raise NotFoundError(f"Problem '{body.problem_slug}' not found")
     backend = request.app.state.execution_backend
+    if body.mode == SubmissionMode.RUN and not backend.enabled:
+        # A queued run that can never execute is useless; a submission is still worth saving.
+        raise ExecutionDisabledError(
+            "Running code isn't available on this deployment. Submit to save your attempt."
+        )
     backend.admit(db, user)
     sub = Submission(
         user_id=user.id,
         problem_id=problem.id,
         language=body.language,
         source_code=body.source_code,
+        mode=body.mode,
         status=SubmissionStatus.QUEUED,
     )
     db.add(sub)
     db.flush()
     backend.enqueue(db, sub)
-    db.add(ProgressEvent(user_id=user.id, problem_id=problem.id, event_type=ProgressEventType.SUBMITTED))
+    if body.mode == SubmissionMode.SUBMIT:
+        db.add(ProgressEvent(user_id=user.id, problem_id=problem.id, event_type=ProgressEventType.SUBMITTED))
     db.commit()
     db.refresh(sub)
     return to_detail(sub, backend.enabled)
@@ -118,10 +128,13 @@ def list_my_submissions(
     db: Session = Depends(get_db),
     problem_slug: str | None = Query(default=None, max_length=80),
     status_filter: SubmissionStatus | None = Query(default=None, alias="status"),
+    mode: SubmissionMode = Query(
+        default=SubmissionMode.SUBMIT, description="`submit` (default): attempts. `run`: public-test runs."
+    ),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
 ) -> Page[SubmissionListItem]:
-    stmt = select(Submission).join(Problem).where(Submission.user_id == user.id)
+    stmt = select(Submission).join(Problem).where(Submission.user_id == user.id, Submission.mode == mode)
     if problem_slug:
         stmt = stmt.where(Problem.slug == problem_slug)
     if status_filter:
@@ -138,6 +151,7 @@ def list_my_submissions(
             id=s.id,
             problem_slug=s.problem.slug,
             problem_title=s.problem.title,
+            mode=s.mode,
             status=s.status,
             created_at=s.created_at,
             duration_ms=s.result.runtime_ms if s.result else None,

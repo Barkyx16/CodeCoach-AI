@@ -32,6 +32,7 @@ export const twoSum: ProblemDetail = {
 
 export const queuedSubmission: Submission = {
   id: "sub-1", problem_slug: "two-sum", problem_title: "Two Sum", language: "java", status: "QUEUED",
+  mode: "submit",
   status_detail: "Saved and queued. Automatic judging is turned off until the sandboxed Java runner is approved and deployed, so this submission will not run yet.",
   is_terminal: false, execution_enabled: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
   result: null, source_code: "class Solution {}",

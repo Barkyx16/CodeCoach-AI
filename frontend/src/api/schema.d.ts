@@ -469,6 +469,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Features available on this deployment */
+        get: operations["capabilities_api_v1_capabilities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -522,6 +539,20 @@ export interface components {
             day: string;
             /** Events */
             events: number;
+        };
+        /** Capabilities */
+        Capabilities: {
+            /**
+             * Execution Enabled
+             * @description Submissions are judged and `mode: run` is available. When false, submissions are saved but not run, and runs are refused with 503 `execution_disabled`.
+             */
+            execution_enabled: boolean;
+            /**
+             * Ai Provider
+             * @description Which AI coach answers by default
+             * @enum {string}
+             */
+            ai_provider: "offline" | "anthropic";
         };
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
@@ -1267,6 +1298,11 @@ export interface components {
             language: string;
             /** Source Code */
             source_code: string;
+            /**
+             * @description `submit`: judge against all tests and record the attempt. `run`: public tests only, for quick feedback; never counts as an attempt.
+             * @default submit
+             */
+            mode: components["schemas"]["SubmissionMode"];
         };
         /** SubmissionDetail */
         SubmissionDetail: {
@@ -1278,6 +1314,7 @@ export interface components {
             problem_title: string;
             /** Language */
             language: string;
+            mode: components["schemas"]["SubmissionMode"];
             status: components["schemas"]["SubmissionStatus"];
             /** Status Detail */
             status_detail: string | null;
@@ -1307,6 +1344,7 @@ export interface components {
             problem_slug: string;
             /** Problem Title */
             problem_title: string;
+            mode: components["schemas"]["SubmissionMode"];
             status: components["schemas"]["SubmissionStatus"];
             /**
              * Created At
@@ -1319,6 +1357,13 @@ export interface components {
              */
             duration_ms?: number | null;
         };
+        /**
+         * SubmissionMode
+         * @description `submit` is a real attempt (all tests, counts toward progress). `run` checks the code
+         *     against the public tests only, for quick feedback, and never counts as an attempt.
+         * @enum {string}
+         */
+        SubmissionMode: "submit" | "run";
         /**
          * SubmissionStatus
          * @description Judge status model from the blueprint (section 07).
@@ -2187,6 +2232,8 @@ export interface operations {
             query?: {
                 problem_slug?: string | null;
                 status?: components["schemas"]["SubmissionStatus"] | null;
+                /** @description `submit` (default): attempts. `run`: public-test runs. */
+                mode?: components["schemas"]["SubmissionMode"];
                 page?: number;
                 page_size?: number;
             };
@@ -3164,6 +3211,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    capabilities_api_v1_capabilities_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Capabilities"];
                 };
             };
         };

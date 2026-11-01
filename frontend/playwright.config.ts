@@ -39,7 +39,8 @@ export default defineConfig({
         }]
       : []),
     {
-      command: `${python} -m uvicorn app.main:app --port 8000`,
+      // Start from an empty database every run: a reused e2e.db keeps old schema and old users.
+      command: `${python} -c "import pathlib; pathlib.Path('e2e.db').unlink(missing_ok=True)" && ${python} -m uvicorn app.main:app --port 8000`,
       cwd: "../backend",
       url: "http://localhost:8000/health/ready",
       reuseExistingServer: !process.env.CI,

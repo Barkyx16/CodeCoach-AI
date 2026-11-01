@@ -70,6 +70,14 @@ class SubmissionStatus(enum.StrEnum):
         return self not in (SubmissionStatus.QUEUED, SubmissionStatus.RUNNING)
 
 
+class SubmissionMode(enum.StrEnum):
+    """`submit` is a real attempt (all tests, counts toward progress). `run` checks the code
+    against the public tests only, for quick feedback, and never counts as an attempt."""
+
+    SUBMIT = "submit"
+    RUN = "run"
+
+
 class AIAction(enum.StrEnum):
     HINT = "hint"
     REVIEW = "review"
@@ -199,6 +207,9 @@ class Submission(Base):
         _enum(SubmissionStatus, "submission_status"), default=SubmissionStatus.QUEUED
     )
     status_detail: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    mode: Mapped[SubmissionMode] = mapped_column(
+        _enum(SubmissionMode, "submission_mode"), default=SubmissionMode.SUBMIT, server_default="submit"
+    )
     # Judge bookkeeping: infrastructure failures are retried (bounded); learner failures never are.
     attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     judge_started_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)

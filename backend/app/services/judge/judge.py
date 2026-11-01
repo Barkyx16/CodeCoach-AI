@@ -14,7 +14,7 @@ import re
 import secrets
 from dataclasses import dataclass
 
-from app.models import ExecutionResult, Submission, SubmissionStatus, TestVisibility
+from app.models import ExecutionResult, Submission, SubmissionMode, SubmissionStatus, TestVisibility
 from app.services.judge.harness import CaseOutcome, build_driver, judge_cases
 from app.services.judge.runner_client import Runner, RunnerResult
 
@@ -114,6 +114,9 @@ def clean_compile_output(text: str) -> str:
 def judge_submission(submission: Submission, runner: Runner, time_limit_s: float) -> Verdict:
     problem = submission.problem
     tests = list(problem.test_cases)
+    if submission.mode == SubmissionMode.RUN:
+        # A Run checks the public tests only: hidden inputs aren't even compiled into the driver.
+        tests = [t for t in tests if t.visibility == TestVisibility.PUBLIC]
     nonce = secrets.token_hex(16)
     driver = build_driver(problem.signature, [t.input for t in tests])
     raw = runner.run({"Solution.java": submission.source_code, "Main.java": driver}, nonce, time_limit_s)

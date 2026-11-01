@@ -1043,6 +1043,17 @@
             }
           },
           {
+            "name": "mode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/SubmissionMode",
+              "description": "`submit` (default): attempts. `run`: public-test runs.",
+              "default": "submit"
+            },
+            "description": "`submit` (default): attempts. `run`: public-test runs."
+          },
+          {
             "name": "page",
             "in": "query",
             "required": false,
@@ -2361,6 +2372,27 @@
           }
         ]
       }
+    },
+    "/api/v1/capabilities": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Features available on this deployment",
+        "operationId": "capabilities_api_v1_capabilities_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Capabilities"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2485,6 +2517,30 @@
           "events"
         ],
         "title": "ActivityDay"
+      },
+      "Capabilities": {
+        "properties": {
+          "execution_enabled": {
+            "type": "boolean",
+            "title": "Execution Enabled",
+            "description": "Submissions are judged and `mode: run` is available. When false, submissions are saved but not run, and runs are refused with 503 `execution_disabled`."
+          },
+          "ai_provider": {
+            "type": "string",
+            "enum": [
+              "offline",
+              "anthropic"
+            ],
+            "title": "Ai Provider",
+            "description": "Which AI coach answers by default"
+          }
+        },
+        "type": "object",
+        "required": [
+          "execution_enabled",
+          "ai_provider"
+        ],
+        "title": "Capabilities"
       },
       "ChangePasswordRequest": {
         "properties": {
@@ -4325,6 +4381,11 @@
             "type": "string",
             "minLength": 1,
             "title": "Source Code"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/SubmissionMode",
+            "description": "`submit`: judge against all tests and record the attempt. `run`: public tests only, for quick feedback; never counts as an attempt.",
+            "default": "submit"
           }
         },
         "type": "object",
@@ -4351,6 +4412,9 @@
           "language": {
             "type": "string",
             "title": "Language"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/SubmissionMode"
           },
           "status": {
             "$ref": "#/components/schemas/SubmissionStatus"
@@ -4405,6 +4469,7 @@
           "problem_slug",
           "problem_title",
           "language",
+          "mode",
           "status",
           "status_detail",
           "is_terminal",
@@ -4428,6 +4493,9 @@
           "problem_title": {
             "type": "string",
             "title": "Problem Title"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/SubmissionMode"
           },
           "status": {
             "$ref": "#/components/schemas/SubmissionStatus"
@@ -4455,10 +4523,20 @@
           "id",
           "problem_slug",
           "problem_title",
+          "mode",
           "status",
           "created_at"
         ],
         "title": "SubmissionListItem"
+      },
+      "SubmissionMode": {
+        "type": "string",
+        "enum": [
+          "submit",
+          "run"
+        ],
+        "title": "SubmissionMode",
+        "description": "`submit` is a real attempt (all tests, counts toward progress). `run` checks the code\nagainst the public tests only, for quick feedback, and never counts as an attempt."
       },
       "SubmissionStatus": {
         "type": "string",

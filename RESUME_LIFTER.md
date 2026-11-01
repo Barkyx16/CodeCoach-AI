@@ -79,6 +79,13 @@ The "Session log" at the bottom tracks exactly what that is.
   test driver echoed hidden test inputs to learners. Wrote an allowlist-based redactor (applied
   on write *and* read, so old rows were safe without a migration) and a regression test that
   fails against the real sandbox without the fix.
+- Added a **Run vs. Submit** split like real online judges: runs check only the public tests in
+  the same gVisor sandbox for fast feedback, never count as attempts or solves, and share the
+  judge's abuse limits. Implemented as one `mode` column (with a safe migration) instead of a
+  parallel pipeline, plus a public capabilities endpoint so the UI only offers what works.
+- Turned one-off accessibility checks into an **automated WCAG 2.1 AA gate** (axe-core in
+  Playwright, 11 screens on desktop and mobile, plus real judged results) that runs in CI. It
+  immediately caught a label-in-name bug the manual sample missed.
 - Built a **React + TypeScript** frontend (Vite, TanStack Query, Monaco editor) with a
   resizable three-panel workspace, autosaved drafts, a progress dashboard and a mobile layout,
   with API types **generated from the OpenAPI contract** so frontend and backend can't drift.
@@ -233,6 +240,22 @@ Claude version uses the same schema. One explanation per submission is saved and
 free. I tested it with nine deliberately buggy programs in the real sandbox, so the parsers are
 checked against real compiler and JVM output, not text I made up.
 
+**"You used ChatGPT too? How did that work?"**
+Yes: two AI tools with separate jobs. I gave ChatGPT the design and layout work on its own
+branch, and Claude the backend, systems and features. The branch came back based on an older
+commit, so I merged it, resolved the conflicts (keeping both the new design and the feature
+built in the meantime), and re-ran every suite before trusting it. Then I *built on* its work:
+its accessibility scans had been run by hand, so I made them automated tests in CI, and they
+found a bug its sample had missed. The point I'd make: AI output gets the same review and tests
+as anyone's code, whichever tool wrote it.
+
+**"Why is Run a mode on submissions instead of its own table or service?"**
+A run needs exactly what a submission needs: the queue, the worker, the sandbox, rate limits,
+ownership checks and the results view. A `mode` column reuses all of it, and the differences
+are small and explicit: the driver is built from public tests only, the worker never marks a
+run as solved, and progress queries filter on `mode = submit`. A separate pipeline would have
+duplicated the security-critical path, and duplicated security code drifts.
+
 **"What would you do differently?"**
 Add refresh tokens with an HttpOnly cookie, build the AI evaluation set earlier, and put
 topics in a join table instead of JSON once the library grows.
@@ -312,6 +335,20 @@ These are moments where the obvious path was wrong and a deliberate decision was
     which is where `nums[i]` threw, but the bug was the `<=` in the loop header on line 4. The
     explainer now names the suspicious loop bound separately from the line that threw.
 
+21. **An accessibility bug no human noticed.** The mobile menu button *showed* "Menu" but its
+    accessible name was "Open navigation". Voice-control users say what they see ("click Menu"),
+    so it wouldn't respond (WCAG 2.5.3). A manual axe sample had passed; making the scan an
+    automated test over every screen at phone width caught it. The fix was to *remove* an
+    `aria-label`, which is a good reminder that more ARIA isn't always better.
+22. **A sandbox test that checked the wrong thing.** The "are we in gVisor?" test looked for the
+    word "gvisor" in the kernel version, which changes between gVisor releases (one reported
+    `4.4.0`) and fails for no security reason. The property that matters is that the code sees
+    a kernel that isn't the host's. I rewrote the test to assert that, and checked it both ways:
+    under plain Docker it sees the host kernel and fails; under gVisor it passes.
+23. **A review that would have over-trusted a Run.** A code review linked to a *run* would have
+    told the AI "Judge verdict: PASSED", though hidden tests never ran. Reviews of runs now say
+    "PASSED on public tests only (a Run; hidden tests were not executed)", with a test.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -353,7 +390,8 @@ These are moments where the obvious path was wrong and a deliberate decision was
 4. **Get a hint**, then unlock level 2. Explain that level 3 can't be requested early: the
    server enforces the order (show the 409 in `/docs` if asked).
 5. **Code review** → it flags O(n²) vs. target O(n); click **line 3** and the editor highlights it.
-6. **Submit** a buggy version: per-test feedback for the public tests, and only a count for the
+6. **Run** a buggy version first: public tests only, a "Run · public tests only" badge, and
+   nothing recorded. Then **Submit** it: per-test feedback for the public tests, and only a count for the
    hidden ones. Then submit the fix: **PASSED, 7/7, hidden 4/4**, judged in gVisor in a few
    seconds. Explain the sandbox and why expected outputs never enter it.
    Before fixing, click **Explain this failure**: it names the cause, quotes the failing public
@@ -512,3 +550,32 @@ These are moments where the obvious path was wrong and a deliberate decision was
 - Claude's explanations with a live key (fake-client tests only, as for hints and reviews).
 - An evaluation set for explanation quality (the 9 sandbox scenarios check cause and line,
   not wording).
+
+### Session 4: merged the design pass, Run vs. Submit, automated accessibility
+**Merged and verified ChatGPT's design branch** (`feature/premium-frontend`): new design system,
+landing tour, analytics page, editor preferences, accessible tabs, draft fixes. It was based on
+an older commit, so it lacked "Explain my failure"; conflicts in the workspace page and README
+were resolved keeping both. All its tests plus ours passed after the merge, including the real
+gVisor judge journey. The explanation card now scrolls into view in its new scrolling panel.
+
+**Built and verified:**
+- **Run mode:** `mode: run` on `POST /submissions` checks the public tests only (hidden inputs
+  are not compiled into the driver), never counts as an attempt or solve, is excluded from
+  history and stats, shares admission limits, and is refused with `503 execution_disabled`
+  when code can't run. Migration `submission mode` (server default, safe on populated tables).
+- `GET /api/v1/capabilities`, so the UI only shows Run where it works.
+- Frontend **Run** button (Ctrl/⌘ + '), run badge and copy; the real-browser judge journey runs
+  before submitting.
+- **Automated accessibility gate:** axe-core WCAG 2.1 A/AA scans of 11 screens on desktop and
+  mobile, plus judged results and the explanation card, in CI. Fixed the label-in-name bug it
+  found and added an `<h1>` to the 404 page.
+- Sturdier gVisor isolation test (guest kernel ≠ host kernel; verified under runc and runsc).
+- The e2e backend starts from an empty database every run (a stale local `e2e.db` broke after
+  the schema change).
+- Totals: 297 backend tests (80 in the real gVisor sandbox), 28 runner,
+  80 frontend, 11 Playwright tests (incl. 4 accessibility scans).
+
+**Not yet verified / not built:**
+- Live Claude responses (still no API key here).
+- Production deployment (Phase 5) and branch rename to `main` with required checks.
+

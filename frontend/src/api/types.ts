@@ -23,6 +23,8 @@ export type SubmissionCreate = S["SubmissionCreate"];
 export type Submission = S["SubmissionDetail"];
 export type SubmissionListItem = S["SubmissionListItem"];
 export type SubmissionStatus = S["SubmissionStatus"];
+export type SubmissionMode = S["SubmissionMode"];
+export type Capabilities = S["Capabilities"];
 
 export type HintRequest = S["HintRequest"];
 export type HintResponse = S["HintResponse"];

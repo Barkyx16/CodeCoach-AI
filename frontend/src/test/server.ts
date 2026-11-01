@@ -16,6 +16,7 @@ export const handlers = [
       && (!q || p.title.toLowerCase().includes(q)));
     return HttpResponse.json(page(items));
   }),
+  http.get(`${API}/api/v1/capabilities`, () => HttpResponse.json({ execution_enabled: false, ai_provider: "offline" })),
   http.get(`${API}/api/v1/topics`, () => HttpResponse.json([{ topic: "arrays", count: 3 }, { topic: "hash-maps", count: 1 }])),
   http.get(`${API}/api/v1/problems/two-sum`, () => HttpResponse.json(twoSum)),
   http.get(`${API}/api/v1/problems/:slug`, ({ params }) =>
@@ -27,7 +28,7 @@ export const handlers = [
   http.get(`${API}/api/v1/auth/me`, () => HttpResponse.json(user)),
   http.post(`${API}/api/v1/submissions`, () => HttpResponse.json(queuedSubmission, { status: 202 })),
   http.get(`${API}/api/v1/submissions/:id`, () => HttpResponse.json(queuedSubmission)),
-  http.get(`${API}/api/v1/me/submissions`, () => HttpResponse.json(page([{ id: "sub-1", problem_slug: "two-sum", problem_title: "Two Sum", status: "QUEUED", created_at: new Date().toISOString(), duration_ms: null }]))),
+  http.get(`${API}/api/v1/me/submissions`, () => HttpResponse.json(page([{ id: "sub-1", problem_slug: "two-sum", problem_title: "Two Sum", mode: "submit", status: "QUEUED", created_at: new Date().toISOString(), duration_ms: null }]))),
   http.post(`${API}/api/v1/ai/hint`, async ({ request }) => {
     const body = (await request.json()) as { level: 1 | 2 | 3 | 4 };
     return HttpResponse.json(hint(body.level));

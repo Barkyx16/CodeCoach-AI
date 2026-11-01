@@ -93,8 +93,12 @@ def judge(make_client, runner_url):
     worker = JudgeWorker(c.app.state.session_factory, HttpRunner(runner_url, TOKEN), c.app.state.settings)
     headers = auth_headers(register(c))
 
-    def run(slug: str, code: str) -> dict:
-        sub = c.post("/api/v1/submissions", headers=headers, json={"problem_slug": slug, "source_code": code})
+    def run(slug: str, code: str, mode: str = "submit") -> dict:
+        sub = c.post(
+            "/api/v1/submissions",
+            headers=headers,
+            json={"problem_slug": slug, "source_code": code, "mode": mode},
+        )
         assert sub.status_code == 202, sub.text
         assert worker.process_one()
         return c.get(f"/api/v1/submissions/{sub.json()['id']}", headers=headers).json()
@@ -302,3 +306,20 @@ def test_explain_failure_on_real_judge_output(judge, slug, code, verdict, cause,
             if isinstance(value, list) and len(value) >= 2:
                 assert json.dumps(value) not in blob, f"hidden input {value} leaked"
                 assert ", ".join(map(str, value)) not in blob, f"hidden input {value} leaked"
+
+
+def test_run_mode_executes_public_tests_only_in_the_sandbox(judge):
+    """Run: the reference solution passes exactly the public tests; nothing counts as solved."""
+    done = judge("binary-search", (REFERENCE_DIR / "binary-search.java").read_text(), mode="run")
+    assert done["status"] == "PASSED" and done["mode"] == "run"
+    r = done["result"]
+    assert r["total_count"] == r["passed_count"] == len(r["public_results"]) == 3
+    assert r["hidden_total"] == 0
+    assert judge.client.get("/api/v1/me/progress", headers=judge.headers).json()["solved"] == 0
+    # A code bug is reported the same way as for a submission, with the line it threw on.
+    bad = judge(
+        "find-largest-number",
+        "class Solution {\n    public int max(int[] nums) {\n        return nums[nums.length];\n    }\n}",
+        mode="run",
+    )
+    assert bad["status"] == "FAILED" and bad["result"]["public_results"][0]["line"] == 3

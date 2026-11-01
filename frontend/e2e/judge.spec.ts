@@ -43,6 +43,12 @@ test("submissions are judged in the gVisor sandbox", async ({ page, context }) =
 
   // A wrong answer: real per-test feedback for public tests, counts only for hidden ones.
   await paste(page, BUGGY);
+  // Run first: public tests only, in the same sandbox, and nothing is recorded as an attempt.
+  await page.getByRole("button", { name: "Run", exact: true }).click();
+  await expect(page.getByText("Run · public tests only")).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText("2/3 tests passed")).toBeVisible(); // [0, 1] is right for 2 of the 3 public tests
+  await expect(page.getByText(/hidden: /)).toHaveCount(0);
+
   await page.getByRole("button", { name: "Submit" }).click();
   await expect(page.getByText("Some tests failed. Check the cases below.")).toBeVisible({ timeout: 60_000 });
   await expect(page.getByText(/hidden: \d\/4/)).toBeVisible();

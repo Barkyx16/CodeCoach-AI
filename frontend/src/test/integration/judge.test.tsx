@@ -141,4 +141,39 @@ describe("Judge results", () => {
     expect(await screen.findByText("All tests passed. Nice work.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Explain this failure" })).not.toBeInTheDocument();
   });
+
+  describe("Run (public tests only)", () => {
+    const enableExecution = () => server.use(
+      http.get(`${API}/api/v1/capabilities`, () => HttpResponse.json({ execution_enabled: true, ai_provider: "offline" })));
+
+    it("is hidden when this deployment can't run code", async () => {
+      renderApp("/problems/two-sum", { signedIn: true });
+      expect(await screen.findByRole("button", { name: "Submit" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Run" })).not.toBeInTheDocument();
+    });
+
+    it("runs the public tests and says the attempt isn't recorded", async () => {
+      enableExecution();
+      let body: { mode?: string } = {};
+      const ranOk = judged({
+        mode: "run", status: "PASSED", status_detail: "All tests passed.",
+        result: { runtime_ms: 1, memory_kb: null, passed_count: 3, total_count: 3, hidden_passed: 0, hidden_total: 0,
+          stderr_excerpt: null, public_results: [] },
+      });
+      server.use(
+        http.post(`${API}/api/v1/submissions`, async ({ request }) => {
+          body = (await request.json()) as { mode?: string };
+          return HttpResponse.json({ ...ranOk, status: "QUEUED", is_terminal: false }, { status: 202 });
+        }),
+        http.get(`${API}/api/v1/submissions/:id`, () => HttpResponse.json(ranOk)),
+      );
+      const ctx = renderApp("/problems/two-sum", { signedIn: true });
+      await ctx.user.click(await screen.findByRole("button", { name: "Run" }));
+      expect(body.mode).toBe("run");
+      expect(await screen.findByText("Run · public tests only")).toBeInTheDocument();
+      expect(screen.getByText("All public tests passed. Submit to check the hidden tests and record the attempt.")).toBeInTheDocument();
+      expect(screen.queryByText(/^hidden:/)).not.toBeInTheDocument();
+    });
+  });
 });
+

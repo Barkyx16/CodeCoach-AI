@@ -22,6 +22,7 @@ from app.models import (
     ProgressEvent,
     ProgressEventType,
     Submission,
+    SubmissionMode,
     SubmissionStatus,
     User,
 )
@@ -200,6 +201,9 @@ class CoachService:
             submission_id = submission.id
             if submission.status.is_terminal:
                 judge_status = submission.status.value
+                if submission.mode == SubmissionMode.RUN:
+                    # Don't let the coach treat a public-tests-only run as a full verdict.
+                    judge_status += " on public tests only (a Run; hidden tests were not executed)"
         self.check_budget(user)
 
         code = sanitize_code(req.source_code, self.settings.ai_max_code_chars)

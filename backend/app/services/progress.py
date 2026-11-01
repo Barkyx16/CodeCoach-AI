@@ -26,6 +26,7 @@ from app.models import (
     Problem,
     ProgressEvent,
     Submission,
+    SubmissionMode,
     SubmissionStatus,
     User,
 )
@@ -104,7 +105,9 @@ class ProgressService:
         facts = {p.id: _ProblemFacts(problem=p) for p in problems}
 
         for sub in self.db.scalars(
-            select(Submission).where(Submission.user_id == user.id).order_by(Submission.created_at)
+            select(Submission)
+            .where(Submission.user_id == user.id, Submission.mode == SubmissionMode.SUBMIT)
+            .order_by(Submission.created_at)
         ):
             f = facts.get(sub.problem_id)
             if f is None:
@@ -175,7 +178,7 @@ class ProgressService:
         status_counts = dict(
             self.db.execute(
                 select(Submission.status, func.count())
-                .where(Submission.user_id == user.id)
+                .where(Submission.user_id == user.id, Submission.mode == SubmissionMode.SUBMIT)
                 .group_by(Submission.status)
             ).all()
         )

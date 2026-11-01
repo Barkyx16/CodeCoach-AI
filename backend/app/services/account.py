@@ -54,6 +54,7 @@ def export_user_data(db: Session, user: User) -> dict:
                 "id": s.id,
                 "problem": slugs.get(s.problem_id),
                 "language": s.language,
+                "mode": s.mode.value,
                 "status": s.status.value,
                 "source_code": s.source_code,
                 "created_at": iso(s.created_at),

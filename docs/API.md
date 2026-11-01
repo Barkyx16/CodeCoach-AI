@@ -134,6 +134,7 @@ Every non-2xx response has this shape:
 | 409 | `judge_error` | Explain-failure on an `INTERNAL_ERROR` (the judge's fault, not the code's) | Suggest resubmitting |
 | 429 | `submission_pending` | A previous submission is still being judged (`details.max_pending`) | Wait for the verdict |
 | 503 | `judge_busy` | The judge queue is full | Retry in a minute |
+| 503 | `execution_disabled` | `mode: run` on a deployment without code execution (check `GET /capabilities` first) | Hide the Run button |
 | 422 | `validation_error` | Body or query failed validation. `details` is a list of `{loc, msg, type}` | Map `loc[-1]` to form fields |
 | 429 | `rate_limited` | Auth attempts or the daily AI budget exceeded (`details.retry_after_seconds` or `details.daily_limit`) | Show a cooldown |
 | 500 | `internal_error` | Unexpected server error (logged with the request id) | Generic error + request id |
@@ -162,6 +163,7 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 |---|---|---|---|
 | GET | `/health` | – | Liveness |
 | GET | `/health/ready` | – | Readiness (database check) |
+| GET | `/api/v1/capabilities` | – | What this deployment supports (code execution, AI provider) |
 | POST | `/api/v1/auth/register` | – | Create account → token |
 | POST | `/api/v1/auth/login` | – | Log in → token |
 | POST | `/api/v1/auth/guest` | – | Demo session → token |
@@ -174,7 +176,7 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 | GET | `/api/v1/problems` | – | List / filter / search problems |
 | GET | `/api/v1/topics` | – | Topics with counts (for filter chips) |
 | GET | `/api/v1/problems/{slug}` | optional | Problem workspace data |
-| POST | `/api/v1/submissions` | 🔒 | Submit a solution (async job) |
+| POST | `/api/v1/submissions` | 🔒 | Submit a solution, or `mode: run` to check the public tests only (async job) |
 | GET | `/api/v1/submissions/{id}` | 🔒 | Poll a submission |
 | GET | `/api/v1/me/submissions` | 🔒 | Attempt history |
 | POST | `/api/v1/ai/hint` | 🔒 | Progressive hint |
@@ -283,6 +285,15 @@ A downloadable JSON document (`Content-Disposition: attachment`, `Cache-Control:
 Submissions include your source code and results; interviews include full transcripts and
 evaluations. Credentials (password hash, token version) are never included.
 
+### Capabilities
+
+#### `GET /api/v1/capabilities` → `200`
+Public. Lets the client show only features that work on this deployment. Deliberately coarse:
+no versions, hostnames, model names or limits.
+```json
+{"execution_enabled": true, "ai_provider": "offline"}
+```
+
 ### Problems
 
 #### `GET /api/v1/problems` → `200`
@@ -345,8 +356,14 @@ Status lifecycle:
 
 #### `POST /api/v1/submissions` 🔒 → `202`
 ```json
-{"problem_slug": "two-sum", "language": "java", "source_code": "class Solution { … }"}
+{"problem_slug": "two-sum", "language": "java", "source_code": "class Solution { … }", "mode": "submit"}
 ```
+`mode` is optional: `submit` (default) judges against **all** tests and records the attempt;
+`run` checks the **public tests only** for quick feedback. A run never counts as an attempt or
+a solve, isn't listed in `GET /me/submissions` (unless `?mode=run`) and isn't in progress stats;
+hidden test inputs aren't even compiled into its driver. Runs share the same admission limits,
+and are refused with `503 execution_disabled` when the deployment can't run code. A run's
+`result` has `hidden_total: 0`. Explanations work on failed runs too.
 `language` is optional and must be `java`. `source_code` must be non-blank and at most
 `MAX_SOURCE_CHARS` characters. When execution is enabled, admission control applies:
 `429 rate_limited` (more than `SUBMISSION_RATE_LIMIT_PER_MINUTE`), `429 submission_pending`
@@ -357,6 +374,7 @@ Status lifecycle:
   "problem_slug": "two-sum",
   "problem_title": "Two Sum",
   "language": "java",
+  "mode": "submit",
   "status": "QUEUED",
   "status_detail": "Saved and queued. Automatic judging is turned off until the sandboxed Java runner is approved and deployed, so this submission will not run yet.",
   "is_terminal": false,
@@ -407,10 +425,10 @@ the learner's fault).
 Same shape as above. `404` if it doesn't exist **or** belongs to another user.
 
 #### `GET /api/v1/me/submissions` 🔒 → `200`
-Query: `problem_slug`, `status` (e.g. `QUEUED`, `PASSED`), `page`, `page_size`. Newest first.
+Query: `problem_slug`, `status` (e.g. `QUEUED`, `PASSED`), `mode` (`submit` default, or `run`), `page`, `page_size`. Newest first.
 ```json
 {
-  "items": [{"id": "9098…", "problem_slug": "two-sum", "problem_title": "Two Sum", "status": "QUEUED",
+  "items": [{"id": "9098…", "problem_slug": "two-sum", "problem_title": "Two Sum", "mode": "submit", "status": "QUEUED",
              "created_at": "2026-11-01T08:49:54.608581Z", "duration_ms": null}],
   "total": 1, "page": 1, "page_size": 20
 }

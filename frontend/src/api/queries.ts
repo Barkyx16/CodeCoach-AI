@@ -11,6 +11,7 @@ import type { AIHistoryAction, HintRequest, Interview, InterviewStart, ReviewReq
 export const queryKeys = {
   problems: (filters: ProblemFilters) => ["problems", filters] as const,
   topics: ["topics"] as const,
+  capabilities: ["capabilities"] as const,
   problem: (slug: string) => ["problem", slug] as const,
   submission: (id: string) => ["submission", id] as const,
   mySubmissions: (params: object) => ["me", "submissions", params] as const,
@@ -39,6 +40,11 @@ export function useProblems(filters: ProblemFilters) {
 
 export function useTopics() {
   return useQuery({ queryKey: queryKeys.topics, queryFn: api.topics, staleTime: 30 * 60_000 });
+}
+
+/** What this deployment supports (e.g. whether code runs). Changes only on redeploy. */
+export function useCapabilities() {
+  return useQuery({ queryKey: queryKeys.capabilities, queryFn: api.capabilities, staleTime: Infinity });
 }
 
 export function useProblem(slug: string) {

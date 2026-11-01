@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import Field, field_validator
 
-from app.models import SubmissionStatus
+from app.models import SubmissionMode, SubmissionStatus
 from app.schemas.common import APIModel
 
 
@@ -10,6 +10,11 @@ class SubmissionCreate(APIModel):
     problem_slug: str = Field(min_length=1, max_length=80)
     language: str = Field(default="java", pattern="^java$")
     source_code: str = Field(min_length=1)
+    mode: SubmissionMode = Field(
+        default=SubmissionMode.SUBMIT,
+        description="`submit`: judge against all tests and record the attempt. "
+        "`run`: public tests only, for quick feedback; never counts as an attempt.",
+    )
 
     @field_validator("source_code")
     @classmethod
@@ -50,6 +55,7 @@ class SubmissionOut(APIModel):
     problem_slug: str
     problem_title: str
     language: str
+    mode: SubmissionMode
     status: SubmissionStatus
     status_detail: str | None
     is_terminal: bool
@@ -67,6 +73,7 @@ class SubmissionListItem(APIModel):
     id: str
     problem_slug: str
     problem_title: str
+    mode: SubmissionMode
     status: SubmissionStatus
     created_at: datetime
     duration_ms: int | None = Field(default=None, description="Judge runtime, once execution is enabled")
