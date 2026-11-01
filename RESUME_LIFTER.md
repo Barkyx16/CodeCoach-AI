@@ -15,7 +15,7 @@ The "Session log" at the bottom tracks exactly what that is.
 > that verdict. Submitted Java runs in a gVisor sandbox inside a separate runner service, and
 > I test the sandbox by attacking it with hostile code in CI. It's a React and TypeScript
 > frontend over a FastAPI and PostgreSQL backend, with a provider-agnostic AI layer that uses
-> structured outputs and cost controls, and about 250 automated tests, including real-browser
+> structured outputs and cost controls, and about 370 automated tests, including real-browser
 > end-to-end tests."
 
 ## 2. The 2-minute walkthrough (whiteboard order)
@@ -45,7 +45,7 @@ The "Session log" at the bottom tracks exactly what that is.
 
 - Designed and built **CodeCoach AI**, a full-stack Java interview-practice platform
   (Python/FastAPI, PostgreSQL, SQLAlchemy/Alembic, Docker, GitHub Actions), with
-  **20 documented REST endpoints** and an OpenAPI contract kept in sync by automated tests.
+  **30 documented REST endpoints** and an OpenAPI contract kept in sync by automated tests.
 - Built an **AI coaching layer** with progressive, server-enforced hint disclosure and
   schema-validated code reviews, behind a provider-agnostic interface with automatic fallback,
   secret redaction, prompt-injection framing and per-user daily cost budgets.
@@ -70,10 +70,19 @@ The "Session log" at the bottom tracks exactly what that is.
   verified by the real judge) measuring review precision/recall, false alarms, Big-O accuracy and
   hint spoiler rate; used it to cut false alarms on the tuning set from 14% to 0%, and reported
   the **held-out** result (80% precision, 50% recall) rather than the optimistic one.
+- Built an **"Explain my failure"** AI feature that turns real compiler and JVM output into
+  plain-English, line-referenced explanations (13 root-cause categories, a rule-based offline
+  engine plus a Claude provider with structured output), grounded only in public test data,
+  cached per submission so repeat requests cost nothing, and verified end to end against
+  **9 real buggy programs judged in the gVisor sandbox**.
+- **Found and fixed a hidden-test data leak** in the judge: compiler errors about the generated
+  test driver echoed hidden test inputs to learners. Wrote an allowlist-based redactor (applied
+  on write *and* read, so old rows were safe without a migration) and a regression test that
+  fails against the real sandbox without the fix.
 - Built a **React + TypeScript** frontend (Vite, TanStack Query, Monaco editor) with a
   resizable three-panel workspace, autosaved drafts, a progress dashboard and a mobile layout,
   with API types **generated from the OpenAPI contract** so frontend and backend can't drift.
-- Wrote **48 frontend unit and integration tests** (Vitest + MSW) and **Playwright end-to-end
+- Wrote **60 frontend unit and integration tests** (Vitest + MSW) and **Playwright end-to-end
   tests** that drive a real browser against the real backend; served the production build
   from unprivileged nginx with a **strict Content-Security-Policy**.
 
@@ -212,6 +221,18 @@ gives deterministic behavior to test against, and is the fallback when the AI pr
 Every score it gives comes with evidence and is labeled low confidence, so it never pretends
 to be more than it is.
 
+**"How does 'Explain my failure' work, and how do you stop it leaking hidden tests?"**
+It's built from the same public-only view of the result that the submissions API returns: the
+verdict, the first failing *public* test, the line in your code where an exception was thrown,
+and compiler output that has already been redacted. Hidden tests are only ever counts, so the
+AI literally never sees a hidden input, and when only hidden tests fail it suggests *kinds* of
+edge cases instead of guessing one. The offline engine maps real `javac` messages (e.g. "cannot
+find symbol" on `HashMap` → "add `import java.util.*;`"), exception types and expected-vs-actual
+patterns (off by one, overflow, reversed order) to a cause, an explanation and next steps. The
+Claude version uses the same schema. One explanation per submission is saved and re-served for
+free. I tested it with nine deliberately buggy programs in the real sandbox, so the parsers are
+checked against real compiler and JVM output, not text I made up.
+
 **"What would you do differently?"**
 Add refresh tokens with an HttpOnly cookie, build the AI evaluation set earlier, and put
 topics in a join table instead of JSON once the library grows.
@@ -279,6 +300,18 @@ These are moments where the obvious path was wrong and a deliberate decision was
     re-measured on an empty queue. I also investigated a single unexplained error instead of
     rounding it away, and documented that it didn't reproduce.
 
+19. **A data leak found by building a feature.** Writing the failure explainer meant reading real
+    `javac` output, and I noticed that when a learner renames the method, the compiler complains
+    about the judge's generated `Main.java` and *prints the offending source line*, which is a
+    test call containing hidden inputs. Every hidden input of the problem was being shown to the
+    learner. I reproduced it, fixed it with an allowlist-based redactor (keep only messages and
+    symbol lines that can't contain literals; drop echoed source), applied it on read as well as
+    write so old data was covered without a migration, and proved the fix: the real-sandbox test
+    fails with `hidden input [-1000000000, -999999999] leaked` when the redactor is turned off.
+20. **The throw line isn't the bug line.** The first index-error explanation said "line 5",
+    which is where `nums[i]` threw, but the bug was the `<=` in the loop header on line 4. The
+    explainer now names the suspicious loop bound separately from the line that threw.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -323,6 +356,8 @@ These are moments where the obvious path was wrong and a deliberate decision was
 6. **Submit** a buggy version: per-test feedback for the public tests, and only a count for the
    hidden ones. Then submit the fix: **PASSED, 7/7, hidden 4/4**, judged in gVisor in a few
    seconds. Explain the sandbox and why expected outputs never enter it.
+   Before fixing, click **Explain this failure**: it names the cause, quotes the failing public
+   test as evidence and links to the line. Point out it never mentions hidden inputs.
 7. **Interview**: start a 15-minute interview. Give a vague answer and watch it probe; give a
    brute-force idea and it asks for better; then finish and walk through the rubric evidence.
 8. **Dashboard**: stats, heatmap, topic bars, and the recommendation reasons.
@@ -450,3 +485,28 @@ These are moments where the obvious path was wrong and a deliberate decision was
 **Not yet verified / not built:**
 - Claude's review quality (run `python -m evals.run --provider anthropic` once a key exists).
 - Performance on production hardware (these are single-VM numbers).
+
+### Session 3: "Explain my failure" + a hidden-test leak fix
+**Built and verified:**
+- `POST /api/v1/ai/explain-failure`: ownership-checked, only for learner-caused verdicts
+  (`409 not_judged` / `not_failed` / `judge_error` otherwise), daily budget, saved to AI history,
+  and cached per submission (asking again is free).
+- Offline explainer (`failure_offline.py`): javac diagnostics (missing symbols and imports,
+  `.length` vs `.length()`, lossy conversions, missing returns, syntax, signature changes),
+  exceptions (index, null, arithmetic, parsing, stack overflow and more), wrong-answer patterns
+  (off by one, overflow, reversed/unordered output, null, flipped booleans, whitespace), time
+  and memory limits, and hidden-only failures. Claude provider with the same structured schema.
+- The test driver now reports the **line in the learner's code** where an exception was thrown.
+- **Security fix:** compile errors about the judge's driver no longer echo hidden test inputs
+  (SECURITY.md §4.5). Proven against the real sandbox, with and without the fix.
+- Frontend: "Explain this failure" card (cause, confidence, evidence, steps, "Go to line N"),
+  clickable exception lines, and failure explanations in History.
+- Tests: 45 new unit/API tests, 9 real-sandbox scenarios, 3 new frontend tests; the Playwright
+  judge journey now asks for an explanation.
+- Totals: 286 backend tests (79 in the real gVisor sandbox), 28 runner,
+  60 frontend, 5 Playwright journeys.
+
+**Not yet verified / not built:**
+- Claude's explanations with a live key (fake-client tests only, as for hints and reviews).
+- An evaluation set for explanation quality (the 9 sandbox scenarios check cause and line,
+  not wording).

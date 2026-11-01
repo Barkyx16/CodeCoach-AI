@@ -102,3 +102,52 @@ class AIHistoryItem(APIModel):
     provider: str
     created_at: datetime
     response: dict | None
+
+
+FailureCause = Literal[
+    "compile-error",
+    "index-out-of-bounds",
+    "null-reference",
+    "arithmetic",
+    "number-format",
+    "recursion-depth",
+    "time-limit",
+    "memory-limit",
+    "crash",
+    "wrong-answer",
+    "hidden-edge-case",
+    "overflow",
+    "other",
+]
+
+
+class ExplainFailureRequest(APIModel):
+    submission_id: str = Field(min_length=1, max_length=36)
+
+
+class FailureExplanation(BaseModel):
+    """Schema the model must fill when explaining a failed submission."""
+
+    cause: FailureCause = Field(description="The single most likely root-cause category")
+    headline: str = Field(description="One plain-English sentence saying what went wrong")
+    explanation: str = Field(
+        description="Why it happened, grounded in the evidence (test case or compiler message). "
+        "Explain the bug; do not write the corrected solution."
+    )
+    evidence: str = Field(description="The specific test case, exception or compiler message relied on")
+    line_hint: int | None = Field(default=None, description="1-based line in the learner's code, if known")
+    next_steps: list[str] = Field(description="One to three concrete things to check or try")
+    concept: str | None = Field(default=None, description="Java or DSA concept worth reviewing")
+    confidence: Literal["low", "medium", "high"]
+
+
+class ExplainFailureResponse(APIModel):
+    submission_id: str
+    status: str
+    explanation: FailureExplanation
+    provider: str
+    cached: bool = Field(description="True when this explanation was saved earlier (no budget used)")
+    disclaimer: str = (
+        "Explanations are based only on the public tests and compiler output. Hidden test inputs "
+        "are never shown to the AI or to you."
+    )

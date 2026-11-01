@@ -28,11 +28,12 @@ built yet**. Nothing in the "designed" sections should be described as working.
 
 | Risk | Mitigation |
 |---|---|
-| Prompt injection via code or problem text | Tutor role lives in the system prompt; learner code, problem text and analysis are wrapped in `<learner_code>` / `<problem>` / `<analysis>` tags and declared untrusted data. Output is constrained to a JSON schema and validated. **Model output is never executed.** |
+| Prompt injection via code or problem text | Tutor role lives in the system prompt; learner code, problem text, analysis, compiler output and the failing public test are wrapped in `<learner_code>` / `<problem>` / `<analysis>` / `<compiler_output>` / `<failing_public_test>` tags and declared untrusted data. Output is constrained to a JSON schema and validated. **Model output is never executed.** |
 | AI overriding correctness | The judge verdict is passed in as authoritative; responses carry a disclaimer; the API never derives pass/fail from AI output. |
 | Leaking secrets to a vendor | API keys, AWS keys, GitHub tokens, private keys and `password = "…"` literals are redacted before any model call. |
 | Excessive usage and cost | Per-user daily budget enforced from the database (`429`); input length cap; `effort=low`; offline provider by default. |
-| Spoilers | Hint levels unlock in order, enforced server-side (`409 hint_locked`). |
+| Spoilers | Hint levels unlock in order, enforced server-side (`409 hint_locked`). Failure explanations are told not to write the corrected solution. |
+| Hidden tests reaching the AI | Failure explanations are built from the same public-only view the learner sees (`public_result_view`): first failing **public** test, redacted compiler output, pass counts. Hidden inputs are never in the prompt. |
 | Provider outage or refusal | Typed SDK errors, `refusal` and `max_tokens` stop reasons all fall back to the offline coach. |
 | Data retention | Prompts (which contain code) are not stored; only the feedback shown to the user is saved, linked to the user, and deleted with them (cascade). |
 
@@ -107,7 +108,7 @@ Browser ──POST /submissions──▶ API ──(row: QUEUED)──▶ Postgr
 | Cross-run leakage | `--rm`, a fresh container per run; stale containers removed at startup | `test_each_run_starts_from_a_clean_sandbox` |
 | Abusive traffic | Auth required; per-user rate limit and pending-job cap; global queue-depth limit (503) | `backend/tests/test_judge.py` |
 | Forged results | Per-run nonce read from stdin **before** learner code runs (not in env/argv); results written through a captured stream; first report per test wins | `test_nonce_is_not_in_env_or_argv`, `test_forgery_attempt_from_inside_the_sandbox`, JVM forgery test |
-| Hidden test leakage | Expected outputs never enter the sandbox; raw run-phase output is never returned to users (learner code could print hidden inputs); per-test detail only for public tests; compiler output is shown with sandbox paths removed | `test_failed_tests_reveal_public_details_only` |
+| Hidden test leakage | Expected outputs never enter the sandbox; raw run-phase output is never returned to users (learner code could print hidden inputs); per-test detail only for public tests; compiler output is shown with sandbox paths removed **and diagnostics about the judge driver (`Main.java`) reduced to vetted messages**, re-applied when stored output is read (see §4.5) | `test_failed_tests_reveal_public_details_only`, `test_driver_diagnostics_never_echo_test_inputs`, `test_explain_failure_on_real_judge_output` |
 
 ### 4.3 Residual risks (honest)
 
@@ -140,6 +141,26 @@ Browser ──POST /submissions──▶ API ──(row: QUEUED)──▶ Postgr
 | `SUBMISSION_RATE_LIMIT_PER_MINUTE` / `MAX_PENDING_PER_USER` / `MAX_QUEUE_DEPTH` | 6 / 2 / 200 | Admission control |
 | `JUDGE_MAX_ATTEMPTS` / `JUDGE_STALE_AFTER_S` | 2 / 120 | Infrastructure retry and crash recovery |
 | `EMBEDDED_WORKER` | `false` | Run the worker inside the API process (dev/e2e only) |
+
+### 4.5 Finding: compiler output leaked hidden test inputs (fixed)
+
+Found while building "Explain my failure" (session 3). When a learner renamed the method or
+changed its parameters, `javac` reported errors **in the judge's generated `Main.java`**, and
+javac echoes the offending source line under each error. Those lines are test calls such as
+`run(out, prefix, 4, () -> new Solution().max(new int[] {-1000000000, -999999999}))`, so the
+compile output returned in `stderr_excerpt` listed **every hidden input** of the problem.
+
+- **Fix:** `redact_driver_diagnostics` (`backend/app/services/judge/judge.py`) parses javac
+  output into diagnostics. Learner (`Solution.java`) diagnostics are kept verbatim. Driver
+  diagnostics keep only a message from an allowlist of patterns that can't carry literals
+  (otherwise a fixed "details hidden" message) and `symbol:`/`location:`-style lines made of
+  identifiers and type names; source and caret lines are dropped and duplicates collapsed.
+- **Defence in depth:** it is applied when the output is stored *and* again when it's read
+  (it's idempotent), so rows stored before the fix are safe without a data migration.
+- **Proof:** `test_explain_failure_on_real_judge_output[find-largest-number-compile-error]`
+  renames the method in the real gVisor sandbox and asserts no hidden input appears in the
+  submission or the explanation. With the redaction disabled, that test fails with
+  `hidden input [-1000000000, -999999999] leaked`; with it, it passes.
 
 ## 5. Known gaps (honest list)
 

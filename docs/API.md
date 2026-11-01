@@ -129,6 +129,9 @@ Every non-2xx response has this shape:
 | 409 | `interview_in_progress` | Starting an interview while one is active (`details.interview_id`) | Offer "Resume" |
 | 409 | `interview_closed` | Sending a message to a finished, expired or abandoned interview (`details.status`) | Show the results view |
 | 400 | `turn_limit_reached` | Interview message cap reached (`details.max_candidate_turns`) | Prompt to finish |
+| 409 | `not_judged` | Explain-failure on a submission that's still queued or running | Wait for the verdict |
+| 409 | `not_failed` | Explain-failure on a submission that passed | Hide the button |
+| 409 | `judge_error` | Explain-failure on an `INTERNAL_ERROR` (the judge's fault, not the code's) | Suggest resubmitting |
 | 429 | `submission_pending` | A previous submission is still being judged (`details.max_pending`) | Wait for the verdict |
 | 503 | `judge_busy` | The judge queue is full | Retry in a minute |
 | 422 | `validation_error` | Body or query failed validation. `details` is a list of `{loc, msg, type}` | Map `loc[-1]` to form fields |
@@ -176,6 +179,7 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 | GET | `/api/v1/me/submissions` | 🔒 | Attempt history |
 | POST | `/api/v1/ai/hint` | 🔒 | Progressive hint |
 | POST | `/api/v1/ai/review` | 🔒 | Structured code review |
+| POST | `/api/v1/ai/explain-failure` | 🔒 | Explain why a judged submission failed |
 | GET | `/api/v1/ai/usage` | 🔒 | Remaining AI budget |
 | GET | `/api/v1/me/ai-history` | 🔒 | Saved hints and reviews |
 | POST | `/api/v1/interviews` | 🔒 | Start a timed mock interview |
@@ -371,9 +375,9 @@ answer to *Valid Parentheses*; first two public tests shown):
   "passed_count": 5, "total_count": 8, "hidden_passed": 3, "hidden_total": 5,
   "public_results": [
     {"index": 0, "passed": true, "input": {"s": "()[]{}"}, "expected_output": true, "actual_output": true,
-     "exception": null, "exception_message": null, "missing": false, "runtime_ms": 1.532},
+     "exception": null, "exception_message": null, "missing": false, "line": null, "runtime_ms": 1.532},
     {"index": 1, "passed": false, "input": {"s": "([)]"}, "expected_output": false, "actual_output": true,
-     "exception": null, "exception_message": null, "missing": false, "runtime_ms": 0.005}
+     "exception": null, "exception_message": null, "missing": false, "line": null, "runtime_ms": 0.005}
   ],
   "stderr_excerpt": null
 }
@@ -382,9 +386,15 @@ answer to *Valid Parentheses*; first two public tests shown):
   `passed_count`/`total_count` and `hidden_passed`/`hidden_total` only.
 - `exception` + `exception_message`: the test threw (e.g. `ArrayIndexOutOfBoundsException`,
   `Index 2 out of bounds for length 2`). An expected exception (`{"throws": …}`) counts as a pass.
+- `line`: the line **in the learner's code** where that exception was thrown (innermost
+  `Solution.java` stack frame), or `null`. Lines up with Monaco line numbers.
 - `missing: true`: the test never reported because the program crashed, exited or hit the time limit first.
 - `stderr_excerpt` is set **only** for `COMPILE_ERROR` (compiler output, with sandbox paths
   removed). Program output is never returned, because learner code could print hidden inputs.
+  Errors javac reports in the judge's own `Main.java` (e.g. after renaming the method) are
+  reduced to a vetted message plus `symbol:` lines and labelled `Main.java (judge driver)`,
+  because javac would otherwise echo driver source lines that contain hidden test inputs
+  ([SECURITY.md](SECURITY.md#4-secure-java-execution-implemented-gvisor-sandbox)).
 - `runtime_ms` is time spent inside the learner's method. `memory_kb` is `null`: peak memory
   isn't measured yet, and the API never invents numbers.
 
@@ -475,14 +485,59 @@ Enums: `severity` ∈ `low | medium | high`; `category` ∈ `correctness | edge-
 complexity | readability | style`; `confidence` ∈ `low | medium | high`. `line_hint` is
 1-based (or `null`) and lines up with Monaco line numbers.
 
+#### `POST /api/v1/ai/explain-failure` 🔒 → `200`
+```json
+{"submission_id": "9098460d-619d-4f69-89fb-459bc700ef0b"}
+```
+Explains why a judged submission failed, in plain English, grounded in evidence the learner
+can already see: the verdict, the (redacted) compiler output, the **first failing public
+test**, the exception line, and pass counts. Hidden test inputs are never sent to the AI or
+returned. One explanation per submission: asking again returns the saved one with
+`"cached": true` and **doesn't use budget**.
+
+Errors: `404` (not found / not yours), `409 not_judged`, `409 not_failed` (it passed),
+`409 judge_error` (`INTERNAL_ERROR`), `429 rate_limited` (budget).
+
+Offline-coach output for an `ArrayIndexOutOfBoundsException` (a `<=` loop bound) on
+*Find Largest Number*:
+```json
+{
+  "submission_id": "9098460d-619d-4f69-89fb-459bc700ef0b",
+  "status": "FAILED",
+  "explanation": {
+    "cause": "index-out-of-bounds",
+    "headline": "An index went out of range at line 5.",
+    "explanation": "The code read index 5 past the end. Valid indexes are 0 to length - 1, so the usual culprits are a loop condition with `<=` instead of `<`, or reading `i + 1` on the last element.",
+    "evidence": "Public test 1 (nums = [3, 7, 2, 9, 4]) threw ArrayIndexOutOfBoundsException: Index 5 out of bounds for length 5 at line 5",
+    "line_hint": 5,
+    "next_steps": [
+      "Trace line 5 with the input from public test 1.",
+      "Line 4 loops while the index is `<=` the length: that last step is one too far.",
+      "Make sure empty and single-element inputs are handled first."
+    ],
+    "concept": "Array bounds and off-by-one errors",
+    "confidence": "high"
+  },
+  "provider": "offline",
+  "cached": false,
+  "disclaimer": "Explanations are based only on the public tests and compiler output. Hidden test inputs are never shown to the AI or to you."
+}
+```
+`cause` ∈ `compile-error | index-out-of-bounds | null-reference | arithmetic | number-format |
+recursion-depth | time-limit | memory-limit | crash | wrong-answer | hidden-edge-case |
+overflow | other`. Text fields may contain `` `code` `` spans (render as inline code, not
+HTML). When only hidden tests failed, the cause is `hidden-edge-case`, confidence is `low`,
+and the explanation suggests *kinds* of edge cases to try instead of naming an input.
+
 #### `GET /api/v1/ai/usage` 🔒 → `200`
 ```json
 {"used_today": 2, "daily_limit": 50, "remaining_today": 48, "provider": "offline"}
 ```
 
 #### `GET /api/v1/me/ai-history` 🔒 → `200`
-Query: `problem_slug`, `action` (`hint` | `review`), `page`, `page_size`. Newest first.
-`response` holds the exact `content` (for hints) or `review` (for reviews) originally returned.
+Query: `problem_slug`, `action` (`hint` | `review` | `explain_failure`), `page`, `page_size`.
+Newest first. `response` holds the exact `content` (hints), `review` (reviews) or
+`explanation` (failure explanations) originally returned.
 ```json
 {
   "items": [{

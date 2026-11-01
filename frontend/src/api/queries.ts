@@ -6,7 +6,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 
 import { ApiError } from "./client";
 import { api, type ProblemFilters } from "./endpoints";
-import type { HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
+import type { AIHistoryAction, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
 
 export const queryKeys = {
   problems: (filters: ProblemFilters) => ["problems", filters] as const,
@@ -102,11 +102,19 @@ export function useReview() {
   });
 }
 
+export function useExplainFailure() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (submissionId: string) => api.explainFailure(submissionId),
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: ["me"] }),
+  });
+}
+
 export function useAIUsage(enabled = true) {
   return useQuery({ queryKey: queryKeys.aiUsage, queryFn: api.aiUsage, enabled });
 }
 
-export function useAIHistory(params: { problem_slug?: string; action?: "hint" | "review"; page?: number; page_size?: number },
+export function useAIHistory(params: { problem_slug?: string; action?: AIHistoryAction; page?: number; page_size?: number },
   enabled = true) {
   return useQuery({
     queryKey: queryKeys.aiHistory(params),

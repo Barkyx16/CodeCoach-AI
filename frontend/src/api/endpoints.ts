@@ -1,6 +1,7 @@
 /** One function per backend endpoint. See docs/API.md for behavior and error codes. */
 import { apiRequest } from "./client";
 import type {
+  AIHistoryAction,
   AIHistoryItem,
   AIUsage,
   Difficulty,
@@ -16,6 +17,7 @@ import type {
   Progress,
   Recommendation,
   RegisterRequest,
+  ExplainFailureResponse,
   ReviewRequest,
   ReviewResponse,
   Submission,
@@ -72,8 +74,10 @@ export const api = {
   // AI coach
   hint: (body: HintRequest) => apiRequest<HintResponse>("/api/v1/ai/hint", { method: "POST", body }),
   review: (body: ReviewRequest) => apiRequest<ReviewResponse>("/api/v1/ai/review", { method: "POST", body }),
+  explainFailure: (submissionId: string) =>
+    apiRequest<ExplainFailureResponse>("/api/v1/ai/explain-failure", { method: "POST", body: { submission_id: submissionId } }),
   aiUsage: () => apiRequest<AIUsage>("/api/v1/ai/usage"),
-  aiHistory: (query: { problem_slug?: string; action?: "hint" | "review"; page?: number; page_size?: number } = {}) =>
+  aiHistory: (query: { problem_slug?: string; action?: AIHistoryAction; page?: number; page_size?: number } = {}) =>
     apiRequest<Page<AIHistoryItem>>("/api/v1/me/ai-history", { query }),
 
   // mock interviews

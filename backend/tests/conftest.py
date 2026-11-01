@@ -92,3 +92,19 @@ def auth_headers(token_response: dict) -> dict:
 @pytest.fixture
 def user_headers(client) -> dict:
     return auth_headers(register(client))
+
+
+@pytest.fixture
+def judged(make_client):
+    """App with execution enabled + a worker bound to a fake runner (see tests/judge_fakes.py)."""
+    from app.worker import JudgeWorker
+    from tests.judge_fakes import TOKEN, FakeRunner
+
+    def _make(script, **settings):
+        c = make_client(execution_enabled=True, runner_token=TOKEN, **settings)
+        runner = FakeRunner(script)
+        worker = JudgeWorker(c.app.state.session_factory, runner, c.app.state.settings)
+        headers = auth_headers(register(c))
+        return c, runner, worker, headers
+
+    return _make

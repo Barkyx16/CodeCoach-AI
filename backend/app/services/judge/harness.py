@@ -106,10 +106,21 @@ __CALLS__
             String message = t.getMessage() == null ? "" : t.getMessage();
             if (message.length() > __MAX_MESSAGE__) message = message.substring(0, __MAX_MESSAGE__);
             sb.append(", \"ok\": false, \"exception\": ").append(toJson(t.getClass().getSimpleName()))
-              .append(", \"message\": ").append(toJson(message)).append(", \"ms\": ").append(ms);
+              .append(", \"message\": ").append(toJson(message))
+              .append(", \"line\": ").append(learnerLine(t)).append(", \"ms\": ").append(ms);
         }
         out.println(sb.append("}"));
         out.flush();
+    }
+
+    // Line of the innermost frame in the learner's file, so feedback can point at it.
+    private static String learnerLine(Throwable t) {
+        for (StackTraceElement e : t.getStackTrace()) {
+            if ("Solution.java".equals(e.getFileName()) && e.getLineNumber() > 0) {
+                return String.valueOf(e.getLineNumber());
+            }
+        }
+        return "null";
     }
 
     private static String toJson(Object o) {
@@ -178,6 +189,7 @@ class CaseOutcome:
     message: str | None = None
     missing: bool = False
     ms: float | None = None
+    line: int | None = None  # learner's source line where an exception was thrown
 
 
 def parse_driver_output(stdout: str, nonce: str = "") -> dict[int, dict]:
@@ -219,7 +231,15 @@ def judge_cases(expected_outputs: list[Any], stdout: str, nonce: str = "") -> li
         else:
             exc = row.get("exception")
             passed = expects_throw and exc == expected["throws"]
+            line = row.get("line")
             outcomes.append(
-                CaseOutcome(index=index, passed=passed, exception=exc, message=row.get("message"), ms=ms)
+                CaseOutcome(
+                    index=index,
+                    passed=passed,
+                    exception=exc,
+                    message=row.get("message"),
+                    ms=ms,
+                    line=line if isinstance(line, int) and not isinstance(line, bool) and line > 0 else None,
+                )
             )
     return outcomes

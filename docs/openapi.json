@@ -1312,6 +1312,92 @@
         ]
       }
     },
+    "/api/v1/ai/explain-failure": {
+      "post": {
+        "tags": [
+          "ai coach"
+        ],
+        "summary": "Explain why a judged submission failed (public evidence only; cached per submission)",
+        "operationId": "explain_failure_api_v1_ai_explain_failure_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExplainFailureRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExplainFailureResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/ai/usage": {
       "get": {
         "tags": [
@@ -2709,6 +2795,150 @@
         ],
         "title": "ExecutionResultOut"
       },
+      "ExplainFailureRequest": {
+        "properties": {
+          "submission_id": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Submission Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "submission_id"
+        ],
+        "title": "ExplainFailureRequest"
+      },
+      "ExplainFailureResponse": {
+        "properties": {
+          "submission_id": {
+            "type": "string",
+            "title": "Submission Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "explanation": {
+            "$ref": "#/components/schemas/FailureExplanation"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "cached": {
+            "type": "boolean",
+            "title": "Cached",
+            "description": "True when this explanation was saved earlier (no budget used)"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer",
+            "default": "Explanations are based only on the public tests and compiler output. Hidden test inputs are never shown to the AI or to you."
+          }
+        },
+        "type": "object",
+        "required": [
+          "submission_id",
+          "status",
+          "explanation",
+          "provider",
+          "cached"
+        ],
+        "title": "ExplainFailureResponse"
+      },
+      "FailureExplanation": {
+        "properties": {
+          "cause": {
+            "type": "string",
+            "enum": [
+              "compile-error",
+              "index-out-of-bounds",
+              "null-reference",
+              "arithmetic",
+              "number-format",
+              "recursion-depth",
+              "time-limit",
+              "memory-limit",
+              "crash",
+              "wrong-answer",
+              "hidden-edge-case",
+              "overflow",
+              "other"
+            ],
+            "title": "Cause",
+            "description": "The single most likely root-cause category"
+          },
+          "headline": {
+            "type": "string",
+            "title": "Headline",
+            "description": "One plain-English sentence saying what went wrong"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation",
+            "description": "Why it happened, grounded in the evidence (test case or compiler message). Explain the bug; do not write the corrected solution."
+          },
+          "evidence": {
+            "type": "string",
+            "title": "Evidence",
+            "description": "The specific test case, exception or compiler message relied on"
+          },
+          "line_hint": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line Hint",
+            "description": "1-based line in the learner's code, if known"
+          },
+          "next_steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Next Steps",
+            "description": "One to three concrete things to check or try"
+          },
+          "concept": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Concept",
+            "description": "Java or DSA concept worth reviewing"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Confidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cause",
+          "headline",
+          "explanation",
+          "evidence",
+          "next_steps",
+          "confidence"
+        ],
+        "title": "FailureExplanation",
+        "description": "Schema the model must fill when explaining a failed submission."
+      },
       "GuestSessionRequest": {
         "properties": {
           "display_name": {
@@ -3746,6 +3976,18 @@
             "title": "Missing",
             "description": "The test never reported (crash or time limit first)",
             "default": false
+          },
+          "line": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line",
+            "description": "Line in your code where the exception was thrown"
           },
           "runtime_ms": {
             "anyOf": [

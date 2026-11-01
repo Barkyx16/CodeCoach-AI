@@ -2,12 +2,13 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { useAIHistory, useInterviews, useMySubmissions } from "@/api/queries";
-import type { AIHistoryItem, CodeReview } from "@/api/types";
+import type { AIHistoryAction, AIHistoryItem, CodeReview, FailureExplanation } from "@/api/types";
 import { Badge, StatusBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { InterviewRow } from "@/features/interview/InterviewStartPage";
 import { ReviewResult } from "@/features/workspace/CoachPanel";
+import { FailureExplanationView } from "@/features/workspace/FailureExplanation";
 import { formatDateTime, timeAgo } from "@/lib/format";
 
 const PAGE_SIZE = 15;
@@ -83,7 +84,7 @@ function SubmissionList() {
 
 function AIFeedbackList() {
   const [page, setPage] = useState(1);
-  const [action, setAction] = useState<"" | "hint" | "review">("");
+  const [action, setAction] = useState<"" | AIHistoryAction>("");
   const q = useAIHistory({ page, page_size: PAGE_SIZE, action: action || undefined });
   return (
     <div className="stack">
@@ -93,6 +94,7 @@ function AIFeedbackList() {
           <option value="">All feedback</option>
           <option value="hint">Hints</option>
           <option value="review">Reviews</option>
+          <option value="explain_failure">Failure explanations</option>
         </select>
       </label>
       {q.isPending ? <LoadingState /> : q.isError ? <ErrorState error={q.error} onRetry={() => q.refetch()} /> :
@@ -109,12 +111,14 @@ function AIFeedbackList() {
 function FeedbackItem({ item }: { item: AIHistoryItem }) {
   const [open, setOpen] = useState(false);
   const response = (item.response ?? {}) as Record<string, unknown>;
-  const title = item.action === "hint" ? `Hint level ${item.hint_level ?? "?"}` : "Code review";
+  const title = item.action === "hint" ? `Hint level ${item.hint_level ?? "?"}`
+    : item.action === "explain_failure" ? "Failure explained" : "Code review";
+  const tone = item.action === "hint" ? "info" : item.action === "explain_failure" ? "warning" : "success";
   return (
     <li className="feedback card">
       <button type="button" className="feedback__toggle" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
         <span className="row">
-          <Badge tone={item.action === "hint" ? "info" : "success"}>{title}</Badge>
+          <Badge tone={tone}>{title}</Badge>
           <strong>{item.problem_title}</strong>
         </span>
         <span className="subtle" title={formatDateTime(item.created_at)}>{timeAgo(item.created_at)}</span>
@@ -123,6 +127,12 @@ function FeedbackItem({ item }: { item: AIHistoryItem }) {
         <div className="feedback__body">
           {item.action === "hint" ? (
             <p>{String(response.hint ?? "")}</p>
+          ) : item.action === "explain_failure" ? (
+            <FailureExplanationView data={{
+              submission_id: "", status: "", cached: true, provider: item.provider,
+              explanation: response as unknown as FailureExplanation,
+              disclaimer: "Based only on the public tests and compiler output.",
+            }} />
           ) : (
             <ReviewResult data={{
               review: response as unknown as CodeReview, provider: item.provider, expected_complexity: null,

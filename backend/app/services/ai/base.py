@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Generic, Protocol, TypeVar
 
 from app.models import InterviewPhase
-from app.schemas.ai import CodeReview, HintContent
+from app.schemas.ai import CodeReview, FailureExplanation, HintContent
 from app.schemas.interview import InterviewerReply, InterviewEvaluation
 from app.services.ai.static_analysis import Analysis
 
@@ -41,6 +41,34 @@ class ReviewContext:
     code: str
     analysis: Analysis
     judge_status: str | None
+
+
+@dataclass(frozen=True)
+class FailingCase:
+    """One failing PUBLIC test. Hidden tests are never described beyond counts."""
+
+    index: int
+    input: dict | None
+    expected: object | None
+    actual: object | None
+    exception: str | None
+    message: str | None
+    line: int | None
+    missing: bool
+
+
+@dataclass(frozen=True)
+class FailureContext:
+    problem: ProblemContext
+    code: str
+    analysis: Analysis
+    status: str  # a failing SubmissionStatus value
+    compile_output: str | None
+    failing_case: FailingCase | None  # first failing public test, if any
+    public_passed: int
+    public_total: int
+    hidden_passed: int
+    hidden_total: int
 
 
 @dataclass(frozen=True)
@@ -84,6 +112,8 @@ class CoachProvider(Protocol):
     def hint(self, ctx: HintContext) -> ProviderResult[HintContent]: ...
 
     def review(self, ctx: ReviewContext) -> ProviderResult[CodeReview]: ...
+
+    def explain_failure(self, ctx: FailureContext) -> ProviderResult[FailureExplanation]: ...
 
     def interview_turn(self, ctx: InterviewContext) -> ProviderResult[InterviewerReply]: ...
 

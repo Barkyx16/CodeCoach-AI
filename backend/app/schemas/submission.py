@@ -30,6 +30,7 @@ class PublicCaseResult(APIModel):
     exception: str | None = Field(default=None, description="Simple class name, e.g. ArithmeticException")
     exception_message: str | None = None
     missing: bool = Field(default=False, description="The test never reported (crash or time limit first)")
+    line: int | None = Field(default=None, description="Line in your code where the exception was thrown")
     runtime_ms: float | None = None
 
 

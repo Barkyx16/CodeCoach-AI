@@ -105,7 +105,7 @@ Mobile (≤ 900px): tabs **Problem | Code | Coach**.
 | Statement | Title, difficulty, topics, Markdown body, examples, constraints, method signature, public tests, hidden-test count | loading, not found |
 | Editor toolbar | "Java", save status (*Draft saved* / *Saving…* / *Unsaved changes*), Reset, **Submit** | submitting |
 | Editor | Monaco. Lines flagged by a review get `.editor-line--flagged` and `.editor-glyph--flagged` | flagged line |
-| Results | Empty hint (shows the Ctrl/⌘+Enter shortcut) · status badge + spinner while judging ("Waiting for a judge…", "Running your code against the tests…") · verdict sentence · "x/y tests passed", "hidden: a/b", runtime · per-public-test rows ✓/✗ with expected vs. actual, the exception and its message, or "this test never ran" · **Compiler output** block for compile errors · when a deployment has execution off: the "Saved, but not run yet" banner (`08-judged-pass.png`) | Queued, Running, Passed, Failed, Compile error, Runtime error, Time limit, Memory limit, Judge error, execution off |
+| Results | Empty hint (shows the Ctrl/⌘+Enter shortcut) · status badge + spinner while judging ("Waiting for a judge…", "Running your code against the tests…") · verdict sentence · "x/y tests passed", "hidden: a/b", runtime · per-public-test rows ✓/✗ with expected vs. actual, the exception and its message (plus an **"at line N" link** to the editor when the line is known), or "this test never ran" · **Explain this failure** button on failed verdicts (`FailureExplanation.tsx`): cause badge, confidence, **"Go to line N"** link, headline, explanation, "Based on:" evidence box, numbered "Try this" steps, concept to review, disclaimer · **Compiler output** block for compile errors · when a deployment has execution off: the "Saved, but not run yet" banner (`08-judged-pass.png`) | Queued, Running, Passed, Failed, Compile error, Runtime error, Time limit, Memory limit, Judge error, execution off · explanation: not asked · loading · shown · cached · budget error |
 | Coach: Hints tab | Ladder of unlocked hints (Level N · Name, focus area, hint text, encouragement); one button for the next level; a warning before level 4 ("explains the full solution") | none unlocked · some · all unlocked · loading · budget exhausted (button disabled + message) · signed-out prompt |
 | Coach: Review tab | Run button · summary · 3 complexity tiles (Time and Space with targets, Confidence; the time tile gets a warning border when it misses the target) · issue list (severity badge, category, **"line N" link that highlights the editor line**, detail, → suggestion) · strengths · Next step banner · disclaimer | not run · loading · result · error |
 | Usage | "47/50 left" in the coach header | — |
@@ -121,7 +121,8 @@ beside the bars).
 
 ### 3.6 History — `/history` (`features/history/HistoryPage.tsx`)
 Tabs: **Submissions** (table: problem, status, submitted, runtime) and **AI feedback**
-(expandable cards; reviews re-render with the same review component).
+(expandable cards with a filter for hints, reviews and failure explanations; reviews and
+explanations re-render with the same components as in the workspace).
 - States: loading · error · empty for each tab · pagination.
 
 ### 3.7 Mock interview — `/interviews`, `/interviews/:id` (`features/interview/*`) · `06-interview-live.png`, `07-interview-feedback.png`

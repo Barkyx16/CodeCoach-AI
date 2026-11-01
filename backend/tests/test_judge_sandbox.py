@@ -100,6 +100,7 @@ def judge(make_client, runner_url):
         return c.get(f"/api/v1/submissions/{sub.json()['id']}", headers=headers).json()
 
     run.client = c
+    run.headers = headers
     return run
 
 
@@ -174,3 +175,130 @@ def test_eval_set_verdict_labels_match_the_real_judge(judge, sample):
     """The AI-eval ground truth is itself verified: every labelled sample is judged in gVisor."""
     done = judge(sample["problem"], sample["code"])
     assert done["status"] == sample["verdict"], (sample["id"], done["status"], done["result"])
+
+
+# --- "Explain my failure" on real javac and JVM output -----------------------------------------
+# (slug, code, expected verdict, expected cause, expected line_hint, text the headline must contain)
+FAILURES = [
+    (
+        "find-largest-number",
+        "class Solution {\n    public int max(int[] nums) {\n        int best = nums[0];\n"
+        "        for (int x : nums) if (x > best) bset = x;\n        return best;\n    }\n}",
+        "COMPILE_ERROR",
+        "compile-error",
+        4,
+        "`bset`",
+    ),
+    (
+        "contains-duplicate",
+        "class Solution {\n    public boolean containsDuplicate(int[] nums) {\n"
+        "        HashSet<Integer> seen = new HashSet<>();\n"
+        "        for (int x : nums) if (!seen.add(x)) return true;\n        return false;\n    }\n}",
+        "COMPILE_ERROR",
+        "compile-error",
+        3,
+        "import",
+    ),
+    (
+        "find-largest-number",
+        "class Solution {\n    public int maximum(int[] nums) {\n        return 0;\n    }\n}",
+        "COMPILE_ERROR",
+        "compile-error",
+        None,
+        "signature",
+    ),
+    (
+        "find-largest-number",
+        "class Solution {\n    public int max(int[] nums) {\n        int best = Integer.MIN_VALUE;\n"
+        "        for (int i = 0; i <= nums.length; i++) {\n            best = Math.max(best, nums[i]);\n"
+        "        }\n        return best;\n    }\n}",
+        "FAILED",
+        "index-out-of-bounds",
+        5,
+        "out of range",
+    ),
+    (
+        "climbing-stairs",
+        "class Solution {\n    public int climbStairs(int n) {\n"
+        "        return climbStairs(n - 1) + climbStairs(n - 2);\n    }\n}",
+        "RUNTIME_ERROR",
+        "recursion-depth",
+        3,
+        "stack overflow",
+    ),
+    (
+        "first-unique-character",
+        "import java.util.*;\nclass Solution {\n    public int firstUniqChar(String s) {\n"
+        "        Map<Character, Integer> count = new HashMap<>();\n"
+        "        for (char c : s.toCharArray()) count.put(c, count.get(c) + 1);\n"
+        "        for (int i = 0; i < s.length(); i++) if (count.get(s.charAt(i)) == 1) return i;\n"
+        "        return -1;\n    }\n}",
+        "FAILED",
+        "null-reference",
+        5,
+        "null",
+    ),
+    (
+        "two-sum",
+        "import java.util.*;\nclass Solution {\n    public int[] twoSum(int[] nums, int target) {\n"
+        "        Map<Integer, Integer> seen = new HashMap<>();\n"
+        "        for (int i = 0; i < nums.length; i++) {\n"
+        "            Integer j = seen.get(target - nums[i]);\n"
+        "            if (j != null) return new int[] {i, j};\n            seen.put(nums[i], i);\n"
+        "        }\n        return null;\n    }\n}",
+        "FAILED",
+        "wrong-answer",
+        None,
+        "reversed",
+    ),
+    (
+        "binary-search",
+        "class Solution {\n    public int search(int[] nums, int target) {\n"
+        "        int lo = 0, hi = nums.length - 1;\n        while (lo <= hi) {\n"
+        "            int mid = (lo + hi) / 2;\n            if (nums[mid] == target) return mid;\n"
+        "            if (nums[mid] < target) lo = mid; else hi = mid;\n        }\n        return -1;\n    }\n}",
+        "TIME_LIMIT",
+        "time-limit",
+        4,
+        "infinite loop",
+    ),
+    (
+        "binary-search",
+        "class Solution {\n    public int search(int[] nums, int target) {\n"
+        "        int lo = 0, hi = nums.length - 1;\n        while (lo < hi) {\n"
+        "            int mid = lo + (hi - lo) / 2;\n            if (nums[mid] == target) return mid;\n"
+        "            if (nums[mid] < target) lo = mid + 1; else hi = mid - 1;\n"
+        "        }\n        return -1;\n    }\n}",
+        "FAILED",
+        "hidden-edge-case",
+        None,
+        "hidden edge case",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    ("slug", "code", "verdict", "cause", "line", "headline"),
+    FAILURES,
+    ids=[f"{f[0]}-{f[3]}" for f in FAILURES],
+)
+def test_explain_failure_on_real_judge_output(judge, slug, code, verdict, cause, line, headline):
+    done = judge(slug, code)
+    assert done["status"] == verdict, done
+    c = judge.client
+    r = c.post("/api/v1/ai/explain-failure", headers=judge.headers, json={"submission_id": done["id"]})
+    assert r.status_code == 200, r.text
+    e = r.json()["explanation"]
+    assert e["cause"] == cause, e
+    assert e["line_hint"] == line, e
+    assert headline.lower() in e["headline"].lower(), e
+    # Neither the submission result nor the explanation may contain a hidden test's input.
+    with c.app.state.session_factory() as db:
+        p = db.scalar(select(Problem).where(Problem.slug == slug))
+        hidden = [t.input for t in p.test_cases if t.visibility.value == "hidden"]
+    blob = json.dumps(done) + json.dumps(e)
+    for h in hidden:
+        for value in h.values():
+            if isinstance(value, list) and len(value) >= 2:
+                assert json.dumps(value) not in blob, f"hidden input {value} leaked"
+                assert ", ".join(map(str, value)) not in blob, f"hidden input {value} leaked"

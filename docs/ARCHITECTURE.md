@@ -58,6 +58,7 @@ backend/
       ai/
         base.py          Provider-neutral interface (CoachProvider protocol)
         offline.py       Curated hint ladder + static analysis (no key, deterministic)
+        failure_offline.py  Rule-based "explain my failure" (javac messages, exceptions, wrong answers)
         interviewer_offline.py  Rule-based interviewer + explainable rubric scorer
         anthropic_provider.py  Claude via the official SDK, structured outputs
         static_analysis.py     Explainable checks on Java source
@@ -181,8 +182,10 @@ client polls GET /submissions/{id} every 1.5 s until is_terminal
 | Concern | How it's handled |
 |---|---|
 | Vendor lock-in | `CoachProvider` protocol; offline and Anthropic implementations are interchangeable. |
-| Consistent output | Pydantic models (`HintContent`, `CodeReview`) are the API contract **and** the structured-output schema sent to Claude (`messages.parse(output_format=...)`). |
-| Grounding | Every prompt carries the instructor-written hint for that level, the expected complexity, static-analysis findings and the judge verdict. |
+| Consistent output | Pydantic models (`HintContent`, `CodeReview`, `FailureExplanation`) are the API contract **and** the structured-output schema sent to Claude (`messages.parse(output_format=...)`). |
+| Grounding | Every prompt carries the instructor-written hint for that level, the expected complexity, static-analysis findings and the judge verdict. Failure explanations are grounded in the first failing **public** test, the exception's line in the learner's code, and the redacted compiler output, and must quote that evidence. |
+| Hidden tests | The explainer is built from `public_result_view`, the same public-only view the submissions API returns, so the AI can't see (or leak) hidden inputs. |
+| Repeat requests | One explanation per submission; asking again returns the saved one without spending budget. |
 | Spoilers | Progressive disclosure is enforced **server-side** (409 for skipped levels), not just hidden in the UI. Below level 4 the model is told never to write a full solution. |
 | Prompt injection | System prompt defines the tutor role; problem, code and analysis are fenced in tags and declared untrusted; model output is never executed; output is schema-validated. |
 | Cost | Per-user daily budget enforced from the database; `effort=low`; input length cap; the offline provider is the default. |

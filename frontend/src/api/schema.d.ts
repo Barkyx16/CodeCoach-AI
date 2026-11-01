@@ -281,6 +281,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ai/explain-failure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Explain why a judged submission failed (public evidence only; cached per submission) */
+        post: operations["explain_failure_api_v1_ai_explain_failure_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ai/usage": {
         parameters: {
             query?: never;
@@ -626,6 +643,78 @@ export interface components {
              * @description Compiler output (compile errors only)
              */
             stderr_excerpt?: string | null;
+        };
+        /** ExplainFailureRequest */
+        ExplainFailureRequest: {
+            /** Submission Id */
+            submission_id: string;
+        };
+        /** ExplainFailureResponse */
+        ExplainFailureResponse: {
+            /** Submission Id */
+            submission_id: string;
+            /** Status */
+            status: string;
+            explanation: components["schemas"]["FailureExplanation"];
+            /** Provider */
+            provider: string;
+            /**
+             * Cached
+             * @description True when this explanation was saved earlier (no budget used)
+             */
+            cached: boolean;
+            /**
+             * Disclaimer
+             * @default Explanations are based only on the public tests and compiler output. Hidden test inputs are never shown to the AI or to you.
+             */
+            disclaimer: string;
+        };
+        /**
+         * FailureExplanation
+         * @description Schema the model must fill when explaining a failed submission.
+         */
+        FailureExplanation: {
+            /**
+             * Cause
+             * @description The single most likely root-cause category
+             * @enum {string}
+             */
+            cause: "compile-error" | "index-out-of-bounds" | "null-reference" | "arithmetic" | "number-format" | "recursion-depth" | "time-limit" | "memory-limit" | "crash" | "wrong-answer" | "hidden-edge-case" | "overflow" | "other";
+            /**
+             * Headline
+             * @description One plain-English sentence saying what went wrong
+             */
+            headline: string;
+            /**
+             * Explanation
+             * @description Why it happened, grounded in the evidence (test case or compiler message). Explain the bug; do not write the corrected solution.
+             */
+            explanation: string;
+            /**
+             * Evidence
+             * @description The specific test case, exception or compiler message relied on
+             */
+            evidence: string;
+            /**
+             * Line Hint
+             * @description 1-based line in the learner's code, if known
+             */
+            line_hint?: number | null;
+            /**
+             * Next Steps
+             * @description One to three concrete things to check or try
+             */
+            next_steps: string[];
+            /**
+             * Concept
+             * @description Java or DSA concept worth reviewing
+             */
+            concept?: string | null;
+            /**
+             * Confidence
+             * @enum {string}
+             */
+            confidence: "low" | "medium" | "high";
         };
         /** GuestSessionRequest */
         GuestSessionRequest: {
@@ -1029,6 +1118,11 @@ export interface components {
              * @default false
              */
             missing: boolean;
+            /**
+             * Line
+             * @description Line in your code where the exception was thrown
+             */
+            line?: number | null;
             /** Runtime Ms */
             runtime_ms?: number | null;
         };
@@ -2256,6 +2350,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReviewResponse"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    explain_failure_api_v1_ai_explain_failure_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExplainFailureRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExplainFailureResponse"];
                 };
             };
             /** @description Missing, invalid, expired or revoked access token */

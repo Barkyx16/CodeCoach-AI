@@ -89,7 +89,7 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
   );
   const results = (
     <div className="panel-scroll">
-      <SubmissionPanel submission={submission.data} error={submit.error ?? submission.error} />
+      <SubmissionPanel submission={submission.data} error={submit.error ?? submission.error} onHighlightLine={jumpToLine} />
     </div>
   );
   const coach = (

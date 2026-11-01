@@ -8,6 +8,8 @@ from app.models import AIAction, AIInteraction, Problem, User
 from app.schemas.ai import (
     AIHistoryItem,
     AIUsage,
+    ExplainFailureRequest,
+    ExplainFailureResponse,
     HintRequest,
     HintResponse,
     ReviewRequest,
@@ -48,6 +50,20 @@ def review(
     body: ReviewRequest, user: User = Depends(get_current_user), coach: CoachService = Depends(get_coach)
 ) -> ReviewResponse:
     return coach.review(user, body)
+
+
+@router.post(
+    "/ai/explain-failure",
+    response_model=ExplainFailureResponse,
+    responses=_ERRORS,
+    summary="Explain why a judged submission failed (public evidence only; cached per submission)",
+)
+def explain_failure(
+    body: ExplainFailureRequest,
+    user: User = Depends(get_current_user),
+    coach: CoachService = Depends(get_coach),
+) -> ExplainFailureResponse:
+    return coach.explain_failure(user, body)
 
 
 @router.get("/ai/usage", response_model=AIUsage, responses=_ERRORS, summary="Your AI budget for the last 24h")

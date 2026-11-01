@@ -15,8 +15,8 @@ comes from test cases, never from the AI.
 | ![Workspace with AI code review](docs/screenshots/02-workspace-review.png) | ![Live mock interview](docs/screenshots/06-interview-live.png) |
 | **Interview feedback** | **Dashboard** |
 | ![Rubric feedback](docs/screenshots/07-interview-feedback.png) | ![Progress dashboard](docs/screenshots/03-dashboard.png) |
-| **Judged in the gVisor sandbox** | |
-| ![Submission passed](docs/screenshots/08-judged-pass.png) | |
+| **Judged in the gVisor sandbox** | **Explain my failure** |
+| ![Submission passed](docs/screenshots/08-judged-pass.png) | ![Failure explanation](docs/screenshots/10-explain-failure.png) |
 
 ## What works today
 
@@ -27,15 +27,16 @@ comes from test cases, never from the AI.
 | Accounts | Register and login (Argon2id + JWT), guest demo sessions, logout-everywhere, password change, brute-force limiting; settings page with profile edit, **full data export** and **account deletion** (cascading, verified on SQLite and PostgreSQL) |
 | AI hints | 4-level progressive ladder (nudge → concept → pseudocode → explanation), unlock order enforced by the server |
 | AI code review | Structured JSON: complexity, issues with severity, category and line, strengths, next step, confidence |
+| Explain my failure | One click on a failed verdict: the root cause (13 categories), a plain-English explanation, the evidence it relied on (failing public test, exception line or compiler message), a link to the line, and next steps. Built only from public test data; cached per submission. Verified with 9 buggy programs in the real sandbox |
 | AI providers | `offline` (curated hints + static analysis; free, deterministic) or `anthropic` (Claude via structured outputs) with automatic fallback |
-| AI safeguards | Prompt-injection framing, secret redaction, per-user daily budget, input caps, saved history |
+| AI safeguards | Prompt-injection framing, secret redaction, per-user daily budget, input caps, saved history; hidden tests never reach the model |
 | AI evaluation | 52 hand-labelled Java samples (labels verified by the real judge) scoring review precision/recall, false alarms, Big-O accuracy and hint spoilers, with a held-out set for honest generalization numbers ([results](docs/AI_EVALUATION.md)) |
 | Code judging | Submissions are judged against public and hidden tests in a **gVisor sandbox** (separate runner service: no network, read-only FS, CPU/memory/PID/time/output limits, non-root, no bind mounts). Postgres-backed job queue with a worker, admission control, bounded retries and crash recovery. 16 threat-model checks run hostile code in the real sandbox in CI |
 | Mock interviews | Timed sessions through clarify → approach → code → complexity → test, a server-side clock, an AI interviewer (offline or Claude) that probes vague or brute-force answers, rubric feedback on 5 dimensions with evidence, and saved transcripts |
 | Analytics | Solved/attempted by topic and difficulty, streaks, 28-day activity, acceptance rate, weakest topics |
 | Recommendations | Explainable next problems: retry unfinished, strengthen weak topics, difficulty ladder |
 | Web app | React + TypeScript: landing, auth, problem library (URL-synced filters), resizable 3-panel workspace with Monaco and autosaved drafts, hint ladder, reviews that highlight the flagged line, dashboard (stat tiles, activity heatmap, topic progress), history; mobile layout |
-| Engineering | 232 backend tests (SQLite **and** PostgreSQL, incl. 70 that run in the real gVisor sandbox), 28 runner tests, 57 frontend tests, 5 Playwright end-to-end journeys against the real backend; ruff, mypy, ESLint, strict TypeScript; API types generated from OpenAPI; Alembic; Docker Compose (db, migrate, api, web + judge profile: sandbox image, runner, worker); GitHub Actions; pip-audit, npm audit, Dependabot; Prometheus metrics, JSON logs, request IDs, health checks; CSP and security headers |
+| Engineering | 286 backend tests (SQLite **and** PostgreSQL, incl. 79 that run in the real gVisor sandbox), 28 runner tests, 60 frontend tests, 5 Playwright end-to-end journeys against the real backend; ruff, mypy, ESLint, strict TypeScript; API types generated from OpenAPI; Alembic; Docker Compose (db, migrate, api, web + judge profile: sandbox image, runner, worker); GitHub Actions; pip-audit, npm audit, Dependabot; Prometheus metrics, JSON logs, request IDs, health checks; CSP and security headers |
 
 ## Architecture
 
@@ -43,7 +44,7 @@ comes from test cases, never from the AI.
 React + TypeScript ──HTTPS/JSON──▶ FastAPI (modular monolith) ──▶ PostgreSQL
                                         │
                                         ├──▶ AI provider adapter (offline | Claude)
-                                        └──▶ Isolated Java runner (designed, not built)
+                                        └──▶ Judge queue → worker → isolated runner (gVisor)
 ```
 Full write-up: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -93,7 +94,7 @@ pip-audit -r requirements.txt             # known-vulnerability scan
 cd frontend
 npm run lint && npm run typecheck         # ESLint + strict TypeScript
 npm run api:check                         # generated API types match docs/openapi.json
-npm test                                  # 57 unit + integration tests (Vitest, MSW)
+npm test                                  # 60 unit + integration tests (Vitest, MSW)
 npm run build                             # production bundle
 PYTHON=../backend/.venv/bin/python npm run e2e   # Playwright: real browser + real backend
 ```

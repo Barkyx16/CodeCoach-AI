@@ -30,8 +30,11 @@ export type ReviewRequest = S["ReviewRequest"];
 export type ReviewResponse = S["ReviewResponse"];
 export type CodeReview = S["CodeReview"];
 export type ReviewIssue = S["ReviewIssue"];
+export type ExplainFailureResponse = S["ExplainFailureResponse"];
+export type FailureExplanation = S["FailureExplanation"];
 export type AIUsage = S["AIUsage"];
 export type AIHistoryItem = S["AIHistoryItem"];
+export type AIHistoryAction = Exclude<S["AIAction"], "mock_interview">;
 
 export type Progress = S["ProgressOut"];
 export type Recommendation = S["Recommendation"];

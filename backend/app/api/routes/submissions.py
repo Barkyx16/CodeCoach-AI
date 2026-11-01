@@ -11,43 +11,22 @@ from app.models import (
     ProgressEventType,
     Submission,
     SubmissionStatus,
-    TestVisibility,
     User,
 )
 from app.schemas.common import Page, error_responses
 from app.schemas.submission import (
-    ExecutionResultOut,
-    PublicCaseResult,
     SubmissionCreate,
     SubmissionDetail,
     SubmissionListItem,
 )
+from app.services.judge.views import public_result_view
 
 router = APIRouter(prefix="/api/v1", tags=["submissions"])
 _ERRORS = error_responses(400, 401, 404, 422, 429, 503)
 
 
 def to_detail(sub: Submission, execution_enabled: bool) -> SubmissionDetail:
-    result = None
-    if sub.result is not None:
-        # public_results are only ever written for PUBLIC tests; re-check defensively so a
-        # runner bug can never leak hidden test data through this endpoint.
-        public_inputs = {
-            i: t
-            for i, t in enumerate(t for t in sub.problem.test_cases if t.visibility == TestVisibility.PUBLIC)
-        }
-        rows = [PublicCaseResult(**r) for r in sub.result.public_results if r.get("index") in public_inputs]
-        public_passed = sum(r.passed for r in rows)
-        result = ExecutionResultOut(
-            runtime_ms=sub.result.runtime_ms,
-            memory_kb=sub.result.memory_kb,
-            passed_count=sub.result.passed_count,
-            total_count=sub.result.total_count,
-            hidden_passed=max(0, sub.result.passed_count - public_passed),
-            hidden_total=max(0, sub.result.total_count - len(public_inputs)),
-            public_results=rows,
-            stderr_excerpt=sub.result.stderr_excerpt,
-        )
+    result = public_result_view(sub)
     return SubmissionDetail(
         id=sub.id,
         problem_slug=sub.problem.slug,

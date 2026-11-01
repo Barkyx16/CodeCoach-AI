@@ -1,8 +1,12 @@
+import { useExplainFailure } from "@/api/queries";
 import type { Submission } from "@/api/types";
 import { StatusBadge } from "@/components/Badge";
+import { Button } from "@/components/Button";
 import { Spinner } from "@/components/Spinner";
-import { ErrorState } from "@/components/States";
+import { ErrorState, InlineError } from "@/components/States";
 import { formatArgs, formatValue, timeAgo } from "@/lib/format";
+
+import { FailureExplanationView } from "./FailureExplanation";
 
 const STATUS_COPY: Partial<Record<Submission["status"], string>> = {
   PASSED: "All tests passed. Nice work.",
@@ -14,7 +18,18 @@ const STATUS_COPY: Partial<Record<Submission["status"], string>> = {
   INTERNAL_ERROR: "The judge had a problem. This wasn't your fault; try again.",
 };
 
-export function SubmissionPanel({ submission, error }: { submission: Submission | undefined; error: unknown }) {
+/** Verdicts caused by the learner's code, which the coach can explain. */
+const EXPLAINABLE: ReadonlySet<Submission["status"]> = new Set([
+  "FAILED", "COMPILE_ERROR", "RUNTIME_ERROR", "TIME_LIMIT", "MEMORY_LIMIT",
+]);
+
+interface SubmissionPanelProps {
+  submission: Submission | undefined;
+  error: unknown;
+  onHighlightLine?(line: number | null): void;
+}
+
+export function SubmissionPanel({ submission, error, onHighlightLine }: SubmissionPanelProps) {
   if (error) return <ErrorState error={error} />;
   if (!submission) {
     return (
@@ -50,6 +65,10 @@ export function SubmissionPanel({ submission, error }: { submission: Submission 
         </p>
       )}
 
+      {submission.is_terminal && EXPLAINABLE.has(submission.status) && (
+        <ExplainFailure key={submission.id} submissionId={submission.id} onHighlightLine={onHighlightLine} />
+      )}
+
       {result && (
         <>
           <div className="results__stats">
@@ -82,7 +101,12 @@ export function SubmissionPanel({ submission, error }: { submission: Submission 
                       {r.missing ? (
                         <>, but this test never ran (the program stopped first)</>
                       ) : r.exception ? (
-                        <>, but it threw <code>{r.exception}</code>{r.exception_message ? <>: {r.exception_message}</> : null}</>
+                        <>
+                          , but it threw <code>{r.exception}</code>{r.exception_message ? <>: {r.exception_message}</> : null}
+                          {r.line && (onHighlightLine ? (
+                            <> at <button type="button" className="link-button" onClick={() => onHighlightLine(r.line ?? null)}>line {r.line}</button></>
+                          ) : <> at line {r.line}</>)}
+                        </>
                       ) : (
                         <>, got <code>{formatValue(r.actual_output)}</code></>
                       )}
@@ -94,6 +118,27 @@ export function SubmissionPanel({ submission, error }: { submission: Submission 
           </ul>
         </>
       )}
+    </div>
+  );
+}
+
+function ExplainFailure({ submissionId, onHighlightLine }: { submissionId: string; onHighlightLine?(line: number | null): void }) {
+  const explain = useExplainFailure();
+  if (explain.data) {
+    return (
+      <section className="explain card" aria-label="Why it failed">
+        <h3 className="section-title">Why it failed</h3>
+        <FailureExplanationView data={explain.data} onHighlightLine={onHighlightLine} />
+      </section>
+    );
+  }
+  return (
+    <div className="explain-cta">
+      <Button size="sm" variant="secondary" loading={explain.isPending} onClick={() => explain.mutate(submissionId)}>
+        Explain this failure
+      </Button>
+      <span className="subtle">Uses the public tests and compiler output only.</span>
+      <InlineError error={explain.error} />
     </div>
   );
 }
