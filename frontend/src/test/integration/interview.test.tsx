@@ -59,6 +59,25 @@ function liveInterviewServer() {
 }
 
 describe("Mock interview", () => {
+  it("prevents more messages after the interviewer wraps up", async () => {
+    const iv = { ...base(), phase: null, phase_index: 5, candidate_turns_remaining: 0 };
+    server.use(http.get(`${API}/api/v1/interviews/iv-1`, () => HttpResponse.json(iv)));
+    renderApp("/interviews/iv-1", { signedIn: true });
+    expect(await screen.findByLabelText("Your answer")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Finish & get feedback" })).toBeEnabled();
+  });
+
+  it("reports an editor problem-load error instead of spinning indefinitely", async () => {
+    liveInterviewServer();
+    server.use(http.get(`${API}/api/v1/problems/two-sum`, () => HttpResponse.json({
+      error: { code: "unavailable", message: "The problem could not be loaded." },
+    }, { status: 503 })));
+    renderApp("/interviews/iv-1", { signedIn: true });
+    expect(await screen.findByRole("alert")).toHaveTextContent("The problem could not be loaded.");
+    expect(screen.getByRole("button", { name: "Try again" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
+  });
   it("starts an interview and lands in the live session", async () => {
     liveInterviewServer();
     const { user, router } = renderApp("/interviews", { signedIn: true });

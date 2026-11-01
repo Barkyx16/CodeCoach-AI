@@ -7,7 +7,7 @@ import type { InterviewSummary } from "@/api/types";
 import { Badge, DifficultyBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
-import { InlineError } from "@/components/States";
+import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
 import { timeAgo } from "@/lib/format";
 
 import { OVERALL_LABELS, PHASES } from "./phases";
@@ -53,6 +53,7 @@ export function InterviewStartPage() {
                 <option value="">Pick one for me (recommended)</option>
                 {problems.data?.items.map((p) => <option key={p.slug} value={p.slug}>{p.title} · {p.difficulty}</option>)}
               </select>
+              {problems.isError && <InlineError error={problems.error} />}
             </div>
             <fieldset className="field">
               <legend className="field__label">Time limit</legend>
@@ -101,12 +102,13 @@ const HOWTO: Record<string, string> = {
 
 function PastInterviews() {
   const q = useInterviews({ page_size: 5 });
-  if (!q.data || q.data.total === 0) return null;
   return (
     <section className="stack interview-start__past" aria-label="Recent interviews">
       <h2 className="section-title">Recent interviews</h2>
-      <ul className="interview-list">{q.data.items.map((iv) => <InterviewRow key={iv.id} iv={iv} />)}</ul>
-      {q.data.total > 5 && <Link to="/history?tab=interviews">See all interviews</Link>}
+      {q.isPending ? <LoadingState label="Loading interviews…" /> : q.isError ? <ErrorState error={q.error} onRetry={() => void q.refetch()} />
+        : q.data.total === 0 ? <EmptyState title="Your next interview starts with practice">Pick a problem and a time limit above. Your sessions and feedback will be saved here.</EmptyState>
+          : <><ul className="interview-list">{q.data.items.map((iv) => <InterviewRow key={iv.id} iv={iv} />)}</ul>
+            {q.data.total > 5 && <Link to="/history?tab=interviews">See all interviews</Link>}</>}
     </section>
   );
 }

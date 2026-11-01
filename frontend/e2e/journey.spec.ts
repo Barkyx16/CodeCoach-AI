@@ -86,7 +86,7 @@ test("guest journey: try it, code, hints, review, submit, progress", async ({ pa
   await page.screenshot({ path: "e2e/screenshots/03-dashboard.png", fullPage: true });
 
   // History keeps the attempt and the AI feedback.
-  await page.getByRole("link", { name: "History" }).click();
+  await page.getByRole("navigation", { name: "Main", exact: true }).getByRole("link", { name: "History", exact: true }).click();
   await expect(page.getByRole("link", { name: "Two Sum" })).toBeVisible();
   await page.getByRole("tab", { name: "AI feedback" }).click();
   await expect(page.getByText("Code review").first()).toBeVisible();

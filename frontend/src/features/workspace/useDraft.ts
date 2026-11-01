@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { storage } from "@/lib/storage";
 
-export type SaveState = "saved" | "saving" | "unsaved";
+export type SaveState = "saved" | "saving" | "unsaved" | "error";
 
 const key = (scope: string, slug: string) => `codecoach.draft.v1.${scope}.${slug}`;
 
@@ -20,6 +20,15 @@ export function useDraft(slug: string, starterCode: string, scope = "anon", dela
   }));
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const timer = useRef<number | undefined>(undefined);
+  const pending = useRef<{ key: string; code: string; starter: string } | null>(null);
+  const persist = useCallback(() => {
+    const change = pending.current;
+    if (!change) return true;
+    const saved = change.code === change.starter
+      ? storage.remove(change.key) : storage.set(change.key, change.code);
+    if (saved) pending.current = null;
+    return saved;
+  }, []);
 
   // Switching problem or user loads that draft. Adjusting state during render (instead of in
   // an effect) is React's recommended pattern: no extra render with stale content.
@@ -35,24 +44,33 @@ export function useDraft(slug: string, starterCode: string, scope = "anon", dela
 
   const setCode = useCallback((next: string) => {
     setDraft({ key: storageKey, starter: starterCode, code: next });
+    pending.current = { key: storageKey, starter: starterCode, code: next };
     setSaveState("unsaved");
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
       setSaveState("saving");
-      if (next === starterCode) storage.remove(storageKey);
-      else storage.set(storageKey, next);
-      setSaveState("saved");
+      setSaveState(persist() ? "saved" : "error");
     }, delayMs);
-  }, [storageKey, starterCode, delayMs]);
+  }, [storageKey, starterCode, delayMs, persist]);
 
-  useEffect(() => () => window.clearTimeout(timer.current), []);
+  useEffect(() => {
+    const flush = () => { window.clearTimeout(timer.current); persist(); };
+    const onVisibility = () => { if (document.visibilityState === "hidden") flush(); };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      flush(); // Navigation must save even before the debounce delay has elapsed.
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [storageKey, persist]);
 
   const reset = useCallback(() => {
     window.clearTimeout(timer.current);
-    storage.remove(storageKey);
+    pending.current = { key: storageKey, starter: starterCode, code: starterCode };
     setDraft({ key: storageKey, starter: starterCode, code: starterCode });
-    setSaveState("saved");
-  }, [storageKey, starterCode]);
+    setSaveState(persist() ? "saved" : "error");
+  }, [storageKey, starterCode, persist]);
 
   const isModified = code !== starterCode;
   return { code, setCode, saveState, reset, isModified };

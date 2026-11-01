@@ -27,9 +27,13 @@ test("mobile workspace uses tabs instead of side-by-side panels", async ({ page 
   await expect(page.getByRole("heading", { name: "Two Sum", level: 1 })).toBeVisible();
   const tabs = page.getByRole("tablist", { name: "Workspace" });
   await expect(tabs).toBeVisible();
-  await tabs.getByRole("tab", { name: "Code" }).click();
+  await tabs.getByRole("tab", { name: "Problem" }).focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(tabs.getByRole("tab", { name: "Code" })).toBeFocused();
+  await expect(page.getByRole("tabpanel", { name: "Code", exact: true })).toBeVisible();
   await expect(page.locator(".monaco-editor")).toBeVisible();
-  await tabs.getByRole("tab", { name: "Coach" }).click();
+  await page.keyboard.press("End");
+  await expect(tabs.getByRole("tab", { name: "Coach" })).toBeFocused();
   await expect(page.getByRole("button", { name: /sign in or continue as guest/i })).toBeVisible();
   await page.screenshot({ path: "e2e/screenshots/05-mobile-workspace.png" });
 });

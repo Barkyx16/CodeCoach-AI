@@ -9,6 +9,8 @@ import { percent, plural, timeAgo, titleCase } from "@/lib/format";
 
 import { ActivityHeatmap } from "./ActivityHeatmap";
 import { ProgressBars } from "./ProgressBars";
+import { RecentActivity } from "./RecentActivity";
+import { CompletionCard } from "./CompletionCard";
 
 function StatTile({ label, value, detail }: { label: string; value: string; detail?: string }) {
   return (
@@ -37,9 +39,11 @@ export function DashboardPage() {
     <div className="page dashboard">
       <div className="page__header">
         <div>
+          <p className="eyebrow">YOUR PRACTICE, IN PERSPECTIVE</p>
           <h1 className="page__title">{user?.display_name ? `${user.display_name}'s progress` : "Your progress"}</h1>
           <p className="page__subtitle">{p.last_active_at ? `Last active ${timeAgo(p.last_active_at)}` : "No activity yet"}</p>
         </div>
+        <div className="row dashboard__actions"><Link to="/interviews" className="btn btn--secondary btn--md">Start a mock interview</Link><Link to="/problems" className="btn btn--primary btn--md">Practice now <span aria-hidden="true">→</span></Link></div>
       </div>
 
       <section className="stat-row" aria-label="Summary">
@@ -51,6 +55,7 @@ export function DashboardPage() {
         <StatTile label="Coaching used" value={`${p.hints_used + p.reviews_requested}`}
           detail={`${plural(p.hints_used, "hint")} · ${plural(p.reviews_requested, "review")}`} />
       </section>
+      <CompletionCard solved={p.solved} total={p.total_problems} />
 
       {isNew && (
         <EmptyState title="Your dashboard fills in as you practice" action={<Link to="/problems" className="btn btn--primary btn--md">Start a problem</Link>}>
@@ -98,6 +103,7 @@ export function DashboardPage() {
           <ProgressBars rows={p.by_topic.map((t) => ({ key: t.topic, label: titleCase(t.topic), total: t.total_problems, solved: t.solved, attempted: t.attempted }))} />
         </Card>
       </div>
+      <RecentActivity />
 
       {usage.data && (
         <p className="subtle dashboard__usage">

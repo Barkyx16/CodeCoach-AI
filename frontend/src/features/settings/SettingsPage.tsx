@@ -9,6 +9,7 @@ import { Field } from "@/components/Field";
 import { InlineError } from "@/components/States";
 import { fieldErrorsFrom } from "@/features/auth/fieldErrors";
 import { formatDateTime } from "@/lib/format";
+import { EditorPreferencesControls } from "./EditorPreferencesControls";
 
 export function SettingsPage() {
   const { user } = useAuth();
@@ -25,6 +26,7 @@ export function SettingsPage() {
       </div>
       <div className="settings__grid">
         <ProfileCard />
+        <Card className="stack" aria-labelledby="editor-preferences-title"><h2 id="editor-preferences-title" className="section-title">Editor preferences</h2><EditorPreferencesControls /></Card>
         {!user.is_guest && <PasswordCard />}
         <AIPrivacyCard />
         <DataCard />

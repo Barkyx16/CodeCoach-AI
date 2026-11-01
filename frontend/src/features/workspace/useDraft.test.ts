@@ -45,4 +45,36 @@ describe("useDraft", () => {
     expect(result.current.code).toBe("starter");
     expect(window.localStorage.length).toBe(0);
   });
+
+  it("flushes a pending edit when navigating away before the debounce", () => {
+    const first = renderHook(() => useDraft("two-sum", "starter", "u1", 600));
+    act(() => first.result.current.setCode("last keystroke"));
+    first.unmount();
+    const second = renderHook(() => useDraft("two-sum", "starter", "u1", 600));
+    expect(second.result.current.code).toBe("last keystroke");
+  });
+
+  it("flushes before pagehide and keeps switched-user drafts isolated", () => {
+    const draft = renderHook(({ scope }) => useDraft("two-sum", "starter", scope, 600), { initialProps: { scope: "u1" } });
+    act(() => draft.result.current.setCode("alice"));
+    act(() => window.dispatchEvent(new Event("pagehide")));
+    draft.rerender({ scope: "u2" });
+    expect(draft.result.current.code).toBe("starter");
+    act(() => draft.result.current.setCode("bob"));
+    draft.rerender({ scope: "u1" });
+    expect(draft.result.current.code).toBe("alice");
+    draft.rerender({ scope: "u2" });
+    expect(draft.result.current.code).toBe("bob");
+  });
+
+  it("reports storage failure without pretending the draft is saved", () => {
+    const write = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("quota"); });
+    const draft = renderHook(() => useDraft("two-sum", "starter", "u1", 500));
+    act(() => draft.result.current.setCode("keep this in the editor"));
+    act(() => vi.advanceTimersByTime(500));
+    expect(draft.result.current.saveState).toBe("error");
+    expect(draft.result.current.code).toBe("keep this in the editor");
+    draft.unmount();
+    write.mockRestore();
+  });
 });

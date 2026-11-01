@@ -7,18 +7,20 @@ export const storage = {
       return null;
     }
   },
-  set(key: string, value: string): void {
+  set(key: string, value: string): boolean {
     try {
       window.localStorage.setItem(key, value);
+      return true;
     } catch {
-      /* ignore: persistence is best-effort */
+      return false;
     }
   },
-  remove(key: string): void {
+  remove(key: string): boolean {
     try {
       window.localStorage.removeItem(key);
+      return true;
     } catch {
-      /* ignore */
+      return false;
     }
   },
 };
