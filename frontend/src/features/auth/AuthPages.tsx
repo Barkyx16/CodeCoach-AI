@@ -18,18 +18,25 @@ function GuestButton() {
   const navigate = useNavigate();
   const target = useRedirectTarget();
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
   return (
+    <div className="guest-access">
     <Button variant="ghost" loading={busy} onClick={async () => {
       setBusy(true);
+      setError(null);
       try {
         await continueAsGuest();
         navigate(target, { replace: true });
+      } catch (error) {
+        setError(error);
       } finally {
         setBusy(false);
       }
     }}>
       Continue as guest
     </Button>
+    <InlineError error={error} />
+    </div>
   );
 }
 

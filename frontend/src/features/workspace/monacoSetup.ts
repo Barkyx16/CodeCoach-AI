@@ -16,10 +16,10 @@ monaco.editor.defineTheme("codecoach-dark", {
   inherit: true,
   rules: [],
   colors: {
-    "editor.background": "#0a1222",
-    "editor.lineHighlightBackground": "#13203a",
-    "editorLineNumber.foreground": "#4b5d7e",
-    "editorLineNumber.activeForeground": "#9aabc6",
+    "editor.background": "#0b1220",
+    "editor.lineHighlightBackground": "#17243a",
+    "editorLineNumber.foreground": "#99aac4",
+    "editorLineNumber.activeForeground": "#f3f6fc",
   },
 });
 

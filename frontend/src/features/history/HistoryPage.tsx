@@ -61,6 +61,7 @@ function SubmissionList() {
   }
   return (
     <>
+      <div className="history__scroll" role="region" aria-label="Submission history" tabIndex={0}>
       <table className="data-table history__table">
         <thead>
           <tr><th scope="col">Problem</th><th scope="col">Status</th><th scope="col">Submitted</th><th scope="col">Runtime</th></tr>
@@ -76,6 +77,7 @@ function SubmissionList() {
           ))}
         </tbody>
       </table>
+      </div>
       <Pager page={page} total={q.data.total} onPage={setPage} />
     </>
   );

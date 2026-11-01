@@ -1,3 +1,18 @@
+/* Latin variable fonts are served locally, with system fallback during loading. */
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/inter-latin.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url('/fonts/jetbrains-mono-latin.woff2') format('woff2');
+}
 *,
 *::before,
 *::after {
@@ -31,12 +46,12 @@ p {
 }
 
 a {
-  color: var(--color-primary);
+  color: var(--color-link);
   text-decoration: none;
 }
 
 a:hover {
-  color: var(--color-primary-hover);
+  color: var(--color-text);
   text-decoration: underline;
 }
 
@@ -94,6 +109,7 @@ kbd {
 }
 
 .page {
+  width: 100%;
   max-width: var(--content-max-width);
   margin: 0 auto;
   padding: var(--space-8) var(--space-6) var(--space-16);
@@ -138,3 +154,9 @@ kbd {
   color: var(--color-text-subtle);
   font-size: var(--text-sm);
 }
+
+main:focus { outline: none; box-shadow: none; }
+.page__title { letter-spacing: -.035em; }
+.page__subtitle { max-width: 68ch; }
+@media (max-width: 600px) { .page { padding: 24px 16px 48px; } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }

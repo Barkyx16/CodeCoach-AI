@@ -8,6 +8,19 @@ import { renderApp } from "../render";
 import { API, server } from "../server";
 
 describe("Settings", () => {
+  it("shows a profile save failure and keeps the edited name available for retry", async () => {
+    server.use(http.patch(`${API}/api/v1/auth/me`, () => HttpResponse.json({
+      error: { code: "unavailable", message: "Profile unavailable. Please try again." },
+    }, { status: 503 })));
+    const { user } = renderApp("/settings", { signedIn: true });
+    const field = await screen.findByLabelText("Display name");
+    await user.clear(field);
+    await user.type(field, "Grace");
+    await user.click(screen.getByRole("button", { name: "Save profile" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Profile unavailable. Please try again.");
+    expect(field).toHaveValue("Grace");
+    expect(screen.getByRole("button", { name: "Save profile" })).toBeEnabled();
+  });
   it("updates the display name everywhere", async () => {
     server.use(http.patch(`${API}/api/v1/auth/me`, async ({ request }) => {
       const body = (await request.json()) as { display_name: string };

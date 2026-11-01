@@ -68,6 +68,7 @@ function ProfileCard() {
         <h2 id="profile-title" className="section-title">Profile</h2>
         <Field label="Display name" maxLength={40} value={name} onChange={(e) => setName(e.target.value)}
           hint="Shown in the header and on your dashboard." error={fieldErrorsFrom(form.error).display_name} />
+        {!fieldErrorsFrom(form.error).display_name && <InlineError error={form.error} />}
         <div className="row">
           <Button type="submit" variant="primary" loading={form.busy}>Save profile</Button>
           {form.done && <span className="subtle" role="status">{form.done}</span>}
