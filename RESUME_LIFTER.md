@@ -583,6 +583,8 @@ gVisor judge journey. The explanation card now scrolls into view in its new scro
   the schema change).
 - Totals: 297 backend tests (80 in the real gVisor sandbox), 28 runner,
   80 frontend, 11 Playwright tests (incl. 4 accessibility scans).
+- **CI on GitHub: all 7 jobs green** after the e2e fix, including the real-sandbox Run test,
+  the accessibility scans and the judge journey with Run.
 
 **Not yet verified / not built:**
 - Live Claude responses (still no API key here).
