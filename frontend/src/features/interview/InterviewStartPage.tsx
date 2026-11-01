@@ -1,0 +1,133 @@
+import { useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
+
+import { ApiError } from "@/api/client";
+import { useInterviews, useProblems, useStartInterview } from "@/api/queries";
+import type { InterviewSummary } from "@/api/types";
+import { Badge, DifficultyBadge } from "@/components/Badge";
+import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
+import { InlineError } from "@/components/States";
+import { timeAgo } from "@/lib/format";
+
+import { OVERALL_LABELS, PHASES } from "./phases";
+
+const DURATIONS = [15, 30, 45];
+
+export function InterviewStartPage() {
+  const navigate = useNavigate();
+  const problems = useProblems({ page_size: 100 });
+  const start = useStartInterview();
+  const [slug, setSlug] = useState("");
+  const [minutes, setMinutes] = useState(30);
+  const activeId = start.error instanceof ApiError && start.error.code === "interview_in_progress"
+    ? (start.error.details as { interview_id?: string } | null)?.interview_id ?? null
+    : null;
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    try {
+      const iv = await start.mutateAsync({ problem_slug: slug || null, duration_minutes: minutes });
+      navigate(`/interviews/${iv.id}`);
+    } catch {
+      /* rendered below */
+    }
+  }
+
+  return (
+    <div className="page interview-start">
+      <div className="page__header">
+        <div>
+          <h1 className="page__title">Mock interview</h1>
+          <p className="page__subtitle">A timed, realistic coding interview with an AI interviewer, then rubric feedback.</p>
+        </div>
+      </div>
+
+      <div className="interview-start__grid">
+        <Card>
+          <form className="stack" onSubmit={onSubmit} aria-labelledby="start-title">
+            <h2 id="start-title" className="section-title">Set up</h2>
+            <div className="field">
+              <label className="field__label" htmlFor="iv-problem">Problem</label>
+              <select id="iv-problem" className="select" value={slug} onChange={(e) => setSlug(e.target.value)}>
+                <option value="">Pick one for me (recommended)</option>
+                {problems.data?.items.map((p) => <option key={p.slug} value={p.slug}>{p.title} · {p.difficulty}</option>)}
+              </select>
+            </div>
+            <fieldset className="field">
+              <legend className="field__label">Time limit</legend>
+              <div className="segmented">
+                {DURATIONS.map((d) => (
+                  <label key={d} className={`segmented__option${minutes === d ? " segmented__option--active" : ""}`}>
+                    <input type="radio" name="duration" value={d} checked={minutes === d} onChange={() => setMinutes(d)} />
+                    {d} min
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            {activeId ? (
+              <div className="banner banner--warning" role="alert">
+                You already have an interview in progress. <Link to={`/interviews/${activeId}`}>Resume it</Link>
+              </div>
+            ) : (
+              <InlineError error={start.error} />
+            )}
+            <Button type="submit" variant="primary" loading={start.isPending}>Start interview</Button>
+          </form>
+        </Card>
+
+        <Card className="stack">
+          <h2 className="section-title">How it works</h2>
+          <ol className="howto">
+            {PHASES.map((p) => <li key={p.id}><strong>{p.label}.</strong> {HOWTO[p.id]}</li>)}
+          </ol>
+          <p className="subtle">The interviewer never writes code for you. Each reply uses one request from your daily AI budget;
+            the final feedback is always free.</p>
+        </Card>
+      </div>
+
+      <PastInterviews />
+    </div>
+  );
+}
+
+const HOWTO: Record<string, string> = {
+  clarify: "Restate the problem and ask about inputs and edge cases.",
+  approach: "Explain your idea out loud before coding.",
+  coding: "Write it in the editor and narrate your decisions.",
+  complexity: "State time and space complexity and justify them.",
+  wrap_up: "Walk through test cases, then finish for feedback.",
+};
+
+function PastInterviews() {
+  const q = useInterviews({ page_size: 5 });
+  if (!q.data || q.data.total === 0) return null;
+  return (
+    <section className="stack interview-start__past" aria-label="Recent interviews">
+      <h2 className="section-title">Recent interviews</h2>
+      <ul className="interview-list">{q.data.items.map((iv) => <InterviewRow key={iv.id} iv={iv} />)}</ul>
+      {q.data.total > 5 && <Link to="/history?tab=interviews">See all interviews</Link>}
+    </section>
+  );
+}
+
+export function InterviewRow({ iv }: { iv: InterviewSummary }) {
+  const overall = iv.overall ? OVERALL_LABELS[iv.overall] : null;
+  return (
+    <li>
+      <Link to={`/interviews/${iv.id}`} className="interview-row">
+        <span className="row">
+          <strong>{iv.problem.title}</strong>
+          <DifficultyBadge difficulty={iv.problem.difficulty} />
+        </span>
+        <span className="row">
+          {iv.status === "in_progress" ? <Badge tone="info">In progress</Badge> : overall && <Badge tone={overall.tone}>{overall.label}</Badge>}
+          {iv.average_score !== null && iv.average_score !== undefined && <span className="subtle">{iv.average_score.toFixed(1)}/4</span>}
+          {iv.status === "expired" && <span className="subtle">time ran out</span>}
+          {iv.status === "abandoned" && <span className="subtle">ended early</span>}
+          <span className="subtle">{timeAgo(iv.started_at)}</span>
+        </span>
+      </Link>
+    </li>
+  );
+}

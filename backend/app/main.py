@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
-from app.api.routes import ai, auth, health, me, problems, submissions
+from app.api.routes import ai, auth, health, interviews, me, problems, submissions
 from app.config import Settings, get_settings
 from app.db.seed import seed_problems
 from app.db.session import Base, make_engine, make_session_factory
@@ -41,6 +41,7 @@ TAGS = [
     {"name": "problems", "description": "Curated problem library. Hidden tests are never exposed."},
     {"name": "submissions", "description": "Asynchronous judging jobs and attempt history"},
     {"name": "ai coach", "description": "Progressive hints, structured code reviews, budgets and history"},
+    {"name": "interviews", "description": "Timed mock interviews with an AI interviewer and rubric feedback"},
     {"name": "progress", "description": "Analytics and personalized recommendations"},
 ]
 
@@ -90,7 +91,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         max_age=600,
     )
 
-    for router in (health.router, auth.router, problems.router, submissions.router, ai.router, me.router):
+    for router in (
+        health.router,
+        auth.router,
+        problems.router,
+        submissions.router,
+        ai.router,
+        interviews.router,
+        me.router,
+    ):
         app.include_router(router)
 
     if app.state.metrics is not None:

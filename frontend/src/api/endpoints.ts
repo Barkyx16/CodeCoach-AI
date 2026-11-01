@@ -5,6 +5,9 @@ import type {
   AIUsage,
   Difficulty,
   HintRequest,
+  Interview,
+  InterviewStart,
+  InterviewSummary,
   HintResponse,
   LoginRequest,
   Page,
@@ -65,6 +68,19 @@ export const api = {
   aiUsage: () => apiRequest<AIUsage>("/api/v1/ai/usage"),
   aiHistory: (query: { problem_slug?: string; action?: "hint" | "review"; page?: number; page_size?: number } = {}) =>
     apiRequest<Page<AIHistoryItem>>("/api/v1/me/ai-history", { query }),
+
+  // mock interviews
+  startInterview: (body: InterviewStart) => apiRequest<Interview>("/api/v1/interviews", { method: "POST", body }),
+  interview: (id: string, signal?: AbortSignal) =>
+    apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}`, { signal }),
+  interviews: (query: { page?: number; page_size?: number } = {}) =>
+    apiRequest<Page<InterviewSummary>>("/api/v1/interviews", { query }),
+  interviewMessage: (id: string, body: { message: string; code?: string | null }) =>
+    apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/messages`, { method: "POST", body }),
+  finishInterview: (id: string, code?: string | null) =>
+    apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/finish`, { method: "POST", body: { code: code ?? null } }),
+  abandonInterview: (id: string) =>
+    apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/abandon`, { method: "POST" }),
 
   // progress
   progress: () => apiRequest<Progress>("/api/v1/me/progress"),

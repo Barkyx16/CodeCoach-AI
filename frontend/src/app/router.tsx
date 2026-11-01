@@ -7,6 +7,7 @@ import { LoadingState } from "@/components/States";
 import { LoginPage, RegisterPage } from "@/features/auth/AuthPages";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
 import { HistoryPage } from "@/features/history/HistoryPage";
+import { InterviewStartPage } from "@/features/interview/InterviewStartPage";
 import { LandingPage } from "@/features/landing/LandingPage";
 import { ProblemListPage } from "@/features/problems/ProblemListPage";
 
@@ -15,6 +16,7 @@ import { NotFoundPage } from "./NotFoundPage";
 
 // The workspace pulls in the Monaco editor (~MBs); load it only when a problem is opened.
 const WorkspacePage = lazy(() => import("@/features/workspace/WorkspacePage"));
+const InterviewSessionPage = lazy(() => import("@/features/interview/InterviewSessionPage"));
 
 export const routes: RouteObject[] = [
   {
@@ -30,6 +32,17 @@ export const routes: RouteObject[] = [
           <Suspense fallback={<LoadingState label="Loading workspace…" />}>
             <WorkspacePage />
           </Suspense>
+        ),
+      },
+      { path: "/interviews", element: <RequireAuth><InterviewStartPage /></RequireAuth> },
+      {
+        path: "/interviews/:id",
+        element: (
+          <RequireAuth>
+            <Suspense fallback={<LoadingState label="Loading interview…" />}>
+              <InterviewSessionPage />
+            </Suspense>
+          </RequireAuth>
         ),
       },
       { path: "/dashboard", element: <RequireAuth><DashboardPage /></RequireAuth> },

@@ -19,6 +19,16 @@ config.set_main_option("sqlalchemy.url", db_url.replace("%", "%%"))
 target_metadata = Base.metadata
 
 
+def render_item(type_: str, obj: object, autogen_context) -> str | bool:
+    """Render app-specific column types as plain SQLAlchemy types so migration files never
+    import application code (models change; migrations must stay runnable forever)."""
+    from app.models import UTCDateTime
+
+    if type_ == "type" and isinstance(obj, UTCDateTime):
+        return "sa.DateTime(timezone=True)"
+    return False
+
+
 def run_migrations_offline() -> None:
     context.configure(
         url=config.get_main_option("sqlalchemy.url"),

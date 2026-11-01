@@ -15,7 +15,7 @@ real responses captured from the running server, trimmed only where marked `…`
 2. [Authentication flow](#authentication-flow)
 3. [Error codes](#error-codes)
 4. [Endpoints](#endpoints): [Health](#health) · [Auth](#auth) · [Problems](#problems) ·
-   [Submissions](#submissions) · [AI coach](#ai-coach) · [Progress](#progress)
+   [Submissions](#submissions) · [AI coach](#ai-coach) · [Mock interviews](#mock-interviews) · [Progress](#progress)
 5. [Environment variables](#environment-variables)
 6. [Running locally](#running-locally)
 
@@ -126,6 +126,9 @@ Every non-2xx response has this shape:
 | 405 | `method_not_allowed` | Wrong HTTP method | (client bug) |
 | 409 | `email_taken` | Registration with an existing email | Form error on email |
 | 409 | `hint_locked` | Hint level requested before the previous one (`details.next_unlockable_level`) | Disable later hint buttons |
+| 409 | `interview_in_progress` | Starting an interview while one is active (`details.interview_id`) | Offer "Resume" |
+| 409 | `interview_closed` | Sending a message to a finished, expired or abandoned interview (`details.status`) | Show the results view |
+| 400 | `turn_limit_reached` | Interview message cap reached (`details.max_candidate_turns`) | Prompt to finish |
 | 422 | `validation_error` | Body or query failed validation. `details` is a list of `{loc, msg, type}` | Map `loc[-1]` to form fields |
 | 429 | `rate_limited` | Auth attempts or the daily AI budget exceeded (`details.retry_after_seconds` or `details.daily_limit`) | Show a cooldown |
 | 500 | `internal_error` | Unexpected server error (logged with the request id) | Generic error + request id |
@@ -170,6 +173,12 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 | POST | `/api/v1/ai/review` | 🔒 | Structured code review |
 | GET | `/api/v1/ai/usage` | 🔒 | Remaining AI budget |
 | GET | `/api/v1/me/ai-history` | 🔒 | Saved hints and reviews |
+| POST | `/api/v1/interviews` | 🔒 | Start a timed mock interview |
+| GET | `/api/v1/interviews` | 🔒 | Interview history |
+| GET | `/api/v1/interviews/{id}` | 🔒 | State, transcript, evaluation |
+| POST | `/api/v1/interviews/{id}/messages` | 🔒 | Candidate answer → interviewer reply |
+| POST | `/api/v1/interviews/{id}/finish` | 🔒 | End + rubric feedback (idempotent) |
+| POST | `/api/v1/interviews/{id}/abandon` | 🔒 | End early (still evaluated) |
 | GET | `/api/v1/me/progress` | 🔒 | Dashboard analytics |
 | GET | `/api/v1/me/recommendations` | 🔒 | Personalized next problems |
 | GET | `/metrics` | – | Prometheus metrics (operators; not in OpenAPI) |
@@ -440,6 +449,104 @@ Query: `problem_slug`, `action` (`hint` | `review`), `page`, `page_size`. Newest
   }],
   "total": 2, "page": 1, "page_size": 1
 }
+```
+
+### Mock interviews
+
+A timed interview with an AI interviewer that moves through five phases:
+
+```
+clarify → approach → coding → complexity → wrap_up → (phase null: interviewer has wrapped up)
+status: in_progress → completed (finish) | expired (deadline passed) | abandoned (end early)
+```
+
+- **One active interview per user.** Starting another returns `409 interview_in_progress` with
+  `details.interview_id`, so the UI can offer "Resume".
+- **Server-side clock.** `deadline_at` is authoritative. When it passes, the next read or write
+  closes the interview as `expired` and evaluates it. Clients show a countdown from
+  `deadline_at` and re-fetch at zero.
+- **Phases only move forward.** The interviewer advances when the candidate covers the phase,
+  and a phase auto-advances after 3 answers so a session can't get stuck.
+- **Cost.** Each interviewer reply (including the opening) uses one request from the daily AI
+  budget. The final evaluation always runs: if the budget is used up, the offline scorer grades
+  it, so finished work never goes without feedback.
+- **Limits.** Answers are 1–4,000 characters; code up to 20,000; 30 answers per interview.
+
+#### `POST /api/v1/interviews` 🔒 → `201`
+```json
+{"problem_slug": "two-sum", "duration_minutes": 30}
+```
+`problem_slug` is optional (omit it to use the learner's top recommendation);
+`duration_minutes` is 10–60 (default 30).
+```json
+{
+  "id": "f4f619a9-11a3-4ed9-84eb-1c11998e0b0e",
+  "status": "in_progress",
+  "phase": "clarify",
+  "phase_index": 0,
+  "phase_guide": "Restate the problem and ask clarifying questions about inputs, outputs and edge cases.",
+  "problem": {"slug": "two-sum", "title": "Two Sum", "difficulty": "easy"},
+  "duration_seconds": 1800,
+  "started_at": "2026-11-01T09:35:21.103676Z",
+  "deadline_at": "2026-11-01T10:05:21.103676Z",
+  "ended_at": null,
+  "seconds_remaining": 1799,
+  "candidate_turns_remaining": 30,
+  "provider": "offline",
+  "turns": [{
+    "seq": 0, "role": "interviewer", "phase": "clarify",
+    "content": "Hi, thanks for joining. Today we'll work on \"Two Sum\" and we have about 30 minutes. …",
+    "created_at": "2026-11-01T09:35:21.110668Z"
+  }],
+  "final_code": null,
+  "evaluation": null
+}
+```
+
+#### `POST /api/v1/interviews/{id}/messages` 🔒 → `200`
+```json
+{"message": "Can the array be empty or contain duplicates?", "code": "class Solution { … }"}
+```
+`code` (optional) is the current editor content; the latest version is kept as `final_code`.
+Returns the full interview. The last two turns are the candidate's message and the
+interviewer's reply:
+```json
+{"phase": "approach", "phase_index": 1, "candidate_turns_remaining": 29,
+ "turns": ["…", {"seq": 1, "role": "candidate", "phase": "clarify", "content": "Can the array be empty or contain duplicates?"},
+                 {"seq": 2, "role": "interviewer", "phase": "approach",
+                  "content": "Good questions. You can rely on the constraints, e.g. 2 <= nums.length <= 10^4. How would you approach this? …"}]}
+```
+Errors: `409 interview_closed`, `400 turn_limit_reached`, `429 rate_limited`, `404`.
+
+#### `POST /api/v1/interviews/{id}/finish` 🔒 → `200`
+Optional body `{"code": "…"}`. Closes the interview and returns it with `evaluation`. Calling it
+again returns the same result. `POST …/abandon` works the same way, with `status: "abandoned"`.
+```json
+{
+  "scores": [
+    {"dimension": "problem_solving", "score": 1, "evidence": "No working code was written during the session."},
+    {"dimension": "communication", "score": 3, "evidence": "About 8 words per answer across 1 answer; asked clarifying questions."},
+    {"dimension": "code_quality", "score": 1, "evidence": "No code beyond the starter template."},
+    {"dimension": "complexity_analysis", "score": 1, "evidence": "Time/space complexity was never stated in Big-O terms."},
+    {"dimension": "testing", "score": 2, "evidence": "Mentioned tests or edge cases once."}
+  ],
+  "overall": "needs_work",
+  "summary": "Strongest area: communication. Biggest opportunity: problem solving.",
+  "strengths": ["…"],
+  "improvements": ["Name a concrete data structure and the single pass you'd make before coding.", "…"],
+  "confidence": "low"
+}
+```
+Scores are 1–4 (`1` needs work, `2` developing, `3` solid, `4` strong). `overall` ∈
+`needs_work | developing | solid | strong`. Every dimension appears exactly once, in this
+order: `problem_solving, communication, code_quality, complexity_analysis, testing`.
+
+#### `GET /api/v1/interviews` 🔒 → `200`
+```json
+{"items": [{"id": "f4f6…", "status": "completed", "problem": {"slug": "two-sum", "title": "Two Sum", "difficulty": "easy"},
+            "started_at": "2026-11-01T09:35:21.103676Z", "ended_at": "2026-11-01T09:35:21.144553Z",
+            "overall": "needs_work", "average_score": 1.6}],
+ "total": 1, "page": 1, "page_size": 20}
 ```
 
 ### Progress

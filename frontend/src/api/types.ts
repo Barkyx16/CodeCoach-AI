@@ -36,6 +36,13 @@ export type AIHistoryItem = S["AIHistoryItem"];
 export type Progress = S["ProgressOut"];
 export type Recommendation = S["Recommendation"];
 
+export type Interview = S["InterviewOut"];
+export type InterviewSummary = S["InterviewSummary"];
+export type InterviewStart = S["InterviewStart"];
+export type InterviewPhase = S["InterviewPhase"];
+export type InterviewEvaluation = S["InterviewEvaluation"];
+export type RubricScore = S["RubricScore"];
+
 export type ErrorEnvelope = S["ErrorEnvelope"];
 
 export interface Page<T> {

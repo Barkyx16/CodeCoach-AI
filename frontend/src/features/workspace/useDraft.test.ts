@@ -27,6 +27,16 @@ describe("useDraft", () => {
     expect(renderHook(() => useDraft("binary-search", "s2", "u1", 0)).result.current.code).toBe("s2");
   });
 
+  it("adopts starter code that arrives after mount, but never overwrites edits", () => {
+    const { result, rerender } = renderHook(({ starter }) => useDraft("iv", starter, "u1", 0), { initialProps: { starter: "" } });
+    expect(result.current.code).toBe("");
+    rerender({ starter: "class Solution {}" });
+    expect(result.current.code).toBe("class Solution {}");
+    act(() => result.current.setCode("my edit"));
+    rerender({ starter: "something else" });
+    expect(result.current.code).toBe("my edit");
+  });
+
   it("reset restores the starter code and clears storage", () => {
     const { result } = renderHook(() => useDraft("two-sum", "starter", "u1", 0));
     act(() => result.current.setCode("changed"));

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
-import { useAIHistory, useMySubmissions } from "@/api/queries";
+import { useAIHistory, useInterviews, useMySubmissions } from "@/api/queries";
 import type { AIHistoryItem, CodeReview } from "@/api/types";
 import { Badge, StatusBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
+import { InterviewRow } from "@/features/interview/InterviewStartPage";
 import { ReviewResult } from "@/features/workspace/CoachPanel";
 import { formatDateTime, timeAgo } from "@/lib/format";
 
@@ -13,7 +14,8 @@ const PAGE_SIZE = 15;
 
 export function HistoryPage() {
   const [params, setParams] = useSearchParams();
-  const tab = params.get("tab") === "ai" ? "ai" : "submissions";
+  const raw = params.get("tab");
+  const tab = raw === "ai" || raw === "interviews" ? raw : "submissions";
   return (
     <div className="page history">
       <div className="page__header">
@@ -27,8 +29,12 @@ export function HistoryPage() {
           onClick={() => setParams({}, { replace: true })}>Submissions</button>
         <button type="button" role="tab" aria-selected={tab === "ai"} className={`tab${tab === "ai" ? " tab--active" : ""}`}
           onClick={() => setParams({ tab: "ai" }, { replace: true })}>AI feedback</button>
+        <button type="button" role="tab" aria-selected={tab === "interviews"} className={`tab${tab === "interviews" ? " tab--active" : ""}`}
+          onClick={() => setParams({ tab: "interviews" }, { replace: true })}>Interviews</button>
       </div>
-      <div role="tabpanel">{tab === "ai" ? <AIFeedbackList /> : <SubmissionList />}</div>
+      <div role="tabpanel">
+        {tab === "ai" ? <AIFeedbackList /> : tab === "interviews" ? <InterviewList /> : <SubmissionList />}
+      </div>
     </div>
   );
 }
@@ -127,5 +133,21 @@ function FeedbackItem({ item }: { item: AIHistoryItem }) {
         </div>
       )}
     </li>
+  );
+}
+
+function InterviewList() {
+  const [page, setPage] = useState(1);
+  const q = useInterviews({ page, page_size: PAGE_SIZE });
+  if (q.isPending) return <LoadingState />;
+  if (q.isError) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
+  if (q.data.total === 0) {
+    return <EmptyState title="No interviews yet" action={<Link to="/interviews">Start a mock interview</Link>}>Your mock interviews and their feedback will appear here.</EmptyState>;
+  }
+  return (
+    <>
+      <ul className="interview-list">{q.data.items.map((iv) => <InterviewRow key={iv.id} iv={iv} />)}</ul>
+      <Pager page={page} total={q.data.total} onPage={setPage} />
+    </>
   );
 }

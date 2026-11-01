@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from app.schemas.ai import CodeReview, Complexity, HintContent, ReviewIssue
 from app.services.ai.base import HintContext, ProviderResult, ReviewContext
+from app.services.ai.interviewer_offline import OfflineInterviewer
 
 _FOCUS = {
     1: "getting unstuck",
@@ -14,7 +15,7 @@ _FOCUS = {
 }
 
 
-class OfflineCoach:
+class OfflineCoach(OfflineInterviewer):
     name = "offline"
     model = "curated-hints+static-analysis"
 

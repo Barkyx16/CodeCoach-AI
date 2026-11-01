@@ -55,6 +55,7 @@ backend/
       ai/
         base.py          Provider-neutral interface (CoachProvider protocol)
         offline.py       Curated hint ladder + static analysis (no key, deterministic)
+        interviewer_offline.py  Rule-based interviewer + explainable rubric scorer
         anthropic_provider.py  Claude via the official SDK, structured outputs
         static_analysis.py     Explainable checks on Java source
         service.py       Policy: auth, unlock order, budgets, sanitizing, fallback, history
@@ -125,7 +126,24 @@ POST /api/v1/ai/hint {problem_slug, level, source_code}
  → HintResponse (identical shape for every provider)
 ```
 
-### 4.2 Submission (today and planned)
+### 4.2 Mock interview turn
+```
+POST /api/v1/interviews/{id}/messages {message, code}
+ → InterviewService.respond
+     1. load + ownership check (404 otherwise); apply expiry if the deadline passed
+     2. must be in_progress (409 interview_closed); answer cap (400 turn_limit_reached)
+     3. budget check (429); sanitize code; append candidate turn
+     4. provider.interview_turn(ctx: phase, transcript, code, static analysis, time left)
+        → InterviewerReply {message, advance_phase}   (structured output; offline fallback)
+     5. advance phase if asked (forward only; forced after 3 answers in a phase)
+     6. append interviewer turn; record cost-only AIInteraction; commit
+ → InterviewOut (full state, so the client never has to merge partial updates)
+```
+Finishing (or expiry, or abandoning) runs `provider.evaluate_interview` once and stores a
+schema-validated `InterviewEvaluation`. Claude's evaluation must score every rubric dimension
+exactly once or it's rejected and the offline scorer answers.
+
+### 4.3 Submission (today and planned)
 ```
 POST /api/v1/submissions → validate size + problem → Submission(QUEUED)
   → ExecutionBackend.enqueue()      today: DisabledExecutionBackend (no execution)
@@ -184,6 +202,6 @@ or API key.
 |---|---|---|
 | 1. Backend foundation | ✅ done | Auth, problems, submissions (queued), AI hint/review, progress, recommendations, migrations, Docker, CI |
 | 2. Frontend vertical slice | ✅ done | React + TS app: library, workspace (Monaco), coach panel, dashboard, history, e2e tests |
-| 3. Mock interviews | next | Interview sessions as a state machine, timed turns, rubric scoring, history |
-| 4. Isolated runner | **awaiting design approval** | See SECURITY.md §4 |
+| 3. Mock interviews | ✅ done | Interview state machine, server-side clock, AI interviewer (offline/Claude), rubric evaluation, history, UI, e2e test |
+| 4. Isolated runner | **next, awaiting design approval** | See SECURITY.md §4 |
 | 5. Production | planned | Deployment, managed Postgres, Redis rate limits, refresh tokens, AI eval suite |

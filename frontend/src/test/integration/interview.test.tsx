@@ -1,0 +1,123 @@
+import { screen, waitFor, within } from "@testing-library/react";
+import { http, HttpResponse } from "msw";
+
+import type { Interview } from "@/api/types";
+import { formatClock } from "@/features/interview/useCountdown";
+
+import { renderApp } from "../render";
+import { API, server } from "../server";
+
+const base = (): Interview => ({
+  id: "iv-1", status: "in_progress", phase: "clarify", phase_index: 0,
+  phase_guide: "Restate the problem and ask clarifying questions about inputs, outputs and edge cases.",
+  problem: { slug: "two-sum", title: "Two Sum", difficulty: "easy" },
+  duration_seconds: 1800, started_at: new Date().toISOString(),
+  deadline_at: new Date(Date.now() + 1800_000).toISOString(), ended_at: null,
+  seconds_remaining: 1800, candidate_turns_remaining: 30, provider: "offline",
+  turns: [{ seq: 0, role: "interviewer", phase: "clarify", content: "Hi! Tell me how you understand the problem.", created_at: new Date().toISOString() }],
+  final_code: null, evaluation: null,
+});
+
+const evaluation: Interview["evaluation"] = {
+  scores: [
+    { dimension: "problem_solving", score: 4, evidence: "Used a hash map in one pass." },
+    { dimension: "communication", score: 3, evidence: "Explained each step." },
+    { dimension: "code_quality", score: 4, evidence: "No issues found." },
+    { dimension: "complexity_analysis", score: 2, evidence: "Stated O(n^2) for an O(n) solution." },
+    { dimension: "testing", score: 1, evidence: "No edge cases mentioned." },
+  ],
+  overall: "solid", summary: "Strongest area: problem solving. Biggest opportunity: testing.",
+  strengths: ["Used a hash map in one pass."], improvements: ["Walk through edge cases before finishing."], confidence: "low",
+};
+
+function liveInterviewServer() {
+  let iv = base();
+  const posted: unknown[] = [];
+  server.use(
+    http.post(`${API}/api/v1/interviews`, () => HttpResponse.json(iv, { status: 201 })),
+    http.get(`${API}/api/v1/interviews`, () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 5 })),
+    http.get(`${API}/api/v1/interviews/iv-1`, () => HttpResponse.json(iv)),
+    http.post(`${API}/api/v1/interviews/iv-1/messages`, async ({ request }) => {
+      const body = (await request.json()) as { message: string; code: string };
+      posted.push(body);
+      const n = iv.turns.length;
+      iv = {
+        ...iv, phase: "approach", phase_index: 1, candidate_turns_remaining: iv.candidate_turns_remaining - 1,
+        turns: [...iv.turns,
+          { seq: n, role: "candidate", phase: "clarify", content: body.message, created_at: new Date().toISOString() },
+          { seq: n + 1, role: "interviewer", phase: "approach", content: "Good question. How would you approach it?", created_at: new Date().toISOString() }],
+      };
+      return HttpResponse.json(iv);
+    }),
+    http.post(`${API}/api/v1/interviews/iv-1/finish`, () => {
+      iv = { ...iv, status: "completed", phase: null, phase_index: 5, phase_guide: null, seconds_remaining: 0,
+        ended_at: new Date().toISOString(), evaluation };
+      return HttpResponse.json(iv);
+    }),
+  );
+  return { posted };
+}
+
+describe("Mock interview", () => {
+  it("starts an interview and lands in the live session", async () => {
+    liveInterviewServer();
+    const { user, router } = renderApp("/interviews", { signedIn: true });
+    expect(await screen.findByRole("heading", { name: "Mock interview" })).toBeInTheDocument();
+    await user.click(screen.getByLabelText("45 min"));
+    await user.click(screen.getByRole("button", { name: "Start interview" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/interviews/iv-1"));
+    expect(await screen.findByText("Hi! Tell me how you understand the problem.")).toBeInTheDocument();
+    expect(screen.getByRole("timer")).toHaveTextContent(/^(30:00|29:5\d)$/);
+    const stepper = screen.getByRole("list", { name: "Interview progress" });
+    expect(within(stepper).getByText("Clarify").closest("li")).toHaveAttribute("aria-current", "step");
+  });
+
+  it("sends answers with the current code and shows the interviewer's reply", async () => {
+    const { posted } = liveInterviewServer();
+    const { user } = renderApp("/interviews/iv-1", { signedIn: true });
+    const box = await screen.findByLabelText("Your answer");
+    await user.type(box, "Can the input be empty?");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+    expect(await screen.findByText("Good question. How would you approach it?")).toBeInTheDocument();
+    expect(screen.getByText("Can the input be empty?")).toBeInTheDocument();
+    expect(posted[0]).toMatchObject({ message: "Can the input be empty?" });
+    expect((posted[0] as { code: string }).code).toContain("class Solution");
+    expect(screen.getByText("29 messages left")).toBeInTheDocument();
+    expect(box).toHaveValue("");
+  });
+
+  it("finishes and shows rubric feedback with evidence", async () => {
+    liveInterviewServer();
+    const { user } = renderApp("/interviews/iv-1", { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Finish & get feedback" }));
+    expect(await screen.findByRole("heading", { name: "Interview feedback" })).toBeInTheDocument();
+    expect(screen.getByText("Overall").parentElement).toHaveTextContent("Solid");
+    const rubric = screen.getByRole("list", { name: /rubric scores/i });
+    expect(within(rubric).getByText("Testing")).toBeInTheDocument();
+    expect(within(rubric).getByRole("img", { name: "1 out of 4" })).toBeInTheDocument();
+    expect(screen.getByText("Stated O(n^2) for an O(n) solution.")).toBeInTheDocument();
+    expect(screen.getByText("Walk through edge cases before finishing.")).toBeInTheDocument();
+  });
+
+  it("offers to resume when an interview is already in progress", async () => {
+    server.use(
+      http.get(`${API}/api/v1/interviews`, () => HttpResponse.json({ items: [], total: 0, page: 1, page_size: 5 })),
+      http.post(`${API}/api/v1/interviews`, () => HttpResponse.json({ error: { code: "interview_in_progress",
+        message: "You already have an interview in progress.", request_id: null, details: { interview_id: "iv-9" } } }, { status: 409 })),
+    );
+    const { user } = renderApp("/interviews", { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Start interview" }));
+    expect(await screen.findByRole("link", { name: "Resume it" })).toHaveAttribute("href", "/interviews/iv-9");
+  });
+
+  it("requires sign-in", async () => {
+    renderApp("/interviews");
+    expect(await screen.findByRole("heading", { name: "Welcome back" })).toBeInTheDocument();
+  });
+
+  it("formats the clock", () => {
+    expect(formatClock(0)).toBe("0:00");
+    expect(formatClock(65)).toBe("1:05");
+    expect(formatClock(1800)).toBe("30:00");
+  });
+});

@@ -21,9 +21,10 @@ SQLite for speed, and CI runs it on both. Schema changes go through **Alembic** 
        │ 1      *  ┌─────────────────┐  *      1            │
        ├───────────│ progress_events │───────────────────────┘
        │           └─────────────────┘
-       │ 1      *  ┌───────────────────┐
-       └───────────│ practice_sessions │   (mock interviews; expanded in Phase 3)
-                   └───────────────────┘
+       │ 1      *  ┌───────────────────┐ 1     *  ┌─────────────────┐
+       └───────────│ practice_sessions │──────────│ interview_turns │
+                   └─────────┬─────────┘          └─────────────────┘
+                             │ * → 1 problems
 ```
 
 ## Tables
@@ -99,12 +100,29 @@ SQLite for speed, and CI runs it on both. Schema changes go through **Alembic** 
 
 ### `progress_events`
 Append-only activity log: `opened` (deduplicated per user, problem and day), `submitted`,
-`solved`, `hint_used`, `review_requested`. Drives streaks and the 28-day heatmap. Index
+`solved`, `hint_used`, `review_requested`, `interview_completed`. Drives streaks and the 28-day heatmap. Index
 `(user_id, created_at)`.
 
-### `practice_sessions`
-`id`, `user_id`, `mode` (`practice` \| `interview`), `started_at`, `ended_at`. A placeholder
-that the Phase 3 mock-interview migration will extend with turns, rubric and scores.
+### `practice_sessions` (mock interviews when `mode = 'interview'`)
+| Column | Type | Notes |
+|---|---|---|
+| `id` | varchar(36) PK | |
+| `user_id` | FK → users (cascade), indexed | |
+| `mode` | varchar | `practice` \| `interview` |
+| `problem_id` | FK → problems (`fk_practice_sessions_problem_id`), null | |
+| `status` | varchar | `in_progress` \| `completed` \| `expired` \| `abandoned`; server default backfills old rows |
+| `phase` | varchar null | `clarify` → `approach` → `coding` → `complexity` → `wrap_up`; `NULL` once the interviewer wraps up |
+| `duration_seconds` | integer | |
+| `started_at`, `deadline_at`, `ended_at` | timestamptz | `deadline_at` is the authoritative clock |
+| `final_code` | text null | Latest editor content sent with an answer |
+| `evaluation` | JSONB null | Rubric scores, summary, strengths and improvements (written once when the interview ends) |
+| `provider` | varchar null | Who ran the interview (`offline`, `anthropic`, `… (fallback)`) |
+
+### `interview_turns`
+`id`, `session_id` (FK, cascade, indexed), `seq` (order), `role` (`interviewer` \| `candidate`),
+`phase` (phase the turn belongs to), `content` (text), `created_at`. This is the saved
+transcript; `ai_interactions` rows for interview turns keep only cost and latency
+(`response` is NULL), so text isn't duplicated.
 
 ## Design notes
 
@@ -119,6 +137,15 @@ that the Phase 3 mock-interview migration will extend with turns, rubric and sco
 - **Timestamps** are `timestamptz` and always UTC; a `UTCDateTime` type normalizes SQLite too.
 
 ## Migrations
+
+| Revision | What it does |
+|---|---|
+| `64de41a0f941` initial schema | Users, problems, test cases, submissions, results, AI interactions, progress events, practice sessions |
+| `60629f1baf0b` mock interviews | Adds interview columns to `practice_sessions` (with a server default so populated tables migrate safely) and the `interview_turns` table; names its foreign key so the downgrade works |
+
+Migration files never import application code: `migrations/env.py` renders app-specific
+column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running
+after the models change.
 
 ```bash
 cd backend

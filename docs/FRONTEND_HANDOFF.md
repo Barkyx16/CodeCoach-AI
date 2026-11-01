@@ -124,8 +124,24 @@ Tabs: **Submissions** (table: problem, status, submitted, runtime) and **AI feed
 (expandable cards; reviews re-render with the same review component).
 - States: loading · error · empty for each tab · pagination.
 
-### 3.7 Global
-- Header: brand, nav (Practice, plus Dashboard and History when signed in), account area
+### 3.7 Mock interview — `/interviews`, `/interviews/:id` (`features/interview/*`) · `06-interview-live.png`, `07-interview-feedback.png`
+- **Start (`/interviews`):** problem select (or "Pick one for me"), time limit as a segmented
+  radio group (15/30/45), a "How it works" card listing the 5 phases, and recent interviews.
+  States: idle · starting · "already in progress" banner with a **Resume it** link · error.
+- **Live session:** top bar (problem, difficulty, link to the statement, **phase stepper**,
+  countdown clock that turns warning-colored under 2 minutes, End early, Finish & get feedback).
+  Left: phase hint ("Now: …"), chat transcript (interviewer bubbles left, candidate bubbles
+  right, phase dividers, typing indicator), composer (Ctrl/⌘+Enter to send, messages-left
+  counter). Right: Monaco editor (code is shared with the interviewer on each message).
+  States: sending (optimistic bubble + typing dots) · error (text is restored to the box) ·
+  wrapped up (Finish becomes primary) · expired (auto-switches to results).
+- **Results:** overall badge + confidence, summary, a **rubric chart** (5 single-series bars,
+  1–4 scale, score and words printed beside each bar, evidence under it), What went well,
+  Focus next time, a collapsible transcript, and the final code.
+- History has an **Interviews** tab using the same row component.
+
+### 3.8 Global
+- Header: brand, nav (Practice, plus Interview, Dashboard and History when signed in), account area
   (name, or a "Guest" badge, with Sign out; signed-out users see Sign in and Create account).
 - Session-ended banner under the header when a token expires or is revoked.
 - 404 page. A skip-to-content link (visible on keyboard focus).
@@ -161,12 +177,14 @@ dashboard is one column · `≤ 720px` header hides the brand name and user name
 
 ## 7. Rules that keep the tests green
 
-The automated tests (41 unit/integration + 3 Playwright end-to-end) find elements **by their
+The automated tests (48 unit/integration + 4 Playwright end-to-end) find elements **by their
 accessible role and name**, not by CSS. Restyling is safe as long as you **don't change**:
 - visible button, tab and link text used as names (e.g. "Get a hint", "Unlock level 2: Concept",
-  "Review my code", "Submit", "Show table", "Sign in", "Create account", "Try it now, no sign-up"),
+  "Review my code", "Submit", "Show table", "Sign in", "Create account", "Try it now, no sign-up",
+  "Start interview", "Send", "Finish & get feedback", "Resume it"),
 - headings' text, form labels ("Email", "Password", "Name"),
-- `aria-label`s on regions ("AI coach", "Summary", "Problem list", "Workspace" tablist),
+- `aria-label`s on regions ("AI coach", "Summary", "Problem list", "Workspace" tablist,
+  "Interview progress", "Rubric scores, out of 4", "Your answer"), and `role="timer"` on the clock,
 - the class names `.monaco-editor`, `.editor-line--flagged` and `heat-cell` test ids.
 
 If copy changes are wanted, list them and engineering will update the tests in the same change.

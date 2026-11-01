@@ -83,6 +83,7 @@ class ProgressEventType(enum.StrEnum):
     SOLVED = "solved"
     HINT_USED = "hint_used"
     REVIEW_REQUESTED = "review_requested"
+    INTERVIEW_COMPLETED = "interview_completed"
 
 
 class PracticeMode(enum.StrEnum):
@@ -246,14 +247,78 @@ class AIInteraction(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
 
+class InterviewStatus(enum.StrEnum):
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    EXPIRED = "expired"
+    ABANDONED = "abandoned"
+
+
+class InterviewPhase(enum.StrEnum):
+    """A realistic coding-interview arc. Phases only move forward."""
+
+    CLARIFY = "clarify"
+    APPROACH = "approach"
+    CODING = "coding"
+    COMPLEXITY = "complexity"
+    WRAP_UP = "wrap_up"
+
+    @property
+    def next(self) -> InterviewPhase | None:
+        order = list(InterviewPhase)
+        i = order.index(self)
+        return order[i + 1] if i + 1 < len(order) else None
+
+
+class TurnRole(enum.StrEnum):
+    INTERVIEWER = "interviewer"
+    CANDIDATE = "candidate"
+
+
 class PracticeSession(Base):
+    """A timed session. mode=interview sessions carry the mock-interview state machine."""
+
     __tablename__ = "practice_sessions"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     mode: Mapped[PracticeMode] = mapped_column(_enum(PracticeMode, "practice_mode"))
+    problem_id: Mapped[int | None] = mapped_column(ForeignKey("problems.id"), nullable=True)
+    status: Mapped[InterviewStatus] = mapped_column(
+        _enum(InterviewStatus, "interview_status"), default=InterviewStatus.IN_PROGRESS
+    )
+    phase: Mapped[InterviewPhase | None] = mapped_column(
+        _enum(InterviewPhase, "interview_phase"), nullable=True
+    )
+    duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    deadline_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    final_code: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Rubric scores + written feedback, produced once when the interview ends.
+    evaluation: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
+    provider: Mapped[str | None] = mapped_column(String(32), nullable=True)
     started_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     ended_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+
+    problem: Mapped[Problem | None] = relationship()
+    turns: Mapped[list[InterviewTurn]] = relationship(
+        back_populates="session", cascade="all, delete-orphan", order_by="InterviewTurn.seq"
+    )
+
+
+class InterviewTurn(Base):
+    __tablename__ = "interview_turns"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    session_id: Mapped[str] = mapped_column(
+        ForeignKey("practice_sessions.id", ondelete="CASCADE"), index=True
+    )
+    seq: Mapped[int] = mapped_column(Integer)
+    role: Mapped[TurnRole] = mapped_column(_enum(TurnRole, "turn_role"))
+    phase: Mapped[InterviewPhase] = mapped_column(_enum(InterviewPhase, "interview_phase"))
+    content: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+    session: Mapped[PracticeSession] = relationship(back_populates="turns")
 
 
 class ProgressEvent(Base):
@@ -273,7 +338,11 @@ __all__ = [
     "Difficulty",
     "ExecutionResult",
     "PracticeMode",
+    "InterviewPhase",
+    "InterviewStatus",
+    "InterviewTurn",
     "PracticeSession",
+    "TurnRole",
     "Problem",
     "ProgressEvent",
     "ProgressEventType",

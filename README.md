@@ -5,15 +5,17 @@ Learners solve curated data-structures-and-algorithms problems in a browser edit
 progressive AI hints and structured code reviews, and track their progress. Correctness always
 comes from test cases, never from the AI.
 
-> **Status: Phases 1–2 of 5 complete.** The full-stack vertical slice works end to end:
-> React app → FastAPI → PostgreSQL, with the AI coach, analytics and history, verified by
-> unit, integration and real-browser tests. Running submitted Java is deliberately
+> **Status: Phases 1–3 of 5 complete.** The full-stack product works end to end:
+> React app → FastAPI → PostgreSQL, with the AI coach, timed mock interviews, analytics and
+> history, verified by unit, integration and real-browser tests in CI. Running submitted Java is deliberately
 > **disabled** until an isolated sandbox is approved; see
 > [docs/SECURITY.md](docs/SECURITY.md#4-secure-java-execution-design-not-yet-built-needs-approval).
 
-| Workspace | Dashboard |
+| Workspace | Mock interview |
 |---|---|
-| ![Workspace with AI code review](docs/screenshots/02-workspace-review.png) | ![Progress dashboard](docs/screenshots/03-dashboard.png) |
+| ![Workspace with AI code review](docs/screenshots/02-workspace-review.png) | ![Live mock interview](docs/screenshots/06-interview-live.png) |
+| **Interview feedback** | **Dashboard** |
+| ![Rubric feedback](docs/screenshots/07-interview-feedback.png) | ![Progress dashboard](docs/screenshots/03-dashboard.png) |
 
 ## What works today
 
@@ -27,10 +29,11 @@ comes from test cases, never from the AI.
 | AI providers | `offline` (curated hints + static analysis; free, deterministic) or `anthropic` (Claude via structured outputs) with automatic fallback |
 | AI safeguards | Prompt-injection framing, secret redaction, per-user daily budget, input caps, saved history |
 | Submissions | Asynchronous job API with the full judge status model (queued; execution disabled) |
+| Mock interviews | Timed sessions through clarify → approach → code → complexity → test, a server-side clock, an AI interviewer (offline or Claude) that probes vague or brute-force answers, rubric feedback on 5 dimensions with evidence, and saved transcripts |
 | Analytics | Solved/attempted by topic and difficulty, streaks, 28-day activity, acceptance rate, weakest topics |
 | Recommendations | Explainable next problems: retry unfinished, strengthen weak topics, difficulty ladder |
 | Web app | React + TypeScript: landing, auth, problem library (URL-synced filters), resizable 3-panel workspace with Monaco and autosaved drafts, hint ladder, reviews that highlight the flagged line, dashboard (stat tiles, activity heatmap, topic progress), history; mobile layout |
-| Engineering | 103 backend tests (SQLite **and** PostgreSQL), 41 frontend tests, 3 Playwright end-to-end journeys against the real backend; ruff, mypy, ESLint, strict TypeScript; API types generated from OpenAPI; Alembic; Docker Compose (db, migrate, api, web); GitHub Actions; pip-audit, npm audit, Dependabot; Prometheus metrics, JSON logs, request IDs, health checks; CSP and security headers |
+| Engineering | 123 backend tests (SQLite **and** PostgreSQL), 48 frontend tests, 4 Playwright end-to-end journeys against the real backend; ruff, mypy, ESLint, strict TypeScript; API types generated from OpenAPI; Alembic; Docker Compose (db, migrate, api, web); GitHub Actions; pip-audit, npm audit, Dependabot; Prometheus metrics, JSON logs, request IDs, health checks; CSP and security headers |
 
 ## Architecture
 
@@ -72,7 +75,7 @@ npm run dev                                            # http://localhost:5173
 
 ```bash
 cd backend
-pytest                                    # 103 tests (SQLite)
+pytest                                    # 123 tests (SQLite)
 TEST_DATABASE_URL=postgresql+psycopg://codecoach:codecoach@localhost:5432/codecoach_test pytest
 ruff check . && ruff format --check .     # lint + formatting
 mypy app                                  # type check
@@ -83,7 +86,7 @@ pip-audit -r requirements.txt             # known-vulnerability scan
 cd frontend
 npm run lint && npm run typecheck         # ESLint + strict TypeScript
 npm run api:check                         # generated API types match docs/openapi.json
-npm test                                  # 41 unit + integration tests (Vitest, MSW)
+npm test                                  # 48 unit + integration tests (Vitest, MSW)
 npm run build                             # production bundle
 PYTHON=../backend/.venv/bin/python npm run e2e   # Playwright: real browser + real backend
 ```
@@ -116,8 +119,8 @@ docker-compose.yml, .env.example
 
 1. ✅ Backend foundation
 2. ✅ Frontend vertical slice: library → workspace (Monaco) → hints/review → dashboard → history
-3. ⏳ Mock interviews: timed sessions, interviewer follow-ups, rubric scoring, history
-4. Isolated Java runner: **awaiting approval of the sandbox design**
+3. ✅ Mock interviews: timed sessions, interviewer follow-ups, rubric scoring, history
+4. ⏳ Isolated Java runner: **awaiting approval of the sandbox design**
 5. Deployment, refresh tokens, Redis-backed limits, AI evaluation suite
 
 ## Known limitations

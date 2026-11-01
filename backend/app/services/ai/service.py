@@ -5,7 +5,10 @@ from __future__ import annotations
 
 import re
 import time
+from collections.abc import Callable
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from typing import TypeVar
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -41,6 +44,8 @@ from app.services.ai.base import (
 )
 from app.services.ai.offline import OfflineCoach
 from app.services.ai.static_analysis import analyze
+
+T = TypeVar("T")
 
 # Secrets must never be forwarded to a model provider (blueprint section 06).
 _SECRET_PATTERNS = [
@@ -138,7 +143,7 @@ class CoachService:
                 code="hint_locked",
                 details={"next_unlockable_level": unlocked},
             )
-        self._check_budget(user)
+        self.check_budget(user)
 
         code = sanitize_code(req.source_code, self.settings.ai_max_code_chars)
         ctx = HintContext(
@@ -152,8 +157,8 @@ class CoachService:
                 expected_time=(problem.expected_complexity or {}).get("time"),
             ),
         )
-        result = self._with_fallback(lambda p: p.hint(ctx))
-        self._record(user, problem, AIAction.HINT, result, hint_level=req.level)
+        result = self.call_with_fallback(lambda p: p.hint(ctx))
+        self.record_interaction(user, problem, AIAction.HINT, result, hint_level=req.level)
         self._event(user, problem, ProgressEventType.HINT_USED)
         self.db.commit()
         return HintResponse(
@@ -178,7 +183,7 @@ class CoachService:
             submission_id = submission.id
             if submission.status.is_terminal:
                 judge_status = submission.status.value
-        self._check_budget(user)
+        self.check_budget(user)
 
         code = sanitize_code(req.source_code, self.settings.ai_max_code_chars)
         expected = problem.expected_complexity or {}
@@ -193,8 +198,8 @@ class CoachService:
                 expected_time=expected.get("time"),
             ),
         )
-        result = self._with_fallback(lambda p: p.review(ctx))
-        self._record(user, problem, AIAction.REVIEW, result, submission_id=submission_id)
+        result = self.call_with_fallback(lambda p: p.review(ctx))
+        self.record_interaction(user, problem, AIAction.REVIEW, result, submission_id=submission_id)
         self._event(user, problem, ProgressEventType.REVIEW_REQUESTED)
         self.db.commit()
         return ReviewResponse(
@@ -223,28 +228,25 @@ class CoachService:
             or 0
         )
 
-    def _check_budget(self, user: User) -> None:
+    def check_budget(self, user: User) -> None:
         if self._used_today(user) >= self.settings.ai_daily_request_limit:
             raise RateLimitedError(
                 "You've used today's AI coaching budget. It resets on a rolling 24-hour window.",
                 details={"daily_limit": self.settings.ai_daily_request_limit},
             )
 
-    def _with_fallback(self, call):
+    def call_with_fallback(self, call: Callable[[CoachProvider], ProviderResult[T]]) -> ProviderResult[T]:
+        """Run `call` on the configured provider; on ProviderError, answer with the offline coach."""
         start = time.perf_counter()
         try:
             result = call(self.provider)
         except ProviderError:
             if self.fallback is None or self.fallback is self.provider:
                 raise
-            result = call(self.fallback)
-            result = ProviderResult(
-                content=result.content, provider=f"{result.provider} (fallback)", model=result.model
-            )
-        self._latency_ms = int((time.perf_counter() - start) * 1000)
-        return result
+            result = replace(call(self.fallback), provider=f"{self.fallback.name} (fallback)")
+        return replace(result, latency_ms=int((time.perf_counter() - start) * 1000))
 
-    def _record(
+    def record_interaction(
         self,
         user: User,
         problem: Problem,
@@ -253,6 +255,7 @@ class CoachService:
         *,
         hint_level: int | None = None,
         submission_id: str | None = None,
+        store_response: bool = True,
     ) -> None:
         self.db.add(
             AIInteraction(
@@ -265,8 +268,8 @@ class CoachService:
                 model=result.model,
                 input_tokens=result.input_tokens,
                 output_tokens=result.output_tokens,
-                latency_ms=getattr(self, "_latency_ms", 0),
-                response=result.content.model_dump(mode="json"),
+                latency_ms=result.latency_ms,
+                response=result.content.model_dump(mode="json") if store_response else None,
             )
         )
 

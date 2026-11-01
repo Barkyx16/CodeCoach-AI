@@ -6,7 +6,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 
 import { ApiError } from "./client";
 import { api, type ProblemFilters } from "./endpoints";
-import type { HintRequest, ReviewRequest, Submission, SubmissionCreate } from "./types";
+import type { HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
 
 export const queryKeys = {
   problems: (filters: ProblemFilters) => ["problems", filters] as const,
@@ -18,6 +18,8 @@ export const queryKeys = {
   aiHistory: (params: object) => ["me", "ai-history", params] as const,
   progress: ["me", "progress"] as const,
   recommendations: (limit: number) => ["me", "recommendations", limit] as const,
+  interview: (id: string) => ["me", "interview", id] as const,
+  interviews: (params: object) => ["me", "interviews", params] as const,
 };
 
 /** Don't retry client errors (4xx): they won't fix themselves. Retry network/5xx twice. */
@@ -121,3 +123,37 @@ export function useProgress(enabled = true) {
 export function useRecommendations(limit = 5, enabled = true) {
   return useQuery({ queryKey: queryKeys.recommendations(limit), queryFn: () => api.recommendations(limit), enabled });
 }
+
+export function useInterview(id: string) {
+  return useQuery({ queryKey: queryKeys.interview(id), queryFn: ({ signal }) => api.interview(id, signal) });
+}
+
+export function useInterviews(params: { page?: number; page_size?: number }, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.interviews(params),
+    queryFn: () => api.interviews(params),
+    enabled,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** All interview mutations return the full, fresh interview; write it straight into the cache. */
+function useInterviewMutation<V>(fn: (vars: V) => Promise<Interview>) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: (interview) => {
+      queryClient.setQueryData(queryKeys.interview(interview.id), interview);
+      void queryClient.invalidateQueries({ queryKey: ["me", "interviews"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.aiUsage });
+      if (interview.status !== "in_progress") void queryClient.invalidateQueries({ queryKey: queryKeys.progress });
+    },
+  });
+}
+
+export const useStartInterview = () => useInterviewMutation((body: InterviewStart) => api.startInterview(body));
+export const useInterviewMessage = (id: string) =>
+  useInterviewMutation((body: { message: string; code?: string | null }) => api.interviewMessage(id, body));
+export const useFinishInterview = (id: string) =>
+  useInterviewMutation((code: string | null) => api.finishInterview(id, code));
+export const useAbandonInterview = (id: string) => useInterviewMutation((_: void) => api.abandonInterview(id));
