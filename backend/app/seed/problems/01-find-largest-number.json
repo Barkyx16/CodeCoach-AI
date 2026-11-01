@@ -1,0 +1,134 @@
+{
+  "order": 1,
+  "slug": "find-largest-number",
+  "title": "Find Largest Number",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "iteration"
+  ],
+  "summary": "Return the largest value in an integer array, and define what happens when the array is empty.",
+  "statement": "Given an integer array `nums`, return the largest value it contains.\n\nInterviewers love this warm-up because the interesting part is the **contract**, not the loop:\nif `nums` is empty there is no largest value, so your method must throw an\n`IllegalArgumentException` instead of returning a made-up number like `0` or `Integer.MIN_VALUE`.",
+  "constraints": [
+    "0 <= nums.length <= 10^5",
+    "-10^9 <= nums[i] <= 10^9",
+    "If nums is empty, throw IllegalArgumentException"
+  ],
+  "examples": [
+    {
+      "input": "nums = [3, 7, 2, 9, 4]",
+      "output": "9",
+      "explanation": "9 is the largest element."
+    },
+    {
+      "input": "nums = [-5, -2, -11]",
+      "output": "-2",
+      "explanation": "All values are negative; the answer is still one of them."
+    },
+    {
+      "input": "nums = []",
+      "output": "throws IllegalArgumentException",
+      "explanation": "An empty array has no largest value."
+    }
+  ],
+  "signature": {
+    "method": "max",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int max(int[] nums) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "What value should `largest` start at so that it's guaranteed to be a real element of the array?",
+    "Seed your answer with the first element, then scan the rest, replacing it whenever you see something bigger. Check the empty case before you touch nums[0].",
+    "if nums is empty: throw IllegalArgumentException\nlargest = nums[0]\nfor each n in nums:\n    if n > largest: largest = n\nreturn largest",
+    "Starting from 0 is the classic bug: it returns 0 for an all-negative array. Starting from nums[0] guarantees the answer is a real element. A single pass visits every element once, so it runs in O(n) time with O(1) extra space. The empty-array guard makes the contract explicit instead of crashing with ArrayIndexOutOfBoundsException."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          3,
+          7,
+          2,
+          9,
+          4
+        ]
+      },
+      "expected_output": 9,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          -5,
+          -2,
+          -11
+        ]
+      },
+      "expected_output": -2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": []
+      },
+      "expected_output": {
+        "throws": "IllegalArgumentException"
+      },
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          42
+        ]
+      },
+      "expected_output": 42,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -1000000000,
+          -999999999
+        ]
+      },
+      "expected_output": -999999999,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          5,
+          5,
+          5,
+          5
+        ]
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3,
+          4,
+          1000000000
+        ]
+      },
+      "expected_output": 1000000000,
+      "visibility": "hidden"
+    }
+  ]
+}

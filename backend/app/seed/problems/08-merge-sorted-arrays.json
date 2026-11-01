@@ -1,0 +1,180 @@
+{
+  "order": 8,
+  "slug": "merge-sorted-arrays",
+  "title": "Merge Two Sorted Arrays",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "two-pointers",
+    "sorting"
+  ],
+  "summary": "Combine two sorted arrays into one sorted array in linear time.",
+  "statement": "Given two integer arrays `a` and `b`, each sorted in **non-decreasing** order, return a single new\narray that contains every element of both, also in non-decreasing order.\n\nDon't just concatenate and call `Arrays.sort`: aim for O(n + m) time.",
+  "constraints": [
+    "0 <= a.length, b.length <= 10^5",
+    "-10^9 <= a[i], b[i] <= 10^9",
+    "a and b are each sorted in non-decreasing order"
+  ],
+  "examples": [
+    {
+      "input": "a = [1, 3, 5], b = [2, 4, 6]",
+      "output": "[1, 2, 3, 4, 5, 6]"
+    },
+    {
+      "input": "a = [], b = [0, 7]",
+      "output": "[0, 7]"
+    },
+    {
+      "input": "a = [1, 1, 2], b = [1]",
+      "output": "[1, 1, 1, 2]",
+      "explanation": "Duplicates are kept."
+    }
+  ],
+  "signature": {
+    "method": "merge",
+    "params": [
+      {
+        "name": "a",
+        "type": "int[]"
+      },
+      {
+        "name": "b",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] merge(int[] a, int[] b) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "Both inputs are already sorted. Which two elements are the only candidates for the smallest remaining value?",
+    "Keep one index into each array. Repeatedly copy the smaller front element into the result, then copy whatever is left over once one array runs out.",
+    "result = new int[a.length + b.length]\ni = 0, j = 0, k = 0\nwhile i < a.length and j < b.length:\n    if a[i] <= b[j]: result[k++] = a[i++]\n    else: result[k++] = b[j++]\ncopy the rest of a, then the rest of b\nreturn result",
+    "This is the merge step of merge sort. Each element is copied exactly once: O(n + m) time and O(n + m) space for the output. Using `<=` (rather than `<`) takes from `a` on ties, which keeps the merge stable. Forgetting the leftover tail after one array is exhausted is the most common bug."
+  ],
+  "expected_complexity": {
+    "time": "O(n + m)",
+    "space": "O(n + m)"
+  },
+  "tests": [
+    {
+      "input": {
+        "a": [
+          1,
+          3,
+          5
+        ],
+        "b": [
+          2,
+          4,
+          6
+        ]
+      },
+      "expected_output": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": [],
+        "b": [
+          0,
+          7
+        ]
+      },
+      "expected_output": [
+        0,
+        7
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": [
+          1,
+          1,
+          2
+        ],
+        "b": [
+          1
+        ]
+      },
+      "expected_output": [
+        1,
+        1,
+        1,
+        2
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": [],
+        "b": []
+      },
+      "expected_output": [],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": [
+          -5,
+          10,
+          20
+        ],
+        "b": []
+      },
+      "expected_output": [
+        -5,
+        10,
+        20
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": [
+          1,
+          2,
+          3
+        ],
+        "b": [
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      "expected_output": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": [
+          -1000000000
+        ],
+        "b": [
+          1000000000
+        ]
+      },
+      "expected_output": [
+        -1000000000,
+        1000000000
+      ],
+      "visibility": "hidden"
+    }
+  ]
+}

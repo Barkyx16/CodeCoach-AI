@@ -1,0 +1,103 @@
+{
+  "order": 2,
+  "slug": "reverse-string",
+  "title": "Reverse a String",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "two-pointers"
+  ],
+  "summary": "Return a string with its characters in reverse order.",
+  "statement": "Given a string `s`, return a new string containing the same characters in reverse order.\n\nJava strings are immutable, so you will need a mutable buffer (a `char[]` or a `StringBuilder`).\n\n**Note on Unicode:** this problem reverses UTF-16 `char` values. Characters outside the Basic\nMultilingual Plane (such as most emoji) are stored as two `char`s and would be split by a naive\nreversal. All test inputs are ASCII, but be ready to discuss this limitation in an interview.",
+  "constraints": [
+    "0 <= s.length <= 10^5",
+    "s consists of printable ASCII characters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"hello\"",
+      "output": "\"olleh\""
+    },
+    {
+      "input": "s = \"Java 21\"",
+      "output": "\"12 avaJ\""
+    },
+    {
+      "input": "s = \"\"",
+      "output": "\"\"",
+      "explanation": "Reversing an empty string gives an empty string."
+    }
+  ],
+  "signature": {
+    "method": "reverse",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String reverse(String s) {\n        // TODO: write your solution here\n        return s;\n    }\n}\n",
+  "hints": [
+    "Strings can't be changed in place in Java. What mutable structure could you copy the characters into?",
+    "Use two indexes, one at each end, and swap the characters they point to as they move toward the middle.",
+    "chars = s.toCharArray()\nleft = 0, right = chars.length - 1\nwhile left < right:\n    swap chars[left], chars[right]\n    left++, right--\nreturn new String(chars)",
+    "Converting to a char[] gives a mutable copy. Swapping from both ends means each character moves exactly once, so it's O(n) time and O(n) space for the copy (unavoidable, since the result is a new String). Building with `result = result + c` in a loop would be O(n^2), because each concatenation copies the whole string."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "hello"
+      },
+      "expected_output": "olleh",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "Java 21"
+      },
+      "expected_output": "12 avaJ",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": ""
+      },
+      "expected_output": "",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "a"
+      },
+      "expected_output": "a",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "ab"
+      },
+      "expected_output": "ba",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "racecar"
+      },
+      "expected_output": "racecar",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "  spaced  out "
+      },
+      "expected_output": " tuo  decaps  ",
+      "visibility": "hidden"
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+{
+  "order": 6,
+  "slug": "valid-parentheses",
+  "title": "Valid Parentheses",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "stacks"
+  ],
+  "summary": "Check whether every bracket is closed by the right type, in the right order.",
+  "statement": "Given a string `s` containing only the characters `(`, `)`, `{`, `}`, `[` and `]`, return `true`\nif the brackets are valid:\n\n1. Every opening bracket is closed by a bracket of the same type.\n2. Brackets are closed in the correct order (innermost first).\n3. Every closing bracket has a matching opening bracket.\n\nAn empty string is valid.",
+  "constraints": [
+    "0 <= s.length <= 10^4",
+    "s contains only the characters ()[]{}"
+  ],
+  "examples": [
+    {
+      "input": "s = \"()[]{}\"",
+      "output": "true"
+    },
+    {
+      "input": "s = \"([)]\"",
+      "output": "false",
+      "explanation": "The ] closes before the ) that was opened after the [."
+    },
+    {
+      "input": "s = \"{[]}\"",
+      "output": "true"
+    }
+  ],
+  "signature": {
+    "method": "isValid",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean isValid(String s) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "When you meet a closing bracket, which opening bracket must it match: the first one you saw, or the most recent one still open?",
+    "Most-recent-first is a stack (last in, first out). Push openings; on a closing bracket, pop and check that the types match.",
+    "stack = empty\nfor c in s:\n    if c is an opening bracket: push c\n    else:\n        if stack is empty: return false\n        if pop() does not match c: return false\nreturn stack is empty",
+    "Brackets nest, so the bracket that has to close next is always the most recently opened one, which is exactly what a stack gives you. Use ArrayDeque<Character> rather than the legacy Stack class. Two edge cases catch people out: a closing bracket when the stack is empty (\")(\" ), and leftover openings at the end (\"((\"), which is why the final check is `stack.isEmpty()` rather than `true`. O(n) time and O(n) space."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "()[]{}"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "([)]"
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "{[]}"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": ""
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "(("
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": ")("
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "]"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "{[()()]}[]"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    }
+  ]
+}

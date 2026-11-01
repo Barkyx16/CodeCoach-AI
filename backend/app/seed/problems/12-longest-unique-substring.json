@@ -1,0 +1,112 @@
+{
+  "order": 12,
+  "slug": "longest-unique-substring",
+  "title": "Longest Substring Without Repeats",
+  "difficulty": "medium",
+  "topics": [
+    "strings",
+    "sliding-window",
+    "hash-maps"
+  ],
+  "summary": "Find the length of the longest substring with no repeated characters.",
+  "statement": "Given a string `s`, return the length of the longest **substring** (a contiguous run of\ncharacters) that contains no repeated characters.",
+  "constraints": [
+    "0 <= s.length <= 5 * 10^4",
+    "s consists of printable ASCII characters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"abcabcbb\"",
+      "output": "3",
+      "explanation": "\"abc\" has length 3."
+    },
+    {
+      "input": "s = \"bbbbb\"",
+      "output": "1"
+    },
+    {
+      "input": "s = \"pwwkew\"",
+      "output": "3",
+      "explanation": "\"wke\". Note that \"pwke\" is a subsequence, not a substring."
+    }
+  ],
+  "signature": {
+    "method": "lengthOfLongestSubstring",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int lengthOfLongestSubstring(String s) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "When you find a repeated character, do you really need to start over from scratch, or can you keep part of the window you already have?",
+    "Use a sliding window [left, right]. Remember the last index where you saw each character, and when s[right] repeats inside the window, jump `left` just past that earlier occurrence.",
+    "lastSeen = map of char -> index\nleft = 0, best = 0\nfor right from 0 to n - 1:\n    c = s[right]\n    if c in lastSeen and lastSeen[c] >= left:\n        left = lastSeen[c] + 1\n    lastSeen[c] = right\n    best = max(best, right - left + 1)\nreturn best",
+    "Checking every substring for uniqueness is O(n^3), or O(n^2) with a set. A sliding window only moves forward: `right` visits each character once, and `left` never moves backward, so the whole scan is O(n). The `lastSeen[c] >= left` check matters: without it, a character seen long before the current window would yank `left` backwards (try \"abba\"). Space is O(k) for the k distinct characters, which is O(1) for a fixed character set like ASCII."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(min(n, k))"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "abcabcbb"
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "bbbbb"
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "pwwkew"
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": ""
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": " "
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "abba"
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "dvdf"
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "abcdefg"
+      },
+      "expected_output": 7,
+      "visibility": "hidden"
+    }
+  ]
+}

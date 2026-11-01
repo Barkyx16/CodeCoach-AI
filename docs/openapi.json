@@ -1,0 +1,3070 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "CodeCoach AI API",
+    "description": "\nCodeCoach AI: practice Java interview problems with a deterministic judge and an AI coach.\n\n**Auth:** send `Authorization: Bearer <access_token>`. Get a token from\n`POST /api/v1/auth/register`, `POST /api/v1/auth/login` or `POST /api/v1/auth/guest`.\n\n**Errors:** every non-2xx response is `{\"error\": {\"code\", \"message\", \"request_id\", \"details\"}}`.\nBranch on `error.code`, not on the message text.\n\n**Correctness:** pass/fail comes only from the test judge. AI feedback is advisory.\n",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Liveness probe",
+        "description": "Is the process up? Deliberately reveals nothing about versions or infrastructure.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Readiness probe (checks the database)",
+        "operationId": "ready_health_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Create an account and get an access token",
+        "operationId": "register_api_v1_auth_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Log in with email and password",
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/guest": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Start a demo session without an account",
+        "operationId": "guest_api_v1_auth_guest_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/GuestSessionRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "The current user",
+        "operationId": "me_api_v1_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Revoke every access token issued to this user",
+        "operationId": "logout_api_v1_auth_logout_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/password": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Change password (revokes other sessions, returns a fresh token)",
+        "operationId": "change_password_api_v1_auth_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/problems": {
+      "get": {
+        "tags": [
+          "problems"
+        ],
+        "summary": "List problems (paginated, filterable)",
+        "operationId": "list_problems_api_v1_problems_get",
+        "parameters": [
+          {
+            "name": "difficulty",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Difficulty"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Difficulty"
+            }
+          },
+          {
+            "name": "topic",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 40
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact topic slug, e.g. 'hash-maps'",
+              "title": "Topic"
+            },
+            "description": "Exact topic slug, e.g. 'hash-maps'"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Case-insensitive search in title and summary",
+              "title": "Q"
+            },
+            "description": "Case-insensitive search in title and summary"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ProblemSummary_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/topics": {
+      "get": {
+        "tags": [
+          "problems"
+        ],
+        "summary": "All topics with problem counts",
+        "operationId": "list_topics_api_v1_topics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TopicCount"
+                  },
+                  "type": "array",
+                  "title": "Response List Topics Api V1 Topics Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/problems/{slug}": {
+      "get": {
+        "tags": [
+          "problems"
+        ],
+        "summary": "Problem statement, starter code and public tests",
+        "operationId": "get_problem_api_v1_problems__slug__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/submissions": {
+      "post": {
+        "tags": [
+          "submissions"
+        ],
+        "summary": "Submit a solution (asynchronous; poll GET /submissions/{id})",
+        "operationId": "create_submission_api_v1_submissions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmissionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/submissions/{submission_id}": {
+      "get": {
+        "tags": [
+          "submissions"
+        ],
+        "summary": "Submission status and results (owner only)",
+        "operationId": "get_submission_api_v1_submissions__submission_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "submission_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Submission Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/submissions": {
+      "get": {
+        "tags": [
+          "submissions"
+        ],
+        "summary": "Your past attempts, newest first",
+        "operationId": "list_my_submissions_api_v1_me_submissions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "problem_slug",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Problem Slug"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/SubmissionStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_SubmissionListItem_"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/hint": {
+      "post": {
+        "tags": [
+          "ai coach"
+        ],
+        "summary": "Progressive hint (levels unlock one at a time)",
+        "operationId": "hint_api_v1_ai_hint_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HintRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HintResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/ai/review": {
+      "post": {
+        "tags": [
+          "ai coach"
+        ],
+        "summary": "Structured code review (advisory; never overrides the judge)",
+        "operationId": "review_api_v1_ai_review_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/ai/usage": {
+      "get": {
+        "tags": [
+          "ai coach"
+        ],
+        "summary": "Your AI budget for the last 24h",
+        "operationId": "usage_api_v1_ai_usage_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIUsage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/ai-history": {
+      "get": {
+        "tags": [
+          "ai coach"
+        ],
+        "summary": "Saved hints and reviews, newest first",
+        "operationId": "ai_history_api_v1_me_ai_history_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "problem_slug",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Problem Slug"
+            }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AIAction"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Action"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_AIHistoryItem_"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/progress": {
+      "get": {
+        "tags": [
+          "progress"
+        ],
+        "summary": "Your aggregate progress and analytics",
+        "operationId": "progress_api_v1_me_progress_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/recommendations": {
+      "get": {
+        "tags": [
+          "progress"
+        ],
+        "summary": "Personalized next problems, each with a reason",
+        "operationId": "recommendations_api_v1_me_recommendations_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 20,
+              "minimum": 1,
+              "default": 5,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Recommendation"
+                  },
+                  "title": "Response Recommendations Api V1 Me Recommendations Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AIAction": {
+        "type": "string",
+        "enum": [
+          "hint",
+          "review",
+          "explain_failure",
+          "mock_interview"
+        ],
+        "title": "AIAction"
+      },
+      "AIHistoryItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "problem_slug": {
+            "type": "string",
+            "title": "Problem Slug"
+          },
+          "problem_title": {
+            "type": "string",
+            "title": "Problem Title"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "hint_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hint Level"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "response": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "problem_slug",
+          "problem_title",
+          "action",
+          "hint_level",
+          "provider",
+          "created_at",
+          "response"
+        ],
+        "title": "AIHistoryItem"
+      },
+      "AIUsage": {
+        "properties": {
+          "used_today": {
+            "type": "integer",
+            "title": "Used Today"
+          },
+          "daily_limit": {
+            "type": "integer",
+            "title": "Daily Limit"
+          },
+          "remaining_today": {
+            "type": "integer",
+            "title": "Remaining Today"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          }
+        },
+        "type": "object",
+        "required": [
+          "used_today",
+          "daily_limit",
+          "remaining_today",
+          "provider"
+        ],
+        "title": "AIUsage"
+      },
+      "ActivityDay": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date",
+            "title": "Day"
+          },
+          "events": {
+            "type": "integer",
+            "title": "Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "day",
+          "events"
+        ],
+        "title": "ActivityDay"
+      },
+      "ChangePasswordRequest": {
+        "properties": {
+          "current_password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Current Password"
+          },
+          "new_password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 10,
+            "title": "New Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "current_password",
+          "new_password"
+        ],
+        "title": "ChangePasswordRequest"
+      },
+      "CodeReview": {
+        "properties": {
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "complexity": {
+            "$ref": "#/components/schemas/Complexity"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewIssue"
+            },
+            "type": "array",
+            "title": "Issues"
+          },
+          "strengths": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Strengths"
+          },
+          "next_step": {
+            "type": "string",
+            "title": "Next Step"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Confidence",
+            "description": "How sure the reviewer is. Reviews are advisory; the judge decides correctness."
+          }
+        },
+        "type": "object",
+        "required": [
+          "summary",
+          "complexity",
+          "issues",
+          "strengths",
+          "next_step",
+          "confidence"
+        ],
+        "title": "CodeReview",
+        "description": "Matches the structured review example in the blueprint (section 06)."
+      },
+      "Complexity": {
+        "properties": {
+          "time": {
+            "type": "string",
+            "title": "Time",
+            "description": "Big-O time complexity of the learner's code, e.g. 'O(n)'"
+          },
+          "space": {
+            "type": "string",
+            "title": "Space",
+            "description": "Big-O extra space complexity, e.g. 'O(1)'"
+          }
+        },
+        "type": "object",
+        "required": [
+          "time",
+          "space"
+        ],
+        "title": "Complexity"
+      },
+      "Difficulty": {
+        "type": "string",
+        "enum": [
+          "easy",
+          "medium",
+          "hard"
+        ],
+        "title": "Difficulty"
+      },
+      "DifficultyProgress": {
+        "properties": {
+          "difficulty": {
+            "type": "string",
+            "title": "Difficulty"
+          },
+          "total_problems": {
+            "type": "integer",
+            "title": "Total Problems"
+          },
+          "solved": {
+            "type": "integer",
+            "title": "Solved"
+          }
+        },
+        "type": "object",
+        "required": [
+          "difficulty",
+          "total_problems",
+          "solved"
+        ],
+        "title": "DifficultyProgress"
+      },
+      "ErrorBody": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "examples": [
+              "not_found"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          },
+          "details": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorBody"
+      },
+      "ErrorEnvelope": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBody"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "title": "ErrorEnvelope",
+        "description": "Every non-2xx response uses this shape."
+      },
+      "Example": {
+        "properties": {
+          "input": {
+            "type": "string",
+            "title": "Input"
+          },
+          "output": {
+            "type": "string",
+            "title": "Output"
+          },
+          "explanation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explanation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "input",
+          "output"
+        ],
+        "title": "Example"
+      },
+      "ExecutionResultOut": {
+        "properties": {
+          "runtime_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runtime Ms"
+          },
+          "memory_kb": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memory Kb"
+          },
+          "passed_count": {
+            "type": "integer",
+            "title": "Passed Count"
+          },
+          "total_count": {
+            "type": "integer",
+            "title": "Total Count"
+          },
+          "public_results": {
+            "items": {
+              "$ref": "#/components/schemas/PublicCaseResult"
+            },
+            "type": "array",
+            "title": "Public Results"
+          },
+          "stderr_excerpt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stderr Excerpt"
+          }
+        },
+        "type": "object",
+        "required": [
+          "runtime_ms",
+          "memory_kb",
+          "passed_count",
+          "total_count",
+          "public_results",
+          "stderr_excerpt"
+        ],
+        "title": "ExecutionResultOut"
+      },
+      "GuestSessionRequest": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          }
+        },
+        "type": "object",
+        "title": "GuestSessionRequest"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HintContent": {
+        "properties": {
+          "hint": {
+            "type": "string",
+            "title": "Hint",
+            "description": "One focused hint at the requested level. No full solution below level 4."
+          },
+          "focus_area": {
+            "type": "string",
+            "title": "Focus Area",
+            "description": "Short label for what the hint is about, e.g. 'edge cases'"
+          },
+          "encouragement": {
+            "type": "string",
+            "title": "Encouragement",
+            "description": "One short, specific sentence of encouragement"
+          }
+        },
+        "type": "object",
+        "required": [
+          "hint",
+          "focus_area",
+          "encouragement"
+        ],
+        "title": "HintContent",
+        "description": "Schema the model must fill for a hint."
+      },
+      "HintRequest": {
+        "properties": {
+          "problem_slug": {
+            "type": "string",
+            "title": "Problem Slug"
+          },
+          "source_code": {
+            "type": "string",
+            "title": "Source Code",
+            "description": "The learner's current draft",
+            "default": ""
+          },
+          "level": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "title": "Level",
+            "description": "1 nudge, 2 concept, 3 pseudocode, 4 full explanation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "problem_slug",
+          "level"
+        ],
+        "title": "HintRequest"
+      },
+      "HintResponse": {
+        "properties": {
+          "level": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "title": "Level"
+          },
+          "level_name": {
+            "type": "string",
+            "title": "Level Name"
+          },
+          "content": {
+            "$ref": "#/components/schemas/HintContent"
+          },
+          "max_level": {
+            "type": "integer",
+            "title": "Max Level"
+          },
+          "next_level_available": {
+            "type": "boolean",
+            "title": "Next Level Available"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "grounded": {
+            "type": "boolean",
+            "title": "Grounded",
+            "description": "True when the hint came from the curated hint ladder"
+          }
+        },
+        "type": "object",
+        "required": [
+          "level",
+          "level_name",
+          "content",
+          "max_level",
+          "next_level_available",
+          "provider",
+          "grounded"
+        ],
+        "title": "HintResponse"
+      },
+      "LoginRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "LoginRequest"
+      },
+      "Page_AIHistoryItem_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AIHistoryItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Total matching items across all pages"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "Page[AIHistoryItem]"
+      },
+      "Page_ProblemSummary_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProblemSummary"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Total matching items across all pages"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "Page[ProblemSummary]"
+      },
+      "Page_SubmissionListItem_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SubmissionListItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Total matching items across all pages"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "Page[SubmissionListItem]"
+      },
+      "Param": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "type"
+        ],
+        "title": "Param"
+      },
+      "ProblemDetail": {
+        "properties": {
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "difficulty": {
+            "$ref": "#/components/schemas/Difficulty"
+          },
+          "topics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Topics"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "statement": {
+            "type": "string",
+            "title": "Statement"
+          },
+          "constraints": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Constraints"
+          },
+          "examples": {
+            "items": {
+              "$ref": "#/components/schemas/Example"
+            },
+            "type": "array",
+            "title": "Examples"
+          },
+          "starter_code": {
+            "type": "string",
+            "title": "Starter Code"
+          },
+          "signature": {
+            "$ref": "#/components/schemas/Signature"
+          },
+          "public_tests": {
+            "items": {
+              "$ref": "#/components/schemas/PublicTestCase"
+            },
+            "type": "array",
+            "title": "Public Tests"
+          },
+          "hidden_test_count": {
+            "type": "integer",
+            "title": "Hidden Test Count",
+            "description": "How many hidden tests the judge will also run"
+          },
+          "hint_levels": {
+            "type": "integer",
+            "title": "Hint Levels",
+            "description": "How many progressive hint levels are available"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slug",
+          "title",
+          "difficulty",
+          "topics",
+          "summary",
+          "statement",
+          "constraints",
+          "examples",
+          "starter_code",
+          "signature",
+          "public_tests",
+          "hidden_test_count",
+          "hint_levels"
+        ],
+        "title": "ProblemDetail"
+      },
+      "ProblemStatus": {
+        "properties": {
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "solved",
+              "attempted",
+              "in_progress",
+              "not_started"
+            ],
+            "title": "Status"
+          },
+          "last_submission_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SubmissionStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "submissions": {
+            "type": "integer",
+            "title": "Submissions"
+          },
+          "hints_used": {
+            "type": "integer",
+            "title": "Hints Used"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slug",
+          "status",
+          "last_submission_status",
+          "submissions",
+          "hints_used"
+        ],
+        "title": "ProblemStatus"
+      },
+      "ProblemSummary": {
+        "properties": {
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "difficulty": {
+            "$ref": "#/components/schemas/Difficulty"
+          },
+          "topics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Topics"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slug",
+          "title",
+          "difficulty",
+          "topics",
+          "summary"
+        ],
+        "title": "ProblemSummary"
+      },
+      "ProgressOut": {
+        "properties": {
+          "total_problems": {
+            "type": "integer",
+            "title": "Total Problems"
+          },
+          "attempted": {
+            "type": "integer",
+            "title": "Attempted"
+          },
+          "solved": {
+            "type": "integer",
+            "title": "Solved"
+          },
+          "submissions": {
+            "type": "integer",
+            "title": "Submissions"
+          },
+          "accepted_submissions": {
+            "type": "integer",
+            "title": "Accepted Submissions"
+          },
+          "acceptance_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acceptance Rate"
+          },
+          "hints_used": {
+            "type": "integer",
+            "title": "Hints Used"
+          },
+          "reviews_requested": {
+            "type": "integer",
+            "title": "Reviews Requested"
+          },
+          "current_streak_days": {
+            "type": "integer",
+            "title": "Current Streak Days"
+          },
+          "longest_streak_days": {
+            "type": "integer",
+            "title": "Longest Streak Days"
+          },
+          "last_active_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Active At"
+          },
+          "by_topic": {
+            "items": {
+              "$ref": "#/components/schemas/TopicProgress"
+            },
+            "type": "array",
+            "title": "By Topic"
+          },
+          "by_difficulty": {
+            "items": {
+              "$ref": "#/components/schemas/DifficultyProgress"
+            },
+            "type": "array",
+            "title": "By Difficulty"
+          },
+          "problems": {
+            "items": {
+              "$ref": "#/components/schemas/ProblemStatus"
+            },
+            "type": "array",
+            "title": "Problems"
+          },
+          "activity": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityDay"
+            },
+            "type": "array",
+            "title": "Activity"
+          },
+          "weakest_topics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Weakest Topics"
+          },
+          "recommended_next": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Recommended Next"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_problems",
+          "attempted",
+          "solved",
+          "submissions",
+          "accepted_submissions",
+          "acceptance_rate",
+          "hints_used",
+          "reviews_requested",
+          "current_streak_days",
+          "longest_streak_days",
+          "last_active_at",
+          "by_topic",
+          "by_difficulty",
+          "problems",
+          "activity",
+          "weakest_topics",
+          "recommended_next"
+        ],
+        "title": "ProgressOut"
+      },
+      "PublicCaseResult": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "title": "Index"
+          },
+          "passed": {
+            "type": "boolean",
+            "title": "Passed"
+          },
+          "input": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input"
+          },
+          "expected_output": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Output"
+          },
+          "actual_output": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Output"
+          },
+          "exception": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exception"
+          }
+        },
+        "type": "object",
+        "required": [
+          "index",
+          "passed"
+        ],
+        "title": "PublicCaseResult"
+      },
+      "PublicTestCase": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "input": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Input"
+          },
+          "expected_output": {
+            "title": "Expected Output"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "input",
+          "expected_output"
+        ],
+        "title": "PublicTestCase",
+        "description": "Only PUBLIC test cases are ever serialized. Hidden ones stay server-side."
+      },
+      "Recommendation": {
+        "properties": {
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "difficulty": {
+            "$ref": "#/components/schemas/Difficulty"
+          },
+          "topics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Topics"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "retry",
+              "weak_topic",
+              "next_step",
+              "interview"
+            ],
+            "title": "Kind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slug",
+          "title",
+          "difficulty",
+          "topics",
+          "reason",
+          "kind"
+        ],
+        "title": "Recommendation"
+      },
+      "RegisterRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 10,
+            "title": "Password",
+            "examples": [
+              "CorrectHorse42"
+            ]
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "examples": [
+              "Ada"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "RegisterRequest"
+      },
+      "ReviewIssue": {
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Severity"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "correctness",
+              "edge-case",
+              "complexity",
+              "readability",
+              "style"
+            ],
+            "title": "Category"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail",
+            "description": "What is wrong and why it matters"
+          },
+          "suggestion": {
+            "type": "string",
+            "title": "Suggestion",
+            "description": "A concrete next action, without writing the full solution"
+          },
+          "line_hint": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line Hint",
+            "description": "1-based line number, if known"
+          }
+        },
+        "type": "object",
+        "required": [
+          "severity",
+          "category",
+          "detail",
+          "suggestion"
+        ],
+        "title": "ReviewIssue"
+      },
+      "ReviewRequest": {
+        "properties": {
+          "problem_slug": {
+            "type": "string",
+            "title": "Problem Slug"
+          },
+          "source_code": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Source Code"
+          },
+          "submission_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submission Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "problem_slug",
+          "source_code"
+        ],
+        "title": "ReviewRequest"
+      },
+      "ReviewResponse": {
+        "properties": {
+          "review": {
+            "$ref": "#/components/schemas/CodeReview"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "expected_complexity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Complexity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "judge_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Judge Status",
+            "description": "Deterministic verdict, when a submission is referenced"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer",
+            "default": "AI feedback can be wrong. Pass/fail comes only from the test judge, never from the AI."
+          }
+        },
+        "type": "object",
+        "required": [
+          "review",
+          "provider"
+        ],
+        "title": "ReviewResponse"
+      },
+      "Signature": {
+        "properties": {
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "params": {
+            "items": {
+              "$ref": "#/components/schemas/Param"
+            },
+            "type": "array",
+            "title": "Params"
+          },
+          "returns": {
+            "type": "string",
+            "title": "Returns"
+          }
+        },
+        "type": "object",
+        "required": [
+          "method",
+          "params",
+          "returns"
+        ],
+        "title": "Signature"
+      },
+      "SubmissionCreate": {
+        "properties": {
+          "problem_slug": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Problem Slug"
+          },
+          "language": {
+            "type": "string",
+            "pattern": "^java$",
+            "title": "Language",
+            "default": "java"
+          },
+          "source_code": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Source Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "problem_slug",
+          "source_code"
+        ],
+        "title": "SubmissionCreate"
+      },
+      "SubmissionDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "problem_slug": {
+            "type": "string",
+            "title": "Problem Slug"
+          },
+          "problem_title": {
+            "type": "string",
+            "title": "Problem Title"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SubmissionStatus"
+          },
+          "status_detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Detail"
+          },
+          "is_terminal": {
+            "type": "boolean",
+            "title": "Is Terminal"
+          },
+          "execution_enabled": {
+            "type": "boolean",
+            "title": "Execution Enabled"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExecutionResultOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_code": {
+            "type": "string",
+            "title": "Source Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "problem_slug",
+          "problem_title",
+          "language",
+          "status",
+          "status_detail",
+          "is_terminal",
+          "execution_enabled",
+          "created_at",
+          "updated_at",
+          "source_code"
+        ],
+        "title": "SubmissionDetail"
+      },
+      "SubmissionListItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "problem_slug": {
+            "type": "string",
+            "title": "Problem Slug"
+          },
+          "problem_title": {
+            "type": "string",
+            "title": "Problem Title"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SubmissionStatus"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms",
+            "description": "Judge runtime, once execution is enabled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "problem_slug",
+          "problem_title",
+          "status",
+          "created_at"
+        ],
+        "title": "SubmissionListItem"
+      },
+      "SubmissionStatus": {
+        "type": "string",
+        "enum": [
+          "QUEUED",
+          "RUNNING",
+          "PASSED",
+          "FAILED",
+          "COMPILE_ERROR",
+          "RUNTIME_ERROR",
+          "TIME_LIMIT",
+          "MEMORY_LIMIT",
+          "INTERNAL_ERROR"
+        ],
+        "title": "SubmissionStatus",
+        "description": "Judge status model from the blueprint (section 07)."
+      },
+      "TokenResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "expires_at",
+          "user"
+        ],
+        "title": "TokenResponse"
+      },
+      "TopicCount": {
+        "properties": {
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "topic",
+          "count"
+        ],
+        "title": "TopicCount"
+      },
+      "TopicProgress": {
+        "properties": {
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "total_problems": {
+            "type": "integer",
+            "title": "Total Problems"
+          },
+          "attempted": {
+            "type": "integer",
+            "title": "Attempted"
+          },
+          "solved": {
+            "type": "integer",
+            "title": "Solved"
+          }
+        },
+        "type": "object",
+        "required": [
+          "topic",
+          "total_problems",
+          "attempted",
+          "solved"
+        ],
+        "title": "TopicProgress"
+      },
+      "UserOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "is_guest": {
+            "type": "boolean",
+            "title": "Is Guest"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "display_name",
+          "is_guest",
+          "created_at"
+        ],
+        "title": "UserOut"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "health",
+      "description": "Liveness and readiness probes"
+    },
+    {
+      "name": "auth",
+      "description": "Registration, login, guest sessions and token revocation"
+    },
+    {
+      "name": "problems",
+      "description": "Curated problem library. Hidden tests are never exposed."
+    },
+    {
+      "name": "submissions",
+      "description": "Asynchronous judging jobs and attempt history"
+    },
+    {
+      "name": "ai coach",
+      "description": "Progressive hints, structured code reviews, budgets and history"
+    },
+    {
+      "name": "progress",
+      "description": "Analytics and personalized recommendations"
+    }
+  ]
+}

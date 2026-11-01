@@ -1,0 +1,132 @@
+{
+  "order": 5,
+  "slug": "contains-duplicate",
+  "title": "Contains Duplicate",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "hash-sets"
+  ],
+  "summary": "Report whether any value appears more than once in an array.",
+  "statement": "Given an integer array `nums`, return `true` if any value appears **at least twice**, and `false`\nif every element is distinct.",
+  "constraints": [
+    "0 <= nums.length <= 10^5",
+    "-10^9 <= nums[i] <= 10^9"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 2, 3, 1]",
+      "output": "true"
+    },
+    {
+      "input": "nums = [1, 2, 3, 4]",
+      "output": "false"
+    },
+    {
+      "input": "nums = []",
+      "output": "false",
+      "explanation": "No elements means no duplicates."
+    }
+  ],
+  "signature": {
+    "method": "containsDuplicate",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean containsDuplicate(int[] nums) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "What data structure answers 'have I seen this before?' in constant time?",
+    "Add values to a HashSet as you scan. Set.add returns false when the value is already there.",
+    "seen = empty set\nfor n in nums:\n    if not seen.add(n): return true\nreturn false",
+    "Comparing every pair is O(n^2). Sorting first and checking neighbours is O(n log n) time and O(1) extra space (if you may modify the input), which is a valid trade-off to mention. A HashSet gives O(n) average time and O(n) space, and it can stop as soon as it finds the first duplicate."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3,
+          1
+        ]
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": []
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          7
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          1,
+          1,
+          3,
+          3,
+          4,
+          3,
+          2,
+          4,
+          2
+        ]
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -1000000000,
+          1000000000
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          0
+        ]
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    }
+  ]
+}

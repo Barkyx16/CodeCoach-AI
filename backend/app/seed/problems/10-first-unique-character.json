@@ -1,0 +1,103 @@
+{
+  "order": 10,
+  "slug": "first-unique-character",
+  "title": "First Unique Character",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "hash-maps",
+    "counting"
+  ],
+  "summary": "Find the index of the first character that appears exactly once.",
+  "statement": "Given a string `s` of lowercase English letters, return the index of the first character that\nappears **exactly once** in `s`. If no such character exists, return `-1`.",
+  "constraints": [
+    "0 <= s.length <= 10^5",
+    "s consists of lowercase English letters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"leetcode\"",
+      "output": "0"
+    },
+    {
+      "input": "s = \"loveleetcode\"",
+      "output": "2"
+    },
+    {
+      "input": "s = \"aabb\"",
+      "output": "-1"
+    }
+  ],
+  "signature": {
+    "method": "firstUniqChar",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int firstUniqChar(String s) {\n        // TODO: write your solution here\n        return -1;\n    }\n}\n",
+  "hints": [
+    "Can you decide if a character is unique while you're still reading the string for the first time, or do you need the whole picture first?",
+    "Make two passes: first count every character, then scan again and return the first index whose count is 1. With only 26 letters, an int[26] works as the counter.",
+    "counts = int[26]\nfor c in s: counts[c - 'a']++\nfor i from 0 to s.length - 1:\n    if counts[s[i] - 'a'] == 1: return i\nreturn -1",
+    "A character's uniqueness depends on characters you haven't read yet, so a single forward pass can't decide it; two passes can. Both passes are linear, so it's O(n) time. Because the alphabet is fixed at 26 letters, the counter is O(1) space. Mention that a HashMap<Character, Integer> generalizes to any alphabet, at a constant-factor cost."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "leetcode"
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "loveleetcode"
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "aabb"
+      },
+      "expected_output": -1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": ""
+      },
+      "expected_output": -1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "z"
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "aabbccd"
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "abcabcx"
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    }
+  ]
+}

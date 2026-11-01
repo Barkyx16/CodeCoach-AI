@@ -1,0 +1,172 @@
+{
+  "order": 3,
+  "slug": "two-sum",
+  "title": "Two Sum",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "hash-maps"
+  ],
+  "summary": "Find the indices of two numbers that add up to a target.",
+  "statement": "Given an integer array `nums` and an integer `target`, return the indices `[i, j]` of the two\nnumbers that add up to `target`, with `i < j`.\n\nExactly one valid pair exists. You may not use the same element twice, but the array can contain\nduplicate values (for example `nums = [3, 3]`, `target = 6`).\n\nA brute-force double loop works. Can you do it in a single pass?",
+  "constraints": [
+    "2 <= nums.length <= 10^4",
+    "-10^9 <= nums[i], target <= 10^9",
+    "Exactly one valid answer exists",
+    "Return indices in increasing order"
+  ],
+  "examples": [
+    {
+      "input": "nums = [2, 7, 11, 15], target = 9",
+      "output": "[0, 1]",
+      "explanation": "nums[0] + nums[1] = 2 + 7 = 9."
+    },
+    {
+      "input": "nums = [3, 2, 4], target = 6",
+      "output": "[1, 2]"
+    },
+    {
+      "input": "nums = [3, 3], target = 6",
+      "output": "[0, 1]",
+      "explanation": "Duplicates are allowed as long as they are different elements."
+    }
+  ],
+  "signature": {
+    "method": "twoSum",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      },
+      {
+        "name": "target",
+        "type": "int"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "For each number, you already know exactly which other value you'd need. How could you check whether you've seen it, quickly?",
+    "A HashMap from value to index gives O(1) lookups. As you scan, look up `target - nums[i]` before storing `nums[i]` itself.",
+    "seen = empty map of value -> index\nfor i from 0 to n-1:\n    need = target - nums[i]\n    if need in seen: return [seen[need], i]\n    seen[nums[i]] = i\nthrow (unreachable: an answer is guaranteed)",
+    "The nested-loop approach checks every pair: O(n^2). Storing each value's index in a HashMap turns 'have I seen the complement?' into an O(1) average lookup, so one pass is O(n) time and O(n) space. Checking the map BEFORE inserting the current element is what handles duplicates like [3, 3] correctly and stops an element pairing with itself. Since the earlier index comes from the map, the pair comes out already ordered."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          2,
+          7,
+          11,
+          15
+        ],
+        "target": 9
+      },
+      "expected_output": [
+        0,
+        1
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          2,
+          4
+        ],
+        "target": 6
+      },
+      "expected_output": [
+        1,
+        2
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          3
+        ],
+        "target": 6
+      },
+      "expected_output": [
+        0,
+        1
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          -3,
+          4,
+          3,
+          90
+        ],
+        "target": 0
+      },
+      "expected_output": [
+        0,
+        2
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          4,
+          3,
+          0
+        ],
+        "target": 0
+      },
+      "expected_output": [
+        0,
+        3
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          5,
+          9,
+          1000000000,
+          -999999991
+        ],
+        "target": 9
+      },
+      "expected_output": [
+        3,
+        4
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          5,
+          1,
+          2,
+          8,
+          6
+        ],
+        "target": 14
+      },
+      "expected_output": [
+        3,
+        4
+      ],
+      "visibility": "hidden"
+    }
+  ]
+}

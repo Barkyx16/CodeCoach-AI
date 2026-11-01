@@ -1,0 +1,104 @@
+{
+  "order": 9,
+  "slug": "climbing-stairs",
+  "title": "Climbing Stairs",
+  "difficulty": "easy",
+  "topics": [
+    "dynamic-programming",
+    "recursion"
+  ],
+  "summary": "Count the distinct ways to climb n stairs taking one or two steps at a time.",
+  "statement": "You are climbing a staircase with `n` steps. Each move, you climb either **1** or **2** steps.\nReturn the number of distinct ways to reach the top.",
+  "constraints": [
+    "1 <= n <= 45",
+    "The answer fits in a 32-bit signed integer"
+  ],
+  "examples": [
+    {
+      "input": "n = 2",
+      "output": "2",
+      "explanation": "1+1, or 2."
+    },
+    {
+      "input": "n = 3",
+      "output": "3",
+      "explanation": "1+1+1, 1+2, or 2+1."
+    },
+    {
+      "input": "n = 5",
+      "output": "8"
+    }
+  ],
+  "signature": {
+    "method": "climbStairs",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int climbStairs(int n) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Think about your very last move. To land on step n, which steps could you have been standing on just before?",
+    "ways(n) = ways(n - 1) + ways(n - 2). Plain recursion recomputes the same values exponentially many times, so build the answer bottom-up instead.",
+    "if n <= 2: return n\nprev2 = 1  // ways(1)\nprev1 = 2  // ways(2)\nfor i from 3 to n:\n    current = prev1 + prev2\n    prev2 = prev1\n    prev1 = current\nreturn prev1",
+    "Every path to step n ends with a 1-step from n-1 or a 2-step from n-2, so the counts follow the Fibonacci recurrence. Naive recursion is O(2^n) and times out around n = 40. Memoization brings it down to O(n) time and O(n) space, and since each value depends only on the previous two, two variables are enough: O(n) time, O(1) space."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 2
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 3
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 5
+      },
+      "expected_output": 8,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 1
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 10
+      },
+      "expected_output": 89,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 30
+      },
+      "expected_output": 1346269,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 45
+      },
+      "expected_output": 1836311903,
+      "visibility": "hidden"
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+{
+  "order": 4,
+  "slug": "valid-palindrome",
+  "title": "Valid Palindrome",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "two-pointers"
+  ],
+  "summary": "Decide whether a phrase reads the same forwards and backwards, ignoring punctuation and case.",
+  "statement": "A phrase is a **palindrome** if, after converting all uppercase letters to lowercase and removing\nevery character that is not a letter or digit, it reads the same forwards and backwards.\n\nGiven a string `s`, return `true` if it is a palindrome and `false` otherwise.\nAn empty string (or one with no letters or digits) counts as a palindrome.",
+  "constraints": [
+    "0 <= s.length <= 2 * 10^5",
+    "s consists of printable ASCII characters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"A man, a plan, a canal: Panama\"",
+      "output": "true",
+      "explanation": "Cleaned up, it becomes \"amanaplanacanalpanama\"."
+    },
+    {
+      "input": "s = \"race a car\"",
+      "output": "false"
+    },
+    {
+      "input": "s = \" \"",
+      "output": "true"
+    }
+  ],
+  "signature": {
+    "method": "isPalindrome",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean isPalindrome(String s) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "Could you compare characters from both ends without building a cleaned-up copy of the string first?",
+    "Move two pointers inward. Skip anything that isn't a letter or digit (Character.isLetterOrDigit), and compare with Character.toLowerCase.",
+    "left = 0, right = s.length - 1\nwhile left < right:\n    while left < right and s[left] is not alphanumeric: left++\n    while left < right and s[right] is not alphanumeric: right--\n    if lower(s[left]) != lower(s[right]): return false\n    left++, right--\nreturn true",
+    "Building a filtered, lowercased copy and comparing it with its reverse is correct but uses O(n) extra memory. Two pointers that skip non-alphanumeric characters do the same check in place: O(n) time, O(1) space. Keep the `left < right` guard in the inner skip loops, or a string of only punctuation will run the pointers past each other."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "A man, a plan, a canal: Panama"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "race a car"
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": " "
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": ""
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "0P"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "No 'x' in Nixon"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": ".,!?"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "ab2a"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    }
+  ]
+}

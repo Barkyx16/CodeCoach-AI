@@ -1,0 +1,64 @@
+from datetime import datetime
+
+from pydantic import Field, field_validator
+
+from app.models import SubmissionStatus
+from app.schemas.common import APIModel
+
+
+class SubmissionCreate(APIModel):
+    problem_slug: str = Field(min_length=1, max_length=80)
+    language: str = Field(default="java", pattern="^java$")
+    source_code: str = Field(min_length=1)
+
+    @field_validator("source_code")
+    @classmethod
+    def not_blank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("source_code must not be blank")
+        return v
+
+
+class PublicCaseResult(APIModel):
+    index: int
+    passed: bool
+    input: dict | None = None
+    expected_output: object | None = None
+    actual_output: object | None = None
+    exception: str | None = None
+
+
+class ExecutionResultOut(APIModel):
+    runtime_ms: int | None
+    memory_kb: int | None
+    passed_count: int
+    total_count: int
+    public_results: list[PublicCaseResult]
+    stderr_excerpt: str | None
+
+
+class SubmissionOut(APIModel):
+    id: str
+    problem_slug: str
+    problem_title: str
+    language: str
+    status: SubmissionStatus
+    status_detail: str | None
+    is_terminal: bool
+    execution_enabled: bool
+    created_at: datetime
+    updated_at: datetime
+    result: ExecutionResultOut | None = None
+
+
+class SubmissionDetail(SubmissionOut):
+    source_code: str
+
+
+class SubmissionListItem(APIModel):
+    id: str
+    problem_slug: str
+    problem_title: str
+    status: SubmissionStatus
+    created_at: datetime
+    duration_ms: int | None = Field(default=None, description="Judge runtime, once execution is enabled")

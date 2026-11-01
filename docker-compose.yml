@@ -1,0 +1,41 @@
+# Local development stack:  docker compose up --build
+#   API          http://localhost:8000   (OpenAPI docs at /docs)
+#   PostgreSQL   localhost:5432          (user/password/db: codecoach, dev only)
+# Secrets come from .env (copy .env.example). Nothing secret is committed.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: codecoach
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-codecoach}
+      POSTGRES_DB: codecoach
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codecoach -d codecoach"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build: ./backend
+    env_file: [{path: .env, required: false}]
+    environment:
+      DATABASE_URL: postgresql+psycopg://codecoach:${POSTGRES_PASSWORD:-codecoach}@db:5432/codecoach
+    command: sh -c "alembic upgrade head && python -m app.cli seed"
+    depends_on:
+      db: {condition: service_healthy}
+
+  api:
+    build: ./backend
+    env_file: [{path: .env, required: false}]
+    environment:
+      DATABASE_URL: postgresql+psycopg://codecoach:${POSTGRES_PASSWORD:-codecoach}@db:5432/codecoach
+      AUTO_MIGRATE: "false"
+    ports: ["8000:8000"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+
+volumes:
+  pgdata:
