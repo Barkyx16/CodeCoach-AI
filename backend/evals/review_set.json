@@ -1,0 +1,396 @@
+{
+  "version": 1,
+  "samples": [
+    {
+      "id": "two-sum-hashmap",
+      "problem": "two-sum",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(n)",
+      "note": "Optimal one-pass solution; nothing to flag.",
+      "code": "import java.util.HashMap;\nimport java.util.Map;\nclass Solution {\n    public int[] twoSum(int[] nums, int target) {\n        Map<Integer, Integer> seen = new HashMap<>();\n        for (int i = 0; i < nums.length; i++) {\n            Integer j = seen.get(target - nums[i]);\n            if (j != null) return new int[] {j, i};\n            seen.put(nums[i], i);\n        }\n        throw new IllegalArgumentException(\"no pair\");\n    }\n}\n"
+    },
+    {
+      "id": "two-sum-brute",
+      "problem": "two-sum",
+      "verdict": "PASSED",
+      "categories": [
+        "complexity"
+      ],
+      "time": "O(n^2)",
+      "note": "Correct but quadratic; O(n) exists.",
+      "code": "class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        for (int i = 0; i < nums.length; i++) {\n            for (int j = i + 1; j < nums.length; j++) {\n                if (nums[i] + nums[j] == target) return new int[] {i, j};\n            }\n        }\n        return new int[0];\n    }\n}\n"
+    },
+    {
+      "id": "two-sum-same-index",
+      "problem": "two-sum",
+      "verdict": "FAILED",
+      "categories": [
+        "complexity",
+        "correctness"
+      ],
+      "time": "O(n^2)",
+      "note": "Inner loop starts at 0: can pair an element with itself.",
+      "code": "class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        for (int i = 0; i < nums.length; i++) {\n            for (int j = 0; j < nums.length; j++) {\n                if (nums[i] + nums[j] == target) return new int[] {i, j};\n            }\n        }\n        return new int[0];\n    }\n}\n"
+    },
+    {
+      "id": "two-sum-debug-print",
+      "problem": "two-sum",
+      "verdict": "PASSED",
+      "categories": [
+        "style"
+      ],
+      "time": "O(n)",
+      "note": "Correct, but leaves debug printing in.",
+      "code": "import java.util.HashMap;\nimport java.util.Map;\nclass Solution {\n    public int[] twoSum(int[] nums, int target) {\n        Map<Integer, Integer> seen = new HashMap<>();\n        for (int i = 0; i < nums.length; i++) {\n            System.out.println(\"checking \" + nums[i]);\n            Integer j = seen.get(target - nums[i]);\n            if (j != null) return new int[] {j, i};\n            seen.put(nums[i], i);\n        }\n        return new int[0];\n    }\n}\n"
+    },
+    {
+      "id": "max-correct",
+      "problem": "find-largest-number",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(n)",
+      "note": "Correct with the empty-input contract.",
+      "code": "class Solution {\n    public int max(int[] nums) {\n        if (nums.length == 0) throw new IllegalArgumentException(\"empty\");\n        int largest = nums[0];\n        for (int n : nums) {\n            if (n > largest) largest = n;\n        }\n        return largest;\n    }\n}\n"
+    },
+    {
+      "id": "max-starts-at-zero",
+      "problem": "find-largest-number",
+      "verdict": "FAILED",
+      "categories": [
+        "correctness"
+      ],
+      "time": "O(n)",
+      "note": "Starts at 0: wrong for all-negative arrays. Static checks can't see this.",
+      "code": "class Solution {\n    public int max(int[] nums) {\n        if (nums.length == 0) throw new IllegalArgumentException(\"empty\");\n        int largest = 0;\n        for (int n : nums) {\n            if (n > largest) largest = n;\n        }\n        return largest;\n    }\n}\n"
+    },
+    {
+      "id": "max-unguarded",
+      "problem": "find-largest-number",
+      "verdict": "FAILED",
+      "categories": [
+        "edge-case"
+      ],
+      "time": "O(n)",
+      "note": "No empty check: throws ArrayIndexOutOfBounds instead of IllegalArgumentException.",
+      "code": "class Solution {\n    public int max(int[] nums) {\n        int largest = nums[0];\n        for (int n : nums) {\n            if (n > largest) largest = n;\n        }\n        return largest;\n    }\n}\n"
+    },
+    {
+      "id": "max-sort",
+      "problem": "find-largest-number",
+      "verdict": "PASSED",
+      "categories": [
+        "complexity"
+      ],
+      "time": "O(n log n)",
+      "note": "Correct but sorts: O(n log n) when O(n) is enough.",
+      "code": "import java.util.Arrays;\nclass Solution {\n    public int max(int[] nums) {\n        if (nums.length == 0) throw new IllegalArgumentException(\"empty\");\n        int[] copy = nums.clone();\n        Arrays.sort(copy);\n        return copy[copy.length - 1];\n    }\n}\n"
+    },
+    {
+      "id": "max-single-letter",
+      "problem": "find-largest-number",
+      "verdict": "PASSED",
+      "categories": [
+        "readability"
+      ],
+      "time": "O(n)",
+      "note": "Correct; the variable name x hides intent.",
+      "code": "class Solution {\n    public int max(int[] nums) {\n        if (nums.length == 0) throw new IllegalArgumentException(\"empty\");\n        int x = nums[0];\n        for (int n : nums) if (n > x) x = n;\n        return x;\n    }\n}\n"
+    },
+    {
+      "id": "reverse-two-pointers",
+      "problem": "reverse-string",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(n)",
+      "note": "Optimal.",
+      "code": "class Solution {\n    public String reverse(String s) {\n        char[] chars = s.toCharArray();\n        for (int left = 0, right = chars.length - 1; left < right; left++, right--) {\n            char tmp = chars[left];\n            chars[left] = chars[right];\n            chars[right] = tmp;\n        }\n        return new String(chars);\n    }\n}\n"
+    },
+    {
+      "id": "reverse-concat",
+      "problem": "reverse-string",
+      "verdict": "PASSED",
+      "categories": [
+        "complexity"
+      ],
+      "time": "O(n^2)",
+      "note": "String += in a loop copies the string each time.",
+      "code": "class Solution {\n    public String reverse(String s) {\n        String out = \"\";\n        for (int i = s.length() - 1; i >= 0; i--) {\n            out += s.charAt(i);\n        }\n        return out;\n    }\n}\n"
+    },
+    {
+      "id": "reverse-builder",
+      "problem": "reverse-string",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(n)",
+      "note": "Idiomatic library call.",
+      "code": "class Solution {\n    public String reverse(String s) {\n        return new StringBuilder(s).reverse().toString();\n    }\n}\n"
+    },
+    {
+      "id": "reverse-off-by-one",
+      "problem": "reverse-string",
+      "verdict": "FAILED",
+      "categories": [
+        "correctness"
+      ],
+      "time": "O(n)",
+      "note": "Loop stops at i > 0 and drops the first character.",
+      "code": "class Solution {\n    public String reverse(String s) {\n        StringBuilder sb = new StringBuilder();\n        for (int i = s.length() - 1; i > 0; i--) sb.append(s.charAt(i));\n        return sb.toString();\n    }\n}\n"
+    },
+    {
+      "id": "palindrome-two-pointers",
+      "problem": "valid-palindrome",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(n)",
+      "note": "Optimal; the nested while loops are still linear overall.",
+      "code": "class Solution {\n    public boolean isPalindrome(String s) {\n        int left = 0, right = s.length() - 1;\n        while (left < right) {\n            while (left < right && !Character.isLetterOrDigit(s.charAt(left))) left++;\n            while (left < right && !Character.isLetterOrDigit(s.charAt(right))) right--;\n            if (Character.toLowerCase(s.charAt(left)) != Character.toLowerCase(s.charAt(right))) return false;\n            left++;\n            right--;\n        }\n        return true;\n    }\n}\n"
+    },
+    {
+      "id": "palindrome-no-case",
+      "problem": "valid-palindrome",
+      "verdict": "FAILED",
+      "categories": [
+        "correctness"
+      ],
+      "time": "O(n)",
+      "note": "Forgets to ignore case.",
+      "code": "class Solution {\n    public boolean isPalindrome(String s) {\n        int left = 0, right = s.length() - 1;\n        while (left < right) {\n            while (left < right && !Character.isLetterOrDigit(s.charAt(left))) left++;\n            while (left < right && !Character.isLetterOrDigit(s.charAt(right))) right--;\n            if (s.charAt(left) != s.charAt(right)) return false;\n            left++;\n            right--;\n        }\n        return true;\n    }\n}\n"
+    },
+    {
+      "id": "palindrome-filtered-copy",
+      "problem": "valid-palindrome",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(n)",
+      "note": "Correct; O(n) extra space is an acceptable trade-off.",
+      "code": "class Solution {\n    public boolean isPalindrome(String s) {\n        StringBuilder sb = new StringBuilder();\n        for (char c : s.toCharArray()) {\n            if (Character.isLetterOrDigit(c)) sb.append(Character.toLowerCase(c));\n        }\n        String clean = sb.toString();\n        return clean.equals(sb.reverse().toString());\n    }\n}\n"
+    },
+    {
+      "id": "duplicate-set",
+      "problem": "contains-duplicate",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(n)",
+      "note": "Optimal.",
+      "code": "import java.util.HashSet;\nimport java.util.Set;\nclass Solution {\n    public boolean containsDuplicate(int[] nums) {\n        Set<Integer> seen = new HashSet<>();\n        for (int n : nums) {\n            if (!seen.add(n)) return true;\n        }\n        return false;\n    }\n}\n"
+    },
+    {
+      "id": "duplicate-brute",
+      "problem": "contains-duplicate",
+      "verdict": "PASSED",
+      "categories": [
+        "complexity"
+      ],
+      "time": "O(n^2)",
+      "note": "Correct but quadratic (brace-less nested loops).",
+      "code": "class Solution {\n    public boolean containsDuplicate(int[] nums) {\n        for (int i = 0; i < nums.length; i++)\n            for (int j = i + 1; j < nums.length; j++)\n                if (nums[i] == nums[j]) return true;\n        return false;\n    }\n}\n"
+    },
+    {
+      "id": "duplicate-empty-catch",
+      "problem": "contains-duplicate",
+      "verdict": "PASSED",
+      "categories": [
+        "correctness"
+      ],
+      "time": "O(n)",
+      "note": "Works, but the empty catch would silently hide real errors.",
+      "code": "import java.util.HashSet;\nimport java.util.Set;\nclass Solution {\n    public boolean containsDuplicate(int[] nums) {\n        Set<Integer> seen = new HashSet<>();\n        try {\n            for (int n : nums) {\n                if (!seen.add(n)) return true;\n            }\n        } catch (Exception e) { }\n        return false;\n    }\n}\n"
+    },
+    {
+      "id": "parens-deque",
+      "problem": "valid-parentheses",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(n)",
+      "note": "Optimal.",
+      "code": "import java.util.ArrayDeque;\nimport java.util.Deque;\nclass Solution {\n    public boolean isValid(String s) {\n        Deque<Character> stack = new ArrayDeque<>();\n        for (char c : s.toCharArray()) {\n            if (c == '(') stack.push(')');\n            else if (c == '[') stack.push(']');\n            else if (c == '{') stack.push('}');\n            else if (stack.isEmpty() || stack.pop() != c) return false;\n        }\n        return stack.isEmpty();\n    }\n}\n"
+    },
+    {
+      "id": "parens-legacy-stack",
+      "problem": "valid-parentheses",
+      "verdict": "PASSED",
+      "categories": [
+        "style"
+      ],
+      "time": "O(n)",
+      "note": "Correct; uses the legacy synchronized Stack class.",
+      "code": "import java.util.Stack;\nclass Solution {\n    public boolean isValid(String s) {\n        Stack<Character> stack = new Stack<>();\n        for (char c : s.toCharArray()) {\n            if (c == '(') stack.push(')');\n            else if (c == '[') stack.push(']');\n            else if (c == '{') stack.push('}');\n            else if (stack.isEmpty() || stack.pop() != c) return false;\n        }\n        return stack.isEmpty();\n    }\n}\n"
+    },
+    {
+      "id": "parens-leftovers",
+      "problem": "valid-parentheses",
+      "verdict": "FAILED",
+      "categories": [
+        "correctness"
+      ],
+      "time": "O(n)",
+      "note": "Returns true when openings are left over, e.g. '(('.",
+      "code": "import java.util.ArrayDeque;\nimport java.util.Deque;\nclass Solution {\n    public boolean isValid(String s) {\n        Deque<Character> stack = new ArrayDeque<>();\n        for (char c : s.toCharArray()) {\n            if (c == '(') stack.push(')');\n            else if (c == '[') stack.push(']');\n            else if (c == '{') stack.push('}');\n            else if (stack.isEmpty() || stack.pop() != c) return false;\n        }\n        return true;\n    }\n}\n"
+    },
+    {
+      "id": "parens-counting",
+      "problem": "valid-parentheses",
+      "verdict": "FAILED",
+      "categories": [
+        "correctness"
+      ],
+      "time": "O(n)",
+      "note": "Counting ignores bracket types and order: '([)]' passes.",
+      "code": "class Solution {\n    public boolean isValid(String s) {\n        int open = 0;\n        for (char c : s.toCharArray()) {\n            if (c == '(' || c == '[' || c == '{') open++;\n            else open--;\n            if (open < 0) return false;\n        }\n        return open == 0;\n    }\n}\n"
+    },
+    {
+      "id": "bsearch-correct",
+      "problem": "binary-search",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(log n)",
+      "note": "Optimal, overflow-safe midpoint.",
+      "code": "class Solution {\n    public int search(int[] nums, int target) {\n        int low = 0, high = nums.length - 1;\n        while (low <= high) {\n            int mid = low + (high - low) / 2;\n            if (nums[mid] == target) return mid;\n            if (nums[mid] < target) low = mid + 1;\n            else high = mid - 1;\n        }\n        return -1;\n    }\n}\n"
+    },
+    {
+      "id": "bsearch-overflow-mid",
+      "problem": "binary-search",
+      "verdict": "PASSED",
+      "categories": [
+        "correctness"
+      ],
+      "time": "O(log n)",
+      "note": "Passes these tests, but (low + high) / 2 can overflow for huge arrays.",
+      "code": "class Solution {\n    public int search(int[] nums, int target) {\n        int low = 0, high = nums.length - 1;\n        while (low <= high) {\n            int mid = (low + high) / 2;\n            if (nums[mid] == target) return mid;\n            if (nums[mid] < target) low = mid + 1;\n            else high = mid - 1;\n        }\n        return -1;\n    }\n}\n"
+    },
+    {
+      "id": "bsearch-linear",
+      "problem": "binary-search",
+      "verdict": "PASSED",
+      "categories": [
+        "complexity"
+      ],
+      "time": "O(n)",
+      "note": "Linear scan where O(log n) is required. A single loop is hard for static checks to judge.",
+      "code": "class Solution {\n    public int search(int[] nums, int target) {\n        for (int i = 0; i < nums.length; i++) {\n            if (nums[i] == target) return i;\n        }\n        return -1;\n    }\n}\n"
+    },
+    {
+      "id": "bsearch-off-by-one",
+      "problem": "binary-search",
+      "verdict": "FAILED",
+      "categories": [
+        "correctness"
+      ],
+      "time": "O(log n)",
+      "note": "low < high misses the last remaining element.",
+      "code": "class Solution {\n    public int search(int[] nums, int target) {\n        int low = 0, high = nums.length - 1;\n        while (low < high) {\n            int mid = low + (high - low) / 2;\n            if (nums[mid] == target) return mid;\n            if (nums[mid] < target) low = mid + 1;\n            else high = mid - 1;\n        }\n        return -1;\n    }\n}\n"
+    },
+    {
+      "id": "merge-two-pointers",
+      "problem": "merge-sorted-arrays",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(n)",
+      "note": "Optimal merge.",
+      "code": "class Solution {\n    public int[] merge(int[] a, int[] b) {\n        int[] result = new int[a.length + b.length];\n        int i = 0, j = 0, k = 0;\n        while (i < a.length && j < b.length) result[k++] = a[i] <= b[j] ? a[i++] : b[j++];\n        while (i < a.length) result[k++] = a[i++];\n        while (j < b.length) result[k++] = b[j++];\n        return result;\n    }\n}\n"
+    },
+    {
+      "id": "merge-forgets-tail",
+      "problem": "merge-sorted-arrays",
+      "verdict": "FAILED",
+      "categories": [
+        "correctness"
+      ],
+      "time": "O(n)",
+      "note": "Forgets to copy the leftover tail.",
+      "code": "class Solution {\n    public int[] merge(int[] a, int[] b) {\n        int[] result = new int[a.length + b.length];\n        int i = 0, j = 0, k = 0;\n        while (i < a.length && j < b.length) result[k++] = a[i] <= b[j] ? a[i++] : b[j++];\n        return result;\n    }\n}\n"
+    },
+    {
+      "id": "merge-concat-sort",
+      "problem": "merge-sorted-arrays",
+      "verdict": "PASSED",
+      "categories": [
+        "complexity"
+      ],
+      "time": "O(n log n)",
+      "note": "Concatenate + sort ignores that the inputs are already sorted.",
+      "code": "import java.util.Arrays;\nclass Solution {\n    public int[] merge(int[] a, int[] b) {\n        int[] result = new int[a.length + b.length];\n        System.arraycopy(a, 0, result, 0, a.length);\n        System.arraycopy(b, 0, result, a.length, b.length);\n        Arrays.sort(result);\n        return result;\n    }\n}\n"
+    },
+    {
+      "id": "stairs-iterative",
+      "problem": "climbing-stairs",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(n)",
+      "note": "Optimal O(1) space.",
+      "code": "class Solution {\n    public int climbStairs(int n) {\n        if (n <= 2) return n;\n        int prev2 = 1, prev1 = 2;\n        for (int i = 3; i <= n; i++) {\n            int current = prev1 + prev2;\n            prev2 = prev1;\n            prev1 = current;\n        }\n        return prev1;\n    }\n}\n"
+    },
+    {
+      "id": "stairs-naive-recursion",
+      "problem": "climbing-stairs",
+      "verdict": "PASSED",
+      "categories": [
+        "complexity"
+      ],
+      "time": "O(2^n)",
+      "note": "Exponential; times out for n = 45 in a real judge.",
+      "code": "class Solution {\n    public int climbStairs(int n) {\n        if (n <= 2) return n;\n        return climbStairs(n - 1) + climbStairs(n - 2);\n    }\n}\n"
+    },
+    {
+      "id": "unique-counts",
+      "problem": "first-unique-character",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(n)",
+      "note": "Optimal; two linear passes.",
+      "code": "class Solution {\n    public int firstUniqChar(String s) {\n        int[] counts = new int[26];\n        for (int i = 0; i < s.length(); i++) counts[s.charAt(i) - 'a']++;\n        for (int i = 0; i < s.length(); i++) if (counts[s.charAt(i) - 'a'] == 1) return i;\n        return -1;\n    }\n}\n"
+    },
+    {
+      "id": "unique-quadratic",
+      "problem": "first-unique-character",
+      "verdict": "PASSED",
+      "categories": [
+        "complexity"
+      ],
+      "time": "O(n^2)",
+      "note": "Correct but quadratic.",
+      "code": "class Solution {\n    public int firstUniqChar(String s) {\n        for (int i = 0; i < s.length(); i++) {\n            boolean unique = true;\n            for (int j = 0; j < s.length(); j++) {\n                if (i != j && s.charAt(i) == s.charAt(j)) { unique = false; break; }\n            }\n            if (unique) return i;\n        }\n        return -1;\n    }\n}\n"
+    },
+    {
+      "id": "kadane",
+      "problem": "maximum-subarray",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(n)",
+      "note": "Kadane. The constraints guarantee a non-empty array, so nums[0] is safe.",
+      "code": "class Solution {\n    public int maxSubArray(int[] nums) {\n        int best = nums[0], current = nums[0];\n        for (int i = 1; i < nums.length; i++) {\n            current = Math.max(nums[i], current + nums[i]);\n            best = Math.max(best, current);\n        }\n        return best;\n    }\n}\n"
+    },
+    {
+      "id": "kadane-zero-init",
+      "problem": "maximum-subarray",
+      "verdict": "FAILED",
+      "categories": [
+        "correctness"
+      ],
+      "time": "O(n)",
+      "note": "Starting from 0 returns 0 for all-negative input.",
+      "code": "class Solution {\n    public int maxSubArray(int[] nums) {\n        int best = 0, current = 0;\n        for (int n : nums) {\n            current = Math.max(0, current + n);\n            best = Math.max(best, current);\n        }\n        return best;\n    }\n}\n"
+    },
+    {
+      "id": "window-map",
+      "problem": "longest-unique-substring",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(n)",
+      "note": "Optimal sliding window.",
+      "code": "import java.util.HashMap;\nimport java.util.Map;\nclass Solution {\n    public int lengthOfLongestSubstring(String s) {\n        Map<Character, Integer> lastSeen = new HashMap<>();\n        int left = 0, best = 0;\n        for (int right = 0; right < s.length(); right++) {\n            Integer prev = lastSeen.get(s.charAt(right));\n            if (prev != null && prev >= left) left = prev + 1;\n            lastSeen.put(s.charAt(right), right);\n            best = Math.max(best, right - left + 1);\n        }\n        return best;\n    }\n}\n"
+    },
+    {
+      "id": "window-no-guard",
+      "problem": "longest-unique-substring",
+      "verdict": "FAILED",
+      "categories": [
+        "correctness"
+      ],
+      "time": "O(n)",
+      "note": "Missing prev >= left: left jumps backwards on 'abba'.",
+      "code": "import java.util.HashMap;\nimport java.util.Map;\nclass Solution {\n    public int lengthOfLongestSubstring(String s) {\n        Map<Character, Integer> lastSeen = new HashMap<>();\n        int left = 0, best = 0;\n        for (int right = 0; right < s.length(); right++) {\n            Integer prev = lastSeen.get(s.charAt(right));\n            if (prev != null) left = prev + 1;\n            lastSeen.put(s.charAt(right), right);\n            best = Math.max(best, right - left + 1);\n        }\n        return best;\n    }\n}\n"
+    }
+  ]
+}

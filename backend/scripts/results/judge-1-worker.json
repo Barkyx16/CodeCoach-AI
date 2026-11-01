@@ -1,0 +1,23 @@
+{
+  "environment": {
+    "measured_at": "2026-11-01T16:52:25+00:00",
+    "cpus": 4,
+    "platform": "Linux-6.18.44-fc-v185-x86_64-with-glibc2.39",
+    "python": "3.13.18",
+    "note": "1 judge worker; runner MAX_CONCURRENCY=2; gVisor; one 4-vCPU VM"
+  },
+  "judge": {
+    "submissions": 20,
+    "wall_time_s": 77.6,
+    "throughput_per_min": 15.5,
+    "verdicts": {
+      "PASSED": 20
+    },
+    "time_to_verdict_ms": {
+      "p50": 40837,
+      "p95": 73772,
+      "min": 4291,
+      "max": 77558
+    }
+  }
+}

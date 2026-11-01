@@ -158,3 +158,19 @@ def test_forgery_attempt_from_inside_the_sandbox(judge):
     done = judge("two-sum", code)
     assert done["status"] == "FAILED"  # [0, 1] is right for some tests only, and forged lines were ignored
     assert 0 < done["result"]["passed_count"] < done["result"]["total_count"]
+
+
+def _eval_samples() -> list[dict]:
+    evals = Path(__file__).resolve().parents[1] / "evals"
+    return [
+        s
+        for f in ("review_set.json", "holdout_set.json")
+        for s in json.loads((evals / f).read_text())["samples"]
+    ]
+
+
+@pytest.mark.parametrize("sample", _eval_samples(), ids=lambda s: s["id"])
+def test_eval_set_verdict_labels_match_the_real_judge(judge, sample):
+    """The AI-eval ground truth is itself verified: every labelled sample is judged in gVisor."""
+    done = judge(sample["problem"], sample["code"])
+    assert done["status"] == sample["verdict"], (sample["id"], done["status"], done["result"])

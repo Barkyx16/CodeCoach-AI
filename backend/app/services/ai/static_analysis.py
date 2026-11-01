@@ -38,12 +38,18 @@ class Analysis:
     uses_sort: bool = False
     has_recursion: bool = False
     is_unchanged_starter: bool = False
+    halving_loop: bool = False  # a loop that halves its range each step (binary search)
+    exponential_recursion: bool = False  # two+ self-calls per invocation, no memoisation
     line_count: int = 0
 
     @property
     def estimated_time(self) -> str:
+        if self.exponential_recursion:
+            return "O(2^n)"
         if self.has_recursion and self.max_loop_depth == 0:
             return "depends on recursion (check for repeated subproblems)"
+        if self.halving_loop and self.max_loop_depth == 1 and not self.uses_sort:
+            return "O(log n)"
         base = {0: "O(1)", 1: "O(n)", 2: "O(n^2)"}.get(self.max_loop_depth, f"O(n^{self.max_loop_depth})")
         if self.uses_sort and self.max_loop_depth <= 1:
             return "O(n log n)"
@@ -70,45 +76,67 @@ def _line_of(text: str, index: int) -> int:
     return text.count("\n", 0, index) + 1
 
 
+def _condition_terms(header: str) -> set[str]:
+    """Comparisons in a loop header, normalised: 'left < right && x' -> {'left<right'}."""
+    return {re.sub(r"\s+", "", c) for c in re.findall(r"\w+\s*(?:<=|>=|<|>|!=)\s*\w+", header)}
+
+
 def _max_loop_depth(code: str) -> int:
-    """Track loop nesting with a brace stack. Handles brace-less single-statement loop bodies
-    approximately: a loop header immediately followed by another loop counts as nested."""
-    depth_stack: list[bool] = []  # True when the brace opened a loop body
-    pending_loop = False
+    """Loop nesting depth, tracked with a brace stack.
+
+    Two-pointer rule: an inner `while` whose condition repeats a comparison from an enclosing
+    loop (e.g. `while (left < right && …) left++;` inside `while (left < right)`) advances the
+    SAME pointers as the outer loop, so together they're still one linear pass. It doesn't add
+    a nesting level.
+
+    Brace-less loop bodies are handled approximately: a loop header immediately followed by
+    another loop counts as nested.
+    """
+    stack: list[tuple[bool, set[str]]] = []  # (counts as a nesting level, condition terms)
+    pending: tuple[bool, set[str]] | None = None
     current = best = 0
     i = 0
     while i < len(code):
         m = _LOOP.match(code, i) or _DO.match(code, i)
         if m and (i == 0 or not (code[i - 1].isalnum() or code[i - 1] == "_")):
             if m.re is _DO:
-                pending_loop = True
+                pending = (True, set())
                 i = m.end() - 1  # let the '{' be processed below
                 continue
-            # skip the balanced loop header (...)
             j, parens = m.end(), 1
             while j < len(code) and parens:
                 parens += {"(": 1, ")": -1}.get(code[j], 0)
                 j += 1
+            header = code[m.end() : j - 1]
+            terms = _condition_terms(header)
+            enclosing = set().union(*(t for _, t in stack)) if stack else set()
+            same_pass = m.group(1) == "while" and bool(terms & enclosing)
+            counts = not same_pass
             rest = code[j:].lstrip()
             if rest.startswith("{"):
-                pending_loop = True
-            else:
+                pending = (counts, terms)
+            elif counts:
                 # brace-less body: counts as one level for the next statement only
                 best = max(best, current + 1)
-                nxt = _LOOP.match(rest)
-                if nxt:
+                if _LOOP.match(rest):
                     best = max(best, current + 2)
             i = j
             continue
         ch = code[i]
         if ch == "{":
-            depth_stack.append(pending_loop)
-            if pending_loop:
-                current += 1
-                best = max(best, current)
-            pending_loop = False
-        elif ch == "}" and depth_stack and depth_stack.pop():
-            current -= 1
+            if pending is not None:
+                counts, terms = pending
+                stack.append((counts, terms))
+                if counts:
+                    current += 1
+                    best = max(best, current)
+            else:
+                stack.append((False, set()))
+            pending = None
+        elif ch == "}" and stack:
+            counts, _ = stack.pop()
+            if counts:
+                current -= 1
         i += 1
     return best
 
@@ -119,6 +147,7 @@ def analyze(
     signature: dict | None = None,
     starter_code: str | None = None,
     expected_time: str | None = None,
+    constraints: list[str] | None = None,
 ) -> Analysis:
     analysis = Analysis(line_count=source.count("\n") + 1)
     code = strip_comments_and_literals(source)
@@ -160,8 +189,17 @@ def analyze(
 
     method = (signature or {}).get("method")
     if method:
-        calls = len(re.findall(rf"\b{re.escape(method)}\s*\(", code))
+        # A self-call is unqualified or `this.`-qualified; `sb.reverse(` is a different method.
+        call = re.compile(rf"(?:(?<![\w.])|(?<=\bthis\.)){re.escape(method)}\s*\(")
+        calls = len(call.findall(code))
         analysis.has_recursion = calls > 1  # declaration + at least one call
+        memoised = bool(re.search(r"\b(memo|cache|dp)\w*\b|\bnew\s+(HashMap|int\s*\[|long\s*\[)", code))
+        branching = any(len(call.findall(stmt)) >= 2 for stmt in code.split(";"))
+        analysis.exponential_recursion = analysis.has_recursion and branching and not memoised
+    analysis.halving_loop = (
+        bool(re.search(r"=\s*[^;=]*(/\s*2\b|>>>?\s*1\b)", code)) and analysis.max_loop_depth >= 1
+    )
+    linear_target = _is_linear(expected_time)
 
     if analysis.max_loop_depth >= 2 and expected_time and "^2" not in expected_time:
         m = _LOOP.search(code)
@@ -176,7 +214,37 @@ def analyze(
             )
         )
 
-    if analysis.uses_sort and expected_time in {"O(n)", "O(log n)"}:
+    if analysis.exponential_recursion and expected_time and "2^" not in expected_time:
+        m = re.search(rf"\b{re.escape(method or '')}\s*\(", code[code.find("{") + 1 :]) if method else None
+        analysis.findings.append(
+            Finding(
+                "high",
+                "complexity",
+                f"Each call makes two or more recursive calls without memoisation: about O(2^n) time, "
+                f"but an {expected_time} approach exists.",
+                "Cache results you've already computed (memoisation), or build the answer bottom-up.",
+                None if m is None else _line_of(code, m.start() + code.find("{") + 1),
+            )
+        )
+
+    if (
+        expected_time
+        and _normalize_big_o(expected_time) == "logn"
+        and analysis.max_loop_depth == 1
+        and not analysis.halving_loop
+    ):
+        m = _LOOP.search(code)
+        analysis.findings.append(
+            Finding(
+                "medium",
+                "complexity",
+                "A single pass over the input is O(n), but this problem asks for O(log n).",
+                "The input is sorted: compare with the middle element and discard half of the range each step.",
+                _line_of(code, m.start()) if m else None,
+            )
+        )
+
+    if analysis.uses_sort and linear_target:
         m = re.search(r"\.sort\s*\(", code)
         analysis.findings.append(
             Finding(
@@ -206,6 +274,8 @@ def analyze(
     array_params = [p["name"] for p in params if p["type"].endswith("[]")]
     string_params = [p["name"] for p in params if p["type"] == "String"]
     for name in array_params:
+        if _guaranteed_non_empty(name, constraints):
+            continue  # the problem promises at least one element, so nums[0] is safe
         idx = re.search(rf"\b{re.escape(name)}\s*\[\s*0\s*\]", code)
         guarded = re.search(
             rf"\b{re.escape(name)}\s*\.\s*length\s*(==|<=|<|>|!=)\s*[01]\b", code
@@ -300,3 +370,17 @@ def analyze(
 
 def _normalize(code: str) -> str:
     return re.sub(r"\s+", "", code)
+
+
+def _normalize_big_o(expr: str) -> str:
+    return re.sub(r"\s+", "", expr.lower()).removeprefix("o(").removesuffix(")")
+
+
+def _is_linear(expected_time: str | None) -> bool:
+    """O(n), O(n + m), O(log n): anything a sort (O(n log n)) would be worse than."""
+    return expected_time is not None and _normalize_big_o(expected_time) in {"n", "n+m", "logn", "1"}
+
+
+def _guaranteed_non_empty(name: str, constraints: list[str] | None) -> bool:
+    pattern = re.compile(rf"\b1\s*<=\s*{re.escape(name)}\.length")
+    return any(pattern.search(c) for c in constraints or [])

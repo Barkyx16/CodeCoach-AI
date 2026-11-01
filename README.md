@@ -29,6 +29,7 @@ comes from test cases, never from the AI.
 | AI code review | Structured JSON: complexity, issues with severity, category and line, strengths, next step, confidence |
 | AI providers | `offline` (curated hints + static analysis; free, deterministic) or `anthropic` (Claude via structured outputs) with automatic fallback |
 | AI safeguards | Prompt-injection framing, secret redaction, per-user daily budget, input caps, saved history |
+| AI evaluation | 52 hand-labelled Java samples (labels verified by the real judge) scoring review precision/recall, false alarms, Big-O accuracy and hint spoilers, with a held-out set for honest generalization numbers ([results](docs/AI_EVALUATION.md)) |
 | Code judging | Submissions are judged against public and hidden tests in a **gVisor sandbox** (separate runner service: no network, read-only FS, CPU/memory/PID/time/output limits, non-root, no bind mounts). Postgres-backed job queue with a worker, admission control, bounded retries and crash recovery. 16 threat-model checks run hostile code in the real sandbox in CI |
 | Mock interviews | Timed sessions through clarify → approach → code → complexity → test, a server-side clock, an AI interviewer (offline or Claude) that probes vague or brute-force answers, rubric feedback on 5 dimensions with evidence, and saved transcripts |
 | Analytics | Solved/attempted by topic and difficulty, streaks, 28-day activity, acceptance rate, weakest topics |
@@ -112,6 +113,8 @@ Docker builds: [.github/workflows/ci.yml](.github/workflows/ci.yml).
 | [docs/API.md](docs/API.md) | Every endpoint with real examples, the auth flow, error codes, environment variables |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Components, data flow, AI design, decisions and trade-offs, roadmap |
 | [docs/DATABASE.md](docs/DATABASE.md) | Tables, relationships, indexes, migrations |
+| [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | Measured API latency/throughput and judge throughput, with the exact setup |
+| [docs/AI_EVALUATION.md](docs/AI_EVALUATION.md) | How the AI coach is measured: labelled samples, held-out results, limitations |
 | [docs/SECURITY.md](docs/SECURITY.md) | Implemented controls, AI safeguards, sandbox threat model and design |
 | [docs/FRONTEND_HANDOFF.md](docs/FRONTEND_HANDOFF.md) | Screens, states, components, tokens and test-safe restyling rules for the design pass |
 | [docs/openapi.json](docs/openapi.json) | Machine-readable API contract (kept in sync by a test) |
@@ -135,6 +138,14 @@ docker-compose.yml, .env.example
 3. ✅ Mock interviews: timed sessions, interviewer follow-ups, rubric scoring, history
 4. ✅ Isolated Java runner: gVisor sandbox, judge worker, threat-model tests
 5. Deployment, refresh tokens, Redis-backed limits, AI evaluation suite
+
+## Measured performance
+
+On one 4-vCPU VM (API, PostgreSQL and the load generator together; details in
+[docs/PERFORMANCE.md](docs/PERFORMANCE.md)):
+- **API:** p50 9 ms / p95 18 ms with one client; ~254 req/s at p95 86 ms with 10 concurrent clients.
+- **Judge:** ~4 s from submit to verdict for a single submission in a fresh gVisor sandbox;
+  15.5 submissions/min with one worker, **29.3/min with two** (1.9×) with no double-judging.
 
 ## Known limitations
 

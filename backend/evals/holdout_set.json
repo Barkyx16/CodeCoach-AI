@@ -1,0 +1,148 @@
+{
+  "version": 1,
+  "note": "Held-out set: written AFTER the analyzer rules were tuned on review_set.json and never used to change them. Report it separately to measure generalisation.",
+  "samples": [
+    {
+      "id": "ho-two-sum-sorted-pointers",
+      "problem": "two-sum",
+      "verdict": "PASSED",
+      "categories": [
+        "complexity"
+      ],
+      "time": "O(n log n)",
+      "note": "Sort + two pointers: correct, O(n log n) where O(n) exists.",
+      "code": "import java.util.Arrays;\nclass Solution {\n    public int[] twoSum(int[] nums, int target) {\n        int[][] pairs = new int[nums.length][2];\n        for (int i = 0; i < nums.length; i++) { pairs[i][0] = nums[i]; pairs[i][1] = i; }\n        Arrays.sort(pairs, (a, b) -> Integer.compare(a[0], b[0]));\n        int lo = 0, hi = nums.length - 1;\n        while (lo < hi) {\n            int sum = pairs[lo][0] + pairs[hi][0];\n            if (sum == target) {\n                int i = Math.min(pairs[lo][1], pairs[hi][1]), j = Math.max(pairs[lo][1], pairs[hi][1]);\n                return new int[] {i, j};\n            }\n            if (sum < target) lo++; else hi--;\n        }\n        return new int[0];\n    }\n}\n"
+    },
+    {
+      "id": "ho-max-stream",
+      "problem": "find-largest-number",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(n)",
+      "note": "Idiomatic streams; correct contract.",
+      "code": "import java.util.Arrays;\nclass Solution {\n    public int max(int[] nums) {\n        return Arrays.stream(nums).max().orElseThrow(() -> new IllegalArgumentException(\"empty\"));\n    }\n}\n"
+    },
+    {
+      "id": "ho-max-min-value",
+      "problem": "find-largest-number",
+      "verdict": "FAILED",
+      "categories": [
+        "edge-case"
+      ],
+      "time": "O(n)",
+      "note": "Returns Integer.MIN_VALUE for an empty array instead of throwing.",
+      "code": "class Solution {\n    public int max(int[] nums) {\n        int largest = Integer.MIN_VALUE;\n        for (int n : nums) largest = Math.max(largest, n);\n        return largest;\n    }\n}\n"
+    },
+    {
+      "id": "ho-reverse-recursive",
+      "problem": "reverse-string",
+      "verdict": "PASSED",
+      "categories": [
+        "complexity"
+      ],
+      "time": "O(n^2)",
+      "note": "Recursive with substring copies: O(n^2) time and deep recursion.",
+      "code": "class Solution {\n    public String reverse(String s) {\n        if (s.isEmpty()) return s;\n        return reverse(s.substring(1)) + s.charAt(0);\n    }\n}\n"
+    },
+    {
+      "id": "ho-palindrome-regex",
+      "problem": "valid-palindrome",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(n)",
+      "note": "Regex cleanup then two pointers; fine.",
+      "code": "class Solution {\n    public boolean isPalindrome(String s) {\n        String clean = s.replaceAll(\"[^A-Za-z0-9]\", \"\").toLowerCase();\n        int i = 0, j = clean.length() - 1;\n        while (i < j) {\n            if (clean.charAt(i++) != clean.charAt(j--)) return false;\n        }\n        return true;\n    }\n}\n"
+    },
+    {
+      "id": "ho-duplicate-sort",
+      "problem": "contains-duplicate",
+      "verdict": "PASSED",
+      "categories": [
+        "complexity"
+      ],
+      "time": "O(n log n)",
+      "note": "Sort and compare neighbours: valid trade-off, O(n log n).",
+      "code": "import java.util.Arrays;\nclass Solution {\n    public boolean containsDuplicate(int[] nums) {\n        int[] copy = nums.clone();\n        Arrays.sort(copy);\n        for (int i = 1; i < copy.length; i++) if (copy[i] == copy[i - 1]) return true;\n        return false;\n    }\n}\n"
+    },
+    {
+      "id": "ho-parens-replace",
+      "problem": "valid-parentheses",
+      "verdict": "PASSED",
+      "categories": [
+        "complexity"
+      ],
+      "time": "O(n^2)",
+      "note": "Repeated replace: correct but quadratic.",
+      "code": "class Solution {\n    public boolean isValid(String s) {\n        int before;\n        do {\n            before = s.length();\n            s = s.replace(\"()\", \"\").replace(\"[]\", \"\").replace(\"{}\", \"\");\n        } while (s.length() != before);\n        return s.isEmpty();\n    }\n}\n"
+    },
+    {
+      "id": "ho-bsearch-recursive",
+      "problem": "binary-search",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(log n)",
+      "note": "Recursive binary search via a helper; correct.",
+      "code": "class Solution {\n    public int search(int[] nums, int target) {\n        return find(nums, target, 0, nums.length - 1);\n    }\n    private int find(int[] nums, int target, int low, int high) {\n        if (low > high) return -1;\n        int mid = low + (high - low) / 2;\n        if (nums[mid] == target) return mid;\n        return nums[mid] < target ? find(nums, target, mid + 1, high) : find(nums, target, low, mid - 1);\n    }\n}\n"
+    },
+    {
+      "id": "ho-merge-lists",
+      "problem": "merge-sorted-arrays",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(n)",
+      "note": "Correct linear merge through a list.",
+      "code": "import java.util.ArrayList;\nimport java.util.List;\nclass Solution {\n    public int[] merge(int[] a, int[] b) {\n        List<Integer> out = new ArrayList<>();\n        int i = 0, j = 0;\n        while (i < a.length || j < b.length) {\n            if (j == b.length || (i < a.length && a[i] <= b[j])) out.add(a[i++]);\n            else out.add(b[j++]);\n        }\n        return out.stream().mapToInt(Integer::intValue).toArray();\n    }\n}\n"
+    },
+    {
+      "id": "ho-stairs-memo",
+      "problem": "climbing-stairs",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(n)",
+      "note": "Memoised recursion: linear.",
+      "code": "class Solution {\n    private final int[] memo = new int[46];\n    public int climbStairs(int n) {\n        if (n <= 2) return n;\n        if (memo[n] != 0) return memo[n];\n        return memo[n] = climbStairs(n - 1) + climbStairs(n - 2);\n    }\n}\n"
+    },
+    {
+      "id": "ho-unique-map-order-bug",
+      "problem": "first-unique-character",
+      "verdict": "FAILED",
+      "categories": [
+        "correctness"
+      ],
+      "time": "O(n)",
+      "note": "HashMap iteration order isn't string order, so it may not return the FIRST unique character.",
+      "code": "import java.util.HashMap;\nimport java.util.Map;\nclass Solution {\n    public int firstUniqChar(String s) {\n        Map<Character, Integer> counts = new HashMap<>();\n        for (char c : s.toCharArray()) counts.merge(c, 1, Integer::sum);\n        for (Map.Entry<Character, Integer> e : counts.entrySet()) {\n            if (e.getValue() == 1) return s.indexOf(e.getKey());\n        }\n        return -1;\n    }\n}\n"
+    },
+    {
+      "id": "ho-kadane-prefix",
+      "problem": "maximum-subarray",
+      "verdict": "PASSED",
+      "categories": [
+        "complexity"
+      ],
+      "time": "O(n^2)",
+      "note": "All subarrays: correct but quadratic.",
+      "code": "class Solution {\n    public int maxSubArray(int[] nums) {\n        int best = Integer.MIN_VALUE;\n        for (int i = 0; i < nums.length; i++) {\n            int sum = 0;\n            for (int j = i; j < nums.length; j++) {\n                sum += nums[j];\n                best = Math.max(best, sum);\n            }\n        }\n        return best;\n    }\n}\n"
+    },
+    {
+      "id": "ho-window-set",
+      "problem": "longest-unique-substring",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(n)",
+      "note": "Sliding window with a set; the inner while is amortised O(n) overall.",
+      "code": "import java.util.HashSet;\nimport java.util.Set;\nclass Solution {\n    public int lengthOfLongestSubstring(String s) {\n        Set<Character> window = new HashSet<>();\n        int left = 0, best = 0;\n        for (int right = 0; right < s.length(); right++) {\n            while (window.contains(s.charAt(right))) window.remove(s.charAt(left++));\n            window.add(s.charAt(right));\n            best = Math.max(best, right - left + 1);\n        }\n        return best;\n    }\n}\n"
+    },
+    {
+      "id": "ho-reverse-print",
+      "problem": "reverse-string",
+      "verdict": "PASSED",
+      "categories": [
+        "style"
+      ],
+      "time": "O(n)",
+      "note": "Correct, debug print left in.",
+      "code": "class Solution {\n    public String reverse(String s) {\n        StringBuilder sb = new StringBuilder(s);\n        System.out.println(\"input: \" + s);\n        return sb.reverse().toString();\n    }\n}\n"
+    }
+  ]
+}

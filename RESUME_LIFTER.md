@@ -63,6 +63,13 @@ The "Session log" at the bottom tracks exactly what that is.
   executes each submission in a fresh **gVisor** sandbox (no network, read-only FS, CPU/memory/
   PID/time/output limits), validated by **16 automated threat-model tests** that run hostile
   code (fork bombs, memory bombs, network and filesystem escapes, result forgery) in CI.
+- Load-tested the API and judge and documented the setup: **p95 86 ms at ~254 req/s** (10
+  concurrent clients) on a single 4-vCPU VM, and judge throughput that **scaled 1.9×** from one
+  to two workers (15.5 → 29.3 submissions/min) with zero double-judging.
+- Built an **AI evaluation suite** (52 hand-labelled Java samples whose verdict labels are
+  verified by the real judge) measuring review precision/recall, false alarms, Big-O accuracy and
+  hint spoiler rate; used it to cut false alarms on the tuning set from 14% to 0%, and reported
+  the **held-out** result (80% precision, 50% recall) rather than the optimistic one.
 - Built a **React + TypeScript** frontend (Vite, TanStack Query, Monaco editor) with a
   resizable three-panel workspace, autosaved drafts, a progress dashboard and a mobile layout,
   with API types **generated from the OpenAPI contract** so frontend and backend can't drift.
@@ -126,6 +133,27 @@ double-judging. It generates a Java test driver, sends the code and a random non
 runner, and gets back bounded output. The worker compares the results against expected outputs
 it never sent into the sandbox. Only infrastructure failures are retried, and a job whose
 worker crashed is recovered after a timeout. The frontend polls until the verdict is final.
+
+**"How do you know your AI feedback is any good?"**
+I measure it. There's an eval suite of 52 hand-labelled Java samples (correct, buggy, slow,
+messy), and even the labels are checked: every sample runs through the real judge, so a
+mislabeled sample fails CI. It scores precision and recall of the issues found, false alarms on
+clean code, Big-O accuracy, and whether level-1 hints give away the answer. The first run showed
+14% false alarms on clean code, which I fixed with general rules (and the eval caught a
+regression one of those rules introduced). Then the important part: I'd tuned on that set, so I
+wrote a fresh held-out set and measured it without touching anything. It was clearly worse: 80%
+precision, 50% recall, and only 50% Big-O accuracy, versus 100% and 95% on the tuning set. That
+gap is the honest result. Heuristics overfit, which is the argument for the LLM reviewer, and
+the same harness will measure Claude with one command once there's an API key.
+
+**"How fast is it? How does it scale?"**
+I measured it and wrote down the setup, because numbers without a setup mean nothing. On one
+4-vCPU VM, with the load generator on the same machine, the API does p50 9 ms with a single
+client and about 254 requests/s at p95 86 ms with 10 concurrent clients. At 50 clients the box
+saturates, and I say that rather than quoting a pretty number. A submission takes about 4
+seconds end to end, mostly starting a fresh gVisor sandbox and the JVM. One worker judges 15.5
+submissions a minute. Adding a second gave 29.3, which is 1.9×, and I verified in the database
+that no submission was judged twice, because that's what `SKIP LOCKED` is supposed to guarantee.
 
 **"Couldn't someone fake passing results by printing them?"**
 The driver reads a per-run random nonce from stdin *before* any of their code runs and keeps
@@ -244,6 +272,12 @@ These are moments where the obvious path was wrong and a deliberate decision was
     and its guard redirected to login. The fix is semantic: the auth state records a
     *deliberate* sign-out, so guards send the user home, while an *expired* session still goes
     to login with an explanation.
+18. **A contaminated benchmark.** My first judge benchmark looked slow, and the worker logs
+    showed `COMPILE_ERROR`s I didn't expect: the *API* benchmark had queued placeholder
+    submissions, so the judge was busy compiling Java during both measurements. I discarded both
+    runs, changed the load tester so the API benchmark never creates judge work, and
+    re-measured on an empty queue. I also investigated a single unexplained error instead of
+    rounding it away, and documented that it didn't reproduce.
 
 ## 6. Python concepts used here (for a Java developer)
 
@@ -396,3 +430,21 @@ These are moments where the obvious path was wrong and a deliberate decision was
 - **CI on GitHub: all 7 jobs green for Phase 4, including the sandbox job that installed gVisor
   on GitHub's runners and attacked it with the threat-model suite.**
 - Totals: 172 backend tests (18 in the real sandbox), 28 runner, 57 frontend, 5 Playwright journeys.
+
+### Session 2 (continued): AI evaluation suite + measured performance
+**Built and verified:**
+- `backend/evals/`: 38 tuning + 14 held-out hand-labelled samples; harness scoring review
+  precision/recall/F1, false alarms on clean code, Big-O accuracy, schema validity, hint spoilers,
+  relevance and code leaks; provider-agnostic (offline now, Claude with one flag).
+- All 52 verdict labels verified by the real gVisor judge (52/52 match).
+- Eval-driven analyzer fixes (two-pointer loops, constraint-aware guards, halving loops, linear
+  targets, exponential recursion); the eval caught a regression, which got its own test.
+- Results: tuning set P 80→100%, R 48→60%, false alarms 14→0%, Big-O 79→95%. **Held-out: P 80%,
+  R 50%, false alarms 17% (1 of 6), Big-O 50%**, reported as the honest number.
+- `docs/AI_EVALUATION.md`, `docs/PERFORMANCE.md`; `scripts/loadtest.py` with raw results.
+- Measured: API p95 18 ms (1 client) / 86 ms at ~254 req/s (10 clients); judge ~4 s per
+  submission, 15.5/min (1 worker) → 29.3/min (2 workers), no double-judging.
+
+**Not yet verified / not built:**
+- Claude's review quality (run `python -m evals.run --provider anthropic` once a key exists).
+- Performance on production hardware (these are single-VM numbers).

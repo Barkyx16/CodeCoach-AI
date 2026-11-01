@@ -1,0 +1,215 @@
+{
+  "provider": "offline",
+  "model": "curated-hints+static-analysis",
+  "evaluated_at": "2026-11-01T16:37:42+00:00",
+  "review": {
+    "samples": 38,
+    "schema_validity": 1.0,
+    "issue_detection_micro": {
+      "precision": 0.8,
+      "recall": 0.48,
+      "f1": 0.6,
+      "tp": 12,
+      "fp": 3,
+      "fn": 13
+    },
+    "issue_detection_by_category": {
+      "correctness": {
+        "precision": 1.0,
+        "recall": 0.167,
+        "f1": 0.286,
+        "tp": 2,
+        "fp": 0,
+        "fn": 10
+      },
+      "edge-case": {
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1": 0.667,
+        "tp": 1,
+        "fp": 1,
+        "fn": 0
+      },
+      "complexity": {
+        "precision": 0.75,
+        "recall": 0.667,
+        "f1": 0.706,
+        "tp": 6,
+        "fp": 2,
+        "fn": 3
+      },
+      "readability": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 1,
+        "fp": 0,
+        "fn": 0
+      },
+      "style": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 2,
+        "fp": 0,
+        "fn": 0
+      }
+    },
+    "clean_samples": 14,
+    "false_alarm_rate_on_clean_code": 0.143,
+    "complexity_accuracy": 0.789,
+    "disagreements": [
+      {
+        "id": "two-sum-same-index",
+        "expected": [
+          "complexity",
+          "correctness"
+        ],
+        "predicted": [
+          "complexity"
+        ],
+        "time_expected": "O(n^2)",
+        "time_predicted": "O(n^2)"
+      },
+      {
+        "id": "max-starts-at-zero",
+        "expected": [
+          "correctness"
+        ],
+        "predicted": [],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n)"
+      },
+      {
+        "id": "reverse-off-by-one",
+        "expected": [
+          "correctness"
+        ],
+        "predicted": [],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n)"
+      },
+      {
+        "id": "palindrome-two-pointers",
+        "expected": [],
+        "predicted": [
+          "complexity"
+        ],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n^2)"
+      },
+      {
+        "id": "palindrome-no-case",
+        "expected": [
+          "correctness"
+        ],
+        "predicted": [
+          "complexity"
+        ],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n^2)"
+      },
+      {
+        "id": "parens-leftovers",
+        "expected": [
+          "correctness"
+        ],
+        "predicted": [],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n)"
+      },
+      {
+        "id": "parens-counting",
+        "expected": [
+          "correctness"
+        ],
+        "predicted": [],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n)"
+      },
+      {
+        "id": "bsearch-linear",
+        "expected": [
+          "complexity"
+        ],
+        "predicted": [],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n)"
+      },
+      {
+        "id": "bsearch-off-by-one",
+        "expected": [
+          "correctness"
+        ],
+        "predicted": [],
+        "time_expected": "O(log n)",
+        "time_predicted": "O(n)"
+      },
+      {
+        "id": "merge-forgets-tail",
+        "expected": [
+          "correctness"
+        ],
+        "predicted": [],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n)"
+      },
+      {
+        "id": "merge-concat-sort",
+        "expected": [
+          "complexity"
+        ],
+        "predicted": [],
+        "time_expected": "O(n log n)",
+        "time_predicted": "O(n log n)"
+      },
+      {
+        "id": "stairs-naive-recursion",
+        "expected": [
+          "complexity"
+        ],
+        "predicted": [],
+        "time_expected": "O(2^n)",
+        "time_predicted": "depends on recursion (check for repeated subproblems)"
+      },
+      {
+        "id": "kadane",
+        "expected": [],
+        "predicted": [
+          "edge-case"
+        ],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n)"
+      },
+      {
+        "id": "kadane-zero-init",
+        "expected": [
+          "correctness"
+        ],
+        "predicted": [],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n)"
+      },
+      {
+        "id": "window-no-guard",
+        "expected": [
+          "correctness"
+        ],
+        "predicted": [],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n)"
+      }
+    ]
+  },
+  "hints": {
+    "problems": 12,
+    "level1_spoiler_rate": 0.083,
+    "level1_spoilers": [
+      "binary-search"
+    ],
+    "level2_relevance": 1.0,
+    "code_leak_rate_levels_1_2": 0.0,
+    "code_leaks": []
+  },
+  "duration_s": 0.01
+}

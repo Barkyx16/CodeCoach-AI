@@ -1,0 +1,15 @@
+{
+  "_doc": "Per-problem term lists for scoring hints. level1_spoilers: words that give away the key idea and must NOT appear in a level-1 nudge. level2_concepts: at least one should appear in a level-2 concept hint (relevance).",
+  "two-sum": {"level1_spoilers": ["hashmap", "hash map", "dictionary"], "level2_concepts": ["hashmap", "hash map", "map", "lookup"]},
+  "find-largest-number": {"level1_spoilers": ["nums[0]"], "level2_concepts": ["first element", "nums[0]", "scan", "empty"]},
+  "reverse-string": {"level1_spoilers": ["swap"], "level2_concepts": ["two indexes", "two pointers", "swap", "pointer"]},
+  "valid-palindrome": {"level1_spoilers": ["isletterordigit"], "level2_concepts": ["pointer", "skip", "isletterordigit", "tolowercase"]},
+  "contains-duplicate": {"level1_spoilers": ["hashset", "hash set"], "level2_concepts": ["hashset", "hash set", "set"]},
+  "valid-parentheses": {"level1_spoilers": ["stack", "push", "pop"], "level2_concepts": ["stack", "last in", "push", "pop"]},
+  "binary-search": {"level1_spoilers": ["low", "high", "mid"], "level2_concepts": ["window", "half", "middle", "low", "high"]},
+  "merge-sorted-arrays": {"level1_spoilers": ["two indexes", "pointer"], "level2_concepts": ["index", "pointer", "smaller", "front"]},
+  "climbing-stairs": {"level1_spoilers": ["fibonacci", "ways(n - 1)"], "level2_concepts": ["ways(n)", "fibonacci", "bottom-up", "recursion", "memo"]},
+  "first-unique-character": {"level1_spoilers": ["int[26]", "count every"], "level2_concepts": ["count", "two passes", "int[26]"]},
+  "maximum-subarray": {"level1_spoilers": ["kadane"], "level2_concepts": ["kadane", "running sum", "start fresh", "negative"]},
+  "longest-unique-substring": {"level1_spoilers": ["sliding window", "lastseen"], "level2_concepts": ["window", "last index", "left"]}
+}

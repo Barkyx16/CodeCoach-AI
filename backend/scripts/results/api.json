@@ -1,0 +1,269 @@
+{
+  "environment": {
+    "measured_at": "2026-11-01T16:51:14+00:00",
+    "cpus": 4,
+    "platform": "Linux-6.18.44-fc-v185-x86_64-with-glibc2.39",
+    "python": "3.13.18",
+    "note": "uvicorn --workers 4 + PostgreSQL 16 on one 4-vCPU VM; load generator on the same VM; judge queue empty"
+  },
+  "levels": [
+    {
+      "concurrency": 1,
+      "duration_s": 20.0,
+      "overall": {
+        "requests": 2012,
+        "errors": 0,
+        "error_rate": 0.0,
+        "throughput_rps": 100.5,
+        "p50_ms": 9.3,
+        "p95_ms": 17.7,
+        "p99_ms": 21.1,
+        "mean_ms": 9.9
+      },
+      "endpoints": {
+        "GET /problems": {
+          "requests": 607,
+          "errors": 0,
+          "error_rate": 0.0,
+          "throughput_rps": 30.3,
+          "p50_ms": 5.4,
+          "p95_ms": 6.8,
+          "p99_ms": 8.4,
+          "mean_ms": 5.5
+        },
+        "GET /problems/{slug}": {
+          "requests": 482,
+          "errors": 0,
+          "error_rate": 0.0,
+          "throughput_rps": 24.1,
+          "p50_ms": 9.5,
+          "p95_ms": 12.1,
+          "p99_ms": 13.8,
+          "mean_ms": 9.8
+        },
+        "GET /me/progress": {
+          "requests": 322,
+          "errors": 0,
+          "error_rate": 0.0,
+          "throughput_rps": 16.1,
+          "p50_ms": 15.9,
+          "p95_ms": 21.4,
+          "p99_ms": 25.1,
+          "mean_ms": 16.7
+        },
+        "GET /me/recommendations": {
+          "requests": 188,
+          "errors": 0,
+          "error_rate": 0.0,
+          "throughput_rps": 9.4,
+          "p50_ms": 13.2,
+          "p95_ms": 17.9,
+          "p99_ms": 20.4,
+          "mean_ms": 13.4
+        },
+        "POST /ai/review (offline)": {
+          "requests": 212,
+          "errors": 0,
+          "error_rate": 0.0,
+          "throughput_rps": 10.6,
+          "p50_ms": 12.8,
+          "p95_ms": 15.9,
+          "p99_ms": 19.4,
+          "mean_ms": 13.0
+        },
+        "GET /me/submissions": {
+          "requests": 99,
+          "errors": 0,
+          "error_rate": 0.0,
+          "throughput_rps": 4.9,
+          "p50_ms": 8.7,
+          "p95_ms": 11.1,
+          "p99_ms": 13.6,
+          "mean_ms": 8.9
+        },
+        "GET /health/ready": {
+          "requests": 102,
+          "errors": 0,
+          "error_rate": 0.0,
+          "throughput_rps": 5.1,
+          "p50_ms": 3.7,
+          "p95_ms": 5.3,
+          "p99_ms": 6.5,
+          "mean_ms": 3.8
+        }
+      }
+    },
+    {
+      "concurrency": 10,
+      "duration_s": 20.1,
+      "overall": {
+        "requests": 5091,
+        "errors": 0,
+        "error_rate": 0.0,
+        "throughput_rps": 253.8,
+        "p50_ms": 31.9,
+        "p95_ms": 86.4,
+        "p99_ms": 104.4,
+        "mean_ms": 39.3
+      },
+      "endpoints": {
+        "GET /problems": {
+          "requests": 1588,
+          "errors": 0,
+          "error_rate": 0.0,
+          "throughput_rps": 79.2,
+          "p50_ms": 21.1,
+          "p95_ms": 48.4,
+          "p99_ms": 58.0,
+          "mean_ms": 24.9
+        },
+        "GET /problems/{slug}": {
+          "requests": 1252,
+          "errors": 0,
+          "error_rate": 0.0,
+          "throughput_rps": 62.4,
+          "p50_ms": 33.0,
+          "p95_ms": 76.2,
+          "p99_ms": 91.1,
+          "mean_ms": 41.1
+        },
+        "GET /me/progress": {
+          "requests": 716,
+          "errors": 0,
+          "error_rate": 0.0,
+          "throughput_rps": 35.7,
+          "p50_ms": 42.3,
+          "p95_ms": 101.6,
+          "p99_ms": 119.1,
+          "mean_ms": 56.3
+        },
+        "GET /me/recommendations": {
+          "requests": 503,
+          "errors": 0,
+          "error_rate": 0.0,
+          "throughput_rps": 25.1,
+          "p50_ms": 41.7,
+          "p95_ms": 88.3,
+          "p99_ms": 104.6,
+          "mean_ms": 49.3
+        },
+        "POST /ai/review (offline)": {
+          "requests": 524,
+          "errors": 0,
+          "error_rate": 0.0,
+          "throughput_rps": 26.1,
+          "p50_ms": 46.6,
+          "p95_ms": 97.1,
+          "p99_ms": 107.1,
+          "mean_ms": 55.3
+        },
+        "GET /me/submissions": {
+          "requests": 259,
+          "errors": 0,
+          "error_rate": 0.0,
+          "throughput_rps": 12.9,
+          "p50_ms": 31.4,
+          "p95_ms": 74.4,
+          "p99_ms": 81.3,
+          "mean_ms": 39.1
+        },
+        "GET /health/ready": {
+          "requests": 249,
+          "errors": 0,
+          "error_rate": 0.0,
+          "throughput_rps": 12.4,
+          "p50_ms": 16.2,
+          "p95_ms": 40.3,
+          "p99_ms": 79.6,
+          "mean_ms": 20.4
+        }
+      }
+    },
+    {
+      "concurrency": 50,
+      "duration_s": 20.1,
+      "overall": {
+        "requests": 4104,
+        "errors": 1,
+        "error_rate": 0.0002,
+        "throughput_rps": 203.8,
+        "p50_ms": 167.4,
+        "p95_ms": 706.8,
+        "p99_ms": 1062.4,
+        "mean_ms": 244.0
+      },
+      "endpoints": {
+        "GET /problems": {
+          "requests": 1272,
+          "errors": 0,
+          "error_rate": 0.0,
+          "throughput_rps": 63.2,
+          "p50_ms": 152.9,
+          "p95_ms": 705.3,
+          "p99_ms": 1118.1,
+          "mean_ms": 235.0
+        },
+        "GET /problems/{slug}": {
+          "requests": 1017,
+          "errors": 0,
+          "error_rate": 0.0,
+          "throughput_rps": 50.5,
+          "p50_ms": 176.8,
+          "p95_ms": 743.0,
+          "p99_ms": 1079.0,
+          "mean_ms": 254.3
+        },
+        "GET /me/progress": {
+          "requests": 591,
+          "errors": 0,
+          "error_rate": 0.0,
+          "throughput_rps": 29.4,
+          "p50_ms": 162.6,
+          "p95_ms": 680.0,
+          "p99_ms": 924.3,
+          "mean_ms": 233.4
+        },
+        "GET /me/recommendations": {
+          "requests": 363,
+          "errors": 0,
+          "error_rate": 0.0,
+          "throughput_rps": 18.0,
+          "p50_ms": 178.7,
+          "p95_ms": 755.9,
+          "p99_ms": 1089.2,
+          "mean_ms": 253.8
+        },
+        "POST /ai/review (offline)": {
+          "requests": 401,
+          "errors": 1,
+          "error_rate": 0.0025,
+          "throughput_rps": 19.9,
+          "p50_ms": 173.6,
+          "p95_ms": 694.4,
+          "p99_ms": 1022.7,
+          "mean_ms": 253.2
+        },
+        "GET /me/submissions": {
+          "requests": 243,
+          "errors": 0,
+          "error_rate": 0.0,
+          "throughput_rps": 12.1,
+          "p50_ms": 174.4,
+          "p95_ms": 625.5,
+          "p99_ms": 1025.4,
+          "mean_ms": 239.4
+        },
+        "GET /health/ready": {
+          "requests": 217,
+          "errors": 0,
+          "error_rate": 0.0,
+          "throughput_rps": 10.8,
+          "p50_ms": 162.2,
+          "p95_ms": 737.8,
+          "p99_ms": 1017.6,
+          "mean_ms": 248.2
+        }
+      }
+    }
+  ]
+}

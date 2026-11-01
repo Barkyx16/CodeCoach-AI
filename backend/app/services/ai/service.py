@@ -155,6 +155,7 @@ class CoachService:
                 signature=problem.signature,
                 starter_code=problem.starter_code,
                 expected_time=(problem.expected_complexity or {}).get("time"),
+                constraints=list(problem.constraints),
             ),
         )
         result = self.call_with_fallback(lambda p: p.hint(ctx))
@@ -196,6 +197,7 @@ class CoachService:
                 signature=problem.signature,
                 starter_code=problem.starter_code,
                 expected_time=expected.get("time"),
+                constraints=list(problem.constraints),
             ),
         )
         result = self.call_with_fallback(lambda p: p.review(ctx))

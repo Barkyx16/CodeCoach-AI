@@ -272,6 +272,7 @@ class InterviewService:
                 signature=problem.signature,
                 starter_code=problem.starter_code,
                 expected_time=(problem.expected_complexity or {}).get("time"),
+                constraints=list(problem.constraints),
             ),
             candidate_turns_in_phase=turns_in_phase,
             seconds_remaining=self._seconds_remaining(session),

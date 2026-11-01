@@ -1,0 +1,270 @@
+{
+  "provider": "offline",
+  "model": "curated-hints+static-analysis",
+  "evaluated_at": "2026-11-01T16:56:44+00:00",
+  "review": {
+    "samples": 38,
+    "schema_validity": 1.0,
+    "issue_detection_micro": {
+      "precision": 1.0,
+      "recall": 0.6,
+      "f1": 0.75,
+      "tp": 15,
+      "fp": 0,
+      "fn": 10
+    },
+    "issue_detection_by_category": {
+      "correctness": {
+        "precision": 1.0,
+        "recall": 0.167,
+        "f1": 0.286,
+        "tp": 2,
+        "fp": 0,
+        "fn": 10
+      },
+      "edge-case": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 1,
+        "fp": 0,
+        "fn": 0
+      },
+      "complexity": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 9,
+        "fp": 0,
+        "fn": 0
+      },
+      "readability": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 1,
+        "fp": 0,
+        "fn": 0
+      },
+      "style": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 2,
+        "fp": 0,
+        "fn": 0
+      }
+    },
+    "clean_samples": 14,
+    "false_alarm_rate_on_clean_code": 0.0,
+    "complexity_accuracy": 0.947,
+    "disagreements": [
+      {
+        "id": "two-sum-same-index",
+        "expected": [
+          "complexity",
+          "correctness"
+        ],
+        "predicted": [
+          "complexity"
+        ],
+        "time_expected": "O(n^2)",
+        "time_predicted": "O(n^2)"
+      },
+      {
+        "id": "max-starts-at-zero",
+        "expected": [
+          "correctness"
+        ],
+        "predicted": [],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n)"
+      },
+      {
+        "id": "reverse-off-by-one",
+        "expected": [
+          "correctness"
+        ],
+        "predicted": [],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n)"
+      },
+      {
+        "id": "palindrome-no-case",
+        "expected": [
+          "correctness"
+        ],
+        "predicted": [],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n)"
+      },
+      {
+        "id": "parens-leftovers",
+        "expected": [
+          "correctness"
+        ],
+        "predicted": [],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n)"
+      },
+      {
+        "id": "parens-counting",
+        "expected": [
+          "correctness"
+        ],
+        "predicted": [],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n)"
+      },
+      {
+        "id": "bsearch-off-by-one",
+        "expected": [
+          "correctness"
+        ],
+        "predicted": [],
+        "time_expected": "O(log n)",
+        "time_predicted": "O(log n)"
+      },
+      {
+        "id": "merge-forgets-tail",
+        "expected": [
+          "correctness"
+        ],
+        "predicted": [],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n)"
+      },
+      {
+        "id": "kadane-zero-init",
+        "expected": [
+          "correctness"
+        ],
+        "predicted": [],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n)"
+      },
+      {
+        "id": "window-no-guard",
+        "expected": [
+          "correctness"
+        ],
+        "predicted": [],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n)"
+      }
+    ]
+  },
+  "review_holdout": {
+    "samples": 14,
+    "schema_validity": 1.0,
+    "issue_detection_micro": {
+      "precision": 0.8,
+      "recall": 0.5,
+      "f1": 0.615,
+      "tp": 4,
+      "fp": 1,
+      "fn": 4
+    },
+    "issue_detection_by_category": {
+      "correctness": {
+        "precision": null,
+        "recall": 0.0,
+        "f1": null,
+        "tp": 0,
+        "fp": 0,
+        "fn": 1
+      },
+      "edge-case": {
+        "precision": null,
+        "recall": 0.0,
+        "f1": null,
+        "tp": 0,
+        "fp": 0,
+        "fn": 1
+      },
+      "complexity": {
+        "precision": 0.75,
+        "recall": 0.6,
+        "f1": 0.667,
+        "tp": 3,
+        "fp": 1,
+        "fn": 2
+      },
+      "readability": {
+        "precision": null,
+        "recall": null,
+        "f1": null,
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "style": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 1,
+        "fp": 0,
+        "fn": 0
+      }
+    },
+    "clean_samples": 6,
+    "false_alarm_rate_on_clean_code": 0.167,
+    "complexity_accuracy": 0.5,
+    "disagreements": [
+      {
+        "id": "ho-max-min-value",
+        "expected": [
+          "edge-case"
+        ],
+        "predicted": [],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n)"
+      },
+      {
+        "id": "ho-reverse-recursive",
+        "expected": [
+          "complexity"
+        ],
+        "predicted": [],
+        "time_expected": "O(n^2)",
+        "time_predicted": "depends on recursion (check for repeated subproblems)"
+      },
+      {
+        "id": "ho-parens-replace",
+        "expected": [
+          "complexity"
+        ],
+        "predicted": [],
+        "time_expected": "O(n^2)",
+        "time_predicted": "O(n)"
+      },
+      {
+        "id": "ho-unique-map-order-bug",
+        "expected": [
+          "correctness"
+        ],
+        "predicted": [],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n)"
+      },
+      {
+        "id": "ho-window-set",
+        "expected": [],
+        "predicted": [
+          "complexity"
+        ],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n^2)"
+      }
+    ]
+  },
+  "hints": {
+    "problems": 12,
+    "level1_spoiler_rate": 0.0,
+    "level1_spoilers": [],
+    "level2_relevance": 1.0,
+    "code_leak_rate_levels_1_2": 0.0,
+    "code_leaks": []
+  },
+  "duration_s": 0.04
+}
