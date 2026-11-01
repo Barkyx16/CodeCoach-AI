@@ -4,6 +4,21 @@ import { http, HttpResponse } from "msw";
 import { renderApp } from "../render";
 import { API, server } from "../server";
 
+it("supports arrow, Home and End navigation through the product tour", async () => {
+  const { user } = renderApp("/");
+  const code = screen.getByRole("tab", { name: "Write your solution" });
+  await user.click(code);
+  await user.keyboard("{ArrowRight}");
+  expect(screen.getByRole("tab", { name: "Find your next step" })).toHaveFocus();
+  expect(screen.getByRole("tabpanel", { name: "Find your next step" })).toHaveTextContent("The coaching ladder");
+  await user.keyboard("{Home}");
+  expect(screen.getByRole("tab", { name: "Understand the problem" })).toHaveFocus();
+  await user.keyboard("{ArrowLeft}");
+  expect(screen.getByRole("tab", { name: "Find your next step" })).toHaveAttribute("aria-selected", "true");
+  await user.keyboard("{Home}{End}");
+  expect(screen.getByRole("tab", { name: "Find your next step" })).toHaveFocus();
+});
+
 it("dismisses navigation with Escape and returns focus to its toggle", async () => {
   const { user } = renderApp("/", { signedIn: true });
   const toggle = screen.getByRole("button", { name: "Open navigation" });
