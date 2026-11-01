@@ -349,6 +349,13 @@ These are moments where the obvious path was wrong and a deliberate decision was
     told the AI "Judge verdict: PASSED", though hidden tests never ran. Reviews of runs now say
     "PASSED on public tests only (a Run; hidden tests were not executed)", with a test.
 
+24. **A test that passed for the wrong reason.** CI failed on "History shows the attempt": the
+    check found *two* "Two Sum" links. On CI's slower machine, the History page was still loading,
+    so the Dashboard was on screen, and the new design had added a second "Two Sum" link to it.
+    That meant the old check could have passed while looking at the Dashboard all along. The
+    fix waits for the History page and looks inside its table. It's a reminder that a flaky
+    failure can be a weak test showing up, and that's worth fixing rather than retrying.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -570,6 +577,8 @@ gVisor judge journey. The explanation card now scrolls into view in its new scro
   mobile, plus judged results and the explanation card, in CI. Fixed the label-in-name bug it
   found and added an `<h1>` to the 404 page.
 - Sturdier gVisor isolation test (guest kernel ≠ host kernel; verified under runc and runsc).
+- Fixed a CI-only e2e failure: the History check could match the still-visible Dashboard; it
+  now waits for the History page and checks inside its table.
 - The e2e backend starts from an empty database every run (a stale local `e2e.db` broke after
   the schema change).
 - Totals: 297 backend tests (80 in the real gVisor sandbox), 28 runner,

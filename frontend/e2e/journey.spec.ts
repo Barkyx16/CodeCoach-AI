@@ -87,7 +87,12 @@ test("guest journey: try it, code, hints, review, submit, progress", async ({ pa
 
   // History keeps the attempt and the AI feedback.
   await page.getByRole("navigation", { name: "Main", exact: true }).getByRole("link", { name: "History", exact: true }).click();
-  await expect(page.getByRole("link", { name: "Two Sum" })).toBeVisible();
+  // Wait for the History page itself: the dashboard (still on screen while History loads) has
+  // "Two Sum" links of its own, so an unscoped check could pass against the wrong page.
+  await expect(page).toHaveURL(/\/history/);
+  await expect(page.getByRole("heading", { name: "History", level: 1 })).toBeVisible();
+  const attempts = page.getByRole("region", { name: "Submission history" });
+  await expect(attempts.getByRole("link", { name: "Two Sum", exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "AI feedback" }).click();
   await expect(page.getByText("Code review").first()).toBeVisible();
 });
