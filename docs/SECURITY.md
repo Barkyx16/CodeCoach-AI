@@ -49,64 +49,97 @@ revocation, React's default output escaping, rendering no HTML from the API, and
 Content-Security-Policy on the deployed frontend. A future hardening step is moving to an
 `HttpOnly`, `SameSite=Strict` refresh-token cookie with in-memory access tokens.
 
-## 4. Secure Java execution: design (NOT YET BUILT, needs approval)
+## 4. Secure Java execution (implemented: gVisor sandbox)
 
-> **Status:** `EXECUTION_ENABLED=false`. Submitted code is stored but **never executed**
-> anywhere: not on the API server, not in CI. The only Java this project runs is its own
-> trusted reference solutions, in a developer/CI script.
+> **Status:** implemented, approved design (gVisor). Every control below is exercised by an
+> automated test that runs hostile Java inside the **real** sandbox (`runner/tests/test_threat_model.py`,
+> 16 checks) and by real end-to-end judging (`backend/tests/test_judge_sandbox.py`,
+> `frontend/e2e/judge.spec.ts`). CI installs a pinned, checksum-verified gVisor release to run
+> them. `EXECUTION_ENABLED` stays `false` by default, so deployments opt in explicitly.
 
-### 4.1 Threat model
-Treat every submission as hostile. An attacker controls the Java source and can try to:
+### 4.1 Architecture
 
-| Threat | Example | Required control |
+```
+Browser ──POST /submissions──▶ API ──(row: QUEUED)──▶ PostgreSQL
+                                 ▲                       │ FOR UPDATE SKIP LOCKED
+                                 │ poll GET /submissions │
+                                 │                 ┌─────▼─────┐   POST /v1/run (bearer token)   ┌──────────────┐
+                                 └── verdict ──────│  worker   │────────────────────────────────▶│   runner     │
+                                                   │ (judging) │◀── stdout (nonce-tagged lines) ──│ (no DB creds)│
+                                                   └───────────┘                                  └──────┬───────┘
+                                                   compares outputs here:                    docker run --runtime=runsc
+                                                   expected outputs never                     (one fresh container per run)
+                                                   enter the sandbox                                     │
+                                                                                         ┌───────────────▼──────────────┐
+                                                                                         │ gVisor sandbox                 │
+                                                                                         │ javac + java, user "nobody"    │
+                                                                                         └────────────────────────────────┘
+```
+
+- **API process:** never executes code. It validates the submission, applies admission
+  control, and stores it as `QUEUED`.
+- **Worker** (`python -m app.worker`, its own process or container): claims jobs with
+  `FOR UPDATE SKIP LOCKED`, generates the test driver, sends `Solution.java` + `Main.java` and a
+  random nonce to the runner, judges the output, and stores the verdict. It retries only
+  infrastructure failures, at most `JUDGE_MAX_ATTEMPTS` times, and recovers jobs from a crashed
+  worker after `JUDGE_STALE_AFTER_S`.
+- **Runner** (`runner/`, its own service): holds **no database credentials or app secrets**,
+  only its bearer token. It starts one fresh sandbox per run, with bounded concurrency
+  (`MAX_CONCURRENCY`; 503 when full, so the worker retries instead of the runner queueing).
+  Because it controls Docker, it belongs on a **dedicated VM**, never next to the database.
+
+### 4.2 Threat model and controls (all tested in the real sandbox)
+
+| Threat | Control | Test |
 |---|---|---|
-| Resource exhaustion | `while(true){}`, allocation bombs, fork via `ProcessBuilder` | Hard CPU-time and wall-clock limits; memory cgroup; pids limit; bounded queue |
-| Host filesystem access | Read `/etc`, env files, other submissions | No host mounts; ephemeral rootfs; read-only base; separate empty workdir |
-| Network abuse | Exfiltration, scanning, crypto mining pools | No network namespace or interface at all |
-| Sandbox escape | Kernel exploit from inside a container | A real isolation boundary: gVisor (user-space kernel) or a Firecracker microVM, plus seccomp, non-root, dropped capabilities |
-| Output floods | Printing gigabytes | Cap stdout/stderr bytes; truncate; redact |
-| Result forgery | Printing fake `@@CC_RESULT@@` lines | Per-run random nonce in the result prefix, unknown to user code; driver and solution compiled separately; first result per index wins |
-| Judge data theft | Reading hidden tests from disk | Hidden expected outputs never enter the sandbox: the driver prints actual outputs only, and comparison happens outside |
-| Abuse at scale | Thousands of submissions | Auth required, per-user quotas, queue depth limits, monitoring |
+| Kernel / container escape | gVisor (`--runtime=runsc`): syscalls hit a user-space kernel, not the host's. The runner **refuses to start** with plain `runc` unless `ALLOW_INSECURE_RUNTIME=true` is set for local development | `test_runs_inside_gvisor_as_nobody`, `test_runc_is_refused_unless_explicitly_allowed` |
+| Infinite loops | Wall-clock limit; the container is killed with `docker kill` | `test_infinite_loop_hits_wall_clock_limit` |
+| Memory exhaustion | `--memory` = `--memory-swap` (no swap), `-Xmx`, `ExitOnOutOfMemoryError` | `test_memory_bomb_is_stopped` |
+| Fork bombs | `--pids-limit=64` | `test_fork_bomb_is_contained_by_pid_limit` |
+| Network abuse / exfiltration | `--network=none`: no interface, no DNS | `test_no_network_access`, `test_no_dns` |
+| Tampering with the image | `--read-only` root filesystem | `test_root_filesystem_is_read_only` |
+| Dropping and running binaries | `/tmp` tmpfs with `noexec,nosuid,nodev` | `test_tmp_is_noexec` |
+| Disk filling | tmpfs size cap + `--ulimit fsize` | `test_tmp_is_size_capped` |
+| Reading host files | **No bind mounts**: source arrives over stdin as a base64 tar; a host canary file is invisible; no Docker socket inside | `test_host_files_are_not_visible` |
+| Privilege escalation | `--user 65534:65534`, `--cap-drop=ALL`, `--security-opt=no-new-privileges` | command-flag unit test |
+| Secret theft | Sandbox environment has no secrets; the runner holds no DB credentials | `test_no_secrets_in_environment` |
+| Output floods | stdout/stderr capped (64 KB); the run is killed on overflow; `--log-driver=none` | `test_output_flood_is_truncated_and_stopped` |
+| Cross-run leakage | `--rm`, a fresh container per run; stale containers removed at startup | `test_each_run_starts_from_a_clean_sandbox` |
+| Abusive traffic | Auth required; per-user rate limit and pending-job cap; global queue-depth limit (503) | `backend/tests/test_judge.py` |
+| Forged results | Per-run nonce read from stdin **before** learner code runs (not in env/argv); results written through a captured stream; first report per test wins | `test_nonce_is_not_in_env_or_argv`, `test_forgery_attempt_from_inside_the_sandbox`, JVM forgery test |
+| Hidden test leakage | Expected outputs never enter the sandbox; raw run-phase output is never returned to users (learner code could print hidden inputs); per-test detail only for public tests; compiler output is shown with sandbox paths removed | `test_failed_tests_reveal_public_details_only` |
 
-### 4.2 Proposed architecture
-```
-API ──enqueue(job id)──▶ queue (Redis / Postgres SKIP LOCKED)
-                              │
-                     ┌────────▼─────────┐    separate host or VM pool, no DB credentials,
-                     │  runner service  │    no secrets; only "fetch job, post result"
-                     └────────┬─────────┘
-                              │ per job: fresh sandbox
-                 ┌────────────▼─────────────────────────────────────┐
-                 │ gVisor (runsc) container  OR  Firecracker microVM │
-                 │  · JDK only, read-only image, non-root uid       │
-                 │  · --network=none, tmpfs workdir (size-limited)  │
-                 │  · cgroups: 1 CPU, 256–512 MB RAM, pids ≤ 64     │
-                 │  · seccomp profile, no capabilities              │
-                 │  · javac (time-limited) → java -Xmx… (time-limited)│
-                 │  · stdout/stderr capped at e.g. 64 KB            │
-                 └───────────────────────────────────────────────────┘
-                              │ bounded stdout
-                     harness.judge_cases()  (outside the sandbox)
-                              │
-                     POST result → API → ExecutionResult + status
-```
-Already built and tested toward this: the test-driver generator and result comparison
-(`services/judge/harness.py`), the `ExecutionBackend` interface, the status model, the
-`ExecutionResult` table, and public-only result serialization.
+### 4.3 Residual risks (honest)
 
-### 4.3 Options to choose from
+- **Same-JVM tampering:** learner code shares a JVM with the driver, so deep reflection could,
+  in principle, alter the *learner's own* verdict. It can't affect other users or the host.
+  The fix would be a separate process per test, at a large performance cost.
+- **Hidden inputs are readable inside the sandbox** (they're compiled into `Main.class`), but
+  nothing printed is returned to the user, so they can't be extracted through the API.
+- **The runner holds the Docker socket**, which is root-equivalent on its host. That's why the
+  runner must run on its own VM with nothing else on it.
+- **Peak memory isn't measured yet**, so `memory_kb` stays `null` rather than showing an invented number.
+- gVisor reduces kernel attack surface dramatically, but no sandbox is perfect. Keep the gVisor
+  release current (it's pinned in CI and Dependabot watches the sandbox image).
 
-| Option | Isolation | Effort | Notes |
-|---|---|---|---|
-| **A. Managed judge (e.g. Judge0 hosted)** | Vendor's | Low | Fastest path to a working judge; data leaves our system; per-call cost |
-| **B. gVisor (`runsc`) containers on a dedicated VM** | Strong (user-space kernel) | Medium | Recommended. Well-documented, used by Google for untrusted workloads |
-| **C. Firecracker microVMs** | Strongest (hardware virtualization) | High | Best isolation; more infrastructure work |
-| ~~Plain Docker on the API host~~ | Insufficient | — | Rejected: shared kernel, and the blueprint forbids it |
+### 4.4 Configuration
 
-**Recommendation:** Option B for the portfolio build, keeping the runner behind the existing
-`ExecutionBackend` interface so A or C can be swapped in. **Implementation starts only after
-this design is approved.**
+| Variable (runner) | Default | Meaning |
+|---|---|---|
+| `RUNNER_TOKEN` | — | Required shared secret (≥ 32 chars); must match the API/worker |
+| `SANDBOX_RUNTIME` | `runsc` | gVisor. `runc` is refused unless `ALLOW_INSECURE_RUNTIME=true` |
+| `SANDBOX_IMAGE` | `codecoach-java-sandbox:21` | Built from `runner/sandbox-image` |
+| `MAX_CONCURRENCY` | `2` | Parallel sandboxes; excess requests get 503 |
+| `WALL_TIMEOUT_S`, `MEMORY_MB`, `HEAP_MB`, `PIDS_LIMIT`, `CPUS`, `TMPFS_MB`, `OUTPUT_LIMIT_BYTES` | 20 s, 512, 192, 64, 1, 64, 64 KB | Hard ceilings (requests may only ask for less) |
+
+| Variable (API/worker) | Default | Meaning |
+|---|---|---|
+| `EXECUTION_ENABLED` | `false` | Turn judging on (requires `RUNNER_TOKEN`) |
+| `RUNNER_URL` | `http://localhost:8100` | Where the worker reaches the runner |
+| `JUDGE_TIME_LIMIT_S` | `15` | Wall-clock budget per submission |
+| `SUBMISSION_RATE_LIMIT_PER_MINUTE` / `MAX_PENDING_PER_USER` / `MAX_QUEUE_DEPTH` | 6 / 2 / 200 | Admission control |
+| `JUDGE_MAX_ATTEMPTS` / `JUDGE_STALE_AFTER_S` | 2 / 120 | Infrastructure retry and crash recovery |
+| `EMBEDDED_WORKER` | `false` | Run the worker inside the API process (dev/e2e only) |
 
 ## 5. Known gaps (honest list)
 
@@ -116,7 +149,8 @@ this design is approved.**
 - No account deletion endpoint yet (the database cascades are ready).
 - The AI evaluation suite (30+ labeled samples, spoiler and hallucination rates) is not built,
   so no AI accuracy claims are made anywhere.
-- Code execution is disabled (see §4).
+- Code execution is off by default; deployments must opt in (`EXECUTION_ENABLED=true`) and
+  run the runner on a dedicated gVisor host (see §4.3 for the residual risks).
 - `npm audit` reports a moderate `minimatch` advisory inside `openapi-typescript`, a
   dev-only tool that runs on our own spec file at build time and never ships to browsers.
   Production dependencies audit clean, and CI enforces that with `npm audit --omit=dev`.

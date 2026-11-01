@@ -129,6 +129,8 @@ Every non-2xx response has this shape:
 | 409 | `interview_in_progress` | Starting an interview while one is active (`details.interview_id`) | Offer "Resume" |
 | 409 | `interview_closed` | Sending a message to a finished, expired or abandoned interview (`details.status`) | Show the results view |
 | 400 | `turn_limit_reached` | Interview message cap reached (`details.max_candidate_turns`) | Prompt to finish |
+| 429 | `submission_pending` | A previous submission is still being judged (`details.max_pending`) | Wait for the verdict |
+| 503 | `judge_busy` | The judge queue is full | Retry in a minute |
 | 422 | `validation_error` | Body or query failed validation. `details` is a list of `{loc, msg, type}` | Map `loc[-1]` to form fields |
 | 429 | `rate_limited` | Auth attempts or the daily AI budget exceeded (`details.retry_after_seconds` or `details.daily_limit`) | Show a cooldown |
 | 500 | `internal_error` | Unexpected server error (logged with the request id) | Generic error + request id |
@@ -306,10 +308,11 @@ to throw (see `find-largest-number`). Errors: `404 not_found`.
 Submissions are **asynchronous jobs**: `POST` returns `202 Accepted` right away and the client
 polls `GET /submissions/{id}` until `is_terminal` is `true`.
 
-> **Current state:** `execution_enabled` is `false`. Submissions are stored and stay
-> `QUEUED`, and no untrusted Java runs anywhere, until the isolated runner described in
-> [SECURITY.md](SECURITY.md) ships. When `execution_enabled` is `false`, the UI should show
-> `status_detail` and **stop polling**.
+> **Execution on/off:** when the deployment has `EXECUTION_ENABLED=true`, submissions are
+> judged in the isolated gVisor runner ([SECURITY.md §4](SECURITY.md#4-secure-java-execution-implemented-gvisor-sandbox)),
+> typically within a few seconds. When it's off, `execution_enabled` is `false` and submissions
+> stay `QUEUED` forever, so the UI should show `status_detail` and **stop polling**. Poll every
+> ~1.5 s while `is_terminal` is `false` and `execution_enabled` is `true`.
 
 Status lifecycle:
 `QUEUED → RUNNING → PASSED | FAILED | COMPILE_ERROR | RUNTIME_ERROR | TIME_LIMIT | MEMORY_LIMIT | INTERNAL_ERROR`
@@ -319,7 +322,9 @@ Status lifecycle:
 {"problem_slug": "two-sum", "language": "java", "source_code": "class Solution { … }"}
 ```
 `language` is optional and must be `java`. `source_code` must be non-blank and at most
-`MAX_SOURCE_CHARS` characters.
+`MAX_SOURCE_CHARS` characters. When execution is enabled, admission control applies:
+`429 rate_limited` (more than `SUBMISSION_RATE_LIMIT_PER_MINUTE`), `429 submission_pending`
+(a previous submission is still being judged), `503 judge_busy` (global queue full).
 ```json
 {
   "id": "9098460d-619d-4f69-89fb-459bc700ef0b",
@@ -336,17 +341,35 @@ Status lifecycle:
   "source_code": "class Solution { … }"
 }
 ```
-Once judging is enabled, `result` will look like this (shape is final, values illustrative):
+When judged, `result` looks like this (real output from the gVisor sandbox for a wrong
+answer to *Valid Parentheses*; first two public tests shown):
 ```json
 {
-  "runtime_ms": 41, "memory_kb": 38512, "passed_count": 6, "total_count": 7,
-  "public_results": [{"index": 0, "passed": true, "input": {"nums": [2, 7, 11, 15], "target": 9},
-                      "expected_output": [0, 1], "actual_output": [0, 1], "exception": null}],
+  "runtime_ms": 2, "memory_kb": null,
+  "passed_count": 5, "total_count": 8, "hidden_passed": 3, "hidden_total": 5,
+  "public_results": [
+    {"index": 0, "passed": true, "input": {"s": "()[]{}"}, "expected_output": true, "actual_output": true,
+     "exception": null, "exception_message": null, "missing": false, "runtime_ms": 1.532},
+    {"index": 1, "passed": false, "input": {"s": "([)]"}, "expected_output": false, "actual_output": true,
+     "exception": null, "exception_message": null, "missing": false, "runtime_ms": 0.005}
+  ],
   "stderr_excerpt": null
 }
 ```
-Per-case detail is only ever given for **public** tests. Hidden tests count toward
-`passed_count` and `total_count` only.
+- Per-test detail is only ever given for **public** tests. Hidden tests contribute to
+  `passed_count`/`total_count` and `hidden_passed`/`hidden_total` only.
+- `exception` + `exception_message`: the test threw (e.g. `ArrayIndexOutOfBoundsException`,
+  `Index 2 out of bounds for length 2`). An expected exception (`{"throws": …}`) counts as a pass.
+- `missing: true`: the test never reported because the program crashed, exited or hit the time limit first.
+- `stderr_excerpt` is set **only** for `COMPILE_ERROR` (compiler output, with sandbox paths
+  removed). Program output is never returned, because learner code could print hidden inputs.
+- `runtime_ms` is time spent inside the learner's method. `memory_kb` is `null`: peak memory
+  isn't measured yet, and the API never invents numbers.
+
+Verdicts: `PASSED` (all tests) · `FAILED` (some wrong answers) · `COMPILE_ERROR` ·
+`RUNTIME_ERROR` (crashed/exited before finishing, StackOverflowError, output flood) ·
+`TIME_LIMIT` · `MEMORY_LIMIT` · `INTERNAL_ERROR` (judge infrastructure failed after retries; not
+the learner's fault).
 
 #### `GET /api/v1/submissions/{id}` 🔒 → `200`
 Same shape as above. `404` if it doesn't exist **or** belongs to another user.
@@ -611,7 +634,13 @@ All configuration is environment variables (or a `.env` file; see
 | `ANTHROPIC_EFFORT` | `low` | `low`, `medium` or `high`. Higher is deeper and more expensive. |
 | `AI_DAILY_REQUEST_LIMIT` | `50` | AI calls per user per rolling 24 hours. |
 | `AI_MAX_CODE_CHARS` | `12000` | Code beyond this length is truncated before reaching a model. |
-| `EXECUTION_ENABLED` | `false` | Reserved for the isolated runner. Keep `false`. |
+| `EXECUTION_ENABLED` | `false` | Judge submissions in the gVisor runner (requires `RUNNER_TOKEN` and the judge services) |
+| `RUNNER_URL` | `http://localhost:8100` | Runner service address (used by the worker) |
+| `RUNNER_TOKEN` | — | **Secret.** Shared API↔runner bearer token, ≥ 32 characters |
+| `JUDGE_TIME_LIMIT_S` | `15` | Wall-clock budget per submission |
+| `SUBMISSION_RATE_LIMIT_PER_MINUTE` / `MAX_PENDING_PER_USER` / `MAX_QUEUE_DEPTH` | `6` / `2` / `200` | Admission control |
+| `JUDGE_MAX_ATTEMPTS` / `JUDGE_STALE_AFTER_S` | `2` / `120` | Infrastructure retries / crashed-worker recovery |
+| `EMBEDDED_WORKER` | `false` | Run the worker inside the API process (local dev and e2e only) |
 | `MAX_SOURCE_CHARS` | `20000` | Maximum submission size. |
 | `METRICS_ENABLED` | `true` | Serves Prometheus metrics at `/metrics`. |
 | `POSTGRES_PASSWORD` | `codecoach` | Used by `docker-compose.yml` only. |

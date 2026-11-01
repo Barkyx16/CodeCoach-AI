@@ -11,6 +11,8 @@ const SOLUTION = `class Solution {
     }
 }`;
 
+const judging = process.env.E2E_JUDGE === "1";
+
 async function replaceEditorContent(page: Page, code: string) {
   const editor = page.locator(".monaco-editor").first();
   await editor.click();
@@ -61,8 +63,14 @@ test("guest journey: try it, code, hints, review, submit, progress", async ({ pa
 
   // Submit: stored, honest about execution being disabled.
   await page.getByRole("button", { name: "Submit" }).click();
-  await expect(page.getByText("Saved, but not run yet.")).toBeVisible();
-  await expect(page.getByText("Queued", { exact: true })).toBeVisible();
+  if (judging) {
+    // The O(n^2) solution is correct, so the real judge passes it.
+    await expect(page.getByText("All tests passed. Nice work.")).toBeVisible({ timeout: 60_000 });
+  } else {
+    // Execution off: stored, and honest that it won't run.
+    await expect(page.getByText("Saved, but not run yet.")).toBeVisible();
+    await expect(page.getByText("Queued", { exact: true })).toBeVisible();
+  }
 
   // Draft survives a reload.
   await page.reload();
@@ -74,7 +82,7 @@ test("guest journey: try it, code, hints, review, submit, progress", async ({ pa
   const summary = page.getByRole("region", { name: "Summary" });
   await expect(summary.getByText("Coaching used")).toBeVisible();
   await expect(summary.getByText("3", { exact: true })).toBeVisible(); // 2 hints + 1 review
-  await expect(page.getByText(/without a pass/).first()).toBeVisible();
+  if (!judging) await expect(page.getByText(/without a pass/).first()).toBeVisible();
   await page.screenshot({ path: "e2e/screenshots/03-dashboard.png", fullPage: true });
 
   // History keeps the attempt and the AI feedback.

@@ -1,15 +1,27 @@
-"""Generate a Java test driver for a problem and compare its output with expected results.
+"""Generate the Java test driver for a problem, and judge its output.
 
 This module is pure: it builds source text and parses text. It never compiles or runs
-anything. Running untrusted code is the job of an isolated runner (see
-docs/security/threat-model.md); the same driver will be used inside that boundary.
+anything. Untrusted code runs only inside the isolated runner (docs/SECURITY.md §4).
 
-Driver protocol: for every test case the driver prints exactly one line
+Driver protocol
+---------------
+The driver (Main.java) runs inside the sandbox next to the learner's Solution.java:
 
-    @@CC_RESULT@@ {"index": 0, "ok": true, "output": <json>}
-    @@CC_RESULT@@ {"index": 1, "ok": false, "exception": "IllegalArgumentException"}
+1. Before ANY learner code runs, it reads a per-run random nonce from the first line of stdin
+   and keeps it in a local variable (locals are not reachable through reflection), and it
+   captures the original System.out stream. Learner code that later calls System.setOut, or
+   prints lines that look like results, can't produce lines with the right nonce.
+2. For every test case it prints exactly one line through the captured stream:
 
-The random-looking prefix lets the parser ignore anything the user's code prints itself.
+       @@CC:<nonce>@@ {"index": 0, "ok": true, "output": <json>, "ms": 1.25}
+       @@CC:<nonce>@@ {"index": 1, "ok": false, "exception": "ArithmeticException", "message": "/ by zero", "ms": 0.4}
+
+3. Hidden expected outputs never enter the sandbox: the driver only prints what the learner's
+   code returned, and comparison happens here, outside the sandbox.
+
+Residual risk (documented in SECURITY.md): learner code shares the JVM with the driver, so a
+determined user could still tamper with their *own* verdict through deep reflection. That
+can only affect their own account, never the host or other users.
 """
 
 from __future__ import annotations
@@ -18,13 +30,16 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-RESULT_PREFIX = "@@CC_RESULT@@ "
-
 SUPPORTED_TYPES = {"int", "long", "boolean", "char", "String", "int[]", "String[]"}
+MAX_MESSAGE_CHARS = 300
 
 
 class UnsupportedTypeError(ValueError):
     pass
+
+
+def result_prefix(nonce: str) -> str:
+    return f"@@CC:{nonce}@@ "
 
 
 def java_literal(value: Any, java_type: str) -> str:
@@ -55,26 +70,46 @@ def java_literal(value: Any, java_type: str) -> str:
     raise UnsupportedTypeError(f"unsupported Java type: {java_type}")
 
 
-_DRIVER_TEMPLATE = """\
+# Placeholders: __CALLS__ (one line per test case) and __MAX_MESSAGE__.
+_DRIVER_TEMPLATE = r"""
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.util.function.Supplier;
 
-public class Main {
-    private static final String PREFIX = "@@CC_RESULT@@ ";
+public final class Main {
+    private Main() {}
 
-    public static void main(String[] args) {
-%(calls)s
+    public static void main(String[] args) throws Exception {
+        // Read the nonce and capture stdout BEFORE any learner code (including Solution's
+        // static initialisers) can run.
+        final String nonce;
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(System.in))) {
+            String line = in.readLine();
+            nonce = line == null ? "" : line.trim();
+        }
+        final PrintStream out = System.out;
+        final String prefix = "@@CC:" + nonce + "@@ ";
+__CALLS__
+        out.flush();
     }
 
-    private static void run(int index, Supplier<Object> call) {
-        StringBuilder sb = new StringBuilder(PREFIX).append("{\\"index\\": ").append(index);
+    private static void run(PrintStream out, String prefix, int index, Supplier<Object> call) {
+        StringBuilder sb = new StringBuilder(prefix).append("{\"index\": ").append(index);
+        long start = System.nanoTime();
         try {
-            Object out = call.get();
-            sb.append(", \\"ok\\": true, \\"output\\": ").append(toJson(out));
+            Object result = call.get();
+            double ms = (System.nanoTime() - start) / 1_000_000.0;
+            sb.append(", \"ok\": true, \"output\": ").append(toJson(result)).append(", \"ms\": ").append(ms);
         } catch (Throwable t) {
-            sb.append(", \\"ok\\": false, \\"exception\\": ").append(toJson(t.getClass().getSimpleName()));
+            double ms = (System.nanoTime() - start) / 1_000_000.0;
+            String message = t.getMessage() == null ? "" : t.getMessage();
+            if (message.length() > __MAX_MESSAGE__) message = message.substring(0, __MAX_MESSAGE__);
+            sb.append(", \"ok\": false, \"exception\": ").append(toJson(t.getClass().getSimpleName()))
+              .append(", \"message\": ").append(toJson(message)).append(", \"ms\": ").append(ms);
         }
-        System.out.println(sb.append("}"));
-        System.out.flush();
+        out.println(sb.append("}"));
+        out.flush();
     }
 
     private static String toJson(Object o) {
@@ -96,21 +131,21 @@ public class Main {
     }
 
     private static String quote(String s) {
-        StringBuilder sb = new StringBuilder("\\"");
+        StringBuilder sb = new StringBuilder("\"");
         for (char c : s.toCharArray()) {
             switch (c) {
-                case '"' -> sb.append("\\\\\\"");
-                case '\\\\' -> sb.append("\\\\\\\\");
-                case '\\n' -> sb.append("\\\\n");
-                case '\\r' -> sb.append("\\\\r");
-                case '\\t' -> sb.append("\\\\t");
+                case '"' -> sb.append("\\\"");
+                case '\\' -> sb.append("\\\\");
+                case '\n' -> sb.append("\\n");
+                case '\r' -> sb.append("\\r");
+                case '\t' -> sb.append("\\t");
                 default -> {
-                    if (c < 0x20 || c > 0x7e) sb.append(String.format("\\\\u%%04x", (int) c));
+                    if (c < 0x20 || c > 0x7e) sb.append(String.format("\\u%04x", (int) c));
                     else sb.append(c);
                 }
             }
         }
-        return sb.append("\\"").toString();
+        return sb.append("\"").toString();
     }
 }
 """
@@ -126,8 +161,12 @@ def build_driver(signature: dict, test_inputs: list[dict]) -> str:
     calls = []
     for index, case_input in enumerate(test_inputs):
         args = ", ".join(java_literal(case_input[p["name"]], p["type"]) for p in params)
-        calls.append(f"        run({index}, () -> new Solution().{method}({args}));")
-    return _DRIVER_TEMPLATE % {"calls": "\n".join(calls)}
+        calls.append(f"        run(out, prefix, {index}, () -> new Solution().{method}({args}));")
+    return (
+        _DRIVER_TEMPLATE.replace("__CALLS__", "\n".join(calls))
+        .replace("__MAX_MESSAGE__", str(MAX_MESSAGE_CHARS))
+        .lstrip()
+    )
 
 
 @dataclass(frozen=True)
@@ -136,16 +175,19 @@ class CaseOutcome:
     passed: bool
     actual: Any = None
     exception: str | None = None
+    message: str | None = None
     missing: bool = False
+    ms: float | None = None
 
 
-def parse_driver_output(stdout: str) -> dict[int, dict]:
+def parse_driver_output(stdout: str, nonce: str = "") -> dict[int, dict]:
+    prefix = result_prefix(nonce)
     results: dict[int, dict] = {}
     for line in stdout.splitlines():
-        if not line.startswith(RESULT_PREFIX):
+        if not line.startswith(prefix):
             continue
         try:
-            payload = json.loads(line[len(RESULT_PREFIX) :])
+            payload = json.loads(line[len(prefix) :])
         except json.JSONDecodeError:
             continue
         if isinstance(payload, dict) and isinstance(payload.get("index"), int):
@@ -160,21 +202,24 @@ def outputs_match(expected: Any, actual: Any) -> bool:
     return expected == actual
 
 
-def judge_cases(expected_outputs: list[Any], stdout: str) -> list[CaseOutcome]:
+def judge_cases(expected_outputs: list[Any], stdout: str, nonce: str = "") -> list[CaseOutcome]:
     """Compare driver output with expected outputs. Missing lines count as failures."""
-    reported = parse_driver_output(stdout)
+    reported = parse_driver_output(stdout, nonce)
     outcomes = []
     for index, expected in enumerate(expected_outputs):
         row = reported.get(index)
         if row is None:
             outcomes.append(CaseOutcome(index=index, passed=False, missing=True))
             continue
+        ms = row.get("ms") if isinstance(row.get("ms"), int | float) else None
         expects_throw = isinstance(expected, dict) and "throws" in expected
         if row.get("ok"):
             passed = not expects_throw and outputs_match(expected, row.get("output"))
-            outcomes.append(CaseOutcome(index=index, passed=passed, actual=row.get("output")))
+            outcomes.append(CaseOutcome(index=index, passed=passed, actual=row.get("output"), ms=ms))
         else:
             exc = row.get("exception")
             passed = expects_throw and exc == expected["throws"]
-            outcomes.append(CaseOutcome(index=index, passed=passed, exception=exc))
+            outcomes.append(
+                CaseOutcome(index=index, passed=passed, exception=exc, message=row.get("message"), ms=ms)
+            )
     return outcomes

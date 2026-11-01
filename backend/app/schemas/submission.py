@@ -20,12 +20,17 @@ class SubmissionCreate(APIModel):
 
 
 class PublicCaseResult(APIModel):
+    """Detailed result for one PUBLIC test. Hidden tests are only ever counted."""
+
     index: int
     passed: bool
     input: dict | None = None
     expected_output: object | None = None
     actual_output: object | None = None
-    exception: str | None = None
+    exception: str | None = Field(default=None, description="Simple class name, e.g. ArithmeticException")
+    exception_message: str | None = None
+    missing: bool = Field(default=False, description="The test never reported (crash or time limit first)")
+    runtime_ms: float | None = None
 
 
 class ExecutionResultOut(APIModel):
@@ -33,8 +38,10 @@ class ExecutionResultOut(APIModel):
     memory_kb: int | None
     passed_count: int
     total_count: int
+    hidden_passed: int
+    hidden_total: int
     public_results: list[PublicCaseResult]
-    stderr_excerpt: str | None
+    stderr_excerpt: str | None = Field(default=None, description="Compiler output (compile errors only)")
 
 
 class SubmissionOut(APIModel):

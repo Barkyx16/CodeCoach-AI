@@ -12,10 +12,11 @@ The "Session log" at the bottom tracks exactly what that is.
 > programmer. Learners solve curated problems in a browser editor and get progressive AI hints
 > and structured code reviews. The key design decision is that correctness never comes from
 > the AI: a deterministic test judge decides pass or fail, and the AI is an advisor grounded in
-> that verdict. It's a React and TypeScript frontend with a Monaco editor on top of a FastAPI
-> and PostgreSQL backend, with JWT auth, a provider-agnostic AI layer with structured outputs
-> and cost controls, and about 150 automated tests, including real-browser end-to-end tests
-> that run in GitHub Actions."
+> that verdict. Submitted Java runs in a gVisor sandbox inside a separate runner service, and
+> I test the sandbox by attacking it with hostile code in CI. It's a React and TypeScript
+> frontend over a FastAPI and PostgreSQL backend, with a provider-agnostic AI layer that uses
+> structured outputs and cost controls, and about 250 automated tests, including real-browser
+> end-to-end tests."
 
 ## 2. The 2-minute walkthrough (whiteboard order)
 
@@ -34,9 +35,11 @@ The "Session log" at the bottom tracks exactly what that is.
      key, tests are deterministic, and there's a fallback when the AI provider fails.
    - **Test data is verified:** every problem has a reference solution that CI compiles and runs
      against every test case, so a learner never gets a wrong verdict from a typo in the tests.
-5. **Security:** I deliberately did *not* run user code yet. Plain Docker isn't a security
-   boundary for hostile code, so I wrote a threat model and chose gVisor/Firecracker-style
-   isolation before building it.
+5. **Security:** submitted code is hostile by assumption. It never runs on the API server.
+   A separate runner service starts a fresh **gVisor** container per submission: no network,
+   read-only filesystem, CPU/memory/process/time/output limits, non-root, and no host files
+   mounted. Comparison against hidden expected outputs happens *outside* the sandbox, so
+   untrusted code never sees them.
 
 ## 3. Resume bullets (verified, so use these)
 
@@ -55,6 +58,11 @@ The "Session log" at the bottom tracks exactly what that is.
   phases, deadlines, turn limits, one active session per user) driving an AI interviewer behind
   a provider interface, with schema-validated rubric evaluations on 5 dimensions and saved
   transcripts.
+- Built an **isolated code-execution pipeline**: a Postgres-backed job queue (`SKIP LOCKED`),
+  a judge worker with bounded retries and crash recovery, and a separate runner service that
+  executes each submission in a fresh **gVisor** sandbox (no network, read-only FS, CPU/memory/
+  PID/time/output limits), validated by **16 automated threat-model tests** that run hostile
+  code (fork bombs, memory bombs, network and filesystem escapes, result forgery) in CI.
 - Built a **React + TypeScript** frontend (Vite, TanStack Query, Monaco editor) with a
   resizable three-panel workspace, autosaved drafts, a progress dashboard and a mobile layout,
   with API types **generated from the OpenAPI contract** so frontend and backend can't drift.
@@ -97,10 +105,34 @@ Each user has a `token_version` column, and tokens carry it as a claim. Logout i
 so every older token fails verification. It's one integer, with no token blacklist table.
 
 **"Why not just run the Java in Docker?"**
-Containers share the host kernel; a kernel exploit escapes. For hostile code you want a
-stronger boundary: gVisor (a user-space kernel) or a Firecracker microVM, with no network,
-CPU/memory/pid limits, and a read-only filesystem. I designed that and left execution off
-until it's approved, because shipping no execution is safer than shipping unsafe execution.
+Containers share the host kernel, so one kernel exploit escapes. I use gVisor, a user-space
+kernel that intercepts the sandbox's syscalls, plus defense in depth: no network, read-only
+root, a `noexec` size-capped `/tmp`, memory/PID/CPU/time/output limits, no Linux capabilities,
+and running as `nobody`. The runner even refuses to start on plain Docker unless you explicitly
+mark it as an insecure dev setup. I kept execution off until the design was approved, because
+shipping no execution is safer than shipping unsafe execution.
+
+**"How do you know the sandbox actually works?"**
+I attack it in CI. A test suite submits hostile Java to the *real* gVisor sandbox: an
+infinite loop, a memory bomb, a fork bomb, opening a socket, DNS lookups, writing to the root
+filesystem, executing a dropped binary, filling the disk, reading a canary file I plant on the
+host, dumping environment variables, flooding output, and forging test results. Each test
+asserts the specific control held. CI installs a pinned, checksum-verified gVisor release to run them.
+
+**"How does judging work end to end?"**
+The API stores the submission as QUEUED and returns 202 right away. A separate worker claims it
+with `SELECT … FOR UPDATE SKIP LOCKED`, so several workers can share the queue without
+double-judging. It generates a Java test driver, sends the code and a random nonce to the
+runner, and gets back bounded output. The worker compares the results against expected outputs
+it never sent into the sandbox. Only infrastructure failures are retried, and a job whose
+worker crashed is recovered after a timeout. The frontend polls until the verdict is final.
+
+**"Couldn't someone fake passing results by printing them?"**
+The driver reads a per-run random nonce from stdin *before* any of their code runs and keeps
+it in a local variable, and result lines only count if they carry that nonce. It also writes
+through a captured copy of `System.out`, so swapping the stream doesn't work either. I test
+that with a real attack. The honest residual risk is deep reflection inside the same JVM,
+which could only fake *their own* verdict, and I document it.
 
 **"How do you know your test cases are right?"**
 Every problem has a trusted reference solution. A script generates a Java test driver from
@@ -191,6 +223,18 @@ These are moments where the obvious path was wrong and a deliberate decision was
 11. **An empty interview editor.** The draft hook started before the problem's starter code
     loaded and never picked it up. An integration test caught it; the fix adopts late-arriving
     starter code unless the user has already typed.
+12. **A missing production dependency.** Every test passed, but running the stack in
+    containers crashed the worker: `httpx` was only a dev dependency. I fixed it and added a CI
+    step that imports every container entrypoint with runtime dependencies only.
+13. **A broken default quick start.** Making `RUNNER_TOKEN` "required" in Compose broke plain
+    `docker compose up`, because Compose interpolates inactive profiles too. I caught it by
+    validating both profiles; the services themselves now refuse to start without a token.
+14. **The OOM message on the "wrong" stream.** The memory-bomb test failed because the JVM
+    prints its out-of-memory notice on stdout, not stderr. The test against the real sandbox
+    showed the actual behavior, and the classifier now checks both streams.
+15. **A config fix that never applied.** My earlier `env.py` fix for migrations silently
+    didn't apply (the text had been reformatted), and the next migration had the same bug. I
+    fixed it, verified the output, and added a test that fails if any migration imports app code.
 
 ## 6. Python concepts used here (for a Java developer)
 
@@ -226,17 +270,20 @@ These are moments where the obvious path was wrong and a deliberate decision was
 
 ## 7. How to demo it in an interview (5 minutes)
 
-1. `docker compose up --build`, then open `http://localhost:3000`.
+1. `EXECUTION_ENABLED=true RUNNER_TOKEN=$(openssl rand -hex 32) docker compose --profile judge up --build`
+   (on a Linux machine with gVisor), then open `http://localhost:3000`.
 2. Click **Try it now**: a guest session opens *Two Sum* in the three-panel workspace.
 3. Paste a nested-loop solution. Note "Draft saved"; refresh, and it's still there.
 4. **Get a hint**, then unlock level 2. Explain that level 3 can't be requested early: the
    server enforces the order (show the 409 in `/docs` if asked).
 5. **Code review** → it flags O(n²) vs. target O(n); click **line 3** and the editor highlights it.
-6. **Submit**: an honest "saved, not run yet" message. Explain the sandbox decision.
+6. **Submit** a buggy version: per-test feedback for the public tests, and only a count for the
+   hidden ones. Then submit the fix: **PASSED, 7/7, hidden 4/4**, judged in gVisor in a few
+   seconds. Explain the sandbox and why expected outputs never enter it.
 7. **Interview**: start a 15-minute interview. Give a vague answer and watch it probe; give a
    brute-force idea and it asks for better; then finish and walk through the rubric evidence.
 8. **Dashboard**: stats, heatmap, topic bars, and the recommendation reasons.
-9. Show the GitHub Actions run: backend on Postgres, frontend, Playwright e2e.
+9. Show the GitHub Actions run, especially the **sandbox** job attacking gVisor with hostile code.
 
 ---
 
@@ -294,3 +341,35 @@ These are moments where the obvious path was wrong and a deliberate decision was
 **Not yet verified / not built:**
 - The live Claude API path for hints, reviews and interviews (fake-client tests only; no API key here).
 - Code execution (Phase 4) still awaits approval of the sandbox design in docs/SECURITY.md §4.
+
+### Session 2: secure code execution (Phase 4)
+**Decision:** you chose the gVisor sandbox (recommended option) over a hosted judge or Firecracker.
+
+**Built and verified:**
+- `runner/`: a separate execution service (FastAPI). It runs one fresh gVisor container per
+  submission with every isolation flag, sends code over stdin (no bind mounts), caps output,
+  enforces a wall-clock limit with `docker kill`, bounds concurrency (503 backpressure),
+  authenticates with a bearer token, and refuses to run on plain Docker unless explicitly allowed.
+- Sandbox image: JDK 21 + a trusted entrypoint script (compile, then run).
+- Test driver hardened: a per-run nonce read before learner code runs, a captured output stream,
+  exception type and message per test, per-test timing.
+- Judge worker: Postgres queue (`FOR UPDATE SKIP LOCKED`), verdict mapping, infrastructure-only
+  retries, crashed-worker recovery, a `solved` progress event.
+- Admission control: per-minute rate limit, pending-job cap per user, global queue depth.
+- Migration `judge queue`, plus a regression test that fails if any migration imports app code.
+- Frontend: live judging states, hidden-test counts, exceptions with messages, "never ran"
+  tests, compiler output.
+- Docker Compose `judge` profile (sandbox image, runner, worker); CI `runner` and `sandbox` jobs
+  (the latter installs pinned gVisor `20260714.0` with checksum verification).
+- **Real verification in this environment, with gVisor installed:** 16/16 threat-model tests,
+  12/12 reference solutions PASSED through API → worker → runner → gVisor, the Playwright judge
+  journey, and the full 7-service Compose stack judging real submissions (PASSED, FAILED,
+  TIME_LIMIT).
+- Totals: 165 backend tests (passing on SQLite and PostgreSQL), 28 runner tests, 51 frontend
+  tests, 5 Playwright journeys.
+
+**Not yet verified / not built:**
+- The live Claude API path (still no API key here; fake-client tests only).
+- Peak-memory measurement per submission (`memory_kb` stays `null` rather than invented).
+- Production deployment on a dedicated gVisor VM (Phase 5).
+- The new CI `sandbox` job's first run on GitHub (it installs gVisor on GitHub's runners).

@@ -13,6 +13,7 @@ Usage:  python scripts/verify_reference_solutions.py
 from __future__ import annotations
 
 import json
+import secrets
 import shutil
 import subprocess
 import sys
@@ -55,14 +56,16 @@ def check_problem(problem_file: Path, timeout_s: float = 30.0) -> list[str]:
         )
         if compiled.returncode != 0:
             return [f"{slug}: compile error\n{compiled.stderr[:2000]}"]
+        nonce = secrets.token_hex(16)
         ran = subprocess.run(
             ["java", "-cp", str(work), "Main"],
+            input=nonce + "\n",
             capture_output=True,
             text=True,
             timeout=timeout_s,
             check=False,
         )
-    outcomes = judge_cases([t["expected_output"] for t in tests], ran.stdout)
+    outcomes = judge_cases([t["expected_output"] for t in tests], ran.stdout, nonce)
     failures = []
     for outcome in outcomes:
         if not outcome.passed:

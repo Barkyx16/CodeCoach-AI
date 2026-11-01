@@ -6,6 +6,10 @@ import { defineConfig, devices } from "@playwright/test";
  * PYTHON can point at a specific interpreter (e.g. a virtualenv's python).
  */
 const python = process.env.PYTHON ?? "python";
+// E2E_JUDGE=1 also starts the isolated runner and enables code execution (needs Docker + gVisor
+// + the codecoach-java-sandbox:21 image). Only e2e/judge.spec.ts depends on it.
+const judge = process.env.E2E_JUDGE === "1";
+const runnerToken = "e2e-runner-token-0123456789abcdef0123456789";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -24,6 +28,16 @@ export default defineConfig({
     { name: "mobile", use: { ...devices["Pixel 7"] }, testMatch: /mobile\.spec\.ts/ },
   ],
   webServer: [
+    ...(judge
+      ? [{
+          command: `${python} -m uvicorn app.main:app_factory --factory --port 8100`,
+          cwd: "../runner",
+          url: "http://localhost:8100/health",
+          reuseExistingServer: !process.env.CI,
+          env: { RUNNER_TOKEN: runnerToken, MAX_CONCURRENCY: "2" },
+          timeout: 60_000,
+        }]
+      : []),
     {
       command: `${python} -m uvicorn app.main:app --port 8000`,
       cwd: "../backend",
@@ -35,6 +49,10 @@ export default defineConfig({
         AI_PROVIDER: "offline",
         AUTH_RATE_LIMIT_PER_MINUTE: "1000",
         LOG_LEVEL: "WARNING",
+        ...(judge
+          ? { EXECUTION_ENABLED: "true", EMBEDDED_WORKER: "true", RUNNER_URL: "http://localhost:8100",
+              RUNNER_TOKEN: runnerToken, WORKER_POLL_INTERVAL_S: "0.2" }
+          : {}),
       },
       timeout: 60_000,
     },

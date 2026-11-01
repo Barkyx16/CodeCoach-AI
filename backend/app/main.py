@@ -18,7 +18,7 @@ from app.errors import install_error_handlers
 from app.metrics import Metrics
 from app.observability import RequestContextMiddleware, configure_logging
 from app.services.ai.service import build_provider
-from app.services.judge.backends import DisabledExecutionBackend
+from app.services.judge.backends import build_backend
 from app.services.rate_limit import SlidingWindowLimiter
 
 logger = logging.getLogger("codecoach.app")
@@ -46,6 +46,19 @@ TAGS = [
 ]
 
 
+def _start_embedded_worker(settings: Settings, session_factory):
+    import threading
+
+    from app.services.judge.runner_client import HttpRunner
+    from app.worker import JudgeWorker
+
+    assert settings.runner_token is not None
+    worker = JudgeWorker(session_factory, HttpRunner(settings.runner_url, settings.runner_token), settings)
+    threading.Thread(target=worker.run_forever, name="judge-worker", daemon=True).start()
+    logger.info("embedded judge worker started")
+    return worker
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(getattr(logging, settings.log_level.upper(), logging.INFO))
@@ -60,8 +73,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             Base.metadata.create_all(engine)
             with session_factory() as session:
                 seed_problems(session)
+        worker = None
+        if settings.execution_enabled and settings.embedded_worker:
+            worker = _start_embedded_worker(settings, session_factory)
         logger.info("startup complete")
         yield
+        if worker is not None:
+            worker.stop()
         engine.dispose()
 
     app = FastAPI(
@@ -75,7 +93,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.engine = engine
     app.state.session_factory = session_factory
     app.state.ai_provider = build_provider(settings)
-    app.state.execution_backend = DisabledExecutionBackend()
+    app.state.execution_backend = build_backend(settings)
     app.state.auth_limiter = SlidingWindowLimiter(settings.auth_rate_limit_per_minute, 60.0)
     app.state.metrics = Metrics() if settings.metrics_enabled else None
 

@@ -21,15 +21,18 @@ code, and AI is an advisor layered on top.** The AI can never mark a solution co
                       │        FastAPI backend       │  modular monolith
                       │  api → services → models/db  │
                       └──┬──────────────┬─────────┬──┘
-                         │              │         │
-               ┌─────────▼───┐  ┌───────▼──────┐  │ enqueue (future)
-               │ PostgreSQL  │  │ AI provider  │  │
-               │ users, ...  │  │ adapter      │  │
-               └─────────────┘  │ offline│Claude│ ┌▼───────────────────────────┐
-                                └──────────────┘ │ Isolated Java runner       │
-                                                 │ (separate service; designed│
-                                                 │  in SECURITY.md, not built) │
-                                                 └────────────────────────────┘
+                         │              │
+               ┌─────────▼───┐  ┌───────▼──────┐
+               │ PostgreSQL  │  │ AI provider  │
+               │ + job queue │  │ adapter      │
+               └──────▲──────┘  │ offline│Claude│
+                      │         └──────────────┘
+         SKIP LOCKED  │
+               ┌──────┴──────┐  HTTPS + token  ┌──────────────┐  docker run --runtime=runsc
+               │ judge worker│────────────────▶│   runner     │──────────────▶ ┌──────────────────┐
+               │ (judging)   │◀──── output ────│ (no DB creds)│                │ gVisor sandbox    │
+               └─────────────┘                 └──────────────┘                │ (one per submit)  │
+                                                                               └──────────────────┘
 ```
 
 ## 3. Backend layout (modular monolith)
@@ -61,7 +64,15 @@ backend/
         service.py       Policy: auth, unlock order, budgets, sanitizing, fallback, history
       judge/
         harness.py       Generates the Java test driver; parses and compares results (pure)
-        backends.py      ExecutionBackend interface (currently: Disabled)
+        backends.py      ExecutionBackend: Disabled | Queued (+ admission control)
+        judge.py         Runs a submission through the runner and maps the result to a verdict
+        runner_client.py HTTP client for the runner service
+    worker.py            Judge worker process: claim → judge → store; retries; crash recovery
+runner/                  SEPARATE SERVICE: isolated execution (deploy on its own gVisor VM)
+  app/sandbox.py         docker run --runtime=runsc with every isolation flag; output caps; timeouts
+  app/main.py            POST /v1/run (bearer token), bounded concurrency
+  sandbox-image/         JDK image + trusted entrypoint that receives code over stdin
+  tests/                 unit tests + 16 threat-model checks in the real sandbox
     db/                  Engine/session factory, seed loader
     seed/problems/*.json Curated problem library (version-controlled content)
     seed/reference/*.java Trusted reference solutions (CI proves the tests are right)
@@ -143,16 +154,26 @@ Finishing (or expiry, or abandoning) runs `provider.evaluate_interview` once and
 schema-validated `InterviewEvaluation`. Claude's evaluation must score every rubric dimension
 exactly once or it's rejected and the offline scorer answers.
 
-### 4.3 Submission (today and planned)
+### 4.3 Submission and judging
 ```
-POST /api/v1/submissions → validate size + problem → Submission(QUEUED)
-  → ExecutionBackend.enqueue()      today: DisabledExecutionBackend (no execution)
-  → 202 {id, status: QUEUED, execution_enabled: false}
+POST /api/v1/submissions
+  → validate size + problem → backend.admit(): per-minute rate, pending-job cap, queue depth
+  → Submission(QUEUED, attempts=0) → 202 {id, status: QUEUED, execution_enabled: true}
 
-Planned (after the SECURITY.md design is approved):
-  enqueue → job queue → runner worker (sandbox) → compile Solution.java + generated Main.java
-          → run with CPU/memory/time/pid limits, no network, read-only FS
-          → bounded stdout → harness.judge_cases() → ExecutionResult + status → client polls
+worker (separate process), loop:
+  claim oldest QUEUED  (SELECT … FOR UPDATE SKIP LOCKED → RUNNING, attempts+1)
+  build Main.java from ALL test inputs + fresh 128-bit nonce
+  POST runner /v1/run {Solution.java, Main.java, nonce}
+     runner: docker run --runtime=runsc --network=none --read-only … (fresh container)
+             stdin = nonce + base64 tar → javac → java Main (reads nonce first)
+             ← {status, stdout ≤64 KB, compile_output, duration}
+  harness.judge_cases(expected outputs, stdout, nonce)    ← comparison happens OUTSIDE the sandbox
+  verdict precedence: COMPILE_ERROR > TIME_LIMIT > MEMORY_LIMIT > RUNTIME_ERROR > FAILED > PASSED
+  store ExecutionResult (public detail only) + status; PASSED → progress event "solved"
+  runner down / sandbox error → re-queue (bounded) → INTERNAL_ERROR after JUDGE_MAX_ATTEMPTS
+  every 30 s: RUNNING jobs older than JUDGE_STALE_AFTER_S are recovered (worker crashed)
+
+client polls GET /submissions/{id} every 1.5 s until is_terminal
 ```
 
 ## 5. AI design
@@ -182,7 +203,10 @@ or API key.
 | JWT + `token_version` revocation | Server-side sessions, refresh tokens | Stateless verification with real logout/"log out everywhere" for one integer column. Refresh tokens are a future step. |
 | Argon2id | bcrypt | Current OWASP first choice; memory-hard. |
 | Problems seeded from JSON in Git | Admin UI | Content changes are code-reviewed, diffable, and verified in CI against reference solutions. |
-| Execution disabled until a sandbox is approved | Run Java in Docker on the API host | Docker alone is not a security boundary for hostile code. Shipping no execution is safer than shipping unsafe execution. |
+| gVisor sandbox in a separate runner service | Plain Docker on the API host; hosted judge; Firecracker | Docker alone shares the host kernel. gVisor gives a user-space kernel at low cost; a separate runner with no DB credentials limits the blast radius. Firecracker is stronger but much more infrastructure. |
+| Postgres as the job queue (SKIP LOCKED) | Redis, RabbitMQ | One less service to run. The queue is transactional with the data, and SKIP LOCKED lets several workers share it safely. Revisit at very high volume. |
+| Code sent over stdin, no bind mounts | Bind-mount a temp dir | Nothing from the host filesystem is ever visible in the sandbox, and it works even when the runner itself is containerized. |
+| Comparison outside the sandbox | Compare inside the JVM | Hidden expected outputs never reach untrusted code. |
 | In-memory auth rate limiter | Redis | Correct for a single instance; documented upgrade path. AI budgets already use the database, so they're exact across instances. |
 
 ## 7. Observability
@@ -203,5 +227,5 @@ or API key.
 | 1. Backend foundation | ✅ done | Auth, problems, submissions (queued), AI hint/review, progress, recommendations, migrations, Docker, CI |
 | 2. Frontend vertical slice | ✅ done | React + TS app: library, workspace (Monaco), coach panel, dashboard, history, e2e tests |
 | 3. Mock interviews | ✅ done | Interview state machine, server-side clock, AI interviewer (offline/Claude), rubric evaluation, history, UI, e2e test |
-| 4. Isolated runner | **next, awaiting design approval** | See SECURITY.md §4 |
+| 4. Isolated runner | ✅ done | gVisor runner service, judge worker, threat-model tests, judge e2e, CI sandbox job |
 | 5. Production | planned | Deployment, managed Postgres, Redis rate limits, refresh tokens, AI eval suite |

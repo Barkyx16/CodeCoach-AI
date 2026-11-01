@@ -37,6 +37,7 @@ _ERROR_DESCRIPTIONS = {
     413: "Payload too large",
     422: "Request validation failed",
     429: "Rate limit or AI budget exceeded",
+    503: "Temporarily unavailable (e.g. the judge queue is full)",
 }
 
 

@@ -5,17 +5,18 @@ Learners solve curated data-structures-and-algorithms problems in a browser edit
 progressive AI hints and structured code reviews, and track their progress. Correctness always
 comes from test cases, never from the AI.
 
-> **Status: Phases 1–3 of 5 complete.** The full-stack product works end to end:
-> React app → FastAPI → PostgreSQL, with the AI coach, timed mock interviews, analytics and
-> history, verified by unit, integration and real-browser tests in CI. Running submitted Java is deliberately
-> **disabled** until an isolated sandbox is approved; see
-> [docs/SECURITY.md](docs/SECURITY.md#4-secure-java-execution-design-not-yet-built-needs-approval).
+> **Status: Phases 1–4 of 5 complete.** The full product works end to end: React app →
+> FastAPI → PostgreSQL, an AI coach, timed mock interviews, and **real judging of submitted
+> Java in an isolated gVisor sandbox**, verified by unit, integration, threat-model and
+> real-browser tests in CI.
 
 | Workspace | Mock interview |
 |---|---|
 | ![Workspace with AI code review](docs/screenshots/02-workspace-review.png) | ![Live mock interview](docs/screenshots/06-interview-live.png) |
 | **Interview feedback** | **Dashboard** |
 | ![Rubric feedback](docs/screenshots/07-interview-feedback.png) | ![Progress dashboard](docs/screenshots/03-dashboard.png) |
+| **Judged in the gVisor sandbox** | |
+| ![Submission passed](docs/screenshots/08-judged-pass.png) | |
 
 ## What works today
 
@@ -28,12 +29,12 @@ comes from test cases, never from the AI.
 | AI code review | Structured JSON: complexity, issues with severity, category and line, strengths, next step, confidence |
 | AI providers | `offline` (curated hints + static analysis; free, deterministic) or `anthropic` (Claude via structured outputs) with automatic fallback |
 | AI safeguards | Prompt-injection framing, secret redaction, per-user daily budget, input caps, saved history |
-| Submissions | Asynchronous job API with the full judge status model (queued; execution disabled) |
+| Code judging | Submissions are judged against public and hidden tests in a **gVisor sandbox** (separate runner service: no network, read-only FS, CPU/memory/PID/time/output limits, non-root, no bind mounts). Postgres-backed job queue with a worker, admission control, bounded retries and crash recovery. 16 threat-model checks run hostile code in the real sandbox in CI |
 | Mock interviews | Timed sessions through clarify → approach → code → complexity → test, a server-side clock, an AI interviewer (offline or Claude) that probes vague or brute-force answers, rubric feedback on 5 dimensions with evidence, and saved transcripts |
 | Analytics | Solved/attempted by topic and difficulty, streaks, 28-day activity, acceptance rate, weakest topics |
 | Recommendations | Explainable next problems: retry unfinished, strengthen weak topics, difficulty ladder |
 | Web app | React + TypeScript: landing, auth, problem library (URL-synced filters), resizable 3-panel workspace with Monaco and autosaved drafts, hint ladder, reviews that highlight the flagged line, dashboard (stat tiles, activity heatmap, topic progress), history; mobile layout |
-| Engineering | 123 backend tests (SQLite **and** PostgreSQL), 48 frontend tests, 4 Playwright end-to-end journeys against the real backend; ruff, mypy, ESLint, strict TypeScript; API types generated from OpenAPI; Alembic; Docker Compose (db, migrate, api, web); GitHub Actions; pip-audit, npm audit, Dependabot; Prometheus metrics, JSON logs, request IDs, health checks; CSP and security headers |
+| Engineering | 165 backend tests (SQLite **and** PostgreSQL, incl. 18 against the real sandbox), 28 runner tests, 51 frontend tests, 5 Playwright end-to-end journeys against the real backend; ruff, mypy, ESLint, strict TypeScript; API types generated from OpenAPI; Alembic; Docker Compose (db, migrate, api, web); GitHub Actions; pip-audit, npm audit, Dependabot; Prometheus metrics, JSON logs, request IDs, health checks; CSP and security headers |
 
 ## Architecture
 
@@ -53,6 +54,11 @@ cp .env.example .env        # optional for local dev
 docker compose up --build
 ```
 Open the app at <http://localhost:3000> and the interactive API docs at <http://localhost:8000/docs>.
+
+**With code execution** (Linux host with [gVisor](https://gvisor.dev/docs/user_guide/install/) installed as the `runsc` Docker runtime):
+```bash
+EXECUTION_ENABLED=true RUNNER_TOKEN=$(openssl rand -hex 32) docker compose --profile judge up --build
+```
 
 **Without Docker** (two terminals):
 ```bash
@@ -75,7 +81,7 @@ npm run dev                                            # http://localhost:5173
 
 ```bash
 cd backend
-pytest                                    # 123 tests (SQLite)
+pytest                                    # all backend tests (SQLite); sandbox tests auto-skip without gVisor
 TEST_DATABASE_URL=postgresql+psycopg://codecoach:codecoach@localhost:5432/codecoach_test pytest
 ruff check . && ruff format --check .     # lint + formatting
 mypy app                                  # type check
@@ -86,11 +92,17 @@ pip-audit -r requirements.txt             # known-vulnerability scan
 cd frontend
 npm run lint && npm run typecheck         # ESLint + strict TypeScript
 npm run api:check                         # generated API types match docs/openapi.json
-npm test                                  # 48 unit + integration tests (Vitest, MSW)
+npm test                                  # 51 unit + integration tests (Vitest, MSW)
 npm run build                             # production bundle
 PYTHON=../backend/.venv/bin/python npm run e2e   # Playwright: real browser + real backend
 ```
-CI runs all of the above on every push and pull request, plus a migration round-trip and
+```bash
+cd runner
+pytest -m "not sandbox"                   # runner unit tests
+pytest -m sandbox                         # threat model: hostile Java in the real gVisor sandbox
+```
+CI runs all of the above on every push and pull request (a dedicated job installs a pinned,
+checksum-verified gVisor), plus a migration round-trip and
 Docker builds: [.github/workflows/ci.yml](.github/workflows/ci.yml).
 
 ## Documentation
@@ -111,6 +123,7 @@ Docker builds: [.github/workflows/ci.yml](.github/workflows/ci.yml).
 backend/     FastAPI app, models, services, migrations, tests, Dockerfile
 docs/        Architecture, API, database, security, frontend handoff
 frontend/    React + TypeScript app, Vitest tests, Playwright e2e, nginx Dockerfile
+runner/      Isolated execution service (gVisor sandbox), sandbox image, threat-model tests
 .github/     CI workflow and Dependabot
 docker-compose.yml, .env.example
 ```
@@ -120,11 +133,11 @@ docker-compose.yml, .env.example
 1. ✅ Backend foundation
 2. ✅ Frontend vertical slice: library → workspace (Monaco) → hints/review → dashboard → history
 3. ✅ Mock interviews: timed sessions, interviewer follow-ups, rubric scoring, history
-4. ⏳ Isolated Java runner: **awaiting approval of the sandbox design**
+4. ✅ Isolated Java runner: gVisor sandbox, judge worker, threat-model tests
 5. Deployment, refresh tokens, Redis-backed limits, AI evaluation suite
 
 ## Known limitations
 
-Listed honestly in [docs/SECURITY.md §5](docs/SECURITY.md#5-known-gaps-honest-list). Most
-importantly, submissions are queued but not judged yet, and no AI accuracy or performance
-numbers are claimed until they've been measured.
+Listed honestly in [docs/SECURITY.md §5](docs/SECURITY.md#5-known-gaps-honest-list). No AI
+accuracy or performance numbers are claimed until they've been measured. Sandbox residual
+risks are listed in [SECURITY.md §4.3](docs/SECURITY.md#43-residual-risks-honest).

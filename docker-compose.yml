@@ -2,6 +2,11 @@
 #   Web app      http://localhost:3000
 #   API          http://localhost:8000   (OpenAPI docs at /docs)
 #   PostgreSQL   localhost:5432          (user/password/db: codecoach, dev only)
+#
+# With code execution (needs gVisor installed and registered as the "runsc" Docker runtime):
+#   EXECUTION_ENABLED=true RUNNER_TOKEN=$(openssl rand -hex 32) docker compose --profile judge up --build
+# adds the sandbox image, the isolated runner and the judge worker. See docs/SECURITY.md §4.
+#
 # Secrets come from .env (copy .env.example). Nothing secret is committed.
 
 services:
@@ -25,6 +30,7 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://codecoach:${POSTGRES_PASSWORD:-codecoach}@db:5432/codecoach
     command: sh -c "alembic upgrade head && python -m app.cli seed"
+    healthcheck: {disable: true}
     depends_on:
       db: {condition: service_healthy}
 
@@ -35,6 +41,8 @@ services:
       DATABASE_URL: postgresql+psycopg://codecoach:${POSTGRES_PASSWORD:-codecoach}@db:5432/codecoach
       AUTO_MIGRATE: "false"
       CORS_ORIGINS: http://localhost:3000,http://localhost:5173
+      EXECUTION_ENABLED: ${EXECUTION_ENABLED:-false}
+      RUNNER_TOKEN: ${RUNNER_TOKEN:-}
     ports: ["8000:8000"]
     depends_on:
       migrate: {condition: service_completed_successfully}
@@ -46,6 +54,42 @@ services:
         VITE_API_BASE_URL: http://localhost:8000
     ports: ["3000:8080"]
     depends_on: [api]
+
+  # --- code execution (profile: judge) -------------------------------------------------
+  sandbox-image:            # build-only: the image every submission runs in
+    profiles: ["judge"]
+    build: ./runner/sandbox-image
+    image: codecoach-java-sandbox:21
+    entrypoint: ["true"]
+
+  runner:                   # isolated execution service; holds no DB credentials
+    profiles: ["judge"]
+    build: ./runner
+    environment:
+      RUNNER_TOKEN: ${RUNNER_TOKEN:-}   # required by the judge profile; the services refuse to start without it
+      SANDBOX_RUNTIME: ${SANDBOX_RUNTIME:-runsc}
+      ALLOW_INSECURE_RUNTIME: ${ALLOW_INSECURE_RUNTIME:-false}
+    volumes:
+      # Starting sandbox containers needs the Docker socket. In production the runner lives on
+      # its own VM for exactly this reason (see docs/SECURITY.md §4).
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      sandbox-image: {condition: service_completed_successfully}
+
+  worker:                   # claims queued submissions and calls the runner
+    profiles: ["judge"]
+    build: ./backend
+    command: ["python", "-m", "app.worker"]
+    healthcheck: {disable: true}   # the image's HTTP check is for the API; the worker serves no HTTP
+    env_file: [{path: .env, required: false}]
+    environment:
+      DATABASE_URL: postgresql+psycopg://codecoach:${POSTGRES_PASSWORD:-codecoach}@db:5432/codecoach
+      EXECUTION_ENABLED: "true"
+      RUNNER_URL: http://runner:8100
+      RUNNER_TOKEN: ${RUNNER_TOKEN:-}   # required by the judge profile; the services refuse to start without it
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      runner: {condition: service_healthy}
 
 volumes:
   pgdata:

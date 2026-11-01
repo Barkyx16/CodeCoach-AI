@@ -729,6 +729,26 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Temporarily unavailable (e.g. the judge queue is full)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -804,6 +824,26 @@
           },
           "422": {
             "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Temporarily unavailable (e.g. the judge queue is full)",
             "content": {
               "application/json": {
                 "schema": {
@@ -928,6 +968,26 @@
           },
           "422": {
             "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Temporarily unavailable (e.g. the judge queue is full)",
             "content": {
               "application/json": {
                 "schema": {
@@ -2404,6 +2464,14 @@
             "type": "integer",
             "title": "Total Count"
           },
+          "hidden_passed": {
+            "type": "integer",
+            "title": "Hidden Passed"
+          },
+          "hidden_total": {
+            "type": "integer",
+            "title": "Hidden Total"
+          },
           "public_results": {
             "items": {
               "$ref": "#/components/schemas/PublicCaseResult"
@@ -2420,7 +2488,8 @@
                 "type": "null"
               }
             ],
-            "title": "Stderr Excerpt"
+            "title": "Stderr Excerpt",
+            "description": "Compiler output (compile errors only)"
           }
         },
         "type": "object",
@@ -2429,8 +2498,9 @@
           "memory_kb",
           "passed_count",
           "total_count",
-          "public_results",
-          "stderr_excerpt"
+          "hidden_passed",
+          "hidden_total",
+          "public_results"
         ],
         "title": "ExecutionResultOut"
       },
@@ -3452,7 +3522,36 @@
                 "type": "null"
               }
             ],
-            "title": "Exception"
+            "title": "Exception",
+            "description": "Simple class name, e.g. ArithmeticException"
+          },
+          "exception_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exception Message"
+          },
+          "missing": {
+            "type": "boolean",
+            "title": "Missing",
+            "description": "The test never reported (crash or time limit first)",
+            "default": false
+          },
+          "runtime_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runtime Ms"
           }
         },
         "type": "object",
@@ -3460,7 +3559,8 @@
           "index",
           "passed"
         ],
-        "title": "PublicCaseResult"
+        "title": "PublicCaseResult",
+        "description": "Detailed result for one PUBLIC test. Hidden tests are only ever counted."
       },
       "PublicTestCase": {
         "properties": {

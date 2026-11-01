@@ -184,7 +184,11 @@ class TestCase(Base):
 
 class Submission(Base):
     __tablename__ = "submissions"
-    __table_args__ = (Index("ix_submissions_user_created", "user_id", "created_at"),)
+    __table_args__ = (
+        Index("ix_submissions_user_created", "user_id", "created_at"),
+        # The worker's queue scan: oldest QUEUED first.
+        Index("ix_submissions_status_created", "status", "created_at"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
@@ -195,6 +199,11 @@ class Submission(Base):
         _enum(SubmissionStatus, "submission_status"), default=SubmissionStatus.QUEUED
     )
     status_detail: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Judge bookkeeping: infrastructure failures are retried (bounded); learner failures never are.
+    attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    judge_started_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    judged_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    test_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, onupdate=utcnow)
 

@@ -49,10 +49,23 @@ class Settings(BaseSettings):
     ai_max_code_chars: int = Field(default=12_000, ge=500)
 
     # --- Code execution ---------------------------------------------------------------------
-    # Untrusted Java execution stays disabled until the isolated runner is approved and
-    # deployed. See docs/SECURITY.md.
+    # When enabled, submissions are queued in the database and judged by the worker process
+    # (python -m app.worker), which sends code to the isolated runner service. The API process
+    # itself never executes submitted code. See docs/SECURITY.md §4.
     execution_enabled: bool = False
+    runner_url: str = "http://localhost:8100"
+    runner_token: str | None = None
+    judge_time_limit_s: float = Field(default=15.0, gt=0, le=60)
     max_source_chars: int = Field(default=20_000, ge=100)
+    submission_rate_limit_per_minute: int = Field(default=6, ge=1)
+    max_pending_per_user: int = Field(default=2, ge=1)
+    max_queue_depth: int = Field(default=200, ge=1)
+    worker_poll_interval_s: float = Field(default=0.5, gt=0)
+    judge_stale_after_s: int = Field(default=120, ge=10)
+    judge_max_attempts: int = Field(default=2, ge=1, le=5)
+    # Run the judge worker as a thread inside the API process. Convenient for local dev and the
+    # end-to-end tests; production runs `python -m app.worker` as its own process instead.
+    embedded_worker: bool = False
 
     # --- Observability ----------------------------------------------------------------------
     metrics_enabled: bool = True
@@ -71,6 +84,8 @@ class Settings(BaseSettings):
                 raise ValueError("SECRET_KEY must be set to a unique random value in production")
             if "*" in self.cors_origins:
                 raise ValueError("CORS_ORIGINS must list explicit origins in production")
+        if self.execution_enabled and (not self.runner_token or len(self.runner_token) < 32):
+            raise ValueError("EXECUTION_ENABLED=true requires RUNNER_TOKEN (at least 32 characters)")
         if self.ai_provider == "anthropic" and not self.anthropic_api_key:
             raise ValueError("AI_PROVIDER=anthropic requires ANTHROPIC_API_KEY")
         return self

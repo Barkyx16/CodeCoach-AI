@@ -51,6 +51,7 @@ def run_migrations_online() -> None:
             target_metadata=target_metadata,
             compare_type=True,
             render_as_batch=connection.dialect.name == "sqlite",
+            render_item=render_item,
         )
         with context.begin_transaction():
             context.run_migrations()

@@ -63,6 +63,7 @@ _HTTP_CODES = {
     409: "conflict",
     413: "payload_too_large",
     429: "rate_limited",
+    503: "unavailable",
 }
 
 

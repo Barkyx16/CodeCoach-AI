@@ -582,10 +582,17 @@ export interface components {
             passed_count: number;
             /** Total Count */
             total_count: number;
+            /** Hidden Passed */
+            hidden_passed: number;
+            /** Hidden Total */
+            hidden_total: number;
             /** Public Results */
             public_results: components["schemas"]["PublicCaseResult"][];
-            /** Stderr Excerpt */
-            stderr_excerpt: string | null;
+            /**
+             * Stderr Excerpt
+             * @description Compiler output (compile errors only)
+             */
+            stderr_excerpt?: string | null;
         };
         /** GuestSessionRequest */
         GuestSessionRequest: {
@@ -959,7 +966,10 @@ export interface components {
             /** Recommended Next */
             recommended_next: string[];
         };
-        /** PublicCaseResult */
+        /**
+         * PublicCaseResult
+         * @description Detailed result for one PUBLIC test. Hidden tests are only ever counted.
+         */
         PublicCaseResult: {
             /** Index */
             index: number;
@@ -973,8 +983,21 @@ export interface components {
             expected_output?: unknown | null;
             /** Actual Output */
             actual_output?: unknown | null;
-            /** Exception */
+            /**
+             * Exception
+             * @description Simple class name, e.g. ArithmeticException
+             */
             exception?: string | null;
+            /** Exception Message */
+            exception_message?: string | null;
+            /**
+             * Missing
+             * @description The test never reported (crash or time limit first)
+             * @default false
+             */
+            missing: boolean;
+            /** Runtime Ms */
+            runtime_ms?: number | null;
         };
         /**
          * PublicTestCase
@@ -1813,6 +1836,24 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Temporarily unavailable (e.g. the judge queue is full) */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
         };
     };
     get_submission_api_v1_submissions__submission_id__get: {
@@ -1864,6 +1905,24 @@ export interface operations {
             };
             /** @description Request validation failed */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Temporarily unavailable (e.g. the judge queue is full) */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1925,6 +1984,24 @@ export interface operations {
             };
             /** @description Request validation failed */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Temporarily unavailable (e.g. the judge queue is full) */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

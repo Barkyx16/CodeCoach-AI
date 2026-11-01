@@ -24,7 +24,7 @@ from app.schemas.submission import (
 )
 
 router = APIRouter(prefix="/api/v1", tags=["submissions"])
-_ERRORS = error_responses(400, 401, 404, 422)
+_ERRORS = error_responses(400, 401, 404, 422, 429, 503)
 
 
 def to_detail(sub: Submission, execution_enabled: bool) -> SubmissionDetail:
@@ -37,11 +37,14 @@ def to_detail(sub: Submission, execution_enabled: bool) -> SubmissionDetail:
             for i, t in enumerate(t for t in sub.problem.test_cases if t.visibility == TestVisibility.PUBLIC)
         }
         rows = [PublicCaseResult(**r) for r in sub.result.public_results if r.get("index") in public_inputs]
+        public_passed = sum(r.passed for r in rows)
         result = ExecutionResultOut(
             runtime_ms=sub.result.runtime_ms,
             memory_kb=sub.result.memory_kb,
             passed_count=sub.result.passed_count,
             total_count=sub.result.total_count,
+            hidden_passed=max(0, sub.result.passed_count - public_passed),
+            hidden_total=max(0, sub.result.total_count - len(public_inputs)),
             public_results=rows,
             stderr_excerpt=sub.result.stderr_excerpt,
         )
@@ -84,6 +87,8 @@ def create_submission(
     problem = db.scalar(select(Problem).where(Problem.slug == body.problem_slug))
     if problem is None:
         raise NotFoundError(f"Problem '{body.problem_slug}' not found")
+    backend = request.app.state.execution_backend
+    backend.admit(db, user)
     sub = Submission(
         user_id=user.id,
         problem_id=problem.id,
@@ -93,7 +98,6 @@ def create_submission(
     )
     db.add(sub)
     db.flush()
-    backend = request.app.state.execution_backend
     backend.enqueue(db, sub)
     db.add(ProgressEvent(user_id=user.id, problem_id=problem.id, event_type=ProgressEventType.SUBMITTED))
     db.commit()

@@ -1,0 +1,24 @@
+[project]
+name = "codecoach-runner"
+version = "0.1.0"
+description = "Isolated Java execution service for CodeCoach AI (gVisor sandbox)."
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = ["sandbox: needs Docker with the gVisor (runsc) runtime and the sandbox image"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+ignore = ["B008", "E501"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+check_untyped_defs = true
+plugins = ["pydantic.mypy"]

@@ -78,6 +78,9 @@ SQLite for speed, and CI runs it on both. Schema changes go through **Alembic** 
 | `source_code` | text | Size-limited by `MAX_SOURCE_CHARS` |
 | `status` | varchar(32) | Judge status model: `QUEUED`, `RUNNING`, `PASSED`, `FAILED`, `COMPILE_ERROR`, `RUNTIME_ERROR`, `TIME_LIMIT`, `MEMORY_LIMIT`, `INTERNAL_ERROR` |
 | `status_detail` | varchar(500) null | Human-readable explanation |
+| `attempts` | integer (default 0) | Judge attempts; only infrastructure failures are retried |
+| `judge_started_at`, `judged_at` | timestamptz null | Claim time (used for crashed-worker recovery) and verdict time |
+| `test_version` | integer null | Version of the test set that produced the verdict |
 | `created_at`, `updated_at` | timestamptz | Composite index `(user_id, created_at)` for history pages |
 
 ### `execution_results` (1:1 with submissions)
@@ -142,6 +145,7 @@ transcript; `ai_interactions` rows for interview turns keep only cost and latenc
 |---|---|
 | `64de41a0f941` initial schema | Users, problems, test cases, submissions, results, AI interactions, progress events, practice sessions |
 | `60629f1baf0b` mock interviews | Adds interview columns to `practice_sessions` (with a server default so populated tables migrate safely) and the `interview_turns` table; names its foreign key so the downgrade works |
+| `b10c8038ad7f` judge queue | Adds `attempts` (server default 0), `judge_started_at`, `judged_at`, `test_version` to `submissions`, plus the `(status, created_at)` index the worker's queue scan uses |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running
