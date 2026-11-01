@@ -18,6 +18,7 @@ import { NotFoundPage } from "./NotFoundPage";
 // The workspace pulls in the Monaco editor (~MBs); load it only when a problem is opened.
 const WorkspacePage = lazy(() => import("@/features/workspace/WorkspacePage"));
 const InterviewSessionPage = lazy(() => import("@/features/interview/InterviewSessionPage"));
+const AnalyticsPage = lazy(() => import("@/features/analytics/AnalyticsPage"));
 
 export const routes: RouteObject[] = [
   {
@@ -47,6 +48,7 @@ export const routes: RouteObject[] = [
         ),
       },
       { path: "/dashboard", element: <RequireAuth><DashboardPage /></RequireAuth> },
+      { path: "/analytics", element: <RequireAuth><Suspense fallback={<LoadingState label="Loading analytics…" />}><AnalyticsPage /></Suspense></RequireAuth> },
       { path: "/history", element: <RequireAuth><HistoryPage /></RequireAuth> },
       { path: "/settings", element: <RequireAuth><SettingsPage /></RequireAuth> },
       { path: "*", element: <NotFoundPage /> },

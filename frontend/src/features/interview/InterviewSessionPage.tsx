@@ -24,6 +24,7 @@ import { OVERALL_LABELS } from "./phases";
 import { RubricChart } from "./RubricChart";
 import { Transcript } from "./Transcript";
 import { formatClock, useCountdown } from "./useCountdown";
+import { Icon } from "@/components/Icon";
 
 export default function InterviewSessionPage() {
   const { id = "" } = useParams();
@@ -47,6 +48,8 @@ function LiveInterview({ iv }: { iv: Interview }) {
   const [pending, setPending] = useState<string | null>(null);
   const seconds = useCountdown(iv.deadline_at, true);
   const ready = iv.phase === null; // interviewer wrapped up
+  const busy = send.isPending || finish.isPending || abandon.isPending;
+  const canSend = !ready && seconds > 0 && iv.candidate_turns_remaining > 0 && !!problem.data && !busy;
 
   // When the clock runs out, ask the server: it closes the interview and returns feedback.
   useEffect(() => {
@@ -56,7 +59,7 @@ function LiveInterview({ iv }: { iv: Interview }) {
   async function onSend(e?: FormEvent) {
     e?.preventDefault();
     const text = message.trim();
-    if (!text || send.isPending) return;
+    if (!text || !canSend) return;
     setPending(text);
     setMessage("");
     try {
@@ -69,7 +72,10 @@ function LiveInterview({ iv }: { iv: Interview }) {
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) void onSend();
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      void onSend();
+    }
   }
 
   const lowTime = seconds <= 120;
@@ -77,20 +83,21 @@ function LiveInterview({ iv }: { iv: Interview }) {
     <div className="interview">
       <header className="interview__bar">
         <div className="row">
-          <strong>{iv.problem.title}</strong>
+          <h1 className="interview__title">{iv.problem.title}</h1>
           <DifficultyBadge difficulty={iv.problem.difficulty} />
-          <Link to={`/problems/${iv.problem.slug}`} target="_blank" rel="noreferrer" className="subtle">Problem statement ↗</Link>
+          <Link to={`/problems/${iv.problem.slug}`} target="_blank" rel="noreferrer" className="subtle interview__statement-link">Problem statement <Icon name="arrow" size={14} /><span className="visually-hidden">(opens in a new tab)</span></Link>
         </div>
         <PhaseStepper phaseIndex={iv.phase_index} />
         <div className="row">
           <span className={`clock${lowTime ? " clock--low" : ""}`} role="timer" aria-label={`${formatClock(seconds)} remaining`}>
+            <Icon name="clock" size={17} />
             {formatClock(seconds)}
           </span>
-          <Button size="sm" variant="ghost" loading={abandon.isPending}
+          <Button size="sm" variant="ghost" loading={abandon.isPending} disabled={busy}
             onClick={() => { if (window.confirm("End the interview now? You'll still get feedback.")) abandon.mutate(); }}>
             End early
           </Button>
-          <Button size="sm" variant={ready ? "primary" : "secondary"} loading={finish.isPending}
+          <Button size="sm" variant={ready ? "primary" : "secondary"} loading={finish.isPending} disabled={busy}
             onClick={() => finish.mutate(draft.code)}>
             Finish & get feedback
           </Button>
@@ -104,11 +111,12 @@ function LiveInterview({ iv }: { iv: Interview }) {
           <form className="composer" onSubmit={onSend}>
             <label className="visually-hidden" htmlFor="iv-message">Your answer</label>
             <textarea id="iv-message" className="input composer__input" rows={3} maxLength={4000}
+              disabled={ready || seconds === 0 || iv.candidate_turns_remaining === 0 || finish.isPending || abandon.isPending}
               placeholder={ready ? "The interviewer has wrapped up. Click Finish to see your feedback." : "Think out loud… (Ctrl/⌘ + Enter to send)"}
               value={message} onChange={(e) => setMessage(e.target.value)} onKeyDown={onKeyDown} />
             <div className="composer__actions">
               <span className="subtle">{iv.candidate_turns_remaining} messages left</span>
-              <Button type="submit" variant="primary" loading={send.isPending} disabled={!message.trim()}>Send</Button>
+              <Button type="submit" variant="primary" loading={send.isPending} disabled={!message.trim() || !canSend}>Send</Button>
             </div>
             <InlineError error={send.error ?? finish.error ?? abandon.error} />
           </form>
@@ -118,8 +126,9 @@ function LiveInterview({ iv }: { iv: Interview }) {
             <span className="editor-toolbar__lang">Java</span>
             <span className="subtle">Your code is shared with the interviewer when you send a message.</span>
           </div>
-          {problem.data ? <CodeEditor value={draft.code} onChange={draft.setCode} onSubmit={() => void onSend()} />
-            : <LoadingState label="Loading editor…" />}
+          {problem.isError ? <ErrorState error={problem.error} onRetry={() => void problem.refetch()} />
+            : problem.data ? <CodeEditor value={draft.code} onChange={draft.setCode} onSubmit={() => void onSend()} />
+              : <LoadingState label="Loading editor…" />}
         </section>
       </div>
     </div>

@@ -1,32 +1,26 @@
 .app { min-height: 100%; display: flex; flex-direction: column; }
-.app__main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.app__main { flex: 1; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
 .app__banner { margin: var(--space-3) var(--space-6) 0; }
-
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  height: var(--header-height);
-  display: flex;
-  align-items: center;
-  gap: var(--space-6);
-  padding: 0 var(--space-6);
-  background: rgba(7, 13, 26, 0.9);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--color-border);
-}
-.brand { display: flex; align-items: center; gap: var(--space-2); color: var(--color-text); font-weight: var(--weight-bold); }
+.header { position: sticky; top: 0; z-index: 20; height: var(--header-height); flex-shrink: 0; display: flex; align-items: center; gap: var(--space-8); padding: 0 max(var(--space-6), calc((100vw - 1440px) / 2)); background: rgba(8,13,24,.96); backdrop-filter: blur(16px); border-bottom: 1px solid var(--color-border); }
+.brand { display: inline-flex; flex-shrink: 0; align-items: center; gap: 12px; color: var(--color-text); font-size: 17px; font-weight: var(--weight-bold); letter-spacing: -.6px; }
 .brand:hover { text-decoration: none; color: var(--color-text); }
-.brand__mark { color: var(--color-primary); font-family: var(--font-mono); font-size: var(--text-sm); }
+.brand__mark { color: var(--color-link); width: 30px; height: 30px; flex-shrink: 0; }
+.nav-shell { display: flex; align-items: center; flex: 1; min-width: 0; gap: var(--space-4); }
 .nav { display: flex; gap: var(--space-1); }
-.nav__link { color: var(--color-text-muted); padding: var(--space-1) var(--space-3); border-radius: var(--radius-md); font-size: var(--text-sm); }
+.nav__link { color: var(--color-text-muted); padding: 10px 12px; border-radius: var(--radius-sm); font-size: var(--text-sm); font-weight: var(--weight-medium); white-space: nowrap; }
 .nav__link:hover { color: var(--color-text); background: var(--color-surface-raised); text-decoration: none; }
-.nav__link--active { color: var(--color-text); background: var(--color-surface-raised); }
-.header__account { margin-left: auto; display: flex; align-items: center; gap: var(--space-3); }
-.header__user { color: var(--color-text-muted); text-decoration: none; display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); color: var(--color-text-muted); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-@media (max-width: 720px) {
-  .header { gap: var(--space-3); padding: 0 var(--space-3); }
-  .brand__name { display: none; }
-  .header__user { display: none; }
+.nav__link--active { color: var(--color-link); background: var(--color-primary-soft); }
+.header__account { margin-left: auto; display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.header__user { color: var(--color-text-muted); font-size: var(--text-sm); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 8px 0; }
+.menu-toggle { display: none; margin-left: auto; }
+@media (max-width: 1100px) {
+  .header { padding: 0 var(--space-4); gap: var(--space-3); }
+  .menu-toggle { display: inline-flex; min-height: 44px; }
+  .nav-shell { display: none; position: absolute; top: calc(var(--header-height) + 8px); left: 12px; right: 12px; flex-direction: column; align-items: stretch; gap: var(--space-4); padding: var(--space-4); border: 1px solid var(--color-border-strong); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-md); }
+  .nav-shell[data-open="true"] { display: flex; }
+  .nav { display: grid; gap: 4px; }
+  .nav__link { min-height: 44px; display: flex; align-items: center; }
+  .header__account { margin: 0; border-top: 1px solid var(--color-border); padding-top: var(--space-3); flex-wrap: wrap; justify-content: space-between; }
+  .header__user { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+  .header__account .btn { min-height: 44px; }
 }

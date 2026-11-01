@@ -4,6 +4,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/Button";
 import { InlineError } from "@/components/States";
+import { BrandMark } from "@/components/BrandMark";
+import { ProductPreview } from "./ProductPreview";
 
 const STEPS = [
   { title: "Pick a problem", body: "Curated Java interview problems with clear contracts, examples and edge cases." },
@@ -34,11 +36,11 @@ export function LandingPage() {
   return (
     <div className="landing">
       <section className="landing__hero">
-        <p className="landing__eyebrow">Java interview practice · AI coach · real test judge</p>
-        <h1 className="landing__title">Practice like it's the real interview.<br />Get coached like you have a mentor.</h1>
+        <p className="landing__eyebrow"><span />YOUR NEXT CHAPTER STARTS WITH PRACTICE</p>
+        <h1 className="landing__title">Practice like it's{" "}<br />the <span>real interview.</span></h1>
         <p className="landing__lead">
-          CodeCoach AI gives you progressive hints and structured code reviews without handing you the answer.
-          Correctness always comes from test cases, never from the AI.
+          Think it through. Write real Java. Get coaching that helps you move forward.
+          Build the skills to walk into your next interview with confidence.
         </p>
         <div className="row landing__cta">
           <Button variant="primary" onClick={tryDemo} loading={busy}>
@@ -47,39 +49,26 @@ export function LandingPage() {
           <Link to="/problems" className="btn btn--secondary btn--md">Browse problems</Link>
         </div>
         <InlineError error={error} />
+        <div className="landing__assurances"><span>Java-first workspace</span><span>Progressive coaching</span><span>Your progress, saved</span></div>
       </section>
 
-      <section className="landing__preview" aria-label="Workspace preview">
-        <div className="preview">
-          <div className="preview__panel">
-            <span className="preview__label">Problem</span>
-            <strong>Two Sum</strong>
-            <span className="badge badge--difficulty-easy">Easy</span>
-            <p className="subtle">Return the indices of two numbers that add up to the target.</p>
-          </div>
-          <pre className="preview__code">{`class Solution {
-  public int[] twoSum(int[] nums, int target) {
-    Map<Integer, Integer> seen = new HashMap<>();
-    // ...
-  }
-}`}</pre>
-          <div className="preview__panel">
-            <span className="preview__label">AI coach</span>
-            <p className="subtle">“For each number, you already know which value you'd need. How could you check whether you've seen it?”</p>
-            <span className="badge badge--info">Hint 1 of 4 · nudge</span>
-          </div>
-        </div>
-      </section>
+      <ProductPreview />
 
       <section className="landing__steps" aria-label="How it works">
+        <div className="landing__section-heading"><p className="eyebrow">THE PRACTICE LOOP</p><h2>Go beyond getting the answer.</h2><p className="muted">Build a repeatable way to solve the next problem, too.</p></div>
         {STEPS.map((step, i) => (
           <div className="landing__step" key={step.title}>
-            <span className="landing__step-num">{i + 1}</span>
+            <span className="landing__step-num">0{i + 1}</span>
             <h2>{step.title}</h2>
             <p className="muted">{step.body}</p>
           </div>
         ))}
       </section>
+      <section className="landing__interview">
+        <div><p className="eyebrow">PUT IT ALL TOGETHER</p><h2>A little pressure.<br />A lot to learn.</h2><p className="muted">Practice explaining your approach in a timed mock interview. Get follow-up questions and feedback on five skills, with your transcript saved for later.</p></div>
+        <div className="landing__interview-action"><span className="badge badge--info">15 / 30 / 45 minutes</span><Link className="btn btn--secondary btn--md" to={isAuthenticated ? "/interviews" : "/login"} state={{ from: "/interviews" }}>Explore mock interviews <span aria-hidden="true">→</span></Link><p className="subtle">Available with an account or guest session.</p></div>
+      </section>
+      <footer className="landing__footer"><Link className="brand" to="/" aria-label="CodeCoach AI home"><BrandMark />CodeCoach AI</Link><p>Practice with purpose. Build with confidence.</p><nav aria-label="Footer"><Link to="/problems">Practice</Link><Link to="/register">Create account</Link><a href="https://github.com/Barkyx16/CodeCoach-AI" target="_blank" rel="noopener noreferrer">GitHub <span className="visually-hidden">(opens in a new tab)</span></a></nav></footer>
     </div>
   );
 }

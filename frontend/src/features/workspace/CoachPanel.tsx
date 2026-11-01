@@ -6,6 +6,7 @@ import type { CodeReview, HintLevel, HintResponse, ReviewResponse } from "@/api/
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { InlineError } from "@/components/States";
+import { Tabs } from "@/components/Tabs";
 
 const LEVELS: { level: HintLevel; name: string; blurb: string }[] = [
   { level: 1, name: "Nudge", blurb: "A question that points you in the right direction" },
@@ -38,19 +39,16 @@ export function CoachPanel({ problemSlug, maxLevel, code, submissionId, enabled,
   return (
     <section className="coach" aria-label="AI coach">
       <div className="coach__header">
-        <div className="tabs" role="tablist" aria-label="Coach mode">
-          <button role="tab" type="button" aria-selected={tab === "hints"} className={`tab${tab === "hints" ? " tab--active" : ""}`}
-            onClick={() => setTab("hints")}>Hints</button>
-          <button role="tab" type="button" aria-selected={tab === "review"} className={`tab${tab === "review" ? " tab--active" : ""}`}
-            onClick={() => setTab("review")}>Code review</button>
-        </div>
+        <h2 className="section-title">Your coach</h2>
         {usage.data && (
           <span className="subtle" title="AI requests left in the last 24 hours">
             {usage.data.remaining_today}/{usage.data.daily_limit} left
           </span>
         )}
       </div>
-
+      {usage.data && <p className="coach__provider subtle">{usage.data.provider === "offline" ? "Built-in coach · curated hints and static analysis" : `Coach provider: ${usage.data.provider}`}</p>}
+      <Tabs label="Coach mode" tabs={[{ id: "hints", label: "Hints" }, { id: "review", label: "Code review" }] as const}
+        value={tab} onChange={setTab} panelClassName="coach__tab-panel">
       {!enabled ? (
         <div className="coach__signin stack">
           <p className="muted">The AI coach gives progressive hints and structured reviews of your code.</p>
@@ -61,6 +59,7 @@ export function CoachPanel({ problemSlug, maxLevel, code, submissionId, enabled,
       ) : (
         <ReviewTab problemSlug={problemSlug} code={code} submissionId={submissionId} onHighlightLine={onHighlightLine} />
       )}
+      </Tabs>
     </section>
   );
 }

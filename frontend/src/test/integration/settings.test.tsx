@@ -6,8 +6,42 @@ import { loadSession } from "@/auth/session";
 import { tokenResponse, user as baseUser } from "../fixtures";
 import { renderApp } from "../render";
 import { API, server } from "../server";
+import { EDITOR_KEY } from "@/features/settings/editorPreferences";
 
 describe("Settings", () => {
+  it("persists editor preferences and restores defaults", async () => {
+    const { user } = renderApp("/settings", { signedIn: true });
+    await user.selectOptions(await screen.findByLabelText("Font size"), "18");
+    await user.selectOptions(screen.getByLabelText("Editor theme"), "vs");
+    await user.click(screen.getByLabelText("Wrap long lines"));
+    expect(JSON.parse(localStorage.getItem(EDITOR_KEY)!)).toMatchObject({ fontSize: 18, theme: "vs", wordWrap: "on" });
+    await user.click(screen.getByRole("button", { name: "Restore editor defaults" }));
+    expect(screen.getByLabelText("Font size")).toHaveValue("14");
+    expect(JSON.parse(localStorage.getItem(EDITOR_KEY)!)).toMatchObject({ fontSize: 14, theme: "codecoach-dark", wordWrap: "off" });
+  });
+
+  it("warns when editor preferences cannot be persisted", async () => {
+    const { user } = renderApp("/settings", { signedIn: true });
+    const field = await screen.findByLabelText("Font size");
+    const write = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("quota"); });
+    await user.selectOptions(field, "18");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Settings apply for this visit only");
+    expect(field).toHaveValue("18");
+    write.mockRestore();
+  });
+  it("shows a profile save failure and keeps the edited name available for retry", async () => {
+    server.use(http.patch(`${API}/api/v1/auth/me`, () => HttpResponse.json({
+      error: { code: "unavailable", message: "Profile unavailable. Please try again." },
+    }, { status: 503 })));
+    const { user } = renderApp("/settings", { signedIn: true });
+    const field = await screen.findByLabelText("Display name");
+    await user.clear(field);
+    await user.type(field, "Grace");
+    await user.click(screen.getByRole("button", { name: "Save profile" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Profile unavailable. Please try again.");
+    expect(field).toHaveValue("Grace");
+    expect(screen.getByRole("button", { name: "Save profile" })).toBeEnabled();
+  });
   it("updates the display name everywhere", async () => {
     server.use(http.patch(`${API}/api/v1/auth/me`, async ({ request }) => {
       const body = (await request.json()) as { display_name: string };

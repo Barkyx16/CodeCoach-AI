@@ -14,11 +14,11 @@
   transition: background var(--duration-fast) var(--ease-standard), border-color var(--duration-fast);
   white-space: nowrap;
 }
-.btn--md { padding: var(--space-2) var(--space-4); font-size: var(--text-sm); min-height: 36px; }
-.btn--sm { padding: var(--space-1) var(--space-3); font-size: var(--text-xs); min-height: 28px; }
-.btn:hover:not(:disabled) { border-color: var(--color-primary); }
+.btn--md { padding: var(--space-2) var(--space-4); font-size: var(--text-sm); min-height: 42px; }
+.btn--sm { padding: var(--space-1) var(--space-3); font-size: var(--text-xs); min-height: 34px; }
+.btn:hover:not(:disabled) { border-color: var(--color-link); }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; }
-.btn--primary { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-text-inverse); }
+.btn--primary { background: var(--color-primary); border-color: var(--color-link); color: var(--color-text-inverse); }
 .btn--primary:hover:not(:disabled) { background: var(--color-primary-hover); }
 .btn--ghost { background: transparent; border-color: transparent; color: var(--color-text-muted); }
 .btn--ghost:hover:not(:disabled) { color: var(--color-text); border-color: var(--color-border); }
@@ -29,7 +29,7 @@
   display: inline-block;
   border-radius: 50%;
   border: 2px solid var(--color-border-strong);
-  border-top-color: var(--color-primary);
+  border-top-color: var(--color-link);
   animation: spin 0.8s linear infinite;
 }
 .spinner--md { width: 20px; height: 20px; }
@@ -102,10 +102,10 @@
   font: inherit;
   font-size: var(--text-sm);
   padding: var(--space-2) var(--space-3);
-  min-height: 38px;
+  min-height: 44px;
 }
 .input:focus-visible,
-.select:focus-visible { border-color: var(--color-primary); }
+.select:focus-visible { border-color: var(--color-link); }
 .input[aria-invalid="true"] { border-color: var(--color-danger); }
 
 /* ---------- Banner ---------- */
@@ -120,3 +120,9 @@
 .banner--warning { border-left-color: var(--color-warning); background: var(--color-warning-soft); }
 .banner--danger { border-left-color: var(--color-danger); background: var(--color-danger-soft); }
 .banner--success { border-left-color: var(--color-success); background: var(--color-success-soft); }
+
+.btn--primary { box-shadow: 0 1px 0 rgba(255,255,255,.12) inset, 0 3px 12px #0002; }
+.btn--danger { background: var(--color-danger-soft); }
+.card { box-shadow: var(--shadow-sm); }
+.input::placeholder { color: var(--color-text-subtle); opacity: 1; }
+@media (pointer: coarse) { .btn--sm { min-height: 44px; } }

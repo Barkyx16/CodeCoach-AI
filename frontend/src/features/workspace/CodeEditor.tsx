@@ -2,6 +2,7 @@ import Editor, { type OnMount } from "@monaco-editor/react";
 import { useEffect, useRef } from "react";
 
 import { LoadingState } from "@/components/States";
+import { useEditorPreferences } from "@/features/settings/editorPreferences";
 
 import "./monacoSetup";
 import type { monaco } from "./monacoSetup";
@@ -15,6 +16,7 @@ interface CodeEditorProps {
 }
 
 export function CodeEditor({ value, onChange, onSubmit, highlightLine }: CodeEditorProps) {
+  const { preferences } = useEditorPreferences();
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const decorations = useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
   const submitRef = useRef(onSubmit);
@@ -47,17 +49,18 @@ export function CodeEditor({ value, onChange, onSubmit, highlightLine }: CodeEdi
     <div className="code-editor" data-testid="code-editor">
       <Editor
         language="java"
-        theme="codecoach-dark"
+        theme={preferences.theme}
         value={value}
         onChange={(v) => onChange(v ?? "")}
         onMount={handleMount}
         loading={<LoadingState label="Starting editor…" />}
         options={{
           fontFamily: "JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, monospace",
-          fontSize: 14,
+          fontSize: preferences.fontSize,
           minimap: { enabled: false },
           scrollBeyondLastLine: false,
-          tabSize: 4,
+          tabSize: preferences.tabSize,
+          wordWrap: preferences.wordWrap,
           automaticLayout: true,
           glyphMargin: true,
           ariaLabel: "Java code editor. Press Control or Command plus Enter to submit.",

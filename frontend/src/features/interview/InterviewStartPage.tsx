@@ -7,10 +7,11 @@ import type { InterviewSummary } from "@/api/types";
 import { Badge, DifficultyBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
-import { InlineError } from "@/components/States";
+import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
 import { timeAgo } from "@/lib/format";
+import { Icon } from "@/components/Icon";
 
-import { OVERALL_LABELS, PHASES } from "./phases";
+import { DIMENSION_LABELS, OVERALL_LABELS, PHASES } from "./phases";
 
 const DURATIONS = [15, 30, 45];
 
@@ -38,21 +39,25 @@ export function InterviewStartPage() {
     <div className="page interview-start">
       <div className="page__header">
         <div>
+          <p className="eyebrow">THINK CLEARLY. EXPLAIN CONFIDENTLY.</p>
           <h1 className="page__title">Mock interview</h1>
           <p className="page__subtitle">A timed, realistic coding interview with an AI interviewer, then rubric feedback.</p>
         </div>
       </div>
+      <div className="interview-overview"><span><Icon name="clock" size={18} />15–45 minutes</span><span><Icon name="code" size={18} />Java workspace</span><span><Icon name="chart" size={18} />Feedback on {Object.keys(DIMENSION_LABELS).length} skills</span></div>
 
       <div className="interview-start__grid">
         <Card>
           <form className="stack" onSubmit={onSubmit} aria-labelledby="start-title">
-            <h2 id="start-title" className="section-title">Set up</h2>
+            <h2 id="start-title" className="section-title"><Icon name="target" size={17} />Set up</h2>
+            <p className="interview-start__lead">Make space to think.</p><p className="subtle">Choose your challenge and the time you want to spend on it.</p>
             <div className="field">
               <label className="field__label" htmlFor="iv-problem">Problem</label>
               <select id="iv-problem" className="select" value={slug} onChange={(e) => setSlug(e.target.value)}>
                 <option value="">Pick one for me (recommended)</option>
                 {problems.data?.items.map((p) => <option key={p.slug} value={p.slug}>{p.title} · {p.difficulty}</option>)}
               </select>
+              {problems.isError && <InlineError error={problems.error} />}
             </div>
             <fieldset className="field">
               <legend className="field__label">Time limit</legend>
@@ -72,7 +77,7 @@ export function InterviewStartPage() {
             ) : (
               <InlineError error={start.error} />
             )}
-            <Button type="submit" variant="primary" loading={start.isPending}>Start interview</Button>
+            <Button type="submit" variant="primary" loading={start.isPending}>Start interview <Icon name="arrow" size={16} /></Button>
           </form>
         </Card>
 
@@ -101,12 +106,13 @@ const HOWTO: Record<string, string> = {
 
 function PastInterviews() {
   const q = useInterviews({ page_size: 5 });
-  if (!q.data || q.data.total === 0) return null;
   return (
     <section className="stack interview-start__past" aria-label="Recent interviews">
       <h2 className="section-title">Recent interviews</h2>
-      <ul className="interview-list">{q.data.items.map((iv) => <InterviewRow key={iv.id} iv={iv} />)}</ul>
-      {q.data.total > 5 && <Link to="/history?tab=interviews">See all interviews</Link>}
+      {q.isPending ? <LoadingState label="Loading interviews…" /> : q.isError ? <ErrorState error={q.error} onRetry={() => void q.refetch()} />
+        : q.data.total === 0 ? <EmptyState title="Your next interview starts with practice">Pick a problem and a time limit above. Your sessions and feedback will be saved here.</EmptyState>
+          : <><ul className="interview-list">{q.data.items.map((iv) => <InterviewRow key={iv.id} iv={iv} />)}</ul>
+            {q.data.total > 5 && <Link to="/history?tab=interviews">See all interviews</Link>}</>}
     </section>
   );
 }

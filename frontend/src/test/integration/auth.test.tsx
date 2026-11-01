@@ -3,8 +3,24 @@ import { http, HttpResponse } from "msw";
 
 import { renderApp } from "../render";
 import { API, server } from "../server";
+import { progress, tokenResponse } from "../fixtures";
 
 describe("Authentication", () => {
+  it("authenticates the first request when opening a protected page with a saved session", async () => {
+    const headers: (string | null)[] = [];
+    server.use(http.get(`${API}/api/v1/me/progress`, ({ request }) => {
+      const header = request.headers.get("Authorization");
+      headers.push(header);
+      return header === `Bearer ${tokenResponse().access_token}`
+        ? HttpResponse.json(progress)
+        : HttpResponse.json({ error: { code: "unauthorized", message: "Missing token" } }, { status: 401 });
+    }));
+    renderApp("/dashboard", { signedIn: true });
+    expect(await screen.findByText("Ada's progress")).toBeInTheDocument();
+    expect(headers.length).toBeGreaterThan(0);
+    expect(headers.every((value) => value === `Bearer ${tokenResponse().access_token}`)).toBe(true);
+    expect(screen.queryByText("Missing token")).not.toBeInTheDocument();
+  });
   it("redirects protected pages to login and returns afterwards", async () => {
     const { user, router } = renderApp("/dashboard");
     expect(await screen.findByRole("heading", { name: "Welcome back" })).toBeInTheDocument();

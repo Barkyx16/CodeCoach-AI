@@ -6,6 +6,7 @@ import { hint, page, problems, progress, queuedSubmission, review, tokenResponse
 export const API = "http://localhost:8000";
 
 export const handlers = [
+  http.get(`${API}/api/v1/interviews`, () => HttpResponse.json(page([]))),
   http.get(`${API}/api/v1/problems`, ({ request }) => {
     const url = new URL(request.url);
     const topic = url.searchParams.get("topic");

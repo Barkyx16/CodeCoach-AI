@@ -22,6 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session]);
 
   const clear = useCallback((reason: string | null) => {
+    sessionRef.current = null;
     saveSession(null);
     setSession(null);
     setSignedOutReason(reason);
@@ -29,7 +30,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryClient.removeQueries({ queryKey: ["me"] });
   }, [queryClient]);
 
-  useEffect(() => {
+  // Wire authentication before child query subscriptions issue their initial requests.
+  // A passive effect is too late when opening a protected page from a saved session.
+  useLayoutEffect(() => {
     configureAuth(
       () => {
         const current = sessionRef.current;
@@ -37,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       () => clear("Your session ended. Please sign in again."),
     );
+    return () => configureAuth(() => null, () => {});
   }, [clear]);
 
   // Sign out on the client exactly when the token expires.

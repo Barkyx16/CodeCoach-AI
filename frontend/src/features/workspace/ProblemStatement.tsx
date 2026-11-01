@@ -3,12 +3,14 @@ import Markdown from "react-markdown";
 import type { ProblemDetail } from "@/api/types";
 import { DifficultyBadge, TopicTag } from "@/components/Badge";
 import { formatArgs, formatValue } from "@/lib/format";
+import { Icon } from "@/components/Icon";
 
 /** Problem text is Markdown from our own seed files; react-markdown renders no raw HTML. */
 export function ProblemStatement({ problem }: { problem: ProblemDetail }) {
   return (
     <article className="statement" aria-labelledby="problem-title">
       <header className="statement__header">
+        <p className="statement__eyebrow"><Icon name="book" size={14} /> PROBLEM STATEMENT</p>
         <h1 id="problem-title" className="statement__title">{problem.title}</h1>
         <div className="row">
           <DifficultyBadge difficulty={problem.difficulty} />
@@ -24,6 +26,7 @@ export function ProblemStatement({ problem }: { problem: ProblemDetail }) {
         <h2 className="section-title">Examples</h2>
         {problem.examples.map((ex, i) => (
           <div className="example" key={i}>
+            <span className="example__number">EXAMPLE {String(i + 1).padStart(2, "0")}</span>
             <div><span className="example__label">Input</span> <code>{ex.input}</code></div>
             <div><span className="example__label">Output</span> <code>{ex.output}</code></div>
             {ex.explanation && <p className="subtle">{ex.explanation}</p>}

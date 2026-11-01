@@ -6,6 +6,7 @@ import type { AIHistoryAction, AIHistoryItem, CodeReview, FailureExplanation } f
 import { Badge, StatusBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
+import { Tabs } from "@/components/Tabs";
 import { InterviewRow } from "@/features/interview/InterviewStartPage";
 import { ReviewResult } from "@/features/workspace/CoachPanel";
 import { FailureExplanationView } from "@/features/workspace/FailureExplanation";
@@ -25,17 +26,10 @@ export function HistoryPage() {
           <p className="page__subtitle">Every attempt and every piece of AI feedback, saved.</p>
         </div>
       </div>
-      <div className="tabs" role="tablist" aria-label="History type">
-        <button type="button" role="tab" aria-selected={tab === "submissions"} className={`tab${tab === "submissions" ? " tab--active" : ""}`}
-          onClick={() => setParams({}, { replace: true })}>Submissions</button>
-        <button type="button" role="tab" aria-selected={tab === "ai"} className={`tab${tab === "ai" ? " tab--active" : ""}`}
-          onClick={() => setParams({ tab: "ai" }, { replace: true })}>AI feedback</button>
-        <button type="button" role="tab" aria-selected={tab === "interviews"} className={`tab${tab === "interviews" ? " tab--active" : ""}`}
-          onClick={() => setParams({ tab: "interviews" }, { replace: true })}>Interviews</button>
-      </div>
-      <div role="tabpanel">
+      <Tabs label="History type" tabs={[{ id: "submissions", label: "Submissions" }, { id: "ai", label: "AI feedback" }, { id: "interviews", label: "Interviews" }] as const}
+        value={tab} onChange={(next) => setParams(next === "submissions" ? {} : { tab: next }, { replace: true })}>
         {tab === "ai" ? <AIFeedbackList /> : tab === "interviews" ? <InterviewList /> : <SubmissionList />}
-      </div>
+      </Tabs>
     </div>
   );
 }
@@ -62,6 +56,7 @@ function SubmissionList() {
   }
   return (
     <>
+      <div className="history__scroll" role="region" aria-label="Submission history" tabIndex={0}>
       <table className="data-table history__table">
         <thead>
           <tr><th scope="col">Problem</th><th scope="col">Status</th><th scope="col">Submitted</th><th scope="col">Runtime</th></tr>
@@ -77,6 +72,7 @@ function SubmissionList() {
           ))}
         </tbody>
       </table>
+      </div>
       <Pager page={page} total={q.data.total} onPage={setPage} />
     </>
   );

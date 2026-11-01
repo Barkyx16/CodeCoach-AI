@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+
 import { useExplainFailure } from "@/api/queries";
 import type { Submission } from "@/api/types";
 import { StatusBadge } from "@/components/Badge";
@@ -5,6 +7,7 @@ import { Button } from "@/components/Button";
 import { Spinner } from "@/components/Spinner";
 import { ErrorState, InlineError } from "@/components/States";
 import { formatArgs, formatValue, timeAgo } from "@/lib/format";
+import { Icon } from "@/components/Icon";
 
 import { FailureExplanationView } from "./FailureExplanation";
 
@@ -34,6 +37,8 @@ export function SubmissionPanel({ submission, error, onHighlightLine }: Submissi
   if (!submission) {
     return (
       <div className="results results--empty">
+        <Icon name="terminal" size={24} />
+        <strong>Your next result starts with an attempt.</strong>
         <p className="muted">Submit your solution to save an attempt. <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd></p>
       </div>
     );
@@ -45,6 +50,7 @@ export function SubmissionPanel({ submission, error, onHighlightLine }: Submissi
   const result = submission.result;
   return (
     <div className="results" aria-live="polite">
+      <h2 className="section-title results__label"><Icon name="terminal" size={15} />Execution results</h2>
       <div className="results__header">
         <StatusBadge status={submission.status} />
         {running && <Spinner size="sm" label="Judging" />}
@@ -124,9 +130,19 @@ export function SubmissionPanel({ submission, error, onHighlightLine }: Submissi
 
 function ExplainFailure({ submissionId, onHighlightLine }: { submissionId: string; onHighlightLine?(line: number | null): void }) {
   const explain = useExplainFailure();
+  const cardRef = useRef<HTMLElement>(null);
+  // The results panel scrolls independently, so bring the new explanation into view (and keep
+  // keyboard users on it). Smooth scrolling is skipped when the user prefers reduced motion.
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!explain.data || !card) return;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    card.scrollIntoView?.({ block: "start", behavior: reduce ? "auto" : "smooth" });
+    card.focus({ preventScroll: true });
+  }, [explain.data]);
   if (explain.data) {
     return (
-      <section className="explain card" aria-label="Why it failed">
+      <section ref={cardRef} tabIndex={-1} className="explain card" aria-label="Why it failed">
         <h3 className="section-title">Why it failed</h3>
         <FailureExplanationView data={explain.data} onHighlightLine={onHighlightLine} />
       </section>

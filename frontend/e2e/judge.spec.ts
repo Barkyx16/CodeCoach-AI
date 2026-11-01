@@ -52,7 +52,7 @@ test("submissions are judged in the gVisor sandbox", async ({ page, context }) =
   const why = page.getByRole("region", { name: "Why it failed" });
   await expect(why.getByText("Wrong answer on a public test.")).toBeVisible();
   await expect(why.getByText(/Public test 2 \(nums = \[3, 2, 4\], target = 6\): expected \[1, 2\], got \[0, 1\]/)).toBeVisible();
-  await why.screenshot({ path: "e2e/screenshots/10-explain-failure.png" });
+  await page.screenshot({ path: "e2e/screenshots/10-explain-failure.png" });
 
   // The right answer passes every public and hidden test.
   await paste(page, CORRECT);

@@ -7,6 +7,7 @@ import { Field } from "@/components/Field";
 import { InlineError } from "@/components/States";
 
 import { fieldErrorsFrom } from "./fieldErrors";
+import { AuthLayout } from "./AuthLayout";
 
 function useRedirectTarget(): string {
   const location = useLocation();
@@ -18,18 +19,25 @@ function GuestButton() {
   const navigate = useNavigate();
   const target = useRedirectTarget();
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
   return (
+    <div className="guest-access">
     <Button variant="ghost" loading={busy} onClick={async () => {
       setBusy(true);
+      setError(null);
       try {
         await continueAsGuest();
         navigate(target, { replace: true });
+      } catch (error) {
+        setError(error);
       } finally {
         setBusy(false);
       }
     }}>
       Continue as guest
     </Button>
+    <InlineError error={error} />
+    </div>
   );
 }
 
@@ -57,9 +65,10 @@ export function LoginPage() {
   }
 
   return (
-    <div className="page auth">
+    <AuthLayout>
       <form className="card auth__card stack" onSubmit={onSubmit} noValidate aria-labelledby="login-title">
         <h1 className="page__title" id="login-title">Welcome back</h1>
+        <p className="muted">Pick up where your last solution left off.</p>
         <Field label="Email" type="email" autoComplete="email" required value={email}
           onChange={(e) => setEmail(e.target.value)} />
         <Field label="Password" type="password" autoComplete="current-password" required value={password}
@@ -71,7 +80,7 @@ export function LoginPage() {
           <GuestButton />
         </div>
       </form>
-    </div>
+    </AuthLayout>
   );
 }
 
@@ -103,7 +112,7 @@ export function RegisterPage() {
     setForm((f) => ({ ...f, [key]: e.target.value }));
 
   return (
-    <div className="page auth">
+    <AuthLayout>
       <form className="card auth__card stack" onSubmit={onSubmit} noValidate aria-labelledby="register-title">
         <h1 className="page__title" id="register-title">Create your account</h1>
         <p className="muted">Save your progress, attempts and AI feedback across devices.</p>
@@ -123,6 +132,6 @@ export function RegisterPage() {
           <GuestButton />
         </div>
       </form>
-    </div>
+    </AuthLayout>
   );
 }

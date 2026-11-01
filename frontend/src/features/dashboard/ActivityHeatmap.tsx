@@ -22,7 +22,7 @@ export function ActivityHeatmap({ days }: { days: Day[] }) {
   return (
     <div className="heatmap">
       <div className="heatmap__header">
-        <span className="subtle" aria-live="polite">{hovered ? label(hovered) : `${total} activities in the last 28 days`}</span>
+        <span className="subtle" aria-live="polite">{hovered ? label(hovered) : `${total} ${total === 1 ? "activity" : "activities"} in the last 28 days`}</span>
         <Button size="sm" variant="ghost" onClick={() => setAsTable((v) => !v)} aria-pressed={asTable}>
           {asTable ? "Show chart" : "Show table"}
         </Button>
