@@ -637,6 +637,24 @@ Newest first. `response` holds the exact `content` (hints), `review` (reviews) o
 }
 ```
 
+### Interview review, retries and the review queue
+
+- `GET /api/v1/interviews/{id}/review` 🔒 (finished interviews only; `409 interview_in_progress`
+  otherwise): `{status_label, completed, elapsed_seconds, notices, items, overall, improvements,
+  disclaimer, final_code, …}`. Built from stored data only: no evaluator runs on read. Items are
+  questions (round) or transcript turns (coding) with recorded times; each round answer carries
+  `dimensions` with a `status` of `evaluated | not_evaluated | not_applicable`. Improvements cite
+  `evidence` (`item_key` of a question or turn, or `code` with a line).
+- `POST /api/v1/interviews/{id}/questions/{index}/retries` 🔒 `{answer, source}` → `201`
+  `Comparison`: the retry is a separate graded answer; the interview's answer is untouched.
+  `GET …/comparison` returns `{original, retries, latest, comparable, comparability_note,
+  improved, still_missing, newly_missing, score_change}`; `score_change` is null unless both were
+  scored by the same evaluator and rubric version. Rounds only (`409` for coding interviews).
+- `GET|POST /api/v1/me/reviews`, `POST /api/v1/me/reviews/{id}/snooze {days: 1|3|7}`,
+  `DELETE /api/v1/me/reviews/{id}` 🔒: the spaced review queue. Items move along 1, 3, 7, 14, 30
+  days only when the question is answered again (85+ moves up, below 70 resets to 1 day); every
+  item says why it's due. Nothing is sent anywhere.
+
 ### Target roles ("Prepare for this role")
 
 All under `/api/v1/targets` 🔒 and scoped to the owner (another user's id is a 404).

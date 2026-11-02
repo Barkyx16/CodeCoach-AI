@@ -103,7 +103,7 @@ export function VoiceComposer({
         </p>
       </div>
       <textarea id={id} aria-labelledby={`${id}-label`} aria-describedby={`${id}-help`} className="input answer-input" rows={rows}
-        maxLength={maxLength} value={value} disabled={disabled} placeholder={placeholder}
+        maxLength={maxLength} value={value} disabled={disabled} readOnly={submitting} aria-busy={submitting || undefined} placeholder={placeholder}
         onChange={(e) => { used.current.typed = true; onChange(e.target.value); }}
         onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submit(); } }} />
       {dictation.interim && (

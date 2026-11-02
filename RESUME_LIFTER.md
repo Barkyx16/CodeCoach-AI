@@ -526,6 +526,15 @@ These are moments where the obvious path was wrong and a deliberate decision was
     best average 64/100") rather than a made-up chance of being hired. A licence requirement is
     called a qualification gap rather than pretending a question could cover it.
 
+39. **A review that can't oversell.** After an interview it's tempting to show one big score
+    and a page of advice. Instead the review is built only from what was recorded (no
+    re-evaluation on page load, so no budget spent and no drifting answers), says plainly when a
+    session ended early, and splits feedback into what was actually evaluated and what wasn't:
+    reasoning isn't judged by the built-in coach, spoken delivery isn't measured (audio is never
+    kept), and interview code isn't run, so there's no pass/fail. Retries never overwrite the
+    original, and a score change is only shown when both attempts were graded by the same
+    evaluator and rubric version; otherwise the page compares the points covered instead.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -1088,3 +1097,23 @@ You asked for a workspace that turns a real job description into focused practic
 - **Limits:** extraction is rule-based (no AI provider is configured), so unusual posting layouts
   may need manual corrections; no generated questions, so uncovered requirements stay gaps; no
   AI rewriting of your examples.
+
+### Session 18: post-interview review and improvement
+You asked for a replay and improvement workspace after interviews.
+
+**Built and verified:**
+- **Structured review** for both interview kinds from stored data: status and real duration,
+  notices for incomplete sessions and transcription, a selectable timeline with recorded times,
+  per-answer dimensions, and at most three improvements tied to the answers, turns or code lines
+  that show them, each with a working "Practice this".
+- **Retries** of single questions (original kept, separate graded attempt, saved draft) and a
+  **comparison** that discloses evaluator/rubric differences instead of comparing scores.
+- **Spaced review queue** with a fixed ladder, reasons, snooze and remove; no notifications.
+- Migration (new tables, cascade), export, ownership checks; the answer box is read-only while a
+  submit is in flight (found by the new browser test, which typed into the next question early).
+- Tests: 11 backend, 6 frontend, a real-browser journey (abandon → review → evidence link →
+  save → retry → compare → queue → History and back). Totals: 1,633 backend (SQLite), 445 on
+  PostgreSQL, 161 frontend, 24 Playwright.
+- **Limits:** no audio replay (audio is never kept); coding interviews can't be retried question
+  by question (the action reopens the problem); review completion isn't yet an activity type in
+  History.
