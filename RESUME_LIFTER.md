@@ -460,6 +460,13 @@ These are moments where the obvious path was wrong and a deliberate decision was
     runner records the *first* limit to fire, under a lock, and classifies by that. It showed up
     once on CI; a deterministic unit test now reproduces it.
 
+31. **33,000 questions, honestly.** "300 questions for each of hundreds of jobs" can't be
+    hand-written well, and padding with filler would be worse than fewer questions. So the
+    human effort went where quality comes from: a careful profile per job and question templates
+    with real rubrics, combined deterministically. The trade-off is visible: questions follow
+    patterns and the offline grader checks coverage and structure, not truth. The UI says so,
+    and an LLM grader is the planned upgrade, not a hidden dependency.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -865,4 +872,31 @@ You asked for the whole site to be more compact and better organized.
   Analytics 1876→1096px, Settings 2740→2422px. No horizontal scroll at phone width.
 - No test selector changed; 108 frontend tests and 16 Playwright tests pass, including the
   axe-core WCAG 2.1 AA scans of every screen on desktop and phone. Screenshots 20–22.
+
+### Session 12: practice for any job, library tabs and keyword search
+You asked for Easy/Medium/Hard tabs that show 5 problems then "View more", search by keywords or
+by what you want to practice, and then: make it work for every kind of job, picked at sign-up,
+with 300 questions per job across hundreds of jobs.
+
+**Built and verified:**
+- **Library tabs and search:** Easy/Medium/Hard tabs with live counts, 5 rows then "View more"
+  (+10). Search understands plain language: filler words dropped, plurals folded, abbreviations
+  expanded ("dp", "hashmap", "bfs"), results ranked by where words appear, with a best-partial
+  fallback. Empty tabs point to the levels that do have matches.
+- **110 careers in 12 industries**, each a hand-written profile (8+ skills, 5+ tools, 8+ real
+  situations, the people the job works with, how it's measured). Picked at sign-up (required),
+  changeable in Settings and on the practice page; guests and signed-out visitors can browse any.
+- **300 questions per career (33,000 total)**: 39 hand-written templates for knowledge,
+  behavioral, situational, leadership and motivation questions, filled from the profile. Every
+  career gets exactly 100 per level, all titles and prompts distinct, with stable ids.
+- **Feedback on written answers** with no API key: rubric coverage (STAR for behavioral; assess,
+  prioritize, communicate, act, follow up for scenarios), length, "I" vs "we", numbers and filler,
+  plus an outline of a strong answer. Saved per user with best scores and progress; in the data
+  export; rate-limited.
+- Tests: 119 backend career tests (one per career checks 300 distinct, fully filled questions),
+  8 frontend, a real-browser test of a nurse signing up, searching, answering and getting
+  feedback, and WCAG scans of the new pages. Totals: 448 backend (+PostgreSQL), 119 frontend,
+  18 Playwright tests.
+- **Not done yet (next):** 300 *coding* problems with real test data (22 today), Claude-graded
+  answers when a key is set, mock interviews and the dashboard using the career's questions.
 

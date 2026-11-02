@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db, get_settings_dep
+from app.careers import DEFAULT_TRACK
 from app.config import Settings
 from app.errors import (
     AppError,
@@ -120,6 +121,7 @@ def register(
         auth_provider_id=f"password:{new_id()}",
         password_hash=hash_password(body.password),
         display_name=body.display_name,
+        career_track=body.career_track or DEFAULT_TRACK,
         is_guest=False,
         last_login_at=datetime.now(UTC),
     )
@@ -183,6 +185,7 @@ def guest(
         auth_provider_id=f"guest:{new_id()}",
         is_guest=True,
         display_name=(body.display_name if body else None) or "Guest",
+        career_track=(body.career_track if body else None) or DEFAULT_TRACK,
     )
     db.add(user)
     db.commit()
@@ -216,6 +219,8 @@ def upgrade_guest(
     user.is_guest = False  # no longer subject to guest retention
     if body.display_name:
         user.display_name = body.display_name
+    if body.career_track:
+        user.career_track = body.career_track
     user.last_login_at = datetime.now(UTC)
     refresh_tokens.revoke_all(db, user)  # the guest session's cookie is replaced below
     try:
@@ -482,7 +487,11 @@ def change_password(
 def update_me(
     body: UpdateProfileRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> User:
-    user.display_name = body.display_name.strip() if body.display_name else None
+    # Partial update: a field that wasn't sent is left alone (so changing the track keeps the name).
+    if "display_name" in body.model_fields_set:
+        user.display_name = body.display_name.strip() if body.display_name else None
+    if body.career_track:
+        user.career_track = body.career_track
     db.commit()
     return user
 

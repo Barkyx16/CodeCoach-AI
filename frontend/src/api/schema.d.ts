@@ -366,6 +366,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/careers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every career you can practice for */
+        get: operations["list_careers_api_v1_careers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/careers/{slug}/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Interview questions for a career (filterable, searchable) */
+        get: operations["list_questions_api_v1_careers__slug__questions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/careers/{slug}/questions/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How many questions match, per difficulty */
+        get: operations["count_questions_api_v1_careers__slug__questions_counts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/careers/{slug}/questions/{question_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One interview question with tips */
+        get: operations["get_one_api_v1_careers__slug__questions__question_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/careers/{slug}/questions/{question_id}/answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your past answers to a question, newest first */
+        get: operations["my_answers_api_v1_careers__slug__questions__question_id__answers_get"];
+        put?: never;
+        /** Answer a question and get feedback */
+        post: operations["answer_question_api_v1_careers__slug__questions__question_id__answers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/careers/{slug}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your progress on a career's questions */
+        get: operations["track_progress_api_v1_careers__slug__progress_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/submissions": {
         parameters: {
             query?: never;
@@ -720,6 +823,47 @@ export interface components {
             /** Events */
             events: number;
         };
+        /** AnswerOut */
+        AnswerOut: {
+            /** Id */
+            id: string;
+            /** Question Id */
+            question_id: string;
+            /** Answer */
+            answer: string;
+            /** Score */
+            score: number;
+            /** Rating */
+            rating: string;
+            /** Summary */
+            summary: string;
+            /** Points */
+            points: components["schemas"]["FeedbackPoint"][];
+            /** Notes */
+            notes: string[];
+            /**
+             * Outline
+             * @description What a strong answer would include
+             */
+            outline: string[];
+            /** Word Count */
+            word_count: number;
+            /**
+             * Coach
+             * @description Which coach graded it: 'built-in (offline)' or the AI provider
+             */
+            coach: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** AnswerRequest */
+        AnswerRequest: {
+            /** Answer */
+            answer: string;
+        };
         /** Capabilities */
         Capabilities: {
             /**
@@ -738,6 +882,24 @@ export interface components {
              * @description Guest accounts inactive this long are deleted with their data (0: kept forever)
              */
             guest_retention_days: number;
+        };
+        /** CareerSummary */
+        CareerSummary: {
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+            /** Category */
+            category: string;
+            /** Summary */
+            summary: string;
+            /**
+             * Has Coding
+             * @description Also has hands-on coding problems (the code judge)
+             */
+            has_coding: boolean;
+            /** Question Count */
+            question_count: number;
         };
         /** ChangeEmailRequest */
         ChangeEmailRequest: {
@@ -954,10 +1116,21 @@ export interface components {
              */
             confidence: "low" | "medium" | "high";
         };
+        /** FeedbackPoint */
+        FeedbackPoint: {
+            /** Label */
+            label: string;
+            /** Covered */
+            covered: boolean;
+            /** Advice */
+            advice: string;
+        };
         /** GuestSessionRequest */
         GuestSessionRequest: {
             /** Display Name */
             display_name?: string | null;
+            /** Career Track */
+            career_track?: string | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1208,6 +1381,20 @@ export interface components {
             /** Page Size */
             page_size: number;
         };
+        /** Page[QuestionSummary] */
+        Page_QuestionSummary_: {
+            /** Items */
+            items: components["schemas"]["QuestionSummary"][];
+            /**
+             * Total
+             * @description Total matching items across all pages
+             */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
         /** Page[SubmissionListItem] */
         Page_SubmissionListItem_: {
             /** Items */
@@ -1393,6 +1580,59 @@ export interface components {
             /** Expected Output */
             expected_output: unknown;
         };
+        /** QuestionDetail */
+        QuestionDetail: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Prompt */
+            prompt: string;
+            /** Difficulty */
+            difficulty: string;
+            /**
+             * Kind
+             * @description knowledge, behavioral, situational, leadership or motivation
+             */
+            kind: string;
+            /**
+             * Best Score
+             * @description Your best score on this question, when signed in
+             */
+            best_score?: number | null;
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /** Tips */
+            tips: string[];
+            /**
+             * Rubric Labels
+             * @description What a strong answer covers (shown after answering)
+             */
+            rubric_labels: string[];
+        };
+        /** QuestionSummary */
+        QuestionSummary: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Prompt */
+            prompt: string;
+            /** Difficulty */
+            difficulty: string;
+            /**
+             * Kind
+             * @description knowledge, behavioral, situational, leadership or motivation
+             */
+            kind: string;
+            /**
+             * Best Score
+             * @description Your best score on this question, when signed in
+             */
+            best_score?: number | null;
+        };
         /** Recommendation */
         Recommendation: {
             /** Slug */
@@ -1427,6 +1667,12 @@ export interface components {
              * @example Ada
              */
             display_name?: string | null;
+            /**
+             * Career Track
+             * @description The job you're preparing for (a slug from /careers)
+             * @example registered-nurse
+             */
+            career_track?: string | null;
         };
         /** ReviewIssue */
         ReviewIssue: {
@@ -1626,6 +1872,24 @@ export interface components {
             /** Solved */
             solved: number;
         };
+        /** TrackProgress */
+        TrackProgress: {
+            /** Track */
+            track: string;
+            /** Answered */
+            answered: number;
+            /**
+             * Strong
+             * @description Questions with a best score of 85 or more
+             */
+            strong: number;
+            /** By Difficulty */
+            by_difficulty: {
+                [key: string]: number;
+            };
+            /** Total Questions */
+            total_questions: number;
+        };
         /** TurnOut */
         TurnOut: {
             /** Seq */
@@ -1645,10 +1909,18 @@ export interface components {
          * @enum {string}
          */
         TurnRole: "interviewer" | "candidate";
-        /** UpdateProfileRequest */
+        /**
+         * UpdateProfileRequest
+         * @description Only the fields you send are changed. Send display_name: null to clear the name.
+         */
         UpdateProfileRequest: {
             /** Display Name */
             display_name?: string | null;
+            /**
+             * Career Track
+             * @description Switch the job you're preparing for
+             */
+            career_track?: string | null;
         };
         /**
          * UpgradeGuestRequest
@@ -1670,6 +1942,12 @@ export interface components {
              * @example Ada
              */
             display_name?: string | null;
+            /**
+             * Career Track
+             * @description The job you're preparing for (a slug from /careers)
+             * @example registered-nurse
+             */
+            career_track?: string | null;
         };
         /** UserOut */
         UserOut: {
@@ -1691,6 +1969,11 @@ export interface components {
              * @description The owner confirmed this email address
              */
             email_verified: boolean;
+            /**
+             * Career Track
+             * @description The job this person is preparing for
+             */
+            career_track: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -2820,6 +3103,317 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_careers_api_v1_careers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareerSummary"][];
+                };
+            };
+        };
+    };
+    list_questions_api_v1_careers__slug__questions_get: {
+        parameters: {
+            query?: {
+                difficulty?: string | null;
+                /** @description Keywords or a plain description */
+                q?: string | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_QuestionSummary_"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    count_questions_api_v1_careers__slug__questions_counts_get: {
+        parameters: {
+            query?: {
+                q?: string | null;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DifficultyCounts"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_one_api_v1_careers__slug__questions__question_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionDetail"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_answers_api_v1_careers__slug__questions__question_id__answers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnswerOut"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    answer_question_api_v1_careers__slug__questions__question_id__answers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnswerRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnswerOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    track_progress_api_v1_careers__slug__progress_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackProgress"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description Not found (also returned for resources owned by another user) */

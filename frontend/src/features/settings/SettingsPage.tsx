@@ -13,6 +13,7 @@ import { PasswordChecklist } from "@/components/PasswordChecklist";
 import { InlineError } from "@/components/States";
 import { fieldErrorsFrom } from "@/features/auth/fieldErrors";
 import { EditorAppearancePreview } from "./EditorAppearancePreview";
+import { CareerSelect } from "@/features/careers/CareerSelect";
 import { EditorPreferencesControls } from "./EditorPreferencesControls";
 
 /**
@@ -55,6 +56,7 @@ export function SettingsPage() {
           <Section id="account" title="Account" description="How you appear in CodeCoach, and the address we use to reach you.">
             {user.is_guest && <KeepProgressRow onUpgraded={() => setUpgraded(true)} />}
             <ProfileRow />
+            <CareerRow />
             {!user.is_guest && <EmailRow />}
           </Section>
           <Section id="security" title="Sign-in & security" description="Your password and where you're signed in.">
@@ -221,6 +223,34 @@ function ProfileRow() {
         {!nameError && <InlineError error={form.error} />}
         <div className="setting__actions">
           <Button type="submit" variant="primary" loading={form.busy}>Save profile</Button>
+          {form.done && <Status>{form.done}</Status>}
+        </div>
+      </div>
+    </form>
+  );
+}
+
+/** The job this person is preparing for: decides which interview questions they practice. */
+function CareerRow() {
+  const { user, setUser } = useAuth();
+  const [track, setTrack] = useState(user?.career_track ?? "");
+  const form = useFormState();
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    void form.run(async () => setUser(await api.updateProfile({ career_track: track })), "Saved. Your practice questions now match this job.");
+  };
+  return (
+    <form className="setting" onSubmit={onSubmit} aria-labelledby="career-title">
+      <RowIntro icon="target" id="career-title" title="Career">
+        The job you're preparing for. Practice questions, tabs and progress follow it.
+      </RowIntro>
+      <div className="setting__body">
+        <CareerSelect value={track} onChange={setTrack} />
+        <InlineError error={form.error} />
+        <div className="setting__actions">
+          <Button type="submit" variant="secondary" loading={form.busy} disabled={!track || track === user?.career_track}>
+            Save career
+          </Button>
           {form.done && <Status>{form.done}</Status>}
         </div>
       </div>

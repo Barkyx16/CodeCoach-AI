@@ -49,6 +49,7 @@ describe("Authentication", () => {
     const { user } = renderApp("/register");
     await user.type(await screen.findByLabelText("Email"), "a@example.com");
     await user.type(screen.getByLabelText("Password"), "alllowercase");
+    await user.selectOptions(screen.getByLabelText("Job you're preparing for"), "registered-nurse");
     await user.click(within(screen.getByRole("form", { name: "Create your account" })).getByRole("button", { name: "Create account" }));
     expect(await screen.findByText("password needs upper- and lower-case letters and at least one digit")).toBeInTheDocument();
     expect(screen.getByLabelText("Password")).toHaveAttribute("aria-invalid", "true");

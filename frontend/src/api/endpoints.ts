@@ -27,11 +27,25 @@ import type {
   SubmissionStatus,
   TokenResponse,
   TopicCount,
-  User, DifficultyCounts } from "./types";
+  User,
+  DifficultyCounts,
+  Career,
+  QuestionSummary,
+  QuestionDetail,
+  InterviewAnswer,
+  TrackProgress,
+} from "./types";
 
 export interface ProblemFilters {
   difficulty?: Difficulty | "";
   topic?: string;
+  q?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export interface QuestionFilters {
+  difficulty?: Difficulty | "";
   q?: string;
   page?: number;
   page_size?: number;
@@ -43,9 +57,11 @@ export const api = {
     apiRequest<TokenResponse>("/api/v1/auth/register", { method: "POST", body, auth: false }),
   login: (body: LoginRequest) =>
     apiRequest<TokenResponse>("/api/v1/auth/login", { method: "POST", body, auth: false }),
-  guest: (display_name?: string) =>
+  guest: (display_name?: string, career_track?: string) =>
     apiRequest<TokenResponse>("/api/v1/auth/guest", {
-      method: "POST", body: display_name ? { display_name } : {}, auth: false,
+      method: "POST",
+      body: { ...(display_name ? { display_name } : {}), ...(career_track ? { career_track } : {}) },
+      auth: false,
     }),
   me: () => apiRequest<User>("/api/v1/auth/me"),
   logout: () => apiRequest<void>("/api/v1/auth/logout", { method: "POST" }),
@@ -62,7 +78,7 @@ export const api = {
   refresh: () => apiRequest<TokenResponse>("/api/v1/auth/refresh", {
     method: "POST", auth: false, headers: { "X-Requested-With": "codecoach" },
   }),
-  updateProfile: (body: { display_name: string | null }) =>
+  updateProfile: (body: { display_name?: string | null; career_track?: string }) =>
     apiRequest<User>("/api/v1/auth/me", { method: "PATCH", body }),
   upgradeGuest: (body: RegisterRequest) =>
     apiRequest<TokenResponse>("/api/v1/auth/upgrade", { method: "POST", body }),
@@ -86,6 +102,23 @@ export const api = {
   problemCounts: (filters: Pick<ProblemFilters, "topic" | "q"> = {}, signal?: AbortSignal) =>
     apiRequest<DifficultyCounts>("/api/v1/problems/counts", { query: { ...filters }, signal }),
   topics: () => apiRequest<TopicCount[]>("/api/v1/topics"),
+
+  // careers and their interview questions
+  careers: () => apiRequest<Career[]>("/api/v1/careers"),
+  questions: (track: string, filters: QuestionFilters = {}, signal?: AbortSignal) =>
+    apiRequest<Page<QuestionSummary>>(`/api/v1/careers/${encodeURIComponent(track)}/questions`, { query: { ...filters }, signal }),
+  questionCounts: (track: string, q = "", signal?: AbortSignal) =>
+    apiRequest<DifficultyCounts>(`/api/v1/careers/${encodeURIComponent(track)}/questions/counts`, { query: { q }, signal }),
+  question: (track: string, id: string, signal?: AbortSignal) =>
+    apiRequest<QuestionDetail>(`/api/v1/careers/${encodeURIComponent(track)}/questions/${encodeURIComponent(id)}`, { signal }),
+  answerQuestion: (track: string, id: string, answer: string) =>
+    apiRequest<InterviewAnswer>(`/api/v1/careers/${encodeURIComponent(track)}/questions/${encodeURIComponent(id)}/answers`, {
+      method: "POST", body: { answer },
+    }),
+  myAnswers: (track: string, id: string) =>
+    apiRequest<InterviewAnswer[]>(`/api/v1/careers/${encodeURIComponent(track)}/questions/${encodeURIComponent(id)}/answers`),
+  trackProgress: (track: string) =>
+    apiRequest<TrackProgress>(`/api/v1/careers/${encodeURIComponent(track)}/progress`),
   problem: (slug: string, signal?: AbortSignal) =>
     apiRequest<ProblemDetail>(`/api/v1/problems/${encodeURIComponent(slug)}`, { signal }),
 

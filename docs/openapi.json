@@ -1482,6 +1482,523 @@
         }
       }
     },
+    "/api/v1/careers": {
+      "get": {
+        "tags": [
+          "careers"
+        ],
+        "summary": "Every career you can practice for",
+        "operationId": "list_careers_api_v1_careers_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CareerSummary"
+                  },
+                  "type": "array",
+                  "title": "Response List Careers Api V1 Careers Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/careers/{slug}/questions": {
+      "get": {
+        "tags": [
+          "careers"
+        ],
+        "summary": "Interview questions for a career (filterable, searchable)",
+        "operationId": "list_questions_api_v1_careers__slug__questions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "difficulty",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(easy|medium|hard)$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Difficulty"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Keywords or a plain description",
+              "title": "Q"
+            },
+            "description": "Keywords or a plain description"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_QuestionSummary_"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/careers/{slug}/questions/counts": {
+      "get": {
+        "tags": [
+          "careers"
+        ],
+        "summary": "How many questions match, per difficulty",
+        "operationId": "count_questions_api_v1_careers__slug__questions_counts_get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DifficultyCounts"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/careers/{slug}/questions/{question_id}": {
+      "get": {
+        "tags": [
+          "careers"
+        ],
+        "summary": "One interview question with tips",
+        "operationId": "get_one_api_v1_careers__slug__questions__question_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "question_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Question Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/careers/{slug}/questions/{question_id}/answers": {
+      "post": {
+        "tags": [
+          "careers"
+        ],
+        "summary": "Answer a question and get feedback",
+        "operationId": "answer_question_api_v1_careers__slug__questions__question_id__answers_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "question_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Question Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnswerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnswerOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "careers"
+        ],
+        "summary": "Your past answers to a question, newest first",
+        "operationId": "my_answers_api_v1_careers__slug__questions__question_id__answers_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "question_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Question Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AnswerOut"
+                  },
+                  "title": "Response My Answers Api V1 Careers  Slug  Questions  Question Id  Answers Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/careers/{slug}/progress": {
+      "get": {
+        "tags": [
+          "careers"
+        ],
+        "summary": "Your progress on a career's questions",
+        "operationId": "track_progress_api_v1_careers__slug__progress_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackProgress"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/submissions": {
       "post": {
         "tags": [
@@ -3215,6 +3732,101 @@
         ],
         "title": "ActivityDay"
       },
+      "AnswerOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "question_id": {
+            "type": "string",
+            "title": "Question Id"
+          },
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          },
+          "score": {
+            "type": "integer",
+            "title": "Score"
+          },
+          "rating": {
+            "type": "string",
+            "title": "Rating"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/FeedbackPoint"
+            },
+            "type": "array",
+            "title": "Points"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          },
+          "outline": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Outline",
+            "description": "What a strong answer would include"
+          },
+          "word_count": {
+            "type": "integer",
+            "title": "Word Count"
+          },
+          "coach": {
+            "type": "string",
+            "title": "Coach",
+            "description": "Which coach graded it: 'built-in (offline)' or the AI provider"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "question_id",
+          "answer",
+          "score",
+          "rating",
+          "summary",
+          "points",
+          "notes",
+          "outline",
+          "word_count",
+          "coach",
+          "created_at"
+        ],
+        "title": "AnswerOut"
+      },
+      "AnswerRequest": {
+        "properties": {
+          "answer": {
+            "type": "string",
+            "maxLength": 6000,
+            "minLength": 1,
+            "title": "Answer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer"
+        ],
+        "title": "AnswerRequest"
+      },
       "Capabilities": {
         "properties": {
           "execution_enabled": {
@@ -3244,6 +3856,45 @@
           "guest_retention_days"
         ],
         "title": "Capabilities"
+      },
+      "CareerSummary": {
+        "properties": {
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "has_coding": {
+            "type": "boolean",
+            "title": "Has Coding",
+            "description": "Also has hands-on coding problems (the code judge)"
+          },
+          "question_count": {
+            "type": "integer",
+            "title": "Question Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slug",
+          "title",
+          "category",
+          "summary",
+          "has_coding",
+          "question_count"
+        ],
+        "title": "CareerSummary"
       },
       "ChangeEmailRequest": {
         "properties": {
@@ -3743,6 +4394,29 @@
         "title": "FailureExplanation",
         "description": "Schema the model must fill when explaining a failed submission."
       },
+      "FeedbackPoint": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "covered": {
+            "type": "boolean",
+            "title": "Covered"
+          },
+          "advice": {
+            "type": "string",
+            "title": "Advice"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "covered",
+          "advice"
+        ],
+        "title": "FeedbackPoint"
+      },
       "GuestSessionRequest": {
         "properties": {
           "display_name": {
@@ -3757,6 +4431,18 @@
               }
             ],
             "title": "Display Name"
+          },
+          "career_track": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Career Track"
           }
         },
         "type": "object",
@@ -4371,6 +5057,38 @@
         ],
         "title": "Page[ProblemSummary]"
       },
+      "Page_QuestionSummary_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/QuestionSummary"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Total matching items across all pages"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "Page[QuestionSummary]"
+      },
       "Page_SubmissionListItem_": {
         "properties": {
           "items": {
@@ -4873,6 +5591,125 @@
         "title": "PublicTestCase",
         "description": "Only PUBLIC test cases are ever serialized. Hidden ones stay server-side."
       },
+      "QuestionDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "prompt": {
+            "type": "string",
+            "title": "Prompt"
+          },
+          "difficulty": {
+            "type": "string",
+            "title": "Difficulty"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind",
+            "description": "knowledge, behavioral, situational, leadership or motivation"
+          },
+          "best_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Score",
+            "description": "Your best score on this question, when signed in"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "career_title": {
+            "type": "string",
+            "title": "Career Title"
+          },
+          "tips": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tips"
+          },
+          "rubric_labels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Rubric Labels",
+            "description": "What a strong answer covers (shown after answering)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "prompt",
+          "difficulty",
+          "kind",
+          "track",
+          "career_title",
+          "tips",
+          "rubric_labels"
+        ],
+        "title": "QuestionDetail"
+      },
+      "QuestionSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "prompt": {
+            "type": "string",
+            "title": "Prompt"
+          },
+          "difficulty": {
+            "type": "string",
+            "title": "Difficulty"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind",
+            "description": "knowledge, behavioral, situational, leadership or motivation"
+          },
+          "best_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Score",
+            "description": "Your best score on this question, when signed in"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "prompt",
+          "difficulty",
+          "kind"
+        ],
+        "title": "QuestionSummary"
+      },
       "Recommendation": {
         "properties": {
           "slug": {
@@ -4949,6 +5786,22 @@
             "title": "Display Name",
             "examples": [
               "Ada"
+            ]
+          },
+          "career_track": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Career Track",
+            "description": "The job you're preparing for (a slug from /careers)",
+            "examples": [
+              "registered-nurse"
             ]
           }
         },
@@ -5412,6 +6265,43 @@
         ],
         "title": "TopicProgress"
       },
+      "TrackProgress": {
+        "properties": {
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "answered": {
+            "type": "integer",
+            "title": "Answered"
+          },
+          "strong": {
+            "type": "integer",
+            "title": "Strong",
+            "description": "Questions with a best score of 85 or more"
+          },
+          "by_difficulty": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "By Difficulty"
+          },
+          "total_questions": {
+            "type": "integer",
+            "title": "Total Questions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "track",
+          "answered",
+          "strong",
+          "by_difficulty",
+          "total_questions"
+        ],
+        "title": "TrackProgress"
+      },
       "TurnOut": {
         "properties": {
           "seq": {
@@ -5466,10 +6356,24 @@
               }
             ],
             "title": "Display Name"
+          },
+          "career_track": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Career Track",
+            "description": "Switch the job you're preparing for"
           }
         },
         "type": "object",
-        "title": "UpdateProfileRequest"
+        "title": "UpdateProfileRequest",
+        "description": "Only the fields you send are changed. Send display_name: null to clear the name."
       },
       "UpgradeGuestRequest": {
         "properties": {
@@ -5501,6 +6405,22 @@
             "title": "Display Name",
             "examples": [
               "Ada"
+            ]
+          },
+          "career_track": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Career Track",
+            "description": "The job you're preparing for (a slug from /careers)",
+            "examples": [
+              "registered-nurse"
             ]
           }
         },
@@ -5553,6 +6473,11 @@
             "type": "boolean",
             "title": "Email Verified",
             "description": "The owner confirmed this email address"
+          },
+          "career_track": {
+            "type": "string",
+            "title": "Career Track",
+            "description": "The job this person is preparing for"
           }
         },
         "type": "object",
@@ -5562,7 +6487,8 @@
           "display_name",
           "is_guest",
           "created_at",
-          "email_verified"
+          "email_verified",
+          "career_track"
         ],
         "title": "UserOut"
       },

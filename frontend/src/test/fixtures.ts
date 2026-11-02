@@ -1,6 +1,9 @@
-import type { HintResponse, Page, ProblemDetail, ProblemSummary, Progress, ReviewResponse, Submission, TokenResponse, User } from "@/api/types";
+import type {
+  Career,
+  InterviewAnswer,
+  QuestionSummary, HintResponse, Page, ProblemDetail, ProblemSummary, Progress, ReviewResponse, Submission, TokenResponse, User } from "@/api/types";
 
-export const user: User = { id: "u-1", email: "ada@example.com", display_name: "Ada", is_guest: false, created_at: "2026-11-01T08:00:00Z", email_verified: true };
+export const user: User = { id: "u-1", email: "ada@example.com", display_name: "Ada", is_guest: false, created_at: "2026-11-01T08:00:00Z", email_verified: true, career_track: "software-engineer" };
 
 export const tokenResponse = (overrides: Partial<TokenResponse> = {}): TokenResponse => ({
   access_token: "test-token",
@@ -73,4 +76,28 @@ export const progress: Progress = {
   })),
   weakest_topics: ["arrays"],
   recommended_next: ["find-largest-number"],
+};
+
+export const careers: Career[] = [
+  { slug: "software-engineer", title: "Software Engineer", category: "Technology", summary: "Build software.", has_coding: true, question_count: 300 },
+  { slug: "registered-nurse", title: "Registered Nurse", category: "Healthcare", summary: "Care for patients.", has_coding: false, question_count: 300 },
+  { slug: "barista", title: "Barista", category: "Customer Service & Hospitality", summary: "Make coffee.", has_coding: false, question_count: 300 },
+];
+
+export const nurseQuestions: QuestionSummary[] = [
+  { id: "e-good-0", title: "What good patient assessment looks like", prompt: "What does good patient assessment look like for a registered nurse?", difficulty: "easy", kind: "knowledge", best_score: null },
+  { id: "e-time-0", title: "A time patient assessment mattered", prompt: "Tell me about a time patient assessment was an important part of your work.", difficulty: "easy", kind: "behavioral", best_score: 90 },
+  { id: "m-pressure-0", title: "Patient assessment under pressure", prompt: "Tell me about a time you had to use patient assessment under pressure.", difficulty: "medium", kind: "behavioral", best_score: null },
+];
+
+export const nurseAnswer: InterviewAnswer = {
+  id: "a-1", question_id: "m-pressure-0", answer: "Last winter I…", score: 92, rating: "Strong",
+  summary: "You covered everything interviewers listen for in this question.",
+  points: [
+    { label: "Sets the scene: where you were and what was at stake", covered: true, advice: "Open with context." },
+    { label: "Shares a result, ideally with a number", covered: false, advice: "Finish with what happened." },
+  ],
+  notes: ["No numbers yet. A figure (time, %, count) makes your result concrete."],
+  outline: ["Situation: what made it high-pressure.", "Result: the outcome."],
+  word_count: 140, coach: "built-in (offline)", created_at: "2026-11-01T09:00:00Z",
 };

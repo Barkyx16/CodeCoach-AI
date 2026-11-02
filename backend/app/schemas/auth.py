@@ -2,6 +2,7 @@ from datetime import datetime
 
 from pydantic import EmailStr, Field, field_validator, model_validator
 
+from app.careers import DEFAULT_TRACK, is_track
 from app.schemas.common import APIModel
 
 
@@ -13,10 +14,27 @@ def _password_rules(v: str) -> str:
     return v
 
 
+def _track_rule(v: str | None) -> str | None:
+    if v is not None and not is_track(v):
+        raise ValueError("unknown career track; see GET /api/v1/careers")
+    return v
+
+
 class RegisterRequest(APIModel):
     email: EmailStr
     password: str = Field(min_length=10, max_length=128, examples=["CorrectHorse42"])
     display_name: str | None = Field(default=None, min_length=1, max_length=40, examples=["Ada"])
+    career_track: str | None = Field(
+        default=None,
+        max_length=64,
+        description="The job you're preparing for (a slug from /careers)",
+        examples=["registered-nurse"],
+    )
+
+    @field_validator("career_track")
+    @classmethod
+    def _check_track(cls, v: str | None) -> str | None:
+        return _track_rule(v)
 
     @field_validator("password")
     @classmethod
@@ -35,6 +53,12 @@ class LoginRequest(APIModel):
 
 class GuestSessionRequest(APIModel):
     display_name: str | None = Field(default=None, min_length=1, max_length=40)
+    career_track: str | None = Field(default=None, max_length=64)
+
+    @field_validator("career_track")
+    @classmethod
+    def _check_track(cls, v: str | None) -> str | None:
+        return _track_rule(v)
 
 
 class ChangePasswordRequest(APIModel):
@@ -80,7 +104,17 @@ class AcceptedResponse(APIModel):
 
 
 class UpdateProfileRequest(APIModel):
+    """Only the fields you send are changed. Send display_name: null to clear the name."""
+
     display_name: str | None = Field(default=None, min_length=1, max_length=40)
+    career_track: str | None = Field(
+        default=None, max_length=64, description="Switch the job you're preparing for"
+    )
+
+    @field_validator("career_track")
+    @classmethod
+    def _check_track(cls, v: str | None) -> str | None:
+        return _track_rule(v)
 
 
 class DeleteAccountRequest(APIModel):
@@ -97,6 +131,7 @@ class UserOut(APIModel):
     is_guest: bool
     created_at: datetime
     email_verified: bool = Field(description="The owner confirmed this email address")
+    career_track: str = Field(description="The job this person is preparing for")
 
     @model_validator(mode="before")
     @classmethod
@@ -110,6 +145,7 @@ class UserOut(APIModel):
                 "is_guest": data.is_guest,  # type: ignore[attr-defined]
                 "created_at": data.created_at,  # type: ignore[attr-defined]
                 "email_verified": data.email_verified_at is not None,
+                "career_track": data.career_track or DEFAULT_TRACK,  # type: ignore[attr-defined]
             }
         return data
 

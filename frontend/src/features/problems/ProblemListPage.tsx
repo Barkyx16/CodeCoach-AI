@@ -11,6 +11,7 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { Icon } from "@/components/Icon";
 import { Tabs } from "@/components/Tabs";
+import { PracticeBar } from "@/features/careers/PracticeBar";
 
 /** Each tab starts with a short list; "View more" grows it. */
 const FIRST_PAGE = 5;
@@ -91,6 +92,7 @@ export function ProblemListPage() {
 
       <div className="problems__layout">
         <section aria-label="Problem list" className="stack">
+          <PracticeBar view="coding" />
           <div className="filters filters--single" role="search">
             <label className="field filters__search">
               <span className="visually-hidden">Search problems</span>

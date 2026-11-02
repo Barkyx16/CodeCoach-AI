@@ -77,10 +77,12 @@ def register(
     email: str = "ada@example.com",
     password: str = "CorrectHorse42",
     display_name: str | None = "Ada",
+    career_track: str | None = None,
 ) -> dict:
-    r = client.post(
-        "/api/v1/auth/register", json={"email": email, "password": password, "display_name": display_name}
-    )
+    body = {"email": email, "password": password, "display_name": display_name}
+    if career_track:
+        body["career_track"] = career_track
+    r = client.post("/api/v1/auth/register", json=body)
     assert r.status_code == 201, r.text
     return r.json()
 

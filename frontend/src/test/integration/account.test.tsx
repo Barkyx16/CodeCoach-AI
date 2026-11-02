@@ -49,6 +49,7 @@ describe("Email verification", () => {
     const { user, router } = renderApp("/register");
     await user.type(await screen.findByLabelText("Email"), "ada@example.com");
     await user.type(screen.getByLabelText("Password"), "CorrectHorse42");
+    await user.selectOptions(await screen.findByLabelText("Job you're preparing for"), "registered-nurse");
     await user.click(within(screen.getByRole("main")).getByRole("button", { name: "Create account" }));
 
     expect(await screen.findByRole("heading", { name: "Check your email" })).toBeInTheDocument();

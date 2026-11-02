@@ -8,6 +8,8 @@ import { PasswordChecklist } from "@/components/PasswordChecklist";
 import { InlineError } from "@/components/States";
 
 import { fieldErrorsFrom } from "./fieldErrors";
+import { CareerSelect } from "@/features/careers/CareerSelect";
+
 import { AuthLayout } from "./AuthLayout";
 
 function useRedirectTarget(): string {
@@ -92,7 +94,7 @@ export function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
   const target = useRedirectTarget();
-  const [form, setForm] = useState({ display_name: "", email: "", password: "" });
+  const [form, setForm] = useState({ display_name: "", email: "", password: "", career_track: "" });
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
   const fieldErrors = fieldErrorsFrom(error);
@@ -103,7 +105,9 @@ export function RegisterPage() {
     setBusy(true);
     setError(null);
     try {
-      await register({ email: form.email, password: form.password, display_name: form.display_name || null });
+      await register({
+        email: form.email, password: form.password, display_name: form.display_name || null, career_track: form.career_track,
+      });
       // Next: enter the 6-digit code we just emailed (skippable), then continue.
       navigate("/verify-email", { replace: true, state: { next: target } });
     } catch (err) {
@@ -120,7 +124,10 @@ export function RegisterPage() {
     <AuthLayout>
       <form className="card auth__card stack" onSubmit={onSubmit} noValidate aria-labelledby="register-title">
         <h1 className="page__title" id="register-title">Create your account</h1>
-        <p className="muted">Save your progress, attempts and AI feedback across devices.</p>
+        <p className="muted">Practice interviews for the job you want, and save your progress across devices.</p>
+        <CareerSelect value={form.career_track} onChange={(slug) => setForm((f) => ({ ...f, career_track: slug }))}
+          placeholder="Choose a job…" required error={fieldErrors.career_track}
+          hint="You'll get interview questions written for this job. You can change it any time." />
         <Field label="Name" optional autoComplete="nickname" maxLength={40} value={form.display_name}
           onChange={set("display_name")} error={fieldErrors.display_name} />
         <Field label="Email" type="email" autoComplete="email" required value={form.email}
@@ -129,7 +136,7 @@ export function RegisterPage() {
           value={form.password} onChange={set("password")} error={fieldErrors.password}
           extra={<PasswordChecklist password={form.password} />} />
         <InlineError error={generalError} />
-        <Button type="submit" variant="primary" loading={busy} disabled={!form.email || !form.password}>
+        <Button type="submit" variant="primary" loading={busy} disabled={!form.email || !form.password || !form.career_track}>
           Create account
         </Button>
         <div className="auth__alt">

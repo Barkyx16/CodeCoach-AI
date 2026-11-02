@@ -23,6 +23,7 @@ test("sign up, verify with the emailed code, change email, sign out", async ({ p
   await page.getByRole("button", { name: "Show password" }).click();
   await expect(password).toHaveAttribute("type", "text");
   await expect(page.getByText("At least 10 characters")).toBeVisible();
+  await page.getByLabel("Job you're preparing for").selectOption("software-engineer");
   await main.getByRole("button", { name: "Create account" }).click();
 
   // Straight to "Check your email", with the real code from the real email.

@@ -19,6 +19,7 @@ test("forgot password: email link, new password, old password stops working", as
   await page.goto("/register");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill("CorrectHorse42");
+  await page.getByLabel("Job you're preparing for").selectOption("software-engineer");
   await page.locator("#main").getByRole("button", { name: "Create account" }).click();
   await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
   await page.getByRole("button", { name: "Sign out" }).click();

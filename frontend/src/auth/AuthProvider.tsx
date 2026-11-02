@@ -115,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signedOutDeliberately,
     login: async (body) => adopt(await api.login(body)),
     register: async (body) => adopt(await api.register(body)),
-    continueAsGuest: async (displayName) => adopt(await api.guest(displayName)),
+    continueAsGuest: async (displayName, careerTrack) => adopt(await api.guest(displayName, careerTrack)),
     logout: async () => {
       try {
         await api.logout(); // ends this device's refresh cookie server-side

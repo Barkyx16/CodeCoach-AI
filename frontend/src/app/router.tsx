@@ -12,7 +12,8 @@ import { HistoryPage } from "@/features/history/HistoryPage";
 import { InterviewStartPage } from "@/features/interview/InterviewStartPage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { LandingPage } from "@/features/landing/LandingPage";
-import { ProblemListPage } from "@/features/problems/ProblemListPage";
+import { PracticePage } from "@/features/careers/PracticePage";
+import { QuestionPage } from "@/features/careers/QuestionPage";
 
 import { Layout } from "./Layout";
 import { NotFoundPage } from "./NotFoundPage";
@@ -32,7 +33,8 @@ export const routes: RouteObject[] = [
       { path: "/forgot-password", element: <ForgotPasswordPage /> },
       { path: "/reset-password", element: <ResetPasswordPage /> },
       { path: "/verify-email", element: <VerifyEmailPage /> },
-      { path: "/problems", element: <ProblemListPage /> },
+      { path: "/problems", element: <PracticePage /> },
+      { path: "/careers/:track/questions/:id", element: <QuestionPage /> },
       {
         path: "/problems/:slug",
         element: (

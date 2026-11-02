@@ -40,6 +40,24 @@ SQLite for speed, and CI runs it on both. Schema changes go through **Alembic** 
 | `is_guest` | boolean | |
 | `token_version` | integer | Incremented on logout or password change; JWTs carrying an older version are rejected |
 | `created_at`, `last_login_at` | timestamptz | |
+| `career_track` | varchar(64), default `software-engineer` | The job they're preparing for: a slug from `app/careers` |
+
+### `practice_answers`
+
+Written answers to career interview questions, with the feedback shown. Questions are generated
+from the career catalog, so they're referenced by `(track, question_id)`, not a foreign key.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | varchar(36) PK | UUID4 |
+| `user_id` | FK → users (cascade delete) | Included in the data export, deleted with the account |
+| `track`, `question_id` | varchar(64) | Indexed with `user_id` |
+| `difficulty` | varchar(16) | Copied from the question for progress counts |
+| `answer` | text | What the learner wrote (max 6000 chars) |
+| `score` | integer | 0-100 |
+| `feedback` | JSONB | rating, summary, rubric points, notes, outline, word count |
+| `provider` | varchar(32) | Which coach graded it (`built-in (offline)` today) |
+| `created_at` | timestamptz | |
 
 ### `problems`
 | Column | Type | Notes |

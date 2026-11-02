@@ -735,6 +735,28 @@ order: `problem_solving, communication, code_quality, complexity_analysis, testi
  "total": 1, "page": 1, "page_size": 20}
 ```
 
+### Careers
+
+Interview questions are generated from the career catalog (`backend/app/careers/`), so a question
+id like `m-walk-3` always means the same question for a given career.
+
+| Method & path | Auth | Description |
+|---|---|---|
+| `GET /api/v1/careers` | none | All careers: `slug, title, category, summary, has_coding, question_count` (300) |
+| `GET /api/v1/careers/{slug}/questions` | optional | `?difficulty=easy\|medium\|hard&q=…&page&page_size` (≤200). Signed in: each item has your `best_score` |
+| `GET /api/v1/careers/{slug}/questions/counts` | none | `{easy, medium, hard}` matching `?q=` (the library tab badges) |
+| `GET /api/v1/careers/{slug}/questions/{id}` | optional | Prompt, kind, tips, `rubric_labels` |
+| `POST /api/v1/careers/{slug}/questions/{id}/answers` | required | `{answer}` (1-6000 chars) → `201` feedback: `score` 0-100, `rating`, `summary`, `points[{label, covered, advice}]`, `notes`, `outline`, `word_count`, `coach`. Limited to `PRACTICE_ANSWERS_PER_HOUR` (default 60) per user; `429 rate_limited` after that |
+| `GET /api/v1/careers/{slug}/questions/{id}/answers` | required | Your past answers, newest first (max 20) |
+| `GET /api/v1/careers/{slug}/progress` | required | `{answered, strong, by_difficulty, total_questions}` |
+
+The user's job is `career_track` on the user object. Set it with `career_track` on
+`POST /auth/register`, `/auth/guest` or `/auth/upgrade`, or change it with `PATCH /auth/me`
+(only the fields you send change). Unknown slugs are a `422`.
+
+`GET /api/v1/problems` also takes a keyword `q` ranked by relevance, and
+`GET /api/v1/problems/counts` gives per-difficulty totals for the same `topic`/`q`.
+
 ### Progress
 
 #### `GET /api/v1/me/progress` 🔒 → `200`

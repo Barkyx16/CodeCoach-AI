@@ -12,6 +12,12 @@ export type ProblemDetail = S["ProblemDetail"];
 export type Difficulty = S["Difficulty"];
 export type TopicCount = S["TopicCount"];
 export type DifficultyCounts = S["DifficultyCounts"];
+
+export type Career = S["CareerSummary"];
+export type QuestionSummary = S["QuestionSummary"];
+export type QuestionDetail = S["QuestionDetail"];
+export type InterviewAnswer = S["AnswerOut"];
+export type TrackProgress = S["TrackProgress"];
 export type PublicTestCase = S["PublicTestCase"];
 export type Example = S["Example"];
 

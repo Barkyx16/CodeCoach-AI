@@ -5,13 +5,19 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { ApiError } from "./client";
-import { api, type ProblemFilters } from "./endpoints";
+import { api, type ProblemFilters, type QuestionFilters } from "./endpoints";
 import type { AIHistoryAction, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
 
 export const queryKeys = {
   problems: (filters: ProblemFilters) => ["problems", filters] as const,
   problemCounts: (filters: object) => ["problems", "counts", filters] as const,
   topics: ["topics"] as const,
+  careers: ["careers"] as const,
+  questions: (track: string, filters: object) => ["careers", track, "questions", filters] as const,
+  questionCounts: (track: string, q: string) => ["careers", track, "counts", q] as const,
+  question: (track: string, id: string) => ["careers", track, "question", id] as const,
+  answers: (track: string, id: string) => ["careers", track, "answers", id] as const,
+  trackProgress: (track: string) => ["careers", track, "progress"] as const,
   capabilities: ["capabilities"] as const,
   problem: (slug: string) => ["problem", slug] as const,
   submission: (id: string) => ["submission", id] as const,
@@ -47,6 +53,49 @@ export function useProblemCounts(filters: { topic?: string; q?: string }) {
     placeholderData: keepPreviousData,
     staleTime: 5 * 60_000,
   });
+}
+
+export function useCareers() {
+  return useQuery({ queryKey: queryKeys.careers, queryFn: api.careers, staleTime: Infinity });
+}
+
+export function useQuestions(track: string, filters: QuestionFilters) {
+  return useQuery({
+    queryKey: queryKeys.questions(track, filters),
+    queryFn: ({ signal }) => api.questions(track, filters, signal),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useQuestionCounts(track: string, q: string) {
+  return useQuery({
+    queryKey: queryKeys.questionCounts(track, q),
+    queryFn: ({ signal }) => api.questionCounts(track, q, signal),
+    placeholderData: keepPreviousData,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useQuestion(track: string, id: string) {
+  return useQuery({ queryKey: queryKeys.question(track, id), queryFn: ({ signal }) => api.question(track, id, signal) });
+}
+
+export function useMyAnswers(track: string, id: string, enabled: boolean) {
+  return useQuery({ queryKey: queryKeys.answers(track, id), queryFn: () => api.myAnswers(track, id), enabled });
+}
+
+export function useAnswerQuestion(track: string, id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (answer: string) => api.answerQuestion(track, id, answer),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["careers", track] });
+    },
+  });
+}
+
+export function useTrackProgress(track: string, enabled = true) {
+  return useQuery({ queryKey: queryKeys.trackProgress(track), queryFn: () => api.trackProgress(track), enabled });
 }
 
 export function useTopics() {

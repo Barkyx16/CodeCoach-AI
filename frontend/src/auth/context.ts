@@ -13,7 +13,7 @@ export interface AuthContextValue {
   signedOutDeliberately: boolean;
   login(body: LoginRequest): Promise<User>;
   register(body: RegisterRequest): Promise<User>;
-  continueAsGuest(displayName?: string): Promise<User>;
+  continueAsGuest(displayName?: string, careerTrack?: string): Promise<User>;
   /** Sign out of this device. */
   logout(): Promise<void>;
   /** Sign out of every device (revokes all sessions server-side). */

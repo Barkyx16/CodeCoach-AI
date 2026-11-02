@@ -7,7 +7,15 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import AIInteraction, PracticeSession, Problem, ProgressEvent, Submission, User
+from app.models import (
+    AIInteraction,
+    PracticeAnswer,
+    PracticeSession,
+    Problem,
+    ProgressEvent,
+    Submission,
+    User,
+)
 
 EXPORT_VERSION = 1
 
@@ -34,6 +42,9 @@ def export_user_data(db: Session, user: User) -> dict:
     events = db.scalars(
         select(ProgressEvent).where(ProgressEvent.user_id == user.id).order_by(ProgressEvent.created_at)
     ).all()
+    answers = db.scalars(
+        select(PracticeAnswer).where(PracticeAnswer.user_id == user.id).order_by(PracticeAnswer.created_at)
+    ).all()
 
     def iso(dt: datetime | None) -> str | None:
         return dt.isoformat() if dt else None
@@ -46,6 +57,7 @@ def export_user_data(db: Session, user: User) -> dict:
             "email": user.email,
             "display_name": user.display_name,
             "is_guest": user.is_guest,
+            "career_track": user.career_track,
             "created_at": iso(user.created_at),
             "last_login_at": iso(user.last_login_at),
         },
@@ -111,5 +123,17 @@ def export_user_data(db: Session, user: User) -> dict:
         "activity": [
             {"type": e.event_type.value, "problem": slugs.get(e.problem_id), "at": iso(e.created_at)}
             for e in events
+        ],
+        "interview_answers": [
+            {
+                "career": a.track,
+                "question": a.question_id,
+                "answer": a.answer,
+                "score": a.score,
+                "feedback": a.feedback,
+                "coach": a.provider,
+                "created_at": iso(a.created_at),
+            }
+            for a in answers
         ],
     }

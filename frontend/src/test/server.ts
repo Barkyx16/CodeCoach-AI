@@ -1,7 +1,7 @@
 import { http, HttpResponse, type JsonBodyType } from "msw";
 import { setupServer } from "msw/node";
 
-import { hint, page, problems, progress, queuedSubmission, review, tokenResponse, twoSum, user } from "./fixtures";
+import { careers, hint, nurseAnswer, nurseQuestions, page, problems, progress, queuedSubmission, review, tokenResponse, twoSum, user } from "./fixtures";
 
 export const API = "http://localhost:8000";
 
@@ -19,6 +19,29 @@ export function filterProblems<P extends { title: string; summary: string; topic
 }
 
 export const handlers = [
+  http.get(`${API}/api/v1/careers`, () => HttpResponse.json(careers)),
+  http.get(`${API}/api/v1/careers/:track/questions/counts`, ({ request }) => {
+    const items = filterProblems(nurseQuestions.map((x) => ({ ...x, summary: x.prompt, topics: [] })), new URL(request.url).searchParams);
+    const count = (d: string) => items.filter((x) => x.difficulty === d).length;
+    return HttpResponse.json({ easy: count("easy"), medium: count("medium"), hard: count("hard") });
+  }),
+  http.get(`${API}/api/v1/careers/:track/questions`, ({ request }) => {
+    const params = new URL(request.url).searchParams;
+    const difficulty = params.get("difficulty");
+    const items = filterProblems(nurseQuestions.map((x) => ({ ...x, summary: x.prompt, topics: [] })), params)
+      .filter((x) => !difficulty || x.difficulty === difficulty);
+    return HttpResponse.json({ ...page(items), total: items.length });
+  }),
+  http.get(`${API}/api/v1/careers/:track/questions/:id/answers`, () => HttpResponse.json([])),
+  http.post(`${API}/api/v1/careers/:track/questions/:id/answers`, () => HttpResponse.json(nurseAnswer, { status: 201 })),
+  http.get(`${API}/api/v1/careers/:track/questions/:id`, ({ params }) => {
+    const q = nurseQuestions.find((x) => x.id === params.id);
+    return q
+      ? HttpResponse.json({ ...q, track: params.track, career_title: "Registered Nurse", tips: ["Use the STAR method."], rubric_labels: ["Sets the scene"] })
+      : HttpResponse.json({ error: { code: "not_found", message: "Question not found", request_id: "r", details: null } }, { status: 404 });
+  }),
+  http.get(`${API}/api/v1/careers/:track/progress`, ({ params }) =>
+    HttpResponse.json({ track: params.track, answered: 1, strong: 1, by_difficulty: { easy: 1, medium: 0, hard: 0 }, total_questions: 300 })),
   http.get(`${API}/api/v1/interviews`, () => HttpResponse.json(page([]))),
   http.get(`${API}/api/v1/problems/counts`, ({ request }) => {
     const items = filterProblems(problems, new URL(request.url).searchParams);

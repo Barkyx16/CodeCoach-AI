@@ -149,6 +149,10 @@ class User(Base):
     last_login_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     # Set when the owner clicks the link sent to `email`; cleared whenever the email changes.
     email_verified_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    # The job they're preparing for: a slug from app.careers.CATALOG.
+    career_track: Mapped[str] = mapped_column(
+        String(64), default="software-engineer", server_default="software-engineer"
+    )
 
 
 class RefreshToken(Base):
@@ -437,3 +441,24 @@ __all__ = [
     "TestVisibility",
     "User",
 ]
+
+
+class PracticeAnswer(Base):
+    """A written answer to a career interview question, with the feedback it received.
+
+    Questions are generated from the career catalog (app/careers), so they're referenced by
+    (track, question_id) rather than a foreign key."""
+
+    __tablename__ = "practice_answers"
+    __table_args__ = (Index("ix_practice_user_track_question", "user_id", "track", "question_id"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    track: Mapped[str] = mapped_column(String(64))
+    question_id: Mapped[str] = mapped_column(String(64))
+    difficulty: Mapped[str] = mapped_column(String(16))
+    answer: Mapped[str] = mapped_column(Text)
+    score: Mapped[int] = mapped_column(Integer)
+    feedback: Mapped[dict] = mapped_column(JSONType)
+    provider: Mapped[str] = mapped_column(String(32))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)

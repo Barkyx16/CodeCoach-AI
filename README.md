@@ -1,9 +1,11 @@
 # CodeCoach AI
 
-**An AI-assisted Java interview practice platform with a deterministic judge.**
-Learners solve curated data-structures-and-algorithms problems in a browser editor, get
-progressive AI hints and structured code reviews, and track their progress. Correctness always
-comes from test cases, never from the AI.
+**Interview practice for 110 careers, plus an AI-assisted Java coding platform with a deterministic judge.**
+People pick the job they want (nurse, accountant, electrician, software engineer and 100+ more)
+and practice 300 interview questions written for that job, with rubric feedback on every answer.
+Software engineers also solve curated data-structures-and-algorithms problems in a browser editor,
+get progressive AI hints and structured code reviews, and track their progress. Code correctness
+always comes from test cases, never from the AI.
 
 > **Status: Phases 1–4 of 5 complete.** The full product works end to end: React app →
 > FastAPI → PostgreSQL, an AI coach, timed mock interviews, and **real judging of submitted
@@ -26,7 +28,8 @@ comes from test cases, never from the AI.
 
 | Feature | Details |
 |---|---|
-| Problem library | 22 curated Java problems (10 easy, 12 medium) across arrays, strings, hashing, two pointers, sliding window, stacks, heaps, binary search, greedy and dynamic programming; 176 test cases (public + hidden); search, filters, pagination |
+| Interview practice for 110 careers | Pick your job at sign-up (changeable in Settings): 110 careers across 12 industries. Each gets **300 questions** (100 easy, 100 medium, 100 hard): fundamentals, behavioral (STAR), scenarios, leadership and motivation, generated from a hand-written profile of that job (its skills, tools, real situations, people and metrics). Write an answer and get feedback: a score, which rubric points you covered, what to add, delivery notes (length, "I" vs "we", numbers) and an outline of a strong answer. Answers and best scores are saved; keyword search; Easy/Medium/Hard tabs |
+| Problem library | 22 curated Java problems (10 easy, 12 medium) across arrays, strings, hashing, two pointers, sliding window, stacks, heaps, binary search, greedy and dynamic programming; 176 test cases (public + hidden); Easy/Medium/Hard tabs showing 5 at a time with "View more"; keyword search that understands plain descriptions ("reverse words", "dp", "stack brackets") |
 | Verified test data | Every problem ships with a trusted reference solution, and CI compiles and runs all of them against every test case and checks that each problem's starter code fails. New problems' expected outputs come from two independent implementations (a simple Python model and the Java reference) that must agree |
 | Accounts | Register and login (Argon2id), guest demo sessions, **15-minute in-memory access tokens with a rotating `HttpOnly` `SameSite=Strict` refresh cookie** (reuse detection revokes stolen sessions; nothing in `localStorage`), logout-everywhere, **email verification with a 6-digit code** (or link), **change email**, sign out of this device or **all devices**, show/hide password and a live password checklist, **forgot-password by email** (pluggable console/file/SMTP sender; no account enumeration), **guest-to-account upgrade that keeps all progress**, automatic deletion of inactive guest accounts, rate limits **shared across API replicas**, password change, brute-force limiting; settings page with profile edit, **full data export** and **account deletion** (cascading, verified on SQLite and PostgreSQL) |
 | AI hints | 4-level progressive ladder (nudge → concept → pseudocode → explanation), unlock order enforced by the server |

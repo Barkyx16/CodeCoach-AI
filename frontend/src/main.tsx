@@ -13,6 +13,7 @@ import "./styles/features.css";
 import "./styles/landing.css";
 import "./styles/details.css";
 import "./styles/settings.css";
+import "./styles/careers.css";
 
 const queryClient = makeQueryClient();
 const router = createRouter();
