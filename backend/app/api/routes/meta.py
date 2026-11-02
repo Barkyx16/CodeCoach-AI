@@ -16,6 +16,9 @@ class Capabilities(APIModel):
         "are saved but not run, and runs are refused with 503 `execution_disabled`."
     )
     ai_provider: Literal["offline", "anthropic"] = Field(description="Which AI coach answers by default")
+    guest_retention_days: int = Field(
+        description="Guest accounts inactive this long are deleted with their data (0: kept forever)"
+    )
 
 
 @router.get("/capabilities", response_model=Capabilities, summary="Features available on this deployment")
@@ -25,4 +28,5 @@ def capabilities(request: Request) -> Capabilities:
     return Capabilities(
         execution_enabled=request.app.state.execution_backend.enabled,
         ai_provider="anthropic" if provider == "anthropic" else "offline",
+        guest_retention_days=request.app.state.settings.guest_retention_days,
     )

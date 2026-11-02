@@ -183,6 +183,9 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 | POST | `/api/v1/auth/register` | – | Create account → token |
 | POST | `/api/v1/auth/login` | – | Log in → token |
 | POST | `/api/v1/auth/refresh` | cookie | New access token from the refresh cookie (rotates it) |
+| POST | `/api/v1/auth/upgrade` | 🔒 | Turn the current guest into a full account, keeping its data |
+| POST | `/api/v1/auth/password-reset` | – | Email a reset link (same answer for unknown emails) |
+| POST | `/api/v1/auth/password-reset/confirm` | – | Set a new password with a reset token |
 | POST | `/api/v1/auth/guest` | – | Demo session → token |
 | GET | `/api/v1/auth/me` | 🔒 | Current user |
 | POST | `/api/v1/auth/logout` | 🔒 | Revoke all of this user's tokens |
@@ -286,6 +289,31 @@ if the current password is wrong (or the user is a guest).
 #### `PATCH /api/v1/auth/me` 🔒 → `200`
 `{"display_name": "Grace"}` (1–40 chars, or `null` to clear). Returns the updated `user`.
 
+#### `POST /api/v1/auth/upgrade` 🔒 → `200`
+Guest accounts only. Same body and rules as `/register`; the account keeps its id, so every
+attempt, hint, review and interview is kept. Returns a `TokenResponse` and a new refresh
+cookie. `409 email_taken`, `409 not_a_guest`.
+
+#### `POST /api/v1/auth/password-reset` → `202`
+```json
+{"email": "ada@example.com"}
+```
+```json
+{"status": "accepted", "message": "If an account exists for that email, we've sent a link to reset the password."}
+```
+The answer, and its timing, is identical for registered, unknown and guest addresses: the lookup
+and the email happen after the response. At most one email per account per minute, and only the
+newest link works. The emailed link is `APP_BASE_URL/reset-password#token=…`: a URL fragment, so
+the token never reaches servers, proxies or `Referer` headers. Rate-limited like sign-in.
+
+#### `POST /api/v1/auth/password-reset/confirm` → `204`
+```json
+{"token": "…from the link…", "new_password": "BatteryStaple99"}
+```
+Single use, valid for `PASSWORD_RESET_TTL_MINUTES` (default 30). Sets the password and **ends
+every session** (access tokens and refresh cookies). `400 invalid_reset_token` if it's unknown,
+used, superseded or expired; `422` if the password breaks the rules.
+
 #### `DELETE /api/v1/auth/me` 🔒 → `204`
 ```json
 {"password": "CorrectHorse42", "confirm": "DELETE"}
@@ -308,7 +336,7 @@ evaluations. Credentials (password hash, token version) are never included.
 Public. Lets the client show only features that work on this deployment. Deliberately coarse:
 no versions, hostnames, model names or limits.
 ```json
-{"execution_enabled": true, "ai_provider": "offline"}
+{"execution_enabled": true, "ai_provider": "offline", "guest_retention_days": 30}
 ```
 
 ### Problems
@@ -740,7 +768,14 @@ All configuration is environment variables (or a `.env` file; see
 | `REFRESH_TOKEN_TTL_DAYS` | `30` | Refresh-cookie lifetime; it rotates on every use (1–90). |
 | `REFRESH_COOKIE_SECURE` | unset | Unset: `Secure` in production only. `false` is refused in production. |
 | `ALLOW_GUEST_SESSIONS` | `true` | Enables `POST /auth/guest`. |
-| `AUTH_RATE_LIMIT_PER_MINUTE` | `10` | Per-IP attempts for register, login, guest and password change. |
+| `AUTH_RATE_LIMIT_PER_MINUTE` | `10` | Per-IP attempts per minute for register, login, guest, upgrade, password change and password reset. |
+| `RATE_LIMIT_BACKEND` | `database` | `database`: counters shared by every API replica (sliding window, atomic upsert). `memory`: one process only. |
+| `FORWARDED_ALLOW_IPS` | `127.0.0.1` | (uvicorn) Proxies whose `X-Forwarded-For` is trusted. Set it to your load balancer's address, or every user shares the proxy's IP for rate limiting. Untrusted headers are ignored, so they can't be spoofed. |
+| `GUEST_RETENTION_DAYS` | `30` | Guest accounts with no activity for this long are deleted with their data (worker, daily; or `python -m app.cli prune-guests`). `0` keeps them. |
+| `APP_BASE_URL` | `http://localhost:5173` | Public web-app URL used in emailed links. Must be `https` in production. |
+| `EMAIL_BACKEND` | `console` | `console` (log), `file` (write to `EMAIL_FILE_DIR`, for tests) or `smtp`. Production requires `smtp`. |
+| `EMAIL_FROM`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_STARTTLS` | –, –, `587`, –, –, `true` | SMTP delivery settings. |
+| `PASSWORD_RESET_TTL_MINUTES` | `30` | Lifetime of a reset link. |
 | `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Comma-separated browser origins allowed to call the API. |
 | `AI_PROVIDER` | `offline` | `offline` (curated hints + static analysis, free) or `anthropic` (Claude). |
 | `ANTHROPIC_API_KEY` | — | **Secret.** Required when `AI_PROVIDER=anthropic`. |

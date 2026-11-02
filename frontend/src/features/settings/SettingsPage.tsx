@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
-import { useAIUsage } from "@/api/queries";
+import { useAIUsage, useCapabilities } from "@/api/queries";
 import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
@@ -16,6 +16,7 @@ import { Icon } from "@/components/Icon";
 
 export function SettingsPage() {
   const { user } = useAuth();
+  const [upgraded, setUpgraded] = useState(false);
   if (!user) return null;
   return (
     <div className="page settings">
@@ -30,7 +31,13 @@ export function SettingsPage() {
         <Link className="btn btn--secondary btn--md" to="/history"><Icon name="file" size={16} />View practice history</Link>
       </div>
       <div className="account-summary"><div className="account-summary__avatar" aria-hidden="true">{(user.display_name ?? user.email ?? "Guest").trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "C"}</div><div><strong>{user.display_name ?? user.email ?? "Guest"}</strong><p className="subtle">{user.is_guest ? "A temporary session for exploring CodeCoach." : user.email}</p></div><span className="badge">{user.is_guest ? "Guest account" : "Your account"}</span></div>
+      {upgraded && (
+        <p className="banner banner--success" role="status">
+          Your account is ready. Everything you did as a guest is saved, and you can sign in from any device.
+        </p>
+      )}
       <div className="settings__grid">
+        {user.is_guest && <KeepProgressCard onUpgraded={() => setUpgraded(true)} />}
         <ProfileCard />
         <Card className="stack" aria-labelledby="editor-preferences-title"><h2 id="editor-preferences-title" className="section-title"><Icon name="code" size={17} />Editor preferences</h2><EditorAppearancePreview /><EditorPreferencesControls /></Card>
         {!user.is_guest && <PasswordCard />}
@@ -81,6 +88,49 @@ function ProfileCard() {
         <div className="row">
           <Button type="submit" variant="primary" loading={form.busy}>Save profile</Button>
           {form.done && <span className="subtle" role="status">{form.done}</span>}
+        </div>
+      </form>
+    </Card>
+  );
+}
+
+/** Guests can turn their temporary account into a real one without losing anything. */
+function KeepProgressCard({ onUpgraded }: { onUpgraded(): void }) {
+  const { adoptToken } = useAuth();
+  const retention = useCapabilities().data?.guest_retention_days;
+  const [form, setForm] = useState({ display_name: "", email: "", password: "" });
+  const state = useFormState();
+  const errors = fieldErrorsFrom(state.error) as Record<string, string | undefined>;
+  const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm((f) => ({ ...f, [key]: e.target.value }));
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    void state.run(async () => {
+      const response = await api.upgradeGuest({ email: form.email, password: form.password, display_name: form.display_name || null });
+      onUpgraded(); // this card unmounts once the account is no longer a guest
+      adoptToken(response);
+    }, "");
+  };
+  return (
+    <Card className="keep-progress">
+      <form className="stack" onSubmit={onSubmit} aria-labelledby="keep-progress-title">
+        <h2 id="keep-progress-title" className="section-title"><Icon name="shield" size={17} />Keep your progress</h2>
+        <p className="muted">
+          This is a guest session.{retention ? ` Guest accounts are deleted after ${retention} days without activity. ` : " "}
+          Create an account to keep your attempts, hints, reviews and interviews, and sign in from any device.
+        </p>
+        <Field label="Name" optional autoComplete="nickname" maxLength={40} value={form.display_name}
+          onChange={set("display_name")} error={errors.display_name} />
+        <Field label="Email" type="email" autoComplete="email" required value={form.email}
+          onChange={set("email")} error={errors.email} />
+        <Field label="Password" type="password" autoComplete="new-password" required value={form.password}
+          onChange={set("password")} error={errors.password}
+          hint="At least 10 characters with upper- and lower-case letters and a number." />
+        {!errors.email && !errors.password && !errors.display_name && <InlineError error={state.error} />}
+        <div className="row">
+          <Button type="submit" variant="primary" loading={state.busy} disabled={!form.email || !form.password}>
+            Create my account
+          </Button>
         </div>
       </form>
     </Card>

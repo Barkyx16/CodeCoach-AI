@@ -30,3 +30,30 @@ test("the session survives reloads via an HttpOnly cookie that page scripts can'
   await page.goto("/dashboard");
   await expect(page).toHaveURL(/\/login$/);
 });
+
+test("a guest keeps their work by upgrading to a full account", async ({ page }) => {
+  const email = `upgrade-${Date.now()}@example.com`;
+  await page.goto("/");
+  await page.getByRole("button", { name: /try it now/i }).click();
+  await expect(page).toHaveURL(/two-sum/);
+  await page.getByRole("button", { name: "Get a hint" }).click(); // some guest activity to keep
+  await expect(page.getByText(/level 1/i).first()).toBeVisible();
+
+  await page.goto("/settings");
+  const card = page.getByRole("form", { name: "Keep your progress" });
+  await expect(card.getByText(/deleted after \d+ days without activity/)).toBeVisible();
+  await card.getByLabel("Email").fill(email);
+  await card.getByLabel("Password").fill("CorrectHorse42");
+  await card.getByRole("button", { name: "Create my account" }).click();
+  await expect(page.getByText(/Your account is ready/)).toBeVisible();
+
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill("CorrectHorse42");
+  await page.locator("#main").getByRole("button", { name: "Sign in" }).click();
+  await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
+  await page.goto("/history");
+  await page.getByRole("tab", { name: "AI feedback" }).click();
+  await expect(page.getByText("Hint level 1").first()).toBeVisible(); // the guest's hint survived
+});

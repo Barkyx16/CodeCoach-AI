@@ -20,7 +20,7 @@ from app.observability import RequestContextMiddleware, configure_logging
 from app.services.ai.service import build_provider
 from app.services.email import build_email_sender
 from app.services.judge.backends import build_backend
-from app.services.rate_limit import SlidingWindowLimiter
+from app.services.rate_limit import DatabaseRateLimiter, SlidingWindowLimiter
 
 logger = logging.getLogger("codecoach.app")
 
@@ -96,7 +96,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.ai_provider = build_provider(settings)
     app.state.execution_backend = build_backend(settings)
     app.state.email_sender = build_email_sender(settings)
-    app.state.auth_limiter = SlidingWindowLimiter(settings.auth_rate_limit_per_minute, 60.0)
+    app.state.auth_limiter = (
+        DatabaseRateLimiter(session_factory, settings.auth_rate_limit_per_minute, 60)
+        if settings.rate_limit_backend == "database"
+        else SlidingWindowLimiter(settings.auth_rate_limit_per_minute, 60.0)
+    )
     app.state.metrics = Metrics() if settings.metrics_enabled else None
 
     install_error_handlers(app)

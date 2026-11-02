@@ -2,6 +2,8 @@
 
 python -m app.cli seed        # upsert the curated problem library
 python -m app.cli openapi     # print the OpenAPI schema (JSON) to stdout
+python -m app.cli prune-guests [--days N]   # delete guest accounts inactive for N days
+                                            # (default GUEST_RETENTION_DAYS)
 """
 
 from __future__ import annotations
@@ -29,6 +31,15 @@ def main(argv: list[str]) -> int:
 
         OPENAPI_PATH.write_text(json.dumps(create_app().openapi(), indent=2) + "\n")
         print(f"Wrote {OPENAPI_PATH}")
+        return 0
+    if command == "prune-guests":
+        from app.services.retention import prune_inactive_guests
+
+        settings = get_settings()
+        days = int(argv[argv.index("--days") + 1]) if "--days" in argv else settings.guest_retention_days
+        engine = make_engine(settings.database_url)
+        with make_session_factory(engine)() as session:
+            print(f"Deleted {prune_inactive_guests(session, days)} guest accounts inactive for {days}+ days")
         return 0
     print(__doc__)
     return 1

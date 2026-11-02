@@ -29,6 +29,7 @@ from app.models import ProgressEvent, ProgressEventType, Submission, SubmissionM
 from app.observability import configure_logging
 from app.services.judge.judge import STATUS_DETAIL, JudgeInfrastructureError, judge_submission
 from app.services.judge.runner_client import HttpRunner, Runner, RunnerUnavailable
+from app.services.retention import prune_inactive_guests
 
 logger = logging.getLogger("codecoach.worker")
 
@@ -129,11 +130,19 @@ class JudgeWorker:
 
     def run_forever(self) -> None:
         last_recovery = 0.0
+        last_retention = 0.0
         while not self._stop:
             if time.monotonic() - last_recovery > 30:
                 with self.session_factory() as db:
                     self.recover_stale(db)
                 last_recovery = time.monotonic()
+            if time.monotonic() - last_retention > 24 * 3600:  # housekeeping, once a day
+                try:
+                    with self.session_factory() as db:
+                        prune_inactive_guests(db, self.settings.guest_retention_days)
+                except Exception:  # noqa: BLE001 - never let housekeeping stop judging
+                    logger.exception("guest retention failed")
+                last_retention = time.monotonic()
             try:
                 worked = self.process_one()
             except Exception:  # noqa: BLE001 - keep the worker alive; the job is recovered later

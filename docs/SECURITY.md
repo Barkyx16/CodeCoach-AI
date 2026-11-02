@@ -12,6 +12,9 @@ built yet**. Nothing in the "designed" sections should be described as working.
 | Brute force | Per-IP sliding-window limit on register, login, guest and password change | `services/rate_limit.py` | ✅ |
 | Tokens | HS256 JWT with `exp`, `iat`, `iss`, `typ`; `token_version` claim enables revocation | `services/auth.py`, `api/deps.py` | ✅ |
 | Logout / password change | Revokes every previously issued token | `routes/auth.py` | ✅ |
+| Password reset | Same answer and timing for unknown emails (work runs after the response); single-use 30-minute hash-only tokens in a URL fragment; one email per minute; resets end every session; production requires SMTP and an https link base | `services/password_reset.py`, `services/email.py` | ✅ |
+| Shared rate limits | Sliding-window counters in the database (atomic upsert), so every API replica enforces one budget; real client IPs only from trusted proxies (`FORWARDED_ALLOW_IPS`) | `services/rate_limit.py` | ✅ |
+| Data retention | Inactive guest accounts are deleted with their data after `GUEST_RETENTION_DAYS` (30); guests can upgrade to keep everything | `services/retention.py` | ✅ |
 | Sessions | 15-minute in-memory access tokens; rotating `HttpOnly` `SameSite=Strict` refresh cookie with reuse detection (§3) | `services/refresh.py`, `routes/auth.py` | ✅ |
 | Authorization | Every user-owned query filters by `user_id`; other users' resources return 404 | routes, `CoachService` | ✅ |
 | Hidden tests | Never serialized; hint text and reference solutions never leave the server | `routes/problems.py` | ✅ (checks every problem) |
@@ -180,8 +183,8 @@ compile output returned in `stderr_excerpt` listed **every hidden input** of the
 
 ## 5. Known gaps (honest list)
 
-- The auth rate limiter is per process (move to Redis for multiple replicas).
-- No email verification or password reset (needs an email provider).
+- No email verification yet: an account's email isn't proven at registration (password reset
+  does prove control of the inbox at the time of the reset).
 - AI quality is measured only for the offline coach ([AI_EVALUATION.md](AI_EVALUATION.md)); Claude's
   numbers need an API key, so no claims are made about it.
 - Code execution is off by default; deployments must opt in (`EXECUTION_ENABLED=true`) and

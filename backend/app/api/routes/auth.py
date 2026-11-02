@@ -27,6 +27,7 @@ from app.schemas.auth import (
     RegisterRequest,
     TokenResponse,
     UpdateProfileRequest,
+    UpgradeGuestRequest,
     UserOut,
 )
 from app.schemas.common import error_responses
@@ -44,7 +45,7 @@ def _client_key(request: Request) -> str:
 
 
 def _throttle(request: Request) -> None:
-    allowed, retry_after = request.app.state.auth_limiter.hit(_client_key(request))
+    allowed, retry_after = request.app.state.auth_limiter.hit(f"auth:{_client_key(request)}")
     if not allowed:
         raise RateLimitedError(
             "Too many attempts. Wait a minute and try again.",
@@ -174,6 +175,42 @@ def guest(
     )
     db.add(user)
     db.commit()
+    return _start_session(db, user, response, settings)
+
+
+@router.post(
+    "/upgrade",
+    response_model=TokenResponse,
+    responses=_ERRORS,
+    summary="Turn the current guest account into a full account, keeping all of its data",
+)
+def upgrade_guest(
+    body: UpgradeGuestRequest,
+    request: Request,
+    response: Response,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> TokenResponse:
+    _throttle(request)
+    if not user.is_guest:
+        raise ConflictError("This is already a full account.", code="not_a_guest")
+    email = body.email.lower()
+    if db.scalar(select(User.id).where(User.email == email)):
+        raise ConflictError("An account with this email already exists", code="email_taken")
+    user.email = email
+    user.password_hash = hash_password(body.password)
+    user.auth_provider_id = f"password:{new_id()}"
+    user.is_guest = False  # no longer subject to guest retention
+    if body.display_name:
+        user.display_name = body.display_name
+    user.last_login_at = datetime.now(UTC)
+    refresh_tokens.revoke_all(db, user)  # the guest session's cookie is replaced below
+    try:
+        db.commit()
+    except IntegrityError as exc:  # concurrent registration with the same email
+        db.rollback()
+        raise ConflictError("An account with this email already exists", code="email_taken") from exc
     return _start_session(db, user, response, settings)
 
 

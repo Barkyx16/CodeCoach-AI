@@ -33,6 +33,35 @@ describe("Settings", () => {
     expect(code).toHaveStyle({ whiteSpace: "pre-wrap" });
   });
 
+  it("lets a guest keep their progress by creating an account in place", async () => {
+    const guestUser = { ...baseUser, email: null, is_guest: true, display_name: "Guest" };
+    let body: unknown = null;
+    server.use(
+      http.post(`${API}/api/v1/auth/refresh`, () => HttpResponse.json(tokenResponse({ user: guestUser }))),
+      http.post(`${API}/api/v1/auth/upgrade`, async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json(tokenResponse({ user: { ...baseUser, display_name: "Grace", email: "grace@example.com" } }));
+      }),
+    );
+    const { user } = renderApp("/settings", { signedIn: true });
+    const card = within(await screen.findByRole("form", { name: "Keep your progress" }));
+    expect(await card.findByText(/deleted after 30 days without activity/)).toBeInTheDocument();
+    await user.type(card.getByLabelText(/Name/), "Grace");
+    await user.type(card.getByLabelText("Email"), "grace@example.com");
+    await user.type(card.getByLabelText("Password"), "CorrectHorse42");
+    await user.click(card.getByRole("button", { name: "Create my account" }));
+    expect(await screen.findByText(/Your account is ready\. Everything you did as a guest is saved/)).toBeInTheDocument();
+    expect(body).toEqual({ email: "grace@example.com", password: "CorrectHorse42", display_name: "Grace" });
+    expect(screen.queryByRole("form", { name: "Keep your progress" })).not.toBeInTheDocument();
+    expect(within(screen.getByRole("banner")).getByText("Grace")).toBeInTheDocument();
+  });
+
+  it("doesn't offer the guest upgrade to full accounts", async () => {
+    renderApp("/settings", { signedIn: true });
+    expect(await screen.findByRole("heading", { name: "Settings" })).toBeInTheDocument();
+    expect(screen.queryByRole("form", { name: "Keep your progress" })).not.toBeInTheDocument();
+  });
+
   it("warns when editor preferences cannot be persisted", async () => {
     const { user } = renderApp("/settings", { signedIn: true });
     const field = await screen.findByLabelText("Font size");

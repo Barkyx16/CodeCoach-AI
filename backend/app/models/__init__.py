@@ -184,6 +184,16 @@ class PasswordResetToken(Base):
     used_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
 
 
+class RateLimitCounter(Base):
+    """Attempts per key per fixed window, shared by every API replica (see services/rate_limit)."""
+
+    __tablename__ = "rate_limit_counters"
+
+    key: Mapped[str] = mapped_column(String(160), primary_key=True)
+    window: Mapped[int] = mapped_column(Integer, primary_key=True)  # epoch seconds // window length
+    count: Mapped[int] = mapped_column(Integer, default=0)
+
+
 class Problem(Base):
     __tablename__ = "problems"
 

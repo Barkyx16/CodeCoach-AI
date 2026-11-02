@@ -92,6 +92,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/upgrade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Turn the current guest account into a full account, keeping all of its data */
+        post: operations["upgrade_guest_api_v1_auth_upgrade_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/refresh": {
         parameters: {
             query?: never;
@@ -614,6 +631,11 @@ export interface components {
              * @enum {string}
              */
             ai_provider: "offline" | "anthropic";
+            /**
+             * Guest Retention Days
+             * @description Guest accounts inactive this long are deleted with their data (0: kept forever)
+             */
+            guest_retention_days: number;
         };
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
@@ -1504,6 +1526,27 @@ export interface components {
             /** Display Name */
             display_name?: string | null;
         };
+        /**
+         * UpgradeGuestRequest
+         * @description Same fields and rules as registration; the guest's data is kept.
+         */
+        UpgradeGuestRequest: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /**
+             * Password
+             * @example CorrectHorse42
+             */
+            password: string;
+            /**
+             * Display Name
+             * @example Ada
+             */
+            display_name?: string | null;
+        };
         /** UserOut */
         UserOut: {
             /** Id */
@@ -1719,6 +1762,66 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    upgrade_guest_api_v1_auth_upgrade_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpgradeGuestRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -25,6 +25,8 @@ test("forgot password: email link, new password, old password stops working", as
 
   await page.goto("/login");
   await page.getByRole("link", { name: "Forgot your password?" }).click();
+  // Wait for the new page: typing during the route change would land in the old page's field.
+  await expect(page.getByRole("heading", { name: "Reset your password" })).toBeVisible();
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Send reset link" }).click();
   await expect(page.getByRole("status")).toContainText("If an account exists");

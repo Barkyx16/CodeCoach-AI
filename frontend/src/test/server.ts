@@ -21,7 +21,7 @@ export const handlers = [
       && (!q || p.title.toLowerCase().includes(q)));
     return HttpResponse.json(page(items));
   }),
-  http.get(`${API}/api/v1/capabilities`, () => HttpResponse.json({ execution_enabled: false, ai_provider: "offline" })),
+  http.get(`${API}/api/v1/capabilities`, () => HttpResponse.json({ execution_enabled: false, ai_provider: "offline", guest_retention_days: 30 })),
   http.get(`${API}/api/v1/topics`, () => HttpResponse.json([{ topic: "arrays", count: 3 }, { topic: "hash-maps", count: 1 }])),
   http.get(`${API}/api/v1/problems/two-sum`, () => HttpResponse.json(twoSum)),
   http.get(`${API}/api/v1/problems/:slug`, ({ params }) =>

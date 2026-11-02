@@ -144,7 +144,7 @@ describe("Judge results", () => {
 
   describe("Run (public tests only)", () => {
     const enableExecution = () => server.use(
-      http.get(`${API}/api/v1/capabilities`, () => HttpResponse.json({ execution_enabled: true, ai_provider: "offline" })));
+      http.get(`${API}/api/v1/capabilities`, () => HttpResponse.json({ execution_enabled: true, ai_provider: "offline", guest_retention_days: 30 })));
 
     it("is hidden when this deployment can't run code", async () => {
       renderApp("/problems/two-sum", { signedIn: true });

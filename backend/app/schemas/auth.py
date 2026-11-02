@@ -24,6 +24,10 @@ class RegisterRequest(APIModel):
         return _password_rules(v)
 
 
+class UpgradeGuestRequest(RegisterRequest):
+    """Same fields and rules as registration; the guest's data is kept."""
+
+
 class LoginRequest(APIModel):
     email: EmailStr
     password: str = Field(min_length=1, max_length=128)

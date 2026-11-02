@@ -25,6 +25,8 @@ test("public pages have no WCAG 2.1 A/AA violations", async ({ page }) => {
     ["/", /practice/i],
     ["/login", /sign in|welcome/i],
     ["/register", /create|account/i],
+    ["/forgot-password", /reset your password/i],
+    ["/reset-password", /choose a new password/i],
     ["/problems", /problems|library|practice/i],
     ["/no-such-page", /page not found/i],
   ] as const) {

@@ -137,6 +137,10 @@ def test_export_includes_mode(judged):
 
 
 def test_capabilities_say_whether_runs_work(client, make_client):
-    assert client.get("/api/v1/capabilities").json() == {"execution_enabled": False, "ai_provider": "offline"}
+    assert client.get("/api/v1/capabilities").json() == {
+        "execution_enabled": False,
+        "ai_provider": "offline",
+        "guest_retention_days": 30,
+    }
     enabled = make_client(execution_enabled=True, runner_token="r" * 40)
     assert enabled.get("/api/v1/capabilities").json()["execution_enabled"] is True

@@ -37,8 +37,15 @@ class Settings(BaseSettings):
     # Secure cookies need HTTPS. Unset means: secure in production, not in development/tests.
     refresh_cookie_secure: bool | None = None
     allow_guest_sessions: bool = True
-    # Per-IP attempts per minute for login/register (brute-force protection).
+    # Guest (demo) accounts with no activity for this many days are deleted with their data
+    # (python -m app.cli prune-guests, or daily by the judge worker). 0 keeps them forever.
+    guest_retention_days: int = Field(default=30, ge=0)
+    # Per-IP attempts per minute for sign-in, registration and password reset.
     auth_rate_limit_per_minute: int = 10
+    # "database": shared by every API replica and survives restarts. "memory": one process only.
+    # Behind a reverse proxy, also set FORWARDED_ALLOW_IPS to the proxy's address so uvicorn
+    # uses the real client IP from X-Forwarded-For (otherwise everyone shares the proxy's IP).
+    rate_limit_backend: Literal["database", "memory"] = "database"
 
     # --- Email (password reset) ---------------------------------------------------------------
     # Public URL of the web app, used to build links in emails.

@@ -53,6 +53,13 @@ The "Session log" at the bottom tracks exactly what that is.
   refresh token in an `HttpOnly`, `SameSite=Strict` cookie (hash-only storage, reuse detection
   that revokes a stolen session, CSRF header and Origin checks), removing tokens from
   `localStorage` entirely; tested in a real browser and in 15 backend attack-case tests.
+- Built **account recovery and lifecycle**: email password reset with no account enumeration
+  (the work runs after a uniform response), single-use hashed tokens delivered in a URL fragment,
+  a pluggable email layer (console/file/SMTP), guest-to-account upgrades that keep all data, and
+  automatic deletion of inactive guest accounts.
+- Moved brute-force limits to **database-backed sliding-window counters** (one atomic upsert per
+  attempt) so every API replica shares one budget, verified with concurrent writers on
+  PostgreSQL and against a live server with and without a trusted proxy.
 - Implemented **JWT authentication** with Argon2id hashing, token revocation, brute-force
   rate limiting and ownership-based authorization, covered by **120+ pytest tests** that run
   against both SQLite and PostgreSQL in CI.
@@ -274,6 +281,23 @@ only a hash. Every refresh rotates it, and if an old one is ever replayed, that 
 copied, so I revoke the whole chain. The tricky part was concurrency: two tabs refreshing with
 the same cookie look exactly like a replay, so there's a 30-second grace window that returns a
 retryable error instead of logging the user out.
+
+**"How does your forgot-password flow avoid leaking who has an account?"**
+The endpoint always answers `202` with the same message, and it does the lookup and sends the
+email *after* the response, so even the response time doesn't differ between a real and an
+unknown address. The link carries the token in the URL fragment, which browsers never send to
+servers, so it can't end up in access logs or `Referer` headers. The token is random, stored
+only as a hash, works once, expires in 30 minutes and is superseded by any newer link. Using it
+ends every existing session, and the page strips it from the address bar after reading it.
+
+**"Your rate limiter: what happens with three API servers behind a load balancer?"**
+Two problems, both handled. First, an in-memory counter would give each server its own budget, so
+the counters live in the database: a sliding-window counter (the current minute plus a weighted
+share of the previous one) updated with one atomic `INSERT … ON CONFLICT DO UPDATE`, so concurrent
+attempts on any server can't lose counts. I tested 80 concurrent hits on PostgreSQL. Second,
+behind a proxy every request appears to come from the proxy, so uvicorn must be told which proxy
+to trust for `X-Forwarded-For`. I checked both ways against a live server, including that an
+untrusted, spoofed header is ignored.
 
 **"What would you do differently?"**
 Add refresh tokens with an HttpOnly cookie, build the AI evaluation set earlier, and put
@@ -726,5 +750,29 @@ gVisor judge journey. The explanation card now scrolls into view in its new scro
 **Not yet verified / not built:**
 - Cross-site deployments (frontend and API on different registrable domains) would need
   `SameSite=None`; the documented setup keeps them same-site (e.g. app. and api. subdomains).
+- Live Claude responses; production deployment.
+
+### Session 8: filling the gaps (password reset, shared limits, guest lifecycle)
+**Built and verified:**
+- **Password reset:** `/auth/password-reset` (uniform 202, background work, 1 email/min, newest
+  link only) and `/auth/password-reset/confirm` (single-use, 30 min, ends every session);
+  pluggable email (console/file/SMTP with STARTTLS); production requires SMTP and an https link
+  base. Forgot/reset pages; the token is read from the fragment and removed from the address bar.
+- **Shared rate limits:** database sliding-window counters with an atomic upsert; two app
+  instances share one budget; 80 concurrent hits counted exactly on PostgreSQL; proxy trust
+  verified against a live server (trusted: per-client budgets; untrusted: header ignored).
+- **Guest lifecycle:** inactive guests (no sign-in, refresh or practice for 30 days) deleted with
+  all their data (worker daily, or `python -m app.cli prune-guests`); `/auth/upgrade` turns a
+  guest into a full account in place; a "Keep your progress" card in Settings shows the real
+  retention period from `/capabilities`.
+- Migrations `991fd8b47342` and `aacf788a8eb5` (round-tripped, `alembic check` clean).
+- Tests: 11 password-reset, 6 rate-limit, 5 retention and 3 upgrade backend tests; 8 frontend
+  tests; real-browser tests for reset-by-email and guest upgrade; new pages pass the WCAG scan.
+- Totals: 418 backend tests (104 in the real gVisor sandbox), 33 runner, 98 frontend,
+  16 Playwright tests (+ the opt-in controls audit).
+
+**Not yet verified / not built:**
+- Real SMTP delivery (tested with a fake SMTP client and the file backend; needs a provider).
+- Email verification at registration.
 - Live Claude responses; production deployment.
 
