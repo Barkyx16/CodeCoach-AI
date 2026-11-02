@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import { queryKeys, useAbandonInterview, useAnswerRoundQuestion, useSkipRoundQuestion } from "@/api/queries";
 import type { AnswerSource, Difficulty, Interview, RoundQuestion } from "@/api/types";
+import { BackLink } from "@/components/BackLink";
 import { Badge, DifficultyBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
@@ -156,6 +157,7 @@ export function RoundResults({ iv }: { iv: Interview }) {
   const replies = new Map(iv.turns.filter((t) => t.role === "candidate").map((t) => [t.question_index, t]));
   return (
     <div className="page interview-summary">
+      <BackLink />
       <div className="page__header">
         <div>
           <p className="eyebrow">MOCK INTERVIEW · {ENDING[iv.status].toUpperCase()}</p>

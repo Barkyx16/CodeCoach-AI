@@ -53,7 +53,6 @@ test("a guest keeps their work by upgrading to a full account", async ({ page })
   await page.getByLabel("Password", { exact: true }).fill("CorrectHorse42");
   await page.locator("#main").getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
-  await page.goto("/history");
-  await page.getByRole("tab", { name: "AI feedback" }).click();
-  await expect(page.getByText("Hint level 1").first()).toBeVisible(); // the guest's hint survived
+  await page.goto("/history?type=coaching");
+  await expect(page.getByText(/Hint, level 1/).first()).toBeVisible(); // the guest's hint survived
 });

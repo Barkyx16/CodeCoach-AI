@@ -427,13 +427,19 @@ class InterviewTurn(Base):
 
 class ProgressEvent(Base):
     __tablename__ = "progress_events"
-    __table_args__ = (Index("ix_progress_user_created", "user_id", "created_at"),)
+    __table_args__ = (
+        Index("ix_progress_user_created", "user_id", "created_at"),
+        # Events that must happen at most once (e.g. "opened" once per problem per day) carry a key;
+        # the unique index makes that atomic even when two requests race. NULL keys never collide.
+        Index("uq_progress_user_dedupe", "user_id", "dedupe_key", unique=True),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     problem_id: Mapped[int] = mapped_column(ForeignKey("problems.id"))
     event_type: Mapped[ProgressEventType] = mapped_column(_enum(ProgressEventType, "progress_event_type"))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    dedupe_key: Mapped[str | None] = mapped_column(String(80), nullable=True)
 
 
 __all__ = [

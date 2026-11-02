@@ -1,14 +1,17 @@
-import { useState, type FormEvent } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { useEffect, useState, type FormEvent } from "react";
+import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 
 import { useAnswerQuestion, useMyAnswers, useQuestion } from "@/api/queries";
 import type { Difficulty, InterviewAnswer } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
+import { BackLink } from "@/components/BackLink";
 import { Badge, DifficultyBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Icon } from "@/components/Icon";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { answerDraftKey } from "@/features/dashboard/savedWork";
+import { useStoredDraft } from "@/hooks/useStoredDraft";
 import { timeAgo } from "@/lib/format";
 
 import { FeedbackCard } from "./FeedbackCard";
@@ -27,10 +30,19 @@ export function QuestionPage() {
   const question = useQuestion(track, id);
   const answers = useMyAnswers(track, id, isAuthenticated);
   const submit = useAnswerQuestion(track, id);
-  // A draft carried over from an interview that ended before this question was answered.
+  // Unsent drafts are kept in this browser; a draft carried over from an interview that ended
+  // before this question was answered fills an empty box (never overwrites one).
   const carried = (useLocation().state as { draft?: string } | null)?.draft ?? "";
-  const [draft, setDraft] = useState(carried);
+  const [draft, setDraft] = useStoredDraft(answerDraftKey(user?.id ?? "anon", track, id));
+  useEffect(() => {
+    if (carried && !draft) setDraft(carried);
+  }, [carried]); // eslint-disable-line react-hooks/exhaustive-deps
+  // ?answer=<id> (from History) opens that past answer's feedback.
+  const [params] = useSearchParams();
+  const wanted = params.get("answer");
   const [latest, setLatest] = useState<InterviewAnswer | null>(null);
+  const linked = wanted && answers.data ? answers.data.find((a) => a.id === wanted) ?? null : null;
+  const shown = latest ?? linked;
   const [guestError, setGuestError] = useState<unknown>(null);
 
   if (question.isPending) return <LoadingState label="Loading question…" />;
@@ -44,11 +56,15 @@ export function QuestionPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     const result = await submit.mutateAsync(draft.trim()).catch(() => null);
-    if (result) setLatest(result);
+    if (result) {
+      setLatest(result);
+      setDraft("");
+    }
   }
 
   return (
     <div className="page question-page">
+      <BackLink />
       <nav className="question-page__crumbs" aria-label="Breadcrumb">
         <Link to={backTo}><Icon name="book" size={15} />{q.career_title} questions</Link>
       </nav>
@@ -96,7 +112,8 @@ export function QuestionPage() {
             <InlineError error={submit.error ?? guestError} />
           </form>
 
-          {latest && <FeedbackCard answer={latest} />}
+          {shown && <FeedbackCard answer={shown} title={shown === latest ? "Feedback" : `Feedback on your answer from ${timeAgo(shown.created_at)}`} />}
+          {wanted && answers.data && !linked && !latest && <p className="banner banner--warning">That answer couldn't be found. It may have been deleted.</p>}
         </div>
 
         <aside className="stack">
@@ -111,7 +128,7 @@ export function QuestionPage() {
                 {answers.data.map((a) => (
                   <li key={a.id}>
                     <button type="button" className="past-answers__item" onClick={() => setLatest(a)}
-                      aria-pressed={latest?.id === a.id}>
+                      aria-pressed={shown?.id === a.id}>
                       <span>{a.rating}</span>
                       <span className="subtle">{a.score}/100 · {timeAgo(a.created_at)}</span>
                     </button>

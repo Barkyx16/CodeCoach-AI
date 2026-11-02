@@ -119,7 +119,7 @@ function PastInterviews() {
       {q.isPending ? <LoadingState label="Loading interviews…" /> : q.isError ? <ErrorState error={q.error} onRetry={() => void q.refetch()} />
         : q.data.total === 0 ? <EmptyState title="Your next interview starts with practice">Pick a problem and a time limit above. Your sessions and feedback will be saved here.</EmptyState>
           : <><ul className="interview-list">{q.data.items.map((iv) => <InterviewRow key={iv.id} iv={iv} />)}</ul>
-            {q.data.total > 5 && <Link to="/history?tab=interviews">See all interviews</Link>}</>}
+            {q.data.total > 5 && <Link to="/history?type=interview">See all interviews</Link>}</>}
     </section>
   );
 }

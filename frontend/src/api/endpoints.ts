@@ -34,6 +34,12 @@ import type {
   QuestionDetail,
   InterviewAnswer,
   AnswerSource,
+  ActivityFacets,
+  ActivityItem,
+  ActivityStatus,
+  ActivityType,
+  CareerAnalytics,
+  ResumeOut,
   TrackProgress,
 } from "./types";
 
@@ -47,6 +53,18 @@ export interface ProblemFilters {
 
 export interface QuestionFilters {
   difficulty?: Difficulty | "";
+  q?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export interface ActivityFilters {
+  career?: string;
+  type?: ActivityType | "";
+  status?: ActivityStatus | "";
+  skill?: string;
+  since?: string;
+  until?: string;
   q?: string;
   page?: number;
   page_size?: number;
@@ -141,6 +159,15 @@ export const api = {
   aiHistory: (query: { problem_slug?: string; action?: AIHistoryAction; page?: number; page_size?: number } = {}) =>
     apiRequest<Page<AIHistoryItem>>("/api/v1/me/ai-history", { query }),
 
+  // unified progress
+  activity: (filters: ActivityFilters, signal?: AbortSignal) =>
+    apiRequest<Page<ActivityItem>>("/api/v1/me/activity", { query: { ...filters }, signal }),
+  activityFacets: (career?: string) =>
+    apiRequest<ActivityFacets>("/api/v1/me/activity/facets", { query: { career } }),
+  careerAnalytics: (track: string, since?: string) =>
+    apiRequest<CareerAnalytics>(`/api/v1/me/careers/${encodeURIComponent(track)}/analytics`, { query: { since } }),
+  resume: () => apiRequest<ResumeOut>("/api/v1/me/resume"),
+  aiHistoryItem: (id: string) => apiRequest<AIHistoryItem>(`/api/v1/me/ai-history/${encodeURIComponent(id)}`),
   // mock interviews
   startInterview: (body: InterviewStart) => apiRequest<Interview>("/api/v1/interviews", { method: "POST", body }),
   interview: (id: string, signal?: AbortSignal) =>

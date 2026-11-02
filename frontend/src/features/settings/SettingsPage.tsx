@@ -242,7 +242,8 @@ function CareerRow() {
   return (
     <form className="setting" onSubmit={onSubmit} aria-labelledby="career-title">
       <RowIntro icon="target" id="career-title" title="Career">
-        The job you're preparing for. Practice questions, tabs and progress follow it.
+        The job you're preparing for. Practice questions, tabs and progress follow it. Switching keeps
+        everything you've practised: History and Analytics still show your other careers.
       </RowIntro>
       <div className="setting__body">
         <CareerSelect value={track} onChange={setTrack} />

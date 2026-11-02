@@ -5,7 +5,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { ApiError } from "./client";
-import { api, type ProblemFilters, type QuestionFilters } from "./endpoints";
+import { api, type ActivityFilters, type ProblemFilters, type QuestionFilters } from "./endpoints";
 import type { AIHistoryAction, AnswerSource, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
 
 export const queryKeys = {
@@ -36,10 +36,11 @@ export function shouldRetry(failureCount: number, error: unknown): boolean {
   return failureCount < 2;
 }
 
-export function useProblems(filters: ProblemFilters) {
+export function useProblems(filters: ProblemFilters, enabled = true) {
   return useQuery({
     queryKey: queryKeys.problems(filters),
     queryFn: ({ signal }) => api.problems(filters, signal),
+    enabled,
     placeholderData: keepPreviousData,
     staleTime: 5 * 60_000,
   });
@@ -76,8 +77,8 @@ export function useQuestionCounts(track: string, q: string) {
   });
 }
 
-export function useQuestion(track: string, id: string) {
-  return useQuery({ queryKey: queryKeys.question(track, id), queryFn: ({ signal }) => api.question(track, id, signal) });
+export function useQuestion(track: string, id: string, enabled = true) {
+  return useQuery({ queryKey: queryKeys.question(track, id), queryFn: ({ signal }) => api.question(track, id, signal), enabled });
 }
 
 export function useMyAnswers(track: string, id: string, enabled: boolean) {
@@ -90,6 +91,7 @@ export function useAnswerQuestion(track: string, id: string) {
     mutationFn: (answer: string) => api.answerQuestion(track, id, answer),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["careers", track] });
+      void qc.invalidateQueries({ queryKey: ["me"] }); // activity, analytics, resume
     },
   });
 }
@@ -107,10 +109,11 @@ export function useCapabilities() {
   return useQuery({ queryKey: queryKeys.capabilities, queryFn: api.capabilities, staleTime: Infinity });
 }
 
-export function useProblem(slug: string) {
+export function useProblem(slug: string, enabled = true) {
   return useQuery({
     queryKey: queryKeys.problem(slug),
     queryFn: ({ signal }) => api.problem(slug, signal),
+    enabled,
     staleTime: 5 * 60_000,
   });
 }
@@ -219,6 +222,10 @@ function useInterviewMutation<V>(fn: (vars: V) => Promise<Interview>) {
     onSuccess: (interview) => {
       queryClient.setQueryData(queryKeys.interview(interview.id), interview);
       void queryClient.invalidateQueries({ queryKey: ["me", "interviews"] });
+      for (const key of ["activity", "activity-facets", "career-analytics", "resume"]) {
+        void queryClient.invalidateQueries({ queryKey: ["me", key] });
+      }
+      if (interview.track) void queryClient.invalidateQueries({ queryKey: ["careers", interview.track] });
       void queryClient.invalidateQueries({ queryKey: queryKeys.aiUsage });
       if (interview.status !== "in_progress") void queryClient.invalidateQueries({ queryKey: queryKeys.progress });
     },
@@ -234,3 +241,32 @@ export const useSkipRoundQuestion = (id: string) => useInterviewMutation((index:
 export const useFinishInterview = (id: string) =>
   useInterviewMutation((code: string | null) => api.finishInterview(id, code));
 export const useAbandonInterview = (id: string) => useInterviewMutation((_: void) => api.abandonInterview(id));
+
+export function useActivity(filters: ActivityFilters) {
+  return useQuery({
+    queryKey: ["me", "activity", filters],
+    queryFn: ({ signal }) => api.activity(filters, signal),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useActivityFacets(career?: string) {
+  return useQuery({ queryKey: ["me", "activity-facets", career ?? ""], queryFn: () => api.activityFacets(career) });
+}
+
+export function useCareerAnalytics(track: string, since: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ["me", "career-analytics", track, since ?? "all"],
+    queryFn: () => api.careerAnalytics(track, since),
+    enabled,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useResume(enabled = true) {
+  return useQuery({ queryKey: ["me", "resume"], queryFn: api.resume, enabled });
+}
+
+export function useAIHistoryItem(id: string) {
+  return useQuery({ queryKey: ["me", "ai-history-item", id], queryFn: () => api.aiHistoryItem(id) });
+}

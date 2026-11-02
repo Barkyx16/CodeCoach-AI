@@ -1,7 +1,7 @@
 import { http, HttpResponse, type JsonBodyType } from "msw";
 import { setupServer } from "msw/node";
 
-import { careers, hint, nurseAnswer, nurseQuestions, page, problems, progress, queuedSubmission, review, tokenResponse, twoSum, user } from "./fixtures";
+import { activityFacets, activityItems, careers, hint, nurseAnalytics, nurseAnswer, nurseQuestions, page, problems, progress, queuedSubmission, review, tokenResponse, twoSum, user } from "./fixtures";
 
 export const API = "http://localhost:8000";
 
@@ -78,6 +78,16 @@ export const handlers = [
   http.post(`${API}/api/v1/ai/review`, () => HttpResponse.json(review)),
   http.get(`${API}/api/v1/ai/usage`, () => HttpResponse.json({ used_today: 2, daily_limit: 50, remaining_today: 48, provider: "offline" })),
   http.get(`${API}/api/v1/me/ai-history`, () => HttpResponse.json(page([]))),
+  http.get(`${API}/api/v1/me/activity`, ({ request }) => {
+    const params = new URL(request.url).searchParams;
+    const items = activityItems.filter((i) => (!params.get("career") || i.career === params.get("career"))
+      && (!params.get("type") || i.type === params.get("type"))
+      && (!params.get("q") || i.title.toLowerCase().includes(params.get("q")!.toLowerCase())));
+    return HttpResponse.json({ ...page(items), total: items.length });
+  }),
+  http.get(`${API}/api/v1/me/activity/facets`, () => HttpResponse.json(activityFacets)),
+  http.get(`${API}/api/v1/me/careers/:track/analytics`, () => HttpResponse.json(nurseAnalytics)),
+  http.get(`${API}/api/v1/me/resume`, () => HttpResponse.json({ interview: null, unfinished_problem: null, last_question: null })),
   http.get(`${API}/api/v1/me/progress`, () => HttpResponse.json(progress)),
   http.get(`${API}/api/v1/me/recommendations`, () => HttpResponse.json([
     { slug: "find-largest-number", title: "Find Largest Number", difficulty: "easy", topics: ["arrays"], reason: "You've submitted this once without a pass.", kind: "retry" },

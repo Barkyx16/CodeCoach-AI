@@ -29,10 +29,9 @@ describe("Dashboard", () => {
 });
 
 describe("History", () => {
-  it("lists submissions and switches to AI feedback", async () => {
-    const { user } = renderApp("/history", { signedIn: true });
-    expect(await screen.findByRole("link", { name: "Two Sum" })).toBeInTheDocument();
-    await user.click(screen.getByRole("tab", { name: "AI feedback" }));
-    expect(await screen.findByText("No AI feedback yet")).toBeInTheDocument();
+  it("old tab links still open the matching History filter", async () => {
+    const { router } = renderApp("/history?tab=interviews", { signedIn: true });
+    expect(await screen.findByText("Registered Nurse question round")).toBeInTheDocument();
+    expect(router.state.location.search).toBe("?type=interview");
   });
 });

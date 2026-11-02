@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.careers.grading import grade
+from app.careers.grading import RUBRIC_VERSION, grade
 from app.careers.questions import Question
 from app.models import PracticeAnswer
 from app.schemas.careers import AnswerOut, FeedbackPoint
@@ -28,6 +28,7 @@ def graded_answer(user_id: str, question: Question, text: str) -> PracticeAnswer
             "notes": list(fb.notes),
             "outline": list(question.outline),
             "word_count": fb.word_count,
+            "evaluator": f"{OFFLINE_COACH} · rubric {RUBRIC_VERSION}",
         },
     )
 

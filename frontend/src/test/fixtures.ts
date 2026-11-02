@@ -1,4 +1,7 @@
 import type {
+  ActivityFacets,
+  ActivityItem,
+  CareerAnalytics,
   Career,
   InterviewAnswer,
   QuestionSummary, HintResponse, Page, ProblemDetail, ProblemSummary, Progress, ReviewResponse, Submission, TokenResponse, User } from "@/api/types";
@@ -100,4 +103,53 @@ export const nurseAnswer: InterviewAnswer = {
   notes: ["No numbers yet. A figure (time, %, count) makes your result concrete."],
   outline: ["Situation: what made it high-pressure.", "Result: the outcome."],
   word_count: 140, coach: "built-in (offline)", created_at: "2026-11-01T09:00:00Z",
+};
+
+const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
+
+export const activityItems: ActivityItem[] = [
+  {
+    id: "written_answer:a-1", type: "written_answer", occurred_at: minutesAgo(5), career: "registered-nurse",
+    career_title: "Registered Nurse", title: "What good patient assessment looks like", detail: null,
+    skills: ["patient assessment"], status: "scored", status_label: "Scored 92/100 (Strong)", score: 92, session_id: null,
+    target: { href: "/careers/registered-nurse/questions/e-good-0?answer=a-1", track: "registered-nurse", question_id: "e-good-0", answer_id: "a-1" },
+  },
+  {
+    id: "code_submission:sub-1", type: "code_submission", occurred_at: minutesAgo(30), career: "coding",
+    career_title: "Coding problems", title: "Two Sum", detail: null, skills: ["arrays", "hash-maps"],
+    status: "saved_not_judged", status_label: "Saved, not judged (the code judge isn't available on this server)", score: null,
+    session_id: null, target: { href: "/history/submissions/sub-1", problem_slug: "two-sum", submission_id: "sub-1" },
+  },
+  {
+    id: "interview:round-7", type: "interview", occurred_at: minutesAgo(90), career: "registered-nurse",
+    career_title: "Registered Nurse", title: "Registered Nurse question round", detail: "1 of 5 answered, 4 skipped",
+    skills: [], status: "completed", status_label: "Completed", score: null, session_id: "round-7",
+    target: { href: "/interviews/round-7", interview_id: "round-7", track: "registered-nurse" },
+  },
+];
+
+export const activityFacets: ActivityFacets = {
+  careers: [{ value: "registered-nurse", label: "Registered Nurse", count: 2 }, { value: "coding", label: "Coding problems", count: 1 }],
+  types: [
+    { value: "problem_opened", label: "Problem opened", count: 0 }, { value: "code_submission", label: "Code submission", count: 1 },
+    { value: "coaching", label: "Coaching", count: 0 }, { value: "written_answer", label: "Written answer", count: 1 },
+    { value: "interview", label: "Mock interview", count: 1 },
+  ],
+  statuses: [{ value: "scored", label: "Scored by the rubric", count: 1 }, { value: "saved_not_judged", label: "Saved, not judged", count: 1 }, { value: "completed", label: "Completed", count: 1 }],
+  skills: [],
+};
+
+const today = new Date().toISOString().slice(0, 10);
+export const nurseAnalytics: CareerAnalytics = {
+  track: "registered-nurse", career_title: "Registered Nurse", since: null, until: today,
+  questions_practiced: 1, answers: 2, strong_questions: 1, total_questions: 300,
+  skills: [
+    { skill: "patient assessment", total_questions: 26, questions_answered: 1, answers: 2, average_best_score: 92 },
+    { skill: "triage", total_questions: 17, questions_answered: 0, answers: 0, average_best_score: null },
+  ],
+  kinds: [{ value: "knowledge", label: "Knowledge", count: 2 }],
+  interviews: { completed: 1, in_progress: 0, expired: 0, abandoned: 1 },
+  trends: [{ evaluator: "built-in (offline) · rubric v1", points: [{ week_start: today, answers: 2, average_score: 80 }] }],
+  by_day: [{ day: today, answers: 2, interviews: 1 }],
+  definitions: { trend: "Weekly average score within one evaluator." },
 };

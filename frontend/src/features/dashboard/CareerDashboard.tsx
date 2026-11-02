@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-import { useQuestionCounts, useQuestions, useTrackProgress } from "@/api/queries";
+import { useCareerAnalytics, useQuestionCounts, useQuestions, useTrackProgress } from "@/api/queries";
 import type { Difficulty } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { Badge, DifficultyBadge } from "@/components/Badge";
@@ -11,6 +11,7 @@ import { titleCase } from "@/lib/format";
 import { KIND_LABEL } from "@/features/careers/kinds";
 
 import { ProgressBars } from "./ProgressBars";
+import { ContinueCard } from "./ContinueCard";
 import { StatTile } from "./StatTile";
 
 const LEVELS: Difficulty[] = ["easy", "medium", "hard"];
@@ -29,6 +30,13 @@ export function CareerDashboard({ track, careerTitle }: { track: string; careerT
   const counts = useQuestionCounts(track, "");
   const level = progress.data ? nextLevel(progress.data.by_difficulty) : "easy";
   const questions = useQuestions(track, { difficulty: level, page: 1, page_size: 60 });
+  const analytics = useCareerAnalytics(track, undefined);
+  const covered = analytics.data?.skills.filter((s) => s.questions_answered > 0).length ?? 0;
+  // A trend only within one evaluator, and only once there are two weeks to compare.
+  const series = analytics.data?.trends.length === 1 ? analytics.data.trends[0]!.points : [];
+  const trendText = series.length >= 2
+    ? `Weekly average ${series.at(-2)!.average_score} → ${series.at(-1)!.average_score}`
+    : "Practising level: " + titleCase(level);
 
   if (progress.isPending) return <LoadingState label="Loading your progress…" />;
   if (progress.isError) return <div className="page"><ErrorState error={progress.error} onRetry={() => progress.refetch()} /></div>;
@@ -48,15 +56,22 @@ export function CareerDashboard({ track, careerTitle }: { track: string; careerT
           <p className="page__subtitle">Questions written for {role} interviews.</p>
         </div>
         <div className="row dashboard__actions">
+          <Link to="/interviews" className="btn btn--secondary btn--md">Mock interview</Link>
           <Link to={library} className="btn btn--primary btn--md">Practice questions <span aria-hidden="true">→</span></Link>
         </div>
       </div>
+
+      <ContinueCard />
 
       <section className="stat-row" aria-label="Summary">
         <StatTile icon="target" label="Answered" value={`${p.answered}`} detail={`of ${p.total_questions} questions`}
           fraction={p.total_questions ? p.answered / p.total_questions : 0} />
         <StatTile icon="spark" label="Strong answers" value={`${p.strong}`} detail="Best score of 85 or more" />
-        <StatTile icon="chart" label="Practicing" value={titleCase(level)} detail={`Next level after ${LEVEL_UP_AFTER} answers`} />
+        <StatTile icon="clock" label="Interviews completed" value={`${analytics.data?.interviews.completed ?? 0}`}
+          detail={analytics.data && analytics.data.interviews.abandoned + analytics.data.interviews.expired > 0
+            ? `${analytics.data.interviews.abandoned + analytics.data.interviews.expired} ended early or ran out of time` : "Mock interview rounds"} />
+        <StatTile icon="chart" label="Skills covered" value={analytics.data ? `${covered} of ${analytics.data.skills.length}` : "…"}
+          detail={trendText} />
       </section>
 
       {p.answered === 0 && (

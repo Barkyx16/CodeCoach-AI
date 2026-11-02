@@ -153,7 +153,7 @@ test("every control does something", async ({ page, context }) => {
   await expect(page.getByRole("heading", { name: "Interview feedback" })).toBeVisible();
 
   for (const url of ["/", "/problems", "/problems/two-sum", "/problems/coin-change", "/dashboard", "/analytics",
-    "/history", "/history?tab=interviews", "/interviews", finishedUrl, "/settings"]) {
+    "/history", "/history?type=interview", "/interviews", finishedUrl, "/settings"]) {
     await audit(page, url, rows, /Sign out|Delete my account|Delete account/i);
   }
   // A live interview last (its controls can end it).

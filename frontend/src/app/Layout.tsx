@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, ScrollRestoration, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/Button";
@@ -38,6 +38,7 @@ export function Layout() {
   return (
     <div className="app">
       <RouteAccessibility />
+      <ScrollRestoration />
       <a className="skip-link" href="#main">Skip to content</a>
       <header className="header" ref={headerRef}>
         <NavLink to="/" className="brand" aria-label="CodeCoach AI home">

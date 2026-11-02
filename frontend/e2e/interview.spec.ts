@@ -61,6 +61,6 @@ test("mock interview: five phases, real editor, rubric feedback, history", async
   await page.screenshot({ path: "e2e/screenshots/07-interview-feedback.png", fullPage: true });
 
   await page.getByRole("link", { name: "History" }).click();
-  await page.getByRole("tab", { name: "Interviews" }).click();
-  await expect(page.getByRole("link", { name: /Two Sum/ })).toBeVisible();
+  await page.getByRole("search").getByLabel("Activity").selectOption("interview");
+  await expect(page.getByRole("link", { name: /Coding interview: Two Sum/ })).toBeVisible();
 });

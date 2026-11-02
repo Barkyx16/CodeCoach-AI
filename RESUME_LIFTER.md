@@ -495,6 +495,20 @@ These are moments where the obvious path was wrong and a deliberate decision was
     typing always works. Duplicate submits are blocked twice: in the UI and on the server, where
     answers are idempotent per question.
 
+35. **Derive activity, don't duplicate it.** "A shared activity model" sounded like a new
+    `activities` table. But every activity already existed as a timestamped row somewhere
+    (opens, submissions, AI requests, answers, interview sessions). Copying them into a log would
+    have meant back-filling (risking invented history), dual writes on every path, and two
+    sources of truth. Instead the feed is a read model: each source is filtered, ordered and
+    limited in SQL to what could appear on the requested page, then merged. Nothing to back-fill,
+    nothing to keep in sync, and export/deletion already covered it.
+
+36. **A race found by the browser test.** The new History test opened 12 problems and found 14
+    "opened" rows. The once-a-day rule was check-then-insert, so two near-simultaneous requests
+    both passed the check. The fix is the database's job: a nullable dedupe key with a unique
+    index, and the loser of the race rolls back quietly. Old rows keep a NULL key, so the
+    migration can't fail on historical duplicates.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -985,3 +999,31 @@ evidence-based engagement.
 - **Limits:** speech-to-text depends on the browser (none in Firefox); no hands-free mode; no
   audio is kept, so there's no audio replay; the timer can't pause (the server deadline is real);
   the site has one (dark) theme.
+
+### Session 15: one progress experience for every career
+You asked for Dashboard, Analytics and History that make sense for every career, with honest
+statuses, filters that survive Back, and a "continue where you left off".
+
+**Built and verified:**
+- **Activity feed** (`/me/activity`) derived from recorded rows across five sources, with stable
+  ids, career, skills, honest statuses and a working destination for every row; facets; career
+  analytics for any career; a resume endpoint; one AI-feedback item endpoint.
+- **A stable skill mapping** for career questions (the career's named skills and tools, else one
+  of five competencies), used by filters, analytics and coverage. Rubric version recorded on new
+  answers, so score trends are only compared within one evaluator and rubric.
+- **History**: one list, URL filters (career, activity, status, skill/topic, dates, search),
+  pagination, in-app Back that behaves like the browser's, scroll restoration; detail pages for
+  submissions (with "saved, not judged" when there's no judge, and code that only replaces your
+  draft after you confirm) and coaching; `?answer=` opens a specific past answer.
+- **Analytics** per career with date ranges, definitions, exact-value tables, gaps instead of
+  zeros, separate evaluator trends; older careers viewable without changing your setting.
+- **Dashboards**: "Continue where you left off" from genuine saved work in a fixed priority;
+  career dashboard adds interviews completed and skills covered.
+- **Bug fixed:** concurrent problem opens could be counted twice (unique key + migration).
+- Tests: 9 backend (feed, statuses, filters, pagination order, facets, career switch, analytics,
+  resume, isolation, the race), 8 frontend, 2 browser journeys (coding and nursing, incl. Back
+  with scroll position and a career switch), new WCAG scans. Totals: 1,599 backend (SQLite),
+  PostgreSQL suite green, 143 frontend, 20 Playwright.
+- **Limits:** the site has one (dark) theme, so there's no light/system mode to keep; activity
+  that was never recorded (e.g. page views before this feature, or browser-only drafts on another
+  device) can't appear; a skill filter excludes interviews because a round spans several skills.

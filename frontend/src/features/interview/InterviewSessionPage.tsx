@@ -12,6 +12,7 @@ import {
 } from "@/api/queries";
 import type { AnswerSource, Interview } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
+import { BackLink } from "@/components/BackLink";
 import { Badge, DifficultyBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
@@ -163,6 +164,7 @@ function InterviewResults({ iv, problem }: { iv: Interview; problem: NonNullable
   const ending = { completed: "Completed", expired: "Time ran out", abandoned: "Ended early", in_progress: "" }[iv.status];
   return (
     <div className="page interview-results">
+      <BackLink />
       <div className="page__header">
         <div>
           <h1 className="page__title">Interview feedback</h1>

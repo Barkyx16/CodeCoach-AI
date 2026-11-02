@@ -57,7 +57,7 @@ test("signed-in screens have no WCAG 2.1 A/AA violations", async ({ page }) => {
     await expectNoViolations(page, "workspace with hint and review");
   }
 
-  for (const path of ["/dashboard", "/analytics", "/history", "/interviews", "/interviews/questions", "/settings"]) {
+  for (const path of ["/dashboard", "/analytics", "/analytics?career=registered-nurse", "/history", "/history?career=coding&type=coaching", "/interviews", "/interviews/questions", "/settings"]) {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
     await expectNoViolations(page, path);

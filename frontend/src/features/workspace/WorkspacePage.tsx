@@ -1,6 +1,6 @@
 import { useId, useState, type ReactNode } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { useCapabilities, useProblem, useSubmission, useSubmit } from "@/api/queries";
 import type { SubmissionMode } from "@/api/types";
@@ -55,6 +55,15 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
 
   const goSignIn = () => navigate("/login", { state: { from: `/problems/${problem.slug}` } });
 
+  // Code offered from a past submission (History): never replaces the draft without a choice.
+  const location = useLocation();
+  const offer = location.state as { loadCode?: string; loadFrom?: string } | null;
+  const offeredCode = offer?.loadCode && offer.loadCode !== draft.code ? offer.loadCode : null;
+  const settleOffer = (replace: boolean) => {
+    if (replace && offeredCode) draft.setCode(offeredCode);
+    navigate(location.pathname + location.search, { replace: true, state: null });
+  };
+
   async function handleSubmit(mode: SubmissionMode = "submit") {
     if (!isAuthenticated) return goSignIn();
     if (submit.isPending || judging) return;
@@ -103,6 +112,15 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
   const statement = <section className="panel-scroll" aria-label="Problem description" tabIndex={0}><ProblemStatement problem={problem} /></section>;
   const editor = (
     <div className="editor-pane">
+      {offeredCode && (
+        <div className="banner banner--info load-offer" role="region" aria-label="Open past code">
+          <span>Open the code you submitted{offer?.loadFrom ? ` on ${offer.loadFrom}` : ""}? It replaces what's in the editor now{draft.isModified ? " (your current draft)" : ""}.</span>
+          <span className="row">
+            <Button size="sm" variant="primary" onClick={() => settleOffer(true)}>Replace my draft</Button>
+            <Button size="sm" variant="ghost" onClick={() => settleOffer(false)}>Keep my draft</Button>
+          </span>
+        </div>
+      )}
       {toolbar}
       {showSettings && <div id={settingsId} className="editor-options"><EditorPreferencesControls /></div>}
       <CodeEditor value={draft.code} onChange={(v) => { draft.setCode(v); setHighlightLine(null); }}

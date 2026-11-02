@@ -605,6 +605,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/ai-history/{interaction_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One saved hint, review or failure explanation (owner only) */
+        get: operations["ai_history_item_api_v1_me_ai_history__interaction_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/interviews": {
         parameters: {
             query?: never;
@@ -776,6 +793,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Everything you've practised, newest first, across careers (filterable) */
+        get: operations["activity_api_v1_me_activity_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/activity/facets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Filter options for your activity: careers, types, statuses and (for one career) skills */
+        get: operations["activity_facets_api_v1_me_activity_facets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/careers/{slug}/analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your analytics for one career's questions over a date range (any career, not only your current one) */
+        get: operations["career_analytics_api_v1_me_careers__slug__analytics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Saved work to continue: an interview in progress, an unsolved problem, your last question */
+        get: operations["resume_api_v1_me_resume_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/capabilities": {
         parameters: {
             query?: never;
@@ -857,6 +942,94 @@ export interface components {
             /** Events */
             events: number;
         };
+        /** ActivityFacets */
+        ActivityFacets: {
+            /** Careers */
+            careers: components["schemas"]["FacetOption"][];
+            /** Types */
+            types: components["schemas"]["FacetOption"][];
+            /** Statuses */
+            statuses: components["schemas"]["FacetOption"][];
+            /**
+             * Skills
+             * @description For the chosen career, or empty when none is chosen
+             */
+            skills: components["schemas"]["FacetOption"][];
+        };
+        /** ActivityItem */
+        ActivityItem: {
+            /**
+             * Id
+             * @description Stable: '<type>:<source id>'
+             */
+            id: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "problem_opened" | "code_submission" | "coaching" | "written_answer" | "interview";
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /**
+             * Career
+             * @description A career slug, or 'coding' for coding problems
+             */
+            career: string;
+            /** Career Title */
+            career_title: string;
+            /** Title */
+            title: string;
+            /**
+             * Detail
+             * @description e.g. 'Hint, level 2' or 'Interview, 3 of 5 answered'
+             */
+            detail: string | null;
+            /** Skills */
+            skills: string[];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "opened" | "saved_not_judged" | "awaiting_judge" | "passed" | "failed" | "evaluation_unavailable" | "scored" | "completed" | "in_progress" | "expired" | "abandoned";
+            /** Status Label */
+            status_label: string;
+            /**
+             * Score
+             * @description Written answers only: 0-100 rubric score (not correctness)
+             */
+            score: number | null;
+            /**
+             * Session Id
+             * @description The interview this activity was part of, if any
+             */
+            session_id: string | null;
+            target: components["schemas"]["ActivityTarget"];
+        };
+        /**
+         * ActivityTarget
+         * @description Where the row opens: a page path plus the stable ids it refers to.
+         */
+        ActivityTarget: {
+            /** Href */
+            href: string;
+            /** Problem Slug */
+            problem_slug?: string | null;
+            /** Track */
+            track?: string | null;
+            /** Question Id */
+            question_id?: string | null;
+            /** Submission Id */
+            submission_id?: string | null;
+            /** Answer Id */
+            answer_id?: string | null;
+            /** Interview Id */
+            interview_id?: string | null;
+            /** Ai Interaction Id */
+            ai_interaction_id?: string | null;
+        };
         /** AnswerOut */
         AnswerOut: {
             /** Id */
@@ -916,6 +1089,50 @@ export interface components {
              * @description Guest accounts inactive this long are deleted with their data (0: kept forever)
              */
             guest_retention_days: number;
+        };
+        /** CareerAnalytics */
+        CareerAnalytics: {
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /**
+             * Since
+             * @description Start of the range (inclusive); null means all time
+             */
+            since: string | null;
+            /**
+             * Until
+             * Format: date
+             */
+            until: string;
+            /** Questions Practiced */
+            questions_practiced: number;
+            /** Answers */
+            answers: number;
+            /**
+             * Strong Questions
+             * @description Questions whose best score is 85 or more
+             */
+            strong_questions: number;
+            /** Total Questions */
+            total_questions: number;
+            /**
+             * Skills
+             * @description Every skill this career's questions practise, practised or not
+             */
+            skills: components["schemas"]["SkillStat"][];
+            /** Kinds */
+            kinds: components["schemas"]["FacetOption"][];
+            interviews: components["schemas"]["InterviewCounts"];
+            /** Trends */
+            trends: components["schemas"]["TrendSeries"][];
+            /** By Day */
+            by_day: components["schemas"]["DayCount"][];
+            /** Definitions */
+            definitions: {
+                [key: string]: string;
+            };
         };
         /** CareerSummary */
         CareerSummary: {
@@ -988,6 +1205,18 @@ export interface components {
              * @description Big-O extra space complexity, e.g. 'O(1)'
              */
             space: string;
+        };
+        /** DayCount */
+        DayCount: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Answers */
+            answers: number;
+            /** Interviews */
+            interviews: number;
         };
         /** DeleteAccountRequest */
         DeleteAccountRequest: {
@@ -1129,6 +1358,15 @@ export interface components {
              */
             disclaimer: string;
         };
+        /** FacetOption */
+        FacetOption: {
+            /** Value */
+            value: string;
+            /** Label */
+            label: string;
+            /** Count */
+            count: number;
+        };
         /**
          * FailureExplanation
          * @description Schema the model must fill when explaining a failed submission.
@@ -1256,6 +1494,17 @@ export interface components {
              * @description True when the hint came from the curated hint ladder
              */
             grounded: boolean;
+        };
+        /** InterviewCounts */
+        InterviewCounts: {
+            /** Completed */
+            completed: number;
+            /** In Progress */
+            in_progress: number;
+            /** Expired */
+            expired: number;
+            /** Abandoned */
+            abandoned: number;
         };
         /**
          * InterviewEvaluation
@@ -1453,6 +1702,20 @@ export interface components {
         Page_AIHistoryItem_: {
             /** Items */
             items: components["schemas"]["AIHistoryItem"][];
+            /**
+             * Total
+             * @description Total matching items across all pages
+             */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
+        /** Page[ActivityItem] */
+        Page_ActivityItem_: {
+            /** Items */
+            items: components["schemas"]["ActivityItem"][];
             /**
              * Total
              * @description Total matching items across all pages
@@ -1784,6 +2047,60 @@ export interface components {
              */
             career_track?: string | null;
         };
+        /** ResumeInterview */
+        ResumeInterview: {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "coding" | "questions";
+            /** Title */
+            title: string;
+            /**
+             * Deadline At
+             * Format: date-time
+             */
+            deadline_at: string;
+            /** Seconds Remaining */
+            seconds_remaining: number;
+        };
+        /** ResumeOut */
+        ResumeOut: {
+            interview: components["schemas"]["ResumeInterview"] | null;
+            /** @description Most recent submitted, never-solved problem */
+            unfinished_problem: components["schemas"]["ResumeProblem"] | null;
+            last_question: components["schemas"]["ResumeQuestion"] | null;
+        };
+        /** ResumeProblem */
+        ResumeProblem: {
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+            /** Last Status */
+            last_status: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+        };
+        /** ResumeQuestion */
+        ResumeQuestion: {
+            /** Track */
+            track: string;
+            /** Question Id */
+            question_id: string;
+            /** Title */
+            title: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+        };
         /** ReviewIssue */
         ReviewIssue: {
             /**
@@ -1929,6 +2246,22 @@ export interface components {
             /** Returns */
             returns: string;
         };
+        /** SkillStat */
+        SkillStat: {
+            /** Skill */
+            skill: string;
+            /**
+             * Total Questions
+             * @description Questions in this career that practise the skill
+             */
+            total_questions: number;
+            /** Questions Answered */
+            questions_answered: number;
+            /** Answers */
+            answers: number;
+            /** Average Best Score */
+            average_best_score: number | null;
+        };
         /** SubmissionCreate */
         SubmissionCreate: {
             /** Problem Slug */
@@ -2063,6 +2396,28 @@ export interface components {
             };
             /** Total Questions */
             total_questions: number;
+        };
+        /** TrendPoint */
+        TrendPoint: {
+            /**
+             * Week Start
+             * Format: date
+             */
+            week_start: string;
+            /** Answers */
+            answers: number;
+            /** Average Score */
+            average_score: number | null;
+        };
+        /** TrendSeries */
+        TrendSeries: {
+            /**
+             * Evaluator
+             * @description Scores are only compared within one evaluator and rubric version
+             */
+            evaluator: string;
+            /** Points */
+            points: components["schemas"]["TrendPoint"][];
         };
         /** TurnOut */
         TurnOut: {
@@ -4202,6 +4557,73 @@ export interface operations {
             };
         };
     };
+    ai_history_item_api_v1_me_ai_history__interaction_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interaction_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIHistoryItem"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     list_interviews_api_v1_interviews_get: {
         parameters: {
             query?: {
@@ -4914,6 +5336,180 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    activity_api_v1_me_activity_get: {
+        parameters: {
+            query?: {
+                /** @description A career slug, or 'coding' */
+                career?: string | null;
+                type?: ("problem_opened" | "code_submission" | "coaching" | "written_answer" | "interview") | null;
+                /** @description Inclusive (UTC) */
+                since?: string | null;
+                /** @description Inclusive (UTC) */
+                until?: string | null;
+                skill?: string | null;
+                status?: ("opened" | "saved_not_judged" | "awaiting_judge" | "passed" | "failed" | "evaluation_unavailable" | "scored" | "completed" | "in_progress" | "expired" | "abandoned") | null;
+                q?: string | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ActivityItem_"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    activity_facets_api_v1_me_activity_facets_get: {
+        parameters: {
+            query?: {
+                career?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityFacets"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    career_analytics_api_v1_me_careers__slug__analytics_get: {
+        parameters: {
+            query?: {
+                /** @description Inclusive; omit for all time */
+                since?: string | null;
+                /** @description Inclusive; default today (UTC) */
+                until?: string | null;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareerAnalytics"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    resume_api_v1_me_resume_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeOut"];
                 };
             };
             /** @description Missing, invalid, expired or revoked access token */

@@ -2815,6 +2815,93 @@
         }
       }
     },
+    "/api/v1/me/ai-history/{interaction_id}": {
+      "get": {
+        "tags": [
+          "ai coach"
+        ],
+        "summary": "One saved hint, review or failure explanation (owner only)",
+        "operationId": "ai_history_item_api_v1_me_ai_history__interaction_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "interaction_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Interaction Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIHistoryItem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/interviews": {
       "post": {
         "tags": [
@@ -3783,6 +3870,427 @@
         ]
       }
     },
+    "/api/v1/me/activity": {
+      "get": {
+        "tags": [
+          "progress"
+        ],
+        "summary": "Everything you've practised, newest first, across careers (filterable)",
+        "operationId": "activity_api_v1_me_activity_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "career",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "A career slug, or 'coding'",
+              "title": "Career"
+            },
+            "description": "A career slug, or 'coding'"
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "problem_opened",
+                    "code_submission",
+                    "coaching",
+                    "written_answer",
+                    "interview"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Inclusive (UTC)",
+              "title": "Since"
+            },
+            "description": "Inclusive (UTC)"
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Inclusive (UTC)",
+              "title": "Until"
+            },
+            "description": "Inclusive (UTC)"
+          },
+          {
+            "name": "skill",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Skill"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "opened",
+                    "saved_not_judged",
+                    "awaiting_judge",
+                    "passed",
+                    "failed",
+                    "evaluation_unavailable",
+                    "scored",
+                    "completed",
+                    "in_progress",
+                    "expired",
+                    "abandoned"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ActivityItem_"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/activity/facets": {
+      "get": {
+        "tags": [
+          "progress"
+        ],
+        "summary": "Filter options for your activity: careers, types, statuses and (for one career) skills",
+        "operationId": "activity_facets_api_v1_me_activity_facets_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "career",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Career"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityFacets"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/careers/{slug}/analytics": {
+      "get": {
+        "tags": [
+          "progress"
+        ],
+        "summary": "Your analytics for one career's questions over a date range (any career, not only your current one)",
+        "operationId": "career_analytics_api_v1_me_careers__slug__analytics_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Inclusive; omit for all time",
+              "title": "Since"
+            },
+            "description": "Inclusive; omit for all time"
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Inclusive; default today (UTC)",
+              "title": "Until"
+            },
+            "description": "Inclusive; default today (UTC)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CareerAnalytics"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/resume": {
+      "get": {
+        "tags": [
+          "progress"
+        ],
+        "summary": "Saved work to continue: an interview in progress, an unsolved problem, your last question",
+        "operationId": "resume_api_v1_me_resume_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumeOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/capabilities": {
       "get": {
         "tags": [
@@ -3946,6 +4454,260 @@
         ],
         "title": "ActivityDay"
       },
+      "ActivityFacets": {
+        "properties": {
+          "careers": {
+            "items": {
+              "$ref": "#/components/schemas/FacetOption"
+            },
+            "type": "array",
+            "title": "Careers"
+          },
+          "types": {
+            "items": {
+              "$ref": "#/components/schemas/FacetOption"
+            },
+            "type": "array",
+            "title": "Types"
+          },
+          "statuses": {
+            "items": {
+              "$ref": "#/components/schemas/FacetOption"
+            },
+            "type": "array",
+            "title": "Statuses"
+          },
+          "skills": {
+            "items": {
+              "$ref": "#/components/schemas/FacetOption"
+            },
+            "type": "array",
+            "title": "Skills",
+            "description": "For the chosen career, or empty when none is chosen"
+          }
+        },
+        "type": "object",
+        "required": [
+          "careers",
+          "types",
+          "statuses",
+          "skills"
+        ],
+        "title": "ActivityFacets"
+      },
+      "ActivityItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Stable: '<type>:<source id>'"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "problem_opened",
+              "code_submission",
+              "coaching",
+              "written_answer",
+              "interview"
+            ],
+            "title": "Type"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurred At"
+          },
+          "career": {
+            "type": "string",
+            "title": "Career",
+            "description": "A career slug, or 'coding' for coding problems"
+          },
+          "career_title": {
+            "type": "string",
+            "title": "Career Title"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail",
+            "description": "e.g. 'Hint, level 2' or 'Interview, 3 of 5 answered'"
+          },
+          "skills": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Skills"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "opened",
+              "saved_not_judged",
+              "awaiting_judge",
+              "passed",
+              "failed",
+              "evaluation_unavailable",
+              "scored",
+              "completed",
+              "in_progress",
+              "expired",
+              "abandoned"
+            ],
+            "title": "Status"
+          },
+          "status_label": {
+            "type": "string",
+            "title": "Status Label"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score",
+            "description": "Written answers only: 0-100 rubric score (not correctness)"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "The interview this activity was part of, if any"
+          },
+          "target": {
+            "$ref": "#/components/schemas/ActivityTarget"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "occurred_at",
+          "career",
+          "career_title",
+          "title",
+          "detail",
+          "skills",
+          "status",
+          "status_label",
+          "score",
+          "session_id",
+          "target"
+        ],
+        "title": "ActivityItem"
+      },
+      "ActivityTarget": {
+        "properties": {
+          "href": {
+            "type": "string",
+            "title": "Href"
+          },
+          "problem_slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Problem Slug"
+          },
+          "track": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track"
+          },
+          "question_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question Id"
+          },
+          "submission_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submission Id"
+          },
+          "answer_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answer Id"
+          },
+          "interview_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interview Id"
+          },
+          "ai_interaction_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Interaction Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "href"
+        ],
+        "title": "ActivityTarget",
+        "description": "Where the row opens: a page path plus the stable ids it refers to."
+      },
       "AnswerOut": {
         "properties": {
           "id": {
@@ -4070,6 +4832,110 @@
           "guest_retention_days"
         ],
         "title": "Capabilities"
+      },
+      "CareerAnalytics": {
+        "properties": {
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "career_title": {
+            "type": "string",
+            "title": "Career Title"
+          },
+          "since": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Since",
+            "description": "Start of the range (inclusive); null means all time"
+          },
+          "until": {
+            "type": "string",
+            "format": "date",
+            "title": "Until"
+          },
+          "questions_practiced": {
+            "type": "integer",
+            "title": "Questions Practiced"
+          },
+          "answers": {
+            "type": "integer",
+            "title": "Answers"
+          },
+          "strong_questions": {
+            "type": "integer",
+            "title": "Strong Questions",
+            "description": "Questions whose best score is 85 or more"
+          },
+          "total_questions": {
+            "type": "integer",
+            "title": "Total Questions"
+          },
+          "skills": {
+            "items": {
+              "$ref": "#/components/schemas/SkillStat"
+            },
+            "type": "array",
+            "title": "Skills",
+            "description": "Every skill this career's questions practise, practised or not"
+          },
+          "kinds": {
+            "items": {
+              "$ref": "#/components/schemas/FacetOption"
+            },
+            "type": "array",
+            "title": "Kinds"
+          },
+          "interviews": {
+            "$ref": "#/components/schemas/InterviewCounts"
+          },
+          "trends": {
+            "items": {
+              "$ref": "#/components/schemas/TrendSeries"
+            },
+            "type": "array",
+            "title": "Trends"
+          },
+          "by_day": {
+            "items": {
+              "$ref": "#/components/schemas/DayCount"
+            },
+            "type": "array",
+            "title": "By Day"
+          },
+          "definitions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Definitions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "track",
+          "career_title",
+          "since",
+          "until",
+          "questions_practiced",
+          "answers",
+          "strong_questions",
+          "total_questions",
+          "skills",
+          "kinds",
+          "interviews",
+          "trends",
+          "by_day",
+          "definitions"
+        ],
+        "title": "CareerAnalytics"
       },
       "CareerSummary": {
         "properties": {
@@ -4223,6 +5089,30 @@
           "space"
         ],
         "title": "Complexity"
+      },
+      "DayCount": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date",
+            "title": "Day"
+          },
+          "answers": {
+            "type": "integer",
+            "title": "Answers"
+          },
+          "interviews": {
+            "type": "integer",
+            "title": "Interviews"
+          }
+        },
+        "type": "object",
+        "required": [
+          "day",
+          "answers",
+          "interviews"
+        ],
+        "title": "DayCount"
       },
       "DeleteAccountRequest": {
         "properties": {
@@ -4558,6 +5448,29 @@
         ],
         "title": "ExplainFailureResponse"
       },
+      "FacetOption": {
+        "properties": {
+          "value": {
+            "type": "string",
+            "title": "Value"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value",
+          "label",
+          "count"
+        ],
+        "title": "FacetOption"
+      },
       "FailureExplanation": {
         "properties": {
           "cause": {
@@ -4822,6 +5735,34 @@
           "grounded"
         ],
         "title": "HintResponse"
+      },
+      "InterviewCounts": {
+        "properties": {
+          "completed": {
+            "type": "integer",
+            "title": "Completed"
+          },
+          "in_progress": {
+            "type": "integer",
+            "title": "In Progress"
+          },
+          "expired": {
+            "type": "integer",
+            "title": "Expired"
+          },
+          "abandoned": {
+            "type": "integer",
+            "title": "Abandoned"
+          }
+        },
+        "type": "object",
+        "required": [
+          "completed",
+          "in_progress",
+          "expired",
+          "abandoned"
+        ],
+        "title": "InterviewCounts"
       },
       "InterviewEvaluation": {
         "properties": {
@@ -5389,6 +6330,38 @@
           "page_size"
         ],
         "title": "Page[AIHistoryItem]"
+      },
+      "Page_ActivityItem_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Total matching items across all pages"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "Page[ActivityItem]"
       },
       "Page_InterviewSummary_": {
         "properties": {
@@ -6209,6 +7182,144 @@
         ],
         "title": "RegisterRequest"
       },
+      "ResumeInterview": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "coding",
+              "questions"
+            ],
+            "title": "Kind"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "deadline_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Deadline At"
+          },
+          "seconds_remaining": {
+            "type": "integer",
+            "title": "Seconds Remaining"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "deadline_at",
+          "seconds_remaining"
+        ],
+        "title": "ResumeInterview"
+      },
+      "ResumeOut": {
+        "properties": {
+          "interview": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResumeInterview"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unfinished_problem": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResumeProblem"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Most recent submitted, never-solved problem"
+          },
+          "last_question": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResumeQuestion"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "interview",
+          "unfinished_problem",
+          "last_question"
+        ],
+        "title": "ResumeOut"
+      },
+      "ResumeProblem": {
+        "properties": {
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "last_status": {
+            "type": "string",
+            "title": "Last Status"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slug",
+          "title",
+          "last_status",
+          "at"
+        ],
+        "title": "ResumeProblem"
+      },
+      "ResumeQuestion": {
+        "properties": {
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "question_id": {
+            "type": "string",
+            "title": "Question Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "track",
+          "question_id",
+          "title",
+          "at"
+        ],
+        "title": "ResumeQuestion"
+      },
       "ReviewIssue": {
         "properties": {
           "severity": {
@@ -6548,6 +7659,47 @@
         ],
         "title": "Signature"
       },
+      "SkillStat": {
+        "properties": {
+          "skill": {
+            "type": "string",
+            "title": "Skill"
+          },
+          "total_questions": {
+            "type": "integer",
+            "title": "Total Questions",
+            "description": "Questions in this career that practise the skill"
+          },
+          "questions_answered": {
+            "type": "integer",
+            "title": "Questions Answered"
+          },
+          "answers": {
+            "type": "integer",
+            "title": "Answers"
+          },
+          "average_best_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Best Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "skill",
+          "total_questions",
+          "questions_answered",
+          "answers",
+          "average_best_score"
+        ],
+        "title": "SkillStat"
+      },
       "SubmissionCreate": {
         "properties": {
           "problem_slug": {
@@ -6849,6 +8001,59 @@
           "total_questions"
         ],
         "title": "TrackProgress"
+      },
+      "TrendPoint": {
+        "properties": {
+          "week_start": {
+            "type": "string",
+            "format": "date",
+            "title": "Week Start"
+          },
+          "answers": {
+            "type": "integer",
+            "title": "Answers"
+          },
+          "average_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "week_start",
+          "answers",
+          "average_score"
+        ],
+        "title": "TrendPoint"
+      },
+      "TrendSeries": {
+        "properties": {
+          "evaluator": {
+            "type": "string",
+            "title": "Evaluator",
+            "description": "Scores are only compared within one evaluator and rubric version"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/TrendPoint"
+            },
+            "type": "array",
+            "title": "Points"
+          }
+        },
+        "type": "object",
+        "required": [
+          "evaluator",
+          "points"
+        ],
+        "title": "TrendSeries"
       },
       "TurnOut": {
         "properties": {

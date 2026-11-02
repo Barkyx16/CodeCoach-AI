@@ -1,159 +1,168 @@
-import { useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 
-import { useAIHistory, useInterviews, useMySubmissions } from "@/api/queries";
-import type { AIHistoryAction, AIHistoryItem, CodeReview, FailureExplanation } from "@/api/types";
-import { Badge, StatusBadge } from "@/components/Badge";
+import { useActivity, useActivityFacets } from "@/api/queries";
+import type { ActivityItem } from "@/api/types";
+import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
-import { Tabs } from "@/components/Tabs";
-import { InterviewRow } from "@/features/interview/InterviewStartPage";
-import { ReviewResult } from "@/features/workspace/CoachPanel";
-import { FailureExplanationView } from "@/features/workspace/FailureExplanation";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { formatDateTime, timeAgo } from "@/lib/format";
 
-const PAGE_SIZE = 15;
+import { PAGE_SIZE, filtersFromParams, hasFilters } from "./historyState";
 
+const TYPE_TONE: Record<ActivityItem["type"], string> = {
+  problem_opened: "neutral",
+  code_submission: "info",
+  coaching: "info",
+  written_answer: "success",
+  interview: "warning",
+};
+const TYPE_SHORT: Record<ActivityItem["type"], string> = {
+  problem_opened: "Opened",
+  code_submission: "Submission",
+  coaching: "Coaching",
+  written_answer: "Answer",
+  interview: "Interview",
+};
+// Older links used ?tab=…; keep them working.
+const LEGACY_TABS: Record<string, string> = { submissions: "code_submission", ai: "coaching", interviews: "interview" };
+
+/** Everything practised, across careers, with filters in the URL (so Back restores them). */
 export function HistoryPage() {
   const [params, setParams] = useSearchParams();
-  const raw = params.get("tab");
-  const tab = raw === "ai" || raw === "interviews" ? raw : "submissions";
+  const legacy = params.get("tab");
+  useEffect(() => {
+    if (legacy && LEGACY_TABS[legacy]) setParams({ type: LEGACY_TABS[legacy] }, { replace: true });
+  }, [legacy, setParams]);
+  const filters = filtersFromParams(params);
+  const [search, setSearch] = useState(filters.q ?? "");
+  const q = useDebouncedValue(search.trim(), 300);
+  const facets = useActivityFacets(filters.career);
+  const activity = useActivity({ ...filters, page_size: PAGE_SIZE });
+
+  function update(patch: Record<string, string | undefined>, resetPage = true) {
+    const next = new URLSearchParams(params);
+    for (const [k, v] of Object.entries(patch)) {
+      if (v) next.set(k, v);
+      else next.delete(k);
+    }
+    if (resetPage) next.delete("page");
+    if ("career" in patch) next.delete("skill"); // skills belong to one career
+    setParams(next, { replace: !("page" in patch) });
+  }
+  useEffect(() => {
+    if ((filters.q ?? "") !== q) update({ q: q || undefined });
+  }, [q]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const total = activity.data?.total ?? 0;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const f = facets.data;
   return (
     <div className="page history">
       <div className="page__header">
         <div>
+          <p className="eyebrow">EVERYTHING YOU'VE PRACTISED</p>
           <h1 className="page__title">History</h1>
-          <p className="page__subtitle">Every attempt and every piece of AI feedback, saved.</p>
+          <p className="page__subtitle">Problems, answers, coaching and interviews, for every career you've practised.</p>
         </div>
       </div>
-      <Tabs label="History type" tabs={[{ id: "submissions", label: "Submissions" }, { id: "ai", label: "AI feedback" }, { id: "interviews", label: "Interviews" }] as const}
-        value={tab} onChange={(next) => setParams(next === "submissions" ? {} : { tab: next }, { replace: true })}>
-        {tab === "ai" ? <AIFeedbackList /> : tab === "interviews" ? <InterviewList /> : <SubmissionList />}
-      </Tabs>
-    </div>
-  );
-}
 
-function Pager({ page, total, onPage }: { page: number; total: number; onPage(p: number): void }) {
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  if (pages <= 1) return null;
-  return (
-    <nav className="pagination" aria-label="Pagination">
-      <Button size="sm" disabled={page <= 1} onClick={() => onPage(page - 1)}>Previous</Button>
-      <span className="subtle">Page {page} of {pages}</span>
-      <Button size="sm" disabled={page >= pages} onClick={() => onPage(page + 1)}>Next</Button>
-    </nav>
-  );
-}
+      <form className="history-filters" role="search" aria-label="Filter history" onSubmit={(e) => e.preventDefault()}>
+        <label className="field">
+          <span className="field__label">Career</span>
+          <select className="select" value={filters.career ?? ""} onChange={(e) => update({ career: e.target.value || undefined })}>
+            <option value="">All careers</option>
+            {f?.careers.map((c) => <option key={c.value} value={c.value}>{c.label} ({c.count})</option>)}
+          </select>
+        </label>
+        <label className="field">
+          <span className="field__label">Activity</span>
+          <select className="select" value={filters.type ?? ""} onChange={(e) => update({ type: e.target.value || undefined })}>
+            <option value="">All activity</option>
+            {f?.types.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+        </label>
+        <label className="field">
+          <span className="field__label">Status</span>
+          <select className="select" value={filters.status ?? ""} onChange={(e) => update({ status: e.target.value || undefined })}>
+            <option value="">Any status</option>
+            {f?.statuses.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+          </select>
+        </label>
+        <label className="field">
+          <span className="field__label">{filters.career === "coding" ? "Topic" : "Skill"}</span>
+          <select className="select" value={filters.skill ?? ""} disabled={!filters.career}
+            onChange={(e) => update({ skill: e.target.value || undefined })} aria-describedby={!filters.career ? "skill-help" : undefined}>
+            <option value="">{filters.career ? "Any" : "Choose a career first"}</option>
+            {f?.skills.map((s) => <option key={s.value} value={s.value}>{s.label}{s.count ? ` (${s.count})` : ""}</option>)}
+          </select>
+        </label>
+        <label className="field">
+          <span className="field__label">From</span>
+          <input className="input" type="date" value={filters.since ?? ""} max={filters.until} onChange={(e) => update({ since: e.target.value || undefined })} />
+        </label>
+        <label className="field">
+          <span className="field__label">To</span>
+          <input className="input" type="date" value={filters.until ?? ""} min={filters.since} onChange={(e) => update({ until: e.target.value || undefined })} />
+        </label>
+        <label className="field history-filters__search">
+          <span className="field__label">Search titles</span>
+          <input className="input" type="search" value={search} placeholder="e.g. two sum, assessment" onChange={(e) => setSearch(e.target.value)} />
+        </label>
+        {hasFilters(params) && (
+          <Button type="button" variant="ghost" onClick={() => { setSearch(""); setParams({}, { replace: true }); }}>Clear filters</Button>
+        )}
+        {!filters.career && <p id="skill-help" className="visually-hidden">Skills and topics belong to one career, so pick a career to filter by skill.</p>}
+      </form>
 
-function SubmissionList() {
-  const [page, setPage] = useState(1);
-  const q = useMySubmissions({ page, page_size: PAGE_SIZE });
-  if (q.isPending) return <LoadingState />;
-  if (q.isError) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
-  if (q.data.total === 0) {
-    return <EmptyState title="No submissions yet" action={<Link to="/problems">Find a problem</Link>}>Your attempts will appear here.</EmptyState>;
-  }
-  return (
-    <>
-      <div className="history__scroll" role="region" aria-label="Submission history" tabIndex={0}>
-      <table className="data-table history__table">
-        <thead>
-          <tr><th scope="col">Problem</th><th scope="col">Status</th><th scope="col">Submitted</th><th scope="col">Runtime</th></tr>
-        </thead>
-        <tbody>
-          {q.data.items.map((s) => (
-            <tr key={s.id}>
-              <td><Link to={`/problems/${s.problem_slug}`}>{s.problem_title}</Link></td>
-              <td><StatusBadge status={s.status} /></td>
-              <td title={formatDateTime(s.created_at)}>{timeAgo(s.created_at)}</td>
-              <td>{s.duration_ms !== null && s.duration_ms !== undefined ? `${s.duration_ms} ms` : "—"}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      </div>
-      <Pager page={page} total={q.data.total} onPage={setPage} />
-    </>
-  );
-}
+      <p className="subtle history__count" aria-live="polite">
+        {activity.isPending ? "Loading…" : `${total} ${total === 1 ? "activity" : "activities"}${hasFilters(params) ? " match" : ""}`}
+      </p>
 
-function AIFeedbackList() {
-  const [page, setPage] = useState(1);
-  const [action, setAction] = useState<"" | AIHistoryAction>("");
-  const q = useAIHistory({ page, page_size: PAGE_SIZE, action: action || undefined });
-  return (
-    <div className="stack">
-      <label className="field history__filter">
-        <span className="visually-hidden">Filter feedback type</span>
-        <select className="select" value={action} onChange={(e) => { setAction(e.target.value as typeof action); setPage(1); }}>
-          <option value="">All feedback</option>
-          <option value="hint">Hints</option>
-          <option value="review">Reviews</option>
-          <option value="explain_failure">Failure explanations</option>
-        </select>
-      </label>
-      {q.isPending ? <LoadingState /> : q.isError ? <ErrorState error={q.error} onRetry={() => q.refetch()} /> :
-        q.data.total === 0 ? <EmptyState title="No AI feedback yet">Ask for a hint or a review in any problem.</EmptyState> : (
+      {activity.isPending ? <LoadingState /> : activity.isError ? <ErrorState error={activity.error} onRetry={() => activity.refetch()} />
+        : total === 0 ? (
+          hasFilters(params)
+            ? <EmptyState title="Nothing matches these filters" action={<Button variant="secondary" onClick={() => { setSearch(""); setParams({}, { replace: true }); }}>Clear filters</Button>}>Try a wider date range or another career.</EmptyState>
+            : <EmptyState title="Your practice will appear here" action={<Link className="btn btn--primary btn--md" to="/problems">Start practising</Link>}>Open a problem, answer a question or start a mock interview. Every attempt is saved here with its result.</EmptyState>
+        ) : (
           <>
-            <ul className="feedback-list">{q.data.items.map((item) => <FeedbackItem key={item.id} item={item} />)}</ul>
-            <Pager page={page} total={q.data.total} onPage={setPage} />
+            <ul className="activity-list">{activity.data.items.map((item) => <ActivityRow key={item.id} item={item} />)}</ul>
+            {pages > 1 && (
+              <nav className="pager" aria-label="History pages">
+                <Button variant="secondary" size="sm" disabled={filters.page <= 1} onClick={() => update({ page: String(filters.page - 1) }, false)}>Previous</Button>
+                <span className="subtle">Page {filters.page} of {pages}</span>
+                <Button variant="secondary" size="sm" disabled={filters.page >= pages} onClick={() => update({ page: String(filters.page + 1) }, false)}>Next</Button>
+              </nav>
+            )}
           </>
         )}
     </div>
   );
 }
 
-function FeedbackItem({ item }: { item: AIHistoryItem }) {
-  const [open, setOpen] = useState(false);
-  const response = (item.response ?? {}) as Record<string, unknown>;
-  const title = item.action === "hint" ? `Hint level ${item.hint_level ?? "?"}`
-    : item.action === "explain_failure" ? "Failure explained" : "Code review";
-  const tone = item.action === "hint" ? "info" : item.action === "explain_failure" ? "warning" : "success";
+function ActivityRow({ item }: { item: ActivityItem }) {
+  const location = useLocation();
   return (
-    <li className="feedback card">
-      <button type="button" className="feedback__toggle" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        <span className="row">
-          <Badge tone={tone}>{title}</Badge>
-          <strong>{item.problem_title}</strong>
+    <li>
+      <Link to={item.target.href} className="activity-row" state={{ from: location.pathname + location.search, fromLabel: "Back to History" }}>
+        <span className="activity-row__main">
+          <span className="row activity-row__title">
+            <Badge tone={TYPE_TONE[item.type]}>{TYPE_SHORT[item.type]}</Badge>
+            <strong>{item.title}</strong>
+          </span>
+          <span className="subtle activity-row__meta">
+            {item.career_title}
+            {item.detail ? ` · ${item.detail}` : ""}
+            {item.skills.length > 0 ? ` · ${item.skills.slice(0, 3).join(", ")}${item.skills.length > 3 ? "…" : ""}` : ""}
+          </span>
         </span>
-        <span className="subtle" title={formatDateTime(item.created_at)}>{timeAgo(item.created_at)}</span>
-      </button>
-      {open && (
-        <div className="feedback__body">
-          {item.action === "hint" ? (
-            <p>{String(response.hint ?? "")}</p>
-          ) : item.action === "explain_failure" ? (
-            <FailureExplanationView data={{
-              submission_id: "", status: "", cached: true, provider: item.provider,
-              explanation: response as unknown as FailureExplanation,
-              disclaimer: "Based only on the public tests and compiler output.",
-            }} />
-          ) : (
-            <ReviewResult data={{
-              review: response as unknown as CodeReview, provider: item.provider, expected_complexity: null,
-              judge_status: null, disclaimer: "AI feedback can be wrong. Pass/fail comes only from the test judge.",
-            }} />
-          )}
-          <p className="subtle">Answered by: {item.provider}</p>
-        </div>
-      )}
+        <span className="activity-row__side">
+          <span className={`activity-status activity-status--${item.status}`}>{item.status_label}</span>
+          <time className="subtle" dateTime={item.occurred_at} title={formatDateTime(item.occurred_at)}>{timeAgo(item.occurred_at)}</time>
+        </span>
+      </Link>
     </li>
   );
 }
 
-function InterviewList() {
-  const [page, setPage] = useState(1);
-  const q = useInterviews({ page, page_size: PAGE_SIZE });
-  if (q.isPending) return <LoadingState />;
-  if (q.isError) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
-  if (q.data.total === 0) {
-    return <EmptyState title="No interviews yet" action={<Link to="/interviews">Start a mock interview</Link>}>Your mock interviews and their feedback will appear here.</EmptyState>;
-  }
-  return (
-    <>
-      <ul className="interview-list">{q.data.items.map((iv) => <InterviewRow key={iv.id} iv={iv} />)}</ul>
-      <Pager page={page} total={q.data.total} onPage={setPage} />
-    </>
-  );
-}

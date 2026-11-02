@@ -637,6 +637,33 @@ Newest first. `response` holds the exact `content` (hints), `review` (reviews) o
 }
 ```
 
+### Activity, career analytics and resume
+
+Derived from what is already recorded (problem opens, submissions, coaching, written answers and
+interview sessions), so nothing is back-filled or counted twice. All scoped to the caller.
+
+- `GET /api/v1/me/activity` 🔒 `?career=<slug|coding>&type=&status=&skill=&since=&until=&q=&page=&page_size=`
+  returns `Page[ActivityItem]`: `{id ("<type>:<source id>"), type, occurred_at, career,
+  career_title, title, detail, skills, status, status_label, score, session_id, target: {href,
+  …ids}}`. `type` is `problem_opened | code_submission | coaching | written_answer | interview`;
+  `status` is one of `opened, saved_not_judged, awaiting_judge, passed, failed,
+  evaluation_unavailable, scored, completed, in_progress, expired, abandoned`. A submission is
+  `saved_not_judged` when the deployment has no judge. A skill filter leaves interviews out (they
+  span skills).
+- `GET /api/v1/me/activity/facets` 🔒 `?career=` gives filter options with counts; `skills` is
+  filled for one career (coding topics, or the career's skills, tools and competencies).
+- `GET /api/v1/me/careers/{slug}/analytics` 🔒 `?since=&until=` works for any career, not just the
+  user's current one: questions practised, answers, strong questions, per-skill coverage (with
+  `average_best_score: null` when not practised), question types, interview outcomes, weekly
+  score trends **per evaluator and rubric version** (never merged), daily counts and
+  `definitions` for every metric.
+- `GET /api/v1/me/resume` 🔒 returns the interview in progress (with its real
+  `seconds_remaining`), the latest submitted-but-unsolved problem and the last answered question.
+- `GET /api/v1/me/ai-history/{id}` 🔒 returns one saved hint, review or failure explanation.
+
+Problem opens are recorded at most once per user, problem and UTC day, enforced by a unique key
+so concurrent requests can't double-count.
+
 ### Mock interviews
 
 A timed interview with an AI interviewer that moves through five phases:

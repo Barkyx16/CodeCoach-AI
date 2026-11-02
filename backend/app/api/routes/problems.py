@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import get_db, get_optional_user
@@ -27,9 +28,18 @@ def _record_open(db: Session, user: User, problem: Problem) -> None:
         )
         .limit(1)
     )
-    if not seen_today:
-        db.add(ProgressEvent(user_id=user.id, problem_id=problem.id, event_type=ProgressEventType.OPENED))
+    if seen_today:
+        return
+    key = f"opened:{problem.id}:{day_start.date().isoformat()}"
+    db.add(
+        ProgressEvent(
+            user_id=user.id, problem_id=problem.id, event_type=ProgressEventType.OPENED, dedupe_key=key
+        )
+    )
+    try:
         db.commit()
+    except IntegrityError:
+        db.rollback()  # a concurrent request recorded today's open first: count it once
 
 
 def _search_text(p: Problem) -> search.Searchable:

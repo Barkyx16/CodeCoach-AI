@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db, get_settings_dep
 from app.config import Settings
+from app.errors import NotFoundError
 from app.models import AIAction, AIInteraction, Problem, User
 from app.schemas.ai import (
     AIHistoryItem,
@@ -114,3 +115,32 @@ def ai_history(
         for ai, p in rows
     ]
     return Page[AIHistoryItem](items=items, total=total, page=page, page_size=page_size)
+
+
+@router.get(
+    "/me/ai-history/{interaction_id}",
+    response_model=AIHistoryItem,
+    responses=_ERRORS,
+    summary="One saved hint, review or failure explanation (owner only)",
+)
+def ai_history_item(
+    interaction_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> AIHistoryItem:
+    row = db.execute(
+        select(AIInteraction, Problem)
+        .join(Problem, Problem.id == AIInteraction.problem_id)
+        .where(AIInteraction.id == interaction_id, AIInteraction.user_id == user.id)
+    ).first()
+    if row is None:
+        raise NotFoundError("Feedback not found")
+    ai, p = row
+    return AIHistoryItem(
+        id=ai.id,
+        problem_slug=p.slug,
+        problem_title=p.title,
+        action=ai.action.value,
+        hint_level=ai.hint_level,
+        provider=ai.provider,
+        created_at=ai.created_at,
+        response=ai.response,
+    )

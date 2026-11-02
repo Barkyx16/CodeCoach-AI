@@ -14,6 +14,8 @@ from dataclasses import dataclass
 from app.careers.questions import Question
 
 MIN_WORDS, GOOD_MIN, GOOD_MAX, MAX_WORDS = 40, 120, 350, 600
+# Bump when the scoring rules change, so scores from different rule sets are never compared as equals.
+RUBRIC_VERSION = "v1"
 
 
 @dataclass(frozen=True)

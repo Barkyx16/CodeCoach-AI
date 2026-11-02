@@ -91,10 +91,11 @@ test("guest journey: try it, code, hints, review, submit, progress", async ({ pa
   // "Two Sum" links of its own, so an unscoped check could pass against the wrong page.
   await expect(page).toHaveURL(/\/history/);
   await expect(page.getByRole("heading", { name: "History", level: 1 })).toBeVisible();
-  const attempts = page.getByRole("region", { name: "Submission history" });
-  await expect(attempts.getByRole("link", { name: "Two Sum", exact: true })).toBeVisible();
-  await page.getByRole("tab", { name: "AI feedback" }).click();
-  await expect(page.getByText("Code review").first()).toBeVisible();
+  const filters = page.getByRole("search", { name: "Filter history" });
+  await filters.getByLabel("Activity").selectOption("code_submission");
+  await expect(page.getByRole("listitem").filter({ hasText: "Two Sum" }).first()).toBeVisible();
+  await filters.getByLabel("Activity").selectOption("coaching");
+  await expect(page.getByText(/Code review/).first()).toBeVisible();
 });
 
 test("account journey: register, filter library, sign out, sign in", async ({ page }) => {
