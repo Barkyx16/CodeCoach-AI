@@ -69,7 +69,6 @@ export function ProblemListPage() {
 
       <div className="problems__layout">
         <section aria-label="Problem list" className="stack">
-          <div className="library-intro"><h2>Find your next challenge.</h2><p>Work on a weak spot, explore a new topic, or finish what you started.</p></div>
           <div className="filters" role="search">
             <label className="field filters__search">
               <span className="visually-hidden">Search problems</span>
@@ -145,9 +144,9 @@ export function ProblemListPage() {
         </section>
 
         <aside className="library-aside">
-          {isAuthenticated && progress.data && <Card className="library-progress stack"><div className="section-heading"><span className="icon-tile"><Icon name="target" /></span><span className="badge">Your progress</span></div><p className="library-progress__count">{progress.data.solved}<span> / {progress.data.total_problems}</span></p><p className="subtle">problems solved</p><progress aria-label="Problem completion" value={progress.data.solved} max={Math.max(progress.data.total_problems, 1)} /><Link to="/analytics">Explore your progress <Icon name="arrow" size={14} /></Link></Card>}
+          {isAuthenticated && progress.data && <Card className="library-progress stack"><div className="library-progress__head"><h2 className="section-title">Your progress</h2><p className="library-progress__count">{progress.data.solved}<span> / {progress.data.total_problems} solved</span></p></div><progress aria-label="Problem completion" value={progress.data.solved} max={Math.max(progress.data.total_problems, 1)} /><Link to="/analytics">Explore your progress <Icon name="arrow" size={14} /></Link></Card>}
           {isAuthenticated && <RecommendationsAside />}
-          <Card className="library-interview stack"><span className="icon-tile"><Icon name="clock" /></span><h2>Make it an interview.</h2><p className="subtle">Practice your approach out loud, work against the clock, and learn from your feedback.</p><Link to="/interviews">Try a mock interview <Icon name="arrow" size={14} /></Link></Card>
+          <Card className="library-interview stack"><h2><Icon name="clock" size={17} />Make it an interview</h2><p className="subtle">Practice your approach out loud, work against the clock, and learn from your feedback.</p><Link to="/interviews">Try a mock interview <Icon name="arrow" size={14} /></Link></Card>
         </aside>
       </div>
     </div>

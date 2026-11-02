@@ -23,22 +23,27 @@ export default function AnalyticsPage() {
       <Metric label="Best streak" value={`${p.longest_streak_days} ${p.longest_streak_days === 1 ? "day" : "days"}`} detail={`${p.current_streak_days} ${p.current_streak_days === 1 ? "day" : "days"} in your current streak`} />
     </section>
     <p className="subtle analytics__scope">Statistics above cover all recorded practice. Activity below covers the last 28 days and includes problem opens, submissions, coaching and completed interviews.</p>
-    <div className="dashboard__grid">
-      <Card className="stack"><h2 className="section-title">Activity over time</h2><ActivityHeatmap days={p.activity} /></Card>
-      <Card className="stack"><h2 className="section-title">Solved by difficulty</h2><ProgressBars showAttempted={false} rows={p.by_difficulty.map((d) => ({ key: d.difficulty, label: titleCase(d.difficulty), total: d.total_problems, solved: d.solved }))} /></Card>
-      <Card className="stack"><h2 className="section-title">Topic performance</h2><ProgressBars rows={p.by_topic.map((t) => ({ key: t.topic, label: titleCase(t.topic), total: t.total_problems, solved: t.solved, attempted: t.attempted }))} /></Card>
-      <Card className="stack"><h2 className="section-title">Your next focus</h2>
-        {p.weakest_topics.length > 0 && <p className="muted">Topics to strengthen: {p.weakest_topics.map(titleCase).join(", ")}.</p>}
-        {recommendations.isPending ? <LoadingState /> : recommendations.isError ? <ErrorState error={recommendations.error} onRetry={() => void recommendations.refetch()} />
-          : recommendations.data.length === 0 ? <EmptyState title="No recommendations yet">Keep practicing to build your activity history.</EmptyState>
-          : <ul className="rec-list">{recommendations.data.map((item) => <li key={item.slug}><Link to={`/problems/${item.slug}`} className="rec"><strong>{item.title}</strong><span className="subtle">{item.reason}</span></Link></li>)}</ul>}
-      </Card>
+    {/* Main column: the long topic list and interviews; side column: short summaries. */}
+    <div className="dashboard__layout">
+      <div className="dashboard__col">
+        <Card className="stack"><h2 className="section-title">Topic performance</h2><ProgressBars columns rows={p.by_topic.map((t) => ({ key: t.topic, label: titleCase(t.topic), total: t.total_problems, solved: t.solved, attempted: t.attempted }))} /></Card>
+        <section className="card stack analytics__interviews" aria-label="Interview history"><div className="section-heading"><h2 className="section-title">Recent interviews</h2><Link to="/history?tab=interviews">View all interviews <span aria-hidden="true">→</span></Link></div>
+          {interviews.isPending ? <LoadingState /> : interviews.isError ? <ErrorState error={interviews.error} onRetry={() => void interviews.refetch()} />
+            : interviews.data.items.length === 0 ? <EmptyState title="A new perspective on your skills" action={<Link className="btn btn--secondary btn--md" to="/interviews">Start a mock interview</Link>}>Complete an interview to see your feedback here.</EmptyState>
+            : <ul className="interview-list">{interviews.data.items.map((item) => <InterviewRow key={item.id} iv={item} />)}</ul>}
+        </section>
+      </div>
+      <div className="dashboard__col">
+        <Card className="stack"><h2 className="section-title">Your next focus</h2>
+          {p.weakest_topics.length > 0 && <p className="muted">Topics to strengthen: {p.weakest_topics.map(titleCase).join(", ")}.</p>}
+          {recommendations.isPending ? <LoadingState /> : recommendations.isError ? <ErrorState error={recommendations.error} onRetry={() => void recommendations.refetch()} />
+            : recommendations.data.length === 0 ? <EmptyState title="No recommendations yet">Keep practicing to build your activity history.</EmptyState>
+            : <ul className="rec-list">{recommendations.data.map((item) => <li key={item.slug}><Link to={`/problems/${item.slug}`} className="rec"><strong>{item.title}</strong><span className="subtle">{item.reason}</span></Link></li>)}</ul>}
+        </Card>
+        <Card className="stack"><h2 className="section-title">Solved by difficulty</h2><ProgressBars showAttempted={false} rows={p.by_difficulty.map((d) => ({ key: d.difficulty, label: titleCase(d.difficulty), total: d.total_problems, solved: d.solved }))} /></Card>
+        <Card className="stack"><h2 className="section-title">Activity over time</h2><ActivityHeatmap days={p.activity} /></Card>
+      </div>
     </div>
-    <section className="stack analytics__interviews" aria-label="Interview history"><div className="section-heading"><h2 className="section-title">Recent interviews</h2><Link to="/history?tab=interviews">View all interviews <span aria-hidden="true">→</span></Link></div>
-      {interviews.isPending ? <LoadingState /> : interviews.isError ? <ErrorState error={interviews.error} onRetry={() => void interviews.refetch()} />
-        : interviews.data.items.length === 0 ? <EmptyState title="A new perspective on your skills" action={<Link className="btn btn--secondary btn--md" to="/interviews">Start a mock interview</Link>}>Complete an interview to see your feedback here.</EmptyState>
-        : <ul className="interview-list">{interviews.data.items.map((item) => <InterviewRow key={item.id} iv={item} />)}</ul>}
-    </section>
   </div>;
 }
 

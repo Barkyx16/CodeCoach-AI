@@ -10,9 +10,11 @@ interface Row {
  * Thin segmented bars: solved, then attempted-but-unsolved, on a recessive track. The figures
  * are printed beside each bar (so values never rely on color), and one legend serves the list.
  */
-export function ProgressBars({ rows, showAttempted = true }: { rows: Row[]; showAttempted?: boolean }) {
+export function ProgressBars({ rows, showAttempted = true, columns = false }: {
+  rows: Row[]; showAttempted?: boolean; /** Two columns of rows on wide screens (long lists). */ columns?: boolean;
+}) {
   return (
-    <div className="pbars">
+    <div className={columns ? "pbars pbars--columns" : "pbars"}>
       {/* A single series needs no legend: the card title names it. */}
       {showAttempted && (
         <div className="pbars__legend" aria-hidden="true">

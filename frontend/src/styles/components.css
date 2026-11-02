@@ -81,7 +81,7 @@
   justify-content: center;
   gap: var(--space-2);
   text-align: center;
-  padding: var(--space-10) var(--space-6);
+  padding: var(--space-6) var(--space-4);
 }
 .state--loading { flex-direction: row; }
 .state--error strong { color: var(--color-danger); }

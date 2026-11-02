@@ -848,3 +848,21 @@ deadline) fail on the old code; the 16 real-gVisor threat-model tests pass.
   17 Playwright tests.
 - CI: green on GitHub Actions for `2bfe8a8` (all 7 jobs, including the real gVisor judge).
 
+### Session 11: a more compact, better organized site
+You asked for the whole site to be more compact and better organized.
+
+**Built and verified:**
+- **Density:** header 72→60px; page padding, page headers, KPI tiles, cards, problem rows,
+  the workspace statement, interview setup and Settings rows all tightened. Empty states inside
+  cards no longer take a third of the screen.
+- **Organization, not just smaller:** Dashboard and Analytics were two-column grids where a
+  short card sat beside a tall one and left a hole. They are now two *independent* columns
+  (main: what to do and what you did; side: summaries), stacking to one on phones. Analytics
+  shows all 16 topics in two sub-columns instead of one long list. The completion ring that
+  repeated the Solved tile became a thin bar inside that tile; the library lost a redundant
+  intro and got a compact sidebar.
+- Measured page heights at 1440px (guest data): Problems 2473→1772px, Dashboard 1726→1292px,
+  Analytics 1876→1096px, Settings 2740→2422px. No horizontal scroll at phone width.
+- No test selector changed; 108 frontend tests and 16 Playwright tests pass, including the
+  axe-core WCAG 2.1 AA scans of every screen on desktop and phone. Screenshots 20–22.
+

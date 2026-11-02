@@ -112,7 +112,7 @@ kbd {
   width: 100%;
   max-width: var(--content-max-width);
   margin: 0 auto;
-  padding: var(--space-8) var(--space-6) var(--space-16);
+  padding: var(--space-6) var(--space-6) var(--space-12);
 }
 
 .page__header {
@@ -120,12 +120,12 @@ kbd {
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
-  gap: var(--space-4);
-  margin-bottom: var(--space-6);
+  gap: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-5);
 }
 
 .page__title {
-  font-size: var(--text-2xl);
+  font-size: 1.625rem;
 }
 
 .page__subtitle {

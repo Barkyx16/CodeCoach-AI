@@ -87,9 +87,10 @@ the input).
   password) · rate-limited ("Too many attempts…").
 - Both pages offer **Continue as guest**.
 
-### 3.3 Problem library — `/problems` (`features/problems/ProblemListPage.tsx`) · `04-library-filtered.png`
+### 3.3 Problem library — `/problems` (`features/problems/ProblemListPage.tsx`) · `04-library-filtered.png`, `22-library-compact.png`
 Search box, difficulty select, topic chips (toggle, with counts), a problem list, pagination,
-and a *Recommended for you* sidebar when signed in.
+and a sidebar: *Your progress* (count + bar), *Recommended for you* (signed in) and a mock
+interview prompt.
 - Each row: status icon (✓ solved · ◐ attempted · • in progress · blank), title, one-line
   summary, up to 2 topic tags, difficulty badge.
 - States: loading · error with retry · empty ("No problems match" + Clear filters) ·
@@ -110,12 +111,20 @@ Mobile (≤ 900px): tabs **Problem | Code | Coach**.
 | Coach: Review tab | Run button · summary · 3 complexity tiles (Time and Space with targets, Confidence; the time tile gets a warning border when it misses the target) · issue list (severity badge, category, **"line N" link that highlights the editor line**, detail, → suggestion) · strengths · Next step banner · disclaimer | not run · loading · result · error |
 | Usage | "47/50 left" in the coach header | — |
 
-### 3.5 Dashboard — `/dashboard` (`features/dashboard/*`) · `03-dashboard.png`
-KPI row (Solved, Current streak, Acceptance rate, Coaching used) · Activity heatmap
-(28 days, hover text, **Show table** toggle) · Up next (recommendations with a reason and a
-kind badge: Finish it / Weak spot / Next step) · Solved by difficulty (single-series bars, no
-legend) · By topic (solved + attempted segmented bars with a legend; figures always printed
-beside the bars).
+### 3.5 Dashboard — `/dashboard` (`features/dashboard/*`) · `20-dashboard-compact.png`
+KPI row (Solved with a thin completion bar, Current streak, Acceptance rate, Coaching used),
+then **two independent columns** (`.dashboard__layout`; one column under 960px), so a short
+card never leaves a hole beside a tall one:
+- Main: Up next (recommendations with a reason and a kind badge: Finish it / Weak spot / Next
+  step) · Recent attempts · By topic (top 6; solved + attempted segmented bars with a legend;
+  figures always printed beside the bars).
+- Side: Activity heatmap (28 days, hover text, **Show table** toggle) · Solved by difficulty
+  (single-series bars, no legend) · AI usage line.
+
+**Analytics** (`/analytics`, `features/analytics/AnalyticsPage.tsx`, `21-analytics-compact.png`)
+uses the same layout: KPI row and scope note, then Topic performance (all topics, two
+sub-columns on wide screens via `ProgressBars columns`) and Recent interviews in the main
+column; Your next focus, Solved by difficulty and Activity over time in the side column.
 - States: loading · error · brand-new user (empty-state banner + "Start a problem") ·
   acceptance shows "—" until something is judged.
 

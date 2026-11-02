@@ -96,7 +96,7 @@
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 
   /* Layout */
-  --header-height: 72px;
+  --header-height: 60px;
   --content-max-width: 1240px;
 }
 

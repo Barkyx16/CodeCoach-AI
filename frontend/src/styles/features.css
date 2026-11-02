@@ -112,13 +112,21 @@
 .strengths { margin: var(--space-1) 0 0; padding-left: var(--space-5); font-size: var(--text-sm); }
 
 /* Dashboard */
-.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-6); }
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-4); }
 .stat { display: grid; gap: var(--space-1); }
 .stat__label { font-size: var(--text-sm); color: var(--color-text-muted); }
 .stat__value { font-size: var(--text-2xl); font-weight: var(--weight-semibold); }
-.dashboard__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
-@media (max-width: 860px) { .dashboard__grid { grid-template-columns: 1fr; } }
-.dashboard__usage { margin-top: var(--space-6); }
+.dashboard__layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: var(--space-4); align-items: start; }
+.dashboard__col { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+@media (max-width: 960px) { .dashboard__layout { grid-template-columns: minmax(0, 1fr); } }
+.pbars--columns .pbars__list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-8); }
+@media (max-width: 1100px) { .pbars--columns .pbars__list { grid-template-columns: minmax(0, 1fr); } }
+.stat__bar { display: block; height: 4px; margin-top: 8px; border-radius: 4px; background: var(--viz-track); overflow: hidden; }
+.stat__bar > span { display: block; height: 100%; border-radius: inherit; background: var(--viz-solved); }
+.dashboard__usage { font-size: 12px; padding: 0 4px; }
+/* Empty states inside a card: the card already frames them. */
+.card .state { padding: var(--space-3) var(--space-4); }
+.card .state .state__icon { width: 40px; height: 40px; }
 
 .heatmap { display: grid; gap: var(--space-3); }
 .heatmap__header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-height: 28px; }
@@ -160,7 +168,7 @@
 /* Mock interview */
 .interview-start__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-4); }
 @media (max-width: 860px) { .interview-start__grid { grid-template-columns: 1fr; } }
-.interview-start__past { margin-top: var(--space-8); }
+.interview-start__past { margin-top: var(--space-6); }
 .segmented { display: inline-flex; border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); overflow: hidden; }
 .segmented__option { padding: var(--space-2) var(--space-4); font-size: var(--text-sm); cursor: pointer; color: var(--color-text-muted); }
 .segmented__option + .segmented__option { border-left: 1px solid var(--color-border-strong); }
@@ -237,7 +245,7 @@ fieldset.field { border: none; padding: 0; margin: 0; }
 
 /* Practice ergonomics */
 .workspace__tab-system { display: flex; flex-direction: column; min-width: 0; }
-.coach__tab-panel { padding-top: 20px; }
+.coach__tab-panel { padding-top: 16px; }
 .editor-options { padding: 16px; border-bottom: 1px solid var(--color-border); max-height: 250px; overflow: auto; }
 .editor-preferences__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px; }
 .editor-preferences__wrap { font-size: 14px; min-height: 32px; cursor: pointer; }
@@ -253,44 +261,31 @@ fieldset.field { border: none; padding: 0; margin: 0; }
 .tab { min-height: 44px; }
 
 /* Dashboard and analytics */
-.dashboard .page__header, .analytics .page__header { margin-bottom: 32px; }
-.page__header .eyebrow { margin-bottom: 12px; }
-.stat { padding: 24px; border-top: 2px solid var(--color-border-strong); }
-.stat__value { font-size: 32px; letter-spacing: -.04em; font-variant-numeric: tabular-nums; margin: 8px 0; }
+.page__header .eyebrow { margin-bottom: 6px; }
+.stat { padding: 16px 18px; border-top: 2px solid var(--color-border-strong); }
+.stat__value { font-size: 26px; line-height: 1.15; letter-spacing: -.04em; font-variant-numeric: tabular-nums; margin: 4px 0 2px; }
 .stat .subtle { font-size: 12px; }
-.completion-card { display: flex; align-items: center; gap: 28px; margin-bottom: 24px; background: linear-gradient(110deg, var(--color-surface), var(--color-surface-sunken)); }
-.completion-card svg { flex-shrink: 0; }
-.completion-card .stack { gap: 12px; }
-.completion-card p { color: var(--color-text-muted); font-size: 14px; line-height: 1.8; }
-.completion-card a { font-size: 13px; }
 .section-heading { display: flex; align-items: baseline; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
 .section-heading a { font-size: 12px; }
-.recent-activity { margin-top: 24px; }
 .recent-list { list-style: none; margin: 0; padding: 0; }
-.recent-list li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 0; border-bottom: 1px solid var(--color-border); }
+.recent-list li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--color-border); }
 .recent-list li:last-child { border-bottom: 0; padding-bottom: 0; }
-.recent-list li > div { display: grid; gap: 6px; min-width: 0; }
+.recent-list li > div { display: grid; gap: 2px; min-width: 0; }
 .recent-list a { color: var(--color-text); font-weight: 500; }
 .recent-list .subtle { font-size: 12px; }
-.analytics__scope { margin: 0 0 24px; max-width: 80ch; }
-.analytics__interviews { margin-top: 32px; }
+.analytics__scope { margin: -4px 0 16px; max-width: 90ch; font-size: 12px; }
 .heatmap__grid { max-width: none; gap: 6px; }
 .heatmap__cell { border: 1px solid #ffffff0a; }
-.pbars__list { gap: 20px; }
+.pbars__list { gap: 12px; }
 .pbars__bar { height: 7px; }
 @media (max-width: 600px) {
   .stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .stat { padding: 16px; }
   .stat__value { font-size: 24px; }
   .stat__label, .stat .subtle { font-size: 11px; }
-  .completion-card { gap: 16px; align-items: start; }
-  .completion-card svg { width: 72px; height: 72px; }
-  .completion-card .section-title { font-size: 11px; }
-  .completion-card p { font-size: 12px; }
   .heatmap__header { flex-wrap: wrap; }
   .heatmap__grid { gap: 4px; }
 }
-.dashboard__grid { align-items: start; }
 .coach__provider { font-size: 11px; }
 
 /* Password reset */

@@ -4,10 +4,10 @@
 .header { position: sticky; top: 0; z-index: 20; height: var(--header-height); flex-shrink: 0; display: flex; align-items: center; gap: var(--space-8); padding: 0 max(var(--space-6), calc((100vw - 1440px) / 2)); background: rgba(8,13,24,.96); backdrop-filter: blur(16px); border-bottom: 1px solid var(--color-border); }
 .brand { display: inline-flex; flex-shrink: 0; align-items: center; gap: 12px; color: var(--color-text); font-size: 17px; font-weight: var(--weight-bold); letter-spacing: -.6px; }
 .brand:hover { text-decoration: none; color: var(--color-text); }
-.brand__mark { color: var(--color-link); width: 30px; height: 30px; flex-shrink: 0; }
+.brand__mark { color: var(--color-link); width: 26px; height: 26px; flex-shrink: 0; }
 .nav-shell { display: flex; align-items: center; flex: 1; min-width: 0; gap: var(--space-4); }
 .nav { display: flex; gap: var(--space-1); }
-.nav__link { color: var(--color-text-muted); padding: 10px 12px; border-radius: var(--radius-sm); font-size: var(--text-sm); font-weight: var(--weight-medium); white-space: nowrap; }
+.nav__link { color: var(--color-text-muted); padding: 8px 12px; border-radius: var(--radius-sm); font-size: var(--text-sm); font-weight: var(--weight-medium); white-space: nowrap; }
 .nav__link:hover { color: var(--color-text); background: var(--color-surface-raised); text-decoration: none; }
 .nav__link--active { color: var(--color-link); background: var(--color-primary-soft); }
 .header__account { margin-left: auto; display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
