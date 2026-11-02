@@ -1,0 +1,184 @@
+{
+  "order": 165,
+  "slug": "count-in-sorted",
+  "title": "Count a Value in a Sorted Array",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "binary-search"
+  ],
+  "summary": "How many times does a value appear in a sorted array?",
+  "statement": "`nums` is sorted in non-decreasing order. Return how many times `target` appears, in O(log n).",
+  "constraints": [
+    "0 <= nums.length <= 10^5",
+    "sorted"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 2, 2, 2, 3], target = 2",
+      "output": "3"
+    },
+    {
+      "input": "nums = [1, 1, 1], target = 1",
+      "output": "3"
+    },
+    {
+      "input": "nums = [1, 3], target = 2",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "countOccurrences",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      },
+      {
+        "name": "target",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int countOccurrences(int[] nums, int target) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "The copies of `target` form one block. Find its edges.",
+    "Binary search for the first index `>= target` and the first index `> target`; subtract.",
+    "left = first index with nums[i] >= target\nright = first index with nums[i] > target\nreturn right - left",
+    "Two binary searches: O(log n) even if the value appears thousands of times."
+  ],
+  "expected_complexity": {
+    "time": "O(log n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          2,
+          2,
+          3
+        ],
+        "target": 2
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          1,
+          1
+        ],
+        "target": 1
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          3
+        ],
+        "target": 2
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [],
+        "target": 0
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          0,
+          1,
+          1,
+          1,
+          2,
+          3,
+          4
+        ],
+        "target": 3
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          0,
+          2,
+          3,
+          3,
+          3,
+          4,
+          4,
+          4,
+          5,
+          5,
+          6,
+          6,
+          6,
+          6
+        ],
+        "target": 0
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          1,
+          1,
+          2,
+          2,
+          3,
+          4,
+          6,
+          6
+        ],
+        "target": 3
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          0,
+          0,
+          0,
+          4,
+          4,
+          4,
+          4,
+          5,
+          5,
+          5,
+          5,
+          6
+        ],
+        "target": 3
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -1,0 +1,170 @@
+{
+  "order": 104,
+  "slug": "reverse-array",
+  "title": "Reverse an Array",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "two-pointers"
+  ],
+  "summary": "Return the values of an array in reverse order.",
+  "statement": "Given an integer array `nums`, return a new array with the same values in reverse order.",
+  "constraints": [
+    "0 <= nums.length <= 10^4"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 2, 3]",
+      "output": "[3, 2, 1]"
+    },
+    {
+      "input": "nums = [9]",
+      "output": "[9]"
+    },
+    {
+      "input": "nums = [4, 4, 1, 0]",
+      "output": "[0, 1, 4, 4]"
+    }
+  ],
+  "signature": {
+    "method": "reverseArray",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] reverseArray(int[] nums) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "The first value of the answer is the last value of the input.",
+    "Either fill a new array from the back, or swap pairs from both ends moving inward.",
+    "out = new array of size n\nfor i from 0 to n-1:\n    out[i] = nums[n-1-i]\nreturn out",
+    "Copying with index `n-1-i` is O(n) time and O(n) space for the result. Swapping in place with two pointers (`i` from the left, `j` from the right, until they meet) needs no extra array."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3
+        ]
+      },
+      "expected_output": [
+        3,
+        2,
+        1
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          9
+        ]
+      },
+      "expected_output": [
+        9
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          4,
+          4,
+          1,
+          0
+        ]
+      },
+      "expected_output": [
+        0,
+        1,
+        4,
+        4
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": []
+      },
+      "expected_output": [],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -31,
+          29,
+          49,
+          -16,
+          -16,
+          18,
+          42,
+          -14,
+          -41,
+          45,
+          22
+        ]
+      },
+      "expected_output": [
+        22,
+        45,
+        -41,
+        -14,
+        42,
+        18,
+        -16,
+        -16,
+        49,
+        29,
+        -31
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          31,
+          23,
+          13
+        ]
+      },
+      "expected_output": [
+        13,
+        23,
+        31,
+        1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -48,
+          -21,
+          38,
+          -20,
+          12
+        ]
+      },
+      "expected_output": [
+        12,
+        -20,
+        38,
+        -21,
+        -48
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

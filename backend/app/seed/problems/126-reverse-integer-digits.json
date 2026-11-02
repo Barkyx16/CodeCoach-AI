@@ -1,0 +1,115 @@
+{
+  "order": 126,
+  "slug": "reverse-integer-digits",
+  "title": "Reverse the Digits",
+  "difficulty": "easy",
+  "topics": [
+    "math"
+  ],
+  "summary": "Reverse a number's digits, keeping its sign.",
+  "statement": "Return `n` with its digits reversed, keeping the sign. Leading zeros disappear\n(`120` becomes `21`). Inputs are chosen so the result fits in an int.",
+  "constraints": [
+    "-10^8 <= n <= 10^8"
+  ],
+  "examples": [
+    {
+      "input": "n = 123",
+      "output": "321"
+    },
+    {
+      "input": "n = -456",
+      "output": "-654"
+    },
+    {
+      "input": "n = 120",
+      "output": "21"
+    }
+  ],
+  "signature": {
+    "method": "reverseDigits",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int reverseDigits(int n) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Peel digits off the end and push them onto a new number.",
+    "`result = result * 10 + n % 10`, then `n /= 10`. Java keeps the sign through `%` and `/`.",
+    "result = 0\nwhile n != 0:\n    result = result * 10 + n % 10\n    n /= 10   # truncates toward zero\nreturn result",
+    "One step per digit, O(log n). In Java, `%` and `/` truncate toward zero, so negative numbers reverse correctly without special-casing the sign."
+  ],
+  "expected_complexity": {
+    "time": "O(log n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 123
+      },
+      "expected_output": 321,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": -456
+      },
+      "expected_output": -654,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 120
+      },
+      "expected_output": 21,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 0
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 100000000
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": -52353916
+      },
+      "expected_output": -61935325,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": -95707563
+      },
+      "expected_output": -36570759,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 55713678
+      },
+      "expected_output": 87631755,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 47864510
+      },
+      "expected_output": 1546874,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

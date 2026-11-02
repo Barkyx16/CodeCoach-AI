@@ -33,32 +33,41 @@ def test_problem_content_is_complete(problem):
     assert problem["expected_complexity"]["time"].startswith("O(")
 
 
+def _verifier():
+    spec = importlib.util.spec_from_file_location("verify_reference_solutions", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.fixture(scope="module")
+def reference_results():
+    """Every reference solution compiled and run in one JVM (fast even with hundreds of problems)."""
+    return _verifier().check_all(sorted(SEED_DIR.glob("*.json")))
+
+
+@pytest.fixture(scope="module")
+def starter_results(tmp_path_factory):
+    """The same, with each problem's untouched starter code in place of the reference."""
+    ref_dir = tmp_path_factory.mktemp("starters")
+    for p in PROBLEMS:
+        (ref_dir / f"{p['slug']}.java").write_text(p["starter_code"])
+    return _verifier().check_all(sorted(SEED_DIR.glob("*.json")), reference_dir=ref_dir)
+
+
 @pytest.mark.skipif(shutil.which("javac") is None, reason="JDK not installed")
-@pytest.mark.parametrize("problem_file", sorted(SEED_DIR.glob("*.json")), ids=lambda f: f.stem)
-def test_reference_solution_passes_all_tests(problem_file):
+@pytest.mark.parametrize("slug", [p["slug"] for p in PROBLEMS])
+def test_reference_solution_passes_all_tests(slug, reference_results):
     """Compiles the repo's own trusted reference solution and runs every test case through
     the real driver. Proves the expected outputs are right before a learner ever sees them."""
-    spec = importlib.util.spec_from_file_location("verify_reference_solutions", SCRIPT)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    assert module.check_problem(problem_file) == []
+    assert reference_results[slug] == []
 
 
 @pytest.mark.skipif(shutil.which("javac") is None, reason="JDK not installed")
-@pytest.mark.parametrize("problem_file", sorted(SEED_DIR.glob("*.json")), ids=lambda f: f.stem)
-def test_starter_code_fails_tests(problem_file, tmp_path, monkeypatch):
+@pytest.mark.parametrize("slug", [p["slug"] for p in PROBLEMS])
+def test_starter_code_fails_tests(slug, starter_results):
     """The tests must be able to tell: every problem's untouched starter code fails at least one."""
-    import json
-
-    spec = importlib.util.spec_from_file_location("verify_reference_solutions", SCRIPT)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    problem = json.loads(problem_file.read_text())
-    ref_dir = tmp_path / "ref"
-    ref_dir.mkdir()
-    (ref_dir / f"{problem['slug']}.java").write_text(problem["starter_code"])
-    monkeypatch.setattr(module, "REFERENCE_DIR", ref_dir)
-    assert module.check_problem(problem_file), "starter code unexpectedly passed every test"
+    assert starter_results[slug], "starter code unexpectedly passed every test"
 
 
 def _python_models():

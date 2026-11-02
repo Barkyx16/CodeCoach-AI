@@ -120,3 +120,19 @@ MODELS = {
     "kth-largest-element": kth_largest,
     "longest-repeating-replacement": char_replacement,
 }
+
+
+def _bank_models():
+    """Every problem-bank spec carries its own independent Python model."""
+    import importlib
+    import sys
+    from pathlib import Path
+
+    backend = str(Path(__file__).resolve().parents[1])
+    if backend not in sys.path:
+        sys.path.insert(0, backend)
+    build = importlib.import_module("scripts.problembank.build")
+    return {spec.slug: spec.model for spec in build.load_specs()}
+
+
+MODELS.update(_bank_models())

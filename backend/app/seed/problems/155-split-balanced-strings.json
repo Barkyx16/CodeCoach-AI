@@ -1,0 +1,103 @@
+{
+  "order": 155,
+  "slug": "split-balanced-strings",
+  "title": "Split Into Balanced Strings",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "greedy"
+  ],
+  "summary": "Split an L/R string into as many balanced pieces as possible.",
+  "statement": "A string of `L`s and `R`s is balanced if it has the same number of each. `s` is balanced.\nSplit it into the maximum number of balanced pieces and return that number.",
+  "constraints": [
+    "2 <= s.length <= 1000",
+    "s is balanced"
+  ],
+  "examples": [
+    {
+      "input": "s = \"RLRRLLRLRL\"",
+      "output": "4"
+    },
+    {
+      "input": "s = \"RLRRRLLRLL\"",
+      "output": "2"
+    },
+    {
+      "input": "s = \"LLLLRRRR\"",
+      "output": "1"
+    }
+  ],
+  "signature": {
+    "method": "balancedSplit",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int balancedSplit(String s) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Cut as soon as you can.",
+    "Keep a balance: +1 for L, -1 for R. Every time it returns to 0, you've finished a piece.",
+    "balance = pieces = 0\nfor c in s:\n    balance += 1 if c == 'L' else -1\n    if balance == 0: pieces += 1\nreturn pieces",
+    "Greedily cutting at each zero is optimal: delaying a cut can only merge pieces. O(n), O(1)."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "RLRRLLRLRL"
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "RLRRRLLRLL"
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "LLLLRRRR"
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "LR"
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "RL"
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "LLLRRRRLRL"
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "RRLLRRRLLRLL"
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

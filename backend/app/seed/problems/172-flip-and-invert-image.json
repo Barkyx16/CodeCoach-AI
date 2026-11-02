@@ -1,0 +1,244 @@
+{
+  "order": 172,
+  "slug": "flip-and-invert-image",
+  "title": "Flip and Invert an Image",
+  "difficulty": "easy",
+  "topics": [
+    "matrix",
+    "two-pointers"
+  ],
+  "summary": "Mirror each row of a binary image, then invert it.",
+  "statement": "`image` is a binary matrix. Reverse each row, then replace every `0` with `1` and every `1` with `0`.\nReturn the resulting image.",
+  "constraints": [
+    "1 <= n <= 20",
+    "image[i][j] is 0 or 1"
+  ],
+  "examples": [
+    {
+      "input": "image = [[1, 1, 0], [1, 0, 1], [0, 0, 0]]",
+      "output": "[[1, 0, 0], [0, 1, 0], [1, 1, 1]]"
+    },
+    {
+      "input": "image = [[1]]",
+      "output": "[[0]]"
+    },
+    {
+      "input": "image = [[1, 0], [0, 1]]",
+      "output": "[[1, 0], [0, 1]]"
+    }
+  ],
+  "signature": {
+    "method": "flipAndInvertImage",
+    "params": [
+      {
+        "name": "image",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int[][]"
+  },
+  "starter_code": "class Solution {\n    public int[][] flipAndInvertImage(int[][] image) {\n        // TODO: write your solution here\n        return new int[0][];\n    }\n}\n",
+  "hints": [
+    "You can do both steps in one sweep per row.",
+    "Swap from both ends toward the middle, inverting each value as you place it.",
+    "for row in image:\n    i, j = 0, len(row)-1\n    while i <= j:\n        row[i], row[j] = 1 - row[j], 1 - row[i]\n        i += 1; j -= 1\nreturn image",
+    "Each cell is touched once: O(n^2) total for an n\u00d7n image, in place. When `i == j` the middle cell is just inverted."
+  ],
+  "expected_complexity": {
+    "time": "O(n^2)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "image": [
+          [
+            1,
+            1,
+            0
+          ],
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          1,
+          1,
+          1
+        ]
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "image": [
+          [
+            1
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          0
+        ]
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "image": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "image": [
+          [
+            0
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          1
+        ]
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "image": [
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            1
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          0,
+          1,
+          1,
+          1
+        ],
+        [
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "image": [
+          [
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          1
+        ],
+        [
+          0,
+          1,
+          1
+        ]
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -1,0 +1,116 @@
+{
+  "order": 121,
+  "slug": "nth-fibonacci",
+  "title": "Fibonacci Number",
+  "difficulty": "easy",
+  "topics": [
+    "dynamic-programming",
+    "math"
+  ],
+  "summary": "Return the nth Fibonacci number.",
+  "statement": "The Fibonacci sequence starts `F(0) = 0`, `F(1) = 1`, and `F(n) = F(n-1) + F(n-2)`.\nReturn `F(n)`.",
+  "constraints": [
+    "0 <= n <= 45"
+  ],
+  "examples": [
+    {
+      "input": "n = 4",
+      "output": "3"
+    },
+    {
+      "input": "n = 0",
+      "output": "0"
+    },
+    {
+      "input": "n = 1",
+      "output": "1"
+    }
+  ],
+  "signature": {
+    "method": "fib",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int fib(int n) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Plain recursion recomputes the same values many times. Can you build up from the bottom instead?",
+    "You only ever need the last two values.",
+    "a, b = 0, 1\nrepeat n times: a, b = b, a + b\nreturn a",
+    "Iterating with two variables is O(n) time and O(1) space; naive recursion is O(2^n). F(45) is 1134903170, which still fits in an int."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 4
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 0
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 1
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 10
+      },
+      "expected_output": 55,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 45
+      },
+      "expected_output": 1134903170,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 28
+      },
+      "expected_output": 317811,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 39
+      },
+      "expected_output": 63245986,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 8
+      },
+      "expected_output": 21,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 36
+      },
+      "expected_output": 14930352,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

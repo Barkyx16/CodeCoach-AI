@@ -89,7 +89,8 @@ def test_search_understands_plain_descriptions_and_abbreviations(client):
 
 def test_search_ranks_title_matches_first_and_requires_every_word_when_possible(client):
     results = slugs(client, q="sorted array search")
-    assert results[:2] == ["search-rotated-array", "binary-search"] or results[0] == "binary-search"
+    assert {"search-rotated-array", "binary-search"} <= set(results[:4])
+    assert results[0] == "search-rotated-array"  # every word is in its title
     assert slugs(client, q="zzz") == []
     # Too specific to match everything: falls back to problems with most of the words.
     assert "reverse-string" in slugs(client, q="reverse string quantum")

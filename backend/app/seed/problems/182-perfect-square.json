@@ -1,0 +1,116 @@
+{
+  "order": 182,
+  "slug": "perfect-square",
+  "title": "Valid Perfect Square",
+  "difficulty": "easy",
+  "topics": [
+    "binary-search",
+    "math"
+  ],
+  "summary": "Is a number a perfect square? No square-root functions.",
+  "statement": "Return `true` if `num` is a perfect square (the square of an integer). Don't use built-in\nsquare-root functions.",
+  "constraints": [
+    "1 <= num <= 2^31 - 1"
+  ],
+  "examples": [
+    {
+      "input": "num = 16",
+      "output": "true"
+    },
+    {
+      "input": "num = 14",
+      "output": "false"
+    },
+    {
+      "input": "num = 1",
+      "output": "true"
+    }
+  ],
+  "signature": {
+    "method": "isPerfectSquare",
+    "params": [
+      {
+        "name": "num",
+        "type": "int"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean isPerfectSquare(int num) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "Search for an integer whose square is exactly `num`.",
+    "Binary search on `r` in `[1, num]`, comparing `r * r` (as a long) with `num`.",
+    "lo, hi = 1, num\nwhile lo <= hi:\n    mid = (lo + hi) // 2\n    if mid*mid == num: return true\n    if mid*mid < num: lo = mid + 1\n    else: hi = mid - 1\nreturn false",
+    "O(log num) with long arithmetic to avoid overflow."
+  ],
+  "expected_complexity": {
+    "time": "O(log n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "num": 16
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "num": 14
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "num": 1
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "num": 2147395600
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "num": 2147483647
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "num": 7438407
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "num": 3544289
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "num": 5793649
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "num": 7059649
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

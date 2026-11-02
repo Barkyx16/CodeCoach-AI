@@ -165,27 +165,30 @@ def _mentions(text: str, term: str) -> bool:
 
 
 def evaluate_hints(provider: CoachProvider, problems: dict[str, ProblemContext], terms: dict) -> dict:
-    spoilers, relevant, code_leaks, checked = [], 0, [], 0
+    """Spoiler and relevance rates need hand-labeled terms, so they're measured on the labeled
+    problems (hint_terms.json). The code-leak check needs no labels and runs on every problem."""
+    spoilers, relevant, code_leaks, checked, labeled = [], 0, [], 0, 0
     for slug, problem in problems.items():
-        t = terms[slug]
+        t = terms.get(slug)
+        labeled += t is not None
         starter = problem.starter_code
         for level in (1, 2):
             ctx = HintContext(problem=problem, code=starter, level=level, analysis=analyze(starter))
             hint: HintContent = provider.hint(ctx).content
             text = hint.hint.lower()
             checked += 1
-            if level == 1 and any(_mentions(text, term) for term in t["level1_spoilers"]):
+            if t and level == 1 and any(_mentions(text, term) for term in t["level1_spoilers"]):
                 spoilers.append(slug)
-            if level == 2 and any(_mentions(text, term) for term in t["level2_concepts"]):
+            if t and level == 2 and any(_mentions(text, term) for term in t["level2_concepts"]):
                 relevant += 1
             if _CODE_LIKE.search(hint.hint):
                 code_leaks.append(f"{slug}:L{level}")
-    n = len(problems)
     return {
-        "problems": n,
-        "level1_spoiler_rate": _r(len(spoilers) / n),
+        "problems": len(problems),
+        "labeled_problems": labeled,
+        "level1_spoiler_rate": _r(len(spoilers) / labeled),
         "level1_spoilers": spoilers,
-        "level2_relevance": _r(relevant / n),
+        "level2_relevance": _r(relevant / labeled),
         "code_leak_rate_levels_1_2": _r(len(code_leaks) / checked),
         "code_leaks": code_leaks,
     }
@@ -225,7 +228,7 @@ def to_markdown(r: dict) -> str:
     lines = [
         f"# Coach evaluation: `{r['provider']}` ({r['model']})",
         "",
-        f"Run {r['evaluated_at']} over {rv['samples']} labelled review samples and {h['problems']} problems. "
+        f"Run {r['evaluated_at']} over {rv['samples']} labelled review samples and {h['problems']} problems (hint spoiler and relevance rates on the {h['labeled_problems']} with labeled terms; code-leak checks on all). "
         "These numbers describe this labelled set only.",
         "",
         "## Tuning set",

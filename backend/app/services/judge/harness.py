@@ -30,7 +30,7 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-SUPPORTED_TYPES = {"int", "long", "boolean", "char", "String", "int[]", "String[]"}
+SUPPORTED_TYPES = {"int", "long", "boolean", "char", "String", "int[]", "String[]", "int[][]"}
 MAX_MESSAGE_CHARS = 300
 
 
@@ -67,6 +67,8 @@ def java_literal(value: Any, java_type: str) -> str:
             return "new int[] {" + ", ".join(java_literal(v, "int") for v in value) + "}"
         case "String[]":
             return "new String[] {" + ", ".join(java_literal(v, "String") for v in value) + "}"
+        case "int[][]":
+            return "new int[][] {" + ", ".join(java_literal(row, "int[]") for row in value) + "}"
     raise UnsupportedTypeError(f"unsupported Java type: {java_type}")
 
 
@@ -131,6 +133,11 @@ __CALLS__
         if (o instanceof int[] arr) {
             StringBuilder sb = new StringBuilder("[");
             for (int i = 0; i < arr.length; i++) sb.append(i == 0 ? "" : ", ").append(arr[i]);
+            return sb.append("]").toString();
+        }
+        if (o instanceof int[][] grid) {
+            StringBuilder sb = new StringBuilder("[");
+            for (int i = 0; i < grid.length; i++) sb.append(i == 0 ? "" : ", ").append(toJson(grid[i]));
             return sb.append("]").toString();
         }
         if (o instanceof String[] arr) {

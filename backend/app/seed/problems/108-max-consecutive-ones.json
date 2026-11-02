@@ -1,0 +1,151 @@
+{
+  "order": 108,
+  "slug": "max-consecutive-ones",
+  "title": "Longest Run of Ones",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "iteration"
+  ],
+  "summary": "Find the longest streak of consecutive 1s in a binary array.",
+  "statement": "`nums` contains only `0`s and `1`s. Return the length of the longest run of consecutive `1`s.",
+  "constraints": [
+    "0 <= nums.length <= 10^5",
+    "nums[i] is 0 or 1"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 1, 0, 1, 1, 1]",
+      "output": "3"
+    },
+    {
+      "input": "nums = [0, 0]",
+      "output": "0"
+    },
+    {
+      "input": "nums = [1]",
+      "output": "1"
+    }
+  ],
+  "signature": {
+    "method": "longestOnes",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int longestOnes(int[] nums) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Count the current streak as you walk the array.",
+    "A `1` extends the current streak; a `0` resets it. Track the best streak seen.",
+    "best = cur = 0\nfor n in nums:\n    cur = cur + 1 if n == 1 else 0\n    best = max(best, cur)\nreturn best",
+    "One pass with two counters gives O(n) time and O(1) space. Updating `best` after every step (not only when a `0` appears) handles a streak that runs to the end of the array."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          1,
+          0,
+          1,
+          1,
+          1
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          0
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": []
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          0,
+          1,
+          1
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          1,
+          1
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          1,
+          0,
+          0
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

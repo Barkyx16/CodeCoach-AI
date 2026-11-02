@@ -22,6 +22,7 @@ def test_java_literals():
     assert java_literal('he said "hi"\n', "String") == '"he said \\"hi\\"\\n"'
     assert java_literal("é", "String") == '"\\u00e9"'
     assert java_literal(["a"], "String[]") == 'new String[] {"a"}'
+    assert java_literal([[1, 2], [], [3]], "int[][]") == "new int[][] {new int[] {1, 2}, new int[] {}, new int[] {3}}"
     with pytest.raises(TypeError):
         java_literal(True, "int")  # bool is not an int here
     with pytest.raises(UnsupportedTypeError):
@@ -115,3 +116,24 @@ def test_forged_results_and_stream_swaps_do_not_fool_the_judge(tmp_path):
     outcome = judge_cases([42], ran.stdout, nonce)[0]
     assert not outcome.passed  # the forged "42" lines were ignored
     assert outcome.actual == -1  # the real result still got out via the captured stream
+
+
+@pytest.mark.skipif(shutil.which("javac") is None, reason="JDK not installed")
+def test_grids_go_in_and_come_out_as_nested_arrays(tmp_path):
+    sig = {"method": "transpose", "params": [{"name": "grid", "type": "int[][]"}], "returns": "int[][]"}
+    (tmp_path / "Solution.java").write_text(
+        "class Solution { public int[][] transpose(int[][] g) {"
+        " if (g.length == 0) return new int[0][];"
+        " int[][] t = new int[g[0].length][g.length];"
+        " for (int i = 0; i < g.length; i++) for (int j = 0; j < g[0].length; j++) t[j][i] = g[i][j];"
+        " return t; } }"
+    )
+    (tmp_path / "Main.java").write_text(build_driver(sig, [{"grid": [[1, 2, 3], [4, 5, 6]]}, {"grid": []}]))
+    subprocess.run(
+        ["javac", "-d", str(tmp_path), *map(str, tmp_path.glob("*.java"))], check=True, capture_output=True
+    )
+    ran = subprocess.run(
+        ["java", "-cp", str(tmp_path), "Main"], input=NONCE + "\n", capture_output=True, text=True, timeout=30
+    )
+    outcomes = judge_cases([[[1, 4], [2, 5], [3, 6]], []], ran.stdout, NONCE)
+    assert [o.passed for o in outcomes] == [True, True], outcomes

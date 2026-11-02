@@ -1,0 +1,232 @@
+{
+  "order": 174,
+  "slug": "reshape-matrix",
+  "title": "Reshape a Matrix",
+  "difficulty": "easy",
+  "topics": [
+    "matrix"
+  ],
+  "summary": "Refill a matrix's values into a new shape.",
+  "statement": "Reshape `mat` into `r` rows and `c` columns, filling row by row in the original reading order.\nIf `r * c` doesn't equal the number of cells, return the original matrix unchanged.",
+  "constraints": [
+    "1 <= rows, cols <= 100",
+    "1 <= r, c <= 300"
+  ],
+  "examples": [
+    {
+      "input": "mat = [[1, 2], [3, 4]], r = 1, c = 4",
+      "output": "[[1, 2, 3, 4]]"
+    },
+    {
+      "input": "mat = [[1, 2], [3, 4]], r = 2, c = 4",
+      "output": "[[1, 2], [3, 4]]"
+    },
+    {
+      "input": "mat = [[1, 2, 3, 4]], r = 2, c = 2",
+      "output": "[[1, 2], [3, 4]]"
+    }
+  ],
+  "signature": {
+    "method": "matrixReshape",
+    "params": [
+      {
+        "name": "mat",
+        "type": "int[][]"
+      },
+      {
+        "name": "r",
+        "type": "int"
+      },
+      {
+        "name": "c",
+        "type": "int"
+      }
+    ],
+    "returns": "int[][]"
+  },
+  "starter_code": "class Solution {\n    public int[][] matrixReshape(int[][] mat, int r, int c) {\n        // TODO: write your solution here\n        return new int[0][];\n    }\n}\n",
+  "hints": [
+    "Think of both matrices as one long list of values.",
+    "Cell number `k` lives at `(k / cols, k % cols)` in the old shape and `(k / c, k % c)` in the new one.",
+    "if rows*cols != r*c: return mat\nout = r x c matrix\nfor k in range(r*c):\n    out[k // c][k % c] = mat[k // cols][k % cols]\nreturn out",
+    "Mapping a single index to both shapes copies every value once: O(rows \u00d7 cols)."
+  ],
+  "expected_complexity": {
+    "time": "O(m * n)",
+    "space": "O(m * n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "mat": [
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            4
+          ]
+        ],
+        "r": 1,
+        "c": 4
+      },
+      "expected_output": [
+        [
+          1,
+          2,
+          3,
+          4
+        ]
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "mat": [
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            4
+          ]
+        ],
+        "r": 2,
+        "c": 4
+      },
+      "expected_output": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "mat": [
+          [
+            1,
+            2,
+            3,
+            4
+          ]
+        ],
+        "r": 2,
+        "c": 2
+      },
+      "expected_output": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "mat": [
+          [
+            6,
+            0
+          ]
+        ],
+        "r": 1,
+        "c": 2
+      },
+      "expected_output": [
+        [
+          6,
+          0
+        ]
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "mat": [
+          [
+            9,
+            4
+          ],
+          [
+            5,
+            0
+          ]
+        ],
+        "r": 4,
+        "c": 3
+      },
+      "expected_output": [
+        [
+          9,
+          4
+        ],
+        [
+          5,
+          0
+        ]
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "mat": [
+          [
+            9,
+            7
+          ],
+          [
+            0,
+            6
+          ]
+        ],
+        "r": 2,
+        "c": 4
+      },
+      "expected_output": [
+        [
+          9,
+          7
+        ],
+        [
+          0,
+          6
+        ]
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "mat": [
+          [
+            8,
+            8,
+            0
+          ]
+        ],
+        "r": 2,
+        "c": 1
+      },
+      "expected_output": [
+        [
+          8,
+          8,
+          0
+        ]
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}
