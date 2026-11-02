@@ -111,8 +111,11 @@ test("account journey: register, filter library, sign out, sign in", async ({ pa
   // New accounts are asked for the emailed code first; it can be done later.
   await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible();
   await page.getByRole("link", { name: "Do this later" }).click();
+  // New accounts land on their dashboard.
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.getByText("Ada's progress")).toBeVisible();
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Practice" }).click();
   await expect(page).toHaveURL(/\/problems$/);
-  await expect(page.getByText("Ada", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: /stacks/i }).click();
   await expect(page).toHaveURL(/topic=stacks/);
@@ -122,7 +125,7 @@ test("account journey: register, filter library, sign out, sign in", async ({ pa
   await page.screenshot({ path: "e2e/screenshots/04-library-filtered.png" });
 
   await page.getByRole("button", { name: "Sign out" }).click();
-  await page.goto("/dashboard");
+  await page.goto("/login");
   await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill("CorrectHorse42");

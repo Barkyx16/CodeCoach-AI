@@ -10,8 +10,9 @@ interface Row {
  * Thin segmented bars: solved, then attempted-but-unsolved, on a recessive track. The figures
  * are printed beside each bar (so values never rely on color), and one legend serves the list.
  */
-export function ProgressBars({ rows, showAttempted = true, columns = false }: {
+export function ProgressBars({ rows, showAttempted = true, columns = false, unit = "solved" }: {
   rows: Row[]; showAttempted?: boolean; /** Two columns of rows on wide screens (long lists). */ columns?: boolean;
+  /** What the filled part counts, for screen readers ("solved" problems, "answered" questions). */ unit?: string;
 }) {
   return (
     <div className={columns ? "pbars pbars--columns" : "pbars"}>
@@ -27,7 +28,7 @@ export function ProgressBars({ rows, showAttempted = true, columns = false }: {
           const pending = showAttempted ? Math.max(0, (r.attempted ?? 0) - r.solved) : 0;
           const solvedPct = r.total ? (r.solved / r.total) * 100 : 0;
           const pendingPct = r.total ? (pending / r.total) * 100 : 0;
-          const text = `${r.solved}/${r.total} solved${pending ? `, ${pending} in progress` : ""}`;
+          const text = `${r.solved}/${r.total} ${unit}${pending ? `, ${pending} in progress` : ""}`;
           return (
             <li key={r.key} className="pbars__row">
               <span className="pbars__label" title={r.label}>{r.label}</span>

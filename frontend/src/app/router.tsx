@@ -9,7 +9,8 @@ import { ForgotPasswordPage, ResetPasswordPage } from "@/features/auth/PasswordR
 import { VerifyEmailPage } from "@/features/auth/VerifyEmailPage";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
 import { HistoryPage } from "@/features/history/HistoryPage";
-import { InterviewStartPage } from "@/features/interview/InterviewStartPage";
+import { InterviewsPage } from "@/features/interview/InterviewsPage";
+import { QuestionInterviewPage } from "@/features/interview/QuestionInterviewPage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { LandingPage } from "@/features/landing/LandingPage";
 import { PracticePage } from "@/features/careers/PracticePage";
@@ -43,7 +44,8 @@ export const routes: RouteObject[] = [
           </Suspense>
         ),
       },
-      { path: "/interviews", element: <RequireAuth><InterviewStartPage /></RequireAuth> },
+      { path: "/interviews", element: <RequireAuth><InterviewsPage /></RequireAuth> },
+      { path: "/interviews/questions", element: <RequireAuth><QuestionInterviewPage /></RequireAuth> },
       {
         path: "/interviews/:id",
         element: (

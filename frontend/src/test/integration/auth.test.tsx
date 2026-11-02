@@ -31,6 +31,21 @@ describe("Authentication", () => {
     expect(await screen.findByText("Ada's progress")).toBeInTheDocument();
   });
 
+  it("opens the dashboard after signing in from the login page", async () => {
+    const { user, router } = renderApp("/login");
+    await user.type(await screen.findByLabelText("Email"), "ada@example.com");
+    await user.type(screen.getByLabelText("Password"), "CorrectHorse42");
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/dashboard"));
+    expect(await screen.findByText("Ada's progress")).toBeInTheDocument();
+  });
+
+  it("opens the dashboard after continuing as a guest", async () => {
+    const { user, router } = renderApp("/login");
+    await user.click(await screen.findByRole("button", { name: "Continue as guest" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/dashboard"));
+  });
+
   it("shows the generic login error", async () => {
     server.use(http.post(`${API}/api/v1/auth/login`, () => HttpResponse.json(
       { error: { code: "invalid_credentials", message: "Incorrect email or password", request_id: null, details: null } }, { status: 401 })));

@@ -39,6 +39,21 @@
 .past-answers__item { width: 100%; display: flex; justify-content: space-between; gap: 8px; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface-sunken); color: var(--color-text); font: inherit; font-size: 13px; cursor: pointer; text-align: left; }
 .past-answers__item:hover, .past-answers__item[aria-pressed="true"] { border-color: var(--color-link); }
 
+/* Career mock interview: progress through the round, then a result per question. */
+.question-page > * + * { margin-top: 16px; }
+.round-progress { display: block; width: 100%; height: 6px; appearance: none; border: 0; border-radius: 999px; overflow: hidden; background: var(--color-surface-raised); }
+.round-progress::-webkit-progress-bar { background: var(--color-surface-raised); }
+.round-progress::-webkit-progress-value { background: var(--color-link); border-radius: 999px; }
+.round-progress::-moz-progress-bar { background: var(--color-link); border-radius: 999px; }
+.round-results { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 10px; }
+.round-result { padding: 0; }
+.round-result summary { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 18px; cursor: pointer; }
+.round-result summary::-webkit-details-marker { display: none; }
+.round-result__n { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--color-surface-raised); font-size: 12px; font-weight: 600; }
+.round-result__score { margin-left: auto; font-size: 13px; color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+.round-result__body { padding: 0 18px 18px; }
+.round-result__body .feedback-card { padding: 16px 0 0; border: 0; background: none; box-shadow: none; }
+
 @media (max-width: 960px) {
   .question-page__layout { grid-template-columns: minmax(0, 1fr); }
 }
@@ -48,3 +63,4 @@
   .feedback-card { padding: 18px 16px; }
   .feedback-card__head { flex-direction: column-reverse; }
 }
+.interview-start form p a, .round-result__body p a { text-decoration: underline; text-underline-offset: 2px; }

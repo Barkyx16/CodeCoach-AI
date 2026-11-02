@@ -89,6 +89,13 @@ export function InterviewStartPage() {
           <p className="subtle">The interviewer never writes code for you. Each reply uses one request from your daily AI budget;
             the final feedback is always free.</p>
         </Card>
+
+        <Card className="stack">
+          <h2 className="section-title"><Icon name="book" size={17} />Question round</h2>
+          <p className="subtle">Practice the rest of the interview: five questions on why this job, what you know, a scenario,
+            a time you did it, and leading others. Scored as you go.</p>
+          <Link to="/interviews/questions" className="btn btn--secondary btn--md">Start a question round <Icon name="arrow" size={15} /></Link>
+        </Card>
       </div>
 
       <PastInterviews />

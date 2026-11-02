@@ -1,37 +1,35 @@
 import { Link } from "react-router-dom";
 
-import { useAIUsage, useProgress, useRecommendations } from "@/api/queries";
+import { useAIUsage, useCareers, useProgress, useRecommendations } from "@/api/queries";
 import { useAuth } from "@/auth/useAuth";
 import { DifficultyBadge } from "@/components/Badge";
 import { Card } from "@/components/Card";
+import { DEFAULT_TRACK } from "@/features/careers/practiceTrack";
 import { ErrorState, LoadingState } from "@/components/States";
 import { percent, plural, timeAgo, titleCase } from "@/lib/format";
 
 import { ActivityHeatmap } from "./ActivityHeatmap";
+import { CareerDashboard } from "./CareerDashboard";
 import { ProgressBars } from "./ProgressBars";
 import { RecentActivity } from "./RecentActivity";
-import { Icon, type IconName } from "@/components/Icon";
-
-function StatTile({ label, value, detail, icon, fraction }: {
-  label: string; value: string; detail?: string; icon: IconName; fraction?: number;
-}) {
-  return (
-    <Card className="stat">
-      <Icon className="stat__icon" name={icon} size={18} />
-      <span className="stat__label">{label}</span>
-      <span className="stat__value">{value}</span>
-      {detail && <span className="subtle">{detail}</span>}
-      {/* Decorative: the detail line already says "of N problems". */}
-      {fraction !== undefined && (
-        <span className="stat__bar" aria-hidden="true"><span style={{ width: `${Math.min(fraction, 1) * 100}%` }} /></span>
-      )}
-    </Card>
-  );
-}
+import { StatTile } from "./StatTile";
+import { Icon } from "@/components/Icon";
 
 const KIND_LABEL = { retry: "Finish it", weak_topic: "Weak spot", next_step: "Next step", interview: "Interview" } as const;
 
+/** The dashboard for the user's own career: coding progress for jobs with coding problems, else
+ * progress on that career's interview questions. */
 export function DashboardPage() {
+  const { user } = useAuth();
+  const careers = useCareers();
+  const track = user?.career_track || DEFAULT_TRACK;
+  const career = careers.data?.find((c) => c.slug === track);
+  if (careers.isPending && track !== DEFAULT_TRACK) return <LoadingState label="Loading your progress…" />;
+  const hasCoding = career ? career.has_coding : track === DEFAULT_TRACK;
+  return hasCoding ? <CodingDashboard /> : <CareerDashboard track={track} careerTitle={career?.title} />;
+}
+
+function CodingDashboard() {
   const { user } = useAuth();
   const progress = useProgress();
   const recs = useRecommendations(5);

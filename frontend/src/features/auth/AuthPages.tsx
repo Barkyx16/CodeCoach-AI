@@ -12,9 +12,10 @@ import { CareerSelect } from "@/features/careers/CareerSelect";
 
 import { AuthLayout } from "./AuthLayout";
 
+/** After signing in: back to the page that asked for it (e.g. a problem), else the dashboard. */
 function useRedirectTarget(): string {
   const location = useLocation();
-  return (location.state as { from?: string } | null)?.from ?? "/problems";
+  return (location.state as { from?: string } | null)?.from ?? "/dashboard";
 }
 
 function GuestButton() {

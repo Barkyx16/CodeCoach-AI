@@ -31,7 +31,7 @@ test("sign up, verify with the emailed code, change email, sign out", async ({ p
   await expect.poll(() => latestCodeFor(email)).not.toBeNull();
   await page.getByLabel("Verification code").fill(latestCodeFor(email)!);
   await page.getByRole("button", { name: "Verify email" }).click();
-  await expect(page).toHaveURL(/\/problems$/);
+  await expect(page).toHaveURL(/\/dashboard$/);
 
   await page.goto("/settings");
   const emailCard = page.getByRole("form", { name: "Email" });

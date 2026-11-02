@@ -10,6 +10,11 @@ test("a nurse picks their job at sign-up, answers a question and gets feedback",
   await page.locator("#main").getByRole("button", { name: "Create account" }).click();
   await page.getByRole("link", { name: "Do this later" }).click();
 
+  // Signing up lands on a dashboard built from the nurse's own questions, not coding problems.
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.getByText("of 300 questions")).toBeVisible();
+  await page.getByRole("link", { name: "Practice questions" }).click();
+
   await expect(page.getByRole("heading", { name: "Registered Nurse interview questions" })).toBeVisible();
   const tabs = page.getByRole("tablist", { name: "Difficulty" });
   await expect(tabs.getByRole("tab", { name: "Easy 100" })).toHaveAttribute("aria-selected", "true");
@@ -37,4 +42,22 @@ test("a nurse picks their job at sign-up, answers a question and gets feedback",
   // The answer shows up in the list as answered.
   await page.getByRole("link", { name: /Registered Nurse questions/ }).click();
   await expect(page.getByText(/1 answered/)).toBeVisible();
+
+  // A mock interview made of nursing questions: answer one, skip the rest, get a summary.
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Interview" }).click();
+  await expect(page.getByRole("heading", { name: "Registered Nurse interview" })).toBeVisible();
+  await page.getByRole("button", { name: "Start interview" }).click();
+  await expect(page.getByText(/REGISTERED NURSE INTERVIEW · QUESTION 1 OF 5/)).toBeVisible();
+  await page.getByLabel("Your answer", { exact: true }).fill(
+    "I want to be a nurse because I care about patients and I am calm under pressure. In my last clinical " +
+    "placement I looked after four patients and kept every assessment on time.",
+  );
+  await page.getByRole("button", { name: "Next question" }).click();
+  for (let n = 2; n <= 5; n++) {
+    await expect(page.getByText(new RegExp(`QUESTION ${n} OF 5`))).toBeVisible();
+    await page.getByRole("button", { name: "Skip" }).click();
+  }
+  await expect(page.getByRole("heading", { name: "Registered Nurse interview results" })).toBeVisible();
+  await expect(page.getByText(/Average score \d+\/100 across 1 of 5 answers/)).toBeVisible();
+  await page.screenshot({ path: "e2e/screenshots/careers-interview-results.png", fullPage: true });
 });

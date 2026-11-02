@@ -10,9 +10,9 @@ import { InlineError, LoadingState } from "@/components/States";
 
 import { AuthLayout } from "./AuthLayout";
 
-/** Where to go afterwards: whatever page sent the user here, else the problem library. */
+/** Where to go afterwards: whatever page sent the user here, else the dashboard. */
 function useNext(): string {
-  return (useLocation().state as { next?: string } | null)?.next ?? "/problems";
+  return (useLocation().state as { next?: string } | null)?.next ?? "/dashboard";
 }
 
 /**
@@ -51,7 +51,7 @@ function VerifyByLink({ token }: { token: string }) {
       {state === "done" && (
         <>
           <p className="banner banner--success" role="status">Your email is verified. Thanks!</p>
-          <Link className="btn btn--primary btn--md" to={user ? "/problems" : "/login"}>{user ? "Start practising" : "Sign in"}</Link>
+          <Link className="btn btn--primary btn--md" to={user ? "/dashboard" : "/login"}>{user ? "Go to your dashboard" : "Sign in"}</Link>
         </>
       )}
       {state === "failed" && (
