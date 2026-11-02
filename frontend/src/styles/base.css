@@ -160,3 +160,9 @@ main:focus { outline: none; box-shadow: none; }
 .page__subtitle { max-width: 68ch; }
 @media (max-width: 600px) { .page { padding: 24px 16px 48px; } }
 @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+
+/* Links inside running text are underlined, so they never rely on color alone (WCAG 1.4.1). */
+#main p a:not(.btn):not(.back-link), #main li > p a:not(.btn), #main dd a:not(.btn) {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

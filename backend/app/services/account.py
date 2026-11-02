@@ -10,7 +10,9 @@ from sqlalchemy.orm import Session, selectinload
 from app.models import (
     AIInteraction,
     PracticeAnswer,
+    PracticeGoal,
     PracticeMode,
+    PracticePlan,
     PracticeSession,
     Problem,
     ProgressEvent,
@@ -39,6 +41,13 @@ def export_user_data(db: Session, user: User) -> dict:
         .options(selectinload(PracticeSession.turns))
         .where(PracticeSession.user_id == user.id)
         .order_by(PracticeSession.started_at)
+    ).all()
+    goals = db.scalars(select(PracticeGoal).where(PracticeGoal.user_id == user.id)).all()
+    plans = db.scalars(
+        select(PracticePlan)
+        .options(selectinload(PracticePlan.items))
+        .where(PracticePlan.user_id == user.id)
+        .order_by(PracticePlan.track, PracticePlan.version)
     ).all()
     events = db.scalars(
         select(ProgressEvent).where(ProgressEvent.user_id == user.id).order_by(ProgressEvent.created_at)
@@ -142,5 +151,42 @@ def export_user_data(db: Session, user: User) -> dict:
                 "created_at": iso(a.created_at),
             }
             for a in answers
+        ],
+        "practice_goals": [
+            {
+                "career": g.track,
+                "specialty": g.specialty,
+                "experience": g.experience,
+                "target_date": g.target_date.isoformat() if g.target_date else None,
+                "weekly_minutes": g.weekly_minutes,
+                "focus_areas": g.focus_areas,
+                "formats": g.formats,
+                "confidence": g.confidence,
+                "setup_skipped": g.setup_skipped,
+                "updated_at": iso(g.updated_at),
+            }
+            for g in goals
+        ],
+        "practice_plans": [
+            {
+                "career": p.track,
+                "version": p.version,
+                "created_at": iso(p.created_at),
+                "changes": p.changes,
+                "activities": [
+                    {
+                        "kind": i.kind,
+                        "skill": i.skill,
+                        "title": i.title,
+                        "status": i.status,
+                        "evidence": i.evidence,
+                        "target": i.target,
+                        "planned_at": iso(i.created_at),
+                        "resolved_at": iso(i.resolved_at),
+                    }
+                    for i in p.items
+                ],
+            }
+            for p in plans
         ],
     }

@@ -34,7 +34,7 @@ export function QuestionInterviewPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     try {
-      const iv = await start.mutateAsync({ kind: "questions", track, difficulty: level, duration_minutes: minutes });
+      const iv = await start.mutateAsync({ kind: "questions", purpose: "practice", track, difficulty: level, duration_minutes: minutes });
       navigate(`/interviews/${iv.id}`);
     } catch {
       /* shown below */

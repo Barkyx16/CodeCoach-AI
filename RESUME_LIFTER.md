@@ -509,6 +509,14 @@ These are moments where the obvious path was wrong and a deliberate decision was
     index, and the loser of the race rolls back quietly. Old rows keep a NULL key, so the
     migration can't fail on historical duplicates.
 
+37. **A plan that can't flatter you.** It would be easy to tick activities off when the user
+    clicks "done", or to blend self-ratings and scores into one "readiness %". Both would make the
+    plan feel good and mean nothing. Instead an activity completes only when matching work exists
+    after it was planned (an answer to that question, a spoken answer, a finished round, a
+    submitted attempt). The one exception, reading feedback, is labelled self-reported. Skips
+    stay skips even if you do the work later. Confidence, rubric scores and judged code are
+    reported side by side, and new plan versions say exactly what changed and why.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -1027,3 +1035,27 @@ statuses, filters that survive Back, and a "continue where you left off".
 - **Limits:** the site has one (dark) theme, so there's no light/system mode to keep; activity
   that was never recorded (e.g. page views before this feature, or browser-only drafts on another
   device) can't appear; a skill filter excludes interviews because a round spans several skills.
+
+### Session 16: a personal, adaptive practice plan
+You asked for a career-aware roadmap: optional goals, a baseline, an adaptive plan with reasons,
+a "Today" view for 5/15/30 minutes, and honest control over skipping and replacing.
+
+**Built and verified:**
+- **Goals** per user and career (all optional, validated against the career's skills), and a
+  skip-setup path that still produces a starter plan.
+- **Baseline round** (knowledge, behavioral, scenario) and **targeted rounds** (chosen questions),
+  reusing the question-round engine, voice and engagement included.
+- **Plan engine**: six transparent rules over the career's own evidence; completion read from
+  recorded work; versioned adaptation with explained changes; skip and same-skill replace;
+  skipped targets don't come straight back; plans per career survive career changes.
+- **Today** on both dashboards, **Your plan** page (open / done with evidence / set aside, and an
+  assessment that keeps self-ratings, rubric scores and judged code apart), **Your goals** form.
+- Migration (new tables only, cascade on delete), data export includes goals and plans.
+- Tests: 12 backend (skip setup, two careers, baseline adaptation, evidence completion, refresh,
+  skip never completes, replace, today sizing, goals validation, career switch, coding evidence,
+  ownership/export), 6 frontend, 2 browser journeys, WCAG scans of the new pages; a global
+  underline for links in text fixed the same accessibility issue everywhere. Totals: 1,611
+  backend (SQLite), PostgreSQL green, 149 frontend, 22 Playwright.
+- **Limits:** no lessons library, so "learn a concept" is served by reviewing a strong-answer
+  outline and your feedback; AI isn't used to explain recommendations (the rule-based reasons are
+  shown instead); one theme.

@@ -11,6 +11,8 @@ import { titleCase } from "@/lib/format";
 import { KIND_LABEL } from "@/features/careers/kinds";
 
 import { ProgressBars } from "./ProgressBars";
+import { TodayCard } from "@/features/plan/TodayCard";
+
 import { ContinueCard } from "./ContinueCard";
 import { StatTile } from "./StatTile";
 
@@ -61,6 +63,7 @@ export function CareerDashboard({ track, careerTitle }: { track: string; careerT
         </div>
       </div>
 
+      <TodayCard />
       <ContinueCard />
 
       <section className="stat-row" aria-label="Summary">

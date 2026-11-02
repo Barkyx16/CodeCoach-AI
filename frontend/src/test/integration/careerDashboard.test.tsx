@@ -41,7 +41,7 @@ describe("Dashboard and interviews follow the user's career", () => {
     expect(await screen.findByRole("heading", { name: "Registered Nurse interview" })).toBeInTheDocument();
     await user.click(screen.getByRole("radio", { name: "Medium" }));
     await user.click(screen.getByRole("button", { name: "Start interview" }));
-    await waitFor(() => expect(body).toEqual({ kind: "questions", track: "registered-nurse", difficulty: "medium", duration_minutes: 15 }));
+    await waitFor(() => expect(body).toEqual({ kind: "questions", purpose: "practice", track: "registered-nurse", difficulty: "medium", duration_minutes: 15 }));
     expect(await screen.findByRole("link", { name: "Resume it" })).toHaveAttribute("href", "/interviews/round-9");
   });
 

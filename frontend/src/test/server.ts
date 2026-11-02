@@ -1,7 +1,7 @@
 import { http, HttpResponse, type JsonBodyType } from "msw";
 import { setupServer } from "msw/node";
 
-import { activityFacets, activityItems, careers, hint, nurseAnalytics, nurseAnswer, nurseQuestions, page, problems, progress, queuedSubmission, review, tokenResponse, twoSum, user } from "./fixtures";
+import { activityFacets, activityItems, careers, hint, makePlan, nurseAnalytics, nurseGoals, nurseAnswer, nurseQuestions, page, problems, progress, queuedSubmission, review, tokenResponse, twoSum, user } from "./fixtures";
 
 export const API = "http://localhost:8000";
 
@@ -87,6 +87,9 @@ export const handlers = [
   }),
   http.get(`${API}/api/v1/me/activity/facets`, () => HttpResponse.json(activityFacets)),
   http.get(`${API}/api/v1/me/careers/:track/analytics`, () => HttpResponse.json(nurseAnalytics)),
+  http.get(`${API}/api/v1/me/plan`, ({ request }) => HttpResponse.json(makePlan(Number(new URL(request.url).searchParams.get("minutes") ?? 15)))),
+  http.get(`${API}/api/v1/me/goals`, () => HttpResponse.json(nurseGoals)),
+  http.put(`${API}/api/v1/me/goals`, async ({ request }) => HttpResponse.json({ ...nurseGoals, ...((await request.json()) as object), saved: true })),
   http.get(`${API}/api/v1/me/resume`, () => HttpResponse.json({ interview: null, unfinished_problem: null, last_question: null })),
   http.get(`${API}/api/v1/me/progress`, () => HttpResponse.json(progress)),
   http.get(`${API}/api/v1/me/recommendations`, () => HttpResponse.json([

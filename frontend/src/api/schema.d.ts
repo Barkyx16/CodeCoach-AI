@@ -861,6 +861,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/goals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your goals for a career */
+        get: operations["get_goals_api_v1_me_goals_get"];
+        /** Save goals (every field optional; set setup_skipped to start with defaults). Progress is kept. */
+        put: operations["put_goals_api_v1_me_goals_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your practice plan for a career, today's session for the time you have, and your baseline */
+        get: operations["get_plan_api_v1_me_plan_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/plan/items/{item_id}/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set an activity aside (it's recorded as skipped, never as done) */
+        post: operations["skip_item_api_v1_me_plan_items__item_id__skip_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/plan/items/{item_id}/replace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Swap an activity for another one of the same kind and skill; returns the new activity */
+        post: operations["replace_item_api_v1_me_plan_items__item_id__replace_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/plan/items/{item_id}/reviewed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a 'review feedback' activity as read (self-reported; other activities complete from your work) */
+        post: operations["mark_reviewed_api_v1_me_plan_items__item_id__reviewed_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/capabilities": {
         parameters: {
             query?: never;
@@ -1071,6 +1157,28 @@ export interface components {
             /** Answer */
             answer: string;
         };
+        /** AssessmentOut */
+        AssessmentOut: {
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "building_baseline" | "baseline_ready";
+            /** Note */
+            note: string;
+            /**
+             * Self Reported
+             * @description What you said; not a measurement
+             */
+            self_reported: components["schemas"]["SelfRating"][];
+            /**
+             * Evaluated
+             * @description Rubric scores of your answers; not correctness
+             */
+            evaluated: components["schemas"]["EvaluatedSkill"][];
+            /** @description Judge results only; null for careers without coding */
+            coding: components["schemas"]["CodingEvidence"] | null;
+        };
         /** Capabilities */
         Capabilities: {
             /**
@@ -1193,6 +1301,17 @@ export interface components {
              */
             confidence: "low" | "medium" | "high";
         };
+        /** CodingEvidence */
+        CodingEvidence: {
+            /** Judge Available */
+            judge_available: boolean;
+            /** Judged Attempts */
+            judged_attempts: number;
+            /** Passed */
+            passed: number;
+            /** Saved Not Judged */
+            saved_not_judged: number;
+        };
         /** Complexity */
         Complexity: {
             /**
@@ -1301,6 +1420,17 @@ export interface components {
          */
         ErrorEnvelope: {
             error: components["schemas"]["ErrorBody"];
+        };
+        /** EvaluatedSkill */
+        EvaluatedSkill: {
+            /** Skill */
+            skill: string;
+            /** Questions */
+            questions: number;
+            /** Answers */
+            answers: number;
+            /** Average Best Score */
+            average_best_score: number;
         };
         /** Example */
         Example: {
@@ -1422,6 +1552,93 @@ export interface components {
             covered: boolean;
             /** Advice */
             advice: string;
+        };
+        /** GoalsIn */
+        GoalsIn: {
+            /**
+             * Track
+             * @description Default: your current career
+             */
+            track?: string | null;
+            /** Specialty */
+            specialty?: string | null;
+            /** Experience */
+            experience?: ("new" | "early" | "mid" | "senior") | null;
+            /**
+             * Target Date
+             * @description Your interview date, if you know it
+             */
+            target_date?: string | null;
+            /** Weekly Minutes */
+            weekly_minutes?: number | null;
+            /**
+             * Focus Areas
+             * @description Skills of this career
+             */
+            focus_areas?: string[];
+            /** Formats */
+            formats?: ("written" | "voice" | "coding")[];
+            /**
+             * Confidence
+             * @description Self-reported confidence per skill, 1-5 (never blended with scores)
+             */
+            confidence?: {
+                [key: string]: number;
+            };
+            /**
+             * Setup Skipped
+             * @default false
+             */
+            setup_skipped: boolean;
+        };
+        /** GoalsOut */
+        GoalsOut: {
+            /** Track */
+            track: string;
+            /** Specialty */
+            specialty?: string | null;
+            /** Experience */
+            experience?: ("new" | "early" | "mid" | "senior") | null;
+            /**
+             * Target Date
+             * @description Your interview date, if you know it
+             */
+            target_date?: string | null;
+            /** Weekly Minutes */
+            weekly_minutes?: number | null;
+            /**
+             * Focus Areas
+             * @description Skills of this career
+             */
+            focus_areas?: string[];
+            /** Formats */
+            formats?: ("written" | "voice" | "coding")[];
+            /**
+             * Confidence
+             * @description Self-reported confidence per skill, 1-5 (never blended with scores)
+             */
+            confidence?: {
+                [key: string]: number;
+            };
+            /**
+             * Setup Skipped
+             * @default false
+             */
+            setup_skipped: boolean;
+            /** Career Title */
+            career_title: string;
+            /** Has Coding */
+            has_coding: boolean;
+            /**
+             * Skills
+             * @description Skills this career's questions practise (for focus and confidence)
+             */
+            skills: string[];
+            /**
+             * Saved
+             * @description False until goals are saved or setup is skipped
+             */
+            saved: boolean;
         };
         /** GuestSessionRequest */
         GuestSessionRequest: {
@@ -1651,6 +1868,18 @@ export interface components {
             /** @description questions: default easy */
             difficulty?: components["schemas"]["Difficulty"] | null;
             /**
+             * Question Ids
+             * @description questions: ask exactly these questions of the career, in this order (a targeted round)
+             */
+            question_ids?: string[] | null;
+            /**
+             * Purpose
+             * @description questions: baseline asks three short questions (knowledge, behavioral, scenario) to start a practice plan
+             * @default practice
+             * @enum {string}
+             */
+            purpose: "practice" | "baseline";
+            /**
              * Duration Minutes
              * @default 30
              */
@@ -1803,6 +2032,114 @@ export interface components {
              * Format: email
              */
             email: string;
+        };
+        /** PlanItemOut */
+        PlanItemOut: {
+            /** Id */
+            id: string;
+            /** Position */
+            position: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "assessment" | "question" | "retry" | "review" | "voice" | "mock" | "coding";
+            /** Skill */
+            skill: string;
+            /** Title */
+            title: string;
+            /**
+             * Reason
+             * @description Why this activity was chosen
+             */
+            reason: string;
+            /**
+             * Completion
+             * @description What counts as done
+             */
+            completion: string;
+            /**
+             * Minutes
+             * @description Estimated duration
+             */
+            minutes: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "done" | "skipped" | "replaced";
+            /**
+             * Evidence
+             * @description What completed it, e.g. 'Answered, scored 72/100'
+             */
+            evidence: string | null;
+            /**
+             * Href
+             * @description Where to do it, when it's a page
+             */
+            href: string | null;
+            /** @description When it's a mock-interview round to start */
+            round: components["schemas"]["RoundStart"] | null;
+            /** Can Mark Reviewed */
+            can_mark_reviewed: boolean;
+            /** Can Replace */
+            can_replace: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Resolved At */
+            resolved_at: string | null;
+        };
+        /** PlanOut */
+        PlanOut: {
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /** Version */
+            version: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Changes
+             * @description Why this version differs from the last one
+             */
+            changes: string[];
+            /** Items */
+            items: components["schemas"]["PlanItemOut"][];
+            progress: components["schemas"]["PlanProgress"];
+            today: components["schemas"]["TodayOut"];
+            assessment: components["schemas"]["AssessmentOut"];
+            /** Goals Saved */
+            goals_saved: boolean;
+            /** Target Date */
+            target_date: string | null;
+            /** Days To Interview */
+            days_to_interview: number | null;
+        };
+        /** PlanProgress */
+        PlanProgress: {
+            /** Done This Week */
+            done_this_week: number;
+            /**
+             * Minutes This Week
+             * @description Estimated minutes of activities completed in the last 7 days
+             */
+            minutes_this_week: number;
+            /**
+             * Weekly Minutes
+             * @description Your weekly practice time (default 60)
+             */
+            weekly_minutes: number;
+            /** Done In Plan */
+            done_in_plan: number;
+            /** Open In Plan */
+            open_in_plan: number;
         };
         /** ProblemDetail */
         ProblemDetail: {
@@ -2197,6 +2534,26 @@ export interface components {
             /** Question Index */
             question_index: number;
         };
+        /**
+         * RoundStart
+         * @description How to start the round an activity needs (POST /interviews with these fields).
+         */
+        RoundStart: {
+            /** Track */
+            track: string;
+            /** Difficulty */
+            difficulty?: string | null;
+            /** Question Ids */
+            question_ids?: string[] | null;
+            /**
+             * Purpose
+             * @default practice
+             * @enum {string}
+             */
+            purpose: "practice" | "baseline";
+            /** Duration Minutes */
+            duration_minutes: number;
+        };
         /** RoundSummary */
         RoundSummary: {
             /** Answered */
@@ -2236,6 +2593,13 @@ export interface components {
              * @description A specific observation from the transcript or code
              */
             evidence: string;
+        };
+        /** SelfRating */
+        SelfRating: {
+            /** Skill */
+            skill: string;
+            /** Rating */
+            rating: number;
         };
         /** Signature */
         Signature: {
@@ -2345,6 +2709,20 @@ export interface components {
          * @enum {string}
          */
         SubmissionStatus: "QUEUED" | "RUNNING" | "PASSED" | "FAILED" | "COMPILE_ERROR" | "RUNTIME_ERROR" | "TIME_LIMIT" | "MEMORY_LIMIT" | "INTERNAL_ERROR";
+        /** TodayOut */
+        TodayOut: {
+            /** Minutes Available */
+            minutes_available: number;
+            primary: components["schemas"]["PlanItemOut"] | null;
+            follow_up: components["schemas"]["PlanItemOut"] | null;
+            /** Session Minutes */
+            session_minutes: number;
+            /**
+             * Note
+             * @description Explains the choice when nothing fits exactly
+             */
+            note: string | null;
+        };
         /** TokenResponse */
         TokenResponse: {
             /** Access Token */
@@ -5519,6 +5897,341 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_goals_api_v1_me_goals_get: {
+        parameters: {
+            query?: {
+                /** @description Default: your current career */
+                track?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoalsOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_goals_api_v1_me_goals_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoalsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoalsOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_plan_api_v1_me_plan_get: {
+        parameters: {
+            query?: {
+                track?: string | null;
+                /** @description Time available today */
+                minutes?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    skip_item_api_v1_me_plan_items__item_id__skip_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanItemOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replace_item_api_v1_me_plan_items__item_id__replace_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanItemOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_reviewed_api_v1_me_plan_items__item_id__reviewed_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanItemOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

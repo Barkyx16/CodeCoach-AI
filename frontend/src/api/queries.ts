@@ -6,7 +6,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 
 import { ApiError } from "./client";
 import { api, type ActivityFilters, type ProblemFilters, type QuestionFilters } from "./endpoints";
-import type { AIHistoryAction, AnswerSource, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
+import type { AIHistoryAction, AnswerSource, GoalsInput, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
 
 export const queryKeys = {
   problems: (filters: ProblemFilters) => ["problems", filters] as const,
@@ -269,4 +269,36 @@ export function useResume(enabled = true) {
 
 export function useAIHistoryItem(id: string) {
   return useQuery({ queryKey: ["me", "ai-history-item", id], queryFn: () => api.aiHistoryItem(id) });
+}
+
+export function useGoals(track?: string) {
+  return useQuery({ queryKey: ["me", "goals", track ?? ""], queryFn: () => api.goals(track) });
+}
+
+export function useSaveGoals() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: GoalsInput) => api.saveGoals(body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["me", "goals"] });
+      void qc.invalidateQueries({ queryKey: ["me", "plan"] });
+    },
+  });
+}
+
+export function usePlan(track: string | undefined, minutes: number, enabled = true) {
+  return useQuery({
+    queryKey: ["me", "plan", track ?? "", minutes],
+    queryFn: () => api.plan(track, minutes),
+    enabled,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function usePlanItemAction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, action }: { id: string; action: "skip" | "replace" | "reviewed" }) => api.planItemAction(id, action),
+    onSettled: () => void qc.invalidateQueries({ queryKey: ["me", "plan"] }),
+  });
 }

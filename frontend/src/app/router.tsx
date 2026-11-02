@@ -8,6 +8,8 @@ import { LoginPage, RegisterPage } from "@/features/auth/AuthPages";
 import { ForgotPasswordPage, ResetPasswordPage } from "@/features/auth/PasswordResetPages";
 import { VerifyEmailPage } from "@/features/auth/VerifyEmailPage";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
+import { GoalsPage } from "@/features/plan/GoalsPage";
+import { PlanPage } from "@/features/plan/PlanPage";
 import { CoachingDetailPage, SubmissionDetailPage } from "@/features/history/ActivityDetailPages";
 import { HistoryPage } from "@/features/history/HistoryPage";
 import { InterviewsPage } from "@/features/interview/InterviewsPage";
@@ -58,6 +60,8 @@ export const routes: RouteObject[] = [
         ),
       },
       { path: "/dashboard", element: <RequireAuth><DashboardPage /></RequireAuth> },
+      { path: "/plan", element: <RequireAuth><PlanPage /></RequireAuth> },
+      { path: "/plan/goals", element: <RequireAuth><GoalsPage /></RequireAuth> },
       { path: "/analytics", element: <RequireAuth><Suspense fallback={<LoadingState label="Loading analytics…" />}><AnalyticsPage /></Suspense></RequireAuth> },
       { path: "/history", element: <RequireAuth><HistoryPage /></RequireAuth> },
       { path: "/history/submissions/:id", element: <RequireAuth><SubmissionDetailPage /></RequireAuth> },

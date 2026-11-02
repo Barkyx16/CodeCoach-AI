@@ -4291,6 +4291,477 @@
         ]
       }
     },
+    "/api/v1/me/goals": {
+      "get": {
+        "tags": [
+          "plan"
+        ],
+        "summary": "Your goals for a career",
+        "operationId": "get_goals_api_v1_me_goals_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "track",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Default: your current career",
+              "title": "Track"
+            },
+            "description": "Default: your current career"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoalsOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "plan"
+        ],
+        "summary": "Save goals (every field optional; set setup_skipped to start with defaults). Progress is kept.",
+        "operationId": "put_goals_api_v1_me_goals_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoalsIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoalsOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/plan": {
+      "get": {
+        "tags": [
+          "plan"
+        ],
+        "summary": "Your practice plan for a career, today's session for the time you have, and your baseline",
+        "operationId": "get_plan_api_v1_me_plan_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "track",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Track"
+            }
+          },
+          {
+            "name": "minutes",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 240,
+              "minimum": 5,
+              "description": "Time available today",
+              "default": 15,
+              "title": "Minutes"
+            },
+            "description": "Time available today"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/plan/items/{item_id}/skip": {
+      "post": {
+        "tags": [
+          "plan"
+        ],
+        "summary": "Set an activity aside (it's recorded as skipped, never as done)",
+        "operationId": "skip_item_api_v1_me_plan_items__item_id__skip_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Item Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanItemOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/plan/items/{item_id}/replace": {
+      "post": {
+        "tags": [
+          "plan"
+        ],
+        "summary": "Swap an activity for another one of the same kind and skill; returns the new activity",
+        "operationId": "replace_item_api_v1_me_plan_items__item_id__replace_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Item Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanItemOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/plan/items/{item_id}/reviewed": {
+      "post": {
+        "tags": [
+          "plan"
+        ],
+        "summary": "Mark a 'review feedback' activity as read (self-reported; other activities complete from your work)",
+        "operationId": "mark_reviewed_api_v1_me_plan_items__item_id__reviewed_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Item Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanItemOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/capabilities": {
       "get": {
         "tags": [
@@ -4803,6 +5274,58 @@
         ],
         "title": "AnswerRequest"
       },
+      "AssessmentOut": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "building_baseline",
+              "baseline_ready"
+            ],
+            "title": "State"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          },
+          "self_reported": {
+            "items": {
+              "$ref": "#/components/schemas/SelfRating"
+            },
+            "type": "array",
+            "title": "Self Reported",
+            "description": "What you said; not a measurement"
+          },
+          "evaluated": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluatedSkill"
+            },
+            "type": "array",
+            "title": "Evaluated",
+            "description": "Rubric scores of your answers; not correctness"
+          },
+          "coding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CodingEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Judge results only; null for careers without coding"
+          }
+        },
+        "type": "object",
+        "required": [
+          "state",
+          "note",
+          "self_reported",
+          "evaluated",
+          "coding"
+        ],
+        "title": "AssessmentOut"
+      },
       "Capabilities": {
         "properties": {
           "execution_enabled": {
@@ -5070,6 +5593,34 @@
         "title": "CodeReview",
         "description": "Matches the structured review example in the blueprint (section 06)."
       },
+      "CodingEvidence": {
+        "properties": {
+          "judge_available": {
+            "type": "boolean",
+            "title": "Judge Available"
+          },
+          "judged_attempts": {
+            "type": "integer",
+            "title": "Judged Attempts"
+          },
+          "passed": {
+            "type": "integer",
+            "title": "Passed"
+          },
+          "saved_not_judged": {
+            "type": "integer",
+            "title": "Saved Not Judged"
+          }
+        },
+        "type": "object",
+        "required": [
+          "judge_available",
+          "judged_attempts",
+          "passed",
+          "saved_not_judged"
+        ],
+        "title": "CodingEvidence"
+      },
       "Complexity": {
         "properties": {
           "time": {
@@ -5293,6 +5844,34 @@
         ],
         "title": "ErrorEnvelope",
         "description": "Every non-2xx response uses this shape."
+      },
+      "EvaluatedSkill": {
+        "properties": {
+          "skill": {
+            "type": "string",
+            "title": "Skill"
+          },
+          "questions": {
+            "type": "integer",
+            "title": "Questions"
+          },
+          "answers": {
+            "type": "integer",
+            "title": "Answers"
+          },
+          "average_best_score": {
+            "type": "integer",
+            "title": "Average Best Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "skill",
+          "questions",
+          "answers",
+          "average_best_score"
+        ],
+        "title": "EvaluatedSkill"
       },
       "Example": {
         "properties": {
@@ -5584,6 +6163,243 @@
           "advice"
         ],
         "title": "FeedbackPoint"
+      },
+      "GoalsIn": {
+        "properties": {
+          "track": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track",
+            "description": "Default: your current career"
+          },
+          "specialty": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Specialty"
+          },
+          "experience": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "new",
+                  "early",
+                  "mid",
+                  "senior"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Experience"
+          },
+          "target_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Date",
+            "description": "Your interview date, if you know it"
+          },
+          "weekly_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1200.0,
+                "minimum": 10.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weekly Minutes"
+          },
+          "focus_areas": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 8,
+            "title": "Focus Areas",
+            "description": "Skills of this career"
+          },
+          "formats": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "written",
+                "voice",
+                "coding"
+              ]
+            },
+            "type": "array",
+            "maxItems": 3,
+            "title": "Formats"
+          },
+          "confidence": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Confidence",
+            "description": "Self-reported confidence per skill, 1-5 (never blended with scores)"
+          },
+          "setup_skipped": {
+            "type": "boolean",
+            "title": "Setup Skipped",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "GoalsIn"
+      },
+      "GoalsOut": {
+        "properties": {
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "specialty": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Specialty"
+          },
+          "experience": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "new",
+                  "early",
+                  "mid",
+                  "senior"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Experience"
+          },
+          "target_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Date",
+            "description": "Your interview date, if you know it"
+          },
+          "weekly_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1200.0,
+                "minimum": 10.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weekly Minutes"
+          },
+          "focus_areas": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 8,
+            "title": "Focus Areas",
+            "description": "Skills of this career"
+          },
+          "formats": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "written",
+                "voice",
+                "coding"
+              ]
+            },
+            "type": "array",
+            "maxItems": 3,
+            "title": "Formats"
+          },
+          "confidence": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Confidence",
+            "description": "Self-reported confidence per skill, 1-5 (never blended with scores)"
+          },
+          "setup_skipped": {
+            "type": "boolean",
+            "title": "Setup Skipped",
+            "default": false
+          },
+          "career_title": {
+            "type": "string",
+            "title": "Career Title"
+          },
+          "has_coding": {
+            "type": "boolean",
+            "title": "Has Coding"
+          },
+          "skills": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Skills",
+            "description": "Skills this career's questions practise (for focus and confidence)"
+          },
+          "saved": {
+            "type": "boolean",
+            "title": "Saved",
+            "description": "False until goals are saved or setup is skipped"
+          }
+        },
+        "type": "object",
+        "required": [
+          "track",
+          "career_title",
+          "has_coding",
+          "skills",
+          "saved"
+        ],
+        "title": "GoalsOut"
       },
       "GuestSessionRequest": {
         "properties": {
@@ -6155,6 +6971,33 @@
             ],
             "description": "questions: default easy"
           },
+          "question_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 5,
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question Ids",
+            "description": "questions: ask exactly these questions of the career, in this order (a targeted round)"
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "practice",
+              "baseline"
+            ],
+            "title": "Purpose",
+            "description": "questions: baseline asks three short questions (knowledge, behavioral, scenario) to start a practice plan",
+            "default": "practice"
+          },
           "duration_minutes": {
             "type": "integer",
             "maximum": 60.0,
@@ -6544,6 +7387,267 @@
           "email"
         ],
         "title": "PasswordResetRequest"
+      },
+      "PlanItemOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "assessment",
+              "question",
+              "retry",
+              "review",
+              "voice",
+              "mock",
+              "coding"
+            ],
+            "title": "Kind"
+          },
+          "skill": {
+            "type": "string",
+            "title": "Skill"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "description": "Why this activity was chosen"
+          },
+          "completion": {
+            "type": "string",
+            "title": "Completion",
+            "description": "What counts as done"
+          },
+          "minutes": {
+            "type": "integer",
+            "title": "Minutes",
+            "description": "Estimated duration"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "done",
+              "skipped",
+              "replaced"
+            ],
+            "title": "Status"
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence",
+            "description": "What completed it, e.g. 'Answered, scored 72/100'"
+          },
+          "href": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Href",
+            "description": "Where to do it, when it's a page"
+          },
+          "round": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoundStart"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When it's a mock-interview round to start"
+          },
+          "can_mark_reviewed": {
+            "type": "boolean",
+            "title": "Can Mark Reviewed"
+          },
+          "can_replace": {
+            "type": "boolean",
+            "title": "Can Replace"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "position",
+          "kind",
+          "skill",
+          "title",
+          "reason",
+          "completion",
+          "minutes",
+          "status",
+          "evidence",
+          "href",
+          "round",
+          "can_mark_reviewed",
+          "can_replace",
+          "created_at",
+          "resolved_at"
+        ],
+        "title": "PlanItemOut"
+      },
+      "PlanOut": {
+        "properties": {
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "career_title": {
+            "type": "string",
+            "title": "Career Title"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "changes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Changes",
+            "description": "Why this version differs from the last one"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PlanItemOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/PlanProgress"
+          },
+          "today": {
+            "$ref": "#/components/schemas/TodayOut"
+          },
+          "assessment": {
+            "$ref": "#/components/schemas/AssessmentOut"
+          },
+          "goals_saved": {
+            "type": "boolean",
+            "title": "Goals Saved"
+          },
+          "target_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Date"
+          },
+          "days_to_interview": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days To Interview"
+          }
+        },
+        "type": "object",
+        "required": [
+          "track",
+          "career_title",
+          "version",
+          "created_at",
+          "changes",
+          "items",
+          "progress",
+          "today",
+          "assessment",
+          "goals_saved",
+          "target_date",
+          "days_to_interview"
+        ],
+        "title": "PlanOut"
+      },
+      "PlanProgress": {
+        "properties": {
+          "done_this_week": {
+            "type": "integer",
+            "title": "Done This Week"
+          },
+          "minutes_this_week": {
+            "type": "integer",
+            "title": "Minutes This Week",
+            "description": "Estimated minutes of activities completed in the last 7 days"
+          },
+          "weekly_minutes": {
+            "type": "integer",
+            "title": "Weekly Minutes",
+            "description": "Your weekly practice time (default 60)"
+          },
+          "done_in_plan": {
+            "type": "integer",
+            "title": "Done In Plan"
+          },
+          "open_in_plan": {
+            "type": "integer",
+            "title": "Open In Plan"
+          }
+        },
+        "type": "object",
+        "required": [
+          "done_this_week",
+          "minutes_this_week",
+          "weekly_minutes",
+          "done_in_plan",
+          "open_in_plan"
+        ],
+        "title": "PlanProgress"
       },
       "ProblemDetail": {
         "properties": {
@@ -7553,6 +8657,59 @@
         ],
         "title": "RoundSkip"
       },
+      "RoundStart": {
+        "properties": {
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "difficulty": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Difficulty"
+          },
+          "question_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question Ids"
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "practice",
+              "baseline"
+            ],
+            "title": "Purpose",
+            "default": "practice"
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "title": "Duration Minutes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "track",
+          "duration_minutes"
+        ],
+        "title": "RoundStart",
+        "description": "How to start the round an activity needs (POST /interviews with these fields)."
+      },
       "RoundSummary": {
         "properties": {
           "answered": {
@@ -7632,6 +8789,24 @@
           "evidence"
         ],
         "title": "RubricScore"
+      },
+      "SelfRating": {
+        "properties": {
+          "skill": {
+            "type": "string",
+            "title": "Skill"
+          },
+          "rating": {
+            "type": "integer",
+            "title": "Rating"
+          }
+        },
+        "type": "object",
+        "required": [
+          "skill",
+          "rating"
+        ],
+        "title": "SelfRating"
       },
       "Signature": {
         "properties": {
@@ -7890,6 +9065,59 @@
         ],
         "title": "SubmissionStatus",
         "description": "Judge status model from the blueprint (section 07)."
+      },
+      "TodayOut": {
+        "properties": {
+          "minutes_available": {
+            "type": "integer",
+            "title": "Minutes Available"
+          },
+          "primary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanItemOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "follow_up": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanItemOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "session_minutes": {
+            "type": "integer",
+            "title": "Session Minutes"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note",
+            "description": "Explains the choice when nothing fits exactly"
+          }
+        },
+        "type": "object",
+        "required": [
+          "minutes_available",
+          "primary",
+          "follow_up",
+          "session_minutes",
+          "note"
+        ],
+        "title": "TodayOut"
       },
       "TokenResponse": {
         "properties": {

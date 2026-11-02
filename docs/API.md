@@ -637,6 +637,28 @@ Newest first. `response` holds the exact `content` (hints), `review` (reviews) o
 }
 ```
 
+### Practice plan
+
+Deterministic rules over recorded evidence (`app/services/roadmap.py` documents them); no AI.
+
+- `GET /api/v1/me/goals?track=` / `PUT /api/v1/me/goals` 🔒: every field optional
+  (`specialty, experience: new|early|mid|senior, target_date, weekly_minutes, focus_areas,
+  formats: written|voice|coding, confidence: {skill: 1-5}, setup_skipped`). Focus and confidence
+  skills must belong to the career (`400 unknown_skill`); `coding` only for careers with coding
+  problems (`400 no_coding`). Saving never changes recorded progress.
+- `GET /api/v1/me/plan?track=&minutes=15` 🔒 returns the current plan version: `items` (each with
+  `kind, skill, title, reason, completion, minutes, status: pending|done|skipped|replaced,
+  evidence, href | round`), `changes` (why this version differs), `today` (`primary`,
+  `follow_up`, `session_minutes`, `note`) sized to `minutes`, `progress`, and `assessment`
+  (`self_reported`, `evaluated`, `coding` kept separate; `state: building_baseline |
+  baseline_ready`). Reading the plan marks items done from evidence recorded after they were
+  planned; completed work or changed goals produce a new version.
+- `POST /api/v1/me/plan/items/{id}/skip | replace | reviewed` 🔒: skip records `skipped` (never
+  done); replace swaps in another activity of the same kind and skill; `reviewed` is only for
+  "review feedback" items (`409 not_self_reportable` otherwise). Closed items are `409`.
+- Rounds started from the plan use `POST /interviews` with `purpose: "baseline"` (three questions:
+  knowledge, behavioral, scenario) or `question_ids: [...]` (a targeted round).
+
 ### Activity, career analytics and resume
 
 Derived from what is already recorded (problem opens, submissions, coaching, written answers and

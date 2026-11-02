@@ -47,6 +47,17 @@ class InterviewStart(APIModel):
     )
     track: str | None = Field(default=None, description="questions: the career (default: your own)")
     difficulty: Difficulty | None = Field(default=None, description="questions: default easy")
+    question_ids: list[str] | None = Field(
+        default=None,
+        min_length=1,
+        max_length=5,
+        description="questions: ask exactly these questions of the career, in this order (a targeted round)",
+    )
+    purpose: Literal["practice", "baseline"] = Field(
+        default="practice",
+        description="questions: baseline asks three short questions (knowledge, behavioral, scenario) to "
+        "start a practice plan",
+    )
     duration_minutes: int = Field(default=30, ge=10, le=60)
 
 

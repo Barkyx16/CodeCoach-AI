@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import random
 from collections import Counter
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Literal
 
@@ -83,6 +84,22 @@ def pick_round(
     return sorted(picked[:size], key=lambda q: order.get(q.kind, len(ROUND)))
 
 
+BASELINE = (("knowledge", "easy"), ("behavioral", "easy"), ("situational", "medium"))
+
+
+def pick_baseline(pool: Sequence[Question], answered: set[str], rng: random.Random) -> list[Question]:
+    """Three short questions that sample different skills: what you know, a time you did it, and a
+    situation you'd handle. Unanswered questions first."""
+    picked: list[Question] = []
+    for kind, level in BASELINE:
+        options = [q for q in pool if q.kind == kind and q.difficulty == level]
+        rng.shuffle(options)
+        options.sort(key=lambda q: q.id in answered)
+        if options:
+            picked.append(options[0])
+    return picked
+
+
 class QuestionRounds:
     def __init__(self, db: Session, practice_limiter=None):
         self.db = db
@@ -95,7 +112,6 @@ class QuestionRounds:
         if track not in CATALOG:
             raise NotFoundError(f"Career '{track}' not found")
         difficulty = body.difficulty or "easy"
-        pool = [q for q in questions_for(track) if q.difficulty == difficulty]
         answered = set(
             self.db.scalars(
                 select(PracticeAnswer.question_id).where(
@@ -103,7 +119,21 @@ class QuestionRounds:
                 )
             ).all()
         )
-        picked = pick_round(pool, answered, random.Random())
+        purpose: str = body.purpose
+        if body.question_ids:
+            picked = []
+            for qid in dict.fromkeys(body.question_ids):  # keep order, drop repeats
+                q = get_question(track, qid)
+                if q is None:
+                    raise NotFoundError(f"Question '{qid}' not found for this career")
+                picked.append(q)
+            purpose = "targeted"
+            difficulty = picked[0].difficulty
+        elif purpose == "baseline":
+            picked = pick_baseline(questions_for(track), answered, random.Random())
+        else:
+            pool = [q for q in questions_for(track) if q.difficulty == difficulty]
+            picked = pick_round(pool, answered, random.Random())
         if not picked:
             raise NotFoundError("No questions are available at this level")
         now = _now()
@@ -116,7 +146,7 @@ class QuestionRounds:
             started_at=now,
             deadline_at=now + timedelta(seconds=duration),
             track=track,
-            plan={"difficulty": difficulty, "question_ids": [q.id for q in picked]},
+            plan={"difficulty": difficulty, "question_ids": [q.id for q in picked], "purpose": purpose},
             provider=OFFLINE_COACH,
         )
         self.db.add(session)

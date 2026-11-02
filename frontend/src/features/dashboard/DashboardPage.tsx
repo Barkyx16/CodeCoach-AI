@@ -10,6 +10,8 @@ import { percent, plural, timeAgo, titleCase } from "@/lib/format";
 
 import { ActivityHeatmap } from "./ActivityHeatmap";
 import { CareerDashboard } from "./CareerDashboard";
+import { TodayCard } from "@/features/plan/TodayCard";
+
 import { ContinueCard } from "./ContinueCard";
 import { ProgressBars } from "./ProgressBars";
 import { RecentActivity } from "./RecentActivity";
@@ -52,6 +54,7 @@ function CodingDashboard() {
         <div className="row dashboard__actions"><Link to="/interviews" className="btn btn--secondary btn--md">Start a mock interview</Link><Link to="/problems" className="btn btn--primary btn--md">Practice now <span aria-hidden="true">→</span></Link></div>
       </div>
 
+      <TodayCard />
       <ContinueCard />
 
       <section className="stat-row" aria-label="Summary">

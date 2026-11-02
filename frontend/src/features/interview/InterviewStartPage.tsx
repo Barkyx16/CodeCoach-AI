@@ -28,7 +28,7 @@ export function InterviewStartPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     try {
-      const iv = await start.mutateAsync({ kind: "coding", problem_slug: slug || null, duration_minutes: minutes });
+      const iv = await start.mutateAsync({ kind: "coding", purpose: "practice", problem_slug: slug || null, duration_minutes: minutes });
       navigate(`/interviews/${iv.id}`);
     } catch {
       /* rendered below */

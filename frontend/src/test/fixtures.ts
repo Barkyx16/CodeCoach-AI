@@ -1,5 +1,8 @@
 import type {
   ActivityFacets,
+  Goals,
+  Plan,
+  PlanItem,
   ActivityItem,
   CareerAnalytics,
   Career,
@@ -152,4 +155,54 @@ export const nurseAnalytics: CareerAnalytics = {
   trends: [{ evaluator: "built-in (offline) · rubric v1", points: [{ week_start: today, answers: 2, average_score: 80 }] }],
   by_day: [{ day: today, answers: 2, interviews: 1 }],
   definitions: { trend: "Weekly average score within one evaluator." },
+};
+
+const planItem = (over: Partial<PlanItem>): PlanItem => ({
+  id: "item-1", position: 0, kind: "question", skill: "patient assessment", title: "What good patient assessment looks like",
+  reason: "You haven't practised patient assessment yet.", completion: "Submit an answer to this question.", minutes: 6,
+  status: "pending", evidence: null, href: "/careers/registered-nurse/questions/e-good-0", round: null,
+  can_mark_reviewed: false, can_replace: true, created_at: new Date().toISOString(), resolved_at: null, ...over,
+});
+
+export const planItems: PlanItem[] = [
+  planItem({
+    id: "item-base", kind: "assessment", skill: "Baseline", title: "Baseline check: 3 short questions", minutes: 12,
+    reason: "There isn't enough evidence to tailor your plan yet (0 answers so far).", completion: "Finish the baseline round.",
+    href: null, round: { track: "registered-nurse", purpose: "baseline", duration_minutes: 15, difficulty: null, question_ids: null },
+    can_replace: false,
+  }),
+  planItem({ id: "item-q", position: 1 }),
+  planItem({ id: "item-mock", position: 2, kind: "mock", skill: "Interview practice", title: "Registered Nurse mock interview (5 questions)", minutes: 20, href: null,
+    round: { track: "registered-nurse", purpose: "practice", duration_minutes: 15, difficulty: "easy", question_ids: null }, can_replace: false }),
+];
+
+export function makePlan(minutes: number, items: PlanItem[] = planItems, goalsSaved = false): Plan {
+  const pending = items.filter((i) => i.status === "pending");
+  const fits = pending.filter((i) => i.minutes <= minutes);
+  const primary = fits[0] ?? [...pending].sort((a, b) => a.minutes - b.minutes)[0] ?? null;
+  const follow = primary ? pending.find((i) => i !== primary && i.minutes <= minutes - primary.minutes) ?? null : null;
+  return {
+    track: "registered-nurse", career_title: "Registered Nurse", version: 2, created_at: new Date().toISOString(),
+    changes: ["Done: “Patient assessment under pressure” (answered, scored 45/100).", "Added “Retry: Patient assessment under pressure”: Your best score is 45/100."],
+    items,
+    progress: { done_this_week: 1, minutes_this_week: 6, weekly_minutes: 60, done_in_plan: items.filter((i) => i.status === "done").length, open_in_plan: pending.length },
+    today: {
+      minutes_available: minutes, primary, follow_up: follow, session_minutes: (primary?.minutes ?? 0) + (follow?.minutes ?? 0),
+      note: primary && primary !== pending[0] ? `Your next activity takes about ${pending[0]!.minutes} minutes, so here's one that fits ${minutes}.` : null,
+    },
+    assessment: {
+      state: "building_baseline", note: "Building your baseline: 1 of 3 answers so far. Until then the plan starts broad.",
+      self_reported: [{ skill: "triage", rating: 4 }],
+      evaluated: [{ skill: "patient assessment", questions: 1, answers: 1, average_best_score: 45 }],
+      coding: null,
+    },
+    goals_saved: goalsSaved, target_date: null, days_to_interview: null,
+  };
+}
+
+export const nurseGoals: Goals = {
+  track: "registered-nurse", career_title: "Registered Nurse", has_coding: false,
+  skills: ["patient assessment", "triage", "care planning", "Working with people"], saved: false,
+  specialty: null, experience: null, target_date: null, weekly_minutes: null, focus_areas: [], formats: [], confidence: {},
+  setup_skipped: false,
 };

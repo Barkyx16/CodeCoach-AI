@@ -12,11 +12,12 @@ from __future__ import annotations
 
 import enum
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from sqlalchemy import (
     JSON,
     Boolean,
+    Date,
     DateTime,
     Enum,
     ForeignKey,
@@ -25,6 +26,7 @@ from sqlalchemy import (
     String,
     Text,
     TypeDecorator,
+    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.engine import Dialect
@@ -483,3 +485,66 @@ class PracticeAnswer(Base):
     feedback: Mapped[dict] = mapped_column(JSONType)
     provider: Mapped[str] = mapped_column(String(32))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class PracticeGoal(Base):
+    """A learner's goals for one career. Every field is optional; a row with only `track` (or no
+    row at all) still gets a starter plan. Editing goals never touches recorded progress."""
+
+    __tablename__ = "practice_goals"
+    __table_args__ = (UniqueConstraint("user_id", "track", name="uq_goal_user_track"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    track: Mapped[str] = mapped_column(String(64))
+    specialty: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    experience: Mapped[str | None] = mapped_column(String(16), nullable=True)  # new|early|mid|senior
+    target_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    weekly_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    focus_areas: Mapped[list] = mapped_column(JSONType, default=list)
+    formats: Mapped[list] = mapped_column(JSONType, default=list)  # written|voice|coding
+    # Self-reported confidence per skill (1-5). Kept apart from evaluated scores, never blended.
+    confidence: Mapped[dict] = mapped_column(JSONType, default=dict)
+    setup_skipped: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, onupdate=utcnow)
+
+
+class PracticePlan(Base):
+    """One version of a learner's plan for a career. A new version is made when completed work
+    changes the evidence; old versions are kept so changes can be explained."""
+
+    __tablename__ = "practice_plans"
+    __table_args__ = (UniqueConstraint("user_id", "track", "version", name="uq_plan_version"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    track: Mapped[str] = mapped_column(String(64))
+    version: Mapped[int] = mapped_column(Integer)
+    changes: Mapped[list] = mapped_column(JSONType, default=list)  # why this version differs
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+    items: Mapped[list[PlanItem]] = relationship(
+        back_populates="plan", cascade="all, delete-orphan", order_by="PlanItem.position"
+    )
+
+
+class PlanItem(Base):
+    __tablename__ = "plan_items"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    plan_id: Mapped[str] = mapped_column(ForeignKey("practice_plans.id", ondelete="CASCADE"), index=True)
+    position: Mapped[int] = mapped_column(Integer)
+    kind: Mapped[str] = mapped_column(String(24))
+    skill: Mapped[str] = mapped_column(String(120))
+    title: Mapped[str] = mapped_column(String(300))
+    reason: Mapped[str] = mapped_column(Text)
+    completion: Mapped[str] = mapped_column(Text)  # what counts as done, in plain words
+    minutes: Mapped[int] = mapped_column(Integer)
+    target: Mapped[dict] = mapped_column(JSONType, default=dict)  # question/problem ids, difficulty
+    status: Mapped[str] = mapped_column(String(16), default="pending")  # pending|done|skipped|replaced
+    evidence: Mapped[dict | None] = mapped_column(JSONType, nullable=True)  # what completed it
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    resolved_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+
+    plan: Mapped[PracticePlan] = relationship(back_populates="items")

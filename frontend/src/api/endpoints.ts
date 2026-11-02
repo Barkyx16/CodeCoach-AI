@@ -40,6 +40,10 @@ import type {
   ActivityType,
   CareerAnalytics,
   ResumeOut,
+  Goals,
+  GoalsInput,
+  Plan,
+  PlanItem,
   TrackProgress,
 } from "./types";
 
@@ -159,6 +163,12 @@ export const api = {
   aiHistory: (query: { problem_slug?: string; action?: AIHistoryAction; page?: number; page_size?: number } = {}) =>
     apiRequest<Page<AIHistoryItem>>("/api/v1/me/ai-history", { query }),
 
+  // practice plan
+  goals: (track?: string) => apiRequest<Goals>("/api/v1/me/goals", { query: { track } }),
+  saveGoals: (body: GoalsInput) => apiRequest<Goals>("/api/v1/me/goals", { method: "PUT", body }),
+  plan: (track: string | undefined, minutes: number) => apiRequest<Plan>("/api/v1/me/plan", { query: { track, minutes } }),
+  planItemAction: (id: string, action: "skip" | "replace" | "reviewed") =>
+    apiRequest<PlanItem>(`/api/v1/me/plan/items/${encodeURIComponent(id)}/${action}`, { method: "POST" }),
   // unified progress
   activity: (filters: ActivityFilters, signal?: AbortSignal) =>
     apiRequest<Page<ActivityItem>>("/api/v1/me/activity", { query: { ...filters }, signal }),

@@ -5,7 +5,7 @@ const TITLES: Record<string, string> = {
   "/": "Java interview practice", "/login": "Sign in", "/register": "Create account",
   "/forgot-password": "Reset your password", "/reset-password": "Choose a new password", "/verify-email": "Confirm your email",
   "/problems": "Problem library", "/dashboard": "Dashboard", "/analytics": "Analytics",
-  "/history": "History", "/settings": "Settings", "/interviews": "Mock interviews", "/interviews/questions": "Interview question round",
+  "/history": "History", "/settings": "Settings", "/interviews": "Mock interviews", "/interviews/questions": "Interview question round", "/plan": "Your plan", "/plan/goals": "Your goals",
 };
 
 /** Give route changes a useful browser title and a predictable keyboard starting point. */

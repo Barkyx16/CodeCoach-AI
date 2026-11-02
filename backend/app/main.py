@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
-from app.api.routes import ai, auth, careers, health, interviews, me, meta, problems, submissions
+from app.api.routes import ai, auth, careers, health, interviews, me, meta, plan, problems, submissions
 from app.config import Settings, get_settings
 from app.db.seed import seed_problems
 from app.db.session import Base, make_engine, make_session_factory
@@ -131,6 +131,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         ai.router,
         interviews.router,
         me.router,
+        plan.router,
         meta.router,
     ):
         app.include_router(router)
