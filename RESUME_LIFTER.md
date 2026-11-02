@@ -67,10 +67,11 @@ The "Session log" at the bottom tracks exactly what that is.
 - Implemented **JWT authentication** with Argon2id hashing, token revocation, brute-force
   rate limiting and ownership-based authorization, covered by **120+ pytest tests** that run
   against both SQLite and PostgreSQL in CI.
-- Curated a library of **22 Java problems (12 medium) with 176 public and hidden test cases**,
-  where every expected output is produced by two independent implementations (a simple Python
-  model and an optimal Java reference) that CI compiles, runs and checks against every case, and
-  every problem's starter code is proven to fail.
+- Built a library of **300 Java problems (100 easy, 100 medium, 100 hard) with 2,391 public and
+  hidden test cases**, where every expected output is produced by two independent implementations
+  (a deliberately simple Python model and an optimal Java reference) that must agree on hand-picked
+  and seeded random inputs; CI compiles all 300 references in one batch, runs them in one JVM
+  against every case, and proves every problem's starter code fails.
 - Designed a **timed mock-interview engine**: a server-enforced state machine (5 interview
   phases, deadlines, turn limits, one active session per user) driving an AI interviewer behind
   a provider interface, with schema-validated rubric evaluations on 5 dimensions and saved
@@ -466,6 +467,16 @@ These are moments where the obvious path was wrong and a deliberate decision was
     with real rubrics, combined deterministically. The trade-off is visible: questions follow
     patterns and the offline grader checks coverage and structure, not truth. The UI says so,
     and an LLM grader is the planned upgrade, not a hidden dependency.
+
+32. **Two implementations, or the test data is a guess.** For 278 new problems nobody was going
+    to hand-check 2,200 expected outputs. Each problem is written twice: a Python model that is
+    as dumb as possible (often brute force over every subset or permutation) and the real Java
+    solution, and the build refuses to emit a problem unless both agree on every hand-picked and
+    seeded random input. It caught real mistakes: e.g. "Minimum Refueling Stops" disagreed when a
+    random station sat past the target, which exposed that the statement never said whether that
+    was allowed; the fix was to the *spec* (constraint plus generator), not just the code. To keep
+    CI fast, all 300 references compile in one `javac` call and run in one JVM (one package each)
+    instead of 300 JVM start-ups.
 
 ## 6. Python concepts used here (for a Java developer)
 
@@ -899,4 +910,27 @@ with 300 questions per job across hundreds of jobs.
   18 Playwright tests.
 - **Not done yet (next):** 300 *coding* problems with real test data (22 today), Claude-graded
   answers when a key is set, mock interviews and the dashboard using the career's questions.
+
+### Session 13: 300 coding problems with proven test data
+You asked for the 300 coding problems: 100 per difficulty.
+
+**Built and verified:**
+- **300 Java problems: 100 easy, 100 medium, 100 hard** (22 hand-written + 278 new) across 26
+  topics, 2,391 test cases (1,492 hidden). Hard covers interval DP, bitmask DP, digit-style
+  counting, Dijkstra/0-1 BFS, union-find, monotonic stacks/deques, tries, parsers and simulations.
+- **Each problem is a spec** in `backend/scripts/problembank/`: statement, constraints, signature,
+  4 hints, expected complexity, a Python model, the Java reference, hand-picked tests and a
+  seeded random generator. `python -m scripts.problembank.build` writes the seed JSON and
+  reference files deterministically and refuses a problem if types don't match, it has fewer
+  than 3 hidden tests or 4 hints, or the two implementations disagree.
+- **Judge now supports `int[][]`** (grids, intervals, edges), tested through the real JVM driver.
+- **Verification batching:** all 300 references compile in one `javac` and run in one JVM, each
+  in its own package with redirected stdin/stdout, so the check takes about a minute.
+- **Bugs caught by the two-implementation check** before anything shipped, including Minimum
+  Refueling Stops (stations past the target; spec fixed) and several model edge cases.
+- Search, hint evals and leak tests updated for the bigger library; the hint code-leak check now
+  covers all 300 problems (0%). Tests: 1,561 backend on SQLite, PostgreSQL suite green, 119
+  frontend, 17 Playwright (2 sandbox-only skipped).
+- **Not done yet (next):** Claude-graded written answers when a key is set; mock interviews and
+  the dashboard using the career's questions.
 

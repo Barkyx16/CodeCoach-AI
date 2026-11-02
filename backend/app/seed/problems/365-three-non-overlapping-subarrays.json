@@ -1,0 +1,211 @@
+{
+  "order": 365,
+  "slug": "three-non-overlapping-subarrays",
+  "title": "Three Non-Overlapping Subarrays With Max Sum",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "prefix-sums",
+    "sliding-window"
+  ],
+  "summary": "Pick three disjoint windows of length k with the largest total.",
+  "statement": "Choose three non-overlapping subarrays of length `k` from `nums` with the largest total sum. Return their start\nindices in ascending order. If several choices tie, return the lexicographically smallest.",
+  "constraints": [
+    "1 <= nums.length <= 2 * 10^4",
+    "1 <= k <= nums.length / 3",
+    "1 <= nums[i] < 2^16"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 2, 1, 2, 6, 7, 5, 1], k = 2",
+      "output": "[0, 3, 5]"
+    },
+    {
+      "input": "nums = [1, 2, 1, 2, 1, 2, 1, 2, 1], k = 2",
+      "output": "[0, 2, 4]"
+    },
+    {
+      "input": "nums = [4, 5, 6], k = 1",
+      "output": "[0, 1, 2]"
+    }
+  ],
+  "signature": {
+    "method": "maxSumOfThreeSubarrays",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      },
+      {
+        "name": "k",
+        "type": "int"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] maxSumOfThreeSubarrays(int[] nums, int k) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "Fix the middle window; then you want the best window entirely to its left and the best entirely to its right.",
+    "Precompute window sums, then `left[i]` = start of the best window ending by i, `right[i]` = best window starting at or after i (preferring smaller indices on ties).",
+    "w = window sums\nleft[i] = argmax of w[0..i] (first best)\nright[i] = argmax of w[i..] (first best, scanning from the right with >=)\nfor mid in k..len(w)-k-1:\n    a, c = left[mid - k], right[mid + k]\n    keep the best w[a] + w[mid] + w[c]\nreturn [a, mid, c]",
+    "O(n) with prefix sums. The tie-breaking direction in `left` (strict >) and `right` (>=) is what yields the lexicographically smallest answer."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          1,
+          2,
+          6,
+          7,
+          5,
+          1
+        ],
+        "k": 2
+      },
+      "expected_output": [
+        0,
+        3,
+        5
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          1,
+          2,
+          1,
+          2,
+          1,
+          2,
+          1
+        ],
+        "k": 2
+      },
+      "expected_output": [
+        0,
+        2,
+        4
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          4,
+          5,
+          6
+        ],
+        "k": 1
+      },
+      "expected_output": [
+        0,
+        1,
+        2
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          4,
+          3,
+          5,
+          5,
+          5,
+          6,
+          3,
+          4,
+          6,
+          4,
+          5,
+          2,
+          4,
+          4
+        ],
+        "k": 3
+      },
+      "expected_output": [
+        0,
+        3,
+        8
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          2,
+          3,
+          4,
+          3,
+          2,
+          6,
+          2,
+          5,
+          6
+        ],
+        "k": 2
+      },
+      "expected_output": [
+        2,
+        5,
+        8
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          6,
+          6,
+          3
+        ],
+        "k": 1
+      },
+      "expected_output": [
+        1,
+        2,
+        3
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          5,
+          6,
+          4,
+          5,
+          2,
+          4,
+          2,
+          2,
+          5,
+          4,
+          6
+        ],
+        "k": 3
+      },
+      "expected_output": [
+        1,
+        4,
+        9
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -1,0 +1,129 @@
+{
+  "order": 359,
+  "slug": "max-students-exam",
+  "title": "Most Students Without Cheating",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "bit-manipulation"
+  ],
+  "summary": "Seat the most students so nobody can see a neighbor's paper.",
+  "statement": "`seats` rows contain `'.'` (usable) and `'#'` (broken). A student can see the papers of students to the left,\nright, upper-left and upper-right. Seat as many students as possible on usable seats so nobody can see\nanyone else's paper. Return that number.",
+  "constraints": [
+    "1 <= rows, cols <= 8"
+  ],
+  "examples": [
+    {
+      "input": "seats = [\"#.##.#\", \".####.\", \"#.##.#\"]",
+      "output": "4"
+    },
+    {
+      "input": "seats = [\".#\", \"##\", \"#.\", \"##\", \".#\"]",
+      "output": "3"
+    },
+    {
+      "input": "seats = [\"#...#\", \".#.#.\", \"..#..\", \".#.#.\", \"#...#\"]",
+      "output": "10"
+    }
+  ],
+  "signature": {
+    "method": "maxStudents",
+    "params": [
+      {
+        "name": "seats",
+        "type": "String[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int maxStudents(String[] seats) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Rows only interact with the row directly above. Represent a row's seating as a bitmask.",
+    "A mask is valid if it uses only good seats and has no two adjacent bits. Two consecutive rows conflict if a student is diagonally adjacent.",
+    "dp[mask] = best total ending with this mask on the current row\nfor each row:\n    for each valid mask m:\n        for each previous mask pm:\n            if not (m & (pm << 1)) and not (m & (pm >> 1)): new[m] = max(new[m], dp[pm] + popcount(m))\nreturn max(dp)",
+    "O(rows \u00d7 4^cols) = fine for 8 columns, and a classic bitmask DP."
+  ],
+  "expected_complexity": {
+    "time": "O(m \u00b7 4^n)",
+    "space": "O(2^n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "seats": [
+          "#.##.#",
+          ".####.",
+          "#.##.#"
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "seats": [
+          ".#",
+          "##",
+          "#.",
+          "##",
+          ".#"
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "seats": [
+          "#...#",
+          ".#.#.",
+          "..#..",
+          ".#.#.",
+          "#...#"
+        ]
+      },
+      "expected_output": 10,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "seats": [
+          "..#."
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "seats": [
+          "..#",
+          "###"
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "seats": [
+          "."
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "seats": [
+          "####",
+          "...#",
+          ".#.."
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

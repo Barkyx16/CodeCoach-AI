@@ -1,0 +1,110 @@
+{
+  "order": 368,
+  "slug": "min-removals-valid-parentheses",
+  "title": "Fewest Removals for Valid Parentheses",
+  "difficulty": "hard",
+  "topics": [
+    "strings",
+    "stacks",
+    "greedy"
+  ],
+  "summary": "Remove the fewest brackets so the string is balanced.",
+  "statement": "`s` contains `(`, `)` and lower-case letters. Return the minimum number of brackets to remove so the result is\na valid parentheses string (letters are always fine).",
+  "constraints": [
+    "1 <= s.length <= 10^5"
+  ],
+  "examples": [
+    {
+      "input": "s = \"()())()\"",
+      "output": "1"
+    },
+    {
+      "input": "s = \"(a)())()\"",
+      "output": "1"
+    },
+    {
+      "input": "s = \")(\"",
+      "output": "2"
+    }
+  ],
+  "signature": {
+    "method": "minRemovals",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int minRemovals(String s) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Scan left to right, tracking unmatched open brackets.",
+    "A `)` with no open bracket to match must be removed. Any `(` still open at the end must be removed too.",
+    "open = removals = 0\nfor c in s:\n    if c == '(': open += 1\n    elif c == ')':\n        if open: open -= 1\n        else: removals += 1\nreturn removals + open",
+    "One pass, O(n), O(1) space. (Listing every way to remove them is the harder variant that needs BFS or backtracking.)"
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "()())()"
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "(a)())()"
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": ")("
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "abc"
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "(a())())a"
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "((a)"
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": ")))a())"
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "a(aa)a)a))"
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

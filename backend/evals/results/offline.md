@@ -1,6 +1,6 @@
 # Coach evaluation: `offline` (curated-hints+static-analysis)
 
-Run 2026-11-02T00:39:10+00:00 over 38 labelled review samples and 22 problems. These numbers describe this labelled set only.
+Run 2026-11-02T08:55:18+00:00 over 38 labelled review samples and 300 problems (hint spoiler and relevance rates on the 22 with labeled terms; code-leak checks on all). These numbers describe this labelled set only.
 
 ## Tuning set
 

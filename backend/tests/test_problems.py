@@ -83,7 +83,8 @@ def slugs(client, **params) -> list[str]:
 def test_search_understands_plain_descriptions_and_abbreviations(client):
     assert slugs(client, q="find the biggest number")[0] == "find-largest-number"
     assert slugs(client, q="longest substring without repeats")[0] == "longest-unique-substring"
-    assert slugs(client, q="stack brackets") == ["valid-parentheses"]
+    brackets = slugs(client, q="stack brackets")
+    assert brackets[0] == "valid-parentheses" and all("parenthes" in s for s in brackets)
     dp = slugs(client, q="dp")
     assert "coin-change" in dp and "climbing-stairs" in dp  # 'dp' means dynamic programming
     assert "two-sum" in slugs(client, q="hashmap")

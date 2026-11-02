@@ -75,10 +75,11 @@ runner/                  SEPARATE SERVICE: isolated execution (deploy on its own
   sandbox-image/         JDK image + trusted entrypoint that receives code over stdin
   tests/                 unit tests + 16 threat-model checks in the real sandbox
     db/                  Engine/session factory, seed loader
-    seed/problems/*.json Curated problem library (version-controlled content)
+    seed/problems/*.json Problem library: 22 hand-written + 278 generated (version-controlled content)
     seed/reference/*.java Trusted reference solutions (CI proves the tests are right)
   migrations/            Alembic migrations
-  scripts/               verify_reference_solutions.py
+  scripts/               verify_reference_solutions.py (all 300 in one JVM)
+    problembank/         Problem specs (Python model + Java reference + test generator) → seed JSON
   tests/                 pytest suite (runs on SQLite and PostgreSQL)
 ```
 

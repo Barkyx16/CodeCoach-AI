@@ -1,0 +1,110 @@
+{
+  "order": 353,
+  "slug": "strange-printer",
+  "title": "Strange Printer",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "strings"
+  ],
+  "summary": "Fewest printing passes when each pass prints one repeated letter.",
+  "statement": "A printer prints a run of one repeated character per turn, covering any contiguous range and overwriting what\nwas there. Return the minimum number of turns to print `s`.",
+  "constraints": [
+    "1 <= s.length <= 100",
+    "lower-case letters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"aaabbb\"",
+      "output": "2"
+    },
+    {
+      "input": "s = \"aba\"",
+      "output": "2"
+    },
+    {
+      "input": "s = \"a\"",
+      "output": "1"
+    }
+  ],
+  "signature": {
+    "method": "strangePrinter",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int strangePrinter(String s) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "The first character of a range is printed in some turn; that turn can also cover later copies of the same character.",
+    "turns(i, j) = turns(i+1, j) + 1, or, for each k in (i, j] with s[k] == s[i], turns(i+1, k-1) + turns(k, j) (print s[i] together with s[k]).",
+    "def turns(i, j):\n    if i > j: return 0\n    best = 1 + turns(i + 1, j)\n    for k in i+1..j:\n        if s[k] == s[i]: best = min(best, turns(i + 1, k - 1) + turns(k, j))\n    return best",
+    "Interval DP with memoization: O(n^3). Collapsing runs of equal letters first shrinks n."
+  ],
+  "expected_complexity": {
+    "time": "O(n^3)",
+    "space": "O(n^2)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "aaabbb"
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "aba"
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "a"
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "abcabc"
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bbccaabcc"
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bb"
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bbcabbc"
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "c"
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -1,0 +1,231 @@
+{
+  "order": 338,
+  "slug": "sliding-window-median",
+  "title": "Sliding Window Median",
+  "difficulty": "hard",
+  "topics": [
+    "sliding-window",
+    "heaps",
+    "sorting"
+  ],
+  "summary": "Median of every window of size k (lower median when k is even).",
+  "statement": "Return the median of each contiguous window of size `k` in `nums`. When `k` is even, use the **lower** of the\ntwo middle values.",
+  "constraints": [
+    "1 <= k <= nums.length <= 10^5"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 3, -1, -3, 5, 3, 6, 7], k = 3",
+      "output": "[1, -1, -1, 3, 5, 6]"
+    },
+    {
+      "input": "nums = [1, 2, 3, 4, 2, 3, 1, 4, 2], k = 3",
+      "output": "[2, 3, 3, 3, 2, 3, 2]"
+    },
+    {
+      "input": "nums = [5, 5, 5], k = 2",
+      "output": "[5, 5]"
+    }
+  ],
+  "signature": {
+    "method": "medianSlidingWindow",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      },
+      {
+        "name": "k",
+        "type": "int"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] medianSlidingWindow(int[] nums, int k) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "Each slide adds one value and removes one value.",
+    "Keep the window in a sorted structure that supports insert, delete and lookup by rank (a balanced tree, or two multisets).",
+    "window = sorted(nums[:k])\nfor i in range(k, n + 1):\n    out.append(window[(k - 1) // 2])\n    if i == n: break\n    remove nums[i - k] from window; insert nums[i]\nreturn out",
+    "With two TreeMaps (or heaps with lazy deletion) each slide is O(log k): O(n log k) total."
+  ],
+  "expected_complexity": {
+    "time": "O(n log k)",
+    "space": "O(k)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          3,
+          -1,
+          -3,
+          5,
+          3,
+          6,
+          7
+        ],
+        "k": 3
+      },
+      "expected_output": [
+        1,
+        -1,
+        -1,
+        3,
+        5,
+        6
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3,
+          4,
+          2,
+          3,
+          1,
+          4,
+          2
+        ],
+        "k": 3
+      },
+      "expected_output": [
+        2,
+        3,
+        3,
+        3,
+        2,
+        3,
+        2
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          5,
+          5,
+          5
+        ],
+        "k": 2
+      },
+      "expected_output": [
+        5,
+        5
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          4
+        ],
+        "k": 1
+      },
+      "expected_output": [
+        4
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          5,
+          -5,
+          6,
+          2,
+          -3,
+          3,
+          -2
+        ],
+        "k": 4
+      },
+      "expected_output": [
+        2,
+        -3,
+        2,
+        -2
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -2,
+          -2,
+          5,
+          0,
+          5,
+          6,
+          -4,
+          4,
+          -5,
+          0,
+          6,
+          2,
+          5,
+          -5
+        ],
+        "k": 1
+      },
+      "expected_output": [
+        -2,
+        -2,
+        5,
+        0,
+        5,
+        6,
+        -4,
+        4,
+        -5,
+        0,
+        6,
+        2,
+        5,
+        -5
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          -1,
+          3,
+          -4,
+          4
+        ],
+        "k": 2
+      },
+      "expected_output": [
+        -1,
+        -1,
+        -4,
+        -4
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -3,
+          -4,
+          -2,
+          -4,
+          1,
+          2
+        ],
+        "k": 5
+      },
+      "expected_output": [
+        -3,
+        -2
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

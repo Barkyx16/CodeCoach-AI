@@ -1,7 +1,7 @@
 {
   "provider": "offline",
   "model": "curated-hints+static-analysis",
-  "evaluated_at": "2026-11-02T00:39:10+00:00",
+  "evaluated_at": "2026-11-02T08:55:18+00:00",
   "review": {
     "samples": 38,
     "schema_validity": 1.0,
@@ -363,12 +363,13 @@
     ]
   },
   "hints": {
-    "problems": 22,
+    "problems": 300,
+    "labeled_problems": 22,
     "level1_spoiler_rate": 0.0,
     "level1_spoilers": [],
     "level2_relevance": 1.0,
     "code_leak_rate_levels_1_2": 0.0,
     "code_leaks": []
   },
-  "duration_s": 0.03
+  "duration_s": 0.09
 }
