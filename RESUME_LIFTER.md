@@ -721,6 +721,7 @@ gVisor judge journey. The explanation card now scrolls into view in its new scro
 - Docs corrected: SECURITY §5 no longer lists account deletion and the eval suite as missing.
 - Totals: 394 backend tests (104 in the real gVisor sandbox), 33 runner, 90 frontend,
   14 Playwright tests (+ the opt-in controls audit).
+- **CI on GitHub: all 7 jobs green**, including the real-browser cookie test on GitHub's runners.
 
 **Not yet verified / not built:**
 - Cross-site deployments (frontend and API on different registrable domains) would need
