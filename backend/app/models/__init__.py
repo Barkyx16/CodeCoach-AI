@@ -611,3 +611,46 @@ class ExperienceEntry(Base):
     requirement_ids: Mapped[list] = mapped_column(JSONType, default=list)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, onupdate=utcnow)
+
+
+class InterviewRetry(Base):
+    """A new attempt at one question of a finished question round. The original answer is never
+    changed; the retry is its own graded PracticeAnswer."""
+
+    __tablename__ = "interview_retries"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    session_id: Mapped[str] = mapped_column(
+        ForeignKey("practice_sessions.id", ondelete="CASCADE"), index=True
+    )
+    question_index: Mapped[int] = mapped_column(Integer)
+    original_answer_id: Mapped[str | None] = mapped_column(
+        ForeignKey("practice_answers.id", ondelete="SET NULL"), nullable=True
+    )
+    retry_answer_id: Mapped[str] = mapped_column(ForeignKey("practice_answers.id", ondelete="CASCADE"))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class ReviewItem(Base):
+    """A question saved for spaced review. Due dates follow a fixed ladder (1, 3, 7, 14, 30 days)
+    and move only when the question is actually answered again; nothing is ever sent."""
+
+    __tablename__ = "review_items"
+    __table_args__ = (Index("ix_review_user_due", "user_id", "due_at"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    track: Mapped[str] = mapped_column(String(64))
+    question_id: Mapped[str] = mapped_column(String(64))
+    session_id: Mapped[str | None] = mapped_column(
+        ForeignKey("practice_sessions.id", ondelete="SET NULL"), nullable=True
+    )
+    step: Mapped[int] = mapped_column(Integer, default=0)  # index into the interval ladder
+    due_at: Mapped[datetime] = mapped_column(UTCDateTime())
+    scheduled_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)  # when due_at was last set
+    last_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    reviews: Mapped[int] = mapped_column(Integer, default=0)
+    snoozed: Mapped[bool] = mapped_column(Boolean, default=False)
+    removed: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
