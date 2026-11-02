@@ -57,3 +57,16 @@ test("signed-in screens have no WCAG 2.1 A/AA violations", async ({ page }) => {
     await expectNoViolations(page, path);
   }
 });
+
+test("the skip link is the first Tab stop and jumps to the main content", async ({ page }) => {
+  for (const path of ["/", "/problems", "/problems/two-sum"]) {
+    await page.goto(path);
+    await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
+    await page.keyboard.press("Tab");
+    const skip = page.getByRole("link", { name: "Skip to content" });
+    await expect(skip).toBeFocused();
+    await expect(skip).toBeInViewport(); // visible once focused, so sighted keyboard users see it
+    await page.keyboard.press("Enter");
+    await expect(page.locator("main#main")).toBeFocused();
+  }
+});

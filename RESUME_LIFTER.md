@@ -88,6 +88,9 @@ The "Session log" at the bottom tracks exactly what that is.
 - Turned one-off accessibility checks into an **automated WCAG 2.1 AA gate** (axe-core in
   Playwright, 11 screens on desktop and mobile, plus real judged results) that runs in CI. It
   immediately caught a label-in-name bug the manual sample missed.
+- Wrote a **browser audit that uses every one of the app's 325 controls** on 15 page states
+  and fails if any does nothing or causes an error; it found a judge bug that blamed learners for
+  infrastructure failures.
 - Built a **React + TypeScript** frontend (Vite, TanStack Query, Monaco editor) with a
   resizable three-panel workspace, autosaved drafts, a progress dashboard and a mobile layout,
   with API types **generated from the OpenAPI contract** so frontend and backend can't drift.
@@ -380,6 +383,17 @@ These are moments where the obvious path was wrong and a deliberate decision was
     grows), so both change in the same render. The regression test recreates the race on purpose
     instead of relying on timing, and fails without the fix ("expected 1, got 2").
 
+28. **Infrastructure failures blamed on the learner.** While auditing every button, a submission
+    of untouched starter code came back "Runtime error: your program crashed". The runner log
+    showed the sandbox ending in **64 ms with exit 1**, far too fast for Java. The Docker daemon
+    had stopped, and `docker run` exits 1 when it can't connect. The classifier only treated
+    exit codes 125+ as Docker failures, so exit 1 passed through as an ordinary program exit and
+    the judge blamed the learner's code. The fix uses an invariant instead of a list of exit
+    codes: learner code can only run after the entrypoint prints its run marker, so ending
+    without it (and without a compile error, timeout or OOM kill) is *always* infrastructure.
+    The judge then retries and says "not your fault". Tests fail with the old rule; a new
+    `/ready` probe also reports a runner that can't reach Docker as unhealthy.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -642,4 +656,25 @@ gVisor judge journey. The explanation card now scrolls into view in its new scro
 **Not yet verified / not built:**
 - The cause of the one-off slow cold start (couldn't reproduce; mitigated, not explained).
 - Live Claude responses; production deployment.
+
+### Session 6: every control audited; infrastructure errors no longer blamed on learners
+**Built and verified:**
+- **Controls audit** (`e2e/controls-audit.spec.ts`): signs in as a guest, creates real activity
+  (hints, review, a judged submission, a finished interview), then uses every visible control on
+  every page (325 controls across 15 page states) from a fresh load. It records what each one did
+  (navigation, request, dialog, DOM change, changed value, focus) and fails on any control that
+  does nothing or causes a console error or failed request. Result: every control works; the only
+  "no effect" clicks are links and tabs to where you already are. No console errors or failed
+  requests across the whole run.
+- **Real bug found by the audit:** with the Docker daemon down, starter code was reported as
+  "Runtime error: your program crashed". The runner now classifies any run that never reached
+  the run marker as an infrastructure error, so the judge retries and says "not your fault".
+  Verified end to end with Docker stopped. New `/ready` probe (Docker reachable) used by the
+  runner image's healthcheck.
+- Keyboard test for the skip link; a test that the settings preview reflects every editor
+  preference.
+- A test for the live interview's "End early" button (cancel does nothing; confirm ends it and
+  still shows feedback), the one control the audit deliberately doesn't press.
+- Totals: 379 backend tests (104 in the real gVisor sandbox), 33 runner, 83 frontend,
+  13 Playwright tests (+ the opt-in controls audit).
 

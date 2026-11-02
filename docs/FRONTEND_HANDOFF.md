@@ -192,7 +192,7 @@ dashboard is one column · `≤ 720px` header hides the brand name and user name
 
 ## 7. Rules that keep the tests green
 
-The automated tests (81 unit/integration + 11 Playwright end-to-end, incl. 4 accessibility scans) find elements **by their
+The automated tests (83 unit/integration + 13 Playwright end-to-end, incl. 4 accessibility scans) find elements **by their
 accessible role and name**, not by CSS. Restyling is safe as long as you **don't change**:
 - visible button, tab and link text used as names (e.g. "Get a hint", "Unlock level 2: Concept",
   "Review my code", "Submit", "Show table", "Sign in", "Create account", "Try it now, no sign-up",
@@ -201,6 +201,12 @@ accessible role and name**, not by CSS. Restyling is safe as long as you **don't
 - `aria-label`s on regions ("AI coach", "Summary", "Problem list", "Workspace" tablist,
   "Interview progress", "Rubric scores, out of 4", "Your answer"), and `role="timer"` on the clock,
 - the class names `.monaco-editor`, `.editor-line--flagged` and `heat-cell` test ids.
+
+**Controls audit (`e2e/controls-audit.spec.ts`, opt-in, ~15 min):** signs in as a guest, creates
+real activity, then uses every visible button, link, tab, select, checkbox and radio on every page
+(15 page states, 325 controls) from a fresh load, and fails if any of them does nothing or causes
+a console error or failed request. Run it after a redesign:
+`AUDIT=1 E2E_JUDGE=1 npx playwright test e2e/controls-audit.spec.ts --project=desktop`.
 
 If copy changes are wanted, list them and engineering will update the tests in the same change.
 Run `npm test && npm run e2e` to check.

@@ -134,7 +134,36 @@ describe("Mock interview", () => {
     expect(screen.getAllByText("Is the array sorted?")).toHaveLength(1);
   });
 
-  it("finishes and shows rubric feedback with evidence", async () => {
+  it("ends early only after confirmation, and still shows feedback", async () => {
+    let abandoned = 0;
+    let iv = base();
+    server.use(
+      http.get(`${API}/api/v1/interviews/iv-1`, () => HttpResponse.json(iv)),
+      http.post(`${API}/api/v1/interviews/iv-1/abandon`, () => {
+        abandoned += 1;
+        iv = { ...iv, status: "abandoned", phase: null, phase_guide: null, seconds_remaining: 0,
+          ended_at: new Date().toISOString(), evaluation };
+        return HttpResponse.json(iv);
+      }),
+    );
+    const confirm = vi.spyOn(window, "confirm");
+    const { user } = renderApp("/interviews/iv-1", { signedIn: true });
+    const endEarly = await screen.findByRole("button", { name: "End early" });
+
+    confirm.mockReturnValueOnce(false); // "Cancel": nothing happens
+    await user.click(endEarly);
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(abandoned).toBe(0);
+    expect(screen.getByLabelText("Your answer")).toBeInTheDocument();
+
+    confirm.mockReturnValueOnce(true); // "OK": the interview ends and feedback is shown
+    await user.click(endEarly);
+    expect(await screen.findByRole("heading", { name: "Interview feedback" })).toBeInTheDocument();
+    expect(abandoned).toBe(1);
+    confirm.mockRestore();
+  });
+
+    it("finishes and shows rubric feedback with evidence", async () => {
     liveInterviewServer();
     const { user } = renderApp("/interviews/iv-1", { signedIn: true });
     await user.click(await screen.findByRole("button", { name: "Finish & get feedback" }));

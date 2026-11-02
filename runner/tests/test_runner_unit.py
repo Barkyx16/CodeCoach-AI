@@ -14,6 +14,7 @@ from app.sandbox import (
     _Capped,
     build_command,
     classify,
+    docker_reachable,
     pack_sources,
 )
 from tests.conftest import TOKEN, make_settings
@@ -94,6 +95,11 @@ def test_classification():
     assert c(0, truncated=True).status == "output_limit"
     assert c(125).status == "sandbox_error"  # docker itself failed
     assert c(90).status == "sandbox_error"
+    # The code never started: always infrastructure, whatever the exit code.
+    daemon_down = "Cannot connect to the Docker daemon at unix:///var/run/docker.sock."
+    assert c(1, stderr=daemon_down).status == "sandbox_error"
+    assert c(0).status == "sandbox_error"
+    assert c(None).status == "sandbox_error"
 
 
 def test_run_marker_is_stripped_from_stderr():
@@ -206,3 +212,27 @@ def test_a_failed_warm_up_does_not_stop_the_runner():
     app = create_app(make_settings(warmup_on_start=True), sandbox=Broken(), cleanup=False)
     with TestClient(app) as c_:
         assert c_.get("/health").status_code == 200
+
+
+def test_ready_reports_whether_docker_answers(monkeypatch):
+    import app.main as main_module
+
+    monkeypatch.setattr(main_module, "docker_reachable", lambda settings: False)
+    r = client().get("/ready")
+    assert r.status_code == 503 and r.json() == {"status": "unavailable"}
+    monkeypatch.setattr(main_module, "docker_reachable", lambda settings: True)
+    assert client().get("/ready").json() == {"status": "ok"}
+
+
+def test_docker_reachable_is_false_when_the_cli_is_missing():
+    assert docker_reachable(make_settings(docker_bin="/nonexistent/docker")) is False
+
+
+def test_a_docker_cli_failure_is_an_infrastructure_error_not_a_crash():
+    """Seen for real: with the Docker daemon down, `docker run` exits 1 within milliseconds. The
+    learner's code never ran, so this must not reach the API as an ordinary exit (which the judge
+    would report as the learner's runtime error)."""
+    from app.sandbox import DockerSandbox
+
+    res = DockerSandbox(make_settings(docker_bin="/bin/false")).run(FILES, "0123456789abcdef", 5)
+    assert res.status == "sandbox_error" and not res.run_started

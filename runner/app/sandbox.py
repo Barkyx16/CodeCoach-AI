@@ -204,8 +204,12 @@ def classify(
         status = "memory_limit"
     elif exit_code == EXIT_SIGKILL:
         status = "memory_limit"  # killed by the cgroup OOM killer (we didn't time it out)
-    elif exit_code == EXIT_BAD_INPUT or (exit_code is not None and exit_code >= 125 and not run_started):
-        status = "sandbox_error"  # bad payload, or docker itself failed (125/126/127)
+    elif exit_code == EXIT_BAD_INPUT or not run_started:
+        # Learner code only runs after the entrypoint prints RUN_MARKER. Ending without it (and
+        # without a compile error, timeout, output flood or OOM kill) means the code never ran:
+        # Docker unreachable (exit 1), image missing or docker itself failing (125/126/127), or
+        # a bad payload (90). Never the learner's fault, so the API retries it as infrastructure.
+        status = "sandbox_error"
     else:
         status = "ok"  # includes non-zero exits from learner code; the API judges
     return SandboxResult(
@@ -218,6 +222,22 @@ def classify(
         output_truncated=truncated,
         duration_ms=duration_ms,
     )
+
+
+def docker_reachable(settings: RunnerSettings, timeout_s: float = 3.0) -> bool:
+    """True when the Docker daemon answers. Used by the readiness probe."""
+    try:
+        return (
+            subprocess.run(
+                [settings.docker_bin, "version", "--format", "{{.Server.Version}}"],
+                capture_output=True,
+                timeout=timeout_s,
+                check=False,
+            ).returncode
+            == 0
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
 
 
 def cleanup_stale(settings: RunnerSettings) -> int:

@@ -20,6 +20,21 @@ describe("Settings", () => {
     expect(JSON.parse(localStorage.getItem(EDITOR_KEY)!)).toMatchObject({ fontSize: 14, theme: "codecoach-dark", wordWrap: "off" });
   });
 
+  it("updates the editor preview as each preference changes", async () => {
+    const { user } = renderApp("/settings", { signedIn: true });
+    const preview = await screen.findByLabelText("Editor appearance preview");
+    const code = within(preview).getByRole("region", { name: "Editor code preview" });
+    expect(preview).toHaveAttribute("data-theme", "codecoach-dark");
+    await user.selectOptions(screen.getByLabelText("Editor theme"), "vs");
+    expect(preview).toHaveAttribute("data-theme", "vs");
+    await user.selectOptions(screen.getByLabelText("Font size"), "20");
+    expect(code).toHaveStyle({ fontSize: "20px" });
+    await user.selectOptions(screen.getByLabelText("Indentation"), "2");
+    expect(code.textContent).toContain("2  //"); // line 2 is indented by two spaces
+    await user.click(screen.getByLabelText("Wrap long lines"));
+    expect(code).toHaveStyle({ whiteSpace: "pre-wrap" });
+  });
+
   it("warns when editor preferences cannot be persisted", async () => {
     const { user } = renderApp("/settings", { signedIn: true });
     const field = await screen.findByLabelText("Font size");

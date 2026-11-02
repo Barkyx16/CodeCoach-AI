@@ -14,10 +14,11 @@ from contextlib import asynccontextmanager
 
 import anyio
 from fastapi import Depends, FastAPI, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.config import RunnerSettings, get_settings
-from app.sandbox import DockerSandbox, cleanup_stale
+from app.sandbox import DockerSandbox, cleanup_stale, docker_reachable
 from app.schemas import RunRequest, RunResponse
 
 logger = logging.getLogger("runner")
@@ -79,6 +80,12 @@ def create_app(
     @app.get("/health")
     def health() -> dict:
         return {"status": "ok"}
+
+    @app.get("/ready")
+    def ready() -> JSONResponse:
+        """Can this runner actually start sandboxes? Checks the Docker daemon (no details leak)."""
+        ok = docker_reachable(settings)
+        return JSONResponse(status_code=200 if ok else 503, content={"status": "ok" if ok else "unavailable"})
 
     @app.post("/v1/run", response_model=RunResponse, dependencies=[Depends(authorize)])
     def run(body: RunRequest, request: Request) -> RunResponse:
