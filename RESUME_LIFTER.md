@@ -936,6 +936,8 @@ You asked for the 300 coding problems: 100 per difficulty.
 - Search, hint evals and leak tests updated for the bigger library; the hint code-leak check now
   covers all 300 problems (0%). Tests: 1,561 backend on SQLite, PostgreSQL suite green, 119
   frontend, 17 Playwright (2 sandbox-only skipped).
+- **CI on GitHub: all 7 jobs green**, including all 300 references judged inside gVisor (the
+  whole real-judge step, 382 tests, took 10 minutes) and the browser → gVisor judge test.
 - **Not done yet (next):** Claude-graded written answers when a key is set; mock interviews and
   the dashboard using the career's questions.
 
