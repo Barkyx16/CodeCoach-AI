@@ -45,7 +45,11 @@ function LiveInterview({ iv }: { iv: Interview }) {
   const finish = useFinishInterview(iv.id);
   const abandon = useAbandonInterview(iv.id);
   const [message, setMessage] = useState("");
-  const [pending, setPending] = useState<string | null>(null);
+  // The message being sent, and how many turns the transcript had when it was sent. It is shown
+  // only until the transcript grows: the server's copy replaces it in the same render, so the
+  // message never appears twice (the cache update and clearing this state are separate steps).
+  const [pending, setPending] = useState<{ text: string; baseline: number } | null>(null);
+  const pendingText = pending && iv.turns.length === pending.baseline ? pending.text : null;
   const seconds = useCountdown(iv.deadline_at, true);
   const ready = iv.phase === null; // interviewer wrapped up
   const busy = send.isPending || finish.isPending || abandon.isPending;
@@ -60,7 +64,7 @@ function LiveInterview({ iv }: { iv: Interview }) {
     e?.preventDefault();
     const text = message.trim();
     if (!text || !canSend) return;
-    setPending(text);
+    setPending({ text, baseline: iv.turns.length });
     setMessage("");
     try {
       await send.mutateAsync({ message: text, code: draft.code });
@@ -107,7 +111,7 @@ function LiveInterview({ iv }: { iv: Interview }) {
       <div className="interview__body">
         <section className="interview__chat" aria-label="Conversation">
           {iv.phase_guide && <p className="interview__guide subtle">Now: {iv.phase_guide}</p>}
-          <Transcript turns={iv.turns} pending={pending} />
+          <Transcript turns={iv.turns} pending={pendingText} />
           <form className="composer" onSubmit={onSend}>
             <label className="visually-hidden" htmlFor="iv-message">Your answer</label>
             <textarea id="iv-message" className="input composer__input" rows={3} maxLength={4000}

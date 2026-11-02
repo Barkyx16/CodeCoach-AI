@@ -36,7 +36,7 @@ comes from test cases, never from the AI.
 | Analytics | Solved/attempted by topic and difficulty, streaks, 28-day activity, acceptance rate, weakest topics |
 | Recommendations | Explainable next problems: retry unfinished, strengthen weak topics, difficulty ladder |
 | Web app | React + TypeScript: landing, auth, problem library (URL-synced filters), resizable 3-panel workspace with Monaco and autosaved drafts, hint ladder, reviews that highlight the flagged line, dashboard (stat tiles, activity heatmap, topic progress), history; mobile layout |
-| Engineering | 379 backend tests (SQLite **and** PostgreSQL, incl. 104 that run in the real gVisor sandbox), 30 runner tests, 80 frontend tests, 11 Playwright end-to-end tests against the real backend (incl. automated **axe-core WCAG 2.1 AA** scans of every main screen on desktop and mobile); ruff, mypy, ESLint, strict TypeScript; API types generated from OpenAPI; Alembic; Docker Compose (db, migrate, api, web + judge profile: sandbox image, runner, worker); GitHub Actions; pip-audit, npm audit, Dependabot; Prometheus metrics, JSON logs, request IDs, health checks; CSP and security headers |
+| Engineering | 379 backend tests (SQLite **and** PostgreSQL, incl. 104 that run in the real gVisor sandbox), 30 runner tests, 81 frontend tests, 11 Playwright end-to-end tests against the real backend (incl. automated **axe-core WCAG 2.1 AA** scans of every main screen on desktop and mobile); ruff, mypy, ESLint, strict TypeScript; API types generated from OpenAPI; Alembic; Docker Compose (db, migrate, api, web + judge profile: sandbox image, runner, worker); GitHub Actions; pip-audit, npm audit, Dependabot; Prometheus metrics, JSON logs, request IDs, health checks; CSP and security headers |
 
 ## Architecture
 
@@ -94,7 +94,7 @@ pip-audit -r requirements.txt             # known-vulnerability scan
 cd frontend
 npm run lint && npm run typecheck         # ESLint + strict TypeScript
 npm run api:check                         # generated API types match docs/openapi.json
-npm test                                  # 80 unit + integration tests (Vitest, MSW)
+npm test                                  # 81 unit + integration tests (Vitest, MSW)
 npm run build                             # production bundle
 PYTHON=../backend/.venv/bin/python npm run e2e   # Playwright: real browser + real backend
 ```

@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
 import type { Interview } from "@/api/types";
@@ -103,6 +103,35 @@ describe("Mock interview", () => {
     expect((posted[0] as { code: string }).code).toContain("class Solution");
     expect(screen.getByText("29 messages left")).toBeInTheDocument();
     expect(box).toHaveValue("");
+  });
+
+  it("never shows a sent message twice while the server's copy arrives", async () => {
+    // Recreates the race CI caught: the server's transcript (with the new message) lands in the
+    // cache before the send call has finished. The pending bubble must give way in that render.
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const withAnswer = (text: string): Interview => {
+      const iv = base();
+      return { ...iv, turns: [...iv.turns, { seq: 1, role: "candidate", phase: "clarify", content: text, created_at: new Date().toISOString() }] };
+    };
+    server.use(
+      http.get(`${API}/api/v1/interviews/iv-1`, () => HttpResponse.json(base())),
+      http.post(`${API}/api/v1/interviews/iv-1/messages`, async () => { await gate; return HttpResponse.json(withAnswer("Is the array sorted?")); }),
+    );
+    const { user, queryClient } = renderApp("/interviews/iv-1", { signedIn: true });
+    await user.type(await screen.findByLabelText("Your answer"), "Is the array sorted?");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+    expect(await screen.findByText("Is the array sorted?")).toBeInTheDocument(); // the pending bubble
+
+    act(() => queryClient.setQueryData(["me", "interview", "iv-1"], withAnswer("Is the array sorted?")));
+    // Query observers are notified on the next tick: wait until the server's copy is on screen.
+    await waitFor(() => expect(document.querySelector(".bubble--candidate:not(.bubble--pending)")).not.toBeNull());
+    expect(screen.getAllByText("Is the array sorted?")).toHaveLength(1);
+    expect(screen.queryByLabelText("Interviewer is typing")).not.toBeInTheDocument();
+
+    release();
+    await waitFor(() => expect(screen.getByLabelText("Your answer")).toBeEnabled());
+    expect(screen.getAllByText("Is the array sorted?")).toHaveLength(1);
   });
 
   it("finishes and shows rubric feedback with evidence", async () => {

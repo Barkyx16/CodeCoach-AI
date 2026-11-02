@@ -373,6 +373,13 @@ These are moments where the obvious path was wrong and a deliberate decision was
     The runner now runs one tiny warm-up program before it accepts work, and its health check
     allows for that. It's cheap insurance, described as exactly that.
 
+27. **A message that showed up twice.** CI failed because a just-sent interview answer was on
+    screen twice. The page showed a temporary "pending" copy, and when the server replied it
+    updated the transcript and *then* cleared the pending copy: two steps, with a paint possible
+    in between. I tied the pending bubble to the transcript (it only shows until the transcript
+    grows), so both change in the same render. The regression test recreates the race on purpose
+    instead of relying on timing, and fails without the fix ("expected 1, got 2").
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -625,8 +632,10 @@ gVisor judge journey. The explanation card now scrolls into view in its new scro
   (old rules on the same set: 83%, 50%, 1 of 4, 79%).
 - Runner warm-up at startup (`WARMUP_ON_START`), unit-tested with a fake sandbox, run for real
   against gVisor, and a healthcheck start period so orchestration waits for it.
+- Fixed a UI race CI exposed: a sent interview message could render twice for a moment; a
+  deterministic regression test reproduces it.
 - Totals: 379 backend tests (104 in the real gVisor sandbox), 30 runner,
-  80 frontend, 11 Playwright tests.
+  81 frontend, 11 Playwright tests.
 
 **Not yet verified / not built:**
 - The cause of the one-off slow cold start (couldn't reproduce; mitigated, not explained).

@@ -23,5 +23,5 @@ export function renderApp(path: string, { signedIn = false }: { signedIn?: boole
       <RouterProvider router={router} />
     </AppProviders>,
   );
-  return { ...utils, router, user: userEvent.setup() };
+  return { ...utils, router, queryClient, user: userEvent.setup() };
 }
