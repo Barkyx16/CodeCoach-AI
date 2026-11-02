@@ -5,7 +5,7 @@ const TITLES: Record<string, string> = {
   "/": "Java interview practice", "/login": "Sign in", "/register": "Create account",
   "/forgot-password": "Reset your password", "/reset-password": "Choose a new password", "/verify-email": "Confirm your email",
   "/problems": "Problem library", "/dashboard": "Dashboard", "/analytics": "Analytics",
-  "/history": "History", "/settings": "Settings", "/interviews": "Mock interviews", "/interviews/questions": "Interview question round", "/plan": "Your plan", "/plan/goals": "Your goals", "/targets": "Target roles",
+  "/history": "History", "/settings": "Settings", "/interviews": "Mock interviews", "/interviews/questions": "Interview question round", "/plan": "Your plan", "/plan/goals": "Your goals", "/targets": "Target roles", "/reviews": "Review queue",
 };
 
 /** Give route changes a useful browser title and a predictable keyboard starting point. */
@@ -15,6 +15,7 @@ export function RouteAccessibility() {
   const previous = useRef(pathname);
   useEffect(() => {
     const title = TITLES[pathname] ?? (pathname.startsWith("/problems/") ? "Coding workspace"
+      : /^\/interviews\/[^/]+\/retry\//.test(pathname) ? "Retry a question"
       : pathname.startsWith("/interviews/") ? "Mock interview"
       : pathname.startsWith("/targets/") ? "Target role" : pathname.startsWith("/history/") ? "History item" : "Page not found");
     document.title = `${title} | CodeCoach AI`;

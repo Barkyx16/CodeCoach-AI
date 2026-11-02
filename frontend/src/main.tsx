@@ -18,6 +18,7 @@ import "./styles/voice.css";
 import "./styles/progress.css";
 import "./styles/plan.css";
 import "./styles/targets.css";
+import "./styles/review.css";
 
 const queryClient = makeQueryClient();
 const router = createRouter();

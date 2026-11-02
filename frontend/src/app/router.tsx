@@ -10,6 +10,8 @@ import { VerifyEmailPage } from "@/features/auth/VerifyEmailPage";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
 import { GoalsPage } from "@/features/plan/GoalsPage";
 import { PlanPage } from "@/features/plan/PlanPage";
+import { RetryPage } from "@/features/review/RetryPage";
+import { ReviewQueuePage } from "@/features/review/ReviewQueuePage";
 import { TargetsPage } from "@/features/targets/TargetsPage";
 import { TargetWorkspace } from "@/features/targets/TargetWorkspace";
 import { CoachingDetailPage, SubmissionDetailPage } from "@/features/history/ActivityDetailPages";
@@ -63,6 +65,8 @@ export const routes: RouteObject[] = [
       },
       { path: "/dashboard", element: <RequireAuth><DashboardPage /></RequireAuth> },
       { path: "/plan", element: <RequireAuth><PlanPage /></RequireAuth> },
+      { path: "/reviews", element: <RequireAuth><ReviewQueuePage /></RequireAuth> },
+      { path: "/interviews/:id/retry/:index", element: <RequireAuth><RetryPage /></RequireAuth> },
       { path: "/targets", element: <RequireAuth><TargetsPage /></RequireAuth> },
       { path: "/targets/:id", element: <RequireAuth><TargetWorkspace /></RequireAuth> },
       { path: "/plan/goals", element: <RequireAuth><GoalsPage /></RequireAuth> },

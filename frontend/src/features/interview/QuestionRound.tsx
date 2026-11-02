@@ -1,21 +1,18 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { queryKeys, useAbandonInterview, useAnswerRoundQuestion, useSkipRoundQuestion } from "@/api/queries";
-import type { AnswerSource, Difficulty, Interview, RoundQuestion } from "@/api/types";
-import { BackLink } from "@/components/BackLink";
+import type { AnswerSource, Difficulty, Interview } from "@/api/types";
 import { Badge, DifficultyBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Icon } from "@/components/Icon";
 import { InlineError } from "@/components/States";
-import { clearStoredDraft, readStoredDraft, useStoredDraft } from "@/hooks/useStoredDraft";
+import { clearStoredDraft, useStoredDraft } from "@/hooks/useStoredDraft";
 import { titleCase } from "@/lib/format";
-import { FeedbackCard } from "@/features/careers/FeedbackCard";
 import { KIND_LABEL } from "@/features/careers/kinds";
-import { EngagementMeter, EngagementNote } from "@/features/voice/EngagementMeter";
+import { EngagementMeter } from "@/features/voice/EngagementMeter";
 import { useInterviewerVoice } from "@/features/voice/useInterviewerVoice";
 import { VoiceComposer } from "@/features/voice/VoiceComposer";
 import { useVoicePrefs } from "@/features/voice/voicePrefs";
@@ -23,11 +20,6 @@ import { useVoicePrefs } from "@/features/voice/voicePrefs";
 import { roundDraftKey } from "./roundDrafts";
 import { formatClock, useCountdown } from "./useCountdown";
 
-const SOURCE_LABEL: Record<AnswerSource, string> = {
-  typed: "Typed",
-  voice: "Spoken (browser speech recognition)",
-  mixed: "Spoken and edited",
-};
 
 function words(text: string): number {
   return text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -140,86 +132,5 @@ export function LiveRound({ iv }: { iv: Interview }) {
         </aside>
       </div>
     </div>
-  );
-}
-
-const ENDING: Record<Interview["status"], string> = {
-  completed: "Completed",
-  expired: "Time ran out before the end",
-  abandoned: "Ended early",
-  in_progress: "In progress",
-};
-
-/** Results of a finished, expired or abandoned round. Unanswered questions are shown as such. */
-export function RoundResults({ iv }: { iv: Interview }) {
-  const s = iv.round_summary;
-  const role = iv.career_title ?? titleCase(iv.track ?? "");
-  const replies = new Map(iv.turns.filter((t) => t.role === "candidate").map((t) => [t.question_index, t]));
-  return (
-    <div className="page interview-summary">
-      <BackLink />
-      <div className="page__header">
-        <div>
-          <p className="eyebrow">MOCK INTERVIEW · {ENDING[iv.status].toUpperCase()}</p>
-          <h1 className="page__title">{role} interview results</h1>
-          <p className="page__subtitle">
-            {s && s.average_score !== null
-              ? `Average score ${s.average_score}/100 across ${s.answered} of ${iv.questions.length} answers.`
-              : "No questions were answered, so there are no scores."}
-            {s && s.skipped > 0 ? ` ${s.skipped} skipped.` : ""}
-            {s && s.unanswered > 0 ? ` ${s.unanswered} not reached.` : ""}
-          </p>
-        </div>
-        <div className="row dashboard__actions">
-          <Link to="/dashboard" className="btn btn--secondary btn--md">Dashboard</Link>
-          <Link to="/interviews/questions" className="btn btn--primary btn--md">New interview</Link>
-        </div>
-      </div>
-      {s && s.focus.length > 0 && (
-        <Card className="stack">
-          <h2 className="section-title">Work on next</h2>
-          <ul className="mini-list">{s.focus.map((label) => <li key={label}>{label}</li>)}</ul>
-        </Card>
-      )}
-      <ol className="round-results">
-        {iv.questions.map((q, i) => <ResultItem key={q.id} iv={iv} q={q} open={i === 0} reply={replies.get(q.index)} />)}
-      </ol>
-    </div>
-  );
-}
-
-function ResultItem({ iv, q, open, reply }: {
-  iv: Interview; q: RoundQuestion; open: boolean; reply: Interview["turns"][number] | undefined;
-}) {
-  const savedDraft = q.status === "answered" ? "" : readStoredDraft(roundDraftKey(iv.id, q.index));
-  const outcome = q.answer ? `${q.answer.score}/100 · ${q.answer.rating}` : q.status === "skipped" ? "Skipped" : "Not reached";
-  return (
-    <li>
-      <details className="card round-result" open={open}>
-        <summary>
-          <span className="round-result__n">{q.index + 1}</span>
-          <strong>{q.title}</strong>
-          <Badge>{KIND_LABEL[q.kind] ?? titleCase(q.kind)}</Badge>
-          <span className="round-result__score">{outcome}</span>
-        </summary>
-        <div className="stack round-result__body">
-          <p className="subtle">{q.prompt}</p>
-          {q.answer ? (
-            <>
-              <blockquote className="round-result__answer">{q.answer.answer}</blockquote>
-              {reply?.source && <p className="subtle">Answer: {SOURCE_LABEL[reply.source]}</p>}
-              {reply?.engagement && <EngagementNote engagement={reply.engagement} />}
-              <FeedbackCard answer={q.answer} title="Feedback" headingId={`round-feedback-${q.index}`} />
-            </>
-          ) : (
-            <p>
-              <Link to={`/careers/${iv.track}/questions/${q.id}`} state={savedDraft ? { draft: savedDraft } : undefined}>
-                {savedDraft ? "Finish your saved draft on its own page" : "Answer this question on its own"}
-              </Link>
-            </p>
-          )}
-        </div>
-      </details>
-    </li>
   );
 }

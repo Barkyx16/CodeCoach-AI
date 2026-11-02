@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
-import { usePlan, useSaveGoals } from "@/api/queries";
+import { usePlan, useReviewQueue, useSaveGoals } from "@/api/queries";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { ErrorState, LoadingState } from "@/components/States";
@@ -26,6 +26,7 @@ export function TodayCard() {
   const [minutes, setMinutes] = useState(savedMinutes);
   const plan = usePlan(undefined, minutes);
   const saveGoals = useSaveGoals();
+  const reviews = useReviewQueue();
   const choose = (m: number) => {
     setMinutes(m);
     try {
@@ -83,7 +84,10 @@ export function TodayCard() {
               ({plan.data.progress.done_this_week} {plan.data.progress.done_this_week === 1 ? "activity" : "activities"} done)
               {plan.data.days_to_interview !== null && plan.data.days_to_interview !== undefined ? ` · ${plan.data.days_to_interview} days to your interview` : ""}
             </span>
-            <Link to="/plan">Your full plan <span aria-hidden="true">→</span></Link>
+            <span className="row">
+              {(reviews.data?.due.length ?? 0) > 0 && <Link to="/reviews">{reviews.data!.due.length} due for review</Link>}
+              <Link to="/plan">Your full plan <span aria-hidden="true">→</span></Link>
+            </span>
           </div>
         </>
       )}

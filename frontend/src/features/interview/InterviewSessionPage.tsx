@@ -12,10 +12,8 @@ import {
 } from "@/api/queries";
 import type { AnswerSource, Interview } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
-import { BackLink } from "@/components/BackLink";
-import { Badge, DifficultyBadge } from "@/components/Badge";
+import { DifficultyBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
-import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { CodeEditor } from "@/features/workspace/CodeEditor";
 import { useDraft } from "@/features/workspace/useDraft";
@@ -26,9 +24,8 @@ import { VoiceComposer } from "@/features/voice/VoiceComposer";
 import { useVoicePrefs } from "@/features/voice/voicePrefs";
 
 import { PhaseStepper } from "./PhaseStepper";
-import { LiveRound, RoundResults } from "./QuestionRound";
-import { OVERALL_LABELS } from "./phases";
-import { RubricChart } from "./RubricChart";
+import { LiveRound } from "./QuestionRound";
+import { ReviewWorkspace } from "@/features/review/ReviewWorkspace";
 import { Transcript } from "./Transcript";
 import { formatClock, useCountdown } from "./useCountdown";
 import { Icon } from "@/components/Icon";
@@ -40,9 +37,10 @@ export default function InterviewSessionPage() {
   if (interview.isError) return <div className="page"><ErrorState error={interview.error} onRetry={() => interview.refetch()} /></div>;
   const iv = interview.data;
   const live = iv.status === "in_progress";
-  if (iv.kind === "questions") return live ? <LiveRound key={iv.id} iv={iv} /> : <RoundResults iv={iv} />;
+  if (!live) return <ReviewWorkspace iv={iv} />;
+  if (iv.kind === "questions") return <LiveRound key={iv.id} iv={iv} />;
   if (!iv.problem) return <div className="page"><ErrorState error={new Error("This interview's problem is no longer available.")} /></div>;
-  return live ? <LiveInterview key={iv.id} iv={iv} problemSlug={iv.problem.slug} /> : <InterviewResults iv={iv} problem={iv.problem} />;
+  return <LiveInterview key={iv.id} iv={iv} problemSlug={iv.problem.slug} />;
 }
 
 function LiveInterview({ iv, problemSlug }: { iv: Interview; problemSlug: string }) {
@@ -152,63 +150,6 @@ function LiveInterview({ iv, problemSlug }: { iv: Interview; problemSlug: string
             : problem.data ? <CodeEditor value={draft.code} onChange={draft.setCode} onSubmit={() => void onSend()} />
               : <LoadingState label="Loading editor…" />}
         </section>
-      </div>
-    </div>
-  );
-}
-
-function InterviewResults({ iv, problem }: { iv: Interview; problem: NonNullable<Interview["problem"]> }) {
-  const ev = iv.evaluation;
-  const overall = ev ? OVERALL_LABELS[ev.overall] : null;
-  const [showTranscript, setShowTranscript] = useState(false);
-  const ending = { completed: "Completed", expired: "Time ran out", abandoned: "Ended early", in_progress: "" }[iv.status];
-  return (
-    <div className="page interview-results">
-      <BackLink />
-      <div className="page__header">
-        <div>
-          <h1 className="page__title">Interview feedback</h1>
-          <p className="page__subtitle">{problem.title} · {ending}</p>
-        </div>
-        <div className="row">
-          <Link to="/interviews" className="btn btn--primary btn--md">Start another</Link>
-          <Link to={`/problems/${problem.slug}`} className="btn btn--secondary btn--md">Practice this problem</Link>
-        </div>
-      </div>
-
-      {ev ? (
-        <div className="interview-results__grid">
-          <Card className="stack">
-            <div className="row">
-              <h2 className="section-title">Overall</h2>
-              {overall && <Badge tone={overall.tone}>{overall.label}</Badge>}
-              <span className="subtle">confidence: {ev.confidence}</span>
-            </div>
-            <p className="interview-results__summary">{ev.summary}</p>
-            <RubricChart scores={ev.scores} />
-          </Card>
-          <div className="stack">
-            <Card className="stack">
-              <h2 className="section-title">What went well</h2>
-              <ul className="strengths">{ev.strengths.map((s) => <li key={s}>{s}</li>)}</ul>
-            </Card>
-            <Card className="stack">
-              <h2 className="section-title">Focus next time</h2>
-              <ul className="strengths">{ev.improvements.map((s) => <li key={s}>{s}</li>)}</ul>
-            </Card>
-            <p className="subtle">Feedback by: {iv.provider ?? "offline"}. It's a practice signal, not a hiring decision.</p>
-          </div>
-        </div>
-      ) : (
-        <p className="muted">No feedback was recorded for this interview.</p>
-      )}
-
-      <div className="stack interview-results__transcript">
-        <Button variant="ghost" onClick={() => setShowTranscript((s) => !s)} aria-expanded={showTranscript}>
-          {showTranscript ? "Hide transcript" : `Show transcript (${iv.turns.length} messages)`}
-        </Button>
-        {showTranscript && <Transcript turns={iv.turns} />}
-        {showTranscript && iv.final_code && <pre className="final-code">{iv.final_code}</pre>}
       </div>
     </div>
   );

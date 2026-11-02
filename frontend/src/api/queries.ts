@@ -6,7 +6,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 
 import { ApiError } from "./client";
 import { api, type ActivityFilters, type ProblemFilters, type QuestionFilters } from "./endpoints";
-import type { AIHistoryAction, AnswerSource, GoalsInput, Target, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
+import type { AIHistoryAction, AnswerSource, GoalsInput, ReviewQueue, Target, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
 
 export const queryKeys = {
   problems: (filters: ProblemFilters) => ["problems", filters] as const,
@@ -319,6 +319,40 @@ export function useTargetMutation<V>(fn: (vars: V) => Promise<Target>) {
     onSuccess: (t) => {
       qc.setQueryData(["me", "target", t.id], t);
       void qc.invalidateQueries({ queryKey: ["me", "targets"] });
+    },
+  });
+}
+
+export function useInterviewReview(id: string, enabled = true) {
+  return useQuery({ queryKey: ["me", "interview-review", id], queryFn: () => api.interviewReview(id), enabled });
+}
+
+export function useComparison(id: string, index: number) {
+  return useQuery({ queryKey: ["me", "comparison", id, index], queryFn: () => api.comparison(id, index) });
+}
+
+export function useRetryQuestion(id: string, index: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { answer: string; source: AnswerSource }) => api.retryQuestion(id, index, body),
+    onSuccess: (c) => {
+      qc.setQueryData(["me", "comparison", id, index], c);
+      void qc.invalidateQueries({ queryKey: ["me"] });
+    },
+  });
+}
+
+export function useReviewQueue(enabled = true) {
+  return useQuery({ queryKey: ["me", "review-queue"], queryFn: api.reviewQueue, enabled });
+}
+
+export function useReviewQueueMutation<V>(fn: (vars: V) => Promise<ReviewQueue>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: (q) => {
+      qc.setQueryData(["me", "review-queue"], q);
+      void qc.invalidateQueries({ queryKey: ["me", "interview-review"] });
     },
   });
 }

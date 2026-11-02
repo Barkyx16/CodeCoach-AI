@@ -40,6 +40,9 @@ import type {
   ActivityType,
   CareerAnalytics,
   ResumeOut,
+  InterviewReview,
+  Comparison,
+  ReviewQueue,
   Target,
   TargetInput,
   TargetPatch,
@@ -170,6 +173,18 @@ export const api = {
   aiHistory: (query: { problem_slug?: string; action?: AIHistoryAction; page?: number; page_size?: number } = {}) =>
     apiRequest<Page<AIHistoryItem>>("/api/v1/me/ai-history", { query }),
 
+  // interview review, retries, review queue
+  interviewReview: (id: string) => apiRequest<InterviewReview>(`/api/v1/interviews/${encodeURIComponent(id)}/review`),
+  comparison: (id: string, index: number) =>
+    apiRequest<Comparison>(`/api/v1/interviews/${encodeURIComponent(id)}/questions/${index}/comparison`),
+  retryQuestion: (id: string, index: number, body: { answer: string; source: AnswerSource }) =>
+    apiRequest<Comparison>(`/api/v1/interviews/${encodeURIComponent(id)}/questions/${index}/retries`, { method: "POST", body }),
+  reviewQueue: () => apiRequest<ReviewQueue>("/api/v1/me/reviews"),
+  addReview: (body: { track: string; question_id: string; session_id?: string | null }) =>
+    apiRequest<ReviewQueue>("/api/v1/me/reviews", { method: "POST", body }),
+  snoozeReview: (id: string, days: 1 | 3 | 7) =>
+    apiRequest<ReviewQueue>(`/api/v1/me/reviews/${encodeURIComponent(id)}/snooze`, { method: "POST", body: { days } }),
+  removeReview: (id: string) => apiRequest<ReviewQueue>(`/api/v1/me/reviews/${encodeURIComponent(id)}`, { method: "DELETE" }),
   // target roles
   targets: () => apiRequest<TargetSummary[]>("/api/v1/targets"),
   target: (id: string) => apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}`),

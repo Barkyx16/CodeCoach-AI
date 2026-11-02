@@ -1,6 +1,9 @@
 import { http, HttpResponse, type JsonBodyType } from "msw";
 import { setupServer } from "msw/node";
 
+import type { Interview } from "@/api/types";
+
+import { reviewFor } from "./review";
 import { activityFacets, activityItems, careers, hint, makePlan, nurseAnalytics, nurseGoals, nurseAnswer, nurseQuestions, page, problems, progress, queuedSubmission, review, tokenResponse, twoSum, user } from "./fixtures";
 
 export const API = "http://localhost:8000";
@@ -87,6 +90,12 @@ export const handlers = [
   }),
   http.get(`${API}/api/v1/me/activity/facets`, () => HttpResponse.json(activityFacets)),
   http.get(`${API}/api/v1/me/careers/:track/analytics`, () => HttpResponse.json(nurseAnalytics)),
+  // The review is derived from whatever the test's own interview handler returns.
+  http.get(`${API}/api/v1/interviews/:id/review`, async ({ params }) => {
+    const res = await fetch(`${API}/api/v1/interviews/${String(params.id)}`);
+    return HttpResponse.json(reviewFor((await res.json()) as Interview));
+  }),
+  http.get(`${API}/api/v1/me/reviews`, () => HttpResponse.json({ due: [], upcoming: [], ladder_days: [1, 3, 7, 14, 30], note: "" })),
   http.get(`${API}/api/v1/me/plan`, ({ request }) => HttpResponse.json(makePlan(Number(new URL(request.url).searchParams.get("minutes") ?? 15)))),
   http.get(`${API}/api/v1/me/goals`, () => HttpResponse.json(nurseGoals)),
   http.put(`${API}/api/v1/me/goals`, async ({ request }) => HttpResponse.json({ ...nurseGoals, ...((await request.json()) as object), saved: true })),
