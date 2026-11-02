@@ -548,3 +548,66 @@ class PlanItem(Base):
     resolved_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
 
     plan: Mapped[PracticePlan] = relationship(back_populates="items")
+
+
+class RoleTarget(Base):
+    """A specific role a learner is preparing for, built from a pasted job description.
+
+    The description is untrusted text: it is only stored, shown back and pattern-matched, never
+    executed or treated as instructions. Editing it keeps every recorded attempt."""
+
+    __tablename__ = "role_targets"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    track: Mapped[str] = mapped_column(String(64))
+    title: Mapped[str] = mapped_column(String(120))
+    employer: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    description: Mapped[str] = mapped_column(Text)
+    interview_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False)
+    selected: Mapped[bool] = mapped_column(Boolean, default=False)  # the one active target
+    extractor: Mapped[str] = mapped_column(String(32), default="rule-based")
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, onupdate=utcnow)
+
+    requirements: Mapped[list[TargetRequirement]] = relationship(
+        back_populates="target", cascade="all, delete-orphan", order_by="TargetRequirement.position"
+    )
+
+
+class TargetRequirement(Base):
+    __tablename__ = "target_requirements"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    target_id: Mapped[str] = mapped_column(ForeignKey("role_targets.id", ondelete="CASCADE"), index=True)
+    position: Mapped[int] = mapped_column(Integer)
+    # required_skill | preferred_skill | responsibility | experience | tool | competency
+    category: Mapped[str] = mapped_column(String(24))
+    text: Mapped[str] = mapped_column(String(300))
+    origin: Mapped[str] = mapped_column(String(12))  # explicit (in the posting) | inferred | user
+    quote: Mapped[str | None] = mapped_column(Text, nullable=True)  # the supporting posting text
+    skills: Mapped[list] = mapped_column(JSONType, default=list)  # the career skills it maps to
+    removed: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    target: Mapped[RoleTarget] = relationship(back_populates="requirements")
+
+
+class ExperienceEntry(Base):
+    """A learner's own example of their work, written by them and linked to requirements."""
+
+    __tablename__ = "experience_entries"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    target_id: Mapped[str | None] = mapped_column(
+        ForeignKey("role_targets.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    title: Mapped[str] = mapped_column(String(120))
+    situation: Mapped[str] = mapped_column(Text, default="")
+    action: Mapped[str] = mapped_column(Text, default="")
+    result: Mapped[str] = mapped_column(Text, default="")
+    requirement_ids: Mapped[list] = mapped_column(JSONType, default=list)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, onupdate=utcnow)

@@ -4762,6 +4762,907 @@
         }
       }
     },
+    "/api/v1/targets": {
+      "get": {
+        "tags": [
+          "targets"
+        ],
+        "summary": "Your saved target roles",
+        "operationId": "list_targets_api_v1_targets_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TargetSummary"
+                  },
+                  "type": "array",
+                  "title": "Response List Targets Api V1 Targets Get"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "targets"
+        ],
+        "summary": "Save a target role from a pasted job description (requirements are extracted by rules; no AI)",
+        "operationId": "create_target_api_v1_targets_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TargetIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TargetOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/targets/{target_id}": {
+      "get": {
+        "tags": [
+          "targets"
+        ],
+        "summary": "A target with its preparation map",
+        "operationId": "get_target_api_v1_targets__target_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "target_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Target Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TargetOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "targets"
+        ],
+        "summary": "Edit, archive or select a target. Editing the description keeps requirements and attempts",
+        "operationId": "update_target_api_v1_targets__target_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "target_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Target Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TargetPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TargetOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "targets"
+        ],
+        "summary": "Delete a target (attempts are kept)",
+        "operationId": "delete_target_api_v1_targets__target_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "target_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Target Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/targets/{target_id}/extract": {
+      "post": {
+        "tags": [
+          "targets"
+        ],
+        "summary": "Find requirements in the current description again (adds new ones only)",
+        "operationId": "reextract_api_v1_targets__target_id__extract_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "target_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Target Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TargetOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/targets/{target_id}/requirements": {
+      "post": {
+        "tags": [
+          "targets"
+        ],
+        "summary": "Add your own requirement",
+        "operationId": "add_requirement_api_v1_targets__target_id__requirements_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "target_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Target Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequirementIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TargetOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/targets/{target_id}/requirements/{requirement_id}": {
+      "patch": {
+        "tags": [
+          "targets"
+        ],
+        "summary": "Correct, re-map, remove or restore a requirement",
+        "operationId": "patch_requirement_api_v1_targets__target_id__requirements__requirement_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "target_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Target Id"
+            }
+          },
+          {
+            "name": "requirement_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Requirement Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequirementPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TargetOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/targets/{target_id}/experience": {
+      "post": {
+        "tags": [
+          "targets"
+        ],
+        "summary": "Add one of your own examples",
+        "operationId": "add_experience_api_v1_targets__target_id__experience_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "target_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Target Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExperienceIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TargetOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/targets/{target_id}/experience/{entry_id}": {
+      "put": {
+        "tags": [
+          "targets"
+        ],
+        "summary": "Edit one of your examples",
+        "operationId": "edit_experience_api_v1_targets__target_id__experience__entry_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "target_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Target Id"
+            }
+          },
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Entry Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExperienceIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TargetOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "targets"
+        ],
+        "summary": "Delete one of your examples",
+        "operationId": "delete_experience_api_v1_targets__target_id__experience__entry_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "target_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Target Id"
+            }
+          },
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Entry Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TargetOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/capabilities": {
       "get": {
         "tags": [
@@ -5326,6 +6227,48 @@
         ],
         "title": "AssessmentOut"
       },
+      "AttemptOut": {
+        "properties": {
+          "answer_id": {
+            "type": "string",
+            "title": "Answer Id"
+          },
+          "question_title": {
+            "type": "string",
+            "title": "Question Title"
+          },
+          "score": {
+            "type": "integer",
+            "title": "Score"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "href": {
+            "type": "string",
+            "title": "Href"
+          },
+          "requirement_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Requirement Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer_id",
+          "question_title",
+          "score",
+          "created_at",
+          "href",
+          "requirement_ids"
+        ],
+        "title": "AttemptOut"
+      },
       "Capabilities": {
         "properties": {
           "execution_enabled": {
@@ -5640,6 +6583,62 @@
           "space"
         ],
         "title": "Complexity"
+      },
+      "Coverage": {
+        "properties": {
+          "level": {
+            "type": "string",
+            "enum": [
+              "practised",
+              "some",
+              "limited",
+              "gap"
+            ],
+            "title": "Level"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "answers": {
+            "type": "integer",
+            "title": "Answers"
+          },
+          "questions_answered": {
+            "type": "integer",
+            "title": "Questions Answered"
+          },
+          "average_best_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Best Score"
+          },
+          "judged_attempts": {
+            "type": "integer",
+            "title": "Judged Attempts",
+            "default": 0
+          },
+          "passed": {
+            "type": "integer",
+            "title": "Passed",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "level",
+          "label",
+          "answers",
+          "questions_answered",
+          "average_best_score"
+        ],
+        "title": "Coverage"
       },
       "DayCount": {
         "properties": {
@@ -5973,6 +6972,105 @@
           "public_results"
         ],
         "title": "ExecutionResultOut"
+      },
+      "ExperienceIn": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "situation": {
+            "type": "string",
+            "maxLength": 1500,
+            "title": "Situation",
+            "default": ""
+          },
+          "action": {
+            "type": "string",
+            "maxLength": 1500,
+            "title": "Action",
+            "default": ""
+          },
+          "result": {
+            "type": "string",
+            "maxLength": 1500,
+            "title": "Result",
+            "default": ""
+          },
+          "requirement_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Requirement Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "ExperienceIn"
+      },
+      "ExperienceOut": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "situation": {
+            "type": "string",
+            "maxLength": 1500,
+            "title": "Situation",
+            "default": ""
+          },
+          "action": {
+            "type": "string",
+            "maxLength": 1500,
+            "title": "Action",
+            "default": ""
+          },
+          "result": {
+            "type": "string",
+            "maxLength": 1500,
+            "title": "Result",
+            "default": ""
+          },
+          "requirement_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Requirement Ids"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ExperienceOut"
       },
       "ExplainFailureRequest": {
         "properties": {
@@ -7649,6 +8747,54 @@
         ],
         "title": "PlanProgress"
       },
+      "PracticeLink": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "question",
+              "problem"
+            ],
+            "title": "Kind"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "href": {
+            "type": "string",
+            "title": "Href"
+          },
+          "why": {
+            "type": "string",
+            "title": "Why"
+          },
+          "answered": {
+            "type": "boolean",
+            "title": "Answered",
+            "default": false
+          },
+          "best_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "title",
+          "href",
+          "why"
+        ],
+        "title": "PracticeLink"
+      },
       "ProblemDetail": {
         "properties": {
           "slug": {
@@ -8286,6 +9432,199 @@
         ],
         "title": "RegisterRequest"
       },
+      "RequirementIn": {
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "required_skill",
+              "preferred_skill",
+              "responsibility",
+              "experience",
+              "tool",
+              "competency"
+            ],
+            "title": "Category"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 2,
+            "title": "Text"
+          },
+          "skills": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 6
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skills",
+            "description": "Career skills it maps to (default: matched)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "category",
+          "text"
+        ],
+        "title": "RequirementIn"
+      },
+      "RequirementOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "required_skill",
+              "preferred_skill",
+              "responsibility",
+              "experience",
+              "tool",
+              "competency"
+            ],
+            "title": "Category"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "explicit",
+              "inferred",
+              "user"
+            ],
+            "title": "Origin"
+          },
+          "quote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote",
+            "description": "The line of the posting this came from (explicit only)"
+          },
+          "quote_in_description": {
+            "type": "boolean",
+            "title": "Quote In Description",
+            "description": "False if the description was edited and the line is gone"
+          },
+          "skills": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Skills"
+          },
+          "removed": {
+            "type": "boolean",
+            "title": "Removed"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/Coverage"
+          },
+          "practice": {
+            "items": {
+              "$ref": "#/components/schemas/PracticeLink"
+            },
+            "type": "array",
+            "title": "Practice"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "category",
+          "text",
+          "origin",
+          "quote",
+          "quote_in_description",
+          "skills",
+          "removed",
+          "coverage",
+          "practice"
+        ],
+        "title": "RequirementOut"
+      },
+      "RequirementPatch": {
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "required_skill",
+                  "preferred_skill",
+                  "responsibility",
+                  "experience",
+                  "tool",
+                  "competency"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "skills": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 6
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skills"
+          },
+          "removed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removed"
+          }
+        },
+        "type": "object",
+        "title": "RequirementPatch"
+      },
       "ResumeInterview": {
         "properties": {
           "id": {
@@ -8808,6 +10147,37 @@
         ],
         "title": "SelfRating"
       },
+      "SessionPlan": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope",
+            "description": "What the session covers, shown before it starts"
+          },
+          "round": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoundStart"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null when there's nothing in the bank to practise"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "scope",
+          "round"
+        ],
+        "title": "SessionPlan"
+      },
       "Signature": {
         "properties": {
           "method": {
@@ -9065,6 +10435,417 @@
         ],
         "title": "SubmissionStatus",
         "description": "Judge status model from the blueprint (section 07)."
+      },
+      "TargetIn": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "employer": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Employer"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Description",
+            "description": "Pasted job description (plain text)"
+          },
+          "track": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track",
+            "description": "Default: your current career"
+          },
+          "interview_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interview Date"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "description"
+        ],
+        "title": "TargetIn"
+      },
+      "TargetOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "employer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Employer"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "career_title": {
+            "type": "string",
+            "title": "Career Title"
+          },
+          "interview_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interview Date"
+          },
+          "archived": {
+            "type": "boolean",
+            "title": "Archived"
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected"
+          },
+          "requirements": {
+            "type": "integer",
+            "title": "Requirements"
+          },
+          "gaps": {
+            "type": "integer",
+            "title": "Gaps"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "extractor": {
+            "type": "string",
+            "title": "Extractor",
+            "description": "How requirements were found (rule-based; no AI)"
+          },
+          "requirement_list": {
+            "items": {
+              "$ref": "#/components/schemas/RequirementOut"
+            },
+            "type": "array",
+            "title": "Requirement List"
+          },
+          "next_activity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PracticeLink"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "targeted_session": {
+            "$ref": "#/components/schemas/SessionPlan"
+          },
+          "mock_interview": {
+            "$ref": "#/components/schemas/SessionPlan"
+          },
+          "recent_attempts": {
+            "items": {
+              "$ref": "#/components/schemas/AttemptOut"
+            },
+            "type": "array",
+            "title": "Recent Attempts"
+          },
+          "experience": {
+            "items": {
+              "$ref": "#/components/schemas/ExperienceOut"
+            },
+            "type": "array",
+            "title": "Experience"
+          },
+          "days_to_interview": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days To Interview"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "employer",
+          "track",
+          "career_title",
+          "interview_date",
+          "archived",
+          "selected",
+          "requirements",
+          "gaps",
+          "created_at",
+          "updated_at",
+          "description",
+          "notes",
+          "extractor",
+          "requirement_list",
+          "next_activity",
+          "targeted_session",
+          "mock_interview",
+          "recent_attempts",
+          "experience",
+          "days_to_interview"
+        ],
+        "title": "TargetOut"
+      },
+      "TargetPatch": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "employer": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Employer"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20000,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "interview_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interview Date"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "archived": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived"
+          },
+          "selected": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected",
+            "description": "Make this your active target"
+          }
+        },
+        "type": "object",
+        "title": "TargetPatch"
+      },
+      "TargetSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "employer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Employer"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "career_title": {
+            "type": "string",
+            "title": "Career Title"
+          },
+          "interview_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interview Date"
+          },
+          "archived": {
+            "type": "boolean",
+            "title": "Archived"
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected"
+          },
+          "requirements": {
+            "type": "integer",
+            "title": "Requirements"
+          },
+          "gaps": {
+            "type": "integer",
+            "title": "Gaps"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "employer",
+          "track",
+          "career_title",
+          "interview_date",
+          "archived",
+          "selected",
+          "requirements",
+          "gaps",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "TargetSummary"
       },
       "TodayOut": {
         "properties": {

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.models import (
     AIInteraction,
+    ExperienceEntry,
     PracticeAnswer,
     PracticeGoal,
     PracticeMode,
@@ -16,6 +17,7 @@ from app.models import (
     PracticeSession,
     Problem,
     ProgressEvent,
+    RoleTarget,
     Submission,
     User,
 )
@@ -49,6 +51,10 @@ def export_user_data(db: Session, user: User) -> dict:
         .where(PracticePlan.user_id == user.id)
         .order_by(PracticePlan.track, PracticePlan.version)
     ).all()
+    targets = db.scalars(
+        select(RoleTarget).options(selectinload(RoleTarget.requirements)).where(RoleTarget.user_id == user.id)
+    ).all()
+    experience = db.scalars(select(ExperienceEntry).where(ExperienceEntry.user_id == user.id)).all()
     events = db.scalars(
         select(ProgressEvent).where(ProgressEvent.user_id == user.id).order_by(ProgressEvent.created_at)
     ).all()
@@ -188,5 +194,34 @@ def export_user_data(db: Session, user: User) -> dict:
                 ],
             }
             for p in plans
+        ],
+        "target_roles": [
+            {
+                "career": t.track,
+                "title": t.title,
+                "employer": t.employer,
+                "description": t.description,
+                "interview_date": t.interview_date.isoformat() if t.interview_date else None,
+                "notes": t.notes,
+                "archived": t.archived,
+                "requirements": [
+                    {
+                        "category": r.category,
+                        "text": r.text,
+                        "origin": r.origin,
+                        "quote": r.quote,
+                        "skills": r.skills,
+                        "removed": r.removed,
+                    }
+                    for r in t.requirements
+                ],
+                "experience": [
+                    {"title": e.title, "situation": e.situation, "action": e.action, "result": e.result}
+                    for e in experience
+                    if e.target_id == t.id
+                ],
+                "created_at": iso(t.created_at),
+            }
+            for t in targets
         ],
     }
