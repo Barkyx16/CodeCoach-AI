@@ -770,6 +770,7 @@ gVisor judge journey. The explanation card now scrolls into view in its new scro
   tests; real-browser tests for reset-by-email and guest upgrade; new pages pass the WCAG scan.
 - Totals: 418 backend tests (104 in the real gVisor sandbox), 33 runner, 98 frontend,
   16 Playwright tests (+ the opt-in controls audit).
+- **CI on GitHub: all 7 jobs green**, including reset-by-email and guest upgrade in a real browser.
 
 **Not yet verified / not built:**
 - Real SMTP delivery (tested with a fake SMTP client and the file backend; needs a provider).
