@@ -636,6 +636,8 @@ gVisor judge journey. The explanation card now scrolls into view in its new scro
   deterministic regression test reproduces it.
 - Totals: 379 backend tests (104 in the real gVisor sandbox), 30 runner,
   81 frontend, 11 Playwright tests.
+- **CI on GitHub: all 7 jobs green**, including all 22 reference solutions and 66 eval labels
+  judged in real gVisor on GitHub's runners.
 
 **Not yet verified / not built:**
 - The cause of the one-off slow cold start (couldn't reproduce; mitigated, not explained).
