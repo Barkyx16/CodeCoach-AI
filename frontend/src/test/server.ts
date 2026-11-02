@@ -10,16 +10,27 @@ export const cookieJar = { hasSession: false };
 
 const signIn = <T extends JsonBodyType>(body: T, init?: ResponseInit) => { cookieJar.hasSession = true; return HttpResponse.json(body, init); };
 
+/** The fake backend's search: topic, then every word of q in the title or summary. */
+export function filterProblems<P extends { title: string; summary: string; topics: string[] }>(list: P[], params: URLSearchParams): P[] {
+  const topic = params.get("topic");
+  const words = (params.get("q") ?? "").toLowerCase().split(/\s+/).filter(Boolean);
+  return list.filter((p) => (!topic || p.topics.includes(topic))
+    && words.every((w) => `${p.title} ${p.summary}`.toLowerCase().includes(w)));
+}
+
 export const handlers = [
   http.get(`${API}/api/v1/interviews`, () => HttpResponse.json(page([]))),
+  http.get(`${API}/api/v1/problems/counts`, ({ request }) => {
+    const items = filterProblems(problems, new URL(request.url).searchParams);
+    const count = (d: string) => items.filter((p) => p.difficulty === d).length;
+    return HttpResponse.json({ easy: count("easy"), medium: count("medium"), hard: count("hard") });
+  }),
   http.get(`${API}/api/v1/problems`, ({ request }) => {
-    const url = new URL(request.url);
-    const topic = url.searchParams.get("topic");
-    const difficulty = url.searchParams.get("difficulty");
-    const q = url.searchParams.get("q")?.toLowerCase();
-    const items = problems.filter((p) => (!topic || p.topics.includes(topic)) && (!difficulty || p.difficulty === difficulty)
-      && (!q || p.title.toLowerCase().includes(q)));
-    return HttpResponse.json(page(items));
+    const params = new URL(request.url).searchParams;
+    const difficulty = params.get("difficulty");
+    const items = filterProblems(problems, params).filter((p) => !difficulty || p.difficulty === difficulty);
+    const size = Number(params.get("page_size") ?? 20);
+    return HttpResponse.json({ ...page(items.slice(0, size)), total: items.length, page_size: size });
   }),
   http.get(`${API}/api/v1/capabilities`, () => HttpResponse.json({ execution_enabled: false, ai_provider: "offline", guest_retention_days: 30 })),
   http.get(`${API}/api/v1/topics`, () => HttpResponse.json([{ topic: "arrays", count: 3 }, { topic: "hash-maps", count: 1 }])),

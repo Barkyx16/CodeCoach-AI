@@ -1280,10 +1280,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Case-insensitive search in title and summary",
+              "description": "Keywords or a plain description, e.g. 'reverse words' or 'dp grid'. Matches titles, topics, summaries and statements; results are ranked by relevance.",
               "title": "Q"
             },
-            "description": "Case-insensitive search in title and summary"
+            "description": "Keywords or a plain description, e.g. 'reverse words' or 'dp grid'. Matches titles, topics, summaries and statements; results are ranked by relevance."
           },
           {
             "name": "page",
@@ -1302,7 +1302,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "maximum": 100,
+              "maximum": 200,
               "minimum": 1,
               "default": 20,
               "title": "Page Size"
@@ -1316,6 +1316,73 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Page_ProblemSummary_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/problems/counts": {
+      "get": {
+        "tags": [
+          "problems"
+        ],
+        "summary": "How many problems match the filters, per difficulty (for the library tabs)",
+        "operationId": "count_problems_api_v1_problems_counts_get",
+        "parameters": [
+          {
+            "name": "topic",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 40
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Topic"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DifficultyCounts"
                 }
               }
             }
@@ -3330,6 +3397,29 @@
           "hard"
         ],
         "title": "Difficulty"
+      },
+      "DifficultyCounts": {
+        "properties": {
+          "easy": {
+            "type": "integer",
+            "title": "Easy"
+          },
+          "medium": {
+            "type": "integer",
+            "title": "Medium"
+          },
+          "hard": {
+            "type": "integer",
+            "title": "Hard"
+          }
+        },
+        "type": "object",
+        "required": [
+          "easy",
+          "medium",
+          "hard"
+        ],
+        "title": "DifficultyCounts"
       },
       "DifficultyProgress": {
         "properties": {

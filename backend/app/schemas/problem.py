@@ -51,3 +51,9 @@ class ProblemDetail(ProblemSummary):
 class TopicCount(APIModel):
     topic: str
     count: int
+
+
+class DifficultyCounts(APIModel):
+    easy: int
+    medium: int
+    hard: int

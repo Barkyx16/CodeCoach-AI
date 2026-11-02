@@ -315,6 +315,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/problems/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How many problems match the filters, per difficulty (for the library tabs) */
+        get: operations["count_problems_api_v1_problems_counts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/topics": {
         parameters: {
             query?: never;
@@ -795,6 +812,15 @@ export interface components {
          * @enum {string}
          */
         Difficulty: "easy" | "medium" | "hard";
+        /** DifficultyCounts */
+        DifficultyCounts: {
+            /** Easy */
+            easy: number;
+            /** Medium */
+            medium: number;
+            /** Hard */
+            hard: number;
+        };
         /** DifficultyProgress */
         DifficultyProgress: {
             /** Difficulty */
@@ -2693,7 +2719,7 @@ export interface operations {
                 difficulty?: components["schemas"]["Difficulty"] | null;
                 /** @description Exact topic slug, e.g. 'hash-maps' */
                 topic?: string | null;
-                /** @description Case-insensitive search in title and summary */
+                /** @description Keywords or a plain description, e.g. 'reverse words' or 'dp grid'. Matches titles, topics, summaries and statements; results are ranked by relevance. */
                 q?: string | null;
                 page?: number;
                 page_size?: number;
@@ -2711,6 +2737,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_ProblemSummary_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    count_problems_api_v1_problems_counts_get: {
+        parameters: {
+            query?: {
+                topic?: string | null;
+                q?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DifficultyCounts"];
                 };
             };
             /** @description Validation Error */

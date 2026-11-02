@@ -33,6 +33,16 @@
 .problems .chips { gap: 6px; padding: 2px 0; }
 .problems .chip { padding: 4px 10px; border-radius: 7px; font-size: 11px; min-height: 28px; }
 .problems .chip__count { margin-left: 5px; }
+.filters--single { grid-template-columns: minmax(0, 1fr); }
+.search-examples { margin-top: -6px; font-size: 12px; }
+.search-examples .link-button { font-size: 12px; color: var(--color-text-muted); text-decoration-color: var(--color-border-strong); }
+.search-examples .link-button:hover { color: var(--color-link); }
+.difficulty-tabs { margin-bottom: 12px; }
+.difficulty-tabs .tab { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; padding: 8px 14px; }
+.difficulty-tabs__count { min-width: 24px; padding: 1px 7px; border-radius: 999px; background: var(--color-surface-raised); color: var(--color-text-subtle); font-size: 11px; font-variant-numeric: tabular-nums; text-align: center; }
+.difficulty-tabs .tab--active .difficulty-tabs__count { background: var(--color-primary-soft); color: var(--color-link); }
+.difficulty-panel:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-lg); }
+.view-more { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 4px 0; }
 .active-filters { display: flex; align-items: center; justify-content: space-between; color: var(--color-text-muted); font-size: 12px; padding: 0 4px; }
 .problem-list { border-color: var(--color-border); }
 .problem-row { padding: 11px 16px; gap: 14px; border-left: 2px solid transparent; transition: background var(--duration-fast), border-color var(--duration-fast); }

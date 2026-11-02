@@ -11,6 +11,7 @@ export type ProblemSummary = S["ProblemSummary"];
 export type ProblemDetail = S["ProblemDetail"];
 export type Difficulty = S["Difficulty"];
 export type TopicCount = S["TopicCount"];
+export type DifficultyCounts = S["DifficultyCounts"];
 export type PublicTestCase = S["PublicTestCase"];
 export type Example = S["Example"];
 

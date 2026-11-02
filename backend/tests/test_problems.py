@@ -70,3 +70,39 @@ def test_unknown_problem(client):
     r = client.get("/api/v1/problems/nope")
     assert r.status_code == 404
     assert r.json()["error"]["message"] == "Problem 'nope' not found"
+
+
+def slugs(client, **params) -> list[str]:
+    return [
+        i["slug"] for i in client.get("/api/v1/problems", params={"page_size": 200, **params}).json()["items"]
+    ]
+
+
+def test_search_understands_plain_descriptions_and_abbreviations(client):
+    assert slugs(client, q="find the biggest number")[0] == "find-largest-number"
+    assert slugs(client, q="longest substring without repeats")[0] == "longest-unique-substring"
+    assert slugs(client, q="stack brackets") == ["valid-parentheses"]
+    dp = slugs(client, q="dp")
+    assert "coin-change" in dp and "climbing-stairs" in dp  # 'dp' means dynamic programming
+    assert "two-sum" in slugs(client, q="hashmap")
+
+
+def test_search_ranks_title_matches_first_and_requires_every_word_when_possible(client):
+    results = slugs(client, q="sorted array search")
+    assert results[:2] == ["search-rotated-array", "binary-search"] or results[0] == "binary-search"
+    assert slugs(client, q="zzz") == []
+    # Too specific to match everything: falls back to problems with most of the words.
+    assert "reverse-string" in slugs(client, q="reverse string quantum")
+
+
+def test_counts_per_difficulty_follow_the_same_filters(client):
+    all_counts = client.get("/api/v1/problems/counts").json()
+    total = client.get("/api/v1/problems", params={"page_size": 1}).json()["total"]
+    assert sum(all_counts.values()) == total
+    easy = client.get("/api/v1/problems", params={"difficulty": "easy", "page_size": 1}).json()["total"]
+    assert all_counts["easy"] == easy
+    searched = client.get("/api/v1/problems/counts", params={"q": "dp"}).json()
+    found = slugs(client, q="dp")
+    assert sum(searched.values()) == len(found)
+    topic = client.get("/api/v1/problems/counts", params={"topic": "stacks"}).json()
+    assert sum(topic.values()) == len(slugs(client, topic="stacks"))

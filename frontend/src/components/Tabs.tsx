@@ -1,6 +1,6 @@
 import { useId, type ReactNode, type KeyboardEvent } from "react";
 
-interface Tab<T extends string> { id: T; label: string }
+interface Tab<T extends string> { id: T; label: ReactNode }
 
 /** Automatic activation with roving focus, as specified by the ARIA tabs pattern. */
 export function Tabs<T extends string>({ label, tabs, value, onChange, children, className = "", listClassName = "", panelClassName = "" }: {

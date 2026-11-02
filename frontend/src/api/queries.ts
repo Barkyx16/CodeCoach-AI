@@ -10,6 +10,7 @@ import type { AIHistoryAction, HintRequest, Interview, InterviewStart, ReviewReq
 
 export const queryKeys = {
   problems: (filters: ProblemFilters) => ["problems", filters] as const,
+  problemCounts: (filters: object) => ["problems", "counts", filters] as const,
   topics: ["topics"] as const,
   capabilities: ["capabilities"] as const,
   problem: (slug: string) => ["problem", slug] as const,
@@ -33,6 +34,16 @@ export function useProblems(filters: ProblemFilters) {
   return useQuery({
     queryKey: queryKeys.problems(filters),
     queryFn: ({ signal }) => api.problems(filters, signal),
+    placeholderData: keepPreviousData,
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** How many problems match the topic and search, per difficulty (the library tab counts). */
+export function useProblemCounts(filters: { topic?: string; q?: string }) {
+  return useQuery({
+    queryKey: queryKeys.problemCounts(filters),
+    queryFn: ({ signal }) => api.problemCounts(filters, signal),
     placeholderData: keepPreviousData,
     staleTime: 5 * 60_000,
   });

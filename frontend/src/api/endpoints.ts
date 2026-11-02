@@ -27,8 +27,7 @@ import type {
   SubmissionStatus,
   TokenResponse,
   TopicCount,
-  User,
-} from "./types";
+  User, DifficultyCounts } from "./types";
 
 export interface ProblemFilters {
   difficulty?: Difficulty | "";
@@ -84,6 +83,8 @@ export const api = {
   // problems
   problems: (filters: ProblemFilters = {}, signal?: AbortSignal) =>
     apiRequest<Page<ProblemSummary>>("/api/v1/problems", { query: { ...filters }, signal }),
+  problemCounts: (filters: Pick<ProblemFilters, "topic" | "q"> = {}, signal?: AbortSignal) =>
+    apiRequest<DifficultyCounts>("/api/v1/problems/counts", { query: { ...filters }, signal }),
   topics: () => apiRequest<TopicCount[]>("/api/v1/topics"),
   problem: (slug: string, signal?: AbortSignal) =>
     apiRequest<ProblemDetail>(`/api/v1/problems/${encodeURIComponent(slug)}`, { signal }),
