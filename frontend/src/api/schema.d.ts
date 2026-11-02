@@ -657,6 +657,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/interviews/{interview_id}/answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Question rounds: answer the current question (idempotent per question) */
+        post: operations["answer_question_api_v1_interviews__interview_id__answers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interviews/{interview_id}/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Question rounds: skip the current question (idempotent per question) */
+        post: operations["skip_question_api_v1_interviews__interview_id__skip_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/interviews/{interview_id}/finish": {
         parameters: {
             query?: never;
@@ -992,6 +1026,32 @@ export interface components {
             /** Solved */
             solved: number;
         };
+        /**
+         * Engagement
+         * @description A simulated interviewer's read of one answer, built only from what the answer contains.
+         */
+        Engagement: {
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "following" | "more_detail" | "explore_further" | "not_enough_evidence";
+            /**
+             * Label
+             * @description e.g. 'Looking for more detail'
+             */
+            label: string;
+            /**
+             * Reason
+             * @description One actionable sentence that refers to the answer
+             */
+            reason: string;
+            /**
+             * Evidence
+             * @description The signals found in (or missing from) the answer
+             */
+            evidence: string[];
+        };
         /** ErrorBody */
         ErrorBody: {
             /**
@@ -1238,11 +1298,23 @@ export interface components {
              * @description Current editor contents
              */
             code?: string | null;
+            /**
+             * Source
+             * @description How the text was produced. Recorded for review only
+             * @default typed
+             * @enum {string}
+             */
+            source: "typed" | "voice" | "mixed";
         };
         /** InterviewOut */
         InterviewOut: {
             /** Id */
             id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "coding" | "questions";
             status: components["schemas"]["InterviewStatus"];
             phase: components["schemas"]["InterviewPhase"] | null;
             /**
@@ -1252,7 +1324,22 @@ export interface components {
             phase_index: number;
             /** Phase Guide */
             phase_guide: string | null;
-            problem: components["schemas"]["InterviewProblem"];
+            /** @description Coding interviews only */
+            problem: components["schemas"]["InterviewProblem"] | null;
+            /**
+             * Track
+             * @description Question rounds: the career
+             */
+            track?: string | null;
+            /** Career Title */
+            career_title?: string | null;
+            /**
+             * Questions
+             * @description Question rounds only; empty for coding interviews
+             */
+            questions: components["schemas"]["RoundQuestion"][];
+            /** @description Question rounds only */
+            round_summary?: components["schemas"]["RoundSummary"] | null;
             /** Duration Seconds */
             duration_seconds: number;
             /**
@@ -1296,10 +1383,24 @@ export interface components {
         /** InterviewStart */
         InterviewStart: {
             /**
+             * Kind
+             * @description coding: one problem with an AI interviewer. questions: five of a career's questions
+             * @default coding
+             * @enum {string}
+             */
+            kind: "coding" | "questions";
+            /**
              * Problem Slug
-             * @description Omit to let CodeCoach pick a recommended problem
+             * @description coding: omit to let CodeCoach pick a recommended problem
              */
             problem_slug?: string | null;
+            /**
+             * Track
+             * @description questions: the career (default: your own)
+             */
+            track?: string | null;
+            /** @description questions: default easy */
+            difficulty?: components["schemas"]["Difficulty"] | null;
             /**
              * Duration Minutes
              * @default 30
@@ -1315,8 +1416,17 @@ export interface components {
         InterviewSummary: {
             /** Id */
             id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "coding" | "questions";
             status: components["schemas"]["InterviewStatus"];
-            problem: components["schemas"]["InterviewProblem"];
+            problem: components["schemas"]["InterviewProblem"] | null;
+            /** Track */
+            track?: string | null;
+            /** Career Title */
+            career_title?: string | null;
             /**
              * Started At
              * Format: date-time
@@ -1728,6 +1838,70 @@ export interface components {
              */
             disclaimer: string;
         };
+        /** RoundAnswer */
+        RoundAnswer: {
+            /**
+             * Question Index
+             * @description Must be the question currently being asked
+             */
+            question_index: number;
+            /** Answer */
+            answer: string;
+            /**
+             * Source
+             * @description How the text was produced. Recorded for review only; it never affects scoring
+             * @default typed
+             * @enum {string}
+             */
+            source: "typed" | "voice" | "mixed";
+        };
+        /** RoundQuestion */
+        RoundQuestion: {
+            /** Index */
+            index: number;
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Prompt */
+            prompt: string;
+            /** Kind */
+            kind: string;
+            difficulty: components["schemas"]["Difficulty"];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "current" | "answered" | "skipped";
+            answer?: components["schemas"]["AnswerOut"] | null;
+        };
+        /** RoundSkip */
+        RoundSkip: {
+            /** Question Index */
+            question_index: number;
+        };
+        /** RoundSummary */
+        RoundSummary: {
+            /** Answered */
+            answered: number;
+            /** Skipped */
+            skipped: number;
+            /**
+             * Unanswered
+             * @description Never reached, e.g. the interview ended early or time ran out
+             */
+            unanswered: number;
+            /**
+             * Average Score
+             * @description Mean score of answered questions; null if none
+             */
+            average_score: number | null;
+            /**
+             * Focus
+             * @description Rubric points missed most often, most frequent first
+             */
+            focus: string[];
+        };
         /** RubricScore */
         RubricScore: {
             /**
@@ -1895,7 +2069,8 @@ export interface components {
             /** Seq */
             seq: number;
             role: components["schemas"]["TurnRole"];
-            phase: components["schemas"]["InterviewPhase"];
+            /** @description Coding interviews only */
+            phase: components["schemas"]["InterviewPhase"] | null;
             /** Content */
             content: string;
             /**
@@ -1903,6 +2078,20 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Question Index */
+            question_index?: number | null;
+            /**
+             * Source
+             * @description Candidate turns: typed or voice
+             */
+            source?: ("typed" | "voice" | "mixed") | null;
+            /**
+             * Skipped
+             * @default false
+             */
+            skipped: boolean;
+            /** @description Candidate turns: simulated engagement */
+            engagement?: components["schemas"]["Engagement"] | null;
         };
         /**
          * TurnRole
@@ -4256,6 +4445,166 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["InterviewMessage"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    answer_question_api_v1_interviews__interview_id__answers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoundAnswer"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    skip_question_api_v1_interviews__interview_id__skip_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoundSkip"];
             };
         };
         responses: {

@@ -11,6 +11,8 @@ from app.schemas.interview import (
     InterviewOut,
     InterviewStart,
     InterviewSummary,
+    RoundAnswer,
+    RoundSkip,
 )
 from app.services.interviews import InterviewService
 
@@ -21,7 +23,9 @@ _ERRORS = error_responses(400, 401, 404, 409, 422, 429)
 def get_interviews(
     request: Request, db: Session = Depends(get_db), settings: Settings = Depends(get_settings_dep)
 ) -> InterviewService:
-    return InterviewService(db, settings, request.app.state.ai_provider)
+    return InterviewService(
+        db, settings, request.app.state.ai_provider, getattr(request.app.state, "practice_limiter", None)
+    )
 
 
 @router.post(
@@ -74,6 +78,36 @@ def respond(
     svc: InterviewService = Depends(get_interviews),
 ) -> InterviewOut:
     return svc.respond(user, interview_id, body)
+
+
+@router.post(
+    "/{interview_id}/answers",
+    response_model=InterviewOut,
+    responses=_ERRORS,
+    summary="Question rounds: answer the current question (idempotent per question)",
+)
+def answer_question(
+    interview_id: str,
+    body: RoundAnswer,
+    user: User = Depends(get_current_user),
+    svc: InterviewService = Depends(get_interviews),
+) -> InterviewOut:
+    return svc.answer_question(user, interview_id, body)
+
+
+@router.post(
+    "/{interview_id}/skip",
+    response_model=InterviewOut,
+    responses=_ERRORS,
+    summary="Question rounds: skip the current question (idempotent per question)",
+)
+def skip_question(
+    interview_id: str,
+    body: RoundSkip,
+    user: User = Depends(get_current_user),
+    svc: InterviewService = Depends(get_interviews),
+) -> InterviewOut:
+    return svc.skip_question(user, interview_id, body)
 
 
 @router.post(

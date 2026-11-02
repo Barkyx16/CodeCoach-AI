@@ -8,13 +8,13 @@ import { renderApp } from "../render";
 import { API, server } from "../server";
 
 const base = (): Interview => ({
-  id: "iv-1", status: "in_progress", phase: "clarify", phase_index: 0,
+  id: "iv-1", kind: "coding", questions: [], status: "in_progress", phase: "clarify", phase_index: 0,
   phase_guide: "Restate the problem and ask clarifying questions about inputs, outputs and edge cases.",
   problem: { slug: "two-sum", title: "Two Sum", difficulty: "easy" },
   duration_seconds: 1800, started_at: new Date().toISOString(),
   deadline_at: new Date(Date.now() + 1800_000).toISOString(), ended_at: null,
   seconds_remaining: 1800, candidate_turns_remaining: 30, provider: "offline",
-  turns: [{ seq: 0, role: "interviewer", phase: "clarify", content: "Hi! Tell me how you understand the problem.", created_at: new Date().toISOString() }],
+  turns: [{ seq: 0, role: "interviewer", phase: "clarify", content: "Hi! Tell me how you understand the problem.", created_at: new Date().toISOString(), skipped: false }],
   final_code: null, evaluation: null,
 });
 
@@ -44,8 +44,8 @@ function liveInterviewServer() {
       iv = {
         ...iv, phase: "approach", phase_index: 1, candidate_turns_remaining: iv.candidate_turns_remaining - 1,
         turns: [...iv.turns,
-          { seq: n, role: "candidate", phase: "clarify", content: body.message, created_at: new Date().toISOString() },
-          { seq: n + 1, role: "interviewer", phase: "approach", content: "Good question. How would you approach it?", created_at: new Date().toISOString() }],
+          { seq: n, role: "candidate", phase: "clarify", content: body.message, created_at: new Date().toISOString(), skipped: false },
+          { seq: n + 1, role: "interviewer", phase: "approach", content: "Good question. How would you approach it?", created_at: new Date().toISOString(), skipped: false }],
       };
       return HttpResponse.json(iv);
     }),
@@ -112,7 +112,7 @@ describe("Mock interview", () => {
     const gate = new Promise<void>((resolve) => { release = resolve; });
     const withAnswer = (text: string): Interview => {
       const iv = base();
-      return { ...iv, turns: [...iv.turns, { seq: 1, role: "candidate", phase: "clarify", content: text, created_at: new Date().toISOString() }] };
+      return { ...iv, turns: [...iv.turns, { seq: 1, role: "candidate", phase: "clarify", content: text, created_at: new Date().toISOString(), skipped: false }] };
     };
     server.use(
       http.get(`${API}/api/v1/interviews/iv-1`, () => HttpResponse.json(base())),

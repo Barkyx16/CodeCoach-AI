@@ -12,6 +12,9 @@ Rules
   back to the offline scorer when the budget is used up) so a learner never loses feedback for
   a finished session.
 - Transcript turns are stored; prompts are not.
+
+Question rounds (kind="questions", see question_rounds.py) share this service's loading, ownership,
+deadline and one-active-interview rules; they have no phases and make no AI calls.
 """
 
 from __future__ import annotations
@@ -21,6 +24,7 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.careers import CATALOG
 from app.config import Settings
 from app.errors import AppError, ConflictError, NotFoundError, RateLimitedError
 from app.models import (
@@ -39,23 +43,30 @@ from app.models import (
 from app.schemas.common import Page
 from app.schemas.interview import (
     PHASE_GUIDE,
+    Engagement,
     InterviewEvaluation,
     InterviewFinish,
+    InterviewKind,
     InterviewMessage,
     InterviewOut,
     InterviewProblem,
     InterviewStart,
     InterviewSummary,
+    RoundAnswer,
+    RoundSkip,
     TurnOut,
 )
+from app.services import engagement
 from app.services.ai.base import CoachProvider, InterviewContext, ProviderResult, TranscriptTurn
 from app.services.ai.offline import OfflineCoach
 from app.services.ai.service import CoachService, problem_context, sanitize_code
 from app.services.ai.static_analysis import analyze
 from app.services.progress import ProgressService
+from app.services.question_rounds import QuestionRounds
 
 MAX_CANDIDATE_TURNS = 30
 PHASES = list(InterviewPhase)
+INTERVIEW_MODES = (PracticeMode.INTERVIEW, PracticeMode.QUESTIONS)
 
 
 def _now() -> datetime:
@@ -63,10 +74,11 @@ def _now() -> datetime:
 
 
 class InterviewService:
-    def __init__(self, db: Session, settings: Settings, provider: CoachProvider):
+    def __init__(self, db: Session, settings: Settings, provider: CoachProvider, practice_limiter=None):
         self.db = db
         self.settings = settings
         self.coach = CoachService(db, settings, provider)
+        self.rounds = QuestionRounds(db, practice_limiter)
 
     # --- queries ----------------------------------------------------------------------
 
@@ -77,7 +89,7 @@ class InterviewService:
 
     def list(self, user: User, page: int, page_size: int) -> Page[InterviewSummary]:
         base = select(PracticeSession).where(
-            PracticeSession.user_id == user.id, PracticeSession.mode == PracticeMode.INTERVIEW
+            PracticeSession.user_id == user.id, PracticeSession.mode.in_(INTERVIEW_MODES)
         )
         total = self.db.scalar(select(func.count()).select_from(base.subquery())) or 0
         rows = self.db.scalars(
@@ -98,7 +110,7 @@ class InterviewService:
         active = self.db.scalar(
             select(PracticeSession).where(
                 PracticeSession.user_id == user.id,
-                PracticeSession.mode == PracticeMode.INTERVIEW,
+                PracticeSession.mode.in_(INTERVIEW_MODES),
                 PracticeSession.status == InterviewStatus.IN_PROGRESS,
             )
         )
@@ -110,6 +122,11 @@ class InterviewService:
                     code="interview_in_progress",
                     details={"interview_id": active.id},
                 )
+
+        if body.kind == "questions":
+            session = self.rounds.start(user, body)
+            self.db.commit()
+            return self._to_out(session)
 
         problem = self._pick_problem(user, body.problem_slug)
         self.coach.check_budget(user)
@@ -141,6 +158,7 @@ class InterviewService:
         session = self._load(user, interview_id)
         self._expire_if_due(user, session)
         self._require_in_progress(session)
+        self._require_kind(session, PracticeMode.INTERVIEW)
         candidate_turns = sum(1 for t in session.turns if t.role == TurnRole.CANDIDATE)
         if candidate_turns >= MAX_CANDIDATE_TURNS:
             raise AppError(
@@ -153,7 +171,15 @@ class InterviewService:
         code = sanitize_code(body.code or session.final_code or "", self.settings.ai_max_code_chars)
         if body.code is not None:
             session.final_code = body.code
-        self._add_turn(session, TurnRole.CANDIDATE, body.message.strip())
+        message = body.message.strip()
+        expected = (session.problem.expected_complexity or {}).get("time") if session.problem else None
+        read = engagement.for_coding_message(session.phase, message, expected)
+        self._add_turn(
+            session,
+            TurnRole.CANDIDATE,
+            message,
+            meta={"source": body.source, "engagement": read.model_dump(mode="json")},
+        )
         self.db.flush()
 
         ctx = self._context(session, code=code)
@@ -166,11 +192,37 @@ class InterviewService:
         self.db.commit()
         return self._to_out(session)
 
+    def answer_question(self, user: User, interview_id: str, body: RoundAnswer) -> InterviewOut:
+        session = self._load(user, interview_id)
+        self._expire_if_due(user, session)
+        self._require_kind(session, PracticeMode.QUESTIONS)
+        if not self.rounds._already_handled(session, body.question_index):
+            self._require_in_progress(session)
+        self.rounds.answer(user, session, body)
+        self.db.commit()
+        return self._to_out(session)
+
+    def skip_question(self, user: User, interview_id: str, body: RoundSkip) -> InterviewOut:
+        session = self._load(user, interview_id)
+        self._expire_if_due(user, session)
+        self._require_kind(session, PracticeMode.QUESTIONS)
+        if not self.rounds._already_handled(session, body.question_index):
+            self._require_in_progress(session)
+        self.rounds.skip(session, body)
+        self.db.commit()
+        return self._to_out(session)
+
     def finish(self, user: User, interview_id: str, body: InterviewFinish | None = None) -> InterviewOut:
         session = self._load(user, interview_id)
         self._expire_if_due(user, session)
         if session.status != InterviewStatus.IN_PROGRESS:
             return self._to_out(session)  # idempotent: finishing twice returns the result
+        if session.mode == PracticeMode.QUESTIONS:
+            # A round completes itself after its last question; ending early is "abandon".
+            raise ConflictError(
+                "There are questions left. Answer or skip them, or end the interview early.",
+                code="questions_remaining",
+            )
         if body and body.code is not None:
             session.final_code = body.code
         self._close(user, session, InterviewStatus.COMPLETED, "finished")
@@ -207,11 +259,18 @@ class InterviewService:
         session = self.db.scalar(
             select(PracticeSession)
             .options(selectinload(PracticeSession.turns), selectinload(PracticeSession.problem))
-            .where(PracticeSession.id == interview_id, PracticeSession.mode == PracticeMode.INTERVIEW)
+            .where(PracticeSession.id == interview_id, PracticeSession.mode.in_(INTERVIEW_MODES))
         )
         if session is None or session.user_id != user.id:
             raise NotFoundError("Interview not found")
         return session
+
+    @staticmethod
+    def _require_kind(session: PracticeSession, mode: PracticeMode) -> None:
+        if session.mode != mode:
+            raise ConflictError(
+                "That action doesn't apply to this kind of interview.", code="wrong_interview_kind"
+            )
 
     @staticmethod
     def _require_in_progress(session: PracticeSession) -> None:
@@ -232,6 +291,11 @@ class InterviewService:
             self.db.commit()
 
     def _close(self, user: User, session: PracticeSession, status: InterviewStatus, reason: str) -> None:
+        if session.mode == PracticeMode.QUESTIONS:
+            # Each answer was graded as it came in; there's no AI evaluation to run.
+            session.status = status
+            session.ended_at = _now()
+            return
         code = sanitize_code(session.final_code or "", self.settings.ai_max_code_chars)
         ctx = self._context(session, code=code, end_reason=reason)
         try:
@@ -264,7 +328,8 @@ class InterviewService:
             problem=problem_context(problem),
             phase=phase,
             transcript=[
-                TranscriptTurn(role=t.role.value, phase=t.phase, content=t.content) for t in session.turns
+                TranscriptTurn(role=t.role.value, phase=t.phase or InterviewPhase.WRAP_UP, content=t.content)
+                for t in session.turns
             ],
             code=code,
             analysis=analyze(
@@ -280,13 +345,16 @@ class InterviewService:
             end_reason=end_reason,
         )
 
-    def _add_turn(self, session: PracticeSession, role: TurnRole, content: str) -> None:
+    def _add_turn(
+        self, session: PracticeSession, role: TurnRole, content: str, meta: dict | None = None
+    ) -> None:
         session.turns.append(
             InterviewTurn(
                 seq=len(session.turns),
                 role=role,
                 phase=session.phase or InterviewPhase.WRAP_UP,
                 content=content,
+                meta=meta,
             )
         )
 
@@ -304,16 +372,45 @@ class InterviewService:
         return max(0, int((session.deadline_at - _now()).total_seconds()))
 
     @staticmethod
-    def _problem_out(session: PracticeSession) -> InterviewProblem:
+    def _problem_out(session: PracticeSession) -> InterviewProblem | None:
         p = session.problem
-        assert p is not None
-        return InterviewProblem(slug=p.slug, title=p.title, difficulty=p.difficulty)
+        return InterviewProblem(slug=p.slug, title=p.title, difficulty=p.difficulty) if p else None
+
+    @staticmethod
+    def _turn_out(t: InterviewTurn) -> TurnOut:
+        meta = t.meta or {}
+        return TurnOut(
+            seq=t.seq,
+            role=t.role,
+            phase=t.phase,
+            content=t.content,
+            created_at=t.created_at,
+            question_index=t.question_index,
+            source=meta.get("source"),
+            skipped=bool(meta.get("skipped")),
+            engagement=Engagement.model_validate(meta["engagement"]) if meta.get("engagement") else None,
+        )
+
+    @staticmethod
+    def _kind(session: PracticeSession) -> InterviewKind:
+        return "questions" if session.mode == PracticeMode.QUESTIONS else "coding"
+
+    @staticmethod
+    def _career_title(session: PracticeSession) -> str | None:
+        profile = CATALOG.get(session.track or "")
+        return profile.title if profile else None
 
     def _to_out(self, session: PracticeSession) -> InterviewOut:
         candidate_turns = sum(1 for t in session.turns if t.role == TurnRole.CANDIDATE)
         phase = session.phase if session.status == InterviewStatus.IN_PROGRESS else None
+        questions = self.rounds.questions_out(session) if session.mode == PracticeMode.QUESTIONS else []
         return InterviewOut(
             id=session.id,
+            kind=self._kind(session),
+            track=session.track,
+            career_title=self._career_title(session),
+            questions=questions,
+            round_summary=self.rounds.summary(questions) if session.mode == PracticeMode.QUESTIONS else None,
             status=session.status,
             phase=phase,
             phase_index=PHASES.index(phase) if phase else len(PHASES),
@@ -326,7 +423,7 @@ class InterviewService:
             seconds_remaining=self._seconds_remaining(session),
             candidate_turns_remaining=max(0, MAX_CANDIDATE_TURNS - candidate_turns),
             provider=session.provider,
-            turns=[TurnOut.model_validate(t) for t in session.turns],
+            turns=[self._turn_out(t) for t in session.turns],
             final_code=session.final_code,
             evaluation=InterviewEvaluation.model_validate(session.evaluation) if session.evaluation else None,
         )
@@ -336,6 +433,9 @@ class InterviewService:
         scores = [s["score"] for s in ev.get("scores", [])]
         return InterviewSummary(
             id=session.id,
+            kind=self._kind(session),
+            track=session.track,
+            career_title=self._career_title(session),
             status=session.status,
             problem=self._problem_out(session),
             started_at=session.started_at,

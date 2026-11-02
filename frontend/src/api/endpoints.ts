@@ -33,6 +33,7 @@ import type {
   QuestionSummary,
   QuestionDetail,
   InterviewAnswer,
+  AnswerSource,
   TrackProgress,
 } from "./types";
 
@@ -146,10 +147,14 @@ export const api = {
     apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}`, { signal }),
   interviews: (query: { page?: number; page_size?: number } = {}) =>
     apiRequest<Page<InterviewSummary>>("/api/v1/interviews", { query }),
-  interviewMessage: (id: string, body: { message: string; code?: string | null }) =>
+  interviewMessage: (id: string, body: { message: string; code?: string | null; source?: AnswerSource }) =>
     apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/messages`, { method: "POST", body }),
   finishInterview: (id: string, code?: string | null) =>
     apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/finish`, { method: "POST", body: { code: code ?? null } }),
+  answerRoundQuestion: (id: string, body: { question_index: number; answer: string; source: AnswerSource }) =>
+    apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/answers`, { method: "POST", body }),
+  skipRoundQuestion: (id: string, question_index: number) =>
+    apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/skip`, { method: "POST", body: { question_index } }),
   abandonInterview: (id: string) =>
     apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/abandon`, { method: "POST" }),
 

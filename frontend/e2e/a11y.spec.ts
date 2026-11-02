@@ -40,6 +40,7 @@ test("public pages have no WCAG 2.1 A/AA violations", async ({ page }) => {
 });
 
 test("signed-in screens have no WCAG 2.1 A/AA violations", async ({ page }) => {
+  page.on("dialog", (d) => void d.accept());
   await page.goto("/");
   await page.getByRole("button", { name: /try it now/i }).click();
   await expect(page).toHaveURL(/two-sum/);
@@ -61,6 +62,15 @@ test("signed-in screens have no WCAG 2.1 A/AA violations", async ({ page }) => {
     await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
     await expectNoViolations(page, path);
   }
+
+  // A live question round (voice controls, engagement indicator) and its results page.
+  await page.goto("/interviews/questions");
+  await page.getByRole("button", { name: "Start interview" }).click();
+  await expect(page.getByText(/QUESTION 1 OF 5/)).toBeVisible();
+  await expectNoViolations(page, "live question round");
+  await page.getByRole("button", { name: "End early" }).click();
+  await expect(page.getByText(/ENDED EARLY/)).toBeVisible();
+  await expectNoViolations(page, "question round results");
 });
 
 test("the skip link is the first Tab stop and jumps to the main content", async ({ page }) => {

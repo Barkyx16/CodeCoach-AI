@@ -3224,6 +3224,220 @@
         }
       }
     },
+    "/api/v1/interviews/{interview_id}/answers": {
+      "post": {
+        "tags": [
+          "interviews"
+        ],
+        "summary": "Question rounds: answer the current question (idempotent per question)",
+        "operationId": "answer_question_api_v1_interviews__interview_id__answers_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "interview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Interview Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoundAnswer"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interviews/{interview_id}/skip": {
+      "post": {
+        "tags": [
+          "interviews"
+        ],
+        "summary": "Question rounds: skip the current question (idempotent per question)",
+        "operationId": "skip_question_api_v1_interviews__interview_id__skip_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "interview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Interview Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoundSkip"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/interviews/{interview_id}/finish": {
       "post": {
         "tags": [
@@ -4095,6 +4309,47 @@
         ],
         "title": "DifficultyProgress"
       },
+      "Engagement": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "following",
+              "more_detail",
+              "explore_further",
+              "not_enough_evidence"
+            ],
+            "title": "State"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "e.g. 'Looking for more detail'"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "description": "One actionable sentence that refers to the answer"
+          },
+          "evidence": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidence",
+            "description": "The signals found in (or missing from) the answer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "state",
+          "label",
+          "reason",
+          "evidence"
+        ],
+        "title": "Engagement",
+        "description": "A simulated interviewer's read of one answer, built only from what the answer contains."
+      },
       "ErrorBody": {
         "properties": {
           "code": {
@@ -4666,6 +4921,17 @@
             ],
             "title": "Code",
             "description": "Current editor contents"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "typed",
+              "voice",
+              "mixed"
+            ],
+            "title": "Source",
+            "description": "How the text was produced. Recorded for review only",
+            "default": "typed"
           }
         },
         "type": "object",
@@ -4679,6 +4945,14 @@
           "id": {
             "type": "string",
             "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "coding",
+              "questions"
+            ],
+            "title": "Kind"
           },
           "status": {
             "$ref": "#/components/schemas/InterviewStatus"
@@ -4710,7 +4984,57 @@
             "title": "Phase Guide"
           },
           "problem": {
-            "$ref": "#/components/schemas/InterviewProblem"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InterviewProblem"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Coding interviews only"
+          },
+          "track": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track",
+            "description": "Question rounds: the career"
+          },
+          "career_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Career Title"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/RoundQuestion"
+            },
+            "type": "array",
+            "title": "Questions",
+            "description": "Question rounds only; empty for coding interviews"
+          },
+          "round_summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoundSummary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Question rounds only"
           },
           "duration_seconds": {
             "type": "integer",
@@ -4789,11 +5113,13 @@
         "type": "object",
         "required": [
           "id",
+          "kind",
           "status",
           "phase",
           "phase_index",
           "phase_guide",
           "problem",
+          "questions",
           "duration_seconds",
           "started_at",
           "deadline_at",
@@ -4843,6 +5169,16 @@
       },
       "InterviewStart": {
         "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "coding",
+              "questions"
+            ],
+            "title": "Kind",
+            "description": "coding: one problem with an AI interviewer. questions: five of a career's questions",
+            "default": "coding"
+          },
           "problem_slug": {
             "anyOf": [
               {
@@ -4853,7 +5189,30 @@
               }
             ],
             "title": "Problem Slug",
-            "description": "Omit to let CodeCoach pick a recommended problem"
+            "description": "coding: omit to let CodeCoach pick a recommended problem"
+          },
+          "track": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track",
+            "description": "questions: the career (default: your own)"
+          },
+          "difficulty": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Difficulty"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "questions: default easy"
           },
           "duration_minutes": {
             "type": "integer",
@@ -4882,11 +5241,48 @@
             "type": "string",
             "title": "Id"
           },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "coding",
+              "questions"
+            ],
+            "title": "Kind"
+          },
           "status": {
             "$ref": "#/components/schemas/InterviewStatus"
           },
           "problem": {
-            "$ref": "#/components/schemas/InterviewProblem"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InterviewProblem"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "track": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track"
+          },
+          "career_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Career Title"
           },
           "started_at": {
             "type": "string",
@@ -4931,6 +5327,7 @@
         "type": "object",
         "required": [
           "id",
+          "kind",
           "status",
           "problem",
           "started_at",
@@ -5940,6 +6337,157 @@
         ],
         "title": "ReviewResponse"
       },
+      "RoundAnswer": {
+        "properties": {
+          "question_index": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Question Index",
+            "description": "Must be the question currently being asked"
+          },
+          "answer": {
+            "type": "string",
+            "maxLength": 6000,
+            "minLength": 1,
+            "title": "Answer"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "typed",
+              "voice",
+              "mixed"
+            ],
+            "title": "Source",
+            "description": "How the text was produced. Recorded for review only; it never affects scoring",
+            "default": "typed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question_index",
+          "answer"
+        ],
+        "title": "RoundAnswer"
+      },
+      "RoundQuestion": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "title": "Index"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "prompt": {
+            "type": "string",
+            "title": "Prompt"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "difficulty": {
+            "$ref": "#/components/schemas/Difficulty"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "current",
+              "answered",
+              "skipped"
+            ],
+            "title": "Status"
+          },
+          "answer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnswerOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "index",
+          "id",
+          "title",
+          "prompt",
+          "kind",
+          "difficulty",
+          "status"
+        ],
+        "title": "RoundQuestion"
+      },
+      "RoundSkip": {
+        "properties": {
+          "question_index": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Question Index"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question_index"
+        ],
+        "title": "RoundSkip"
+      },
+      "RoundSummary": {
+        "properties": {
+          "answered": {
+            "type": "integer",
+            "title": "Answered"
+          },
+          "skipped": {
+            "type": "integer",
+            "title": "Skipped"
+          },
+          "unanswered": {
+            "type": "integer",
+            "title": "Unanswered",
+            "description": "Never reached, e.g. the interview ended early or time ran out"
+          },
+          "average_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Score",
+            "description": "Mean score of answered questions; null if none"
+          },
+          "focus": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Focus",
+            "description": "Rubric points missed most often, most frequent first"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answered",
+          "skipped",
+          "unanswered",
+          "average_score",
+          "focus"
+        ],
+        "title": "RoundSummary"
+      },
       "RubricScore": {
         "properties": {
           "dimension": {
@@ -6312,7 +6860,15 @@
             "$ref": "#/components/schemas/TurnRole"
           },
           "phase": {
-            "$ref": "#/components/schemas/InterviewPhase"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InterviewPhase"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Coding interviews only"
           },
           "content": {
             "type": "string",
@@ -6322,6 +6878,50 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "question_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question Index"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "typed",
+                  "voice",
+                  "mixed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source",
+            "description": "Candidate turns: typed or voice"
+          },
+          "skipped": {
+            "type": "boolean",
+            "title": "Skipped",
+            "default": false
+          },
+          "engagement": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Engagement"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Candidate turns: simulated engagement"
           }
         },
         "type": "object",

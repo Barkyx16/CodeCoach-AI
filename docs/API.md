@@ -689,11 +689,48 @@ status: in_progress → completed (finish) | expired (deadline passed) | abandon
 }
 ```
 
+#### Question rounds (`"kind": "questions"`)
+
+A mock interview made of one career's written questions (any career, including those without
+coding). It shares the coding interview's rules: one active interview per user (of either kind),
+a server-side deadline, `abandon`, and the same history list. It makes no AI calls.
+
+```json
+{"kind": "questions", "track": "registered-nurse", "difficulty": "easy", "duration_minutes": 15}
+```
+`track` defaults to the user's career; `difficulty` to `easy`. The server picks five questions:
+one of every kind the level has (easy: motivation, knowledge, behavioral; medium and hard:
+scenario, behavioral, leadership), unanswered ones first, in interview order. The response has
+`kind: "questions"`, `problem: null`, `track`, `career_title`, and
+`questions: [{index, id, title, prompt, kind, difficulty, status, answer}]` where `status` is
+`current | pending | answered | skipped`, plus `round_summary: {answered, skipped, unanswered,
+average_score, focus}`. Each question asked and answered is a turn in `turns`.
+
+- `POST /api/v1/interviews/{id}/answers` `{"question_index": 0, "answer": "…", "source": "voice"}`
+  grades the answer (saved as an ordinary practice answer) and asks the next question; after the
+  last one the round is `completed`. **Idempotent per question:** a repeat for an answered
+  question returns the current state without grading again. Answering a later question first is
+  `409 question_not_current` with `details.current_question_index`. Counts toward the hourly
+  practice-answer limit (`429`).
+- `POST /api/v1/interviews/{id}/skip` `{"question_index": 1}` records a skip (never an answer).
+- `POST /api/v1/interviews/{id}/abandon` ends early: `abandoned`, unanswered questions stay
+  unanswered. `finish` on a round with questions left is `409 questions_remaining`.
+- `source` is `typed | voice | mixed` and is recorded for review only; it never affects scoring.
+  Audio is never sent to the server.
+
+**Simulated engagement.** Candidate turns (both kinds) carry `engagement: {state, label, reason,
+evidence}` with `state` one of `not_enough_evidence | more_detail | following | explore_further`.
+It is computed deterministically from the answer text only (topic relevance, specific details,
+rubric coverage, "I" vs "we" for behavioral questions; for coding, the phase's goal: clarifying
+questions, a named approach, a stated Big-O, a walked-through test). It isn't a real person's
+opinion and doesn't predict hiring decisions. See `app/services/engagement.py`.
+
 #### `POST /api/v1/interviews/{id}/messages` 🔒 → `200`
 ```json
-{"message": "Can the array be empty or contain duplicates?", "code": "class Solution { … }"}
+{"message": "Can the array be empty or contain duplicates?", "code": "class Solution { … }", "source": "typed"}
 ```
 `code` (optional) is the current editor content; the latest version is kept as `final_code`.
+`source` (optional, `typed | voice | mixed`) is recorded with the turn for review.
 Returns the full interview. The last two turns are the candidate's message and the
 interviewer's reply:
 ```json

@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db, get_optional_user
 from app.careers import CATALOG, CATEGORIES
-from app.careers.grading import grade
+from app.careers.answers import answer_out, graded_answer
 from app.careers.questions import Question, get_question, questions_for
 from app.errors import NotFoundError, RateLimitedError
 from app.models import PracticeAnswer, User
@@ -18,7 +18,6 @@ from app.schemas.careers import (
     AnswerOut,
     AnswerRequest,
     CareerSummary,
-    FeedbackPoint,
     QuestionDetail,
     QuestionSummary,
     TrackProgress,
@@ -28,8 +27,6 @@ from app.schemas.problem import DifficultyCounts
 from app.services import search
 
 router = APIRouter(prefix="/api/v1", tags=["careers"])
-
-OFFLINE_COACH = "built-in (offline)"
 
 
 def _track_or_404(slug: str) -> str:
@@ -157,24 +154,6 @@ def get_one(
     )
 
 
-def _answer_out(row: PracticeAnswer) -> AnswerOut:
-    fb = row.feedback
-    return AnswerOut(
-        id=row.id,
-        question_id=row.question_id,
-        answer=row.answer,
-        score=row.score,
-        rating=fb["rating"],
-        summary=fb["summary"],
-        points=[FeedbackPoint(**p) for p in fb["points"]],
-        notes=fb["notes"],
-        outline=fb["outline"],
-        word_count=fb["word_count"],
-        coach=row.provider,
-        created_at=row.created_at,
-    )
-
-
 @router.post(
     "/careers/{slug}/questions/{question_id}/answers",
     response_model=AnswerOut,
@@ -199,27 +178,10 @@ def answer_question(
             "You've answered a lot of questions this hour. Take a short break and try again soon.",
             details={"retry_after_seconds": int(retry_after) + 1},
         )
-    fb = grade(question, body.answer)
-    row = PracticeAnswer(
-        user_id=user.id,
-        track=slug,
-        question_id=question.id,
-        difficulty=question.difficulty,
-        answer=body.answer,
-        score=fb.score,
-        provider=OFFLINE_COACH,
-        feedback={
-            "rating": fb.rating,
-            "summary": fb.summary,
-            "points": [{"label": p.label, "covered": p.covered, "advice": p.advice} for p in fb.points],
-            "notes": list(fb.notes),
-            "outline": list(question.outline),
-            "word_count": fb.word_count,
-        },
-    )
+    row = graded_answer(user.id, question, body.answer)
     db.add(row)
     db.commit()
-    return _answer_out(row)
+    return answer_out(row)
 
 
 @router.get(
@@ -243,7 +205,7 @@ def my_answers(
         .order_by(PracticeAnswer.created_at.desc())
         .limit(20)
     ).all()
-    return [_answer_out(r) for r in rows]
+    return [answer_out(r) for r in rows]
 
 
 @router.get(

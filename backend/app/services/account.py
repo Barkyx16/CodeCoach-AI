@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.models import (
     AIInteraction,
     PracticeAnswer,
+    PracticeMode,
     PracticeSession,
     Problem,
     ProgressEvent,
@@ -101,7 +102,10 @@ def export_user_data(db: Session, user: User) -> dict:
         "interviews": [
             {
                 "id": s.id,
+                "kind": "questions" if s.mode == PracticeMode.QUESTIONS else "coding",
                 "problem": slugs.get(s.problem_id) if s.problem_id else None,
+                "track": s.track,
+                "questions": (s.plan or {}).get("question_ids"),
                 "status": s.status.value,
                 "started_at": iso(s.started_at),
                 "ended_at": iso(s.ended_at),
@@ -110,15 +114,18 @@ def export_user_data(db: Session, user: User) -> dict:
                 "transcript": [
                     {
                         "role": t.role.value,
-                        "phase": t.phase.value,
+                        "phase": t.phase.value if t.phase else None,
                         "content": t.content,
                         "at": iso(t.created_at),
+                        "question_index": t.question_index,
+                        "answer_id": t.answer_id,
+                        "meta": t.meta,
                     }
                     for t in s.turns
                 ],
             }
             for s in sessions
-            if s.mode.value == "interview"
+            if s.mode in (PracticeMode.INTERVIEW, PracticeMode.QUESTIONS)
         ],
         "activity": [
             {"type": e.event_type.value, "problem": slugs.get(e.problem_id), "at": iso(e.created_at)}

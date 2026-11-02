@@ -10,7 +10,12 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator
 
 from app.models import Difficulty, InterviewPhase, InterviewStatus, TurnRole
+from app.schemas.careers import AnswerOut
 from app.schemas.common import APIModel
+
+InterviewKind = Literal["coding", "questions"]
+AnswerSource = Literal["typed", "voice", "mixed"]
+EngagementState = Literal["following", "more_detail", "explore_further", "not_enough_evidence"]
 
 PHASE_GUIDE: dict[InterviewPhase, str] = {
     InterviewPhase.CLARIFY: "Restate the problem and ask clarifying questions about inputs, outputs and edge cases.",
@@ -33,15 +38,53 @@ RUBRIC_DIMENSIONS: tuple[RubricDimension, ...] = (
 
 
 class InterviewStart(APIModel):
-    problem_slug: str | None = Field(
-        default=None, description="Omit to let CodeCoach pick a recommended problem"
+    kind: InterviewKind = Field(
+        default="coding",
+        description="coding: one problem with an AI interviewer. questions: five of a career's questions",
     )
+    problem_slug: str | None = Field(
+        default=None, description="coding: omit to let CodeCoach pick a recommended problem"
+    )
+    track: str | None = Field(default=None, description="questions: the career (default: your own)")
+    difficulty: Difficulty | None = Field(default=None, description="questions: default easy")
     duration_minutes: int = Field(default=30, ge=10, le=60)
+
+
+class RoundAnswer(APIModel):
+    question_index: int = Field(ge=0, description="Must be the question currently being asked")
+    answer: str = Field(min_length=1, max_length=6000)
+    source: AnswerSource = Field(
+        default="typed",
+        description="How the text was produced. Recorded for review only; it never affects scoring",
+    )
+
+    @field_validator("answer")
+    @classmethod
+    def not_blank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("answer must not be blank")
+        return v
+
+
+class RoundSkip(APIModel):
+    question_index: int = Field(ge=0)
+
+
+class Engagement(APIModel):
+    """A simulated interviewer's read of one answer, built only from what the answer contains."""
+
+    state: EngagementState
+    label: str = Field(description="e.g. 'Looking for more detail'")
+    reason: str = Field(description="One actionable sentence that refers to the answer")
+    evidence: list[str] = Field(description="The signals found in (or missing from) the answer")
 
 
 class InterviewMessage(APIModel):
     message: str = Field(min_length=1, max_length=4000)
     code: str | None = Field(default=None, max_length=20_000, description="Current editor contents")
+    source: AnswerSource = Field(
+        default="typed", description="How the text was produced. Recorded for review only"
+    )
 
     @field_validator("message")
     @classmethod
@@ -84,9 +127,32 @@ class InterviewEvaluation(BaseModel):
 class TurnOut(APIModel):
     seq: int
     role: TurnRole
-    phase: InterviewPhase
+    phase: InterviewPhase | None = Field(description="Coding interviews only")
     content: str
     created_at: datetime
+    question_index: int | None = None
+    source: AnswerSource | None = Field(default=None, description="Candidate turns: typed or voice")
+    skipped: bool = False
+    engagement: Engagement | None = Field(default=None, description="Candidate turns: simulated engagement")
+
+
+class RoundQuestion(APIModel):
+    index: int
+    id: str
+    title: str
+    prompt: str
+    kind: str
+    difficulty: Difficulty
+    status: Literal["pending", "current", "answered", "skipped"]
+    answer: AnswerOut | None = None
+
+
+class RoundSummary(APIModel):
+    answered: int
+    skipped: int
+    unanswered: int = Field(description="Never reached, e.g. the interview ended early or time ran out")
+    average_score: int | None = Field(description="Mean score of answered questions; null if none")
+    focus: list[str] = Field(description="Rubric points missed most often, most frequent first")
 
 
 class InterviewProblem(APIModel):
@@ -97,11 +163,16 @@ class InterviewProblem(APIModel):
 
 class InterviewOut(APIModel):
     id: str
+    kind: InterviewKind
     status: InterviewStatus
     phase: InterviewPhase | None
     phase_index: int = Field(description="0-based position of the phase in the arc")
     phase_guide: str | None
-    problem: InterviewProblem
+    problem: InterviewProblem | None = Field(description="Coding interviews only")
+    track: str | None = Field(default=None, description="Question rounds: the career")
+    career_title: str | None = None
+    questions: list[RoundQuestion] = Field(description="Question rounds only; empty for coding interviews")
+    round_summary: RoundSummary | None = Field(default=None, description="Question rounds only")
     duration_seconds: int
     started_at: datetime
     deadline_at: datetime
@@ -116,8 +187,11 @@ class InterviewOut(APIModel):
 
 class InterviewSummary(APIModel):
     id: str
+    kind: InterviewKind
     status: InterviewStatus
-    problem: InterviewProblem
+    problem: InterviewProblem | None
+    track: str | None = None
+    career_title: str | None = None
     started_at: datetime
     ended_at: datetime | None
     overall: str | None

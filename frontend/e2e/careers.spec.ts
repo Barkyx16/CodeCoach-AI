@@ -53,11 +53,21 @@ test("a nurse picks their job at sign-up, answers a question and gets feedback",
     "placement I looked after four patients and kept every assessment on time.",
   );
   await page.getByRole("button", { name: "Next question" }).click();
+
+  // The round lives on the server: a reload returns to the same question with the unsent draft.
+  await expect(page.getByText(/QUESTION 2 OF 5/)).toBeVisible();
+  await expect(page.getByRole("region", { name: "Simulated interviewer engagement" }).getByRole("status")).not.toHaveText(/Not enough evidence yet/);
+  await page.getByLabel("Your answer", { exact: true }).fill("A draft I haven't sent");
+  await page.reload();
+  await expect(page.getByText(/QUESTION 2 OF 5/)).toBeVisible();
+  await expect(page.getByLabel("Your answer", { exact: true })).toHaveValue("A draft I haven't sent");
+  await page.getByLabel("Your answer", { exact: true }).fill("");
   for (let n = 2; n <= 5; n++) {
     await expect(page.getByText(new RegExp(`QUESTION ${n} OF 5`))).toBeVisible();
     await page.getByRole("button", { name: "Skip" }).click();
   }
   await expect(page.getByRole("heading", { name: "Registered Nurse interview results" })).toBeVisible();
-  await expect(page.getByText(/Average score \d+\/100 across 1 of 5 answers/)).toBeVisible();
+  await expect(page.getByText(/Average score \d+\/100 across 1 of 5 answers\. 4 skipped\./)).toBeVisible();
+  await expect(page.getByText(/COMPLETED/)).toBeVisible();
   await page.screenshot({ path: "e2e/screenshots/careers-interview-results.png", fullPage: true });
 });

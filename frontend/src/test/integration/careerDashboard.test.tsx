@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
 import { tokenResponse, user as baseUser } from "../fixtures";
@@ -30,25 +30,19 @@ describe("Dashboard and interviews follow the user's career", () => {
     expect(within(screen.getByRole("region", { name: "Summary" })).getByText("Solved")).toBeInTheDocument();
   });
 
-  it("runs a nurse's mock interview from their own questions and summarises it", async () => {
+  it("starts a nurse's mock interview from their own career on the server", async () => {
     signInAsNurse();
+    let body: unknown = null;
+    server.use(http.post(`${API}/api/v1/interviews`, async ({ request }) => {
+      body = await request.json();
+      return HttpResponse.json({ error: { code: "interview_in_progress", message: "You already have an interview in progress.", request_id: "r", details: { interview_id: "round-9" } } }, { status: 409 });
+    }));
     const { user } = renderApp("/interviews", { signedIn: true });
     expect(await screen.findByRole("heading", { name: "Registered Nurse interview" })).toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: "Medium" }));
     await user.click(screen.getByRole("button", { name: "Start interview" }));
-
-    // Interview order: what you know comes before "tell me about a time".
-    expect(await screen.findByRole("heading", { name: "What good patient assessment looks like" })).toBeInTheDocument();
-    expect(screen.getByText(/QUESTION 1 OF 2/)).toBeInTheDocument();
-    await user.type(screen.getByLabelText("Your answer"), "Good assessment means checking vitals and listening.");
-    await user.click(screen.getByRole("button", { name: "Next question" }));
-
-    expect(await screen.findByRole("heading", { name: "A time patient assessment mattered" })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Skip" }));
-
-    expect(await screen.findByRole("heading", { name: "Registered Nurse interview results" })).toBeInTheDocument();
-    expect(screen.getByText("Average score 92/100 across 1 of 2 answers.")).toBeInTheDocument();
-    expect(screen.getByText("Skipped")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Work on next" })).toBeInTheDocument();
+    await waitFor(() => expect(body).toEqual({ kind: "questions", track: "registered-nurse", difficulty: "medium", duration_minutes: 15 }));
+    expect(await screen.findByRole("link", { name: "Resume it" })).toHaveAttribute("href", "/interviews/round-9");
   });
 
   it("offers software engineers a question round next to the coding interview", async () => {

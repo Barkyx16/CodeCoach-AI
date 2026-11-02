@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import {
@@ -10,7 +10,7 @@ import {
   useInterviewMessage,
   useProblem,
 } from "@/api/queries";
-import type { Interview } from "@/api/types";
+import type { AnswerSource, Interview } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { Badge, DifficultyBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
@@ -18,8 +18,14 @@ import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { CodeEditor } from "@/features/workspace/CodeEditor";
 import { useDraft } from "@/features/workspace/useDraft";
+import { clearStoredDraft, useStoredDraft } from "@/hooks/useStoredDraft";
+import { EngagementMeter } from "@/features/voice/EngagementMeter";
+import { useInterviewerVoice } from "@/features/voice/useInterviewerVoice";
+import { VoiceComposer } from "@/features/voice/VoiceComposer";
+import { useVoicePrefs } from "@/features/voice/voicePrefs";
 
 import { PhaseStepper } from "./PhaseStepper";
+import { LiveRound, RoundResults } from "./QuestionRound";
 import { OVERALL_LABELS } from "./phases";
 import { RubricChart } from "./RubricChart";
 import { Transcript } from "./Transcript";
@@ -31,20 +37,25 @@ export default function InterviewSessionPage() {
   const interview = useInterview(id);
   if (interview.isPending) return <LoadingState label="Loading interview…" />;
   if (interview.isError) return <div className="page"><ErrorState error={interview.error} onRetry={() => interview.refetch()} /></div>;
-  return interview.data.status === "in_progress"
-    ? <LiveInterview key={interview.data.id} iv={interview.data} />
-    : <InterviewResults iv={interview.data} />;
+  const iv = interview.data;
+  const live = iv.status === "in_progress";
+  if (iv.kind === "questions") return live ? <LiveRound key={iv.id} iv={iv} /> : <RoundResults iv={iv} />;
+  if (!iv.problem) return <div className="page"><ErrorState error={new Error("This interview's problem is no longer available.")} /></div>;
+  return live ? <LiveInterview key={iv.id} iv={iv} problemSlug={iv.problem.slug} /> : <InterviewResults iv={iv} problem={iv.problem} />;
 }
 
-function LiveInterview({ iv }: { iv: Interview }) {
+function LiveInterview({ iv, problemSlug }: { iv: Interview; problemSlug: string }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const problem = useProblem(iv.problem.slug);
+  const problem = useProblem(problemSlug);
+  const [prefs, setPrefs] = useVoicePrefs();
+  const voice = useInterviewerVoice(prefs);
   const draft = useDraft(`interview-${iv.id}`, problem.data?.starter_code ?? "", user?.id ?? "anon");
   const send = useInterviewMessage(iv.id);
   const finish = useFinishInterview(iv.id);
   const abandon = useAbandonInterview(iv.id);
-  const [message, setMessage] = useState("");
+  const messageKey = `codecoach.interview-message.${iv.id}`;
+  const [message, setMessage] = useStoredDraft(messageKey);
   // The message being sent, and how many turns the transcript had when it was sent. It is shown
   // only until the transcript grows: the server's copy replaces it in the same render, so the
   // message never appears twice (the cache update and clearing this state are separate steps).
@@ -60,25 +71,26 @@ function LiveInterview({ iv }: { iv: Interview }) {
     if (seconds === 0) void queryClient.invalidateQueries({ queryKey: queryKeys.interview(iv.id) });
   }, [seconds, iv.id, queryClient]);
 
-  async function onSend(e?: FormEvent) {
-    e?.preventDefault();
+  const lastInterviewer = [...iv.turns].reverse().find((t) => t.role === "interviewer");
+  const lastEngagement = [...iv.turns].reverse().find((t) => t.role === "candidate" && t.engagement)?.engagement ?? null;
+  const { speak } = voice;
+  // Read each new interviewer message aloud, if chosen.
+  useEffect(() => {
+    if (prefs.readAloud && lastInterviewer) speak(lastInterviewer.content);
+  }, [lastInterviewer?.seq, prefs.readAloud, speak]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function onSend(source: AnswerSource = "typed") {
     const text = message.trim();
     if (!text || !canSend) return;
     setPending({ text, baseline: iv.turns.length });
     setMessage("");
     try {
-      await send.mutateAsync({ message: text, code: draft.code });
+      await send.mutateAsync({ message: text, code: draft.code, source });
+      clearStoredDraft(messageKey);
     } catch {
-      setMessage(text); // give the text back so nothing is lost
+      setMessage(text); // give the text back (and save it again) so nothing is lost
     } finally {
       setPending(null);
-    }
-  }
-
-  function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      void onSend();
     }
   }
 
@@ -87,9 +99,9 @@ function LiveInterview({ iv }: { iv: Interview }) {
     <div className="interview">
       <header className="interview__bar">
         <div className="row">
-          <h1 className="interview__title">{iv.problem.title}</h1>
-          <DifficultyBadge difficulty={iv.problem.difficulty} />
-          <Link to={`/problems/${iv.problem.slug}`} target="_blank" rel="noreferrer" className="subtle interview__statement-link">Problem statement <Icon name="arrow" size={14} /><span className="visually-hidden">(opens in a new tab)</span></Link>
+          <h1 className="interview__title">{iv.problem?.title}</h1>
+          {iv.problem && <DifficultyBadge difficulty={iv.problem.difficulty} />}
+          <Link to={`/problems/${problemSlug}`} target="_blank" rel="noreferrer" className="subtle interview__statement-link">Problem statement <Icon name="arrow" size={14} /><span className="visually-hidden">(opens in a new tab)</span></Link>
         </div>
         <PhaseStepper phaseIndex={iv.phase_index} />
         <div className="row">
@@ -112,18 +124,23 @@ function LiveInterview({ iv }: { iv: Interview }) {
         <section className="interview__chat" aria-label="Conversation">
           {iv.phase_guide && <p className="interview__guide subtle">Now: {iv.phase_guide}</p>}
           <Transcript turns={iv.turns} pending={pendingText} />
-          <form className="composer" onSubmit={onSend}>
-            <label className="visually-hidden" htmlFor="iv-message">Your answer</label>
-            <textarea id="iv-message" className="input composer__input" rows={3} maxLength={4000}
-              disabled={ready || seconds === 0 || iv.candidate_turns_remaining === 0 || finish.isPending || abandon.isPending}
-              placeholder={ready ? "The interviewer has wrapped up. Click Finish to see your feedback." : "Think out loud… (Ctrl/⌘ + Enter to send)"}
-              value={message} onChange={(e) => setMessage(e.target.value)} onKeyDown={onKeyDown} />
-            <div className="composer__actions">
-              <span className="subtle">{iv.candidate_turns_remaining} messages left</span>
-              <Button type="submit" variant="primary" loading={send.isPending} disabled={!message.trim() || !canSend}>Send</Button>
-            </div>
-            <InlineError error={send.error ?? finish.error ?? abandon.error} />
-          </form>
+          {prefs.captions && voice.speaking && voice.caption && (
+            <p className="voice-caption"><span className="voice-caption__who">Interviewer:</span> {voice.caption}</p>
+          )}
+          <EngagementMeter engagement={lastEngagement} visible={prefs.showEngagement}
+            onToggle={() => setPrefs({ showEngagement: !prefs.showEngagement })} />
+          <VoiceComposer
+            id="iv-message" label="Your answer" value={message} onChange={setMessage} onSubmit={(source) => void onSend(source)}
+            submitting={send.isPending} rows={3} maxLength={4000} submitLabel="Send" voice={voice}
+            disabled={ready || seconds === 0 || iv.candidate_turns_remaining === 0 || finish.isPending || abandon.isPending}
+            placeholder={ready ? "The interviewer has wrapped up. Click Finish to see your feedback." : "Think out loud… (Ctrl/⌘ + Enter to send)"}
+            hint={`${iv.candidate_turns_remaining} messages left`}
+            extraActions={voice.supported ? (
+              <Button type="button" variant="ghost" disabled={!lastInterviewer || voice.speaking}
+                onClick={() => lastInterviewer && voice.speak(lastInterviewer.content)}>Replay interviewer</Button>
+            ) : undefined}
+          />
+          <InlineError error={send.error ?? finish.error ?? abandon.error} />
         </section>
         <section className="interview__code" aria-label="Your code">
           <div className="editor-toolbar">
@@ -139,7 +156,7 @@ function LiveInterview({ iv }: { iv: Interview }) {
   );
 }
 
-function InterviewResults({ iv }: { iv: Interview }) {
+function InterviewResults({ iv, problem }: { iv: Interview; problem: NonNullable<Interview["problem"]> }) {
   const ev = iv.evaluation;
   const overall = ev ? OVERALL_LABELS[ev.overall] : null;
   const [showTranscript, setShowTranscript] = useState(false);
@@ -149,11 +166,11 @@ function InterviewResults({ iv }: { iv: Interview }) {
       <div className="page__header">
         <div>
           <h1 className="page__title">Interview feedback</h1>
-          <p className="page__subtitle">{iv.problem.title} · {ending}</p>
+          <p className="page__subtitle">{problem.title} · {ending}</p>
         </div>
         <div className="row">
           <Link to="/interviews" className="btn btn--primary btn--md">Start another</Link>
-          <Link to={`/problems/${iv.problem.slug}`} className="btn btn--secondary btn--md">Practice this problem</Link>
+          <Link to={`/problems/${problem.slug}`} className="btn btn--secondary btn--md">Practice this problem</Link>
         </div>
       </div>
 

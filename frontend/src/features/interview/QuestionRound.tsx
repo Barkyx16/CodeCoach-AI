@@ -1,0 +1,223 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
+
+import { ApiError } from "@/api/client";
+import { queryKeys, useAbandonInterview, useAnswerRoundQuestion, useSkipRoundQuestion } from "@/api/queries";
+import type { AnswerSource, Difficulty, Interview, RoundQuestion } from "@/api/types";
+import { Badge, DifficultyBadge } from "@/components/Badge";
+import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
+import { Icon } from "@/components/Icon";
+import { InlineError } from "@/components/States";
+import { clearStoredDraft, readStoredDraft, useStoredDraft } from "@/hooks/useStoredDraft";
+import { titleCase } from "@/lib/format";
+import { FeedbackCard } from "@/features/careers/FeedbackCard";
+import { KIND_LABEL } from "@/features/careers/kinds";
+import { EngagementMeter, EngagementNote } from "@/features/voice/EngagementMeter";
+import { useInterviewerVoice } from "@/features/voice/useInterviewerVoice";
+import { VoiceComposer } from "@/features/voice/VoiceComposer";
+import { useVoicePrefs } from "@/features/voice/voicePrefs";
+
+import { roundDraftKey } from "./roundDrafts";
+import { formatClock, useCountdown } from "./useCountdown";
+
+const SOURCE_LABEL: Record<AnswerSource, string> = {
+  typed: "Typed",
+  voice: "Spoken (browser speech recognition)",
+  mixed: "Spoken and edited",
+};
+
+function words(text: string): number {
+  return text.trim() ? text.trim().split(/\s+/).length : 0;
+}
+
+/** A question round in progress: one question at a time, spoken or typed, with simulated engagement. */
+export function LiveRound({ iv }: { iv: Interview }) {
+  const queryClient = useQueryClient();
+  const [prefs, setPrefs] = useVoicePrefs();
+  const voice = useInterviewerVoice(prefs);
+  const current = iv.questions.find((q) => q.status === "current") ?? null;
+  const index = current?.index ?? 0;
+  const [draft, setDraft] = useStoredDraft(roundDraftKey(iv.id, index));
+  const answer = useAnswerRoundQuestion(iv.id);
+  const skip = useSkipRoundQuestion(iv.id);
+  const abandon = useAbandonInterview(iv.id);
+  const seconds = useCountdown(iv.deadline_at, true);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const busy = answer.isPending || skip.isPending || abandon.isPending;
+  const role = iv.career_title ?? titleCase(iv.track ?? "");
+  const last = [...iv.turns].reverse().find((t) => t.role === "candidate" && t.engagement)?.engagement ?? null;
+  const error = answer.error ?? skip.error ?? abandon.error;
+
+  // When the clock runs out, ask the server: it closes the round and the results page shows.
+  useEffect(() => {
+    if (seconds === 0) void queryClient.invalidateQueries({ queryKey: queryKeys.interview(iv.id) });
+  }, [seconds, iv.id, queryClient]);
+  // Someone answered in another tab, or a retry raced: refresh to the server's state.
+  useEffect(() => {
+    if (error instanceof ApiError && error.code === "question_not_current") {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.interview(iv.id) });
+    }
+  }, [error, iv.id, queryClient]);
+  // A new question: move focus to it and, if chosen, have the interviewer read it.
+  const prompt = current?.prompt;
+  const { speak } = voice;
+  useEffect(() => {
+    if (!prompt) return;
+    heading.current?.focus();
+    if (prefs.readAloud) speak(prompt);
+  }, [prompt, prefs.readAloud, speak]);
+
+  if (!current) return null; // completed or out of questions; the parent shows results after refetch
+
+  async function submit(source: AnswerSource) {
+    const key = roundDraftKey(iv.id, index);
+    try {
+      await answer.mutateAsync({ question_index: index, answer: draft.trim(), source });
+      clearStoredDraft(key);
+    } catch {
+      /* the draft is kept (stored) and the error is shown */
+    }
+  }
+
+  const lowTime = seconds <= 60;
+  return (
+    <div className="page question-page round">
+      <div className="round__bar">
+        <p className="eyebrow">{role.toUpperCase()} INTERVIEW · QUESTION {index + 1} OF {iv.questions.length}</p>
+        <div className="row">
+          <span className={`clock${lowTime ? " clock--low" : ""}`} role="timer" aria-label={`${formatClock(seconds)} remaining`}>
+            <Icon name="clock" size={17} />{formatClock(seconds)}
+          </span>
+          <Button size="sm" variant="ghost" disabled={busy}
+            onClick={() => { if (window.confirm("End the interview now? Unanswered questions stay unanswered.")) abandon.mutate(); }}>
+            End early
+          </Button>
+        </div>
+      </div>
+      <progress className="round-progress" max={iv.questions.length} value={index} aria-label={`Question ${index + 1} of ${iv.questions.length}`} />
+      <p className="subtle round__timer-note">The timer runs on the server and keeps going if you leave this page or your microphone stops. Your typed or spoken draft is saved in this browser.</p>
+
+      <div className="round__layout">
+        <div className="stack">
+          <Card className="question-page__prompt stack">
+            <h1 className="page__title" ref={heading} tabIndex={-1}>{current.title}</h1>
+            <p className="row question-page__meta">
+              <DifficultyBadge difficulty={current.difficulty as Difficulty} />
+              <Badge>{KIND_LABEL[current.kind] ?? titleCase(current.kind)}</Badge>
+            </p>
+            <p>{current.prompt}</p>
+            {voice.supported && (
+              <div className="row">
+                {voice.speaking
+                  ? <Button size="sm" variant="ghost" onClick={voice.stop}><Icon name="stop" size={14} />Stop reading</Button>
+                  : <Button size="sm" variant="ghost" onClick={() => voice.speak(current.prompt)}><Icon name="speaker" size={14} />Read question aloud</Button>}
+              </div>
+            )}
+            {prefs.captions && voice.speaking && voice.caption && (
+              <p className="voice-caption"><span className="voice-caption__who">Interviewer:</span> {voice.caption}</p>
+            )}
+          </Card>
+
+          <VoiceComposer
+            id="round-answer" label="Your answer" value={draft} onChange={setDraft} onSubmit={(s) => void submit(s)}
+            submitting={answer.isPending} disabled={busy && !answer.isPending} maxLength={6000}
+            submitLabel={index + 1 === iv.questions.length ? "Finish interview" : "Next question"}
+            placeholder="Answer the way you'd say it in the interview…" voice={voice}
+            hint={`${words(draft)} words · aim for 120-350`}
+            extraActions={
+              <Button type="button" variant="ghost" disabled={busy} loading={skip.isPending}
+                onClick={() => skip.mutate(index)}>Skip</Button>
+            }
+          />
+          <InlineError error={error} />
+        </div>
+        <aside className="stack">
+          <EngagementMeter engagement={last} visible={prefs.showEngagement}
+            onToggle={() => setPrefs({ showEngagement: !prefs.showEngagement })} />
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+const ENDING: Record<Interview["status"], string> = {
+  completed: "Completed",
+  expired: "Time ran out before the end",
+  abandoned: "Ended early",
+  in_progress: "In progress",
+};
+
+/** Results of a finished, expired or abandoned round. Unanswered questions are shown as such. */
+export function RoundResults({ iv }: { iv: Interview }) {
+  const s = iv.round_summary;
+  const role = iv.career_title ?? titleCase(iv.track ?? "");
+  const replies = new Map(iv.turns.filter((t) => t.role === "candidate").map((t) => [t.question_index, t]));
+  return (
+    <div className="page interview-summary">
+      <div className="page__header">
+        <div>
+          <p className="eyebrow">MOCK INTERVIEW · {ENDING[iv.status].toUpperCase()}</p>
+          <h1 className="page__title">{role} interview results</h1>
+          <p className="page__subtitle">
+            {s && s.average_score !== null
+              ? `Average score ${s.average_score}/100 across ${s.answered} of ${iv.questions.length} answers.`
+              : "No questions were answered, so there are no scores."}
+            {s && s.skipped > 0 ? ` ${s.skipped} skipped.` : ""}
+            {s && s.unanswered > 0 ? ` ${s.unanswered} not reached.` : ""}
+          </p>
+        </div>
+        <div className="row dashboard__actions">
+          <Link to="/dashboard" className="btn btn--secondary btn--md">Dashboard</Link>
+          <Link to="/interviews/questions" className="btn btn--primary btn--md">New interview</Link>
+        </div>
+      </div>
+      {s && s.focus.length > 0 && (
+        <Card className="stack">
+          <h2 className="section-title">Work on next</h2>
+          <ul className="mini-list">{s.focus.map((label) => <li key={label}>{label}</li>)}</ul>
+        </Card>
+      )}
+      <ol className="round-results">
+        {iv.questions.map((q, i) => <ResultItem key={q.id} iv={iv} q={q} open={i === 0} reply={replies.get(q.index)} />)}
+      </ol>
+    </div>
+  );
+}
+
+function ResultItem({ iv, q, open, reply }: {
+  iv: Interview; q: RoundQuestion; open: boolean; reply: Interview["turns"][number] | undefined;
+}) {
+  const savedDraft = q.status === "answered" ? "" : readStoredDraft(roundDraftKey(iv.id, q.index));
+  const outcome = q.answer ? `${q.answer.score}/100 · ${q.answer.rating}` : q.status === "skipped" ? "Skipped" : "Not reached";
+  return (
+    <li>
+      <details className="card round-result" open={open}>
+        <summary>
+          <span className="round-result__n">{q.index + 1}</span>
+          <strong>{q.title}</strong>
+          <Badge>{KIND_LABEL[q.kind] ?? titleCase(q.kind)}</Badge>
+          <span className="round-result__score">{outcome}</span>
+        </summary>
+        <div className="stack round-result__body">
+          <p className="subtle">{q.prompt}</p>
+          {q.answer ? (
+            <>
+              <blockquote className="round-result__answer">{q.answer.answer}</blockquote>
+              {reply?.source && <p className="subtle">Answer: {SOURCE_LABEL[reply.source]}</p>}
+              {reply?.engagement && <EngagementNote engagement={reply.engagement} />}
+              <FeedbackCard answer={q.answer} title="Feedback" headingId={`round-feedback-${q.index}`} />
+            </>
+          ) : (
+            <p>
+              <Link to={`/careers/${iv.track}/questions/${q.id}`} state={savedDraft ? { draft: savedDraft } : undefined}>
+                {savedDraft ? "Finish your saved draft on its own page" : "Answer this question on its own"}
+              </Link>
+            </p>
+          )}
+        </div>
+      </details>
+    </li>
+  );
+}

@@ -65,3 +65,7 @@ export interface Page<T> {
 }
 
 export type HintLevel = 1 | 2 | 3 | 4;
+export type AnswerSource = S["RoundAnswer"]["source"];
+export type Engagement = S["Engagement"];
+export type RoundQuestion = S["RoundQuestion"];
+export type InterviewTurn = S["TurnOut"];

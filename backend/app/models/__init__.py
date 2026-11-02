@@ -96,7 +96,8 @@ class ProgressEventType(enum.StrEnum):
 
 class PracticeMode(enum.StrEnum):
     PRACTICE = "practice"
-    INTERVIEW = "interview"
+    INTERVIEW = "interview"  # a coding mock interview (problem + phases)
+    QUESTIONS = "questions"  # a mock interview made of one career's written questions
 
 
 class UTCDateTime(TypeDecorator[datetime]):
@@ -387,6 +388,9 @@ class PracticeSession(Base):
     provider: Mapped[str | None] = mapped_column(String(32), nullable=True)
     started_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     ended_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    # mode=questions: the career and the questions picked for the round, in order.
+    track: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    plan: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
 
     problem: Mapped[Problem | None] = relationship()
     turns: Mapped[list[InterviewTurn]] = relationship(
@@ -403,9 +407,20 @@ class InterviewTurn(Base):
     )
     seq: Mapped[int] = mapped_column(Integer)
     role: Mapped[TurnRole] = mapped_column(_enum(TurnRole, "turn_role"))
-    phase: Mapped[InterviewPhase] = mapped_column(_enum(InterviewPhase, "interview_phase"))
+    # Coding interviews only; question rounds have no phases.
+    phase: Mapped[InterviewPhase | None] = mapped_column(
+        _enum(InterviewPhase, "interview_phase"), nullable=True
+    )
     content: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    # Question rounds: which question this turn asks or answers, and the graded answer it saved.
+    question_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    answer_id: Mapped[str | None] = mapped_column(
+        ForeignKey("practice_answers.id", ondelete="SET NULL"), nullable=True
+    )
+    # Candidate turns: how the answer was produced (typed/voice), whether it was skipped, and the
+    # simulated-engagement read of it. Never audio: audio is not sent to or stored by the server.
+    meta: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
 
     session: Mapped[PracticeSession] = relationship(back_populates="turns")
 

@@ -41,3 +41,25 @@ test("mobile workspace uses tabs instead of side-by-side panels", async ({ page 
   await expect(page.getByRole("button", { name: /sign in or continue as guest/i })).toBeVisible();
   await page.screenshot({ path: "e2e/screenshots/05-mobile-workspace.png" });
 });
+
+test("a question round fits a 320px screen and keeps every control reachable", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 720 });
+  await page.goto("/");
+  await page.getByRole("button", { name: /try it now/i }).click();
+  await expect(page).toHaveURL(/two-sum/);
+  await page.goto("/interviews/questions");
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole("button", { name: "Start interview" }).click();
+  await expect(page.getByText(/QUESTION 1 OF 5/)).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  for (const name of ["Skip", "Next question", "Hide"]) {
+    const control = page.getByRole("button", { name, exact: true });
+    await control.scrollIntoViewIfNeeded();
+    await expect(control).toBeVisible();
+    const box = await control.boundingBox();
+    expect(box && box.height >= 32 && box.x >= 0 && box.x + box.width <= 320, `${name} fits and is touch-sized`).toBe(true);
+  }
+  page.on("dialog", (d) => void d.accept());
+  await page.getByRole("button", { name: "End early" }).click();
+  await expect(page.getByText(/ENDED EARLY/)).toBeVisible();
+});

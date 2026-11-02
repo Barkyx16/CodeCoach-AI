@@ -478,6 +478,23 @@ These are moments where the obvious path was wrong and a deliberate decision was
     CI fast, all 300 references compile in one `javac` call and run in one JVM (one package each)
     instead of 300 JVM start-ups.
 
+33. **A "mood meter" that can't lie about feelings.** You asked for the interviewer's mood: do they
+    like you? A bot has no feelings, and inferring "likes you" from voice, accent or pace would
+    be both fake and unfair. So it became *simulated interviewer engagement*: four states
+    computed only from the answer's text (on topic? a specific example? enough key points? "I"
+    rather than "we"?), each with a sentence that points at the answer, e.g. "you described the
+    situation, but not clearly what you personally did". Typed and spoken answers are scored the
+    same because the function never learns which it was. It's hideable, and the wording never
+    predicts hiring.
+
+34. **Voice that fails safely.** Browser speech recognition is uneven (Firefox has none; Chrome
+    sends audio to Google; permissions get denied; recognition drops). The design rules: never
+    ask for the microphone until a deliberate click; interim words are shown separately and
+    never submitted; submit is disabled while the mic is on; the interviewer's voice and the
+    microphone never run together (so it can't transcribe itself); every error keeps the draft;
+    typing always works. Duplicate submits are blocked twice: in the UI and on the server, where
+    answers are idempotent per question.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -941,3 +958,30 @@ You asked for the 300 coding problems: 100 per difficulty.
 - **Not done yet (next):** Claude-graded written answers when a key is set; mock interviews and
   the dashboard using the career's questions.
 
+### Session 14: dashboard first, career interviews, and a voice interview studio
+You asked for the dashboard after sign-in, interviews that match each career, voice, and an
+interviewer "mood" readout, then for a reliable voice studio with an editable transcript and
+evidence-based engagement.
+
+**Built and verified:**
+- **Dashboard after sign-in** (sign-in, guest, and after sign-up); deep links still return to
+  where you were. Careers without coding get a dashboard built from their own questions.
+- **Career question rounds** for every job, stored on the server in the same tables as coding
+  interviews (new nullable columns; migration round-tripped on PostgreSQL): five questions in
+  interview order (one of every kind the level has, unanswered first), a real deadline, one
+  interview at a time, abandon, history and data export. Answers are idempotent per question.
+- **Voice studio** in both interview kinds: readiness screen (permission only on click, live input
+  level, voice/speed/volume, captions, privacy notes), push-to-talk with text + shape states,
+  interim vs final text, editable draft, no submit while listening, interviewer never transcribed,
+  drafts kept through errors and reloads, typing always available.
+- **Simulated interviewer engagement** from answer evidence, with reasons and evidence lists,
+  hideable, reviewable on the results page and in transcripts.
+- Tests: 30 new backend (rounds incl. idempotency, order, skip vs answer, abandon, expiry,
+  ownership, export; engagement rules incl. no feelings/hiring words), 17 new frontend
+  (dictation states, permission denied, missing support, interrupted transcription, double
+  submits, playback interruption, reload, engagement hide/review, early end), e2e reload-resume,
+  live-round WCAG scans and a 320px layout check. Totals: 1,590 backend (SQLite) and the
+  PostgreSQL suite green, 135 frontend, 18 Playwright.
+- **Limits:** speech-to-text depends on the browser (none in Firefox); no hands-free mode; no
+  audio is kept, so there's no audio replay; the timer can't pause (the server deadline is real);
+  the site has one (dark) theme.

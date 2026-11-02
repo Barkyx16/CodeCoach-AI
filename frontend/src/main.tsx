@@ -14,6 +14,7 @@ import "./styles/landing.css";
 import "./styles/details.css";
 import "./styles/settings.css";
 import "./styles/careers.css";
+import "./styles/voice.css";
 
 const queryClient = makeQueryClient();
 const router = createRouter();

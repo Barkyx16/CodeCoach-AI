@@ -6,7 +6,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 
 import { ApiError } from "./client";
 import { api, type ProblemFilters, type QuestionFilters } from "./endpoints";
-import type { AIHistoryAction, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
+import type { AIHistoryAction, AnswerSource, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
 
 export const queryKeys = {
   problems: (filters: ProblemFilters) => ["problems", filters] as const,
@@ -227,7 +227,10 @@ function useInterviewMutation<V>(fn: (vars: V) => Promise<Interview>) {
 
 export const useStartInterview = () => useInterviewMutation((body: InterviewStart) => api.startInterview(body));
 export const useInterviewMessage = (id: string) =>
-  useInterviewMutation((body: { message: string; code?: string | null }) => api.interviewMessage(id, body));
+  useInterviewMutation((body: { message: string; code?: string | null; source?: AnswerSource }) => api.interviewMessage(id, body));
+export const useAnswerRoundQuestion = (id: string) =>
+  useInterviewMutation((body: { question_index: number; answer: string; source: AnswerSource }) => api.answerRoundQuestion(id, body));
+export const useSkipRoundQuestion = (id: string) => useInterviewMutation((index: number) => api.skipRoundQuestion(id, index));
 export const useFinishInterview = (id: string) =>
   useInterviewMutation((code: string | null) => api.finishInterview(id, code));
 export const useAbandonInterview = (id: string) => useInterviewMutation((_: void) => api.abandonInterview(id));

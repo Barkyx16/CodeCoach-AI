@@ -28,7 +28,7 @@ export function InterviewStartPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     try {
-      const iv = await start.mutateAsync({ problem_slug: slug || null, duration_minutes: minutes });
+      const iv = await start.mutateAsync({ kind: "coding", problem_slug: slug || null, duration_minutes: minutes });
       navigate(`/interviews/${iv.id}`);
     } catch {
       /* rendered below */
@@ -130,11 +130,12 @@ export function InterviewRow({ iv }: { iv: InterviewSummary }) {
     <li>
       <Link to={`/interviews/${iv.id}`} className="interview-row">
         <span className="row">
-          <strong>{iv.problem.title}</strong>
-          <DifficultyBadge difficulty={iv.problem.difficulty} />
+          <strong>{iv.problem ? iv.problem.title : `${iv.career_title ?? "Career"} question round`}</strong>
+          {iv.problem && <DifficultyBadge difficulty={iv.problem.difficulty} />}
         </span>
         <span className="row">
-          {iv.status === "in_progress" ? <Badge tone="info">In progress</Badge> : overall && <Badge tone={overall.tone}>{overall.label}</Badge>}
+          {iv.status === "in_progress" ? <Badge tone="info">In progress</Badge> : overall ? <Badge tone={overall.tone}>{overall.label}</Badge>
+            : iv.status === "completed" && <Badge>Completed</Badge>}
           {iv.average_score !== null && iv.average_score !== undefined && <span className="subtle">{iv.average_score.toFixed(1)}/4</span>}
           {iv.status === "expired" && <span className="subtle">time ran out</span>}
           {iv.status === "abandoned" && <span className="subtle">ended early</span>}

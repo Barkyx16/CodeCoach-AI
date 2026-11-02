@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 
 import { useAnswerQuestion, useMyAnswers, useQuestion } from "@/api/queries";
 import type { Difficulty, InterviewAnswer } from "@/api/types";
@@ -27,7 +27,9 @@ export function QuestionPage() {
   const question = useQuestion(track, id);
   const answers = useMyAnswers(track, id, isAuthenticated);
   const submit = useAnswerQuestion(track, id);
-  const [draft, setDraft] = useState("");
+  // A draft carried over from an interview that ended before this question was answered.
+  const carried = (useLocation().state as { draft?: string } | null)?.draft ?? "";
+  const [draft, setDraft] = useState(carried);
   const [latest, setLatest] = useState<InterviewAnswer | null>(null);
   const [guestError, setGuestError] = useState<unknown>(null);
 
