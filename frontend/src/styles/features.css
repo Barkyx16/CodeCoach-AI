@@ -298,3 +298,4 @@ fieldset.field { border: none; padding: 0; margin: 0; }
 
 /* Password reset */
 .auth__forgot { justify-self: end; font-size: var(--text-sm); }
+.code-input { font-family: var(--font-mono, monospace); font-size: var(--text-lg); letter-spacing: 0.4em; }

@@ -108,9 +108,10 @@ describe("Settings", () => {
       }),
     );
     const { user } = renderApp("/settings", { signedIn: true });
-    await user.type(await screen.findByLabelText("Current password"), "CorrectHorse42");
-    await user.type(screen.getByLabelText("New password"), "BatteryStaple99");
-    await user.click(screen.getByRole("button", { name: "Change password" }));
+    const passwordForm = within(await screen.findByRole("form", { name: "Password" }));
+    await user.type(passwordForm.getByLabelText("Current password"), "CorrectHorse42");
+    await user.type(passwordForm.getByLabelText("New password"), "BatteryStaple99");
+    await user.click(passwordForm.getByRole("button", { name: "Change password" }));
     expect(await screen.findByText(/Other devices were signed out/)).toBeInTheDocument();
     // Requests made after the change use the new token (the old one is revoked server-side).
     await waitFor(() => expect(auth).toBe("Bearer rotated-token"));

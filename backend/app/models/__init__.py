@@ -147,6 +147,8 @@ class User(Base):
     token_version: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     last_login_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    # Set when the owner clicks the link sent to `email`; cleared whenever the email changes.
+    email_verified_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
 
 
 class RefreshToken(Base):
@@ -192,6 +194,24 @@ class RateLimitCounter(Base):
     key: Mapped[str] = mapped_column(String(160), primary_key=True)
     window: Mapped[int] = mapped_column(Integer, primary_key=True)  # epoch seconds // window length
     count: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class EmailVerificationToken(Base):
+    """Proves the user controls `email`. Only valid while it's still the account's address."""
+
+    __tablename__ = "email_verification_tokens"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    email: Mapped[str] = mapped_column(String(320))
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    # The same email also carries a 6-digit code (HMAC-ed with the server secret). Only a few
+    # wrong guesses are allowed before the code stops working.
+    code_hash: Mapped[str] = mapped_column(String(64))
+    code_attempts: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(UTCDateTime())
+    used_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
 
 
 class Problem(Base):

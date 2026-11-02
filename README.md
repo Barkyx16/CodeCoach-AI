@@ -15,6 +15,8 @@ comes from test cases, never from the AI.
 | ![Workspace with AI code review](docs/screenshots/premium-workspace.png) | ![Live mock interview](docs/screenshots/premium-interview-live.png) |
 | **Interview feedback** | **Dashboard** |
 | ![Rubric feedback](docs/screenshots/premium-interview-feedback.png) | ![Progress dashboard](docs/screenshots/premium-dashboard.png) |
+| **Sign in** | **Reset password** |
+| ![Sign in](docs/screenshots/11-login.png) | ![Reset password](docs/screenshots/14-reset-password.png) |
 | **Judged in the gVisor sandbox** | **Explain my failure** |
 | ![Submission passed](docs/screenshots/08-judged-pass.png) | ![Failure explanation](docs/screenshots/10-explain-failure.png) |
 
@@ -24,7 +26,7 @@ comes from test cases, never from the AI.
 |---|---|
 | Problem library | 22 curated Java problems (10 easy, 12 medium) across arrays, strings, hashing, two pointers, sliding window, stacks, heaps, binary search, greedy and dynamic programming; 176 test cases (public + hidden); search, filters, pagination |
 | Verified test data | Every problem ships with a trusted reference solution, and CI compiles and runs all of them against every test case and checks that each problem's starter code fails. New problems' expected outputs come from two independent implementations (a simple Python model and the Java reference) that must agree |
-| Accounts | Register and login (Argon2id), guest demo sessions, **15-minute in-memory access tokens with a rotating `HttpOnly` `SameSite=Strict` refresh cookie** (reuse detection revokes stolen sessions; nothing in `localStorage`), logout-everywhere, **forgot-password by email** (pluggable console/file/SMTP sender; no account enumeration), **guest-to-account upgrade that keeps all progress**, automatic deletion of inactive guest accounts, rate limits **shared across API replicas**, password change, brute-force limiting; settings page with profile edit, **full data export** and **account deletion** (cascading, verified on SQLite and PostgreSQL) |
+| Accounts | Register and login (Argon2id), guest demo sessions, **15-minute in-memory access tokens with a rotating `HttpOnly` `SameSite=Strict` refresh cookie** (reuse detection revokes stolen sessions; nothing in `localStorage`), logout-everywhere, **email verification with a 6-digit code** (or link), **change email**, sign out of this device or **all devices**, show/hide password and a live password checklist, **forgot-password by email** (pluggable console/file/SMTP sender; no account enumeration), **guest-to-account upgrade that keeps all progress**, automatic deletion of inactive guest accounts, rate limits **shared across API replicas**, password change, brute-force limiting; settings page with profile edit, **full data export** and **account deletion** (cascading, verified on SQLite and PostgreSQL) |
 | AI hints | 4-level progressive ladder (nudge → concept → pseudocode → explanation), unlock order enforced by the server |
 | AI code review | Structured JSON: complexity, issues with severity, category and line, strengths, next step, confidence |
 | Explain my failure | One click on a failed verdict: the root cause (13 categories), a plain-English explanation, the evidence it relied on (failing public test, exception line or compiler message), a link to the line, and next steps. Built only from public test data; cached per submission. Verified with 9 buggy programs in the real sandbox |
@@ -36,7 +38,7 @@ comes from test cases, never from the AI.
 | Analytics | Solved/attempted by topic and difficulty, streaks, 28-day activity, acceptance rate, weakest topics |
 | Recommendations | Explainable next problems: retry unfinished, strengthen weak topics, difficulty ladder |
 | Web app | React + TypeScript: landing, auth, problem library (URL-synced filters), resizable 3-panel workspace with Monaco and autosaved drafts, hint ladder, reviews that highlight the flagged line, dashboard (stat tiles, activity heatmap, topic progress), history; mobile layout |
-| Engineering | 418 backend tests (SQLite **and** PostgreSQL, incl. 104 that run in the real gVisor sandbox), 33 runner tests, 98 frontend tests, 16 Playwright end-to-end tests against the real backend, plus an opt-in audit that uses all 325 controls on every page (incl. automated **axe-core WCAG 2.1 AA** scans of every main screen on desktop and mobile); ruff, mypy, ESLint, strict TypeScript; API types generated from OpenAPI; Alembic; Docker Compose (db, migrate, api, web + judge profile: sandbox image, runner, worker); GitHub Actions; pip-audit, npm audit, Dependabot; Prometheus metrics, JSON logs, request IDs, health checks; CSP and security headers |
+| Engineering | 431 backend tests (SQLite **and** PostgreSQL, incl. 104 that run in the real gVisor sandbox), 33 runner tests, 107 frontend tests, 17 Playwright end-to-end tests against the real backend, plus an opt-in audit that uses all 325 controls on every page (incl. automated **axe-core WCAG 2.1 AA** scans of every main screen on desktop and mobile); ruff, mypy, ESLint, strict TypeScript; API types generated from OpenAPI; Alembic; Docker Compose (db, migrate, api, web + judge profile: sandbox image, runner, worker); GitHub Actions; pip-audit, npm audit, Dependabot; Prometheus metrics, JSON logs, request IDs, health checks; CSP and security headers |
 
 ## Architecture
 
@@ -94,7 +96,7 @@ pip-audit -r requirements.txt             # known-vulnerability scan
 cd frontend
 npm run lint && npm run typecheck         # ESLint + strict TypeScript
 npm run api:check                         # generated API types match docs/openapi.json
-npm test                                  # 98 unit + integration tests (Vitest, MSW)
+npm test                                  # 107 unit + integration tests (Vitest, MSW)
 npm run build                             # production bundle
 PYTHON=../backend/.venv/bin/python npm run e2e   # Playwright: real browser + real backend
 AUDIT=1 E2E_JUDGE=1 npx playwright test e2e/controls-audit.spec.ts --project=desktop   # ~15 min: uses every control on every page

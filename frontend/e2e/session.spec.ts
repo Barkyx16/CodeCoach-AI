@@ -43,14 +43,14 @@ test("a guest keeps their work by upgrading to a full account", async ({ page })
   const card = page.getByRole("form", { name: "Keep your progress" });
   await expect(card.getByText(/deleted after \d+ days without activity/)).toBeVisible();
   await card.getByLabel("Email").fill(email);
-  await card.getByLabel("Password").fill("CorrectHorse42");
+  await card.getByLabel("Password", { exact: true }).fill("CorrectHorse42");
   await card.getByRole("button", { name: "Create my account" }).click();
   await expect(page.getByText(/Your account is ready/)).toBeVisible();
 
-  await page.getByRole("button", { name: "Sign out" }).click();
+  await page.locator("#primary-navigation").getByRole("button", { name: "Sign out" }).click();
   await page.goto("/login");
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill("CorrectHorse42");
+  await page.getByLabel("Password", { exact: true }).fill("CorrectHorse42");
   await page.locator("#main").getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
   await page.goto("/history");

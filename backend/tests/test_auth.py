@@ -44,10 +44,10 @@ def test_me_requires_valid_token(client):
     assert bad.headers["WWW-Authenticate"] == "Bearer"
 
 
-def test_logout_revokes_existing_tokens(client):
+def test_logout_all_revokes_existing_tokens(client):
     headers = auth_headers(register(client))
     assert client.get("/api/v1/auth/me", headers=headers).status_code == 200
-    assert client.post("/api/v1/auth/logout", headers=headers).status_code == 204
+    assert client.post("/api/v1/auth/logout-all", headers=headers).status_code == 204
     assert client.get("/api/v1/auth/me", headers=headers).status_code == 401
 
 

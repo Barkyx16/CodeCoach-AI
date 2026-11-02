@@ -5,6 +5,7 @@ import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
 import { Button } from "@/components/Button";
 import { Field } from "@/components/Field";
+import { PasswordChecklist } from "@/components/PasswordChecklist";
 import { InlineError } from "@/components/States";
 
 import { AuthLayout } from "./AuthLayout";
@@ -104,7 +105,7 @@ export function ResetPasswordPage() {
             <p className="muted">This signs you out everywhere, so a stolen session can't outlive the change.</p>
             <Field label="New password" type="password" autoComplete="new-password" required minLength={10}
               value={password} onChange={(e) => setPassword(e.target.value)} error={fieldErrors.new_password}
-              hint="At least 10 characters with upper- and lower-case letters and a number." />
+              extra={<PasswordChecklist password={password} />} />
             <Field label="Confirm new password" type="password" autoComplete="new-password" required
               value={confirm} onChange={(e) => setConfirm(e.target.value)}
               error={mismatch ? "The passwords don't match." : undefined} />

@@ -106,14 +106,36 @@ def test_expired_refresh_token_is_rejected(client):
     assert refresh(client).json()["error"]["code"] == "invalid_refresh"
 
 
-def test_logout_ends_every_refresh_session(client):
+def _two_devices(client):
+    """Sign in twice: two independent refresh-token families (say, laptop and phone)."""
     register(client)
-    other_device = cookie(client)
-    token = refresh(client).json()["access_token"]
-    r = client.post("/api/v1/auth/logout", headers={"Authorization": f"Bearer {token}"})
+    laptop = cookie(client)
+    login = {"email": "ada@example.com", "password": "CorrectHorse42"}
+    phone_token = client.post("/api/v1/auth/login", json=login).json()["access_token"]
+    phone = cookie(client)
+    return laptop, phone, phone_token
+
+
+def test_logout_signs_out_only_this_device(client):
+    laptop, phone, phone_token = _two_devices(client)
+    r = client.post("/api/v1/auth/logout", headers={"Authorization": f"Bearer {phone_token}"})
     assert r.status_code == 204 and 'cc_refresh=""' in r.headers["set-cookie"]
-    use_cookie(client, other_device)
-    assert refresh(client).status_code == 401
+    use_cookie(client, phone)
+    assert refresh(client).status_code == 401  # this device is signed out
+    use_cookie(client, laptop)
+    assert refresh(client).status_code == 200  # the other device isn't
+
+
+def test_logout_all_ends_every_session(client):
+    laptop, phone, phone_token = _two_devices(client)
+    r = client.post("/api/v1/auth/logout-all", headers={"Authorization": f"Bearer {phone_token}"})
+    assert r.status_code == 204
+    assert (
+        client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {phone_token}"}).status_code == 401
+    )
+    for device in (laptop, phone):
+        use_cookie(client, device)
+        assert refresh(client).status_code == 401
 
 
 def test_password_change_keeps_this_session_and_ends_the_others(client):

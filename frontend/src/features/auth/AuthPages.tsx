@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/Button";
 import { Field } from "@/components/Field";
+import { PasswordChecklist } from "@/components/PasswordChecklist";
 import { InlineError } from "@/components/States";
 
 import { fieldErrorsFrom } from "./fieldErrors";
@@ -103,7 +104,8 @@ export function RegisterPage() {
     setError(null);
     try {
       await register({ email: form.email, password: form.password, display_name: form.display_name || null });
-      navigate(target, { replace: true });
+      // Next: enter the 6-digit code we just emailed (skippable), then continue.
+      navigate("/verify-email", { replace: true, state: { next: target } });
     } catch (err) {
       setError(err);
     } finally {
@@ -125,7 +127,7 @@ export function RegisterPage() {
           onChange={set("email")} error={fieldErrors.email} />
         <Field label="Password" type="password" autoComplete="new-password" required minLength={10}
           value={form.password} onChange={set("password")} error={fieldErrors.password}
-          hint="At least 10 characters with upper- and lower-case letters and a number." />
+          extra={<PasswordChecklist password={form.password} />} />
         <InlineError error={generalError} />
         <Button type="submit" variant="primary" loading={busy} disabled={!form.email || !form.password}>
           Create account

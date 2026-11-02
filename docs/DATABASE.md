@@ -95,6 +95,18 @@ SQLite for speed, and CI runs it on both. Schema changes go through **Alembic** 
 | `created_at`, `expires_at` | timestamptz | Expired rows are pruned when the user gets a new token |
 | `used_at`, `revoked_at` | timestamptz null | Rotation and revocation; used rows are kept until expiry so a replay is recognised |
 
+### `email_verification_tokens`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | varchar(36) PK | UUID4 |
+| `user_id` | FK → users (cascade), indexed | |
+| `email` | varchar(320) | The address it was sent to; it only verifies while that's still the account's email |
+| `token_hash` | varchar(64) unique | SHA-256 of the link token |
+| `code_hash`, `code_attempts` | varchar(64), integer | HMAC-SHA256 (server secret) of the 6-digit code; 5 wrong tries kill it |
+| `created_at`, `expires_at`, `used_at` | timestamptz | 48 h lifetime; superseded by any newer send |
+
+`users.email_verified_at` (timestamptz null) records verification and is cleared when the email changes.
+
 ### `password_reset_tokens`
 | Column | Type | Notes |
 |---|---|---|
@@ -177,6 +189,7 @@ transcript; `ai_interactions` rows for interview turns keep only cost and latenc
 | `9b08bedc4ed0` refresh tokens | Adds the `refresh_tokens` table (new table, so safe on populated databases) |
 | `991fd8b47342` password reset tokens | Adds `password_reset_tokens` |
 | `aacf788a8eb5` rate limit counters | Adds `rate_limit_counters` |
+| `236640408846` email verification | Adds `users.email_verified_at` (nullable: existing accounts start unverified) and `email_verification_tokens` |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

@@ -102,11 +102,14 @@ test("account journey: register, filter library, sign out, sign in", async ({ pa
   await page.goto("/register");
   await page.getByLabel("Name").fill("Ada");
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill("weak");
+  await page.getByLabel("Password", { exact: true }).fill("weak");
   await page.getByRole("form", { name: "Create your account" }).getByRole("button", { name: "Create account" }).click();
   await expect(page.getByText(/at least 10 characters|String should have at least 10/i).last()).toBeVisible();
-  await page.getByLabel("Password").fill("CorrectHorse42");
+  await page.getByLabel("Password", { exact: true }).fill("CorrectHorse42");
   await page.getByRole("form", { name: "Create your account" }).getByRole("button", { name: "Create account" }).click();
+  // New accounts are asked for the emailed code first; it can be done later.
+  await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible();
+  await page.getByRole("link", { name: "Do this later" }).click();
   await expect(page).toHaveURL(/\/problems$/);
   await expect(page.getByText("Ada", { exact: true })).toBeVisible();
 
@@ -121,7 +124,7 @@ test("account journey: register, filter library, sign out, sign in", async ({ pa
   await page.goto("/dashboard");
   await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill("CorrectHorse42");
+  await page.getByLabel("Password", { exact: true }).fill("CorrectHorse42");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByText("Ada's progress")).toBeVisible();
@@ -133,7 +136,7 @@ test("account journey: register, filter library, sign out, sign in", async ({ pa
   await expect(page.getByRole("banner").getByText("Ada L.")).toBeVisible();
   await page.screenshot({ path: "e2e/screenshots/09-settings.png", fullPage: true });
   const danger = page.getByRole("form", { name: "Delete account" });
-  await danger.getByLabel("Password").fill("CorrectHorse42");
+  await danger.getByLabel("Password", { exact: true }).fill("CorrectHorse42");
   await danger.getByLabel('Type "DELETE" to confirm').fill("DELETE");
   await danger.getByRole("button", { name: "Delete my account" }).click();
   await expect(page).toHaveURL(/\/$/);
@@ -141,7 +144,7 @@ test("account journey: register, filter library, sign out, sign in", async ({ pa
   // The account is really gone.
   await page.goto("/login");
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill("CorrectHorse42");
+  await page.getByLabel("Password", { exact: true }).fill("CorrectHorse42");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("alert")).toContainText("Incorrect email or password");
 });

@@ -1,6 +1,6 @@
-import type { HintResponse, Page, ProblemDetail, ProblemSummary, Progress, ReviewResponse, Submission, TokenResponse } from "@/api/types";
+import type { HintResponse, Page, ProblemDetail, ProblemSummary, Progress, ReviewResponse, Submission, TokenResponse, User } from "@/api/types";
 
-export const user = { id: "u-1", email: "ada@example.com", display_name: "Ada", is_guest: false, created_at: "2026-11-01T08:00:00Z" };
+export const user: User = { id: "u-1", email: "ada@example.com", display_name: "Ada", is_guest: false, created_at: "2026-11-01T08:00:00Z", email_verified: true };
 
 export const tokenResponse = (overrides: Partial<TokenResponse> = {}): TokenResponse => ({
   access_token: "test-token",

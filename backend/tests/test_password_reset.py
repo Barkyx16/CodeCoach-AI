@@ -28,7 +28,11 @@ def mail_client(make_client, outbox):
 
 
 def emails(outbox: Path) -> list[dict]:
-    return [json.loads(p.read_text()) for p in sorted(outbox.glob("*.json"))] if outbox.exists() else []
+    """Password-reset emails only (registration also sends a verification email)."""
+    if not outbox.exists():
+        return []
+    sent = [json.loads(p.read_text()) for p in sorted(outbox.glob("*.json"))]
+    return [m for m in sent if m["subject"] == "Reset your CodeCoach AI password"]
 
 
 def token_from(mail: dict) -> str:

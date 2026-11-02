@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
 import { useAIUsage, useCapabilities } from "@/api/queries";
 import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/Button";
+import { Badge } from "@/components/Badge";
 import { Card } from "@/components/Card";
+import { PasswordChecklist } from "@/components/PasswordChecklist";
 import { Field } from "@/components/Field";
 import { InlineError } from "@/components/States";
 import { fieldErrorsFrom } from "@/features/auth/fieldErrors";
@@ -30,17 +32,20 @@ export function SettingsPage() {
         </div>
         <Link className="btn btn--secondary btn--md" to="/history"><Icon name="file" size={16} />View practice history</Link>
       </div>
-      <div className="account-summary"><div className="account-summary__avatar" aria-hidden="true">{(user.display_name ?? user.email ?? "Guest").trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "C"}</div><div><strong>{user.display_name ?? user.email ?? "Guest"}</strong><p className="subtle">{user.is_guest ? "A temporary session for exploring CodeCoach." : user.email}</p></div><span className="badge">{user.is_guest ? "Guest account" : "Your account"}</span></div>
+      <div className="account-summary"><div className="account-summary__avatar" aria-hidden="true">{(user.display_name ?? user.email ?? "Guest").trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "C"}</div><div><strong>{user.display_name ?? user.email ?? "Guest"}</strong><p className="subtle">{user.is_guest ? "A temporary session for exploring CodeCoach." : user.email}</p></div><span className="badge">{user.is_guest ? "Guest account" : "Your account"}</span>{!user.is_guest && (user.email_verified ? <Badge tone="success">Email verified</Badge> : <Badge tone="warning">Email not verified</Badge>)}</div>
       {upgraded && (
         <p className="banner banner--success" role="status">
-          Your account is ready. Everything you did as a guest is saved, and you can sign in from any device.
+          Your account is ready. Everything you did as a guest is saved, and you can sign in from any device.{" "}
+          <Link to="/verify-email" state={{ next: "/settings" }}>Enter the code we emailed you</Link> to confirm your email.
         </p>
       )}
       <div className="settings__grid">
         {user.is_guest && <KeepProgressCard onUpgraded={() => setUpgraded(true)} />}
         <ProfileCard />
         <Card className="stack" aria-labelledby="editor-preferences-title"><h2 id="editor-preferences-title" className="section-title"><Icon name="code" size={17} />Editor preferences</h2><EditorAppearancePreview /><EditorPreferencesControls /></Card>
+        {!user.is_guest && <EmailCard />}
         {!user.is_guest && <PasswordCard />}
+        <SessionsCard />
         <AIPrivacyCard />
         <DataCard />
         <DangerCard />
@@ -125,7 +130,7 @@ function KeepProgressCard({ onUpgraded }: { onUpgraded(): void }) {
           onChange={set("email")} error={errors.email} />
         <Field label="Password" type="password" autoComplete="new-password" required value={form.password}
           onChange={set("password")} error={errors.password}
-          hint="At least 10 characters with upper- and lower-case letters and a number." />
+          extra={<PasswordChecklist password={form.password} />} />
         {!errors.email && !errors.password && !errors.display_name && <InlineError error={state.error} />}
         <div className="row">
           <Button type="submit" variant="primary" loading={state.busy} disabled={!form.email || !form.password}>
@@ -133,6 +138,85 @@ function KeepProgressCard({ onUpgraded }: { onUpgraded(): void }) {
           </Button>
         </div>
       </form>
+    </Card>
+  );
+}
+
+/** Current email, whether it's verified, and changing it (needs the password). */
+function EmailCard() {
+  const { user, setUser } = useAuth();
+  const [newEmail, setNewEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const form = useFormState();
+  const errors = fieldErrorsFrom(form.error) as Record<string, string | undefined>;
+  if (!user) return null;
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    void form.run(async () => {
+      setUser(await api.changeEmail({ new_email: newEmail, password }));
+      setNewEmail("");
+      setPassword("");
+    }, "Email changed. We sent a code to the new address, and a notice to the old one.");
+  };
+  return (
+    <Card>
+      <form className="stack" onSubmit={onSubmit} aria-labelledby="email-title">
+        <h2 id="email-title" className="section-title"><Icon name="user" size={17} />Email</h2>
+        <p className="row">
+          <strong>{user.email}</strong>
+          {user.email_verified ? <Badge tone="success">Verified</Badge> : <Badge tone="warning">Not verified</Badge>}
+        </p>
+        {!user.email_verified && (
+          <p className="muted">
+            Confirm it so we can reach you about your account.{" "}
+            <Link to="/verify-email" state={{ next: "/settings" }}>Enter the verification code</Link>
+          </p>
+        )}
+        <Field label="New email" type="email" autoComplete="email" value={newEmail}
+          onChange={(e) => setNewEmail(e.target.value)} error={errors.new_email} />
+        <Field label="Current password" type="password" autoComplete="current-password" value={password}
+          onChange={(e) => setPassword(e.target.value)} />
+        {!errors.new_email && <InlineError error={form.error} />}
+        <div className="row">
+          <Button type="submit" variant="primary" loading={form.busy} disabled={!newEmail || !password}>Change email</Button>
+          {form.done && <span className="subtle" role="status">{form.done}</span>}
+        </div>
+      </form>
+    </Card>
+  );
+}
+
+/** Sign out here, or everywhere (e.g. after using a shared computer). */
+function SessionsCard() {
+  const { logout, logoutAll } = useAuth();
+  const navigate = useNavigate();
+  const [busy, setBusy] = useState<"one" | "all" | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  async function run(kind: "one" | "all") {
+    if (kind === "all" && !window.confirm("Sign out of CodeCoach on every device, including this one?")) return;
+    setBusy(kind);
+    setError(null);
+    try {
+      await (kind === "all" ? logoutAll() : logout());
+      navigate("/");
+    } catch (err) {
+      setError(err);
+      setBusy(null);
+    }
+  }
+  return (
+    <Card className="stack" role="region" aria-labelledby="sessions-title">
+      <h2 id="sessions-title" className="section-title"><Icon name="shield" size={17} />Sign out</h2>
+      <p className="muted">Sign out of this browser, or of every device where you're signed in.</p>
+      <div className="row">
+        <Button variant="secondary" loading={busy === "one"} disabled={busy !== null} onClick={() => void run("one")}>
+          Sign out
+        </Button>
+        <Button variant="ghost" loading={busy === "all"} disabled={busy !== null} onClick={() => void run("all")}>
+          Sign out of all devices
+        </Button>
+      </div>
+      <InlineError error={error} />
     </Card>
   );
 }
@@ -159,7 +243,7 @@ function PasswordCard() {
           onChange={(e) => setCurrent(e.target.value)} />
         <Field label="New password" type="password" autoComplete="new-password" value={next}
           onChange={(e) => setNext(e.target.value)} error={errors.new_password}
-          hint="At least 10 characters with upper- and lower-case letters and a number." />
+          extra={<PasswordChecklist password={next} />} />
         {!errors.new_password && <InlineError error={form.error} />}
         <div className="row">
           <Button type="submit" variant="primary" loading={form.busy} disabled={!current || !next}>Change password</Button>

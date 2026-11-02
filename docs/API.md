@@ -97,8 +97,9 @@ Two tokens with different jobs:
    family was revoked); `refresh_race` (two tabs refreshed with the same cookie within 30 s:
    retry once and the browser will send the new cookie). `403 csrf_rejected` means the custom
    header was missing or the `Origin` isn't an allowed one.
-5. **Logout:** `POST /api/v1/auth/logout` increments the user's `token_version`, revokes all
-   their refresh tokens and clears the cookie. Every session on every device ends.
+5. **Logout:** `POST /api/v1/auth/logout` ends *this device's* session (its refresh-token family)
+   and clears the cookie; discard the in-memory access token. `POST /api/v1/auth/logout-all`
+   increments `token_version` and revokes every refresh token: every session on every device ends.
 6. **Password change:** `POST /api/v1/auth/password` ends every other session and returns a
    fresh access token and cookie for this one. **Account deletion** clears the cookie too.
 
@@ -184,6 +185,11 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 | POST | `/api/v1/auth/login` | – | Log in → token |
 | POST | `/api/v1/auth/refresh` | cookie | New access token from the refresh cookie (rotates it) |
 | POST | `/api/v1/auth/upgrade` | 🔒 | Turn the current guest into a full account, keeping its data |
+| POST | `/api/v1/auth/verify-email` | – | Confirm an email with the emailed link token |
+| POST | `/api/v1/auth/verify-email/code` | 🔒 | Confirm your email with the emailed 6-digit code |
+| POST | `/api/v1/auth/verify-email/resend` | 🔒 | Send a new code and link |
+| POST | `/api/v1/auth/email` | 🔒 | Change your email (needs your password) |
+| POST | `/api/v1/auth/logout-all` | 🔒 | Sign out of every device |
 | POST | `/api/v1/auth/password-reset` | – | Email a reset link (same answer for unknown emails) |
 | POST | `/api/v1/auth/password-reset/confirm` | – | Set a new password with a reset token |
 | POST | `/api/v1/auth/guest` | – | Demo session → token |
@@ -293,6 +299,23 @@ if the current password is wrong (or the user is a guest).
 Guest accounts only. Same body and rules as `/register`; the account keeps its id, so every
 attempt, hint, review and interview is kept. Returns a `TokenResponse` and a new refresh
 cookie. `409 email_taken`, `409 not_a_guest`.
+
+#### Email verification
+New accounts (registration or guest upgrade) and changed emails get one email containing **both**
+a 6-digit code and a link (`APP_BASE_URL/verify-email#token=…`). `UserOut.email_verified` reports
+the state. Each send supersedes the previous code and link; at most one per minute per account.
+
+- `POST /api/v1/auth/verify-email/code` 🔒 `{"code": "123456"}` → `200 UserOut`. Five wrong codes
+  kill that code (`400 too_many_attempts`); otherwise `400 invalid_verification_code` with
+  `details.attempts_left`. Codes are stored as HMAC-SHA256 keyed with the server secret.
+- `POST /api/v1/auth/verify-email` `{"token": "…"}` → `200 UserOut` (no sign-in needed, so the link
+  works on another device). `400 invalid_verification_token` if used, superseded, expired, or the
+  account's email changed since it was sent.
+- `POST /api/v1/auth/verify-email/resend` 🔒 → `202`. `409 already_verified`, `409 not_applicable`
+  (guests).
+- `POST /api/v1/auth/email` 🔒 `{"new_email": "…", "password": "…"}` → `200 UserOut` with
+  `email_verified: false`. Sends a code to the new address and a notice to the old one.
+  `401 invalid_credentials`, `409 email_taken`, `409 same_email`.
 
 #### `POST /api/v1/auth/password-reset` → `202`
 ```json
@@ -776,6 +799,7 @@ All configuration is environment variables (or a `.env` file; see
 | `EMAIL_BACKEND` | `console` | `console` (log), `file` (write to `EMAIL_FILE_DIR`, for tests) or `smtp`. Production requires `smtp`. |
 | `EMAIL_FROM`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_STARTTLS` | –, –, `587`, –, –, `true` | SMTP delivery settings. |
 | `PASSWORD_RESET_TTL_MINUTES` | `30` | Lifetime of a reset link. |
+| `EMAIL_VERIFICATION_TTL_HOURS` | `48` | Lifetime of a verification code and link. |
 | `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Comma-separated browser origins allowed to call the API. |
 | `AI_PROVIDER` | `offline` | `offline` (curated hints + static analysis, free) or `anthropic` (Claude). |
 | `ANTHROPIC_API_KEY` | — | **Secret.** Required when `AI_PROVIDER=anthropic`. |

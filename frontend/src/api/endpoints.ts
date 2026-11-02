@@ -50,6 +50,15 @@ export const api = {
     }),
   me: () => apiRequest<User>("/api/v1/auth/me"),
   logout: () => apiRequest<void>("/api/v1/auth/logout", { method: "POST" }),
+  logoutAll: () => apiRequest<void>("/api/v1/auth/logout-all", { method: "POST" }),
+  verifyEmailLink: (token: string) =>
+    apiRequest<User>("/api/v1/auth/verify-email", { method: "POST", body: { token }, auth: false }),
+  verifyEmailCode: (code: string) =>
+    apiRequest<User>("/api/v1/auth/verify-email/code", { method: "POST", body: { code } }),
+  resendVerification: () =>
+    apiRequest<{ status: string; message: string }>("/api/v1/auth/verify-email/resend", { method: "POST" }),
+  changeEmail: (body: { new_email: string; password: string }) =>
+    apiRequest<User>("/api/v1/auth/email", { method: "POST", body }),
   /** Exchange the HttpOnly refresh cookie for a new access token (and a rotated cookie). */
   refresh: () => apiRequest<TokenResponse>("/api/v1/auth/refresh", {
     method: "POST", auth: false, headers: { "X-Requested-With": "codecoach" },

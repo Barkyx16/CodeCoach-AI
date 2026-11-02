@@ -118,10 +118,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     continueAsGuest: async (displayName) => adopt(await api.guest(displayName)),
     logout: async () => {
       try {
-        await api.logout(); // revokes the token server-side too
+        await api.logout(); // ends this device's refresh cookie server-side
       } catch {
         /* still sign out locally even if the network call fails */
       }
+      clear(null);
+    },
+    logoutAll: async () => {
+      await api.logoutAll(); // if this fails, say so rather than pretend other devices are out
       clear(null);
     },
     setUser: (user) => {

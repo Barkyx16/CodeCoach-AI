@@ -61,6 +61,7 @@ class Settings(BaseSettings):
     smtp_password: str | None = None
     smtp_starttls: bool = True
     password_reset_ttl_minutes: int = Field(default=30, ge=5, le=24 * 60)
+    email_verification_ttl_hours: int = Field(default=48, ge=1, le=24 * 14)
 
     # Comma-separated list, e.g. "http://localhost:5173,https://codecoach.example.com"
     cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:5173", "http://127.0.0.1:5173"]

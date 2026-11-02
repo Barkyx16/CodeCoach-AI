@@ -14,7 +14,10 @@ export interface AuthContextValue {
   login(body: LoginRequest): Promise<User>;
   register(body: RegisterRequest): Promise<User>;
   continueAsGuest(displayName?: string): Promise<User>;
+  /** Sign out of this device. */
   logout(): Promise<void>;
+  /** Sign out of every device (revokes all sessions server-side). */
+  logoutAll(): Promise<void>;
   /** Replace the stored user after a profile change. */
   setUser(user: User): void;
   /** Adopt a new token (e.g. after a password change revokes the old one). */

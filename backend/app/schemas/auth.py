@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import EmailStr, Field, field_validator
+from pydantic import EmailStr, Field, field_validator, model_validator
 
 from app.schemas.common import APIModel
 
@@ -47,6 +47,19 @@ class ChangePasswordRequest(APIModel):
         return _password_rules(v)
 
 
+class VerifyEmailRequest(APIModel):
+    token: str = Field(min_length=20, max_length=200)
+
+
+class VerifyCodeRequest(APIModel):
+    code: str = Field(pattern=r"^\s*\d{6}\s*$", description="The 6-digit code from the email")
+
+
+class ChangeEmailRequest(APIModel):
+    new_email: EmailStr
+    password: str = Field(min_length=1, max_length=128, description="Your current password")
+
+
 class PasswordResetRequest(APIModel):
     email: EmailStr
 
@@ -83,6 +96,22 @@ class UserOut(APIModel):
     display_name: str | None
     is_guest: bool
     created_at: datetime
+    email_verified: bool = Field(description="The owner confirmed this email address")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _verified_from_model(cls, data: object) -> object:
+        # From the ORM model, derive the flag from the timestamp.
+        if hasattr(data, "email_verified_at"):
+            return {
+                "id": data.id,  # type: ignore[attr-defined]
+                "email": data.email,  # type: ignore[attr-defined]
+                "display_name": data.display_name,  # type: ignore[attr-defined]
+                "is_guest": data.is_guest,  # type: ignore[attr-defined]
+                "created_at": data.created_at,  # type: ignore[attr-defined]
+                "email_verified": data.email_verified_at is not None,
+            }
+        return data
 
 
 class TokenResponse(APIModel):

@@ -18,6 +18,7 @@ from app.errors import (
 from app.models import User, new_id
 from app.schemas.auth import (
     AcceptedResponse,
+    ChangeEmailRequest,
     ChangePasswordRequest,
     DeleteAccountRequest,
     GuestSessionRequest,
@@ -29,9 +30,11 @@ from app.schemas.auth import (
     UpdateProfileRequest,
     UpgradeGuestRequest,
     UserOut,
+    VerifyCodeRequest,
+    VerifyEmailRequest,
 )
 from app.schemas.common import error_responses
-from app.services import password_reset
+from app.services import email_verification, password_reset
 from app.services import refresh as refresh_tokens
 from app.services.auth import hash_password, issue_access_token, needs_rehash, verify_password
 
@@ -104,6 +107,7 @@ def register(
     body: RegisterRequest,
     request: Request,
     response: Response,
+    background: BackgroundTasks,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> TokenResponse:
@@ -125,6 +129,13 @@ def register(
     except IntegrityError as exc:  # concurrent registration with the same email
         db.rollback()
         raise ConflictError("An account with this email already exists", code="email_taken") from exc
+    background.add_task(
+        email_verification.send_verification,
+        request.app.state.session_factory,
+        user.id,
+        settings,
+        request.app.state.email_sender,
+    )
     return _start_session(db, user, response, settings)
 
 
@@ -188,6 +199,7 @@ def upgrade_guest(
     body: UpgradeGuestRequest,
     request: Request,
     response: Response,
+    background: BackgroundTasks,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
@@ -211,6 +223,13 @@ def upgrade_guest(
     except IntegrityError as exc:  # concurrent registration with the same email
         db.rollback()
         raise ConflictError("An account with this email already exists", code="email_taken") from exc
+    background.add_task(
+        email_verification.send_verification,
+        request.app.state.session_factory,
+        user.id,
+        settings,
+        request.app.state.email_sender,
+    )
     return _start_session(db, user, response, settings)
 
 
@@ -244,6 +263,105 @@ def refresh(
     db.commit()
     _set_refresh_cookie(response, raw, settings)
     return _token_response(user, settings)
+
+
+@router.post(
+    "/verify-email",
+    response_model=UserOut,
+    responses=error_responses(400, 422),
+    summary="Confirm an email address with the emailed link (no sign-in needed)",
+)
+def verify_email(body: VerifyEmailRequest, request: Request, db: Session = Depends(get_db)) -> User:
+    _throttle(request)
+    return email_verification.confirm(db, body.token)
+
+
+@router.post(
+    "/verify-email/code",
+    response_model=UserOut,
+    responses=_ERRORS,
+    summary="Confirm your email with the 6-digit code from the email (5 tries per code)",
+)
+def verify_email_code(
+    body: VerifyCodeRequest,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> User:
+    _throttle(request)
+    return email_verification.confirm_code(db, user, body.code, settings)
+
+
+@router.post(
+    "/verify-email/resend",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=AcceptedResponse,
+    responses=_ERRORS,
+    summary="Send a new verification link to your current email",
+)
+def resend_verification(
+    request: Request,
+    background: BackgroundTasks,
+    user: User = Depends(get_current_user),
+    settings: Settings = Depends(get_settings_dep),
+) -> AcceptedResponse:
+    if user.is_guest or not user.email:
+        raise ConflictError("Guest accounts have no email to verify.", code="not_applicable")
+    if user.email_verified_at is not None:
+        raise ConflictError("This email is already verified.", code="already_verified")
+    background.add_task(
+        email_verification.send_verification,
+        request.app.state.session_factory,
+        user.id,
+        settings,
+        request.app.state.email_sender,
+    )
+    return AcceptedResponse(message=f"We've sent a new verification link to {user.email}.")
+
+
+@router.post(
+    "/email",
+    response_model=UserOut,
+    responses=_ERRORS,
+    summary="Change your email (needs your password; the new address must be verified)",
+)
+def change_email(
+    body: ChangeEmailRequest,
+    request: Request,
+    background: BackgroundTasks,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> User:
+    _throttle(request)
+    if user.is_guest or not verify_password(user.password_hash, body.password):
+        raise UnauthorizedError("Password is incorrect", code="invalid_credentials")
+    new_email = body.new_email.lower()
+    if new_email == user.email:
+        raise ConflictError("That's already your email.", code="same_email")
+    if db.scalar(select(User.id).where(User.email == new_email)):
+        raise ConflictError("An account with this email already exists", code="email_taken")
+    old_email = user.email
+    user.email = new_email
+    user.email_verified_at = None  # outstanding links for the old address stop working
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise ConflictError("An account with this email already exists", code="email_taken") from exc
+    background.add_task(
+        email_verification.send_verification,
+        request.app.state.session_factory,
+        user.id,
+        settings,
+        request.app.state.email_sender,
+    )
+    if old_email:
+        background.add_task(
+            email_verification.notify_email_changed, request.app.state.email_sender, old_email, new_email
+        )
+    return user
 
 
 @router.post(
@@ -301,9 +419,30 @@ def me(user: User = Depends(get_current_user)) -> User:
     "/logout",
     status_code=status.HTTP_204_NO_CONTENT,
     responses=_ERRORS,
-    summary="Revoke every access token issued to this user",
+    summary="Sign out of this device (ends this session's refresh cookie)",
 )
 def logout(
+    response: Response,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+    cc_refresh: str | None = Cookie(default=None),
+) -> None:
+    row = refresh_tokens.find(db, cc_refresh)
+    if row is not None and row.user_id == user.id:
+        refresh_tokens.revoke_family(db, row.family_id)
+        db.commit()
+    # The access token in this tab is discarded by the client and expires within 15 minutes.
+    _clear_refresh_cookie(response, settings)
+
+
+@router.post(
+    "/logout-all",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses=_ERRORS,
+    summary="Sign out of every device (revokes all access and refresh tokens)",
+)
+def logout_all(
     response: Response,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

@@ -6,6 +6,7 @@ import { RequireAuth } from "@/auth/RequireAuth";
 import { LoadingState } from "@/components/States";
 import { LoginPage, RegisterPage } from "@/features/auth/AuthPages";
 import { ForgotPasswordPage, ResetPasswordPage } from "@/features/auth/PasswordResetPages";
+import { VerifyEmailPage } from "@/features/auth/VerifyEmailPage";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
 import { HistoryPage } from "@/features/history/HistoryPage";
 import { InterviewStartPage } from "@/features/interview/InterviewStartPage";
@@ -30,6 +31,7 @@ export const routes: RouteObject[] = [
       { path: "/register", element: <RegisterPage /> },
       { path: "/forgot-password", element: <ForgotPasswordPage /> },
       { path: "/reset-password", element: <ResetPasswordPage /> },
+      { path: "/verify-email", element: <VerifyEmailPage /> },
       { path: "/problems", element: <ProblemListPage /> },
       {
         path: "/problems/:slug",

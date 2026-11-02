@@ -53,6 +53,10 @@ The "Session log" at the bottom tracks exactly what that is.
   refresh token in an `HttpOnly`, `SameSite=Strict` cookie (hash-only storage, reuse detection
   that revokes a stolen session, CSRF header and Origin checks), removing tokens from
   `localStorage` entirely; tested in a real browser and in 15 backend attack-case tests.
+- Built **email verification with 6-digit codes** (HMAC-stored, 5 tries per code, bound to the
+  address it was sent to), change-of-email with password re-entry and a notice to the old
+  address, per-device vs. all-devices sign-out, and accessible show/hide password toggles with a
+  live password checklist; every flow tested end to end against real emails in a browser.
 - Built **account recovery and lifecycle**: email password reset with no account enumeration
   (the work runs after a uniform response), single-use hashed tokens delivered in a URL fragment,
   a pluggable email layer (console/file/SMTP), guest-to-account upgrades that keep all data, and
@@ -298,6 +302,13 @@ attempts on any server can't lose counts. I tested 80 concurrent hits on Postgre
 behind a proxy every request appears to come from the proxy, so uvicorn must be told which proxy
 to trust for `X-Forwarded-For`. I checked both ways against a live server, including that an
 untrusted, spoofed header is ignored.
+
+**"A 6-digit code is only a million possibilities. How is that safe?"**
+Because guessing is capped, not because the space is big. Each code allows five wrong tries,
+then it's dead and a new one has to be emailed (at most one per minute), so an attacker gets
+roughly 5 in 1,000,000 per email. You also have to be signed in to the account to try a code.
+I store it as an HMAC keyed with the server secret rather than a plain hash: with only a million
+values, a plain SHA-256 could be reversed by trying them all, but without the key you can't.
 
 **"What would you do differently?"**
 Add refresh tokens with an HttpOnly cookie, build the AI evaluation set earlier, and put
@@ -776,4 +787,26 @@ gVisor judge journey. The explanation card now scrolls into view in its new scro
 - Real SMTP delivery (tested with a fake SMTP client and the file backend; needs a provider).
 - Email verification at registration.
 - Live Claude responses; production deployment.
+
+### Session 9: verification codes, change email, sign-out options, password eye
+You asked for login, password reset, a verification code, a show-password eyeball, delete
+account, change email and logout. Sign-in, password reset and account deletion already existed
+(screenshots added to `docs/screenshots/11–14`); the rest is new.
+
+**Built and verified:**
+- **Email verification:** registration and guest upgrade email a 6-digit code plus a link; a
+  "Check your email" screen takes the code (numeric keyboard, one-time-code autofill, resend,
+  "Do this later"); the link verifies even when signed out. 5 wrong tries kill a code; codes are
+  HMAC-stored; tokens are bound to the address they were sent to. `users.email_verified_at`
+  + migration `236640408846`.
+- **Change email** in Settings: needs the password, resets verification, emails a code to the new
+  address and a notice to the old one.
+- **Sign out:** the header's "Sign out" now ends only this device's session; Settings adds "Sign
+  out of all devices" (with a confirmation).
+- **Password fields:** an accessible eye button (real button, `aria-pressed`, named "Show
+  password") and a live checklist of the password rules.
+- Tests: 13 backend verification/email tests, 9 frontend tests, and a real-browser test that reads
+  the real codes from the e2e outbox, verifies, changes email, verifies again and signs out.
+- Totals: 431 backend tests (104 in the real gVisor sandbox), 33 runner, 107 frontend,
+  17 Playwright tests (+ the opt-in controls audit).
 
