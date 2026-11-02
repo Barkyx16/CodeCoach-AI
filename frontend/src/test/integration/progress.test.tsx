@@ -19,6 +19,8 @@ describe("Unified History", () => {
 
     const skill = screen.getByLabelText("Skill");
     expect(skill).toBeDisabled(); // skills belong to one career
+    // Career and activity options come from the facets request; wait for them, as a user would.
+    await screen.findByRole("option", { name: "Registered Nurse (2)" });
     await user.selectOptions(screen.getByLabelText("Career"), "registered-nurse");
     expect(router.state.location.search).toBe("?career=registered-nurse");
     await waitFor(() => expect(within(screen.getByRole("list")).getAllByRole("listitem")).toHaveLength(2));
