@@ -1,0 +1,339 @@
+{
+  "order": 305,
+  "slug": "critical-connections",
+  "title": "Critical Connections (Bridges)",
+  "difficulty": "hard",
+  "topics": [
+    "graphs"
+  ],
+  "summary": "Find the edges whose removal disconnects the network.",
+  "statement": "A connected undirected network has servers `0..n-1` and `connections`. A critical connection is one whose\nremoval leaves some servers unable to reach others. Return all critical connections as `[a, b]` with\n`a < b`, sorted ascending.",
+  "constraints": [
+    "2 <= n <= 10^5",
+    "the network is connected, no duplicate connections"
+  ],
+  "examples": [
+    {
+      "input": "n = 4, connections = [[0, 1], [1, 2], [2, 0], [1, 3]]",
+      "output": "[[1, 3]]"
+    },
+    {
+      "input": "n = 2, connections = [[0, 1]]",
+      "output": "[[0, 1]]"
+    },
+    {
+      "input": "n = 5, connections = [[0, 1], [1, 2], [2, 0], [2, 3], [3, 4], [4, 2]]",
+      "output": "[]"
+    }
+  ],
+  "signature": {
+    "method": "criticalConnections",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      },
+      {
+        "name": "connections",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int[][]"
+  },
+  "starter_code": "class Solution {\n    public int[][] criticalConnections(int n, int[][] connections) {\n        // TODO: write your solution here\n        return new int[0][];\n    }\n}\n",
+  "hints": [
+    "An edge is critical exactly when it isn't part of any cycle.",
+    "Tarjan's bridge algorithm: DFS discovery times plus `low` (earliest time reachable from a subtree). Edge (u, v) is a bridge if `low[v] > disc[u]`.",
+    "def dfs(u, parent):\n    disc[u] = low[u] = time; time += 1\n    for v in adj[u]:\n        if v == parent: continue\n        if not visited v: dfs(v, u); low[u] = min(low[u], low[v]); if low[v] > disc[u]: bridge (u, v)\n        else: low[u] = min(low[u], disc[v])",
+    "One DFS, O(V + E). For very large graphs use an iterative DFS to avoid stack overflow."
+  ],
+  "expected_complexity": {
+    "time": "O(V + E)",
+    "space": "O(V + E)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 4,
+        "connections": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            1,
+            3
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          1,
+          3
+        ]
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 2,
+        "connections": [
+          [
+            0,
+            1
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          0,
+          1
+        ]
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 5,
+        "connections": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            4,
+            2
+          ]
+        ]
+      },
+      "expected_output": [],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 6,
+        "connections": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            5
+          ]
+        ]
+      },
+      "expected_output": [],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 6,
+        "connections": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            1,
+            5
+          ]
+        ]
+      },
+      "expected_output": [],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 5,
+        "connections": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            2
+          ]
+        ]
+      },
+      "expected_output": [],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 7,
+        "connections": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            0,
+            6
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          5
+        ]
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

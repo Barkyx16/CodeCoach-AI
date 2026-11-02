@@ -1,0 +1,212 @@
+{
+  "order": 317,
+  "slug": "unique-paths-all-squares",
+  "title": "Walks That Cover Every Square",
+  "difficulty": "hard",
+  "topics": [
+    "backtracking",
+    "matrix"
+  ],
+  "summary": "Count walks from start to end that step on every open square exactly once.",
+  "statement": "In `grid`: `1` is the start, `2` is the end, `0` is an open square and `-1` is a wall. Return the number of\nwalks (up/down/left/right) from start to end that visit every non-wall square exactly once.",
+  "constraints": [
+    "1 <= rows * cols <= 20",
+    "exactly one start and one end"
+  ],
+  "examples": [
+    {
+      "input": "grid = [[1, 0, 0], [0, 0, 0], [0, 0, 2]]",
+      "output": "2"
+    },
+    {
+      "input": "grid = [[1, 0], [0, 2]]",
+      "output": "0"
+    },
+    {
+      "input": "grid = [[0, 1], [2, 0]]",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "uniquePathsIII",
+    "params": [
+      {
+        "name": "grid",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int uniquePathsIII(int[][] grid) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "You must count walks of an exact length: every open square plus the start.",
+    "Backtracking DFS: mark squares as you step on them, unmark when you return, and count arrivals at the end with nothing left to visit.",
+    "remaining = number of non-wall squares\ndef dfs(r, c, left):\n    if grid[r][c] == 2: return 1 if left == 1 else 0\n    mark (r, c)\n    total = sum(dfs(neighbor, left - 1) for open unmarked neighbors)\n    unmark\n    return total\nreturn dfs(start, remaining)",
+    "Exponential in the worst case, but grids have at most 20 squares, and the visited marks prune heavily."
+  ],
+  "expected_complexity": {
+    "time": "O(3^(m n))",
+    "space": "O(m n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "grid": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            2
+          ]
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            2
+          ]
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            0,
+            1
+          ],
+          [
+            2,
+            0
+          ]
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            1,
+            -1,
+            2
+          ]
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            1,
+            0,
+            2
+          ]
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            -1,
+            0,
+            0
+          ],
+          [
+            0,
+            2,
+            1
+          ],
+          [
+            0,
+            0,
+            -1
+          ]
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            0,
+            2,
+            1
+          ]
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            -1,
+            0,
+            -1
+          ],
+          [
+            0,
+            0,
+            2
+          ],
+          [
+            -1,
+            0,
+            1
+          ]
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            2,
+            0,
+            1
+          ],
+          [
+            -1,
+            0,
+            0
+          ]
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -1,0 +1,122 @@
+{
+  "order": 287,
+  "slug": "distinct-subsequences",
+  "title": "Distinct Subsequences",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "strings"
+  ],
+  "summary": "Count the ways a string appears as a subsequence of another.",
+  "statement": "Return how many distinct subsequences of `s` equal `t` (different sets of positions count separately).\nThe answer fits in an int.",
+  "constraints": [
+    "1 <= s.length, t.length <= 1000",
+    "English letters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"rabbbit\", t = \"rabbit\"",
+      "output": "3"
+    },
+    {
+      "input": "s = \"babgbag\", t = \"bag\"",
+      "output": "5"
+    },
+    {
+      "input": "s = \"abc\", t = \"abcd\"",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "numDistinct",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      },
+      {
+        "name": "t",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int numDistinct(String s, String t) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Each character of `s` can either be used to match the next character of `t` or skipped.",
+    "ways[j] = number of ways to form `t[:j]` so far. Process `s` left to right and update `j` from right to left.",
+    "ways = [1] + [0]*m\nfor c in s:\n    for j from m down to 1:\n        if t[j-1] == c: ways[j] += ways[j-1]\nreturn ways[m]",
+    "O(n m) time with one array; iterating `j` backwards stops one character of `s` from being used twice."
+  ],
+  "expected_complexity": {
+    "time": "O(n m)",
+    "space": "O(m)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "rabbbit",
+        "t": "rabbit"
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "babgbag",
+        "t": "bag"
+      },
+      "expected_output": 5,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "abc",
+        "t": "abcd"
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "aaaa",
+        "t": "aa"
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "aaabbbbabb",
+        "t": "a"
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "baaabbbb",
+        "t": "aa"
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "a",
+        "t": "aab"
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "ababaaaaaaba",
+        "t": "b"
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

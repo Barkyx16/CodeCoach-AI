@@ -1,0 +1,156 @@
+{
+  "order": 302,
+  "slug": "min-k-bit-flips",
+  "title": "Fewest K-Length Flips to All Ones",
+  "difficulty": "hard",
+  "topics": [
+    "greedy",
+    "sliding-window",
+    "bit-manipulation"
+  ],
+  "summary": "Flip windows of length k to make a binary array all ones.",
+  "statement": "One operation flips every bit in a contiguous window of length `k` of the binary array `nums`. Return the\nminimum number of operations to make every bit `1`, or `-1` if it's impossible.",
+  "constraints": [
+    "1 <= k <= nums.length <= 10^5"
+  ],
+  "examples": [
+    {
+      "input": "nums = [0, 1, 0], k = 1",
+      "output": "2"
+    },
+    {
+      "input": "nums = [1, 1, 0], k = 2",
+      "output": "-1"
+    },
+    {
+      "input": "nums = [0, 0, 0, 1, 0, 1, 1, 0], k = 3",
+      "output": "3"
+    }
+  ],
+  "signature": {
+    "method": "minKBitFlips",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      },
+      {
+        "name": "k",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int minKBitFlips(int[] nums, int k) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "The leftmost 0 can only be fixed by a flip starting exactly there.",
+    "Go left to right; flip whenever the current bit (after earlier flips) is 0. Track active flips with a difference array instead of flipping k bits each time.",
+    "flips = active = 0\nended = [0]*(n+1)\nfor i in range(n):\n    active -= ended[i]\n    if (nums[i] + active) % 2 == 0:\n        if i + k > n: return -1\n        flips += 1; active += 1; ended[i + k] += 1\nreturn flips",
+    "The greedy choice is forced at each step, so it's optimal. The difference array makes it O(n) instead of O(n k)."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          0,
+          1,
+          0
+        ],
+        "k": 1
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          1,
+          0
+        ],
+        "k": 2
+      },
+      "expected_output": -1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          0,
+          0,
+          1,
+          0,
+          1,
+          1,
+          0
+        ],
+        "k": 3
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "k": 2
+      },
+      "expected_output": -1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          0,
+          1
+        ],
+        "k": 1
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          0,
+          1
+        ],
+        "k": 3
+      },
+      "expected_output": -1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          1,
+          1
+        ],
+        "k": 4
+      },
+      "expected_output": -1,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

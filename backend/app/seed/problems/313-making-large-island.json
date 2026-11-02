@@ -1,0 +1,227 @@
+{
+  "order": 313,
+  "slug": "making-large-island",
+  "title": "Make the Largest Island",
+  "difficulty": "hard",
+  "topics": [
+    "graphs",
+    "matrix",
+    "union-find"
+  ],
+  "summary": "Flip at most one water cell to make the biggest island.",
+  "statement": "`grid` is an `n \u00d7 n` binary grid (1 = land). You may change at most one `0` into `1`. Return the size of\nthe largest island possible (islands connect up/down/left/right).",
+  "constraints": [
+    "1 <= n <= 500"
+  ],
+  "examples": [
+    {
+      "input": "grid = [[1, 0], [0, 1]]",
+      "output": "3"
+    },
+    {
+      "input": "grid = [[1, 1], [1, 0]]",
+      "output": "4"
+    },
+    {
+      "input": "grid = [[1, 1], [1, 1]]",
+      "output": "4"
+    }
+  ],
+  "signature": {
+    "method": "largestIsland",
+    "params": [
+      {
+        "name": "grid",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int largestIsland(int[][] grid) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Flipping a water cell merges the distinct islands around it.",
+    "Label every island with an id and record its size. For each 0, add 1 plus the sizes of the distinct neighboring island ids.",
+    "label islands with ids 2, 3, ... and sizes[id]\nbest = max(sizes) or 0\nfor each 0 cell:\n    ids = distinct ids among its 4 neighbors\n    best = max(best, 1 + sum(sizes[i] for i in ids))\nreturn best (or n*n if no zeros)",
+    "Labeling is O(n^2) and each water cell checks four neighbors: O(n^2) total. Using distinct ids avoids double-counting an island touching the cell twice."
+  ],
+  "expected_complexity": {
+    "time": "O(n^2)",
+    "space": "O(n^2)"
+  },
+  "tests": [
+    {
+      "input": {
+        "grid": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            1,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            1,
+            1
+          ],
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            0
+          ]
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ]
+        ]
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ]
+        ]
+      },
+      "expected_output": 9,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            0,
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            1,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            1,
+            0
+          ]
+        ]
+      },
+      "expected_output": 8,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

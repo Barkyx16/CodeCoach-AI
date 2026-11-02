@@ -1,0 +1,139 @@
+{
+  "order": 284,
+  "slug": "wildcard-matching",
+  "title": "Wildcard Matching",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "greedy",
+    "strings"
+  ],
+  "summary": "Match a string against a pattern with ? and *.",
+  "statement": "Return `true` if pattern `p` matches all of `s`. `?` matches any single character and `*` matches any\nsequence of characters (including none).",
+  "constraints": [
+    "0 <= s.length, p.length <= 2000",
+    "s: lower-case letters; p: letters, '?', '*'"
+  ],
+  "examples": [
+    {
+      "input": "s = \"aa\", p = \"a\"",
+      "output": "false"
+    },
+    {
+      "input": "s = \"aa\", p = \"*\"",
+      "output": "true"
+    },
+    {
+      "input": "s = \"cb\", p = \"?a\"",
+      "output": "false"
+    }
+  ],
+  "signature": {
+    "method": "isMatchWildcard",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      },
+      {
+        "name": "p",
+        "type": "String"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean isMatchWildcard(String s, String p) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "A `*` can absorb nothing or one more character.",
+    "dp[i][j] = s[:i] matches p[:j]. For `*`: dp[i][j-1] (empty) or dp[i-1][j] (absorb one more).",
+    "dp[0][0] = true; dp[0][j] = dp[0][j-1] when p[j-1] == '*'\nfor i, j:\n    if p[j-1] == '*': dp[i][j] = dp[i][j-1] or dp[i-1][j]\n    elif p[j-1] in (s[i-1], '?'): dp[i][j] = dp[i-1][j-1]\nreturn dp[n][m]",
+    "O(n m) DP. A greedy two-pointer method that remembers the last `*` also runs in O(n m) worst case with O(1) space."
+  ],
+  "expected_complexity": {
+    "time": "O(n m)",
+    "space": "O(n m)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "aa",
+        "p": "a"
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "aa",
+        "p": "*"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "cb",
+        "p": "?a"
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "adceb",
+        "p": "*a*b"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "acdcb",
+        "p": "a*c?b"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "",
+        "p": "***"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "abaabb",
+        "p": "*b"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bbbaaba",
+        "p": "b?"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "abb",
+        "p": "?*?b*"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "aa",
+        "p": "**?a?"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}
