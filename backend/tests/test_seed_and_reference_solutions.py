@@ -45,16 +45,34 @@ def test_reference_solution_passes_all_tests(problem_file):
 
 
 @pytest.mark.skipif(shutil.which("javac") is None, reason="JDK not installed")
-def test_starter_code_fails_tests(tmp_path, monkeypatch):
-    """Sanity check that the tests are meaningful: the untouched starter code must fail."""
+@pytest.mark.parametrize("problem_file", sorted(SEED_DIR.glob("*.json")), ids=lambda f: f.stem)
+def test_starter_code_fails_tests(problem_file, tmp_path, monkeypatch):
+    """The tests must be able to tell: every problem's untouched starter code fails at least one."""
+    import json
+
     spec = importlib.util.spec_from_file_location("verify_reference_solutions", SCRIPT)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    problem_file = SEED_DIR / "03-two-sum.json"
+    problem = json.loads(problem_file.read_text())
     ref_dir = tmp_path / "ref"
     ref_dir.mkdir()
-    import json
-
-    (ref_dir / "two-sum.java").write_text(json.loads(problem_file.read_text())["starter_code"])
+    (ref_dir / f"{problem['slug']}.java").write_text(problem["starter_code"])
     monkeypatch.setattr(module, "REFERENCE_DIR", ref_dir)
     assert module.check_problem(problem_file), "starter code unexpectedly passed every test"
+
+
+def _python_models():
+    spec = importlib.util.spec_from_file_location("python_models", SCRIPT.parent / "python_models.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.MODELS
+
+
+@pytest.mark.parametrize("slug", sorted(_python_models()))
+def test_independent_python_model_agrees_with_every_expected_output(slug):
+    """Second implementation: expected outputs must match a separate Python model, not just the
+    Java reference (a shared misunderstanding would have to happen twice, in two languages)."""
+    model = _python_models()[slug]
+    problem = next(p for p in PROBLEMS if p["slug"] == slug)
+    for t in problem["tests"]:
+        assert model(**t["input"]) == t["expected_output"], t["input"]

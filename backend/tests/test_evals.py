@@ -23,6 +23,7 @@ def test_offline_coach_quality_does_not_regress():
     assert hints["level1_spoiler_rate"] == 0.0 and hints["code_leak_rate_levels_1_2"] == 0.0
     assert hints["level2_relevance"] >= 0.9
     assert report["review_holdout"]["samples"] >= 10  # reported, not tuned
+    assert report["review_medium"]["samples"] >= 10  # reported, not tuned
 
 
 def test_eval_sets_are_well_formed():
@@ -30,7 +31,7 @@ def test_eval_sets_are_well_formed():
         json.loads(p.read_text())["slug"] for p in (EVALS.parent / "app/seed/problems").glob("*.json")
     }
     seen = set()
-    for name in ("review_set.json", "holdout_set.json"):
+    for name in ("review_set.json", "holdout_set.json", "medium_set.json"):
         for s in json.loads((EVALS / name).read_text())["samples"]:
             assert s["id"] not in seen, s["id"]
             seen.add(s["id"])
@@ -38,4 +39,4 @@ def test_eval_sets_are_well_formed():
             assert s["verdict"] in {"PASSED", "FAILED"}
             assert set(s["categories"]) <= {"correctness", "edge-case", "complexity", "readability", "style"}
             assert s["time"].startswith("O(") and s["note"] and "class Solution" in s["code"]
-    assert len(seen) >= 50
+    assert len(seen) >= 60

@@ -24,7 +24,9 @@ def test_filters(client):
     medium = client.get("/api/v1/problems", params={"difficulty": "medium"}).json()
     assert medium["total"] >= 1 and all(i["difficulty"] == "medium" for i in medium["items"])
     stacks = client.get("/api/v1/problems", params={"topic": "stacks"}).json()
-    assert [i["slug"] for i in stacks["items"]] == ["valid-parentheses"]
+    slugs = [i["slug"] for i in stacks["items"]]
+    assert {"valid-parentheses", "daily-temperatures"} <= set(slugs)
+    assert all("stacks" in i["topics"] for i in stacks["items"])
     search = client.get("/api/v1/problems", params={"q": "SUM"}).json()
     assert {"two-sum", "maximum-subarray"} <= {i["slug"] for i in search["items"]}
     assert client.get("/api/v1/problems", params={"difficulty": "impossible"}).status_code == 422

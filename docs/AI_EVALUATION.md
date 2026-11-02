@@ -20,12 +20,14 @@ configured) against hand-labelled data:
 
 ## The data
 
-- **`evals/review_set.json`**: 38 samples across all 12 problems: optimal solutions, correct
+- **`evals/review_set.json`**: 38 samples across the original 12 problems: optimal solutions, correct
   but slow ones, logic bugs, edge-case bugs, and style problems. Each has an issue-category
   label, a Big-O label and an expected verdict.
 - **`evals/holdout_set.json`**: 14 samples written **after** the analyzer rules were tuned on
   the first set and never used to change them. This is the generalization number.
-- **The labels are verified, not assumed.** Every sample in both sets is submitted to the
+- **`evals/medium_set.json`**: 14 samples on the 10 medium problems added in session 5, written
+  **after** the session-5 rules below and never used to change them (a second held-out set).
+- **The labels are verified, not assumed.** Every sample in all three sets is submitted to the
   *real* judge (API → worker → runner → gVisor), and its `PASSED`/`FAILED` verdict label must
   match (`backend/tests/test_judge_sandbox.py::test_eval_set_verdict_labels_match_the_real_judge`, run in CI).
 
@@ -58,6 +60,40 @@ and its own unit test:
 6. The eval also caught a **regression the new rules introduced**: `sb.reverse()` inside a
    method named `reverse` was mistaken for recursion. Fixed, with a test.
 
+### Session 5: new problems exposed false alarms on optimal code
+Adding 10 medium problems meant running the offline reviewer over their **optimal reference
+solutions**, which should get no complexity complaints. Three did:
+
+| Reference solution | Reviewer said (before) | Why it was wrong |
+|---|---|---|
+| Daily Temperatures (monotonic stack) | O(n²), "nested loops" | The inner `while` pops a stack; each index is popped once in total, so it's amortized O(n) |
+| Longest Repeating Replacement (sliding window) | O(n²), "nested loops" | The inner `while` only moves `left` forward, and `left` is never reset |
+| Coin Change (DP over amount × coins) | O(n²) vs target O(amount * k) | Two nested loops over two *different* inputs is the target, not a defect |
+
+LIS and Kth Largest were also under-estimated as O(n) because a binary search or heap
+operation inside a loop wasn't counted as a log factor. Three general rules fixed them, each
+tested both ways (a pointer declared inside the outer loop, or reset in it, and a queue that's
+refilled inside the inner loop, still count as nested):
+1. **Amortized inner loops**: an inner `while` that drains a stack/queue (and doesn't refill it
+   in the body), or advances a pointer declared outside the outer loop and never reset.
+2. **Product targets**: when the target is a product of two inputs, depth-2 nesting is on target.
+3. **Log factors**: `binarySearch`, `PriorityQueue`, `TreeMap`/`TreeSet` inside a loop → O(n log n).
+
+The original two sets were **unchanged** by these rules (identical numbers before and after).
+
+| Metric | Medium held-out, old rules | **Medium held-out, new rules** |
+|---|---|---|
+| Precision | 83% | **100%** |
+| Recall | 50% | **50%** |
+| False alarms on clean code | 25% (1 of 4) | **0% (0 of 4)** |
+| Big-O accuracy | 79% | **86%** |
+
+Caveat: the samples are new code written after the rules, but the rules were motivated by the
+reference solutions of the **same problems**, so this is "held-out code", not "unseen
+problems". The remaining misses are logic bugs (wrong for zeros, greedy coin change, a strict
+loop bound, a missing '0' check: the judge catches all four) and sorting for Kth Largest, which
+isn't flagged because its target, O(n log k), isn't linear.
+
 ### How to read this honestly
 - The tuning-set numbers are **optimistic**: the rules were improved while looking at those
   samples. The **held-out** numbers are the fair estimate, and they're clearly lower. Keyword
@@ -65,7 +101,7 @@ and its own unit test:
 - **Correctness recall is low by design.** Static checks can't see logic bugs (off-by-one, wrong
   initial value, a forgotten tail). Those are caught by the **judge**, which is the source of
   truth, and are what an LLM reviewer is for.
-- The sets are small (52 samples), so a single sample moves a percentage a lot. These numbers
+- The sets are small (66 samples), so a single sample moves a percentage a lot. These numbers
   describe these sets only. They aren't general accuracy claims and shouldn't be quoted as such.
 
 ## Measuring Claude

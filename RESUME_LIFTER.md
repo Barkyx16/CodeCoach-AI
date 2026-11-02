@@ -15,7 +15,7 @@ The "Session log" at the bottom tracks exactly what that is.
 > that verdict. Submitted Java runs in a gVisor sandbox inside a separate runner service, and
 > I test the sandbox by attacking it with hostile code in CI. It's a React and TypeScript
 > frontend over a FastAPI and PostgreSQL backend, with a provider-agnostic AI layer that uses
-> structured outputs and cost controls, and about 370 automated tests, including real-browser
+> structured outputs and cost controls, and nearly 500 automated tests, including real-browser
 > end-to-end tests."
 
 ## 2. The 2-minute walkthrough (whiteboard order)
@@ -52,8 +52,10 @@ The "Session log" at the bottom tracks exactly what that is.
 - Implemented **JWT authentication** with Argon2id hashing, token revocation, brute-force
   rate limiting and ownership-based authorization, covered by **120+ pytest tests** that run
   against both SQLite and PostgreSQL in CI.
-- Curated a library of **12 Java problems with 88 public and hidden test cases**, and
-  automated verification that compiles and runs reference solutions against every case in CI.
+- Curated a library of **22 Java problems (12 medium) with 176 public and hidden test cases**,
+  where every expected output is produced by two independent implementations (a simple Python
+  model and an optimal Java reference) that CI compiles, runs and checks against every case, and
+  every problem's starter code is proven to fail.
 - Designed a **timed mock-interview engine**: a server-enforced state machine (5 interview
   phases, deadlines, turn limits, one active session per user) driving an AI interviewer behind
   a provider interface, with schema-validated rubric evaluations on 5 dimensions and saved
@@ -356,6 +358,21 @@ These are moments where the obvious path was wrong and a deliberate decision was
     fix waits for the History page and looks inside its table. It's a reminder that a flaky
     failure can be a weak test showing up, and that's worth fixing rather than retrying.
 
+25. **New content found false alarms in the AI reviewer.** Adding medium problems, I ran the
+    offline reviewer over their *optimal* solutions, which shouldn't get any complexity complaints.
+    Three did: a monotonic stack and a sliding window were called O(n²) because a `while` sat
+    inside a `for`, and a coin-change DP was flagged for having the two loops it needs. I added
+    three general rules (amortized inner loops, product-shaped targets, log factors) with tests
+    in both directions, confirmed the original eval sets didn't move, and measured the gain on a
+    new held-out set written afterwards: false alarms 25% → 0%, precision 83% → 100%. I also
+    wrote down the caveat that the rules were motivated by the same problems.
+26. **A wrong "time limit" seen once.** A correct solution got TIME_LIMIT on the first sandbox run
+    after the machine booted (8.2 s against the test's 8 s limit; normally ~3 s). I tried to
+    reproduce it (dropping OS caches, restarting Docker) and couldn't, so I didn't claim a root
+    cause. Time limits are wall-clock, though, so a slow first start can unfairly fail a learner.
+    The runner now runs one tiny warm-up program before it accepts work, and its health check
+    allows for that. It's cheap insurance, described as exactly that.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -589,4 +606,29 @@ gVisor judge journey. The explanation card now scrolls into view in its new scro
 **Not yet verified / not built:**
 - Live Claude responses (still no API key here).
 - Production deployment (Phase 5) and branch rename to `main` with required checks.
+
+### Session 5: 10 medium problems, smarter reviewer, sandbox warm-up
+**Built and verified:**
+- **10 new medium problems** (now 22: 10 easy, 12 medium; 176 test cases): Product of Array
+  Except Self, Container With Most Water, Search in a Rotated Sorted Array, Coin Change, Longest
+  Increasing Subsequence, Daily Temperatures, Jump Game, Decode Ways, Kth Largest Element, Longest
+  Repeating Character Replacement. New topics: prefix sums, greedy, heaps.
+- Expected outputs from simple Python models, then reproduced by optimal Java references through
+  the real driver (22/22 pass); the Python models are committed (`scripts/python_models.py`) and
+  CI re-checks them against every stored output. Every problem's starter code is checked to fail.
+- Hint terms for all new problems: the eval reports 0% level-1 spoilers and 100% level-2
+  relevance across all 22 problems.
+- Reviewer rules for amortized loops, product targets and log factors (tests both ways); the
+  original eval numbers were unchanged.
+- `evals/medium_set.json`: 14 new labelled samples; all 14 verdict labels verified in the real
+  gVisor sandbox. Held-out result: precision 100%, recall 50%, false alarms 0 of 4, Big-O 86%
+  (old rules on the same set: 83%, 50%, 1 of 4, 79%).
+- Runner warm-up at startup (`WARMUP_ON_START`), unit-tested with a fake sandbox, run for real
+  against gVisor, and a healthcheck start period so orchestration waits for it.
+- Totals: 379 backend tests (104 in the real gVisor sandbox), 30 runner,
+  80 frontend, 11 Playwright tests.
+
+**Not yet verified / not built:**
+- The cause of the one-off slow cold start (couldn't reproduce; mitigated, not explained).
+- Live Claude responses; production deployment.
 

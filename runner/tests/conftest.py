@@ -9,7 +9,7 @@ TOKEN = "t" * 40
 
 
 def make_settings(**overrides) -> RunnerSettings:
-    base = dict(runner_token=TOKEN, _env_file=None)
+    base = dict(runner_token=TOKEN, warmup_on_start=False, _env_file=None)
     base.update(overrides)
     return RunnerSettings(**base)
 

@@ -1,6 +1,6 @@
 # Coach evaluation: `offline` (curated-hints+static-analysis)
 
-Run 2026-11-01T16:56:44+00:00 over 38 labelled review samples and 12 problems. These numbers describe this labelled set only.
+Run 2026-11-02T00:39:10+00:00 over 38 labelled review samples and 22 problems. These numbers describe this labelled set only.
 
 ## Tuning set
 
@@ -31,6 +31,24 @@ Run 2026-11-01T16:56:44+00:00 over 38 labelled review samples and 12 problems. T
 | `ho-parens-replace` | complexity | — | O(n^2) → O(n) |
 | `ho-unique-map-order-bug` | correctness | — | O(n) → O(n) |
 | `ho-window-set` | — | complexity | O(n) → O(n^2) |
+
+## Medium held-out set (newer problems)
+
+14 samples written after the rules were frozen; never used to tune them.
+
+| Metric | Value |
+|---|---|
+| Issue detection (micro) precision / recall / F1 | 100% / 50% / 67% |
+| False alarms on clean code | 0% of 4 |
+| Complexity (Big-O) accuracy | 86% |
+
+| Sample | Expected | Reviewer said | Big-O expected → reported |
+|---|---|---|---|
+| `md-product-division` | correctness | — | O(n) → O(n) |
+| `md-rotated-strict-loop` | correctness | — | O(log n) → O(log n) |
+| `md-coin-greedy` | correctness | — | O(k log k) → O(n log n) |
+| `md-decode-no-zero-check` | edge-case | — | O(n) → O(n) |
+| `md-kth-sort` | complexity | — | O(n log n) → O(n log n) |
 
 ## Issue detection by category (tuning set)
 

@@ -146,3 +146,88 @@ def test_a_method_call_with_the_same_name_is_not_recursion():
         "String reverse(String s) { return new StringBuilder(s).reverse().toString(); }", signature=sig
     )
     assert not a.has_recursion and a.estimated_time == "O(1)"
+
+
+# --- amortized loops, product targets and log factors (found by the medium problems, session 5) ---
+
+
+def test_stack_drain_inside_a_loop_is_amortized_linear():
+    code = """class Solution { public int[] f(int[] t) {
+        int[] ans = new int[t.length]; Deque<Integer> st = new ArrayDeque<>();
+        for (int i = 0; i < t.length; i++) {
+            while (!st.isEmpty() && t[i] > t[st.peek()]) { int j = st.pop(); ans[j] = i - j; }
+            st.push(i);
+        }
+        return ans; } }"""
+    a = analyze(code, expected_time="O(n)")
+    assert a.max_loop_depth == 1 and a.estimated_time == "O(n)"
+    assert not [f for f in a.findings if f.category == "complexity"]
+
+
+def test_sliding_window_left_edge_is_amortized_linear():
+    code = """class Solution { public int f(String s, int k) {
+        int left = 0, best = 0;
+        for (int right = 0; right < s.length(); right++) {
+            while (right - left + 1 > k) { left++; }
+            best = Math.max(best, right - left + 1);
+        }
+        return best; } }"""
+    assert analyze(code, expected_time="O(n)").estimated_time == "O(n)"
+
+
+def test_pointer_reset_every_iteration_is_still_quadratic():
+    code = """class Solution { public int f(int[] a) {
+        int c = 0;
+        for (int i = 0; i < a.length; i++) {
+            int j = i;
+            while (j < a.length) { j++; c++; }
+        }
+        return c; } }"""
+    a = analyze(code, expected_time="O(n)")
+    assert a.max_loop_depth == 2 and any(f.category == "complexity" for f in a.findings)
+
+
+def test_outer_pointer_that_is_reset_is_still_quadratic():
+    code = """class Solution { public int f(int[] a) {
+        int j = 0, c = 0;
+        for (int i = 0; i < a.length; i++) {
+            j = 0;
+            while (j < a.length) { j++; c++; }
+        }
+        return c; } }"""
+    assert analyze(code, expected_time="O(n)").max_loop_depth == 2
+
+
+def test_queue_that_is_refilled_inside_the_loop_is_not_assumed_amortized():
+    code = """class Solution { public int f(int[] a) {
+        Deque<Integer> q = new ArrayDeque<>();
+        for (int i = 0; i < a.length; i++) {
+            q.add(i);
+            while (!q.isEmpty()) { int x = q.poll(); if (x > 0) q.add(x - 1); }
+        }
+        return 0; } }"""
+    assert analyze(code, expected_time="O(n)").max_loop_depth == 2
+
+
+def test_nested_loops_match_a_product_target():
+    code = """class Solution { public int coinChange(int[] coins, int amount) {
+        int[] best = new int[amount + 1];
+        for (int a = 1; a <= amount; a++) { for (int c : coins) { if (c <= a) best[a] = best[a - c] + 1; } }
+        return best[amount]; } }"""
+    a = analyze(code, expected_time="O(amount * k)")
+    assert a.estimated_time == "O(n * m)" and not [f for f in a.findings if f.category == "complexity"]
+    # The same loops against a linear target are still flagged.
+    assert any(f.category == "complexity" for f in analyze(code, expected_time="O(n)").findings)
+    # Triple nesting exceeds a two-input product.
+    triple = code.replace("for (int c : coins) {", "for (int c : coins) { for (int d : coins) {") + "}"
+    assert any(f.category == "complexity" for f in analyze(triple, expected_time="O(amount * k)").findings)
+
+
+def test_binary_search_or_heap_inside_a_loop_adds_a_log_factor():
+    lis = """class Solution { public int f(int[] nums) { int[] t = new int[nums.length]; int size = 0;
+        for (int x : nums) { int i = Arrays.binarySearch(t, 0, size, x); if (i < 0) i = -(i + 1); t[i] = x; if (i == size) size++; }
+        return size; } }"""
+    assert analyze(lis, expected_time="O(n log n)").estimated_time == "O(n log n)"
+    heap = """class Solution { public int f(int[] nums, int k) { PriorityQueue<Integer> h = new PriorityQueue<>();
+        for (int x : nums) { h.offer(x); if (h.size() > k) h.poll(); } return h.peek(); } }"""
+    assert analyze(heap, expected_time="O(n log k)").estimated_time == "O(n log n)"

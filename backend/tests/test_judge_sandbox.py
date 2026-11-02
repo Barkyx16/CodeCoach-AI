@@ -66,7 +66,7 @@ def runner_url():
         env=env,
     )
     url = f"http://127.0.0.1:{port}"
-    for _ in range(100):
+    for _ in range(600):  # up to ~60 s: the runner warms the sandbox up before it serves
         try:
             if httpx.get(url + "/health", timeout=1).status_code == 200:
                 break
@@ -169,7 +169,7 @@ def _eval_samples() -> list[dict]:
     evals = Path(__file__).resolve().parents[1] / "evals"
     return [
         s
-        for f in ("review_set.json", "holdout_set.json")
+        for f in ("review_set.json", "holdout_set.json", "medium_set.json")
         for s in json.loads((evals / f).read_text())["samples"]
     ]
 

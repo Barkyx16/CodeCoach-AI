@@ -194,6 +194,7 @@ def evaluate_hints(provider: CoachProvider, problems: dict[str, ProblemContext],
 def run(provider_name: str = "offline") -> dict:
     samples = json.loads((EVAL_DIR / "review_set.json").read_text())["samples"]
     holdout = json.loads((EVAL_DIR / "holdout_set.json").read_text())["samples"]
+    medium = json.loads((EVAL_DIR / "medium_set.json").read_text())["samples"]
     terms = json.loads((EVAL_DIR / "hint_terms.json").read_text())
     problems = problem_contexts()
     if provider_name == "offline":
@@ -211,6 +212,8 @@ def run(provider_name: str = "offline") -> dict:
         # afterwards and never used to change them, so it's the honest generalisation number.
         "review": evaluate_reviews(provider, samples, problems),
         "review_holdout": evaluate_reviews(provider, holdout, problems),
+        # medium_set.json covers the medium problems added in session 5; also held out.
+        "review_medium": evaluate_reviews(provider, medium, problems),
         "hints": evaluate_hints(provider, problems, terms),
     }
     report["duration_s"] = round(time.perf_counter() - start, 2)
@@ -238,6 +241,11 @@ def to_markdown(r: dict) -> str:
         f"| Code in level 1–2 hints | {_pct(h['code_leak_rate_levels_1_2'])} |",
         "",
         *(_holdout_section(ho) if ho else []),
+        *(
+            _holdout_section(r["review_medium"], title="Medium held-out set (newer problems)")
+            if r.get("review_medium")
+            else []
+        ),
         "## Issue detection by category (tuning set)",
         "",
         "| Category | Precision | Recall | F1 | TP | FP | FN |",
@@ -262,10 +270,10 @@ def to_markdown(r: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _holdout_section(ho: dict) -> list[str]:
+def _holdout_section(ho: dict, title: str = "Held-out set (generalisation)") -> list[str]:
     m = ho["issue_detection_micro"]
     rows = [
-        "## Held-out set (generalisation)",
+        f"## {title}",
         "",
         f"{ho['samples']} samples written after the rules were frozen; never used to tune them.",
         "",

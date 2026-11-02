@@ -1,7 +1,7 @@
 {
   "provider": "offline",
   "model": "curated-hints+static-analysis",
-  "evaluated_at": "2026-11-01T16:56:44+00:00",
+  "evaluated_at": "2026-11-02T00:39:10+00:00",
   "review": {
     "samples": 38,
     "schema_validity": 1.0,
@@ -258,13 +258,117 @@
       }
     ]
   },
+  "review_medium": {
+    "samples": 14,
+    "schema_validity": 1.0,
+    "issue_detection_micro": {
+      "precision": 1.0,
+      "recall": 0.5,
+      "f1": 0.667,
+      "tp": 5,
+      "fp": 0,
+      "fn": 5
+    },
+    "issue_detection_by_category": {
+      "correctness": {
+        "precision": null,
+        "recall": 0.0,
+        "f1": null,
+        "tp": 0,
+        "fp": 0,
+        "fn": 3
+      },
+      "edge-case": {
+        "precision": null,
+        "recall": 0.0,
+        "f1": null,
+        "tp": 0,
+        "fp": 0,
+        "fn": 1
+      },
+      "complexity": {
+        "precision": 1.0,
+        "recall": 0.833,
+        "f1": 0.909,
+        "tp": 5,
+        "fp": 0,
+        "fn": 1
+      },
+      "readability": {
+        "precision": null,
+        "recall": null,
+        "f1": null,
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      },
+      "style": {
+        "precision": null,
+        "recall": null,
+        "f1": null,
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      }
+    },
+    "clean_samples": 4,
+    "false_alarm_rate_on_clean_code": 0.0,
+    "complexity_accuracy": 0.857,
+    "disagreements": [
+      {
+        "id": "md-product-division",
+        "expected": [
+          "correctness"
+        ],
+        "predicted": [],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n)"
+      },
+      {
+        "id": "md-rotated-strict-loop",
+        "expected": [
+          "correctness"
+        ],
+        "predicted": [],
+        "time_expected": "O(log n)",
+        "time_predicted": "O(log n)"
+      },
+      {
+        "id": "md-coin-greedy",
+        "expected": [
+          "correctness"
+        ],
+        "predicted": [],
+        "time_expected": "O(k log k)",
+        "time_predicted": "O(n log n)"
+      },
+      {
+        "id": "md-decode-no-zero-check",
+        "expected": [
+          "edge-case"
+        ],
+        "predicted": [],
+        "time_expected": "O(n)",
+        "time_predicted": "O(n)"
+      },
+      {
+        "id": "md-kth-sort",
+        "expected": [
+          "complexity"
+        ],
+        "predicted": [],
+        "time_expected": "O(n log n)",
+        "time_predicted": "O(n log n)"
+      }
+    ]
+  },
   "hints": {
-    "problems": 12,
+    "problems": 22,
     "level1_spoiler_rate": 0.0,
     "level1_spoilers": [],
     "level2_relevance": 1.0,
     "code_leak_rate_levels_1_2": 0.0,
     "code_leaks": []
   },
-  "duration_s": 0.04
+  "duration_s": 0.03
 }

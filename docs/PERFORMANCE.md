@@ -51,7 +51,7 @@ Closed-loop clients over the endpoint mix below, 20 s per level, judge queue emp
 
 ## Judging throughput (gVisor sandbox)
 20 different users each submit a reference solution **at the same moment** (a burst), cycling
-through all 12 problems. Time to verdict = from POST until the final verdict is visible.
+through all 12 problems the library had at the time (it now has 22). Time to verdict = from POST until the final verdict is visible.
 
 | Judge workers | Throughput | Wall time for 20 | Fastest verdict | p50 time to verdict | p95 time to verdict | Verdicts |
 |---|---|---|---|---|---|---|

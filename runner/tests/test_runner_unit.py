@@ -186,3 +186,23 @@ def test_health_and_no_public_docs():
     c_ = client()
     assert c_.get("/health").json() == {"status": "ok"}
     assert c_.get("/docs").status_code == 404 and c_.get("/openapi.json").status_code == 404
+
+
+def test_startup_warms_the_sandbox_once_before_serving():
+    sandbox = FakeSandbox()
+    app = create_app(make_settings(warmup_on_start=True), sandbox=sandbox, cleanup=False)
+    with TestClient(app) as c_:  # entering the client runs the lifespan (startup)
+        assert len(sandbox.calls) == 1
+        files, nonce, _ = sandbox.calls[0]
+        assert set(files) == {"Solution.java", "Main.java"} and nonce == "warmup"
+        assert c_.get("/health").status_code == 200
+
+
+def test_a_failed_warm_up_does_not_stop_the_runner():
+    class Broken(FakeSandbox):
+        def run(self, files, nonce, time_limit_s=None):
+            raise RuntimeError("docker is not ready")
+
+    app = create_app(make_settings(warmup_on_start=True), sandbox=Broken(), cleanup=False)
+    with TestClient(app) as c_:
+        assert c_.get("/health").status_code == 200

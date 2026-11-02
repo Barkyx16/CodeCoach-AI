@@ -40,6 +40,8 @@ class Analysis:
     is_unchanged_starter: bool = False
     halving_loop: bool = False  # a loop that halves its range each step (binary search)
     exponential_recursion: bool = False  # two+ self-calls per invocation, no memoisation
+    log_factor_in_loop: bool = False  # binary search / heap / tree-map operation inside a loop
+    product_target: bool = False  # target is a product of two inputs, e.g. O(amount * k)
     line_count: int = 0
 
     @property
@@ -48,10 +50,17 @@ class Analysis:
             return "O(2^n)"
         if self.has_recursion and self.max_loop_depth == 0:
             return "depends on recursion (check for repeated subproblems)"
-        if self.halving_loop and self.max_loop_depth == 1 and not self.uses_sort:
+        if (
+            self.halving_loop
+            and self.max_loop_depth == 1
+            and not self.uses_sort
+            and not self.log_factor_in_loop
+        ):
             return "O(log n)"
+        if self.product_target and self.max_loop_depth == 2:
+            return "O(n * m)"  # two nested loops over two different inputs
         base = {0: "O(1)", 1: "O(n)", 2: "O(n^2)"}.get(self.max_loop_depth, f"O(n^{self.max_loop_depth})")
-        if self.uses_sort and self.max_loop_depth <= 1:
+        if (self.uses_sort or self.log_factor_in_loop) and self.max_loop_depth <= 1:
             return "O(n log n)"
         return base
 
@@ -81,26 +90,78 @@ def _condition_terms(header: str) -> set[str]:
     return {re.sub(r"\s+", "", c) for c in re.findall(r"\w+\s*(?:<=|>=|<|>|!=)\s*\w+", header)}
 
 
+_DRAIN = re.compile(r"\.(pop|poll|pollFirst|pollLast|removeFirst|removeLast)\s*\(\s*\)")
+_REFILL = re.compile(r"\.(push|add|addFirst|addLast|offer|offerFirst|offerLast)\s*\(")
+_ADVANCE = re.compile(r"(?:\b(\w+)\s*(?:\+\+|--|[+-]=)|(?:\+\+|--)\s*(\w+)\b)")
+
+
+def _body_after(code: str, j: int) -> str:
+    """The body of a loop whose header ends at index j: a {...} block or a single statement."""
+    rest_start = j + (len(code[j:]) - len(code[j:].lstrip()))
+    if code.startswith("{", rest_start):
+        depth, k = 0, rest_start
+        while k < len(code):
+            depth += {"{": 1, "}": -1}.get(code[k], 0)
+            k += 1
+            if depth == 0:
+                break
+        return code[rest_start:k]
+    end = code.find(";", rest_start)
+    return code[rest_start : end + 1 if end >= 0 else len(code)]
+
+
+def _amortized(code: str, header: str, body: str, outer_start: int) -> bool:
+    """Is an inner `while` amortized O(1) per outer iteration, so the pair is one linear pass?
+
+    - Draining a stack/queue (pop/poll in the body, no push/add in the body): every element is
+      removed at most once in total, however the pops are spread across outer iterations.
+    - Advancing a pointer that lives outside the outer loop and is never reset (the left edge of
+      a sliding window): it can only move forward n times in total.
+
+    A pointer declared inside the outer loop (`int j = i; while (j < n) j++;`) is reset every
+    iteration, so that stays genuinely nested.
+    """
+    if _DRAIN.search(body) and not _REFILL.search(body):
+        return True
+    before, inside = code[:outer_start], code[outer_start:]
+    for m in _ADVANCE.finditer(body):
+        var = m.group(1) or m.group(2)
+        if not var or not re.search(rf"\b{re.escape(var)}\b", header):
+            continue
+        declared_outside = re.search(rf"\b(?:int|long)\s+{re.escape(var)}\s*=", before)
+        declared_inside = re.search(rf"\b(?:int|long)\s+{re.escape(var)}\b", inside)
+        reset = [
+            r
+            for r in re.finditer(rf"\b{re.escape(var)}\s*=(?!=)", inside)
+            if not re.match(rf"{re.escape(var)}\s*=\s*Math\.max\(\s*{re.escape(var)}\b", inside[r.start() :])
+        ]
+        if declared_outside and not declared_inside and not reset:
+            return True
+    return False
+
+
 def _max_loop_depth(code: str) -> int:
     """Loop nesting depth, tracked with a brace stack.
 
     Two-pointer rule: an inner `while` whose condition repeats a comparison from an enclosing
     loop (e.g. `while (left < right && …) left++;` inside `while (left < right)`) advances the
     SAME pointers as the outer loop, so together they're still one linear pass. It doesn't add
-    a nesting level.
+    a nesting level. Amortized inner loops (draining a stack, advancing a never-reset window
+    edge; see `_amortized`) don't either.
 
     Brace-less loop bodies are handled approximately: a loop header immediately followed by
     another loop counts as nested.
     """
-    stack: list[tuple[bool, set[str]]] = []  # (counts as a nesting level, condition terms)
-    pending: tuple[bool, set[str]] | None = None
+    # (counts as a nesting level, condition terms, index where the loop starts)
+    stack: list[tuple[bool, set[str], int]] = []
+    pending: tuple[bool, set[str], int] | None = None
     current = best = 0
     i = 0
     while i < len(code):
         m = _LOOP.match(code, i) or _DO.match(code, i)
         if m and (i == 0 or not (code[i - 1].isalnum() or code[i - 1] == "_")):
             if m.re is _DO:
-                pending = (True, set())
+                pending = (True, set(), i)
                 i = m.end() - 1  # let the '{' be processed below
                 continue
             j, parens = m.end(), 1
@@ -109,12 +170,15 @@ def _max_loop_depth(code: str) -> int:
                 j += 1
             header = code[m.end() : j - 1]
             terms = _condition_terms(header)
-            enclosing = set().union(*(t for _, t in stack)) if stack else set()
+            enclosing = set().union(*(t for _, t, _ in stack)) if stack else set()
             same_pass = m.group(1) == "while" and bool(terms & enclosing)
+            if m.group(1) == "while" and current > 0 and not same_pass:
+                outer_start = next((pos for counted, _, pos in reversed(stack) if counted), 0)
+                same_pass = _amortized(code, header, _body_after(code, j), outer_start)
             counts = not same_pass
             rest = code[j:].lstrip()
             if rest.startswith("{"):
-                pending = (counts, terms)
+                pending = (counts, terms, i)
             elif counts:
                 # brace-less body: counts as one level for the next statement only
                 best = max(best, current + 1)
@@ -125,16 +189,16 @@ def _max_loop_depth(code: str) -> int:
         ch = code[i]
         if ch == "{":
             if pending is not None:
-                counts, terms = pending
-                stack.append((counts, terms))
+                counts, terms, start = pending
+                stack.append((counts, terms, start))
                 if counts:
                     current += 1
                     best = max(best, current)
             else:
-                stack.append((False, set()))
+                stack.append((False, set(), i))
             pending = None
         elif ch == "}" and stack:
-            counts, _ = stack.pop()
+            counts, _, _ = stack.pop()
             if counts:
                 current -= 1
         i += 1
@@ -186,6 +250,11 @@ def analyze(
         bool(re.search(r"\bnew\s+\w+\s*\[\s*(?!\d+\s*\])[^\]\s]", code)) or ".toCharArray()" in code
     )
     analysis.uses_sort = bool(re.search(r"\b(Arrays|Collections)\.sort\s*\(|\.sort\s*\(", code))
+    analysis.log_factor_in_loop = analysis.max_loop_depth >= 1 and bool(
+        re.search(r"\b(Arrays|Collections)\.binarySearch\s*\(", code)
+        or re.search(r"\bnew\s+(PriorityQueue|TreeMap|TreeSet)\b", code)
+    )
+    analysis.product_target = _is_product(expected_time)
 
     method = (signature or {}).get("method")
     if method:
@@ -201,7 +270,12 @@ def analyze(
     )
     linear_target = _is_linear(expected_time)
 
-    if analysis.max_loop_depth >= 2 and expected_time and "^2" not in expected_time:
+    if (
+        analysis.max_loop_depth >= 2
+        and expected_time
+        and "^2" not in expected_time
+        and not (analysis.product_target and analysis.max_loop_depth == 2)
+    ):
         m = _LOOP.search(code)
         analysis.findings.append(
             Finding(
@@ -374,6 +448,15 @@ def _normalize(code: str) -> str:
 
 def _normalize_big_o(expr: str) -> str:
     return re.sub(r"\s+", "", expr.lower()).removeprefix("o(").removesuffix(")")
+
+
+def _is_product(expected_time: str | None) -> bool:
+    """O(amount * k), O(n·m), O(n × m): a product of two different inputs, where two nested
+    loops are the intended solution rather than a defect."""
+    if not expected_time:
+        return False
+    names = re.findall(r"[a-z]+", re.sub(r"\blog\b", "", expected_time.lower().removeprefix("o")))
+    return bool(re.search(r"[*·×]", expected_time)) and len(set(names)) >= 2
 
 
 def _is_linear(expected_time: str | None) -> bool:

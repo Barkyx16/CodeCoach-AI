@@ -132,6 +132,7 @@ Browser ──POST /submissions──▶ API ──(row: QUEUED)──▶ Postgr
 | `SANDBOX_IMAGE` | `codecoach-java-sandbox:21` | Built from `runner/sandbox-image` |
 | `MAX_CONCURRENCY` | `2` | Parallel sandboxes; excess requests get 503 |
 | `WALL_TIMEOUT_S`, `MEMORY_MB`, `HEAP_MB`, `PIDS_LIMIT`, `CPUS`, `TMPFS_MB`, `OUTPUT_LIMIT_BYTES` | 20 s, 512, 192, 64, 1, 64, 64 KB | Hard ceilings (requests may only ask for less) |
+| `WARMUP_ON_START` | `true` | Compile and run one trivial program before serving, so a slow first sandbox start isn't charged to a learner's wall-clock time limit. A failed warm-up is logged and never blocks startup |
 
 | Variable (API/worker) | Default | Meaning |
 |---|---|---|
