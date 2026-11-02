@@ -846,4 +846,5 @@ deadline) fail on the old code; the 16 real-gVisor threat-model tests pass.
 
 - Totals: 431 backend tests (104 in the real gVisor sandbox), 35 runner, 108 frontend,
   17 Playwright tests.
+- CI: green on GitHub Actions for `2bfe8a8` (all 7 jobs, including the real gVisor judge).
 
