@@ -119,6 +119,29 @@
       },
       "expected_output": true,
       "visibility": "hidden"
+    },
+    {
+      "input": {
+        "bills": [
+          5,
+          10,
+          5,
+          10
+        ]
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "bills": [
+          5,
+          20,
+          10
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
     }
   ],
   "bank": true

@@ -1,0 +1,145 @@
+{
+  "order": 241,
+  "slug": "coin-change-ways",
+  "title": "Coin Change: Count the Ways",
+  "difficulty": "medium",
+  "topics": [
+    "dynamic-programming"
+  ],
+  "summary": "How many combinations of coins make an amount?",
+  "statement": "Return the number of combinations of `coins` (unlimited supply of each) that add up to `amount`.\nOrder doesn't matter: 1+2 and 2+1 are the same combination. The answer fits in an int.",
+  "constraints": [
+    "1 <= coins.length <= 300",
+    "1 <= coins[i] <= 5000, distinct",
+    "0 <= amount <= 5000"
+  ],
+  "examples": [
+    {
+      "input": "amount = 5, coins = [1, 2, 5]",
+      "output": "4"
+    },
+    {
+      "input": "amount = 3, coins = [2]",
+      "output": "0"
+    },
+    {
+      "input": "amount = 10, coins = [10]",
+      "output": "1"
+    }
+  ],
+  "signature": {
+    "method": "change",
+    "params": [
+      {
+        "name": "amount",
+        "type": "int"
+      },
+      {
+        "name": "coins",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int change(int amount, int[] coins) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Avoid counting the same combination in different orders.",
+    "Loop over coins on the outside and amounts on the inside, so each combination is built in one coin order.",
+    "ways = [1] + [0]*amount\nfor c in coins:\n    for a in c..amount:\n        ways[a] += ways[a - c]\nreturn ways[amount]",
+    "O(coins \u00d7 amount). Swapping the loop order would count permutations instead of combinations."
+  ],
+  "expected_complexity": {
+    "time": "O(n * amount)",
+    "space": "O(amount)"
+  },
+  "tests": [
+    {
+      "input": {
+        "amount": 5,
+        "coins": [
+          1,
+          2,
+          5
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "amount": 3,
+        "coins": [
+          2
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "amount": 10,
+        "coins": [
+          10
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "amount": 0,
+        "coins": [
+          7
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "amount": 19,
+        "coins": [
+          11,
+          6,
+          9,
+          7
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "amount": 17,
+        "coins": [
+          5,
+          9,
+          1
+        ]
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "amount": 24,
+        "coins": [
+          2
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "amount": 9,
+        "coins": [
+          7
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

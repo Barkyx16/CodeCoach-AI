@@ -1,0 +1,164 @@
+{
+  "order": 232,
+  "slug": "jump-game-two",
+  "title": "Fewest Jumps to the End",
+  "difficulty": "medium",
+  "topics": [
+    "greedy",
+    "arrays"
+  ],
+  "summary": "Minimum jumps to reach the last index.",
+  "statement": "From index `i` you may jump forward up to `nums[i]` steps. Starting at index 0, return the minimum\nnumber of jumps to reach the last index. The last index is always reachable.",
+  "constraints": [
+    "1 <= nums.length <= 10^4",
+    "0 <= nums[i] <= 1000",
+    "the end is reachable"
+  ],
+  "examples": [
+    {
+      "input": "nums = [2, 3, 1, 1, 4]",
+      "output": "2"
+    },
+    {
+      "input": "nums = [2, 3, 0, 1, 4]",
+      "output": "2"
+    },
+    {
+      "input": "nums = [0]",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "jump",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int jump(int[] nums) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Think in layers: all indices reachable with 1 jump, then with 2 jumps, and so on.",
+    "Track the end of the current layer and the farthest index reachable from it.",
+    "jumps = end = far = 0\nfor i in range(n - 1):\n    far = max(far, i + nums[i])\n    if i == end: jumps += 1; end = far\nreturn jumps",
+    "This is BFS over index ranges done in one O(n) pass, with O(1) space."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          2,
+          3,
+          1,
+          1,
+          4
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          3,
+          0,
+          1,
+          4
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          2,
+          2,
+          1,
+          3,
+          2,
+          3,
+          4,
+          1,
+          3,
+          2
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          2,
+          2,
+          3,
+          2,
+          3,
+          2
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          4,
+          4,
+          4
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          2,
+          1,
+          1,
+          4,
+          4,
+          4,
+          3,
+          2
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

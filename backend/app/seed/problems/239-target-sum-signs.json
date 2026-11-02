@@ -1,0 +1,176 @@
+{
+  "order": 239,
+  "slug": "target-sum-signs",
+  "title": "Plus or Minus to Hit a Target",
+  "difficulty": "medium",
+  "topics": [
+    "dynamic-programming",
+    "backtracking"
+  ],
+  "summary": "Count the ways to put + or - before each number to reach a target.",
+  "statement": "Put either `+` or `-` in front of every value in `nums`. Return how many sign choices make the expression\nequal `target`.",
+  "constraints": [
+    "1 <= nums.length <= 20",
+    "0 <= nums[i] <= 1000",
+    "-1000 <= target <= 1000"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 1, 1, 1, 1], target = 3",
+      "output": "5"
+    },
+    {
+      "input": "nums = [1], target = 1",
+      "output": "1"
+    },
+    {
+      "input": "nums = [0, 0, 1], target = 1",
+      "output": "4"
+    }
+  ],
+  "signature": {
+    "method": "findTargetSumWays",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      },
+      {
+        "name": "target",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int findTargetSumWays(int[] nums, int target) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Trying all 2^n sign patterns works for small n. Can you count smarter?",
+    "If P is the plus group, P - (total - P) = target, so P = (total + target) / 2. Count subsets with that sum.",
+    "if (total + target) is odd or |target| > total: return 0\ngoal = (total + target) // 2\nways = [1] + [0]*goal\nfor x in nums:\n    for s from goal down to x: ways[s] += ways[s - x]\nreturn ways[goal]",
+    "The algebra turns it into counting subsets with a fixed sum: O(n \u00d7 total). Zeros double the count, which this DP handles naturally."
+  ],
+  "expected_complexity": {
+    "time": "O(n * S)",
+    "space": "O(S)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "target": 3
+      },
+      "expected_output": 5,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1
+        ],
+        "target": 1
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          0,
+          1
+        ],
+        "target": 1
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          5
+        ],
+        "target": -2
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          4,
+          1,
+          5,
+          0,
+          3,
+          3,
+          1,
+          5,
+          3,
+          5
+        ],
+        "target": -1
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          3,
+          1,
+          4,
+          1,
+          1
+        ],
+        "target": 6
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          4,
+          2,
+          0,
+          3,
+          2,
+          3,
+          1,
+          2,
+          2
+        ],
+        "target": -2
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          3,
+          0,
+          2,
+          4,
+          4,
+          4,
+          2,
+          1,
+          4
+        ],
+        "target": 2
+      },
+      "expected_output": 80,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

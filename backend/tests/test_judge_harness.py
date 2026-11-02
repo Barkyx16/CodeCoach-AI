@@ -22,7 +22,10 @@ def test_java_literals():
     assert java_literal('he said "hi"\n', "String") == '"he said \\"hi\\"\\n"'
     assert java_literal("é", "String") == '"\\u00e9"'
     assert java_literal(["a"], "String[]") == 'new String[] {"a"}'
-    assert java_literal([[1, 2], [], [3]], "int[][]") == "new int[][] {new int[] {1, 2}, new int[] {}, new int[] {3}}"
+    assert (
+        java_literal([[1, 2], [], [3]], "int[][]")
+        == "new int[][] {new int[] {1, 2}, new int[] {}, new int[] {3}}"
+    )
     with pytest.raises(TypeError):
         java_literal(True, "int")  # bool is not an int here
     with pytest.raises(UnsupportedTypeError):

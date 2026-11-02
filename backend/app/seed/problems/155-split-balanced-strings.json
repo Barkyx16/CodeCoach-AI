@@ -97,6 +97,13 @@
       },
       "expected_output": 2,
       "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "RLRRLL"
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
     }
   ],
   "bank": true

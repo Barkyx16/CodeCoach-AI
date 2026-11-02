@@ -1,0 +1,247 @@
+{
+  "order": 260,
+  "slug": "redundant-connection",
+  "title": "Redundant Connection",
+  "difficulty": "medium",
+  "topics": [
+    "graphs",
+    "union-find"
+  ],
+  "summary": "Find the edge whose removal turns the graph back into a tree.",
+  "statement": "A tree with nodes `1..n` had one extra edge added, giving `n` edges in `edges`. Return the edge that\ncan be removed to leave a tree. If several work, return the one that appears last in `edges`.",
+  "constraints": [
+    "3 <= n <= 1000",
+    "edges[i] = [a, b] with a < b"
+  ],
+  "examples": [
+    {
+      "input": "edges = [[1, 2], [1, 3], [2, 3]]",
+      "output": "[2, 3]"
+    },
+    {
+      "input": "edges = [[1, 2], [2, 3], [3, 4], [1, 4], [1, 5]]",
+      "output": "[1, 4]"
+    },
+    {
+      "input": "edges = [[1, 2], [2, 3], [1, 3]]",
+      "output": "[1, 3]"
+    }
+  ],
+  "signature": {
+    "method": "findRedundantConnection",
+    "params": [
+      {
+        "name": "edges",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] findRedundantConnection(int[][] edges) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "Add edges one at a time. Which edge is the first to create a cycle?",
+    "With union-find, an edge whose endpoints already share a root closes a cycle. That's the answer.",
+    "parent = list(range(n + 1))\nfor a, b in edges:\n    if find(a) == find(b): return [a, b]\n    union(a, b)",
+    "The first edge that closes the cycle is also the last cycle edge in input order, which is what's asked. Near O(n)."
+  ],
+  "expected_complexity": {
+    "time": "O(n \u03b1(n))",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "edges": [
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      },
+      "expected_output": [
+        2,
+        3
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "edges": [
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            1,
+            5
+          ]
+        ]
+      },
+      "expected_output": [
+        1,
+        4
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "edges": [
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            1,
+            3
+          ]
+        ]
+      },
+      "expected_output": [
+        1,
+        3
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "edges": [
+          [
+            1,
+            3
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "expected_output": [
+        1,
+        2
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "edges": [
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            5
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      },
+      "expected_output": [
+        3,
+        4
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "edges": [
+          [
+            4,
+            5
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            4
+          ]
+        ]
+      },
+      "expected_output": [
+        2,
+        4
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "edges": [
+          [
+            4,
+            5
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      },
+      "expected_output": [
+        3,
+        4
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

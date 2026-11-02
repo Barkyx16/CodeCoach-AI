@@ -1,0 +1,213 @@
+{
+  "order": 245,
+  "slug": "min-path-sum",
+  "title": "Minimum Path Sum",
+  "difficulty": "medium",
+  "topics": [
+    "dynamic-programming",
+    "matrix"
+  ],
+  "summary": "Cheapest right/down path through a grid of costs.",
+  "statement": "Each cell of `grid` holds a non-negative cost. Moving only right or down from the top-left to the\nbottom-right, return the smallest possible sum of the cells on the path.",
+  "constraints": [
+    "1 <= m, n <= 200",
+    "0 <= grid[i][j] <= 200"
+  ],
+  "examples": [
+    {
+      "input": "grid = [[1, 3, 1], [1, 5, 1], [4, 2, 1]]",
+      "output": "7"
+    },
+    {
+      "input": "grid = [[1, 2, 3], [4, 5, 6]]",
+      "output": "12"
+    },
+    {
+      "input": "grid = [[7]]",
+      "output": "7"
+    }
+  ],
+  "signature": {
+    "method": "minPathSum",
+    "params": [
+      {
+        "name": "grid",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int minPathSum(int[][] grid) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "The cheapest way into a cell comes from its top or left neighbor.",
+    "cost[r][c] = grid[r][c] + min(cost[r-1][c], cost[r][c-1]), treating outside cells as unreachable.",
+    "row = [inf]*n; row[0] = 0\nfor each grid row:\n    row[0] += cells[0]\n    for c in 1..n-1: row[c] = cells[c] + min(row[c], row[c-1])\nreturn row[n-1]",
+    "O(m n) time with one rolling row of size n."
+  ],
+  "expected_complexity": {
+    "time": "O(m n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "grid": [
+          [
+            1,
+            3,
+            1
+          ],
+          [
+            1,
+            5,
+            1
+          ],
+          [
+            4,
+            2,
+            1
+          ]
+        ]
+      },
+      "expected_output": 7,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            4,
+            5,
+            6
+          ]
+        ]
+      },
+      "expected_output": 12,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            7
+          ]
+        ]
+      },
+      "expected_output": 7,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            4,
+            8,
+            5,
+            1
+          ],
+          [
+            3,
+            3,
+            7,
+            8
+          ],
+          [
+            3,
+            7,
+            4,
+            5
+          ]
+        ]
+      },
+      "expected_output": 26,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            6,
+            1,
+            6,
+            6,
+            6
+          ],
+          [
+            3,
+            4,
+            1,
+            4,
+            1
+          ],
+          [
+            2,
+            7,
+            0,
+            5,
+            2
+          ],
+          [
+            9,
+            9,
+            7,
+            5,
+            8
+          ],
+          [
+            1,
+            3,
+            0,
+            8,
+            8
+          ]
+        ]
+      },
+      "expected_output": 35,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            3,
+            4,
+            9,
+            7,
+            3
+          ]
+        ]
+      },
+      "expected_output": 26,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            6,
+            9,
+            5
+          ],
+          [
+            3,
+            3,
+            7
+          ],
+          [
+            8,
+            0,
+            2
+          ]
+        ]
+      },
+      "expected_output": 14,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

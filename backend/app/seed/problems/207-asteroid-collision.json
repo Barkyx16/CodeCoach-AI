@@ -1,0 +1,185 @@
+{
+  "order": 207,
+  "slug": "asteroid-collision",
+  "title": "Asteroid Collisions",
+  "difficulty": "medium",
+  "topics": [
+    "stacks",
+    "simulation"
+  ],
+  "summary": "Simulate asteroids moving left and right and colliding.",
+  "statement": "Each value in `asteroids` is an asteroid's size, with its sign giving direction (positive = right,\nnegative = left). All move at the same speed. When two meet, the smaller explodes; equal sizes\nboth explode. Return the asteroids left after all collisions, in order.",
+  "constraints": [
+    "2 <= asteroids.length <= 10^4",
+    "values are non-zero"
+  ],
+  "examples": [
+    {
+      "input": "asteroids = [5, 10, -5]",
+      "output": "[5, 10]"
+    },
+    {
+      "input": "asteroids = [8, -8]",
+      "output": "[]"
+    },
+    {
+      "input": "asteroids = [10, 2, -5]",
+      "output": "[10]"
+    }
+  ],
+  "signature": {
+    "method": "asteroidCollision",
+    "params": [
+      {
+        "name": "asteroids",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] asteroidCollision(int[] asteroids) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "A collision only happens when a right-mover is followed by a left-mover.",
+    "Keep survivors on a stack. A new left-mover fights the right-movers on top of the stack.",
+    "stack = []\nfor a in asteroids:\n    alive = True\n    while alive and a < 0 and stack and stack[-1] > 0:\n        if stack[-1] < -a: stack.pop(); continue\n        if stack[-1] == -a: stack.pop()\n        alive = False\n    if alive: stack.append(a)\nreturn stack",
+    "Each asteroid is pushed and popped at most once: O(n)."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "asteroids": [
+          5,
+          10,
+          -5
+        ]
+      },
+      "expected_output": [
+        5,
+        10
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "asteroids": [
+          8,
+          -8
+        ]
+      },
+      "expected_output": [],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "asteroids": [
+          10,
+          2,
+          -5
+        ]
+      },
+      "expected_output": [
+        10
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "asteroids": [
+          -2,
+          -1,
+          1,
+          2
+        ]
+      },
+      "expected_output": [
+        -2,
+        -1,
+        1,
+        2
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "asteroids": [
+          -1,
+          -6,
+          -5,
+          -3,
+          -3,
+          2
+        ]
+      },
+      "expected_output": [
+        -1,
+        -6,
+        -5,
+        -3,
+        -3,
+        2
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "asteroids": [
+          4,
+          2,
+          2,
+          -3
+        ]
+      },
+      "expected_output": [
+        4
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "asteroids": [
+          1,
+          6,
+          -4,
+          -2,
+          4,
+          -4,
+          1,
+          3,
+          -4,
+          3
+        ]
+      },
+      "expected_output": [
+        1,
+        6,
+        3
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "asteroids": [
+          -5,
+          -1,
+          -3,
+          3,
+          5,
+          -1
+        ]
+      },
+      "expected_output": [
+        -5,
+        -1,
+        -3,
+        3,
+        5
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

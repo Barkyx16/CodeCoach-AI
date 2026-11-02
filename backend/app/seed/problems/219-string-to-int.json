@@ -1,0 +1,138 @@
+{
+  "order": 219,
+  "slug": "string-to-int",
+  "title": "Parse an Integer From Text",
+  "difficulty": "medium",
+  "topics": [
+    "strings",
+    "math"
+  ],
+  "summary": "Implement a forgiving string-to-integer conversion with clamping.",
+  "statement": "Convert `s` to a 32-bit integer: skip leading spaces, read an optional `+` or `-`, then read digits\nuntil a non-digit or the end. If there are no digits, return `0`. Clamp the result to\n`[-2^31, 2^31 - 1]`.",
+  "constraints": [
+    "0 <= s.length <= 200",
+    "letters, digits, spaces, '+', '-' and '.'"
+  ],
+  "examples": [
+    {
+      "input": "s = \"42\"",
+      "output": "42"
+    },
+    {
+      "input": "s = \"   -042\"",
+      "output": "-42"
+    },
+    {
+      "input": "s = \"1337c0d3\"",
+      "output": "1337"
+    }
+  ],
+  "signature": {
+    "method": "myAtoi",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int myAtoi(String s) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Handle the steps in order: spaces, sign, digits.",
+    "Build the number digit by digit and stop growing it once it's beyond the int range.",
+    "i = skip spaces\nsign = -1 if s[i] == '-' else 1 (advance past a sign)\nvalue = 0\nwhile digit:\n    value = value*10 + digit\n    if value > 2^31: break\nreturn clamp(sign * value)",
+    "O(n). Checking for overflow while building (or using a long and capping early) is the part that needs care."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "42"
+      },
+      "expected_output": 42,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "   -042"
+      },
+      "expected_output": -42,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "1337c0d3"
+      },
+      "expected_output": 1337,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "words and 987"
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "-91283472332"
+      },
+      "expected_output": -2147483648,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "2147483648"
+      },
+      "expected_output": 2147483647,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "+-12"
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": ""
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "+3438 "
+      },
+      "expected_output": 3438,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": " 0744649761aa9"
+      },
+      "expected_output": 744649761,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "   "
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "  + .."
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

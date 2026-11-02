@@ -238,6 +238,31 @@
         ]
       ],
       "visibility": "hidden"
+    },
+    {
+      "input": {
+        "image": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "visibility": "hidden"
     }
   ],
   "bank": true

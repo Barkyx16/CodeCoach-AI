@@ -93,7 +93,18 @@ def check_type(value: object, java_type: str, where: str) -> None:
 def build_one(spec: Spec, order: int) -> dict:
     sig = spec.signature
     rng = random.Random(spec.slug)
-    inputs = [*spec.tests, *(spec.gen(rng) for _ in range(spec.gen_count if spec.gen else 0))]
+    inputs, seen_inputs = list(spec.tests), {json.dumps(t, sort_keys=True) for t in spec.tests}
+    if spec.gen:
+        # Draw until we have gen_count new, distinct inputs (small spaces repeat; give up after a while).
+        added = attempts = 0
+        while added < spec.gen_count and attempts < spec.gen_count * 25:
+            attempts += 1
+            candidate = spec.gen(rng)
+            key = json.dumps(candidate, sort_keys=True)
+            if key not in seen_inputs:
+                seen_inputs.add(key)
+                inputs.append(candidate)
+                added += 1
     tests, seen = [], set()
     for i, inp in enumerate(inputs):
         key = json.dumps(inp, sort_keys=True)

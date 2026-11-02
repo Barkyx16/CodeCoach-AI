@@ -145,6 +145,17 @@
       },
       "expected_output": 1,
       "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          1,
+          1
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
     }
   ],
   "bank": true
