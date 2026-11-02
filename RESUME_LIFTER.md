@@ -452,6 +452,14 @@ These are moments where the obvious path was wrong and a deliberate decision was
     everything else. A unit test renders in StrictMode, asserts exactly one refresh, and fails
     on the old code.
 
+30. **Two limits fired; report the one that fired first.** The sandbox stops a run on a
+    wall-clock timeout *or* an output flood. A flood kills the container, but under gVisor the
+    kill can take seconds, so on a slow CI machine the clock sometimes ran out too, and the code
+    checked "timed out?" first. The learner would have been told their code was too slow when
+    it actually printed forever. Instead of reordering the checks (which just moves the bug), the
+    runner records the *first* limit to fire, under a lock, and classifies by that. It showed up
+    once on CI; a deterministic unit test now reproduces it.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -809,4 +817,33 @@ account, change email and logout. Sign-in, password reset and account deletion a
   the real codes from the e2e outbox, verifies, changes email, verifies again and signs out.
 - Totals: 431 backend tests (104 in the real gVisor sandbox), 33 runner, 107 frontend,
   17 Playwright tests (+ the opt-in controls audit).
+- CI: green on GitHub Actions for `fb545b3` (all 7 jobs, including the real gVisor judge).
+
+### Session 10: a Settings page that reads like one
+You said the Settings page looked "clumpy". It was nine cards of different heights in a
+two-column grid, so the eye zig-zagged and big gaps opened under short cards; your email showed
+three times.
+
+**Built and verified:**
+- **Sections, not a pile of cards:** Account · Sign-in & security · Editor · Privacy & data ·
+  Danger zone. Each is a heading plus one card; each setting is a row (what it is on the left,
+  controls on the right), separated by hairlines. Inputs are capped at a readable width.
+- **Section nav:** sticky on the left on desktop, pills on phones. Clicking moves *focus* to the
+  section heading (so keyboard and screen-reader users land there too) and highlights the
+  section in view (`aria-current`, IntersectionObserver).
+- **Account summary** at the top (initials, name, email once, verification badge, member since);
+  the AI budget became a small usage bar; the delete row links to the data export first.
+- No test selectors had to change: every form, button and label kept its accessible name. One new
+  test checks the sections, which form lives where, and that the nav moves focus.
+- axe-core: 0 WCAG 2.1 AA violations on Settings for a guest and a full account, desktop and
+  phone; no horizontal scroll at phone widths.
+
+**Also fixed: a flaky sandbox test (a real race).** CI once reported an output flood as a
+*timeout*. The flood triggers `docker kill`, which can take seconds under gVisor; if the wall
+clock ran out meanwhile, "timeout" won because it was checked first. The runner now records
+which limit fired first. Two new unit tests (a fake `docker` process whose kill outlasts the
+deadline) fail on the old code; the 16 real-gVisor threat-model tests pass.
+
+- Totals: 431 backend tests (104 in the real gVisor sandbox), 35 runner, 108 frontend,
+  17 Playwright tests.
 

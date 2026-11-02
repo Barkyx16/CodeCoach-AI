@@ -114,14 +114,6 @@
 .hint-next .subtle { font-size: 11px; line-height: 1.7; }
 
 /* Account and preferences */
-.account-summary { display: flex; align-items: center; gap: 18px; padding: 22px 24px; border: 1px solid var(--color-border); border-radius: 14px; background: linear-gradient(110deg, #17243a88, var(--color-surface)); margin-bottom: 28px; }
-.account-summary__avatar { display: grid; place-items: center; width: 52px; height: 52px; flex-shrink: 0; border-radius: 14px; color: var(--color-link); background: #2f6feb20; border: 1px solid #8cb8ff40; font: 500 20px var(--font-sans); }
-.account-summary > div:nth-child(2) { min-width: 0; overflow-wrap: anywhere; }
-.account-summary strong { font-size: 17px; font-weight: 550; }
-.account-summary .subtle { margin-top: 4px; font-size: 12px; }
-.account-summary > .badge { margin-left: auto; white-space: nowrap; }
-.settings .card { padding: 26px; }
-.settings .section-title { text-transform: none; letter-spacing: -.015em; font-size: 16px; color: var(--color-text); }
 .settings .field__label { font-size: 12px; color: var(--color-text-muted); }
 .editor-appearance { border: 1px solid var(--color-border-strong); background: var(--color-surface-sunken); border-radius: 10px; overflow: hidden; }
 .editor-appearance__title { display: flex; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--color-border); color: var(--color-text-subtle); font: 10px var(--font-mono); }
@@ -134,7 +126,6 @@
 .editor-appearance[data-theme="vs"] .editor-appearance__title, .editor-appearance[data-theme="vs"] i, .editor-appearance[data-theme="vs"] code > span { color: #526176; }
 .editor-appearance[data-theme="vs"] b { color: #164da0; }
 .editor-preferences .select { min-height: 40px; font-size: 12px; }
-.settings__danger { border-left: 2px solid var(--color-danger); background: linear-gradient(100deg, #f0808606, var(--color-surface)); }
 
 /* Interviews */
 .interview-overview { display: flex; flex-wrap: wrap; gap: 24px; border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); padding: 18px 0; margin: 8px 0 32px; }
@@ -202,10 +193,7 @@
   .workspace-context__meta { display: none; }
   .workspace-context__path { gap: 12px; }
   .workspace .panel-scroll { padding: 20px; }
-  .account-summary { padding: 18px; gap: 14px; flex-wrap: wrap; }
-  .account-summary__avatar { width: 44px; height: 44px; font-size: 16px; }
-  .account-summary > .badge { margin-left: 58px; }
-  .settings .card, .interview-start__grid > .card, .interview-results .card { padding: 20px; }
+  .interview-start__grid > .card, .interview-results .card { padding: 20px; }
   .interview-overview { gap: 16px; }
   .interview-overview > span { font-size: 11px; }
   .interview-overview svg { width: 15px; }
@@ -225,10 +213,9 @@
   .workspace-shell > .workspace { height: 0; flex: 1 1 0; min-height: 0; }
   .workspace__group { height: 100%; min-height: 0; }
 }
-.settings__grid > .card { min-width: 0; }
 .editor-appearance { min-width: 0; max-width: 100%; }
 @media (max-width: 860px) {
-  .settings__grid, .interview-start__grid { grid-template-columns: minmax(0, 1fr); }
+  .interview-start__grid { grid-template-columns: minmax(0, 1fr); }
 }
 .btn--primary .spinner { border-color: #ffffff50; border-top-color: #fff; }
 .complexity { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); }

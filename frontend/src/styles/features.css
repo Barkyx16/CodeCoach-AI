@@ -226,9 +226,6 @@ fieldset.field { border: none; padding: 0; margin: 0; }
 .rubric__evidence { margin-top: var(--space-1); }
 
 /* Settings */
-.settings__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); align-items: start; }
-@media (max-width: 860px) { .settings__grid { grid-template-columns: 1fr; } }
-.settings__danger { border-color: rgba(248, 113, 113, 0.35); }
 .btn--danger:not(:disabled) { border-color: var(--color-danger); }
 
 /* Keep dense content inside its panel without hiding page-level overflow. */

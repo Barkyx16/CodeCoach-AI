@@ -236,3 +236,47 @@ def test_a_docker_cli_failure_is_an_infrastructure_error_not_a_crash():
 
     res = DockerSandbox(make_settings(docker_bin="/bin/false")).run(FILES, "0123456789abcdef", 5)
     assert res.status == "sandbox_error" and not res.run_started
+
+
+class _FakeProc:
+    """A `docker run` stand-in: canned output, and a wait() that can outlast the deadline once
+    (as `docker kill` sometimes does under gVisor on a slow CI machine)."""
+
+    def __init__(self, stdout: bytes, *, slow_first_wait: bool, returncode: int = 137):
+        import subprocess
+
+        self.stdin, self.stdout, self.stderr = (
+            io.BytesIO(),
+            io.BytesIO(stdout),
+            io.BytesIO(RUN_MARKER.encode() + b"\n"),
+        )
+        self._slow, self._expired, self.returncode = slow_first_wait, subprocess.TimeoutExpired, returncode
+
+    def wait(self, timeout=None):
+        if self._slow:
+            self._slow = False
+            raise self._expired("docker run", timeout)
+        return self.returncode
+
+    def kill(self):
+        pass
+
+
+def _sandbox_with(proc):
+    from app.sandbox import DockerSandbox
+
+    # /bin/true stands in for `docker kill` / `docker rm`.
+    return DockerSandbox(make_settings(docker_bin="/bin/true"), popen=lambda *a, **k: proc)
+
+
+def test_a_flood_is_reported_as_output_limit_even_if_the_kill_outlasts_the_deadline():
+    """Regression for a CI flake: the flood triggers the kill first, then the wall clock also
+    expires while the kill is in progress. The flood is what stopped the run."""
+    proc = _FakeProc(b"x" * (200 * 1024), slow_first_wait=True)
+    res = _sandbox_with(proc).run(FILES, "0123456789abcdef", 5)
+    assert res.status == "output_limit" and res.output_truncated
+
+
+def test_a_silent_infinite_loop_is_still_a_timeout():
+    res = _sandbox_with(_FakeProc(b"", slow_first_wait=True)).run(FILES, "0123456789abcdef", 5)
+    assert res.status == "timeout" and not res.output_truncated

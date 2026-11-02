@@ -141,13 +141,24 @@ explanations re-render with the same components as in the workspace).
   Focus next time, a collapsible transcript, and the final code.
 - History has an **Interviews** tab using the same row component.
 
-### 3.8 Settings — `/settings` (`features/settings/SettingsPage.tsx`) · `09-settings.png`
-Reached by clicking the user's name in the header. Cards: **Profile** (display name) ·
-**Password** (hidden for guests; changing it signs out other devices) · **AI coach & privacy**
-(budget used, which coach is active, plain-language notes on what's sent and stored) · **Your
-data** (JSON download) · **Delete account** (danger styling; password + typing `DELETE` enables
-the button; afterwards the user lands on the home page, signed out).
-States per card: idle · saving · saved confirmation (`role="status"`) · error.
+### 3.8 Settings — `/settings` (`features/settings/SettingsPage.tsx`, `styles/settings.css`) · `18-settings-redesign.png`, `19-settings-mobile.png`
+Reached by clicking the user's name in the header. Layout: an **account summary** (initials,
+name, email, account/verification badges, member since), then a **section nav** (sticky on the
+left on desktop; a row of pills above the content under 1000px) and five **sections**, each an
+`<h2>` plus one card of **setting rows** (name + description on the left, controls on the right;
+stacked under 760px):
+- **Account:** Keep your progress (guests only, highlighted) · Profile (display name) · Email
+  (current address + Verified/Not verified, link to enter the code, change email with password).
+- **Sign-in & security:** Password (hidden for guests; changing it signs out other devices) ·
+  Sign out (this device, or all devices after a confirm dialog).
+- **Editor:** live preview + theme, font size, indentation, wrapping, restore defaults.
+- **Privacy & data:** AI coach (requests used today with a bar, which coach is active, what's sent
+  and stored) · Your data (JSON download).
+- **Danger zone:** Delete account (red heading and card; password + typing `DELETE` enables the
+  button; afterwards the user lands on the home page, signed out).
+
+Nav links move focus to the section heading (not just the scroll position) and mark the section in
+view with `aria-current`. States per row: idle · saving · saved confirmation (`role="status"`) · error.
 
 ### 3.9 Global
 - Header: brand, nav (Practice, plus Interview, Dashboard and History when signed in), account area
@@ -192,7 +203,7 @@ dashboard is one column · `≤ 720px` header hides the brand name and user name
 
 ## 7. Rules that keep the tests green
 
-The automated tests (107 unit/integration + 17 Playwright end-to-end, incl. 4 accessibility scans) find elements **by their
+The automated tests (108 unit/integration + 17 Playwright end-to-end, incl. 4 accessibility scans) find elements **by their
 accessible role and name**, not by CSS. Restyling is safe as long as you **don't change**:
 - visible button, tab and link text used as names (e.g. "Get a hint", "Unlock level 2: Concept",
   "Review my code", "Submit", "Show table", "Sign in", "Create account", "Try it now, no sign-up",

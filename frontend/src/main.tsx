@@ -12,6 +12,7 @@ import "./styles/layout.css";
 import "./styles/features.css";
 import "./styles/landing.css";
 import "./styles/details.css";
+import "./styles/settings.css";
 
 const queryClient = makeQueryClient();
 const router = createRouter();

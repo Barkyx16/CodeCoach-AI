@@ -139,17 +139,24 @@ class DockerSandbox:
             stderr=subprocess.PIPE,
         )
         killed = threading.Event()
+        # Which limit stopped the run first. A flood triggers `docker kill`, which can take a few
+        # seconds under gVisor; if the wall clock also runs out meanwhile, the flood still wins.
+        first_limit: list[str] = []
+        lock = threading.Lock()
 
-        def kill() -> None:
-            if not killed.is_set():
+        def kill(reason: str) -> None:
+            with lock:
+                if killed.is_set():
+                    return
                 killed.set()
-                subprocess.run([self.settings.docker_bin, "kill", name], capture_output=True, check=False)
+                first_limit.append(reason)
+            subprocess.run([self.settings.docker_bin, "kill", name], capture_output=True, check=False)
 
         out = _Capped(self.settings.output_limit_bytes)
         err = _Capped(self.settings.output_limit_bytes)
         readers = [
-            threading.Thread(target=out.pump, args=(proc.stdout, kill), daemon=True),
-            threading.Thread(target=err.pump, args=(proc.stderr, kill), daemon=True),
+            threading.Thread(target=out.pump, args=(proc.stdout, lambda: kill("output")), daemon=True),
+            threading.Thread(target=err.pump, args=(proc.stderr, lambda: kill("output")), daemon=True),
         ]
         for r in readers:
             r.start()
@@ -159,12 +166,10 @@ class DockerSandbox:
         except (BrokenPipeError, OSError):
             pass  # container exited early; the exit code tells us why
 
-        timed_out = False
         try:
             proc.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
-            timed_out = True
-            kill()
+            kill("timeout")
             try:
                 proc.wait(timeout=10)
             except subprocess.TimeoutExpired:
@@ -176,6 +181,7 @@ class DockerSandbox:
             subprocess.run([self.settings.docker_bin, "rm", "-f", name], capture_output=True, check=False)
 
         duration_ms = int((self._clock() - start) * 1000)
+        timed_out = first_limit[:1] == ["timeout"]
         stdout = out.data.decode("utf-8", errors="replace")
         stderr = err.data.decode("utf-8", errors="replace")
         return classify(

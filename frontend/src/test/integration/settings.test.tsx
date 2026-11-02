@@ -153,4 +153,22 @@ describe("Settings", () => {
     expect(await screen.findByText(/never the prompt that contained your code/)).toBeInTheDocument();
     expect(await screen.findByText(/built-in \(offline\)/)).toBeInTheDocument();
   });
+
+  it("groups settings into sections you can jump to, moving focus to the section", async () => {
+    const { user } = renderApp("/settings", { signedIn: true });
+    const nav = within(await screen.findByRole("navigation", { name: "Settings sections" }));
+    const sections = ["Account", "Sign-in & security", "Editor", "Privacy & data", "Danger zone"];
+    expect(nav.getAllByRole("link").map((a) => a.textContent)).toEqual(sections);
+    for (const name of sections) expect(screen.getByRole("region", { name })).toBeInTheDocument();
+    // Each form sits in the section you'd look for it in.
+    expect(within(screen.getByRole("region", { name: "Account" })).getByRole("form", { name: "Email" })).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Sign-in & security" })).getByRole("form", { name: "Password" })).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Danger zone" })).getByRole("form", { name: "Delete account" })).toBeInTheDocument();
+
+    expect(nav.getByRole("link", { name: "Account" })).toHaveAttribute("aria-current", "true");
+    await user.click(nav.getByRole("link", { name: "Danger zone" }));
+    expect(screen.getByRole("heading", { name: "Danger zone", level: 2 })).toHaveFocus();
+    expect(nav.getByRole("link", { name: "Danger zone" })).toHaveAttribute("aria-current", "true");
+    expect(nav.getByRole("link", { name: "Account" })).not.toHaveAttribute("aria-current");
+  });
 });
