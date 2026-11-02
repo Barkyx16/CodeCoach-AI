@@ -56,6 +56,14 @@ export const api = {
   }),
   updateProfile: (body: { display_name: string | null }) =>
     apiRequest<User>("/api/v1/auth/me", { method: "PATCH", body }),
+  requestPasswordReset: (email: string) =>
+    apiRequest<{ status: string; message: string }>("/api/v1/auth/password-reset", {
+      method: "POST", body: { email }, auth: false,
+    }),
+  confirmPasswordReset: (token: string, newPassword: string) =>
+    apiRequest<void>("/api/v1/auth/password-reset/confirm", {
+      method: "POST", body: { token, new_password: newPassword }, auth: false,
+    }),
   changePassword: (body: { current_password: string; new_password: string }) =>
     apiRequest<TokenResponse>("/api/v1/auth/password", { method: "POST", body }),
   deleteAccount: (body: { password?: string; confirm: string }) =>

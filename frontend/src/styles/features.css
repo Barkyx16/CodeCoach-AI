@@ -295,3 +295,6 @@ fieldset.field { border: none; padding: 0; margin: 0; }
 }
 .dashboard__grid { align-items: start; }
 .coach__provider { font-size: 11px; }
+
+/* Password reset */
+.auth__forgot { justify-self: end; font-size: var(--text-sm); }

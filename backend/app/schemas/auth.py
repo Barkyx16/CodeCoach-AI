@@ -43,6 +43,25 @@ class ChangePasswordRequest(APIModel):
         return _password_rules(v)
 
 
+class PasswordResetRequest(APIModel):
+    email: EmailStr
+
+
+class PasswordResetConfirm(APIModel):
+    token: str = Field(min_length=20, max_length=200)
+    new_password: str = Field(min_length=10, max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def _check_password(cls, v: str) -> str:
+        return _password_rules(v)
+
+
+class AcceptedResponse(APIModel):
+    status: str = "accepted"
+    message: str
+
+
 class UpdateProfileRequest(APIModel):
     display_name: str | None = Field(default=None, min_length=1, max_length=40)
 

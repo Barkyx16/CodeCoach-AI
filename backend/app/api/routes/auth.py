@@ -1,6 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, Cookie, Depends, Header, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Header, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -17,16 +17,20 @@ from app.errors import (
 )
 from app.models import User, new_id
 from app.schemas.auth import (
+    AcceptedResponse,
     ChangePasswordRequest,
     DeleteAccountRequest,
     GuestSessionRequest,
     LoginRequest,
+    PasswordResetConfirm,
+    PasswordResetRequest,
     RegisterRequest,
     TokenResponse,
     UpdateProfileRequest,
     UserOut,
 )
 from app.schemas.common import error_responses
+from app.services import password_reset
 from app.services import refresh as refresh_tokens
 from app.services.auth import hash_password, issue_access_token, needs_rehash, verify_password
 
@@ -203,6 +207,52 @@ def refresh(
     db.commit()
     _set_refresh_cookie(response, raw, settings)
     return _token_response(user, settings)
+
+
+@router.post(
+    "/password-reset",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=AcceptedResponse,
+    responses=error_responses(422, 429),
+    summary="Email a password reset link (same answer whether or not the account exists)",
+)
+def request_password_reset(
+    body: PasswordResetRequest,
+    request: Request,
+    background: BackgroundTasks,
+    settings: Settings = Depends(get_settings_dep),
+) -> AcceptedResponse:
+    _throttle(request)
+    # The lookup and the email happen after the response is sent: the reply and its timing are
+    # identical for registered and unknown addresses.
+    background.add_task(
+        password_reset.request_reset,
+        request.app.state.session_factory,
+        str(body.email),
+        settings,
+        request.app.state.email_sender,
+    )
+    return AcceptedResponse(
+        message="If an account exists for that email, we've sent a link to reset the password."
+    )
+
+
+@router.post(
+    "/password-reset/confirm",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses=error_responses(400, 422, 429),
+    summary="Set a new password with a reset link (signs out every session)",
+)
+def confirm_password_reset(
+    body: PasswordResetConfirm,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> None:
+    _throttle(request)
+    password_reset.confirm_reset(db, body.token, body.new_password)
+    _clear_refresh_cookie(response, settings)
 
 
 @router.get("/me", response_model=UserOut, responses=_ERRORS, summary="The current user")

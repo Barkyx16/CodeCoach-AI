@@ -5,6 +5,7 @@ import { createBrowserRouter, type RouteObject } from "react-router-dom";
 import { RequireAuth } from "@/auth/RequireAuth";
 import { LoadingState } from "@/components/States";
 import { LoginPage, RegisterPage } from "@/features/auth/AuthPages";
+import { ForgotPasswordPage, ResetPasswordPage } from "@/features/auth/PasswordResetPages";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
 import { HistoryPage } from "@/features/history/HistoryPage";
 import { InterviewStartPage } from "@/features/interview/InterviewStartPage";
@@ -27,6 +28,8 @@ export const routes: RouteObject[] = [
       { path: "/", element: <LandingPage /> },
       { path: "/login", element: <LoginPage /> },
       { path: "/register", element: <RegisterPage /> },
+      { path: "/forgot-password", element: <ForgotPasswordPage /> },
+      { path: "/reset-password", element: <ResetPasswordPage /> },
       { path: "/problems", element: <ProblemListPage /> },
       {
         path: "/problems/:slug",

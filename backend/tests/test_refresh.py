@@ -174,7 +174,14 @@ def test_cors_allows_credentials_for_listed_origins_only(client):
 def test_production_refuses_insecure_cookies(make_settings):
     import pytest
 
-    base = {"environment": "production", "secret_key": "x" * 48, "cors_origins": ["https://app.example"]}
+    base = {
+        "environment": "production",
+        "secret_key": "x" * 48,
+        "cors_origins": ["https://app.example"],
+        "email_backend": "smtp",
+        "smtp_host": "smtp.example.com",
+        "app_base_url": "https://app.example",
+    }
     assert make_settings(**base).cookie_secure is True
     with pytest.raises(ValueError, match="REFRESH_COOKIE_SECURE"):
         make_settings(**base, refresh_cookie_secure=False)

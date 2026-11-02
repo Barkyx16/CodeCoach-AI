@@ -171,6 +171,19 @@ class RefreshToken(Base):
     revoked_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
 
 
+class PasswordResetToken(Base):
+    """Single-use, short-lived password reset link. Only the SHA-256 hash is stored."""
+
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(UTCDateTime())
+    used_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+
+
 class Problem(Base):
     __tablename__ = "problems"
 

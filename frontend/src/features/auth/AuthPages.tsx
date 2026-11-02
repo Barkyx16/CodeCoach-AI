@@ -43,6 +43,7 @@ function GuestButton() {
 
 export function LoginPage() {
   const { login } = useAuth();
+  const notice = (useLocation().state as { notice?: string } | null)?.notice ?? null;
   const navigate = useNavigate();
   const target = useRedirectTarget();
   const [email, setEmail] = useState("");
@@ -68,11 +69,13 @@ export function LoginPage() {
     <AuthLayout>
       <form className="card auth__card stack" onSubmit={onSubmit} noValidate aria-labelledby="login-title">
         <h1 className="page__title" id="login-title">Welcome back</h1>
-        <p className="muted">Pick up where your last solution left off.</p>
+        {notice ? <p className="banner banner--success" role="status">{notice}</p>
+          : <p className="muted">Pick up where your last solution left off.</p>}
         <Field label="Email" type="email" autoComplete="email" required value={email}
           onChange={(e) => setEmail(e.target.value)} />
         <Field label="Password" type="password" autoComplete="current-password" required value={password}
           onChange={(e) => setPassword(e.target.value)} />
+        <Link className="auth__forgot" to="/forgot-password">Forgot your password?</Link>
         <InlineError error={error} />
         <Button type="submit" variant="primary" loading={busy} disabled={!email || !password}>Sign in</Button>
         <div className="auth__alt">

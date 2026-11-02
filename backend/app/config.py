@@ -40,6 +40,21 @@ class Settings(BaseSettings):
     # Per-IP attempts per minute for login/register (brute-force protection).
     auth_rate_limit_per_minute: int = 10
 
+    # --- Email (password reset) ---------------------------------------------------------------
+    # Public URL of the web app, used to build links in emails.
+    app_base_url: str = "http://localhost:5173"
+    # "console" logs emails (development), "file" writes them to EMAIL_FILE_DIR (tests/e2e),
+    # "smtp" sends them. Production must use smtp: the others would expose reset links.
+    email_backend: Literal["console", "file", "smtp"] = "console"
+    email_file_dir: str = "./outbox"
+    email_from: str = "CodeCoach AI <no-reply@localhost>"
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_starttls: bool = True
+    password_reset_ttl_minutes: int = Field(default=30, ge=5, le=24 * 60)
+
     # Comma-separated list, e.g. "http://localhost:5173,https://codecoach.example.com"
     cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
@@ -89,6 +104,12 @@ class Settings(BaseSettings):
                 raise ValueError("SECRET_KEY must be set to a unique random value in production")
             if "*" in self.cors_origins:
                 raise ValueError("CORS_ORIGINS must list explicit origins in production")
+            if self.email_backend != "smtp" or not self.smtp_host:
+                raise ValueError(
+                    "Production needs EMAIL_BACKEND=smtp and SMTP_HOST (other backends expose reset links)"
+                )
+            if not self.app_base_url.startswith("https://"):
+                raise ValueError("APP_BASE_URL must be https in production (it goes into emailed links)")
             if self.refresh_cookie_secure is False:
                 raise ValueError("REFRESH_COOKIE_SECURE can't be false in production (cookies need HTTPS)")
         if self.execution_enabled and (not self.runner_token or len(self.runner_token) < 32):

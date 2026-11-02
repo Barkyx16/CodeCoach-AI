@@ -40,7 +40,7 @@ export default defineConfig({
       : []),
     {
       // Start from an empty database every run: a reused e2e.db keeps old schema and old users.
-      command: `${python} -c "import pathlib; pathlib.Path('e2e.db').unlink(missing_ok=True)" && ${python} -m uvicorn app.main:app --port 8000`,
+      command: `${python} -c "import pathlib, shutil; pathlib.Path('e2e.db').unlink(missing_ok=True); shutil.rmtree('e2e-outbox', ignore_errors=True)" && ${python} -m uvicorn app.main:app --port 8000`,
       cwd: "../backend",
       url: "http://localhost:8000/health/ready",
       reuseExistingServer: !process.env.CI,
@@ -48,6 +48,9 @@ export default defineConfig({
         DATABASE_URL: "sqlite:///./e2e.db",
         SECRET_KEY: "e2e-secret-key-that-is-at-least-32-characters",
         AI_PROVIDER: "offline",
+        // Password-reset emails are written here; e2e/password-reset.spec.ts reads the link.
+        EMAIL_BACKEND: "file",
+        EMAIL_FILE_DIR: "./e2e-outbox",
         AUTH_RATE_LIMIT_PER_MINUTE: "1000",
         LOG_LEVEL: "WARNING",
         ...(judge

@@ -38,3 +38,7 @@ Thumbs.db
 frontend/e2e/screenshots/
 backend/e2e.db
 runner/.pytest_cache/
+
+# Password-reset emails written by the e2e backend
+backend/e2e-outbox/
+backend/outbox/
