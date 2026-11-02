@@ -11,21 +11,26 @@ import socket
 import subprocess
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from types import SimpleNamespace
 
 import httpx
 import pytest
 from sqlalchemy import select
 
 from app.db.seed import SEED_DIR
-from app.models import Problem
-from app.services.judge.runner_client import HttpRunner
+from app.models import Problem, SubmissionMode, SubmissionStatus
+from app.models import TestVisibility as Visibility  # aliased: pytest would collect Test*
+from app.services.judge.judge import Verdict, judge_submission
+from app.services.judge.runner_client import HttpRunner, RunnerUnavailable
 from app.worker import JudgeWorker
 from tests.conftest import auth_headers, register
 
 RUNNER_DIR = Path(__file__).resolve().parents[2] / "runner"
 REFERENCE_DIR = Path(__file__).resolve().parents[1] / "app" / "seed" / "reference"
 TOKEN = "s" * 40
+RUNNER_CONCURRENCY = 4
 
 
 def _sandbox_ready() -> bool:
@@ -49,7 +54,12 @@ def runner_url():
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
         port = s.getsockname()[1]
-    env = {**os.environ, "RUNNER_TOKEN": TOKEN, "MAX_CONCURRENCY": "4", "WALL_TIMEOUT_S": "20"}
+    env = {
+        **os.environ,
+        "RUNNER_TOKEN": TOKEN,
+        "MAX_CONCURRENCY": str(RUNNER_CONCURRENCY),
+        "WALL_TIMEOUT_S": "20",
+    }
     proc = subprocess.Popen(
         [
             sys.executable,
@@ -108,11 +118,58 @@ def judge(make_client, runner_url):
     return run
 
 
-@pytest.mark.parametrize("slug", sorted(json.loads(p.read_text())["slug"] for p in SEED_DIR.glob("*.json")))
-def test_every_reference_solution_passes_in_the_sandbox(judge, slug):
-    done = judge(slug, (REFERENCE_DIR / f"{slug}.java").read_text())
-    assert done["status"] == "PASSED", done
-    assert done["result"]["passed_count"] == done["result"]["total_count"]
+SEED_PROBLEMS = {
+    seed["slug"]: seed for seed in (json.loads(f.read_text()) for f in sorted(SEED_DIR.glob("*.json")))
+}
+JUDGE_TIME_LIMIT_S = 8  # same as the `judge` fixture
+
+
+def _judge_reference(runner: HttpRunner, slug: str) -> Verdict:
+    """The production judge (`judge_submission`) on a reference solution, minus the database."""
+    seed = SEED_PROBLEMS[slug]
+    tests = [
+        SimpleNamespace(
+            input=t["input"], expected_output=t["expected_output"], visibility=Visibility(t["visibility"])
+        )
+        for t in seed["tests"]
+    ]
+    submission = SimpleNamespace(
+        mode=SubmissionMode.SUBMIT,
+        source_code=(REFERENCE_DIR / f"{slug}.java").read_text(),
+        problem=SimpleNamespace(signature=seed["signature"], test_cases=tests),
+    )
+    for attempt in range(10):
+        try:
+            return judge_submission(submission, runner, JUDGE_TIME_LIMIT_S)
+        except RunnerUnavailable:  # at capacity: back off and retry, like the worker does
+            time.sleep(0.5 * (attempt + 1))
+    return judge_submission(submission, runner, JUDGE_TIME_LIMIT_S)
+
+
+@pytest.fixture(scope="module")
+def reference_verdicts(runner_url) -> dict[str, Verdict]:
+    """Judge all references in the real sandbox, as many at once as the runner allows.
+
+    One by one through the API (a fresh app and seeded database per problem) took ~5 s each,
+    about half an hour for 300 problems. The API → worker path is covered by the tests below.
+    """
+    runner = HttpRunner(runner_url, TOKEN)
+    try:
+        with ThreadPoolExecutor(max_workers=RUNNER_CONCURRENCY) as pool:
+            return dict(
+                zip(
+                    SEED_PROBLEMS, pool.map(lambda s: _judge_reference(runner, s), SEED_PROBLEMS), strict=True
+                )
+            )
+    finally:
+        runner.close()
+
+
+@pytest.mark.parametrize("slug", sorted(SEED_PROBLEMS))
+def test_every_reference_solution_passes_in_the_sandbox(reference_verdicts, slug):
+    verdict = reference_verdicts[slug]
+    assert verdict.status == SubmissionStatus.PASSED, (verdict.status, verdict.result)
+    assert verdict.result.passed_count == verdict.result.total_count == len(SEED_PROBLEMS[slug]["tests"])
 
 
 def test_starter_code_fails(judge):

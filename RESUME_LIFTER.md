@@ -928,6 +928,11 @@ You asked for the 300 coding problems: 100 per difficulty.
   in its own package with redirected stdin/stdout, so the check takes about a minute.
 - **Bugs caught by the two-implementation check** before anything shipped, including Minimum
   Refueling Stops (stations past the target; spec fixed) and several model edge cases.
+- **Real-sandbox check that scales:** CI also judges every reference inside gVisor. Done one at
+  a time through the API (a fresh app and seeded database per problem, ~5 s each) that step
+  would have taken ~30 minutes for 300 problems. It now calls the production `judge_submission`
+  directly, four at a time (the runner's own concurrency limit) with back-off on "at capacity":
+  all 300 pass in gVisor in about 5 minutes. The API → worker path keeps its own tests.
 - Search, hint evals and leak tests updated for the bigger library; the hint code-leak check now
   covers all 300 problems (0%). Tests: 1,561 backend on SQLite, PostgreSQL suite green, 119
   frontend, 17 Playwright (2 sandbox-only skipped).
