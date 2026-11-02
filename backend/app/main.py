@@ -102,9 +102,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
-        allow_credentials=False,  # bearer tokens, not cookies
+        # Credentials only matter for the refresh cookie (HttpOnly, SameSite=Strict, path-scoped to
+        # /api/v1/auth); everything else authenticates with the in-memory bearer token.
+        allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
+        allow_headers=["Authorization", "Content-Type", "X-Request-ID", "X-Requested-With"],
         expose_headers=["X-Request-ID"],
         max_age=600,
     )

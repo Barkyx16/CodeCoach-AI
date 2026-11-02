@@ -149,6 +149,28 @@ class User(Base):
     last_login_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
 
 
+class RefreshToken(Base):
+    """One refresh token. Only its SHA-256 hash is stored, so a database leak can't be replayed.
+
+    Tokens rotate on every use: the old row is marked `used_at` and a new row joins the same
+    `family_id`. Presenting a token that was already used (outside a short grace window for
+    concurrent tabs) means it was copied, so the whole family is revoked.
+    """
+
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    family_id: Mapped[str] = mapped_column(String(36), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    # The user's token_version when issued: logout-everywhere / password change invalidate it.
+    token_version: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(UTCDateTime())
+    used_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+
+
 class Problem(Base):
     __tablename__ = "problems"
 

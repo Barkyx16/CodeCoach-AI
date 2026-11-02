@@ -50,6 +50,10 @@ export const api = {
     }),
   me: () => apiRequest<User>("/api/v1/auth/me"),
   logout: () => apiRequest<void>("/api/v1/auth/logout", { method: "POST" }),
+  /** Exchange the HttpOnly refresh cookie for a new access token (and a rotated cookie). */
+  refresh: () => apiRequest<TokenResponse>("/api/v1/auth/refresh", {
+    method: "POST", auth: false, headers: { "X-Requested-With": "codecoach" },
+  }),
   updateProfile: (body: { display_name: string | null }) =>
     apiRequest<User>("/api/v1/auth/me", { method: "PATCH", body }),
   changePassword: (body: { current_password: string; new_password: string }) =>

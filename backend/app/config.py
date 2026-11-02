@@ -30,7 +30,12 @@ class Settings(BaseSettings):
 
     # --- Auth -----------------------------------------------------------------------------
     secret_key: str = Field(default=_INSECURE_DEFAULT_SECRET, min_length=32)
-    access_token_ttl_minutes: int = Field(default=60, ge=5, le=60 * 24)
+    # Short-lived access tokens (kept in browser memory only) plus a rotating refresh token in
+    # an HttpOnly cookie that JavaScript can never read.
+    access_token_ttl_minutes: int = Field(default=15, ge=5, le=60 * 24)
+    refresh_token_ttl_days: int = Field(default=30, ge=1, le=90)
+    # Secure cookies need HTTPS. Unset means: secure in production, not in development/tests.
+    refresh_cookie_secure: bool | None = None
     allow_guest_sessions: bool = True
     # Per-IP attempts per minute for login/register (brute-force protection).
     auth_rate_limit_per_minute: int = 10
@@ -84,11 +89,19 @@ class Settings(BaseSettings):
                 raise ValueError("SECRET_KEY must be set to a unique random value in production")
             if "*" in self.cors_origins:
                 raise ValueError("CORS_ORIGINS must list explicit origins in production")
+            if self.refresh_cookie_secure is False:
+                raise ValueError("REFRESH_COOKIE_SECURE can't be false in production (cookies need HTTPS)")
         if self.execution_enabled and (not self.runner_token or len(self.runner_token) < 32):
             raise ValueError("EXECUTION_ENABLED=true requires RUNNER_TOKEN (at least 32 characters)")
         if self.ai_provider == "anthropic" and not self.anthropic_api_key:
             raise ValueError("AI_PROVIDER=anthropic requires ANTHROPIC_API_KEY")
         return self
+
+    @property
+    def cookie_secure(self) -> bool:
+        if self.refresh_cookie_secure is not None:
+            return self.refresh_cookie_secure
+        return self.environment == "production"
 
     @property
     def is_sqlite(self) -> bool:

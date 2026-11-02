@@ -35,6 +35,11 @@ class UnauthorizedError(AppError):
     code = "unauthorized"
 
 
+class ForbiddenError(AppError):
+    status_code = 403
+    code = "forbidden"
+
+
 class ConflictError(AppError):
     status_code = 409
     code = "conflict"
@@ -52,6 +57,12 @@ def _envelope(request: Request, status: int, code: str, message: str, details: A
     if status == 401:
         headers = {**(headers or {}), "WWW-Authenticate": "Bearer"}
     return JSONResponse(status_code=status, content=body, headers=headers)
+
+
+def error_response(request: Request, exc: AppError) -> JSONResponse:
+    """The standard envelope for an AppError, for routes that must also modify the response
+    (e.g. clear a cookie) instead of just raising."""
+    return _envelope(request, exc.status_code, exc.code, exc.message, exc.details)
 
 
 _HTTP_CODES = {

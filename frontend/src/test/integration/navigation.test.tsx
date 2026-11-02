@@ -6,7 +6,7 @@ import { API, server } from "../server";
 
 it("moves focus to the content and updates the title after route navigation", async () => {
   const { user } = renderApp("/", { signedIn: true });
-  await user.click(screen.getByRole("link", { name: "Analytics" }));
+  await user.click(await screen.findByRole("link", { name: "Analytics" })); // after the session restores
   expect(await screen.findByRole("heading", { name: "Analytics" })).toBeInTheDocument();
   expect(document.getElementById("main")).toHaveFocus();
   expect(document.title).toBe("Analytics | CodeCoach AI");

@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, vi } from "vitest";
 
-import { server } from "./server";
+import { cookieJar, server } from "./server";
 
 // Monaco needs a real browser; in jsdom we swap it for a textarea with the same contract.
 vi.mock("@monaco-editor/react", async () => {
@@ -32,5 +32,6 @@ afterEach(() => {
   server.resetHandlers();
   cleanup();
   window.localStorage.clear();
+  cookieJar.hasSession = false;
 });
 afterAll(() => server.close());

@@ -1,13 +1,20 @@
 from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Cookie, Depends, Header, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db, get_settings_dep
 from app.config import Settings
-from app.errors import AppError, ConflictError, RateLimitedError, UnauthorizedError
+from app.errors import (
+    AppError,
+    ConflictError,
+    ForbiddenError,
+    RateLimitedError,
+    UnauthorizedError,
+    error_response,
+)
 from app.models import User, new_id
 from app.schemas.auth import (
     ChangePasswordRequest,
@@ -20,6 +27,7 @@ from app.schemas.auth import (
     UserOut,
 )
 from app.schemas.common import error_responses
+from app.services import refresh as refresh_tokens
 from app.services.auth import hash_password, issue_access_token, needs_rehash, verify_password
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
@@ -50,6 +58,36 @@ def _token_response(user: User, settings: Settings) -> TokenResponse:
     return TokenResponse(access_token=token, expires_at=expires, user=UserOut.model_validate(user))
 
 
+def _set_refresh_cookie(response: Response, raw: str, settings: Settings) -> None:
+    response.set_cookie(
+        refresh_tokens.COOKIE_NAME,
+        raw,
+        max_age=settings.refresh_token_ttl_days * 86400,
+        path=refresh_tokens.COOKIE_PATH,  # only ever sent to the auth endpoints
+        httponly=True,  # page scripts can't read it
+        secure=settings.cookie_secure,
+        samesite="strict",  # never sent on cross-site requests
+    )
+
+
+def _clear_refresh_cookie(response: Response, settings: Settings) -> None:
+    response.delete_cookie(
+        refresh_tokens.COOKIE_NAME,
+        path=refresh_tokens.COOKIE_PATH,
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite="strict",
+    )
+
+
+def _start_session(db: Session, user: User, response: Response, settings: Settings) -> TokenResponse:
+    """New sign-in: a fresh refresh-token family in the cookie, an access token in the body."""
+    raw = refresh_tokens.issue(db, user, settings)
+    db.commit()
+    _set_refresh_cookie(response, raw, settings)
+    return _token_response(user, settings)
+
+
 @router.post(
     "/register",
     status_code=status.HTTP_201_CREATED,
@@ -60,6 +98,7 @@ def _token_response(user: User, settings: Settings) -> TokenResponse:
 def register(
     body: RegisterRequest,
     request: Request,
+    response: Response,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> TokenResponse:
@@ -81,7 +120,7 @@ def register(
     except IntegrityError as exc:  # concurrent registration with the same email
         db.rollback()
         raise ConflictError("An account with this email already exists", code="email_taken") from exc
-    return _token_response(user, settings)
+    return _start_session(db, user, response, settings)
 
 
 @router.post(
@@ -90,6 +129,7 @@ def register(
 def login(
     body: LoginRequest,
     request: Request,
+    response: Response,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> TokenResponse:
@@ -103,7 +143,7 @@ def login(
         user.password_hash = hash_password(body.password)
     user.last_login_at = datetime.now(UTC)
     db.commit()
-    return _token_response(user, settings)
+    return _start_session(db, user, response, settings)
 
 
 @router.post(
@@ -115,6 +155,7 @@ def login(
 )
 def guest(
     request: Request,
+    response: Response,
     body: GuestSessionRequest | None = None,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
@@ -129,6 +170,38 @@ def guest(
     )
     db.add(user)
     db.commit()
+    return _start_session(db, user, response, settings)
+
+
+@router.post(
+    "/refresh",
+    response_model=TokenResponse,
+    responses=error_responses(401, 403),
+    summary="Exchange the refresh cookie for a new access token (rotates the cookie)",
+)
+def refresh(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+    cc_refresh: str | None = Cookie(default=None),
+    x_requested_with: str | None = Header(default=None),
+) -> TokenResponse:
+    # CSRF defence in depth (the cookie is already SameSite=Strict): require a custom header,
+    # which a cross-site page can't send without a CORS preflight that our allowlist rejects,
+    # and refuse any Origin that isn't one of ours.
+    origin = request.headers.get("origin")
+    if x_requested_with != "codecoach" or (origin and origin not in settings.cors_origins):
+        raise ForbiddenError("Refresh must come from the CodeCoach app.", code="csrf_rejected")
+    try:
+        user, raw = refresh_tokens.rotate(db, cc_refresh, settings)
+    except UnauthorizedError as exc:
+        failed = error_response(request, exc)
+        if exc.code != "refresh_race":  # a racing tab still holds a valid cookie: keep it
+            _clear_refresh_cookie(failed, settings)
+        return failed  # type: ignore[return-value]
+    db.commit()
+    _set_refresh_cookie(response, raw, settings)
     return _token_response(user, settings)
 
 
@@ -143,9 +216,16 @@ def me(user: User = Depends(get_current_user)) -> User:
     responses=_ERRORS,
     summary="Revoke every access token issued to this user",
 )
-def logout(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> None:
-    user.token_version += 1
+def logout(
+    response: Response,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> None:
+    user.token_version += 1  # every access and refresh token issued so far stops working
+    refresh_tokens.revoke_all(db, user)
     db.commit()
+    _clear_refresh_cookie(response, settings)
 
 
 @router.post(
@@ -157,6 +237,7 @@ def logout(user: User = Depends(get_current_user), db: Session = Depends(get_db)
 def change_password(
     body: ChangePasswordRequest,
     request: Request,
+    response: Response,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
@@ -165,9 +246,10 @@ def change_password(
     if user.is_guest or not verify_password(user.password_hash, body.current_password):
         raise UnauthorizedError("Current password is incorrect", code="invalid_credentials")
     user.password_hash = hash_password(body.new_password)
-    user.token_version += 1
+    user.token_version += 1  # other sessions end
+    refresh_tokens.revoke_all(db, user)
     db.commit()
-    return _token_response(user, settings)
+    return _start_session(db, user, response, settings)  # this session continues
 
 
 @router.patch("/me", response_model=UserOut, responses=_ERRORS, summary="Update your profile")
@@ -188,8 +270,10 @@ def update_me(
 def delete_me(
     body: DeleteAccountRequest,
     request: Request,
+    response: Response,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
 ) -> None:
     _throttle(request)
     if body.confirm != "DELETE":
@@ -198,5 +282,6 @@ def delete_me(
         raise UnauthorizedError("Password is incorrect", code="invalid_credentials")
     # Submissions, results, AI interactions, interview sessions/turns and progress events are
     # removed by ON DELETE CASCADE foreign keys, in the same transaction.
-    db.delete(user)
+    db.delete(user)  # refresh tokens are removed by ON DELETE CASCADE too
     db.commit()
+    _clear_refresh_cookie(response, settings)

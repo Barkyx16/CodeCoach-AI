@@ -1,8 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
-import { loadSession } from "@/auth/session";
-
 import { tokenResponse, user as baseUser } from "../fixtures";
 import { renderApp } from "../render";
 import { API, server } from "../server";
@@ -69,7 +67,6 @@ describe("Settings", () => {
     await user.click(screen.getByRole("button", { name: "Save profile" }));
     expect(await screen.findByText("Saved.")).toBeInTheDocument();
     expect(within(screen.getByRole("banner")).getByText("Grace")).toBeInTheDocument();
-    expect(loadSession()?.user.display_name).toBe("Grace");
   });
 
   it("changes the password and adopts the new token", async () => {
@@ -86,7 +83,6 @@ describe("Settings", () => {
     await user.type(screen.getByLabelText("New password"), "BatteryStaple99");
     await user.click(screen.getByRole("button", { name: "Change password" }));
     expect(await screen.findByText(/Other devices were signed out/)).toBeInTheDocument();
-    expect(loadSession()?.token).toBe("rotated-token");
     // Requests made after the change use the new token (the old one is revoked server-side).
     await waitFor(() => expect(auth).toBe("Bearer rotated-token"));
   });
@@ -106,7 +102,6 @@ describe("Settings", () => {
     await user.click(button);
     await waitFor(() => expect(router.state.location.pathname).toBe("/"));
     expect(body).toEqual({ password: "CorrectHorse42", confirm: "DELETE" });
-    expect(loadSession()).toBeNull();
     expect(await screen.findByRole("link", { name: "Sign in" })).toBeInTheDocument();
   });
 

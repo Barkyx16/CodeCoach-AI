@@ -32,15 +32,25 @@ export class ApiError extends Error {
 
 type TokenGetter = () => string | null;
 type UnauthorizedHandler = (error: ApiError) => void;
+/** Get a fresh access token from the refresh cookie; null when the session can't continue. */
+type Refresher = () => Promise<string | null>;
 
 let getToken: TokenGetter = () => null;
 let onUnauthorized: UnauthorizedHandler = () => {};
+let refreshToken: Refresher = async () => null;
 
 /** Wired up once by AuthProvider so the client never imports React state directly. */
-export function configureAuth(tokenGetter: TokenGetter, unauthorizedHandler: UnauthorizedHandler): void {
+export function configureAuth(
+  tokenGetter: TokenGetter,
+  unauthorizedHandler: UnauthorizedHandler,
+  refresher: Refresher = async () => null,
+): void {
   getToken = tokenGetter;
   onUnauthorized = unauthorizedHandler;
+  refreshToken = refresher;
 }
+
+const AUTH_PATH = "/api/v1/auth/";
 
 export interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -49,6 +59,7 @@ export interface RequestOptions {
   signal?: AbortSignal;
   /** Send the bearer token if we have one (default true). */
   auth?: boolean;
+  headers?: Record<string, string>;
 }
 
 export function buildUrl(path: string, query?: RequestOptions["query"]): string {
@@ -65,8 +76,12 @@ function isErrorEnvelope(value: unknown): value is ErrorEnvelope {
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  return send<T>(path, options, false);
+}
+
+async function send<T>(path: string, options: RequestOptions, isRetry: boolean): Promise<T> {
   const { method = "GET", body, query, signal, auth = true } = options;
-  const headers: Record<string, string> = { Accept: "application/json" };
+  const headers: Record<string, string> = { Accept: "application/json", ...options.headers };
   if (body !== undefined) headers["Content-Type"] = "application/json";
   const token = auth ? getToken() : null;
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -78,6 +93,8 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
       signal,
+      // The refresh cookie is path-scoped to /api/v1/auth; only those calls need credentials.
+      credentials: path.startsWith(AUTH_PATH) ? "include" : "same-origin",
     });
   } catch (cause) {
     if (cause instanceof DOMException && cause.name === "AbortError") throw cause;
@@ -102,7 +119,11 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       ? new ApiError(response.status, data.error.code, data.error.message, data.error.details ?? null,
           data.error.request_id ?? requestId)
       : new ApiError(response.status, "http_error", `Request failed with status ${response.status}`, null, requestId);
-    if (error.status === 401 && token) onUnauthorized(error);
+    if (error.status === 401 && token) {
+      // The access token expired or was revoked: try the refresh cookie once, then retry.
+      if (!isRetry && !path.startsWith(AUTH_PATH) && (await refreshToken())) return send<T>(path, options, true);
+      onUnauthorized(error);
+    }
     throw error;
   }
   return data as T;

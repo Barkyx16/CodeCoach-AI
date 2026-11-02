@@ -60,33 +60,47 @@ GET /api/v1/problems?page=1&page_size=2
 
 ## Authentication flow
 
-CodeCoach uses **bearer tokens** (short-lived JWTs). There are no cookies, so CSRF does not
-apply and CORS is configured with `allow_credentials=false`.
+Two tokens with different jobs:
+- **Access token:** a short-lived JWT (15 minutes) returned in the JSON body. Keep it **in
+  memory only** and send it as `Authorization: Bearer <access_token>`.
+- **Refresh token:** an opaque random value in an **`HttpOnly`, `SameSite=Strict` cookie**
+  named `cc_refresh`, scoped to `Path=/api/v1/auth` and `Secure` in production. Page scripts
+  can't read it, so an XSS bug can't steal a long-lived credential. The server stores only its
+  SHA-256 hash.
 
 ```
-┌────────┐  POST /auth/register  or  /auth/login  or  /auth/guest   ┌─────┐
+┌────────┐  POST /auth/login (or /register, /guest)                  ┌─────┐
 │ client │ ───────────────────────────────────────────────────────▶ │ API │
-│        │ ◀─────────── { access_token, expires_at, user } ──────── │     │
+│        │ ◀── { access_token, expires_at, user } + Set-Cookie ──── │     │
 │        │                                                          │     │
 │        │  GET /api/v1/...   Authorization: Bearer <access_token>  │     │
 │        │ ───────────────────────────────────────────────────────▶ │     │
-│        │ ◀──────────────── 200 …  or  401 invalid_token ───────── │     │
+│        │                                                          │     │
+│        │  page load, or ~1 min before expiry, or on a 401:        │     │
+│        │  POST /auth/refresh  (cookie + X-Requested-With)         │     │
+│        │ ───────────────────────────────────────────────────────▶ │     │
+│        │ ◀── new access token + rotated Set-Cookie ───────────── │     │
 └────────┘                                                          └─────┘
 ```
 
-1. **Get a token** from one of:
-   - `POST /api/v1/auth/register`: new email/password account.
-   - `POST /api/v1/auth/login`: existing account.
-   - `POST /api/v1/auth/guest`: instant demo account with no email. Good for a "Try it" button.
-2. **Store it** in memory, or `localStorage` if you accept the XSS trade-off (see
-   [SECURITY.md](SECURITY.md#token-storage-in-the-browser)). Never put it in a URL.
-3. **Send it** on every authenticated request: `Authorization: Bearer <access_token>`.
-4. **Expiry:** tokens last `ACCESS_TOKEN_TTL_MINUTES` (default 60). `expires_at` is in the
-   response; on a `401` with `error.code == "invalid_token"`, send the user back to login.
-5. **Logout:** `POST /api/v1/auth/logout` increments the user's `token_version`, which
-   revokes *every* token issued to that user on every device. Then discard the token client-side.
-6. **Password change:** `POST /api/v1/auth/password` also revokes all old tokens and returns
-   a fresh one.
+1. **Sign in** with `POST /api/v1/auth/register`, `/login` or `/guest`. Each starts a new
+   refresh-token *family* and sets the cookie. Cross-origin clients must send
+   `credentials: "include"` on `/api/v1/auth/*` calls so the browser stores and sends it.
+2. **Call the API** with the access token in the `Authorization` header. Never put it in a URL
+   or in `localStorage`.
+3. **Refresh** with `POST /api/v1/auth/refresh` and the header `X-Requested-With: codecoach`.
+   The response is a normal `TokenResponse` plus a **rotated** cookie. The web app refreshes on
+   page load (to restore the session), about a minute before expiry, and once after a `401`
+   before retrying the request.
+4. **Refresh errors** (`401`): `invalid_refresh` (missing, expired or revoked: sign in again);
+   `refresh_reused` (an already-used token was presented later, so it was copied: the whole
+   family was revoked); `refresh_race` (two tabs refreshed with the same cookie within 30 s:
+   retry once and the browser will send the new cookie). `403 csrf_rejected` means the custom
+   header was missing or the `Origin` isn't an allowed one.
+5. **Logout:** `POST /api/v1/auth/logout` increments the user's `token_version`, revokes all
+   their refresh tokens and clears the cookie. Every session on every device ends.
+6. **Password change:** `POST /api/v1/auth/password` ends every other session and returns a
+   fresh access token and cookie for this one. **Account deletion** clears the cookie too.
 
 Public endpoints (no token needed): `/health*`, `GET /api/v1/problems`, `GET /api/v1/topics`,
 `GET /api/v1/problems/{slug}`. Sending a token to `GET /problems/{slug}` is optional; if you
@@ -121,6 +135,8 @@ Every non-2xx response has this shape:
 | 400 | `guest_disabled` | Guest sessions turned off | Hide the guest button |
 | 401 | `unauthorized` | No token on a protected route | Redirect to login |
 | 401 | `invalid_token` | Token invalid, expired, or revoked | Clear token, redirect to login |
+| 401 | `invalid_refresh` / `refresh_reused` / `refresh_race` | Refresh cookie missing/expired/revoked, replayed (family revoked), or two tabs racing (retry once) | Sign in again / retry |
+| 403 | `csrf_rejected` | `/auth/refresh` without `X-Requested-With: codecoach` or from an unknown `Origin` | (client bug) |
 | 401 | `invalid_credentials` | Wrong email/password (deliberately identical for unknown emails) | Form error |
 | 404 | `not_found` | Unknown route, problem, or a resource owned by someone else | Not-found state |
 | 405 | `method_not_allowed` | Wrong HTTP method | (client bug) |
@@ -166,6 +182,7 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 | GET | `/api/v1/capabilities` | – | What this deployment supports (code execution, AI provider) |
 | POST | `/api/v1/auth/register` | – | Create account → token |
 | POST | `/api/v1/auth/login` | – | Log in → token |
+| POST | `/api/v1/auth/refresh` | cookie | New access token from the refresh cookie (rotates it) |
 | POST | `/api/v1/auth/guest` | – | Demo session → token |
 | GET | `/api/v1/auth/me` | 🔒 | Current user |
 | POST | `/api/v1/auth/logout` | 🔒 | Revoke all of this user's tokens |
@@ -719,7 +736,9 @@ All configuration is environment variables (or a `.env` file; see
 | `DATABASE_URL` | `postgresql+psycopg://codecoach:codecoach@localhost:5432/codecoach` | SQLAlchemy URL. `sqlite:///./codecoach.db` works for a quick start. |
 | `AUTO_MIGRATE` | `true` | Create tables and seed problems on startup. Set `false` when migrations run separately (Docker Compose, production). |
 | `SECRET_KEY` | insecure dev value | **Secret.** Signs JWTs. At least 32 characters; required in production. |
-| `ACCESS_TOKEN_TTL_MINUTES` | `60` | Token lifetime (5–1440). |
+| `ACCESS_TOKEN_TTL_MINUTES` | `15` | Access-token lifetime (5–1440). |
+| `REFRESH_TOKEN_TTL_DAYS` | `30` | Refresh-cookie lifetime; it rotates on every use (1–90). |
+| `REFRESH_COOKIE_SECURE` | unset | Unset: `Secure` in production only. `false` is refused in production. |
 | `ALLOW_GUEST_SESSIONS` | `true` | Enables `POST /auth/guest`. |
 | `AUTH_RATE_LIMIT_PER_MINUTE` | `10` | Per-IP attempts for register, login, guest and password change. |
 | `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Comma-separated browser origins allowed to call the API. |

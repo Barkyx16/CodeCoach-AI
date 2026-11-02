@@ -42,7 +42,7 @@ describe("Problem library", () => {
   it("shows per-problem status and recommendations when signed in", async () => {
     renderApp("/problems", { signedIn: true });
     const row = (await screen.findByText("Two Sum")).closest("a") as HTMLElement;
-    expect(within(row).getByLabelText("Solved")).toBeInTheDocument();
+    expect(await within(row).findByLabelText("Solved")).toBeInTheDocument(); // once the session restores
     expect(await screen.findByText("Recommended for you")).toBeInTheDocument();
   });
 });

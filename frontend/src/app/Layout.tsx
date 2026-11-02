@@ -7,7 +7,7 @@ import { BrandMark } from "@/components/BrandMark";
 import { RouteAccessibility } from "./RouteAccessibility";
 
 export function Layout() {
-  const { user, isAuthenticated, logout, signedOutReason } = useAuth();
+  const { user, isAuthenticated, isRestoring, logout, signedOutReason } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [openPath, setOpenPath] = useState<string | null>(null);
@@ -72,7 +72,7 @@ export function Layout() {
                 Sign out
               </Button>
             </>
-          ) : (
+          ) : isRestoring ? null /* checking the session cookie: don't flash "Sign in" */ : (
             <>
               <NavLink to="/login" className="nav__link">Sign in</NavLink>
               <Button variant="primary" size="sm" onClick={() => { setOpenPath(null); navigate("/register"); }}>Create account</Button>

@@ -5,6 +5,8 @@ import type { LoginRequest, RegisterRequest, TokenResponse, User } from "@/api/t
 export interface AuthContextValue {
   user: User | null;
   isAuthenticated: boolean;
+  /** Still checking the refresh cookie on page load; don't redirect to /login yet. */
+  isRestoring: boolean;
   /** Why the user was signed out automatically (expired/revoked), for a friendly banner. */
   signedOutReason: string | null;
   /** The user signed out on purpose (logout / deleted account) rather than the session expiring. */

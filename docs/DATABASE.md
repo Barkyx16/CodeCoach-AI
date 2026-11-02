@@ -84,6 +84,17 @@ SQLite for speed, and CI runs it on both. Schema changes go through **Alembic** 
 | `test_version` | integer null | Version of the test set that produced the verdict |
 | `created_at`, `updated_at` | timestamptz | Composite index `(user_id, created_at)` for history pages |
 
+### `refresh_tokens`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | varchar(36) PK | UUID4 |
+| `user_id` | FK → users (cascade), indexed | Deleted with the account |
+| `family_id` | varchar(36), indexed | All rotations of one sign-in; revoked together on reuse |
+| `token_hash` | varchar(64) unique | SHA-256 of the cookie value; the raw token is never stored |
+| `token_version` | integer | The user's `token_version` at issue; logout/password change invalidate it |
+| `created_at`, `expires_at` | timestamptz | Expired rows are pruned when the user gets a new token |
+| `used_at`, `revoked_at` | timestamptz null | Rotation and revocation; used rows are kept until expiry so a replay is recognised |
+
 ### `execution_results` (1:1 with submissions)
 `submission_id` (PK and FK, cascade), `runtime_ms`, `memory_kb`, `passed_count`, `total_count`,
 `public_results` (JSONB, **public tests only**), `stderr_excerpt` (bounded, redacted).
@@ -148,6 +159,7 @@ transcript; `ai_interactions` rows for interview turns keep only cost and latenc
 | `60629f1baf0b` mock interviews | Adds interview columns to `practice_sessions` (with a server default so populated tables migrate safely) and the `interview_turns` table; names its foreign key so the downgrade works |
 | `b10c8038ad7f` judge queue | Adds `attempts` (server default 0), `judge_started_at`, `judged_at`, `test_version` to `submissions`, plus the `(status, created_at)` index the worker's queue scan uses |
 | `6fa2a814f068` submission mode | Adds `submissions.mode` (`submit` \| `run`) with server default `submit`, so existing rows stay attempts and populated tables migrate safely |
+| `9b08bedc4ed0` refresh tokens | Adds the `refresh_tokens` table (new table, so safe on populated databases) |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

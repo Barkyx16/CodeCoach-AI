@@ -49,6 +49,10 @@ The "Session log" at the bottom tracks exactly what that is.
 - Built an **AI coaching layer** with progressive, server-enforced hint disclosure and
   schema-validated code reviews, behind a provider-agnostic interface with automatic fallback,
   secret redaction, prompt-injection framing and per-user daily cost budgets.
+- Implemented **session security** with 15-minute in-memory access tokens and a rotating
+  refresh token in an `HttpOnly`, `SameSite=Strict` cookie (hash-only storage, reuse detection
+  that revokes a stolen session, CSRF header and Origin checks), removing tokens from
+  `localStorage` entirely; tested in a real browser and in 15 backend attack-case tests.
 - Implemented **JWT authentication** with Argon2id hashing, token revocation, brute-force
   rate limiting and ownership-based authorization, covered by **120+ pytest tests** that run
   against both SQLite and PostgreSQL in CI.
@@ -261,6 +265,16 @@ are small and explicit: the driver is built from public tests only, the worker n
 run as solved, and progress queries filter on `mode = submit`. A separate pipeline would have
 duplicated the security-critical path, and duplicated security code drifts.
 
+**"Where do you store the login token, and why?"**
+Not in `localStorage`. The access token is short-lived (15 minutes) and lives only in memory.
+The long-lived credential is a refresh token in an `HttpOnly` cookie, so JavaScript, and
+therefore an XSS bug, can't read it. It's `SameSite=Strict` and scoped to the auth path, and
+the refresh endpoint also requires a custom header, so CSRF is covered twice. The server stores
+only a hash. Every refresh rotates it, and if an old one is ever replayed, that means it was
+copied, so I revoke the whole chain. The tricky part was concurrency: two tabs refreshing with
+the same cookie look exactly like a replay, so there's a 30-second grace window that returns a
+retryable error instead of logging the user out.
+
 **"What would you do differently?"**
 Add refresh tokens with an HttpOnly cookie, build the AI evaluation set earlier, and put
 topics in a join table instead of JSON once the library grows.
@@ -393,6 +407,15 @@ These are moments where the obvious path was wrong and a deliberate decision was
     without it (and without a compile error, timeout or OOM kill) is *always* infrastructure.
     The judge then retries and says "not your fault". Tests fail with the old rule; a new
     `/ready` probe also reports a runner that can't reach Docker as unhealthy.
+
+29. **A sign-out that only happened on reload, only in dev, only sometimes.** After moving the
+    session to a refresh cookie, a real-browser test found that reloading a page could sign
+    you out. React runs startup effects twice in development, so the page sent *two* refreshes
+    with the same cookie: the first rotated it and the second was (correctly) treated as a
+    race, which my startup code read as "no session". Two tabs opening at once could do the
+    same in production. The fix routes startup through the same single shared refresh as
+    everything else. A unit test renders in StrictMode, asserts exactly one refresh, and fails
+    on the old code.
 
 ## 6. Python concepts used here (for a Java developer)
 
@@ -677,4 +700,30 @@ gVisor judge journey. The explanation card now scrolls into view in its new scro
   still shows feedback), the one control the audit deliberately doesn't press.
 - Totals: 379 backend tests (104 in the real gVisor sandbox), 33 runner, 83 frontend,
   13 Playwright tests (+ the opt-in controls audit).
+
+### Session 7: tokens out of localStorage (rotating HttpOnly refresh cookie)
+**Built and verified:**
+- `refresh_tokens` table (hash-only, families, rotation, reuse detection, pruning of expired
+  rows) and migration `9b08bedc4ed0` (upgrade/downgrade/re-upgrade and `alembic check` on
+  PostgreSQL 16).
+- `POST /api/v1/auth/refresh` with CSRF guards (custom header + Origin allowlist); every sign-in
+  sets an `HttpOnly`, `SameSite=Strict`, `Path=/api/v1/auth` cookie (`Secure` in production,
+  enforced); logout, password change and deletion revoke and clear it. Access tokens now last
+  15 minutes. CORS allows credentials for listed origins only.
+- Frontend: session in memory only; restore on load; proactive refresh a minute before expiry;
+  one transparent refresh-and-retry after a 401; single-flight refresh shared by everything;
+  a retry on `refresh_race`; the old `localStorage` token is deleted; no "Sign in" flash while
+  the session restores.
+- Tests: 15 backend refresh tests (rotation, replay, race, CSRF, expiry, logout, password
+  change, deletion, CORS, production guard, pruning), 7 frontend session tests (including the
+  StrictMode regression), and a real-browser test of the cookie flags, `document.cookie`,
+  storage contents, reloads and sign-out.
+- Docs corrected: SECURITY §5 no longer lists account deletion and the eval suite as missing.
+- Totals: 394 backend tests (104 in the real gVisor sandbox), 33 runner, 90 frontend,
+  14 Playwright tests (+ the opt-in controls audit).
+
+**Not yet verified / not built:**
+- Cross-site deployments (frontend and API on different registrable domains) would need
+  `SameSite=None`; the documented setup keeps them same-site (e.g. app. and api. subdomains).
+- Live Claude responses; production deployment.
 

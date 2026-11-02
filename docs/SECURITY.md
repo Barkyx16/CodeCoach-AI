@@ -12,6 +12,7 @@ built yet**. Nothing in the "designed" sections should be described as working.
 | Brute force | Per-IP sliding-window limit on register, login, guest and password change | `services/rate_limit.py` | ✅ |
 | Tokens | HS256 JWT with `exp`, `iat`, `iss`, `typ`; `token_version` claim enables revocation | `services/auth.py`, `api/deps.py` | ✅ |
 | Logout / password change | Revokes every previously issued token | `routes/auth.py` | ✅ |
+| Sessions | 15-minute in-memory access tokens; rotating `HttpOnly` `SameSite=Strict` refresh cookie with reuse detection (§3) | `services/refresh.py`, `routes/auth.py` | ✅ |
 | Authorization | Every user-owned query filters by `user_id`; other users' resources return 404 | routes, `CoachService` | ✅ |
 | Hidden tests | Never serialized; hint text and reference solutions never leave the server | `routes/problems.py` | ✅ (checks every problem) |
 | Input limits | Pydantic validation on every body and query; source-size cap; AI input cap | schemas, routes | ✅ |
@@ -43,12 +44,25 @@ successful injection can at worst produce a misleading hint for the attacker's o
 
 ## 3. Token storage in the browser
 
-The API uses bearer tokens rather than cookies (no CSRF surface). The frontend keeps the token
-in memory and mirrors it to `localStorage` so a page refresh doesn't log the user out. The
-trade-off: an XSS bug could read it. Mitigations are short token lifetimes, server-side
-revocation, React's default output escaping, rendering no HTML from the API, and a strict
-Content-Security-Policy on the deployed frontend. A future hardening step is moving to an
-`HttpOnly`, `SameSite=Strict` refresh-token cookie with in-memory access tokens.
+- **Access token** (15 min JWT): held in JavaScript memory only, never written to
+  `localStorage` or `sessionStorage`. An XSS bug could use it while the page is open, but there
+  is nothing durable to steal.
+- **Refresh token**: an opaque 256-bit value in a cookie that is `HttpOnly` (unreadable by
+  scripts), `SameSite=Strict` (never sent on cross-site requests), `Path=/api/v1/auth` (not
+  sent anywhere else) and `Secure` in production (the app refuses to start with it off). Only a
+  SHA-256 hash is stored server-side.
+- **Rotation and reuse detection:** every refresh replaces the token. Presenting an already
+  used one later means it was copied, so the whole token family is revoked. A 30-second grace
+  window turns two tabs refreshing at once into a retryable `refresh_race` instead.
+- **CSRF:** cookies are only used by `/auth/refresh`, which also requires a custom
+  `X-Requested-With: codecoach` header (cross-site pages can't send it without a CORS preflight
+  our allowlist rejects) and refuses unknown `Origin`s. Every other endpoint uses the bearer
+  header, which browsers never attach automatically.
+- **Revocation:** logout, password change and account deletion bump `token_version` and revoke
+  refresh tokens, ending every session.
+- Older versions stored the access token in `localStorage`; the app deletes that key on startup.
+- Remaining defences against XSS: React's output escaping, no HTML rendered from the API, and
+  a strict Content-Security-Policy on the deployed frontend.
 
 ## 4. Secure Java execution (implemented: gVisor sandbox)
 
@@ -166,12 +180,10 @@ compile output returned in `stderr_excerpt` listed **every hidden input** of the
 
 ## 5. Known gaps (honest list)
 
-- No refresh tokens yet; access tokens last 60 minutes.
 - The auth rate limiter is per process (move to Redis for multiple replicas).
 - No email verification or password reset (needs an email provider).
-- No account deletion endpoint yet (the database cascades are ready).
-- The AI evaluation suite (30+ labeled samples, spoiler and hallucination rates) is not built,
-  so no AI accuracy claims are made anywhere.
+- AI quality is measured only for the offline coach ([AI_EVALUATION.md](AI_EVALUATION.md)); Claude's
+  numbers need an API key, so no claims are made about it.
 - Code execution is off by default; deployments must opt in (`EXECUTION_ENABLED=true`) and
   run the runner on a dedicated gVisor host (see §4.3 for the residual risks).
 - `npm audit` reports a moderate `minimatch` advisory inside `openapi-typescript`, a
