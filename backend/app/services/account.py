@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.models import (
     AIInteraction,
     ExperienceEntry,
+    InterviewRetry,
     PracticeAnswer,
     PracticeGoal,
     PracticeMode,
@@ -17,6 +18,7 @@ from app.models import (
     PracticeSession,
     Problem,
     ProgressEvent,
+    ReviewItem,
     RoleTarget,
     Submission,
     User,
@@ -55,6 +57,8 @@ def export_user_data(db: Session, user: User) -> dict:
         select(RoleTarget).options(selectinload(RoleTarget.requirements)).where(RoleTarget.user_id == user.id)
     ).all()
     experience = db.scalars(select(ExperienceEntry).where(ExperienceEntry.user_id == user.id)).all()
+    retries = db.scalars(select(InterviewRetry).where(InterviewRetry.user_id == user.id)).all()
+    queue = db.scalars(select(ReviewItem).where(ReviewItem.user_id == user.id)).all()
     events = db.scalars(
         select(ProgressEvent).where(ProgressEvent.user_id == user.id).order_by(ProgressEvent.created_at)
     ).all()
@@ -223,5 +227,28 @@ def export_user_data(db: Session, user: User) -> dict:
                 "created_at": iso(t.created_at),
             }
             for t in targets
+        ],
+        "interview_retries": [
+            {
+                "interview": r.session_id,
+                "question_index": r.question_index,
+                "original_answer": r.original_answer_id,
+                "retry_answer": r.retry_answer_id,
+                "created_at": iso(r.created_at),
+            }
+            for r in retries
+        ],
+        "review_queue": [
+            {
+                "career": q.track,
+                "question": q.question_id,
+                "due_at": iso(q.due_at),
+                "step": q.step,
+                "last_score": q.last_score,
+                "reviews": q.reviews,
+                "removed": q.removed,
+                "created_at": iso(q.created_at),
+            }
+            for q in queue
         ],
     }

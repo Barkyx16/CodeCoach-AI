@@ -3525,6 +3525,325 @@
         }
       }
     },
+    "/api/v1/interviews/{interview_id}/review": {
+      "get": {
+        "tags": [
+          "interviews"
+        ],
+        "summary": "Structured review of a finished interview: timeline, feedback dimensions, improvements",
+        "operationId": "review_api_v1_interviews__interview_id__review_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "interview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Interview Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewReview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interviews/{interview_id}/questions/{index}/retries": {
+      "post": {
+        "tags": [
+          "interviews"
+        ],
+        "summary": "Retry one question of a finished round; the original answer is kept and compared",
+        "operationId": "retry_question_api_v1_interviews__interview_id__questions__index__retries_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "interview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Interview Id"
+            }
+          },
+          {
+            "name": "index",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Index"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetryIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Comparison"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interviews/{interview_id}/questions/{index}/comparison": {
+      "get": {
+        "tags": [
+          "interviews"
+        ],
+        "summary": "The original answer to a question next to its retries",
+        "operationId": "compare_question_api_v1_interviews__interview_id__questions__index__comparison_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "interview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Interview Id"
+            }
+          },
+          {
+            "name": "index",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Index"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Comparison"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/interviews/{interview_id}/finish": {
       "post": {
         "tags": [
@@ -4741,6 +5060,260 @@
           },
           "409": {
             "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/reviews": {
+      "get": {
+        "tags": [
+          "plan"
+        ],
+        "summary": "Your spaced review queue",
+        "operationId": "review_queue_api_v1_me_reviews_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewQueue"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "plan"
+        ],
+        "summary": "Save a question for spaced review (saving it again is a no-op)",
+        "operationId": "add_review_api_v1_me_reviews_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewAdd"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewQueue"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/reviews/{item_id}/snooze": {
+      "post": {
+        "tags": [
+          "plan"
+        ],
+        "summary": "Snooze a review by 1, 3 or 7 days",
+        "operationId": "snooze_review_api_v1_me_reviews__item_id__snooze_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Item Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SnoozeIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewQueue"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/reviews/{item_id}": {
+      "delete": {
+        "tags": [
+          "plan"
+        ],
+        "summary": "Remove a question from the queue",
+        "operationId": "remove_review_api_v1_me_reviews__item_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Item Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewQueue"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
             "content": {
               "application/json": {
                 "schema": {
@@ -6564,6 +7137,105 @@
         ],
         "title": "CodingEvidence"
       },
+      "Comparison": {
+        "properties": {
+          "question_title": {
+            "type": "string",
+            "title": "Question Title"
+          },
+          "prompt": {
+            "type": "string",
+            "title": "Prompt"
+          },
+          "original": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnswerOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The answer given in the interview (never changed)"
+          },
+          "retries": {
+            "items": {
+              "$ref": "#/components/schemas/AnswerOut"
+            },
+            "type": "array",
+            "title": "Retries",
+            "description": "Every retry, oldest first"
+          },
+          "latest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnswerOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "comparable": {
+            "type": "boolean",
+            "title": "Comparable",
+            "description": "Original and latest were scored by the same evaluator and rubric"
+          },
+          "comparability_note": {
+            "type": "string",
+            "title": "Comparability Note"
+          },
+          "improved": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Improved",
+            "description": "Points the latest attempt covers that the original missed"
+          },
+          "still_missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Still Missing"
+          },
+          "newly_missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Newly Missing",
+            "description": "Points the original covered that the latest misses"
+          },
+          "score_change": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score Change"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question_title",
+          "prompt",
+          "original",
+          "retries",
+          "latest",
+          "comparable",
+          "comparability_note",
+          "improved",
+          "still_missing",
+          "newly_missing",
+          "score_change"
+        ],
+        "title": "Comparison"
+      },
       "Complexity": {
         "properties": {
           "time": {
@@ -6749,6 +7421,49 @@
         ],
         "title": "DifficultyProgress"
       },
+      "Dimension": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Answer content, Structure and clarity, Reasoning, Spoken delivery, Code execution"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "evaluated",
+              "not_evaluated",
+              "not_applicable"
+            ],
+            "title": "Status"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "points": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Points"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceLink"
+            },
+            "type": "array",
+            "title": "Evidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "status",
+          "summary"
+        ],
+        "title": "Dimension"
+      },
       "Engagement": {
         "properties": {
           "state": {
@@ -6871,6 +7586,38 @@
           "average_best_score"
         ],
         "title": "EvaluatedSkill"
+      },
+      "EvidenceLink": {
+        "properties": {
+          "item_key": {
+            "type": "string",
+            "title": "Item Key",
+            "description": "The timeline item (question or turn) it refers to, or 'code'"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "excerpt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Excerpt",
+            "description": "The words (or code line) the feedback is about"
+          }
+        },
+        "type": "object",
+        "required": [
+          "item_key",
+          "label",
+          "excerpt"
+        ],
+        "title": "EvidenceLink"
       },
       "Example": {
         "properties": {
@@ -7650,6 +8397,36 @@
         ],
         "title": "HintResponse"
       },
+      "Improvement": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "why": {
+            "type": "string",
+            "title": "Why"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceLink"
+            },
+            "type": "array",
+            "title": "Evidence"
+          },
+          "practice": {
+            "$ref": "#/components/schemas/PracticeAction"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "why",
+          "evidence",
+          "practice"
+        ],
+        "title": "Improvement"
+      },
       "InterviewCounts": {
         "properties": {
           "completed": {
@@ -8021,6 +8798,183 @@
           "difficulty"
         ],
         "title": "InterviewProblem"
+      },
+      "InterviewReview": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "coding",
+              "questions"
+            ],
+            "title": "Kind"
+          },
+          "track": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track"
+          },
+          "career_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Career Title"
+          },
+          "problem": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InterviewProblem"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/InterviewStatus"
+          },
+          "status_label": {
+            "type": "string",
+            "title": "Status Label"
+          },
+          "completed": {
+            "type": "boolean",
+            "title": "Completed",
+            "description": "True only for interviews that ran to the end"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "elapsed_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elapsed Seconds",
+            "description": "From start to end, as recorded"
+          },
+          "time_limit_seconds": {
+            "type": "integer",
+            "title": "Time Limit Seconds"
+          },
+          "notices": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notices",
+            "description": "Incomplete sessions, missing answers, unavailable feedback, transcription"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "overall": {
+            "items": {
+              "$ref": "#/components/schemas/Dimension"
+            },
+            "type": "array",
+            "title": "Overall"
+          },
+          "improvements": {
+            "items": {
+              "$ref": "#/components/schemas/Improvement"
+            },
+            "type": "array",
+            "title": "Improvements",
+            "description": "At most three, each grounded in this interview"
+          },
+          "evaluation_available": {
+            "type": "boolean",
+            "title": "Evaluation Available"
+          },
+          "evaluator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evaluator"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer"
+          },
+          "final_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Final Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "track",
+          "career_title",
+          "problem",
+          "status",
+          "status_label",
+          "completed",
+          "started_at",
+          "ended_at",
+          "elapsed_seconds",
+          "time_limit_seconds",
+          "notices",
+          "items",
+          "overall",
+          "improvements",
+          "evaluation_available",
+          "evaluator",
+          "disclaimer",
+          "final_code"
+        ],
+        "title": "InterviewReview"
       },
       "InterviewStart": {
         "properties": {
@@ -8746,6 +9700,42 @@
           "open_in_plan"
         ],
         "title": "PlanProgress"
+      },
+      "PracticeAction": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "href": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Href"
+          },
+          "retry_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retry Index",
+            "description": "Retry this question of the interview"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label"
+        ],
+        "title": "PracticeAction"
       },
       "PracticeLink": {
         "properties": {
@@ -9763,6 +10753,63 @@
         ],
         "title": "ResumeQuestion"
       },
+      "RetryIn": {
+        "properties": {
+          "answer": {
+            "type": "string",
+            "maxLength": 6000,
+            "minLength": 1,
+            "title": "Answer"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "typed",
+              "voice",
+              "mixed"
+            ],
+            "title": "Source",
+            "default": "typed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer"
+        ],
+        "title": "RetryIn"
+      },
+      "ReviewAdd": {
+        "properties": {
+          "track": {
+            "type": "string",
+            "maxLength": 64,
+            "title": "Track"
+          },
+          "question_id": {
+            "type": "string",
+            "maxLength": 64,
+            "title": "Question Id"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 36
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "track",
+          "question_id"
+        ],
+        "title": "ReviewAdd"
+      },
       "ReviewIssue": {
         "properties": {
           "severity": {
@@ -9816,6 +10863,299 @@
           "suggestion"
         ],
         "title": "ReviewIssue"
+      },
+      "ReviewItem": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "index": {
+            "type": "integer",
+            "title": "Index"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "prompt": {
+            "type": "string",
+            "title": "Prompt"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind",
+            "description": "Question kind, or the coding interview phase"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "question",
+              "interviewer",
+              "candidate"
+            ],
+            "title": "Role"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "answered",
+              "skipped",
+              "not_reached",
+              "said"
+            ],
+            "title": "Status"
+          },
+          "asked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asked At",
+            "description": "Recorded time; null when none was recorded"
+          },
+          "answer_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answer Text"
+          },
+          "answered_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answered At"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "typed",
+                  "voice",
+                  "mixed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "transcription_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transcription Note"
+          },
+          "engagement": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Engagement"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "feedback": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnswerOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dimensions": {
+            "items": {
+              "$ref": "#/components/schemas/Dimension"
+            },
+            "type": "array",
+            "title": "Dimensions"
+          },
+          "retries": {
+            "type": "integer",
+            "title": "Retries"
+          },
+          "in_review_queue": {
+            "type": "boolean",
+            "title": "In Review Queue"
+          },
+          "question_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "index",
+          "title",
+          "prompt",
+          "kind",
+          "role",
+          "status",
+          "asked_at",
+          "answer_text",
+          "answered_at",
+          "source",
+          "transcription_note",
+          "engagement",
+          "feedback",
+          "dimensions",
+          "retries",
+          "in_review_queue"
+        ],
+        "title": "ReviewItem"
+      },
+      "ReviewQueue": {
+        "properties": {
+          "due": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewQueueItem"
+            },
+            "type": "array",
+            "title": "Due"
+          },
+          "upcoming": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewQueueItem"
+            },
+            "type": "array",
+            "title": "Upcoming"
+          },
+          "ladder_days": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Ladder Days"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "due",
+          "upcoming",
+          "ladder_days",
+          "note"
+        ],
+        "title": "ReviewQueue"
+      },
+      "ReviewQueueItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "career_title": {
+            "type": "string",
+            "title": "Career Title"
+          },
+          "question_id": {
+            "type": "string",
+            "title": "Question Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "href": {
+            "type": "string",
+            "title": "Href"
+          },
+          "due_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Due At"
+          },
+          "due": {
+            "type": "boolean",
+            "title": "Due"
+          },
+          "why": {
+            "type": "string",
+            "title": "Why",
+            "description": "Why it's due now, or when and why it will be"
+          },
+          "interval_days": {
+            "type": "integer",
+            "title": "Interval Days"
+          },
+          "last_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Score"
+          },
+          "reviews": {
+            "type": "integer",
+            "title": "Reviews"
+          },
+          "snoozed": {
+            "type": "boolean",
+            "title": "Snoozed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "track",
+          "career_title",
+          "question_id",
+          "title",
+          "href",
+          "due_at",
+          "due",
+          "why",
+          "interval_days",
+          "last_score",
+          "reviews",
+          "snoozed"
+        ],
+        "title": "ReviewQueueItem"
       },
       "ReviewRequest": {
         "properties": {
@@ -10244,6 +11584,24 @@
           "average_best_score"
         ],
         "title": "SkillStat"
+      },
+      "SnoozeIn": {
+        "properties": {
+          "days": {
+            "type": "integer",
+            "enum": [
+              1,
+              3,
+              7
+            ],
+            "title": "Days"
+          }
+        },
+        "type": "object",
+        "required": [
+          "days"
+        ],
+        "title": "SnoozeIn"
       },
       "SubmissionCreate": {
         "properties": {

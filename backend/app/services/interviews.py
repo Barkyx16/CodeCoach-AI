@@ -82,6 +82,12 @@ class InterviewService:
 
     # --- queries ----------------------------------------------------------------------
 
+    def load(self, user: User, interview_id: str) -> PracticeSession:
+        """The user's interview (either kind), with any due expiry applied. 404 for anyone else's."""
+        session = self._load(user, interview_id)
+        self._expire_if_due(user, session)
+        return session
+
     def get(self, user: User, interview_id: str) -> InterviewOut:
         session = self._load(user, interview_id)
         self._expire_if_due(user, session)

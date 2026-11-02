@@ -14,7 +14,9 @@ from app.schemas.interview import (
     RoundAnswer,
     RoundSkip,
 )
+from app.schemas.review import Comparison, InterviewReview, RetryIn
 from app.services.interviews import InterviewService
+from app.services.review import InterviewReviews
 
 router = APIRouter(prefix="/api/v1/interviews", tags=["interviews"])
 _ERRORS = error_responses(400, 401, 404, 409, 422, 429)
@@ -108,6 +110,62 @@ def skip_question(
     svc: InterviewService = Depends(get_interviews),
 ) -> InterviewOut:
     return svc.skip_question(user, interview_id, body)
+
+
+@router.get(
+    "/{interview_id}/review",
+    response_model=InterviewReview,
+    responses=_ERRORS,
+    summary="Structured review of a finished interview: timeline, feedback dimensions, improvements",
+)
+def review(
+    interview_id: str,
+    request: Request,
+    user: User = Depends(get_current_user),
+    svc: InterviewService = Depends(get_interviews),
+    db: Session = Depends(get_db),
+) -> InterviewReview:
+    return InterviewReviews(db, getattr(request.app.state, "practice_limiter", None)).build(
+        user, svc.load(user, interview_id)
+    )
+
+
+@router.post(
+    "/{interview_id}/questions/{index}/retries",
+    response_model=Comparison,
+    status_code=status.HTTP_201_CREATED,
+    responses=_ERRORS,
+    summary="Retry one question of a finished round; the original answer is kept and compared",
+)
+def retry_question(
+    interview_id: str,
+    index: int,
+    body: RetryIn,
+    request: Request,
+    user: User = Depends(get_current_user),
+    svc: InterviewService = Depends(get_interviews),
+    db: Session = Depends(get_db),
+) -> Comparison:
+    session = svc.load(user, interview_id)
+    return InterviewReviews(db, getattr(request.app.state, "practice_limiter", None)).retry(
+        user, session, index, body
+    )
+
+
+@router.get(
+    "/{interview_id}/questions/{index}/comparison",
+    response_model=Comparison,
+    responses=_ERRORS,
+    summary="The original answer to a question next to its retries",
+)
+def compare_question(
+    interview_id: str,
+    index: int,
+    user: User = Depends(get_current_user),
+    svc: InterviewService = Depends(get_interviews),
+    db: Session = Depends(get_db),
+) -> Comparison:
+    return InterviewReviews(db).compare(svc.load(user, interview_id), index)
 
 
 @router.post(

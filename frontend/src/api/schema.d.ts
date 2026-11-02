@@ -708,6 +708,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/interviews/{interview_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Structured review of a finished interview: timeline, feedback dimensions, improvements */
+        get: operations["review_api_v1_interviews__interview_id__review_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interviews/{interview_id}/questions/{index}/retries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry one question of a finished round; the original answer is kept and compared */
+        post: operations["retry_question_api_v1_interviews__interview_id__questions__index__retries_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interviews/{interview_id}/questions/{index}/comparison": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The original answer to a question next to its retries */
+        get: operations["compare_question_api_v1_interviews__interview_id__questions__index__comparison_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/interviews/{interview_id}/finish": {
         parameters: {
             query?: never;
@@ -942,6 +993,58 @@ export interface paths {
         /** Mark a 'review feedback' activity as read (self-reported; other activities complete from your work) */
         post: operations["mark_reviewed_api_v1_me_plan_items__item_id__reviewed_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your spaced review queue */
+        get: operations["review_queue_api_v1_me_reviews_get"];
+        put?: never;
+        /** Save a question for spaced review (saving it again is a no-op) */
+        post: operations["add_review_api_v1_me_reviews_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/reviews/{item_id}/snooze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Snooze a review by 1, 3 or 7 days */
+        post: operations["snooze_review_api_v1_me_reviews__item_id__snooze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/reviews/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a question from the queue */
+        delete: operations["remove_review_api_v1_me_reviews__item_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1453,6 +1556,42 @@ export interface components {
             /** Saved Not Judged */
             saved_not_judged: number;
         };
+        /** Comparison */
+        Comparison: {
+            /** Question Title */
+            question_title: string;
+            /** Prompt */
+            prompt: string;
+            /** @description The answer given in the interview (never changed) */
+            original: components["schemas"]["AnswerOut"] | null;
+            /**
+             * Retries
+             * @description Every retry, oldest first
+             */
+            retries: components["schemas"]["AnswerOut"][];
+            latest: components["schemas"]["AnswerOut"] | null;
+            /**
+             * Comparable
+             * @description Original and latest were scored by the same evaluator and rubric
+             */
+            comparable: boolean;
+            /** Comparability Note */
+            comparability_note: string;
+            /**
+             * Improved
+             * @description Points the latest attempt covers that the original missed
+             */
+            improved: string[];
+            /** Still Missing */
+            still_missing: string[];
+            /**
+             * Newly Missing
+             * @description Points the original covered that the latest misses
+             */
+            newly_missing: string[];
+            /** Score Change */
+            score_change: number | null;
+        };
         /** Complexity */
         Complexity: {
             /**
@@ -1541,6 +1680,25 @@ export interface components {
             /** Solved */
             solved: number;
         };
+        /** Dimension */
+        Dimension: {
+            /**
+             * Name
+             * @description Answer content, Structure and clarity, Reasoning, Spoken delivery, Code execution
+             */
+            name: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "evaluated" | "not_evaluated" | "not_applicable";
+            /** Summary */
+            summary: string;
+            /** Points */
+            points?: string[];
+            /** Evidence */
+            evidence?: components["schemas"]["EvidenceLink"][];
+        };
         /**
          * Engagement
          * @description A simulated interviewer's read of one answer, built only from what the answer contains.
@@ -1598,6 +1756,21 @@ export interface components {
             answers: number;
             /** Average Best Score */
             average_best_score: number;
+        };
+        /** EvidenceLink */
+        EvidenceLink: {
+            /**
+             * Item Key
+             * @description The timeline item (question or turn) it refers to, or 'code'
+             */
+            item_key: string;
+            /** Label */
+            label: string;
+            /**
+             * Excerpt
+             * @description The words (or code line) the feedback is about
+             */
+            excerpt: string | null;
         };
         /** Example */
         Example: {
@@ -1935,6 +2108,16 @@ export interface components {
              */
             grounded: boolean;
         };
+        /** Improvement */
+        Improvement: {
+            /** Title */
+            title: string;
+            /** Why */
+            why: string;
+            /** Evidence */
+            evidence: components["schemas"]["EvidenceLink"][];
+            practice: components["schemas"]["PracticeAction"];
+        };
         /** InterviewCounts */
         InterviewCounts: {
             /** Completed */
@@ -2068,6 +2251,65 @@ export interface components {
             /** Title */
             title: string;
             difficulty: components["schemas"]["Difficulty"];
+        };
+        /** InterviewReview */
+        InterviewReview: {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "coding" | "questions";
+            /** Track */
+            track: string | null;
+            /** Career Title */
+            career_title: string | null;
+            problem: components["schemas"]["InterviewProblem"] | null;
+            status: components["schemas"]["InterviewStatus"];
+            /** Status Label */
+            status_label: string;
+            /**
+             * Completed
+             * @description True only for interviews that ran to the end
+             */
+            completed: boolean;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Ended At */
+            ended_at: string | null;
+            /**
+             * Elapsed Seconds
+             * @description From start to end, as recorded
+             */
+            elapsed_seconds: number | null;
+            /** Time Limit Seconds */
+            time_limit_seconds: number;
+            /**
+             * Notices
+             * @description Incomplete sessions, missing answers, unavailable feedback, transcription
+             */
+            notices: string[];
+            /** Items */
+            items: components["schemas"]["ReviewItem"][];
+            /** Overall */
+            overall: components["schemas"]["Dimension"][];
+            /**
+             * Improvements
+             * @description At most three, each grounded in this interview
+             */
+            improvements: components["schemas"]["Improvement"][];
+            /** Evaluation Available */
+            evaluation_available: boolean;
+            /** Evaluator */
+            evaluator: string | null;
+            /** Disclaimer */
+            disclaimer: string;
+            /** Final Code */
+            final_code: string | null;
         };
         /** InterviewStart */
         InterviewStart: {
@@ -2363,6 +2605,18 @@ export interface components {
             done_in_plan: number;
             /** Open In Plan */
             open_in_plan: number;
+        };
+        /** PracticeAction */
+        PracticeAction: {
+            /** Label */
+            label: string;
+            /** Href */
+            href?: string | null;
+            /**
+             * Retry Index
+             * @description Retry this question of the interview
+             */
+            retry_index?: number | null;
         };
         /** PracticeLink */
         PracticeLink: {
@@ -2742,6 +2996,26 @@ export interface components {
              */
             at: string;
         };
+        /** RetryIn */
+        RetryIn: {
+            /** Answer */
+            answer: string;
+            /**
+             * Source
+             * @default typed
+             * @enum {string}
+             */
+            source: "typed" | "voice" | "mixed";
+        };
+        /** ReviewAdd */
+        ReviewAdd: {
+            /** Track */
+            track: string;
+            /** Question Id */
+            question_id: string;
+            /** Session Id */
+            session_id?: string | null;
+        };
         /** ReviewIssue */
         ReviewIssue: {
             /**
@@ -2769,6 +3043,101 @@ export interface components {
              * @description 1-based line number, if known
              */
             line_hint?: number | null;
+        };
+        /** ReviewItem */
+        ReviewItem: {
+            /** Key */
+            key: string;
+            /** Index */
+            index: number;
+            /** Title */
+            title: string;
+            /** Prompt */
+            prompt: string;
+            /**
+             * Kind
+             * @description Question kind, or the coding interview phase
+             */
+            kind: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "question" | "interviewer" | "candidate";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "answered" | "skipped" | "not_reached" | "said";
+            /**
+             * Asked At
+             * @description Recorded time; null when none was recorded
+             */
+            asked_at: string | null;
+            /** Answer Text */
+            answer_text: string | null;
+            /** Answered At */
+            answered_at: string | null;
+            /** Source */
+            source: ("typed" | "voice" | "mixed") | null;
+            /** Transcription Note */
+            transcription_note: string | null;
+            engagement: components["schemas"]["Engagement"] | null;
+            feedback: components["schemas"]["AnswerOut"] | null;
+            /** Dimensions */
+            dimensions: components["schemas"]["Dimension"][];
+            /** Retries */
+            retries: number;
+            /** In Review Queue */
+            in_review_queue: boolean;
+            /** Question Id */
+            question_id?: string | null;
+        };
+        /** ReviewQueue */
+        ReviewQueue: {
+            /** Due */
+            due: components["schemas"]["ReviewQueueItem"][];
+            /** Upcoming */
+            upcoming: components["schemas"]["ReviewQueueItem"][];
+            /** Ladder Days */
+            ladder_days: number[];
+            /** Note */
+            note: string;
+        };
+        /** ReviewQueueItem */
+        ReviewQueueItem: {
+            /** Id */
+            id: string;
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /** Question Id */
+            question_id: string;
+            /** Title */
+            title: string;
+            /** Href */
+            href: string;
+            /**
+             * Due At
+             * Format: date-time
+             */
+            due_at: string;
+            /** Due */
+            due: boolean;
+            /**
+             * Why
+             * @description Why it's due now, or when and why it will be
+             */
+            why: string;
+            /** Interval Days */
+            interval_days: number;
+            /** Last Score */
+            last_score: number | null;
+            /** Reviews */
+            reviews: number;
+            /** Snoozed */
+            snoozed: boolean;
         };
         /** ReviewRequest */
         ReviewRequest: {
@@ -2941,6 +3310,14 @@ export interface components {
             answers: number;
             /** Average Best Score */
             average_best_score: number | null;
+        };
+        /** SnoozeIn */
+        SnoozeIn: {
+            /**
+             * Days
+             * @enum {integer}
+             */
+            days: 1 | 3 | 7;
         };
         /** SubmissionCreate */
         SubmissionCreate: {
@@ -5916,6 +6293,240 @@ export interface operations {
             };
         };
     };
+    review_api_v1_interviews__interview_id__review_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewReview"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    retry_question_api_v1_interviews__interview_id__questions__index__retries_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+                index: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetryIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Comparison"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    compare_question_api_v1_interviews__interview_id__questions__index__comparison_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+                index: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Comparison"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     finish_api_v1_interviews__interview_id__finish_post: {
         parameters: {
             query?: never;
@@ -6661,6 +7272,197 @@ export interface operations {
             };
             /** @description Conflict with current state */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    review_queue_api_v1_me_reviews_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewQueue"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    add_review_api_v1_me_reviews_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewAdd"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewQueue"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    snooze_review_api_v1_me_reviews__item_id__snooze_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SnoozeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewQueue"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    remove_review_api_v1_me_reviews__item_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewQueue"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

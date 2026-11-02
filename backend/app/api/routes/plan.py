@@ -4,7 +4,9 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_db
 from app.models import User
 from app.schemas.common import error_responses
+from app.schemas.review import ReviewAdd, ReviewQueue, SnoozeIn
 from app.schemas.roadmap import GoalsIn, GoalsOut, PlanItemOut, PlanOut
+from app.services.review_queue import ReviewQueueService
 from app.services.roadmap import Roadmap
 
 router = APIRouter(prefix="/api/v1/me", tags=["plan"])
@@ -91,3 +93,46 @@ def mark_reviewed(
 ) -> PlanItemOut:
     svc = _roadmap(request, db)
     return svc.item_out(svc.mark_reviewed(user, item_id))
+
+
+@router.get(
+    "/reviews", response_model=ReviewQueue, responses=error_responses(401), summary="Your spaced review queue"
+)
+def review_queue(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> ReviewQueue:
+    return ReviewQueueService(db).queue(user)
+
+
+@router.post(
+    "/reviews",
+    response_model=ReviewQueue,
+    responses=error_responses(400, 401, 404, 422),
+    summary="Save a question for spaced review (saving it again is a no-op)",
+)
+def add_review(
+    body: ReviewAdd, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> ReviewQueue:
+    return ReviewQueueService(db).add(user, body)
+
+
+@router.post(
+    "/reviews/{item_id}/snooze",
+    response_model=ReviewQueue,
+    responses=error_responses(401, 404, 422),
+    summary="Snooze a review by 1, 3 or 7 days",
+)
+def snooze_review(
+    item_id: str, body: SnoozeIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> ReviewQueue:
+    return ReviewQueueService(db).snooze(user, item_id, body.days)
+
+
+@router.delete(
+    "/reviews/{item_id}",
+    response_model=ReviewQueue,
+    responses=error_responses(401, 404),
+    summary="Remove a question from the queue",
+)
+def remove_review(
+    item_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> ReviewQueue:
+    return ReviewQueueService(db).remove(user, item_id)
