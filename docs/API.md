@@ -637,6 +637,27 @@ Newest first. `response` holds the exact `content` (hints), `review` (reviews) o
 }
 ```
 
+### Target roles ("Prepare for this role")
+
+All under `/api/v1/targets` 🔒 and scoped to the owner (another user's id is a 404).
+
+- `GET /targets`, `POST /targets` `{title, employer?, description (≤ 20,000 chars), track?,
+  interview_date?, notes?}` → `201` with the full target. Requirements are extracted by rules
+  (`app/services/jd_extract.py`); the text is never executed or treated as instructions.
+- `GET /targets/{id}`: the target with `requirement_list` (each `{category, text, origin:
+  explicit|inferred|user, quote, quote_in_description, skills, removed, coverage: {level:
+  practised|some|limited|gap, label, …}, practice: [{kind, title, href, why}]}`),
+  `next_activity`, `targeted_session` and `mock_interview` (`{title, scope, round}` for
+  `POST /interviews`), `recent_attempts`, `experience`.
+- `PATCH /targets/{id}` edits fields, `archived`, or `selected` (one active target); editing the
+  description keeps requirements and attempts. `DELETE /targets/{id}` removes the target only.
+- `POST /targets/{id}/extract` adds requirements found in the current description that aren't
+  there yet. `POST /targets/{id}/requirements` adds one; `PATCH …/requirements/{rid}` corrects,
+  re-maps (`skills` must be the career's), removes or restores.
+- `POST|PUT|DELETE /targets/{id}/experience[/{eid}]`: your own examples, linkable only to this
+  target's requirements. Targets, requirements and examples are in the data export and are
+  deleted with the account.
+
 ### Practice plan
 
 Deterministic rules over recorded evidence (`app/services/roadmap.py` documents them); no AI.

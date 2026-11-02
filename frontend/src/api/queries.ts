@@ -6,7 +6,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 
 import { ApiError } from "./client";
 import { api, type ActivityFilters, type ProblemFilters, type QuestionFilters } from "./endpoints";
-import type { AIHistoryAction, AnswerSource, GoalsInput, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
+import type { AIHistoryAction, AnswerSource, GoalsInput, Target, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
 
 export const queryKeys = {
   problems: (filters: ProblemFilters) => ["problems", filters] as const,
@@ -300,5 +300,25 @@ export function usePlanItemAction() {
   return useMutation({
     mutationFn: ({ id, action }: { id: string; action: "skip" | "replace" | "reviewed" }) => api.planItemAction(id, action),
     onSettled: () => void qc.invalidateQueries({ queryKey: ["me", "plan"] }),
+  });
+}
+
+export function useTargets() {
+  return useQuery({ queryKey: ["me", "targets"], queryFn: api.targets });
+}
+
+export function useTarget(id: string) {
+  return useQuery({ queryKey: ["me", "target", id], queryFn: () => api.target(id) });
+}
+
+/** Every target edit returns the full, fresh target; write it into the cache. */
+export function useTargetMutation<V>(fn: (vars: V) => Promise<Target>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: (t) => {
+      qc.setQueryData(["me", "target", t.id], t);
+      void qc.invalidateQueries({ queryKey: ["me", "targets"] });
+    },
   });
 }

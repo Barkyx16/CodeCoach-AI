@@ -40,6 +40,13 @@ import type {
   ActivityType,
   CareerAnalytics,
   ResumeOut,
+  Target,
+  TargetInput,
+  TargetPatch,
+  TargetSummary,
+  RequirementInput,
+  RequirementPatch,
+  ExperienceInput,
   Goals,
   GoalsInput,
   Plan,
@@ -163,6 +170,24 @@ export const api = {
   aiHistory: (query: { problem_slug?: string; action?: AIHistoryAction; page?: number; page_size?: number } = {}) =>
     apiRequest<Page<AIHistoryItem>>("/api/v1/me/ai-history", { query }),
 
+  // target roles
+  targets: () => apiRequest<TargetSummary[]>("/api/v1/targets"),
+  target: (id: string) => apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}`),
+  createTarget: (body: TargetInput) => apiRequest<Target>("/api/v1/targets", { method: "POST", body }),
+  updateTarget: (id: string, body: TargetPatch) =>
+    apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}`, { method: "PATCH", body }),
+  deleteTarget: (id: string) => apiRequest<void>(`/api/v1/targets/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  reextract: (id: string) => apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}/extract`, { method: "POST" }),
+  addRequirement: (id: string, body: RequirementInput) =>
+    apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}/requirements`, { method: "POST", body }),
+  patchRequirement: (id: string, rid: string, body: RequirementPatch) =>
+    apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}/requirements/${encodeURIComponent(rid)}`, { method: "PATCH", body }),
+  addExperience: (id: string, body: ExperienceInput) =>
+    apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}/experience`, { method: "POST", body }),
+  editExperience: (id: string, eid: string, body: ExperienceInput) =>
+    apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}/experience/${encodeURIComponent(eid)}`, { method: "PUT", body }),
+  deleteExperience: (id: string, eid: string) =>
+    apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}/experience/${encodeURIComponent(eid)}`, { method: "DELETE" }),
   // practice plan
   goals: (track?: string) => apiRequest<Goals>("/api/v1/me/goals", { query: { track } }),
   saveGoals: (body: GoalsInput) => apiRequest<Goals>("/api/v1/me/goals", { method: "PUT", body }),

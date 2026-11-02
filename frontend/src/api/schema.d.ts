@@ -947,6 +947,129 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/targets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your saved target roles */
+        get: operations["list_targets_api_v1_targets_get"];
+        put?: never;
+        /** Save a target role from a pasted job description (requirements are extracted by rules; no AI) */
+        post: operations["create_target_api_v1_targets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A target with its preparation map */
+        get: operations["get_target_api_v1_targets__target_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete a target (attempts are kept) */
+        delete: operations["delete_target_api_v1_targets__target_id__delete"];
+        options?: never;
+        head?: never;
+        /** Edit, archive or select a target. Editing the description keeps requirements and attempts */
+        patch: operations["update_target_api_v1_targets__target_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}/extract": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Find requirements in the current description again (adds new ones only) */
+        post: operations["reextract_api_v1_targets__target_id__extract_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}/requirements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add your own requirement */
+        post: operations["add_requirement_api_v1_targets__target_id__requirements_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}/requirements/{requirement_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Correct, re-map, remove or restore a requirement */
+        patch: operations["patch_requirement_api_v1_targets__target_id__requirements__requirement_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}/experience": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add one of your own examples */
+        post: operations["add_experience_api_v1_targets__target_id__experience_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}/experience/{entry_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Edit one of your examples */
+        put: operations["edit_experience_api_v1_targets__target_id__experience__entry_id__put"];
+        post?: never;
+        /** Delete one of your examples */
+        delete: operations["delete_experience_api_v1_targets__target_id__experience__entry_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/capabilities": {
         parameters: {
             query?: never;
@@ -1179,6 +1302,24 @@ export interface components {
             /** @description Judge results only; null for careers without coding */
             coding: components["schemas"]["CodingEvidence"] | null;
         };
+        /** AttemptOut */
+        AttemptOut: {
+            /** Answer Id */
+            answer_id: string;
+            /** Question Title */
+            question_title: string;
+            /** Score */
+            score: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Href */
+            href: string;
+            /** Requirement Ids */
+            requirement_ids: string[];
+        };
         /** Capabilities */
         Capabilities: {
             /**
@@ -1325,6 +1466,32 @@ export interface components {
              */
             space: string;
         };
+        /** Coverage */
+        Coverage: {
+            /**
+             * Level
+             * @enum {string}
+             */
+            level: "practised" | "some" | "limited" | "gap";
+            /** Label */
+            label: string;
+            /** Answers */
+            answers: number;
+            /** Questions Answered */
+            questions_answered: number;
+            /** Average Best Score */
+            average_best_score: number | null;
+            /**
+             * Judged Attempts
+             * @default 0
+             */
+            judged_attempts: number;
+            /**
+             * Passed
+             * @default 0
+             */
+            passed: number;
+        };
         /** DayCount */
         DayCount: {
             /**
@@ -1462,6 +1629,62 @@ export interface components {
              * @description Compiler output (compile errors only)
              */
             stderr_excerpt?: string | null;
+        };
+        /** ExperienceIn */
+        ExperienceIn: {
+            /** Title */
+            title: string;
+            /**
+             * Situation
+             * @default
+             */
+            situation: string;
+            /**
+             * Action
+             * @default
+             */
+            action: string;
+            /**
+             * Result
+             * @default
+             */
+            result: string;
+            /** Requirement Ids */
+            requirement_ids?: string[];
+        };
+        /** ExperienceOut */
+        ExperienceOut: {
+            /** Title */
+            title: string;
+            /**
+             * Situation
+             * @default
+             */
+            situation: string;
+            /**
+             * Action
+             * @default
+             */
+            action: string;
+            /**
+             * Result
+             * @default
+             */
+            result: string;
+            /** Requirement Ids */
+            requirement_ids?: string[];
+            /** Id */
+            id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /** ExplainFailureRequest */
         ExplainFailureRequest: {
@@ -2141,6 +2364,27 @@ export interface components {
             /** Open In Plan */
             open_in_plan: number;
         };
+        /** PracticeLink */
+        PracticeLink: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "question" | "problem";
+            /** Title */
+            title: string;
+            /** Href */
+            href: string;
+            /** Why */
+            why: string;
+            /**
+             * Answered
+             * @default false
+             */
+            answered: boolean;
+            /** Best Score */
+            best_score?: number | null;
+        };
         /** ProblemDetail */
         ProblemDetail: {
             /** Slug */
@@ -2384,6 +2628,66 @@ export interface components {
              */
             career_track?: string | null;
         };
+        /** RequirementIn */
+        RequirementIn: {
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "required_skill" | "preferred_skill" | "responsibility" | "experience" | "tool" | "competency";
+            /** Text */
+            text: string;
+            /**
+             * Skills
+             * @description Career skills it maps to (default: matched)
+             */
+            skills?: string[] | null;
+        };
+        /** RequirementOut */
+        RequirementOut: {
+            /** Id */
+            id: string;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "required_skill" | "preferred_skill" | "responsibility" | "experience" | "tool" | "competency";
+            /** Text */
+            text: string;
+            /**
+             * Origin
+             * @enum {string}
+             */
+            origin: "explicit" | "inferred" | "user";
+            /**
+             * Quote
+             * @description The line of the posting this came from (explicit only)
+             */
+            quote: string | null;
+            /**
+             * Quote In Description
+             * @description False if the description was edited and the line is gone
+             */
+            quote_in_description: boolean;
+            /** Skills */
+            skills: string[];
+            /** Removed */
+            removed: boolean;
+            coverage: components["schemas"]["Coverage"];
+            /** Practice */
+            practice: components["schemas"]["PracticeLink"][];
+        };
+        /** RequirementPatch */
+        RequirementPatch: {
+            /** Category */
+            category?: ("required_skill" | "preferred_skill" | "responsibility" | "experience" | "tool" | "competency") | null;
+            /** Text */
+            text?: string | null;
+            /** Skills */
+            skills?: string[] | null;
+            /** Removed */
+            removed?: boolean | null;
+        };
         /** ResumeInterview */
         ResumeInterview: {
             /** Id */
@@ -2601,6 +2905,18 @@ export interface components {
             /** Rating */
             rating: number;
         };
+        /** SessionPlan */
+        SessionPlan: {
+            /** Title */
+            title: string;
+            /**
+             * Scope
+             * @description What the session covers, shown before it starts
+             */
+            scope: string;
+            /** @description Null when there's nothing in the bank to practise */
+            round: components["schemas"]["RoundStart"] | null;
+        };
         /** Signature */
         Signature: {
             /** Method */
@@ -2709,6 +3025,133 @@ export interface components {
          * @enum {string}
          */
         SubmissionStatus: "QUEUED" | "RUNNING" | "PASSED" | "FAILED" | "COMPILE_ERROR" | "RUNTIME_ERROR" | "TIME_LIMIT" | "MEMORY_LIMIT" | "INTERNAL_ERROR";
+        /** TargetIn */
+        TargetIn: {
+            /** Title */
+            title: string;
+            /** Employer */
+            employer?: string | null;
+            /**
+             * Description
+             * @description Pasted job description (plain text)
+             */
+            description: string;
+            /**
+             * Track
+             * @description Default: your current career
+             */
+            track?: string | null;
+            /** Interview Date */
+            interview_date?: string | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** TargetOut */
+        TargetOut: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Employer */
+            employer: string | null;
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /** Interview Date */
+            interview_date: string | null;
+            /** Archived */
+            archived: boolean;
+            /** Selected */
+            selected: boolean;
+            /** Requirements */
+            requirements: number;
+            /** Gaps */
+            gaps: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Description */
+            description: string;
+            /** Notes */
+            notes: string | null;
+            /**
+             * Extractor
+             * @description How requirements were found (rule-based; no AI)
+             */
+            extractor: string;
+            /** Requirement List */
+            requirement_list: components["schemas"]["RequirementOut"][];
+            next_activity: components["schemas"]["PracticeLink"] | null;
+            targeted_session: components["schemas"]["SessionPlan"];
+            mock_interview: components["schemas"]["SessionPlan"];
+            /** Recent Attempts */
+            recent_attempts: components["schemas"]["AttemptOut"][];
+            /** Experience */
+            experience: components["schemas"]["ExperienceOut"][];
+            /** Days To Interview */
+            days_to_interview: number | null;
+        };
+        /** TargetPatch */
+        TargetPatch: {
+            /** Title */
+            title?: string | null;
+            /** Employer */
+            employer?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Interview Date */
+            interview_date?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Archived */
+            archived?: boolean | null;
+            /**
+             * Selected
+             * @description Make this your active target
+             */
+            selected?: boolean | null;
+        };
+        /** TargetSummary */
+        TargetSummary: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Employer */
+            employer: string | null;
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /** Interview Date */
+            interview_date: string | null;
+            /** Archived */
+            archived: boolean;
+            /** Selected */
+            selected: boolean;
+            /** Requirements */
+            requirements: number;
+            /** Gaps */
+            gaps: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** TodayOut */
         TodayOut: {
             /** Minutes Available */
@@ -6232,6 +6675,665 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_targets_api_v1_targets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetSummary"][];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_target_api_v1_targets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TargetIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_target_api_v1_targets__target_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    delete_target_api_v1_targets__target_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    update_target_api_v1_targets__target_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TargetPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    reextract_api_v1_targets__target_id__extract_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    add_requirement_api_v1_targets__target_id__requirements_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequirementIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    patch_requirement_api_v1_targets__target_id__requirements__requirement_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+                requirement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequirementPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    add_experience_api_v1_targets__target_id__experience_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExperienceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    edit_experience_api_v1_targets__target_id__experience__entry_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExperienceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    delete_experience_api_v1_targets__target_id__experience__entry_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

@@ -34,7 +34,7 @@ test("a new nurse skips setup, takes the baseline, and the plan adapts for state
   await page.goto("/dashboard");
   await expect(today.getByText("Your plan changed")).toBeVisible();
   await expect(today.getByText(/Done: “Baseline check: 3 short questions” \(round finished\)/)).toBeVisible();
-  await expect(today.getByText(/Added “Retry:/)).toBeVisible();
+  await expect(today.getByText(/Added “Retry:/).first()).toBeVisible(); // one per weak answer (up to two)
 
   // Refreshing keeps the same plan and progress.
   await page.goto("/plan");
