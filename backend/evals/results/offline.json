@@ -1,10 +1,92 @@
 {
-  "provider": "offline",
-  "model": "curated-hints+static-analysis",
-  "evaluated_at": "2026-11-02T08:55:18+00:00",
+  "meta": {
+    "report_schema": 2,
+    "run_id": "566ac17875e24d21b010d9e8f5723bdb",
+    "started_at": "2026-11-03T22:39:22+00:00",
+    "commit": "5ad2fd8e0c81e9812ceaa0adb240118780c78006",
+    "uncommitted_changes": false,
+    "python": "3.13.18",
+    "provider": "offline",
+    "model": "curated-hints+static-analysis",
+    "config": {
+      "career_grader": "app.careers.grading.grade (rubric v2)",
+      "sampling": "none: the offline coach is deterministic"
+    },
+    "rubric_version": "v2",
+    "prompt_version": "coach-2026-11-03",
+    "prompt_fingerprint": "f7a9c11481d697f2564299101984818644836f905a7094a304890a53c9de1586",
+    "datasets": [
+      {
+        "id": "coding-review-tuning",
+        "file": "review_set.json",
+        "version": 1,
+        "split": "dev",
+        "domain": "coding-review",
+        "sha256_actual": "7abdd3f8a80643956bb0a8ef301d0c4dbb7f31a67fe79667cd3cc9fed83a5a11",
+        "matches_manifest": true
+      },
+      {
+        "id": "coding-review-holdout",
+        "file": "holdout_set.json",
+        "version": 1,
+        "split": "holdout",
+        "domain": "coding-review",
+        "sha256_actual": "959b45746084b39f084b69815968a8a48f006fdaf47275f35ce6c97b81e1b700",
+        "matches_manifest": true
+      },
+      {
+        "id": "coding-review-medium-holdout",
+        "file": "medium_set.json",
+        "version": 1,
+        "split": "holdout",
+        "domain": "coding-review",
+        "sha256_actual": "f76f1cfefc1ebe3e9ec358ff0ff066da0a4d9f9c956734873efd72ae60a72216",
+        "matches_manifest": true
+      },
+      {
+        "id": "coding-hint-terms",
+        "file": "hint_terms.json",
+        "version": 1,
+        "split": "dev",
+        "domain": "coding-hints",
+        "sha256_actual": "a6de5fb6fe2ccaca9fe57bc632d47e64c6bd071cf322dd97e655fab1a3d0553c",
+        "matches_manifest": true
+      },
+      {
+        "id": "career-rn-dev",
+        "file": "career_dev.json",
+        "version": 2,
+        "split": "dev",
+        "domain": "career-answer",
+        "sha256_actual": "c1619da3a4acbe50a90c26417671d0d6255b8d45ef821e8010140738e03220f7",
+        "matches_manifest": true
+      },
+      {
+        "id": "career-rn-holdout",
+        "file": "career_holdout.json",
+        "version": 2,
+        "split": "holdout",
+        "domain": "career-answer",
+        "sha256_actual": "d43b284d6a71105e428887d747d3aed1413ecb4ad59cedf7d1953e0e42a57bc4",
+        "matches_manifest": true
+      }
+    ],
+    "sections": [
+      "coding",
+      "career",
+      "contracts",
+      "faults"
+    ],
+    "selection": {
+      "split": "all",
+      "limit_per_set": null
+    }
+  },
+  "version_problems": [],
   "review": {
     "samples": 38,
     "schema_validity": 1.0,
+    "provider_errors": 0,
     "issue_detection_micro": {
       "precision": 1.0,
       "recall": 0.6,
@@ -154,9 +236,20 @@
       }
     ]
   },
+  "hints": {
+    "problems": 300,
+    "labeled_problems": 22,
+    "provider_errors": 0,
+    "level1_spoiler_rate": 0.0,
+    "level1_spoilers": [],
+    "level2_relevance": 1.0,
+    "code_leak_rate_levels_1_2": 0.0,
+    "code_leaks": []
+  },
   "review_holdout": {
     "samples": 14,
     "schema_validity": 1.0,
+    "provider_errors": 0,
     "issue_detection_micro": {
       "precision": 0.8,
       "recall": 0.5,
@@ -261,6 +354,7 @@
   "review_medium": {
     "samples": 14,
     "schema_validity": 1.0,
+    "provider_errors": 0,
     "issue_detection_micro": {
       "precision": 1.0,
       "recall": 0.5,
@@ -362,14 +456,3857 @@
       }
     ]
   },
-  "hints": {
-    "problems": 300,
-    "labeled_problems": 22,
-    "level1_spoiler_rate": 0.0,
-    "level1_spoilers": [],
-    "level2_relevance": 1.0,
-    "code_leak_rate_levels_1_2": 0.0,
-    "code_leaks": []
+  "career": {
+    "career-rn-dev": {
+      "dataset": "career-rn-dev",
+      "dataset_version": 2,
+      "split": "dev",
+      "track": "registered-nurse",
+      "cases_planned": 23,
+      "cases_scored": 23,
+      "case_errors": [],
+      "point_agreement": {
+        "points": 100,
+        "precision": 0.806,
+        "recall": 0.935,
+        "accuracy": 0.82,
+        "tp": 58,
+        "fp": 14,
+        "fn": 4,
+        "tn": 24,
+        "uncertain_points_not_counted": 6,
+        "uncertain_agreement": 2
+      },
+      "dimensions": {
+        "schema": {
+          "cases": 23,
+          "passed": 23,
+          "failed": []
+        },
+        "points": {
+          "cases": 23,
+          "passed": 13,
+          "failed": [
+            "rn-dev-03",
+            "rn-dev-05",
+            "rn-dev-06",
+            "rn-dev-08",
+            "rn-dev-09",
+            "rn-dev-10",
+            "rn-dev-11",
+            "rn-dev-13",
+            "rn-dev-21",
+            "rn-dev-22"
+          ]
+        },
+        "evidence": {
+          "cases": 23,
+          "passed": 23,
+          "failed": []
+        },
+        "insufficient": {
+          "cases": 23,
+          "passed": 23,
+          "failed": []
+        },
+        "actionable": {
+          "cases": 23,
+          "passed": 23,
+          "failed": []
+        },
+        "rating": {
+          "cases": 20,
+          "passed": 17,
+          "failed": [
+            "rn-dev-06",
+            "rn-dev-13",
+            "rn-dev-21"
+          ]
+        },
+        "notes": {
+          "cases": 1,
+          "passed": 1,
+          "failed": []
+        },
+        "injection": {
+          "cases": 2,
+          "passed": 2,
+          "failed": []
+        },
+        "stable": {
+          "cases": 23,
+          "passed": 23,
+          "failed": []
+        }
+      },
+      "by_tag": {
+        "complete": {
+          "cases": 9,
+          "all_checks_passed": 8
+        },
+        "contradictory": {
+          "cases": 1,
+          "all_checks_passed": 0
+        },
+        "dictated": {
+          "cases": 1,
+          "all_checks_passed": 0
+        },
+        "generic": {
+          "cases": 1,
+          "all_checks_passed": 0
+        },
+        "injection": {
+          "cases": 2,
+          "all_checks_passed": 1
+        },
+        "keyword_list": {
+          "cases": 2,
+          "all_checks_passed": 0
+        },
+        "no_numbers": {
+          "cases": 2,
+          "all_checks_passed": 0
+        },
+        "off_topic": {
+          "cases": 1,
+          "all_checks_passed": 1
+        },
+        "partial": {
+          "cases": 3,
+          "all_checks_passed": 3
+        },
+        "short": {
+          "cases": 3,
+          "all_checks_passed": 1
+        },
+        "we_heavy": {
+          "cases": 1,
+          "all_checks_passed": 0
+        }
+      },
+      "cases": [
+        {
+          "id": "rn-dev-01",
+          "question_id": "e-accuracy-0",
+          "tags": [
+            "complete"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": true,
+              "problems": []
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 100,
+            "rating": "Strong",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Explains why it matters",
+              "Follows up, documents and prevents a repeat",
+              "Lays out clear steps or habits",
+              "Uses the specifics of the job"
+            ]
+          },
+          "points": [
+            {
+              "label": "Lays out clear steps or habits",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Uses the specifics of the job",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Explains why it matters",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Follows up, documents and prevents a repeat",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-dev-02",
+          "question_id": "e-accuracy-0",
+          "tags": [
+            "partial"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": true,
+              "problems": []
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 52,
+            "rating": "Developing",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Lays out clear steps or habits",
+              "Uses the specifics of the job"
+            ]
+          },
+          "points": [
+            {
+              "label": "Lays out clear steps or habits",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Uses the specifics of the job",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Explains why it matters",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Follows up, documents and prevents a repeat",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-dev-03",
+          "question_id": "e-accuracy-0",
+          "tags": [
+            "short"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": false,
+              "problems": [
+                "Lays out clear steps or habits: labelled missing, grader said covered"
+              ]
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 20,
+            "rating": "Needs work",
+            "evidence_level": "insufficient",
+            "covered": [
+              "Lays out clear steps or habits"
+            ]
+          },
+          "points": [
+            {
+              "label": "Lays out clear steps or habits",
+              "expected": false,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Uses the specifics of the job",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Explains why it matters",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Follows up, documents and prevents a repeat",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-dev-04",
+          "question_id": "e-general-0",
+          "tags": [
+            "complete"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": true,
+              "problems": []
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 100,
+            "rating": "Strong",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Backs it up with a concrete example",
+              "Connects your strengths to the job",
+              "Gives a genuine, specific reason",
+              "Shows you understand the registered nurse role"
+            ]
+          },
+          "points": [
+            {
+              "label": "Gives a genuine, specific reason",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Connects your strengths to the job",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Backs it up with a concrete example",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Shows you understand the registered nurse role",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-dev-05",
+          "question_id": "e-general-0",
+          "tags": [
+            "generic"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": false,
+              "problems": [
+                "Connects your strengths to the job: labelled missing, grader said covered",
+                "Shows you understand the registered nurse role: labelled missing, grader said covered"
+              ]
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 52,
+            "rating": "Developing",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Connects your strengths to the job",
+              "Shows you understand the registered nurse role"
+            ]
+          },
+          "points": [
+            {
+              "label": "Gives a genuine, specific reason",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Connects your strengths to the job",
+              "expected": false,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Backs it up with a concrete example",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Shows you understand the registered nurse role",
+              "expected": false,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-dev-06",
+          "question_id": "e-general-0",
+          "tags": [
+            "keyword_list"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": false,
+              "problems": [
+                "Gives a genuine, specific reason: labelled missing, grader said covered",
+                "Connects your strengths to the job: labelled missing, grader said covered",
+                "Shows you understand the registered nurse role: labelled missing, grader said covered"
+              ]
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": false,
+              "problems": [
+                "rated Good, expected at most Needs work"
+              ]
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 72,
+            "rating": "Good",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Connects your strengths to the job",
+              "Gives a genuine, specific reason",
+              "Shows you understand the registered nurse role"
+            ]
+          },
+          "points": [
+            {
+              "label": "Gives a genuine, specific reason",
+              "expected": false,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Connects your strengths to the job",
+              "expected": false,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Backs it up with a concrete example",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Shows you understand the registered nurse role",
+              "expected": false,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-dev-07",
+          "question_id": "e-general-3",
+          "tags": [
+            "complete"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": true,
+              "problems": []
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 100,
+            "rating": "Strong",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Describes specific actions you took",
+              "Makes your own responsibility clear",
+              "Reflects on what you learned",
+              "Sets the scene: where you were and what was at stake",
+              "Shares a result, ideally with a number"
+            ]
+          },
+          "points": [
+            {
+              "label": "Sets the scene: where you were and what was at stake",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Makes your own responsibility clear",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Describes specific actions you took",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Shares a result, ideally with a number",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Reflects on what you learned",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-dev-08",
+          "question_id": "e-general-3",
+          "tags": [
+            "we_heavy",
+            "no_numbers"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": false,
+              "problems": [
+                "Shares a result, ideally with a number: labelled covered, grader said missing"
+              ]
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "notes": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 28,
+            "rating": "Needs work",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Sets the scene: where you were and what was at stake"
+            ]
+          },
+          "points": [
+            {
+              "label": "Sets the scene: where you were and what was at stake",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Makes your own responsibility clear",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Describes specific actions you took",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Shares a result, ideally with a number",
+              "expected": true,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Reflects on what you learned",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-dev-09",
+          "question_id": "h-bad-news-0",
+          "tags": [
+            "complete"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": false,
+              "problems": [
+                "Describes specific actions you took: labelled covered, grader said missing"
+              ]
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 84,
+            "rating": "Good",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Prepares and delivers it clearly and kindly",
+              "Reflects on what you learned",
+              "Sets the scene: where you were and what was at stake",
+              "Shares a result, ideally with a number"
+            ]
+          },
+          "points": [
+            {
+              "label": "Sets the scene: where you were and what was at stake",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Prepares and delivers it clearly and kindly",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Describes specific actions you took",
+              "expected": true,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Shares a result, ideally with a number",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Reflects on what you learned",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-dev-10",
+          "question_id": "h-bad-news-0",
+          "tags": [
+            "injection"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": false,
+              "problems": [
+                "Sets the scene: where you were and what was at stake: labelled missing, grader said covered"
+              ]
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "injection": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 16,
+            "rating": "Needs work",
+            "evidence_level": "insufficient",
+            "covered": [
+              "Sets the scene: where you were and what was at stake"
+            ]
+          },
+          "points": [
+            {
+              "label": "Sets the scene: where you were and what was at stake",
+              "expected": false,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Prepares and delivers it clearly and kindly",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Describes specific actions you took",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Shares a result, ideally with a number",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Reflects on what you learned",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-dev-11",
+          "question_id": "h-bad-news-0",
+          "tags": [
+            "dictated",
+            "no_numbers"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": false,
+              "problems": [
+                "Describes specific actions you took: labelled covered, grader said missing"
+              ]
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 84,
+            "rating": "Good",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Prepares and delivers it clearly and kindly",
+              "Reflects on what you learned",
+              "Sets the scene: where you were and what was at stake",
+              "Shares a result, ideally with a number"
+            ]
+          },
+          "points": [
+            {
+              "label": "Sets the scene: where you were and what was at stake",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Prepares and delivers it clearly and kindly",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Describes specific actions you took",
+              "expected": true,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Shares a result, ideally with a number",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Reflects on what you learned",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-dev-12",
+          "question_id": "h-lead-0",
+          "tags": [
+            "complete"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": true,
+              "problems": []
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 100,
+            "rating": "Strong",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Gathers information before acting",
+              "Lays out clear steps or habits",
+              "Listens and stays respectful",
+              "Says how you'd measure success",
+              "Uses the specifics of the job"
+            ]
+          },
+          "points": [
+            {
+              "label": "Gathers information before acting",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Lays out clear steps or habits",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Says how you'd measure success",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Uses the specifics of the job",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Listens and stays respectful",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-dev-13",
+          "question_id": "h-lead-0",
+          "tags": [
+            "contradictory"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": false,
+              "problems": [
+                "Gathers information before acting: labelled missing, grader said covered",
+                "Lays out clear steps or habits: labelled missing, grader said covered",
+                "Listens and stays respectful: labelled missing, grader said covered"
+              ]
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": false,
+              "problems": [
+                "rated Strong, expected at most Developing"
+              ]
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 92,
+            "rating": "Strong",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Gathers information before acting",
+              "Lays out clear steps or habits",
+              "Listens and stays respectful",
+              "Says how you'd measure success",
+              "Uses the specifics of the job"
+            ]
+          },
+          "points": [
+            {
+              "label": "Gathers information before acting",
+              "expected": false,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Lays out clear steps or habits",
+              "expected": false,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Says how you'd measure success",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Uses the specifics of the job",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Listens and stays respectful",
+              "expected": false,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-dev-14",
+          "question_id": "h-90-0",
+          "tags": [
+            "complete"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": true,
+              "problems": []
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 100,
+            "rating": "Strong",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Communicates with the right people",
+              "Gathers information before acting",
+              "Lays out clear steps or habits",
+              "Names the trade-off and how you'd decide",
+              "Says how you'd measure success"
+            ]
+          },
+          "points": [
+            {
+              "label": "Gathers information before acting",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Says how you'd measure success",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Lays out clear steps or habits",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Names the trade-off and how you'd decide",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Communicates with the right people",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-dev-15",
+          "question_id": "h-90-0",
+          "tags": [
+            "off_topic"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": true,
+              "problems": []
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 44,
+            "rating": "Developing",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Gathers information before acting",
+              "Lays out clear steps or habits"
+            ]
+          },
+          "points": [
+            {
+              "label": "Gathers information before acting",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Says how you'd measure success",
+              "expected": true,
+              "predicted": false,
+              "uncertain": true
+            },
+            {
+              "label": "Lays out clear steps or habits",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Names the trade-off and how you'd decide",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Communicates with the right people",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-dev-16",
+          "question_id": "m-disagree-0-0",
+          "tags": [
+            "complete"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": true,
+              "problems": []
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 100,
+            "rating": "Strong",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Communicates with patients",
+              "Follows up, documents and prevents a repeat",
+              "Listens and stays respectful",
+              "Names the trade-off and how you'd decide",
+              "Uses the specifics of the job"
+            ]
+          },
+          "points": [
+            {
+              "label": "Listens and stays respectful",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Uses the specifics of the job",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Names the trade-off and how you'd decide",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Communicates with patients",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Follows up, documents and prevents a repeat",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-dev-17",
+          "question_id": "m-disagree-0-0",
+          "tags": [
+            "partial"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": true,
+              "problems": []
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 60,
+            "rating": "Developing",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Communicates with patients",
+              "Listens and stays respectful",
+              "Uses the specifics of the job"
+            ]
+          },
+          "points": [
+            {
+              "label": "Listens and stays respectful",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Uses the specifics of the job",
+              "expected": false,
+              "predicted": true,
+              "uncertain": true
+            },
+            {
+              "label": "Names the trade-off and how you'd decide",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Communicates with patients",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Follows up, documents and prevents a repeat",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-dev-18",
+          "question_id": "m-train-0",
+          "tags": [
+            "complete"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": true,
+              "problems": []
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 100,
+            "rating": "Strong",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Checks that they really learned it",
+              "Explains why it matters",
+              "Lays out clear steps or habits",
+              "Uses the specifics of the job"
+            ]
+          },
+          "points": [
+            {
+              "label": "Lays out clear steps or habits",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Uses the specifics of the job",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Checks that they really learned it",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Explains why it matters",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-dev-19",
+          "question_id": "m-train-0",
+          "tags": [
+            "short"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": true,
+              "problems": []
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 35,
+            "rating": "Needs work",
+            "evidence_level": "insufficient",
+            "covered": [
+              "Checks that they really learned it",
+              "Lays out clear steps or habits"
+            ]
+          },
+          "points": [
+            {
+              "label": "Lays out clear steps or habits",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Uses the specifics of the job",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Checks that they really learned it",
+              "expected": true,
+              "predicted": true,
+              "uncertain": true
+            },
+            {
+              "label": "Explains why it matters",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-dev-20",
+          "question_id": "m-balance-0-1",
+          "tags": [
+            "complete"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": true,
+              "problems": []
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 100,
+            "rating": "Strong",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Backs it up with a concrete example",
+              "Communicates with the right people",
+              "Explains why it matters",
+              "Names the trade-off and how you'd decide",
+              "Uses the specifics of the job"
+            ]
+          },
+          "points": [
+            {
+              "label": "Names the trade-off and how you'd decide",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Uses the specifics of the job",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Explains why it matters",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Communicates with the right people",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Backs it up with a concrete example",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-dev-21",
+          "question_id": "m-balance-0-1",
+          "tags": [
+            "keyword_list"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": false,
+              "problems": [
+                "Names the trade-off and how you'd decide: labelled missing, grader said covered",
+                "Explains why it matters: labelled missing, grader said covered",
+                "Backs it up with a concrete example: labelled missing, grader said covered"
+              ]
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": false,
+              "problems": [
+                "rated Strong, expected at most Needs work"
+              ]
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 92,
+            "rating": "Strong",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Backs it up with a concrete example",
+              "Communicates with the right people",
+              "Explains why it matters",
+              "Names the trade-off and how you'd decide",
+              "Uses the specifics of the job"
+            ]
+          },
+          "points": [
+            {
+              "label": "Names the trade-off and how you'd decide",
+              "expected": false,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Uses the specifics of the job",
+              "expected": false,
+              "predicted": true,
+              "uncertain": true
+            },
+            {
+              "label": "Explains why it matters",
+              "expected": false,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Communicates with the right people",
+              "expected": false,
+              "predicted": true,
+              "uncertain": true
+            },
+            {
+              "label": "Backs it up with a concrete example",
+              "expected": false,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-dev-22",
+          "question_id": "h-90-0",
+          "tags": [
+            "short"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": false,
+              "problems": [
+                "Gathers information before acting: labelled covered, grader said missing",
+                "Communicates with the right people: labelled missing, grader said covered"
+              ]
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 32,
+            "rating": "Needs work",
+            "evidence_level": "insufficient",
+            "covered": [
+              "Communicates with the right people",
+              "Says how you'd measure success"
+            ]
+          },
+          "points": [
+            {
+              "label": "Gathers information before acting",
+              "expected": true,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Says how you'd measure success",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Lays out clear steps or habits",
+              "expected": false,
+              "predicted": false,
+              "uncertain": true
+            },
+            {
+              "label": "Names the trade-off and how you'd decide",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Communicates with the right people",
+              "expected": false,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-dev-23",
+          "question_id": "e-accuracy-0",
+          "tags": [
+            "injection",
+            "partial"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": true,
+              "problems": []
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "injection": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 52,
+            "rating": "Developing",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Lays out clear steps or habits",
+              "Uses the specifics of the job"
+            ]
+          },
+          "points": [
+            {
+              "label": "Lays out clear steps or habits",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Uses the specifics of the job",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Explains why it matters",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Follows up, documents and prevents a repeat",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            }
+          ]
+        }
+      ]
+    },
+    "career-rn-holdout": {
+      "dataset": "career-rn-holdout",
+      "dataset_version": 2,
+      "split": "holdout",
+      "track": "registered-nurse",
+      "cases_planned": 17,
+      "cases_scored": 17,
+      "case_errors": [],
+      "point_agreement": {
+        "points": 75,
+        "precision": 0.83,
+        "recall": 0.846,
+        "accuracy": 0.773,
+        "tp": 44,
+        "fp": 9,
+        "fn": 8,
+        "tn": 14,
+        "uncertain_points_not_counted": 4,
+        "uncertain_agreement": 2
+      },
+      "dimensions": {
+        "schema": {
+          "cases": 17,
+          "passed": 17,
+          "failed": []
+        },
+        "points": {
+          "cases": 17,
+          "passed": 9,
+          "failed": [
+            "rn-ho-03",
+            "rn-ho-04",
+            "rn-ho-05",
+            "rn-ho-07",
+            "rn-ho-08",
+            "rn-ho-10",
+            "rn-ho-12",
+            "rn-ho-17"
+          ]
+        },
+        "evidence": {
+          "cases": 17,
+          "passed": 17,
+          "failed": []
+        },
+        "insufficient": {
+          "cases": 17,
+          "passed": 17,
+          "failed": []
+        },
+        "actionable": {
+          "cases": 17,
+          "passed": 17,
+          "failed": []
+        },
+        "rating": {
+          "cases": 15,
+          "passed": 12,
+          "failed": [
+            "rn-ho-08",
+            "rn-ho-10",
+            "rn-ho-12"
+          ]
+        },
+        "notes": {
+          "cases": 0,
+          "passed": 0,
+          "failed": []
+        },
+        "injection": {
+          "cases": 1,
+          "passed": 1,
+          "failed": []
+        },
+        "stable": {
+          "cases": 17,
+          "passed": 17,
+          "failed": []
+        }
+      },
+      "by_tag": {
+        "complete": {
+          "cases": 9,
+          "all_checks_passed": 6
+        },
+        "contradictory": {
+          "cases": 1,
+          "all_checks_passed": 0
+        },
+        "dictated": {
+          "cases": 1,
+          "all_checks_passed": 0
+        },
+        "generic": {
+          "cases": 1,
+          "all_checks_passed": 0
+        },
+        "injection": {
+          "cases": 1,
+          "all_checks_passed": 1
+        },
+        "keyword_list": {
+          "cases": 1,
+          "all_checks_passed": 0
+        },
+        "off_topic": {
+          "cases": 1,
+          "all_checks_passed": 0
+        },
+        "short": {
+          "cases": 2,
+          "all_checks_passed": 2
+        }
+      },
+      "cases": [
+        {
+          "id": "rn-ho-01",
+          "question_id": "e-accuracy-1",
+          "tags": [
+            "complete"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": true,
+              "problems": []
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 92,
+            "rating": "Strong",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Explains why it matters",
+              "Follows up, documents and prevents a repeat",
+              "Lays out clear steps or habits",
+              "Uses the specifics of the job"
+            ]
+          },
+          "points": [
+            {
+              "label": "Lays out clear steps or habits",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Uses the specifics of the job",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Explains why it matters",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Follows up, documents and prevents a repeat",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-ho-02",
+          "question_id": "e-accuracy-1",
+          "tags": [
+            "short"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": true,
+              "problems": []
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 20,
+            "rating": "Needs work",
+            "evidence_level": "insufficient",
+            "covered": [
+              "Lays out clear steps or habits"
+            ]
+          },
+          "points": [
+            {
+              "label": "Lays out clear steps or habits",
+              "expected": true,
+              "predicted": true,
+              "uncertain": true
+            },
+            {
+              "label": "Uses the specifics of the job",
+              "expected": true,
+              "predicted": false,
+              "uncertain": true
+            },
+            {
+              "label": "Explains why it matters",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Follows up, documents and prevents a repeat",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-ho-03",
+          "question_id": "e-general-1",
+          "tags": [
+            "complete"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": false,
+              "problems": [
+                "Backs it up with a concrete example: labelled covered, grader said missing"
+              ]
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 72,
+            "rating": "Good",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Connects your strengths to the job",
+              "Gives a genuine, specific reason",
+              "Shows you understand the registered nurse role"
+            ]
+          },
+          "points": [
+            {
+              "label": "Gives a genuine, specific reason",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Connects your strengths to the job",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Backs it up with a concrete example",
+              "expected": true,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Shows you understand the registered nurse role",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-ho-04",
+          "question_id": "e-general-1",
+          "tags": [
+            "generic"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": false,
+              "problems": [
+                "Gives a genuine, specific reason: labelled missing, grader said covered",
+                "Connects your strengths to the job: labelled missing, grader said covered"
+              ]
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 52,
+            "rating": "Developing",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Connects your strengths to the job",
+              "Gives a genuine, specific reason"
+            ]
+          },
+          "points": [
+            {
+              "label": "Gives a genuine, specific reason",
+              "expected": false,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Connects your strengths to the job",
+              "expected": false,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Backs it up with a concrete example",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Shows you understand the registered nurse role",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-ho-05",
+          "question_id": "e-general-4",
+          "tags": [
+            "complete"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": false,
+              "problems": [
+                "Sets the scene: where you were and what was at stake: labelled covered, grader said missing"
+              ]
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 84,
+            "rating": "Good",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Describes specific actions you took",
+              "Makes your own responsibility clear",
+              "Reflects on what you learned",
+              "Shares a result, ideally with a number"
+            ]
+          },
+          "points": [
+            {
+              "label": "Sets the scene: where you were and what was at stake",
+              "expected": true,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Makes your own responsibility clear",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Describes specific actions you took",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Shares a result, ideally with a number",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Reflects on what you learned",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-ho-06",
+          "question_id": "e-general-4",
+          "tags": [
+            "injection"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": true,
+              "problems": []
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "injection": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 0,
+            "rating": "Needs work",
+            "evidence_level": "insufficient",
+            "covered": []
+          },
+          "points": [
+            {
+              "label": "Sets the scene: where you were and what was at stake",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Makes your own responsibility clear",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Describes specific actions you took",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Shares a result, ideally with a number",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Reflects on what you learned",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-ho-07",
+          "question_id": "h-bad-news-1",
+          "tags": [
+            "complete"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": false,
+              "problems": [
+                "Describes specific actions you took: labelled covered, grader said missing"
+              ]
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 84,
+            "rating": "Good",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Prepares and delivers it clearly and kindly",
+              "Reflects on what you learned",
+              "Sets the scene: where you were and what was at stake",
+              "Shares a result, ideally with a number"
+            ]
+          },
+          "points": [
+            {
+              "label": "Sets the scene: where you were and what was at stake",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Prepares and delivers it clearly and kindly",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Describes specific actions you took",
+              "expected": true,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Shares a result, ideally with a number",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Reflects on what you learned",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-ho-08",
+          "question_id": "h-bad-news-1",
+          "tags": [
+            "dictated"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": false,
+              "problems": [
+                "Sets the scene: where you were and what was at stake: labelled covered, grader said missing",
+                "Prepares and delivers it clearly and kindly: labelled covered, grader said missing",
+                "Describes specific actions you took: labelled covered, grader said missing"
+              ]
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": false,
+              "problems": [
+                "rated Developing, expected at least Good"
+              ]
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 44,
+            "rating": "Developing",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Reflects on what you learned",
+              "Shares a result, ideally with a number"
+            ]
+          },
+          "points": [
+            {
+              "label": "Sets the scene: where you were and what was at stake",
+              "expected": true,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Prepares and delivers it clearly and kindly",
+              "expected": true,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Describes specific actions you took",
+              "expected": true,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Shares a result, ideally with a number",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Reflects on what you learned",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-ho-09",
+          "question_id": "h-lead-1",
+          "tags": [
+            "complete"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": true,
+              "problems": []
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 92,
+            "rating": "Strong",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Gathers information before acting",
+              "Lays out clear steps or habits",
+              "Listens and stays respectful",
+              "Says how you'd measure success",
+              "Uses the specifics of the job"
+            ]
+          },
+          "points": [
+            {
+              "label": "Gathers information before acting",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Lays out clear steps or habits",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Says how you'd measure success",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Uses the specifics of the job",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Listens and stays respectful",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-ho-10",
+          "question_id": "h-lead-1",
+          "tags": [
+            "contradictory"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": false,
+              "problems": [
+                "Gathers information before acting: labelled missing, grader said covered",
+                "Uses the specifics of the job: labelled covered, grader said missing",
+                "Listens and stays respectful: labelled missing, grader said covered"
+              ]
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": false,
+              "problems": [
+                "rated Good, expected at most Developing"
+              ]
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 76,
+            "rating": "Good",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Gathers information before acting",
+              "Lays out clear steps or habits",
+              "Listens and stays respectful",
+              "Says how you'd measure success"
+            ]
+          },
+          "points": [
+            {
+              "label": "Gathers information before acting",
+              "expected": false,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Lays out clear steps or habits",
+              "expected": false,
+              "predicted": true,
+              "uncertain": true
+            },
+            {
+              "label": "Says how you'd measure success",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Uses the specifics of the job",
+              "expected": true,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Listens and stays respectful",
+              "expected": false,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-ho-11",
+          "question_id": "h-90-1",
+          "tags": [
+            "complete"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": true,
+              "problems": []
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 100,
+            "rating": "Strong",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Communicates with the right people",
+              "Gathers information before acting",
+              "Lays out clear steps or habits",
+              "Names the trade-off and how you'd decide",
+              "Says how you'd measure success"
+            ]
+          },
+          "points": [
+            {
+              "label": "Gathers information before acting",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Says how you'd measure success",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Lays out clear steps or habits",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Names the trade-off and how you'd decide",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Communicates with the right people",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-ho-12",
+          "question_id": "h-90-1",
+          "tags": [
+            "keyword_list"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": false,
+              "problems": [
+                "Gathers information before acting: labelled missing, grader said covered",
+                "Says how you'd measure success: labelled missing, grader said covered",
+                "Lays out clear steps or habits: labelled missing, grader said covered",
+                "Names the trade-off and how you'd decide: labelled missing, grader said covered",
+                "Communicates with the right people: labelled missing, grader said covered"
+              ]
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": false,
+              "problems": [
+                "rated Strong, expected at most Needs work"
+              ]
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 92,
+            "rating": "Strong",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Communicates with the right people",
+              "Gathers information before acting",
+              "Lays out clear steps or habits",
+              "Names the trade-off and how you'd decide",
+              "Says how you'd measure success"
+            ]
+          },
+          "points": [
+            {
+              "label": "Gathers information before acting",
+              "expected": false,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Says how you'd measure success",
+              "expected": false,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Lays out clear steps or habits",
+              "expected": false,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Names the trade-off and how you'd decide",
+              "expected": false,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Communicates with the right people",
+              "expected": false,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-ho-13",
+          "question_id": "m-disagree-0-1",
+          "tags": [
+            "complete"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": true,
+              "problems": []
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 92,
+            "rating": "Strong",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Communicates with patients",
+              "Follows up, documents and prevents a repeat",
+              "Listens and stays respectful",
+              "Names the trade-off and how you'd decide",
+              "Uses the specifics of the job"
+            ]
+          },
+          "points": [
+            {
+              "label": "Listens and stays respectful",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Uses the specifics of the job",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Names the trade-off and how you'd decide",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Communicates with patients",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Follows up, documents and prevents a repeat",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-ho-14",
+          "question_id": "m-train-1",
+          "tags": [
+            "complete"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": true,
+              "problems": []
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 92,
+            "rating": "Strong",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Checks that they really learned it",
+              "Explains why it matters",
+              "Lays out clear steps or habits",
+              "Uses the specifics of the job"
+            ]
+          },
+          "points": [
+            {
+              "label": "Lays out clear steps or habits",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Uses the specifics of the job",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Checks that they really learned it",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Explains why it matters",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-ho-15",
+          "question_id": "m-train-1",
+          "tags": [
+            "short"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": true,
+              "problems": []
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 20,
+            "rating": "Needs work",
+            "evidence_level": "insufficient",
+            "covered": [
+              "Lays out clear steps or habits"
+            ]
+          },
+          "points": [
+            {
+              "label": "Lays out clear steps or habits",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Uses the specifics of the job",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Checks that they really learned it",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Explains why it matters",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-ho-16",
+          "question_id": "m-balance-0-2",
+          "tags": [
+            "complete"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": true,
+              "problems": []
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 92,
+            "rating": "Strong",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Backs it up with a concrete example",
+              "Communicates with the right people",
+              "Explains why it matters",
+              "Names the trade-off and how you'd decide",
+              "Uses the specifics of the job"
+            ]
+          },
+          "points": [
+            {
+              "label": "Names the trade-off and how you'd decide",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Uses the specifics of the job",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Explains why it matters",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Communicates with the right people",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            },
+            {
+              "label": "Backs it up with a concrete example",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        },
+        {
+          "id": "rn-ho-17",
+          "question_id": "m-balance-0-2",
+          "tags": [
+            "off_topic"
+          ],
+          "checks": {
+            "schema": {
+              "passed": true,
+              "problems": []
+            },
+            "points": {
+              "passed": false,
+              "problems": [
+                "Names the trade-off and how you'd decide: labelled covered, grader said missing"
+              ]
+            },
+            "evidence": {
+              "passed": true,
+              "problems": []
+            },
+            "insufficient": {
+              "passed": true,
+              "problems": []
+            },
+            "actionable": {
+              "passed": true,
+              "problems": []
+            },
+            "rating": {
+              "passed": true,
+              "problems": []
+            },
+            "stable": {
+              "passed": true,
+              "problems": []
+            }
+          },
+          "observed": {
+            "score": 44,
+            "rating": "Developing",
+            "evidence_level": "sufficient",
+            "covered": [
+              "Backs it up with a concrete example",
+              "Explains why it matters"
+            ]
+          },
+          "points": [
+            {
+              "label": "Names the trade-off and how you'd decide",
+              "expected": true,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Uses the specifics of the job",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Explains why it matters",
+              "expected": true,
+              "predicted": true,
+              "uncertain": true
+            },
+            {
+              "label": "Communicates with the right people",
+              "expected": false,
+              "predicted": false,
+              "uncertain": false
+            },
+            {
+              "label": "Backs it up with a concrete example",
+              "expected": true,
+              "predicted": true,
+              "uncertain": false
+            }
+          ]
+        }
+      ]
+    }
   },
-  "duration_s": 0.09
+  "contracts": {
+    "prompt_version": "coach-2026-11-03",
+    "requests_recorded": 2079,
+    "problems_checked_for_hidden_data": 293,
+    "problems_without_distinctive_hidden_data": 7,
+    "checks": {
+      "framing": {
+        "passed": true,
+        "failures": []
+      },
+      "ladder": {
+        "passed": true,
+        "failures": []
+      },
+      "bounded": {
+        "passed": true,
+        "failures": []
+      },
+      "hidden_tests": {
+        "passed": true,
+        "failures": []
+      },
+      "secrets": {
+        "passed": true,
+        "failures": []
+      }
+    }
+  },
+  "faults": {
+    "scenarios": 10,
+    "checks": 30,
+    "passed": 30,
+    "failed": [],
+    "rows": [
+      {
+        "scenario": "timeout",
+        "action": "hint",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.09
+      },
+      {
+        "scenario": "timeout",
+        "action": "review",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.09
+      },
+      {
+        "scenario": "timeout",
+        "action": "explain_failure",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.08
+      },
+      {
+        "scenario": "connection_lost",
+        "action": "hint",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.08
+      },
+      {
+        "scenario": "connection_lost",
+        "action": "review",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.08
+      },
+      {
+        "scenario": "connection_lost",
+        "action": "explain_failure",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.09
+      },
+      {
+        "scenario": "rate_limited_429",
+        "action": "hint",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.07
+      },
+      {
+        "scenario": "rate_limited_429",
+        "action": "review",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.08
+      },
+      {
+        "scenario": "rate_limited_429",
+        "action": "explain_failure",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.08
+      },
+      {
+        "scenario": "server_error_500",
+        "action": "hint",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.1
+      },
+      {
+        "scenario": "server_error_500",
+        "action": "review",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.09
+      },
+      {
+        "scenario": "server_error_500",
+        "action": "explain_failure",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.08
+      },
+      {
+        "scenario": "overloaded_529",
+        "action": "hint",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.07
+      },
+      {
+        "scenario": "overloaded_529",
+        "action": "review",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.08
+      },
+      {
+        "scenario": "overloaded_529",
+        "action": "explain_failure",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.07
+      },
+      {
+        "scenario": "refusal",
+        "action": "hint",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.08
+      },
+      {
+        "scenario": "refusal",
+        "action": "review",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.09
+      },
+      {
+        "scenario": "refusal",
+        "action": "explain_failure",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.08
+      },
+      {
+        "scenario": "cut_off_max_tokens",
+        "action": "hint",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.07
+      },
+      {
+        "scenario": "cut_off_max_tokens",
+        "action": "review",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.08
+      },
+      {
+        "scenario": "cut_off_max_tokens",
+        "action": "explain_failure",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.06
+      },
+      {
+        "scenario": "no_parsed_output",
+        "action": "hint",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.08
+      },
+      {
+        "scenario": "no_parsed_output",
+        "action": "review",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.1
+      },
+      {
+        "scenario": "no_parsed_output",
+        "action": "explain_failure",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.09
+      },
+      {
+        "scenario": "cut_off_json",
+        "action": "hint",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.08
+      },
+      {
+        "scenario": "cut_off_json",
+        "action": "review",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.09
+      },
+      {
+        "scenario": "cut_off_json",
+        "action": "explain_failure",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.15
+      },
+      {
+        "scenario": "invalid_response_body",
+        "action": "hint",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.09
+      },
+      {
+        "scenario": "invalid_response_body",
+        "action": "review",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.12
+      },
+      {
+        "scenario": "invalid_response_body",
+        "action": "explain_failure",
+        "passed": true,
+        "problem": null,
+        "provider": "offline (fallback)",
+        "calls_to_provider": 1,
+        "ms": 0.1
+      }
+    ],
+    "client_limits": {
+      "timeout_s": 60.0,
+      "max_retries": 2
+    }
+  },
+  "usage": {
+    "calls": 666,
+    "failures": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "latency_ms_p50": 0.0,
+    "latency_ms_max": 0.05,
+    "cost_usd": null,
+    "cost_basis": "no prices given; cost is not estimated (pass --price-input-per-mtok/--price-output-per-mtok from your actual pricing)"
+  },
+  "duration_s": 3.01,
+  "finished_at": "2026-11-03T22:39:25+00:00",
+  "complete": true,
+  "incomplete_reasons": [],
+  "gates": [
+    {
+      "id": "report.integrity",
+      "why": "Only a complete run on the recorded datasets and prompt version is a result.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "coding.schema",
+      "why": "The review UI needs every response to parse.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "coding.precision",
+      "why": "Reported issues that aren't real teach the wrong thing; floor just under the measured tuning-set level.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "coding.recall",
+      "why": "Floor just under the measured tuning-set level, so a rule change can't silently stop finding issues.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "coding.false_alarms",
+      "why": "Clean code reported as broken is the most discouraging mistake.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "coding.big_o",
+      "why": "Complexity feedback is a core interview skill.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "hints.no_spoilers",
+      "why": "A level-1 nudge must not name the answer.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "hints.no_code",
+      "why": "Hints below level 3 must not contain code.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "career.complete",
+      "why": "Every labelled answer must be graded; a skipped case hides a failure.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "career.schema",
+      "why": "Feedback must have the shape the app stores and shows.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "career.evidence",
+      "why": "A quote that isn't the learner's words, or doesn't show the point, makes feedback look grounded when it isn't.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "career.insufficient",
+      "why": "Answers too short to judge get no score and no praise (the product rule since rubric v1).",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "career.injection",
+      "why": "Text addressed to the grader must not earn credit.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "career.stable",
+      "why": "The built-in coach promises the same result for the same answer; re-evaluation relies on it.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "career.actionable",
+      "why": "Every missing point needs advice, and the summary must say where to start.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "career.agreement",
+      "why": "Floor at the agreement rubric v1 measured on the development set (precision 0.753, recall 0.935): no change may agree less with the labels.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "contract.framing",
+      "why": "Learner text must reach Claude as data inside tags, under a rule not to follow it.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "contract.ladder",
+      "why": "Hints must not carry deeper levels than the one unlocked.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "contract.hidden_tests",
+      "why": "Hidden test inputs must never reach a prompt.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "contract.secrets",
+      "why": "Keys and passwords in learner code must be redacted before they leave the server.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "contract.bounded",
+      "why": "Every request asks for a known schema with a token limit.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "provider.fallback",
+      "why": "When Claude fails in any way, the learner gets the offline coach, not an error.",
+      "status": "passed",
+      "failures": []
+    }
+  ]
 }
