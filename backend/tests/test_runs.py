@@ -138,7 +138,13 @@ def test_export_includes_mode(judged):
 
 def test_capabilities_say_whether_runs_work(client, make_client):
     caps = client.get("/api/v1/capabilities").json()
-    assert set(caps) == {"execution_enabled", "ai_provider", "execution", "guest_retention_days"}
+    assert set(caps) == {
+        "execution_enabled",
+        "ai_provider",
+        "execution",
+        "guest_retention_days",
+        "ui_telemetry",
+    }
     assert (
         caps["execution_enabled"] is False
         and caps["ai_provider"] == "offline"
