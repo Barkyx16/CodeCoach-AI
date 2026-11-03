@@ -705,6 +705,31 @@ All under `/api/v1/targets` 🔒 and scoped to the owner (another user's id is a
   submissions. Limits: 50 collections, 200 items each. Bookmarks and collections are in the data
   export and deleted with the account.
 
+### Learn mode
+
+Units are authored in the repository ([docs/LEARN_CONTENT.md](LEARN_CONTENT.md)); no model runs
+on these endpoints.
+
+- `GET /api/v1/learn?track=` (public): `{track, career_title, units, coverage_note,
+  careers_with_units}`. A career without units gets `units: []` and says so.
+- `GET /api/v1/learn/units/{id}` (public): the full unit (objective, prerequisites, explanation,
+  worked example, mistakes, exercise with `guided_steps` and a `solution`, check questions
+  **without answers**, `pass_rule`, practice link, references with `url: null` when no link is
+  recorded, review status, scope note, version and `changes`).
+- `GET /api/v1/learn/related?track=&question_id=` or `?problem_slug=`: units that prepare for it.
+- `GET /api/v1/me/learn?track=` 🔒 and `GET /api/v1/me/learn/units/{id}` 🔒: progress per unit
+  (`versions_used, started, read, check_attempts, check_passed, passed_versions, practiced,
+  practiced_evidence, events, next_action`). Reading progress also records `practiced` once a
+  real answer/submission to the unit's practice item exists after the learner started.
+- `POST /api/v1/me/learn/units/{id}/events {kind: started|read, version}` 🔒 and `POST
+  …/check {version, answers: {question_id: option_index}}` 🔒 → `{passed, correct, total,
+  results: [{id, chosen, correct, answer, explanation}], progress}`. Both are `409 unit_changed`
+  (with `details.current_version`) when `version` isn't the current one. Every check attempt is
+  kept; `check_passed` is recorded once per version. Learn events are in the data export and are
+  deleted with the account.
+- The practice plan may include a `learn` item (before the retry it prepares for) whose completion
+  is a passed check after it was planned; reading alone never completes it.
+
 ### Practice plan
 
 Deterministic rules over recorded evidence (`app/services/roadmap.py` documents them); no AI.

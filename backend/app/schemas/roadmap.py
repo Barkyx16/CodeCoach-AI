@@ -9,7 +9,7 @@ from app.schemas.common import APIModel
 
 Experience = Literal["new", "early", "mid", "senior"]
 Format = Literal["written", "voice", "coding"]
-ItemKind = Literal["assessment", "question", "retry", "review", "voice", "mock", "coding"]
+ItemKind = Literal["assessment", "question", "retry", "review", "voice", "mock", "coding", "learn"]
 ItemStatus = Literal["pending", "done", "skipped", "replaced"]
 
 

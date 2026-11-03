@@ -17,6 +17,7 @@ const KIND_LABEL: Record<PlanItem["kind"], string> = {
   voice: "Voice practice",
   mock: "Mock interview",
   coding: "Coding problem",
+  learn: "Short lesson",
 };
 
 const STATUS_LABEL: Record<PlanItem["status"], string> = {

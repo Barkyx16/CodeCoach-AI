@@ -3359,6 +3359,514 @@
         }
       }
     },
+    "/api/v1/learn": {
+      "get": {
+        "tags": [
+          "learn"
+        ],
+        "summary": "Learning units for a career, and which careers have any",
+        "operationId": "list_units_api_v1_learn_get",
+        "parameters": [
+          {
+            "name": "track",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "default": "software-engineer",
+              "title": "Track"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearnCatalog"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/learn/related": {
+      "get": {
+        "tags": [
+          "learn"
+        ],
+        "summary": "Units that prepare for a question or coding problem",
+        "operationId": "related_units_api_v1_learn_related_get",
+        "parameters": [
+          {
+            "name": "track",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Track"
+            }
+          },
+          {
+            "name": "question_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Question Id"
+            }
+          },
+          {
+            "name": "problem_slug",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Problem Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UnitLink"
+                  },
+                  "title": "Response Related Units Api V1 Learn Related Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/learn/units/{unit_id}": {
+      "get": {
+        "tags": [
+          "learn"
+        ],
+        "summary": "A learning unit (the check's answers are not included)",
+        "operationId": "get_unit_api_v1_learn_units__unit_id__get",
+        "parameters": [
+          {
+            "name": "unit_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Unit Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnitOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/learn": {
+      "get": {
+        "tags": [
+          "learn"
+        ],
+        "summary": "Your progress on every unit of a career",
+        "operationId": "my_units_api_v1_me_learn_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "track",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "default": "software-engineer",
+              "title": "Track"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/UnitProgress"
+                  },
+                  "title": "Response My Units Api V1 Me Learn Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/learn/units/{unit_id}": {
+      "get": {
+        "tags": [
+          "learn"
+        ],
+        "summary": "Your progress on a unit (also records 'practiced' when the linked practice has been done)",
+        "operationId": "my_progress_api_v1_me_learn_units__unit_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "unit_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Unit Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnitProgress"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/learn/units/{unit_id}/events": {
+      "post": {
+        "tags": [
+          "learn"
+        ],
+        "summary": "Record that you opened ('started') or finished reading ('read') the unit version on screen",
+        "operationId": "record_event_api_v1_me_learn_units__unit_id__events_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "unit_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Unit Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnitProgress"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/learn/units/{unit_id}/check": {
+      "post": {
+        "tags": [
+          "learn"
+        ],
+        "summary": "Submit the comprehension check; graded on the server under the unit's rule",
+        "operationId": "submit_check_api_v1_me_learn_units__unit_id__check_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "unit_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Unit Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/submissions": {
       "post": {
         "tags": [
@@ -8391,6 +8899,29 @@
         ],
         "title": "CareerAnalytics"
       },
+      "CareerCoverage": {
+        "properties": {
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "units": {
+            "type": "integer",
+            "title": "Units"
+          }
+        },
+        "type": "object",
+        "required": [
+          "track",
+          "title",
+          "units"
+        ],
+        "title": "CareerCoverage"
+      },
       "CareerSummary": {
         "properties": {
           "slug": {
@@ -8473,6 +9004,136 @@
           "new_password"
         ],
         "title": "ChangePasswordRequest"
+      },
+      "CheckIn": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Version"
+          },
+          "answers": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Answers",
+            "description": "Check question id -> chosen option index"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "answers"
+        ],
+        "title": "CheckIn"
+      },
+      "CheckItemResult": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "chosen": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chosen"
+          },
+          "correct": {
+            "type": "boolean",
+            "title": "Correct"
+          },
+          "answer": {
+            "type": "integer",
+            "title": "Answer"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "chosen",
+          "correct",
+          "answer",
+          "explanation"
+        ],
+        "title": "CheckItemResult"
+      },
+      "CheckQuestionOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "prompt": {
+            "type": "string",
+            "title": "Prompt"
+          },
+          "options": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Options"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "prompt",
+          "options"
+        ],
+        "title": "CheckQuestionOut",
+        "description": "A check question without its answer: answers are graded on the server."
+      },
+      "CheckResult": {
+        "properties": {
+          "passed": {
+            "type": "boolean",
+            "title": "Passed"
+          },
+          "correct": {
+            "type": "integer",
+            "title": "Correct"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "pass_rule": {
+            "type": "string",
+            "title": "Pass Rule"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/CheckItemResult"
+            },
+            "type": "array",
+            "title": "Results"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/UnitProgress"
+          }
+        },
+        "type": "object",
+        "required": [
+          "passed",
+          "correct",
+          "total",
+          "pass_rule",
+          "results",
+          "progress"
+        ],
+        "title": "CheckResult"
       },
       "CodeReview": {
         "properties": {
@@ -9258,6 +9919,73 @@
         ],
         "title": "EvaluatedSkill"
       },
+      "EventIn": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "started",
+              "read"
+            ],
+            "title": "Kind"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Version",
+            "description": "The unit version on screen"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "version"
+        ],
+        "title": "EventIn"
+      },
+      "EventOut": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "started",
+              "read",
+              "check_attempted",
+              "check_passed",
+              "practiced"
+            ],
+            "title": "Kind"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "version",
+          "at",
+          "detail"
+        ],
+        "title": "EventOut"
+      },
       "EvidenceLink": {
         "properties": {
           "item_key": {
@@ -9318,6 +10046,56 @@
           "output"
         ],
         "title": "Example"
+      },
+      "ExampleOut": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "intro": {
+            "type": "string",
+            "title": "Intro"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "walkthrough": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Walkthrough"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "intro",
+          "code",
+          "language",
+          "walkthrough"
+        ],
+        "title": "ExampleOut"
       },
       "ExecutionResultOut": {
         "properties": {
@@ -9390,6 +10168,51 @@
           "public_results"
         ],
         "title": "ExecutionResultOut"
+      },
+      "ExerciseOut": {
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "title": "Prompt"
+          },
+          "draft_label": {
+            "type": "string",
+            "title": "Draft Label"
+          },
+          "guided_steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Guided Steps",
+            "description": "Think, concept, example, fuller explanation: revealed in order"
+          },
+          "solution": {
+            "type": "string",
+            "title": "Solution",
+            "description": "Shown only when the learner asks for it, behind a spoiler warning"
+          },
+          "solution_language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Solution Language"
+          }
+        },
+        "type": "object",
+        "required": [
+          "prompt",
+          "draft_label",
+          "guided_steps",
+          "solution",
+          "solution_language"
+        ],
+        "title": "ExerciseOut"
       },
       "ExperienceIn": {
         "properties": {
@@ -11093,6 +11916,45 @@
         "title": "ItemStatus",
         "description": "Private practice status for one question (signed-in explorer only)."
       },
+      "LearnCatalog": {
+        "properties": {
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "career_title": {
+            "type": "string",
+            "title": "Career Title"
+          },
+          "units": {
+            "items": {
+              "$ref": "#/components/schemas/UnitSummary"
+            },
+            "type": "array",
+            "title": "Units"
+          },
+          "coverage_note": {
+            "type": "string",
+            "title": "Coverage Note"
+          },
+          "careers_with_units": {
+            "items": {
+              "$ref": "#/components/schemas/CareerCoverage"
+            },
+            "type": "array",
+            "title": "Careers With Units"
+          }
+        },
+        "type": "object",
+        "required": [
+          "track",
+          "career_title",
+          "units",
+          "coverage_note",
+          "careers_with_units"
+        ],
+        "title": "LearnCatalog"
+      },
       "LoginRequest": {
         "properties": {
           "email": {
@@ -11201,6 +12063,30 @@
           "status"
         ],
         "title": "MyExploreResult"
+      },
+      "NextAction": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "read",
+              "check",
+              "practice",
+              "done"
+            ],
+            "title": "Kind"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "label"
+        ],
+        "title": "NextAction"
       },
       "OrderIn": {
         "properties": {
@@ -11485,7 +12371,8 @@
               "review",
               "voice",
               "mock",
-              "coding"
+              "coding",
+              "learn"
             ],
             "title": "Kind"
           },
@@ -11810,6 +12697,38 @@
           "why"
         ],
         "title": "PracticeLink"
+      },
+      "PracticeOut": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "question",
+              "problem"
+            ],
+            "title": "Kind"
+          },
+          "ref_id": {
+            "type": "string",
+            "title": "Ref Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "href": {
+            "type": "string",
+            "title": "Href"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "ref_id",
+          "label",
+          "href"
+        ],
+        "title": "PracticeOut"
       },
       "ProblemDetail": {
         "properties": {
@@ -12405,6 +13324,70 @@
           "kind"
         ],
         "title": "Recommendation"
+      },
+      "ReferenceOut": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "publisher": {
+            "type": "string",
+            "title": "Publisher"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url",
+            "description": "Null when no stable link is recorded (links are never guessed)"
+          },
+          "published": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "external",
+              "repository"
+            ],
+            "title": "Kind"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "publisher",
+          "url",
+          "published",
+          "kind",
+          "note"
+        ],
+        "title": "ReferenceOut"
       },
       "RegisterRequest": {
         "properties": {
@@ -13077,6 +14060,38 @@
           "in_review_queue"
         ],
         "title": "ReviewItem"
+      },
+      "ReviewOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "author_reviewed",
+              "generated_draft"
+            ],
+            "title": "Status"
+          },
+          "by": {
+            "type": "string",
+            "title": "By"
+          },
+          "on": {
+            "type": "string",
+            "title": "On"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "by",
+          "on",
+          "note"
+        ],
+        "title": "ReviewOut"
       },
       "ReviewQueue": {
         "properties": {
@@ -14553,6 +15568,360 @@
           "candidate"
         ],
         "title": "TurnRole"
+      },
+      "UnitLink": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title"
+        ],
+        "title": "UnitLink"
+      },
+      "UnitOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "skill": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skill"
+          },
+          "topics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Topics"
+          },
+          "minutes": {
+            "type": "integer",
+            "title": "Minutes"
+          },
+          "objective": {
+            "type": "string",
+            "title": "Objective"
+          },
+          "prerequisites": {
+            "items": {
+              "$ref": "#/components/schemas/UnitLink"
+            },
+            "type": "array",
+            "title": "Prerequisites"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "review_status": {
+            "type": "string",
+            "enum": [
+              "author_reviewed",
+              "generated_draft"
+            ],
+            "title": "Review Status"
+          },
+          "regulated": {
+            "type": "boolean",
+            "title": "Regulated",
+            "description": "Has a scope and jurisdiction note (e.g. nursing)"
+          },
+          "career_title": {
+            "type": "string",
+            "title": "Career Title"
+          },
+          "changes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Changes",
+            "description": "What changed in each version, oldest first"
+          },
+          "scope_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope Note"
+          },
+          "explanation": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Explanation"
+          },
+          "example": {
+            "$ref": "#/components/schemas/ExampleOut"
+          },
+          "mistakes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Mistakes"
+          },
+          "exercise": {
+            "$ref": "#/components/schemas/ExerciseOut"
+          },
+          "check": {
+            "items": {
+              "$ref": "#/components/schemas/CheckQuestionOut"
+            },
+            "type": "array",
+            "title": "Check"
+          },
+          "pass_rule": {
+            "type": "string",
+            "title": "Pass Rule"
+          },
+          "practice": {
+            "$ref": "#/components/schemas/PracticeOut"
+          },
+          "references": {
+            "items": {
+              "$ref": "#/components/schemas/ReferenceOut"
+            },
+            "type": "array",
+            "title": "References"
+          },
+          "review": {
+            "$ref": "#/components/schemas/ReviewOut"
+          },
+          "question_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Question Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "track",
+          "title",
+          "skill",
+          "topics",
+          "minutes",
+          "objective",
+          "prerequisites",
+          "version",
+          "review_status",
+          "regulated",
+          "career_title",
+          "changes",
+          "scope_note",
+          "explanation",
+          "example",
+          "mistakes",
+          "exercise",
+          "check",
+          "pass_rule",
+          "practice",
+          "references",
+          "review",
+          "question_ids"
+        ],
+        "title": "UnitOut"
+      },
+      "UnitProgress": {
+        "properties": {
+          "unit_id": {
+            "type": "string",
+            "title": "Unit Id"
+          },
+          "current_version": {
+            "type": "integer",
+            "title": "Current Version"
+          },
+          "versions_used": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Versions Used",
+            "description": "Unit versions you have events on"
+          },
+          "started": {
+            "type": "boolean",
+            "title": "Started"
+          },
+          "read": {
+            "type": "boolean",
+            "title": "Read",
+            "description": "Read the current version (reading alone is not mastery)"
+          },
+          "check_attempts": {
+            "type": "integer",
+            "title": "Check Attempts"
+          },
+          "check_passed": {
+            "type": "boolean",
+            "title": "Check Passed",
+            "description": "Passed the check on the current version"
+          },
+          "passed_versions": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Passed Versions"
+          },
+          "practiced": {
+            "type": "boolean",
+            "title": "Practiced",
+            "description": "A real answer or submission to the linked practice since you started"
+          },
+          "practiced_evidence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Practiced Evidence"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/EventOut"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "next_action": {
+            "$ref": "#/components/schemas/NextAction"
+          }
+        },
+        "type": "object",
+        "required": [
+          "unit_id",
+          "current_version",
+          "versions_used",
+          "started",
+          "read",
+          "check_attempts",
+          "check_passed",
+          "passed_versions",
+          "practiced",
+          "practiced_evidence",
+          "events",
+          "next_action"
+        ],
+        "title": "UnitProgress"
+      },
+      "UnitSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "skill": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skill"
+          },
+          "topics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Topics"
+          },
+          "minutes": {
+            "type": "integer",
+            "title": "Minutes"
+          },
+          "objective": {
+            "type": "string",
+            "title": "Objective"
+          },
+          "prerequisites": {
+            "items": {
+              "$ref": "#/components/schemas/UnitLink"
+            },
+            "type": "array",
+            "title": "Prerequisites"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "review_status": {
+            "type": "string",
+            "enum": [
+              "author_reviewed",
+              "generated_draft"
+            ],
+            "title": "Review Status"
+          },
+          "regulated": {
+            "type": "boolean",
+            "title": "Regulated",
+            "description": "Has a scope and jurisdiction note (e.g. nursing)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "track",
+          "title",
+          "skill",
+          "topics",
+          "minutes",
+          "objective",
+          "prerequisites",
+          "version",
+          "review_status",
+          "regulated"
+        ],
+        "title": "UnitSummary"
       },
       "UpdateProfileRequest": {
         "properties": {

@@ -6,7 +6,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 
 import { ApiError } from "./client";
 import { api, type ActivityFilters, type ExploreFilters, type ProblemFilters, type QuestionFilters } from "./endpoints";
-import type { AIHistoryAction, AnswerSource, Bookmark, Collection, GoalsInput, MyExploreResult, ReviewQueue, SavedItemRef, Target, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
+import type { AIHistoryAction, AnswerSource, Bookmark, Collection, GoalsInput, MyExploreResult, ReviewQueue, SavedItemRef, Target, UnitProgress, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
 
 export const queryKeys = {
   problems: (filters: ProblemFilters) => ["problems", filters] as const,
@@ -449,6 +449,41 @@ export function useDeleteCollection() {
       qc.removeQueries({ queryKey: ["me", "collection", id] });
       void qc.invalidateQueries({ queryKey: ["me", "collections"] });
       void qc.invalidateQueries({ queryKey: ["me", "explore"] });
+    },
+  });
+}
+
+// --- learn mode --------------------------------------------------------------------------------
+
+export function useLearnCatalog(track: string) {
+  return useQuery({ queryKey: ["learn", "catalog", track], queryFn: () => api.learnCatalog(track), staleTime: 10 * 60_000 });
+}
+
+export function useLearnUnit(id: string) {
+  return useQuery({ queryKey: ["learn", "unit", id], queryFn: () => api.learnUnit(id), staleTime: 10 * 60_000 });
+}
+
+export function useRelatedUnits(query: { track?: string; question_id?: string; problem_slug?: string }, enabled = true) {
+  return useQuery({ queryKey: ["learn", "related", query], queryFn: () => api.relatedUnits(query), enabled, staleTime: 10 * 60_000 });
+}
+
+export function useMyLearn(track: string, enabled: boolean) {
+  return useQuery({ queryKey: ["me", "learn", track], queryFn: () => api.myLearn(track), enabled });
+}
+
+export function useUnitProgress(id: string, enabled: boolean) {
+  return useQuery({ queryKey: ["me", "learn-unit", id], queryFn: () => api.unitProgress(id), enabled });
+}
+
+/** Learn events and check results return fresh progress; write it into the cache. */
+export function useLearnMutation<V, R>(id: string, fn: (vars: V) => Promise<R>, pick: (r: R) => UnitProgress) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: (r) => {
+      qc.setQueryData(["me", "learn-unit", id], pick(r));
+      void qc.invalidateQueries({ queryKey: ["me", "learn"] });
+      void qc.invalidateQueries({ queryKey: ["me", "plan"] });
     },
   });
 }

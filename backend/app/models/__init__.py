@@ -707,3 +707,24 @@ class CollectionItem(Base):
     queue_done_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
 
     collection: Mapped[PracticeCollection] = relationship(back_populates="items")
+
+
+class LearnEvent(Base):
+    """One step of a learner's progress through a Learn unit, on a specific unit version.
+
+    Kinds are distinct on purpose: started, read, check_attempted, check_passed, practiced. Only
+    check_passed (graded by the unit's rubric) and practiced (a real answer or submission) are
+    evidence of anything; reading is never mastery. `dedupe_key` makes the once-per-version kinds
+    race-free; check attempts have none, so every attempt is kept."""
+
+    __tablename__ = "learn_events"
+    __table_args__ = (UniqueConstraint("user_id", "dedupe_key", name="uq_learn_event_dedupe"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    unit_id: Mapped[str] = mapped_column(String(64), index=True)
+    unit_version: Mapped[int] = mapped_column(Integer)
+    kind: Mapped[str] = mapped_column(String(20))
+    detail: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
+    dedupe_key: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)

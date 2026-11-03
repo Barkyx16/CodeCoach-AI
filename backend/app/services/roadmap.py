@@ -13,6 +13,9 @@ Rules, in order (see `_generate`):
      lowest-scoring skills; at your level (raised a level once a skill's average best is 85+).
   4. Voice, if you chose it and haven't answered out loud in 7 days.
   5. Coding problems from the existing recommender, if the career has coding and you want it.
+  (2b) A Learn unit for a weak or chosen skill that has one, if you haven't passed its check:
+     placed before the retry it prepares for. Done only when the unit's comprehension check is
+     passed after it was planned; reading the unit is not enough.
   6. A full 5-question mock interview once there's a baseline and none finished in 14 days.
 
 Completion is read from evidence created after the activity was planned (an answer to that
@@ -36,9 +39,11 @@ from app.careers import CATALOG
 from app.careers.questions import Question, get_question, questions_for
 from app.careers.skills import career_skills, question_skills, questions_by_skill
 from app.errors import AppError, ConflictError, NotFoundError
+from app.learn import units_for
 from app.models import (
     InterviewStatus,
     InterviewTurn,
+    LearnEvent,
     PlanItem,
     PracticeAnswer,
     PracticeGoal,
@@ -65,6 +70,7 @@ from app.schemas.roadmap import (
     SelfRating,
     TodayOut,
 )
+from app.services.learn import Learn
 from app.services.progress import ProgressService
 
 DEFAULT_TRACK = "software-engineer"
@@ -106,7 +112,13 @@ class Spec:
     @property
     def key(self) -> tuple[str, str]:
         t = self.target
-        return self.kind, str(t.get("question_id") or t.get("problem_slug") or t.get("purpose") or self.skill)
+        return self.kind, str(
+            t.get("question_id")
+            or t.get("problem_slug")
+            or t.get("unit_id")
+            or t.get("purpose")
+            or self.skill
+        )
 
 
 @dataclass
@@ -117,6 +129,7 @@ class Evidence:
     baseline_done: bool
     last_mock: datetime | None
     last_voice: datetime | None
+    learn_passed: set[str] = field(default_factory=set)  # unit ids whose check was passed
 
 
 class Roadmap:
@@ -233,6 +246,7 @@ class Roadmap:
             baseline_done=any((s.plan or {}).get("purpose") == "baseline" for s in completed),
             last_mock=max(mocks) if mocks else None,
             last_voice=max(spoken) if spoken else None,
+            learn_passed=Learn(self.db).passed_units(user),
         )
 
     # --- generation -------------------------------------------------------------------------
@@ -362,6 +376,28 @@ class Roadmap:
             )
             used.add(q.id)
 
+        # A short lesson before retrying a weak skill (or for a chosen focus skill), when one exists.
+        lessons: list[Spec] = []
+        for skill, why in [
+            *((r.skill, "your answers in it are below 70") for r in retries),
+            *((s, "you asked for help with it") for s in chosen),
+        ]:
+            unit = next(
+                (u for u in units_for(track) if u.skill == skill and u.id not in ev.learn_passed), None
+            )
+            if unit is not None and not lessons:
+                lessons.append(
+                    Spec(
+                        "learn",
+                        skill,
+                        f"Learn: {unit.title}",
+                        f"A {unit.minutes}-minute lesson on {skill}, because {why}.",
+                        "Pass the lesson's comprehension check. Reading it alone doesn't count.",
+                        unit.minutes,
+                        {"unit_id": unit.id},
+                    )
+                )
+
         voice: list[Spec] = []
         if "voice" in formats and (ev.last_voice is None or ev.last_voice < _now() - timedelta(days=7)):
             q = next(
@@ -430,9 +466,17 @@ class Roadmap:
             order += coding[:1]
             coding = coding[1:]
         order += reviews
+        # A lesson goes right before the retry it prepares for (or here, for a chosen skill).
+        lesson_later = (
+            bool(lessons) and len(retries) > 1 and retries[1].skill == lessons[0].skill != retries[0].skill
+        )
+        if not lesson_later:
+            order += lessons
         order += retries[:1]
         order += focus[:1]
         order += coding[:1]
+        if lesson_later:
+            order += lessons
         order += retries[1:]
         order += focus[1:2]
         order += voice
@@ -501,6 +545,7 @@ class Roadmap:
                     str(
                         i.target.get("question_id")
                         or i.target.get("problem_slug")
+                        or i.target.get("unit_id")
                         or i.target.get("purpose")
                         or i.skill
                     ),
@@ -592,6 +637,22 @@ class Roadmap:
                 None,
             )
             return {"session_id": s.id, "label": "round finished"} if s else None
+        if item.kind == "learn":
+            ev = self.db.scalar(
+                select(LearnEvent)
+                .where(
+                    LearnEvent.user_id == user.id,
+                    LearnEvent.unit_id == t.get("unit_id"),
+                    LearnEvent.kind == "check_passed",
+                    LearnEvent.created_at >= since,
+                )
+                .limit(1)
+            )
+            return (
+                {"unit_id": ev.unit_id, "label": f"passed the check on version {ev.unit_version}"}
+                if ev
+                else None
+            )
         if item.kind == "coding":
             row = self.db.execute(
                 select(Submission)
@@ -753,6 +814,8 @@ class Roadmap:
             href = f"/careers/{track}/questions/{t['question_id']}?answer={t.get('answer_id', '')}"
         elif i.kind == "coding":
             href = f"/problems/{t['problem_slug']}"
+        elif i.kind == "learn":
+            href = f"/learn/{t['unit_id']}"
         elif i.kind == "voice":
             rnd = RoundStart(track=track, question_ids=[t["question_id"]], duration_minutes=10)
         elif i.kind == "mock":

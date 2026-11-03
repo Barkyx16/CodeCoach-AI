@@ -62,6 +62,11 @@ import type {
   ExploreSort,
   MyExploreResult,
   SavedItemRef,
+  CheckResult,
+  LearnCatalog,
+  LearnUnit,
+  UnitLink,
+  UnitProgress,
 } from "./types";
 
 export interface ProblemFilters {
@@ -279,6 +284,18 @@ export const api = {
     apiRequest<Collection>(`/api/v1/me/collections/${encodeURIComponent(id)}/queue`, { method: "PUT", body: { position } }),
   markQueueDone: (id: string, itemId: string, done: boolean) =>
     apiRequest<Collection>(`/api/v1/me/collections/${encodeURIComponent(id)}/items/${encodeURIComponent(itemId)}/done`, { method: "PUT", body: { done } }),
+
+  // learn mode
+  learnCatalog: (track: string) => apiRequest<LearnCatalog>("/api/v1/learn", { query: { track }, auth: false }),
+  learnUnit: (id: string) => apiRequest<LearnUnit>(`/api/v1/learn/units/${encodeURIComponent(id)}`, { auth: false }),
+  relatedUnits: (query: { track?: string; question_id?: string; problem_slug?: string }) =>
+    apiRequest<UnitLink[]>("/api/v1/learn/related", { query, auth: false }),
+  myLearn: (track: string) => apiRequest<Record<string, UnitProgress>>("/api/v1/me/learn", { query: { track } }),
+  unitProgress: (id: string) => apiRequest<UnitProgress>(`/api/v1/me/learn/units/${encodeURIComponent(id)}`),
+  learnEvent: (id: string, kind: "started" | "read", version: number) =>
+    apiRequest<UnitProgress>(`/api/v1/me/learn/units/${encodeURIComponent(id)}/events`, { method: "POST", body: { kind, version } }),
+  learnCheck: (id: string, version: number, answers: Record<string, number>) =>
+    apiRequest<CheckResult>(`/api/v1/me/learn/units/${encodeURIComponent(id)}/check`, { method: "POST", body: { version, answers } }),
 
   // progress
   progress: () => apiRequest<Progress>("/api/v1/me/progress"),

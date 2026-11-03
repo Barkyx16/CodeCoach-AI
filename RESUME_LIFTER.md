@@ -544,6 +544,15 @@ These are moments where the obvious path was wrong and a deliberate decision was
     the public one ignores a token entirely. A browser test also caught the list flashing the
     default career's questions before the session finished restoring, so the page now waits.
 
+41. **Lessons that can't fake mastery or sources.** Learn mode could have generated a lesson
+    per career on demand. Instead six units are written and reviewed in the repository, the page
+    says which careers have any, and every other career says "none yet". References are only
+    real documents; where no stable link was known the link is left empty with a note rather than
+    guessed (the build environment couldn't reach external sites to check them). Progress keeps
+    "read", "check passed" and "practised" apart, check answers stay on the server, and the
+    practice plan only counts a lesson when its check is passed. A version number on every unit
+    keeps old progress meaningful after edits.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -1150,4 +1159,21 @@ built as a complete, tested slice and committed on its own.
   question → reload → Back with scroll; bookmarks → collection → reorder → reload → queue → a
   second browser context sees nothing → delete), plus WCAG scans of the new pages on desktop and
   mobile.
+
+**U02 Teach before testing (built and verified):**
+- **Learn mode**: 6 reviewed units (3 Software Engineer, 3 Registered Nurse) with objective,
+  prerequisites, explanation, worked example, mistakes, guided/independent exercise, a
+  server-graded check, practice link, sources, review status and (nursing) a scope note.
+- Distinct progress events per unit version; "practised" derived from real answers or
+  submissions; a 409 when a unit changes under an open page; a version notice for returning
+  learners. The practice plan adds a lesson before the matching retry and completes it only on a
+  passed check. "Learn first" links on related questions and problems. Export and deletion.
+- Accessible reading: section outline with reading progress (collapsible on phones), focusable
+  code blocks, keyboard disclosures, reduced-motion aware, verified at 320px.
+- Tests: 12 backend (SQLite and PostgreSQL; content integrity, events, grading, versions,
+  provider unavailable, privacy, plan), 6 frontend, 2 Playwright journeys (nurse: prerequisite →
+  guided help → spoiler → check → reload → practice; coding: code block → check → still 0 solved)
+  plus WCAG scans of the Learn pages on desktop and mobile.
+- **Limits:** six units only; reference links weren't checked from this environment (no outbound
+  access); the site has one (dark) theme until U07 adds light/system.
 

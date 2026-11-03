@@ -57,6 +57,7 @@ export function Layout() {
           onClick={(event) => { if ((event.target as HTMLElement).closest("a")) setOpenPath(null); }}>
         <nav className="nav" aria-label="Main">
           <NavLink to="/problems" className={navClass}>Practice</NavLink>
+          <NavLink to="/learn" className={navClass}>Learn</NavLink>
           {isAuthenticated && <NavLink to="/interviews" className={navClass}>Interview</NavLink>}
           {isAuthenticated && <NavLink to="/dashboard" className={navClass}>Dashboard</NavLink>}
           {isAuthenticated && <NavLink to="/targets" className={navClass}>Roles</NavLink>}

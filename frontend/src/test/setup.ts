@@ -3,6 +3,7 @@ import { cleanup } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, vi } from "vitest";
 
 import { resetExploreStore } from "./explore";
+import { resetLearnStore } from "./learn";
 import { cookieJar, server } from "./server";
 
 // Monaco needs a real browser; in jsdom we swap it for a textarea with the same contract.
@@ -35,5 +36,6 @@ afterEach(() => {
   window.localStorage.clear();
   cookieJar.hasSession = false;
   resetExploreStore();
+  resetLearnStore();
 });
 afterAll(() => server.close());

@@ -18,6 +18,7 @@ import { SubmissionPanel } from "./SubmissionPanel";
 import { useDraft, type SaveState } from "./useDraft";
 import { WorkspaceFrame } from "./WorkspaceFrame";
 import { Icon } from "@/components/Icon";
+import { LearnLinks } from "@/features/learn/LearnLinks";
 import { QueueBar } from "@/features/saved/QueueBar";
 import { SaveControls } from "@/features/saved/SaveControls";
 
@@ -116,7 +117,10 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
     <section className="panel-scroll" aria-label="Problem description" tabIndex={0}>
       <ProblemStatement problem={problem}
         before={isAuthenticated ? <QueueBar item={savedRef} /> : undefined}
-        after={isAuthenticated ? <SaveControls item={savedRef} title={problem.title} /> : undefined} />
+        after={<>
+          <LearnLinks query={{ problem_slug: problem.slug }} from={{ from: `/problems/${problem.slug}`, fromLabel: "Back to the problem" }} />
+          {isAuthenticated && <SaveControls item={savedRef} title={problem.title} />}
+        </>} />
     </section>
   );
   const editor = (

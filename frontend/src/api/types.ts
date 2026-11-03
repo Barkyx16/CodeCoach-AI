@@ -106,3 +106,10 @@ export type SavedItemRef = S["CollectionItemIn"];
 export type CollectionSummary = S["CollectionSummary"];
 export type Collection = S["CollectionOut"];
 export type CollectionItem = S["CollectionItemOut"];
+
+export type LearnCatalog = S["LearnCatalog"];
+export type LearnUnitSummary = S["UnitSummary"];
+export type LearnUnit = S["UnitOut"];
+export type UnitLink = S["UnitLink"];
+export type UnitProgress = S["UnitProgress"];
+export type CheckResult = S["CheckResult"];

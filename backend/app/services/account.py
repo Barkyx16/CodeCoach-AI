@@ -12,6 +12,7 @@ from app.models import (
     Bookmark,
     ExperienceEntry,
     InterviewRetry,
+    LearnEvent,
     PracticeAnswer,
     PracticeCollection,
     PracticeGoal,
@@ -61,6 +62,9 @@ def export_user_data(db: Session, user: User) -> dict:
     experience = db.scalars(select(ExperienceEntry).where(ExperienceEntry.user_id == user.id)).all()
     retries = db.scalars(select(InterviewRetry).where(InterviewRetry.user_id == user.id)).all()
     queue = db.scalars(select(ReviewItem).where(ReviewItem.user_id == user.id)).all()
+    learn_events = db.scalars(
+        select(LearnEvent).where(LearnEvent.user_id == user.id).order_by(LearnEvent.created_at)
+    ).all()
     bookmarks = db.scalars(
         select(Bookmark).where(Bookmark.user_id == user.id).order_by(Bookmark.created_at)
     ).all()
@@ -290,5 +294,15 @@ def export_user_data(db: Session, user: User) -> dict:
                 ],
             }
             for c in collections
+        ],
+        "learn_events": [
+            {
+                "unit": e.unit_id,
+                "version": e.unit_version,
+                "kind": e.kind,
+                "detail": (e.detail or {}).get("label"),
+                "at": iso(e.created_at),
+            }
+            for e in learn_events
         ],
     }

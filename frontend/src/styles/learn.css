@@ -1,0 +1,61 @@
+/* Learn mode: catalog, unit reading layout, exercise and check. */
+
+.learn-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.learn-list__item { display: grid; gap: var(--space-2); }
+.learn-list__meta { flex-wrap: wrap; gap: var(--space-2) var(--space-3); }
+
+.unit-page__meta { flex-wrap: wrap; gap: var(--space-2) var(--space-3); }
+.unit-page__scope { margin-bottom: var(--space-3); }
+.unit-next { justify-content: space-between; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-4); }
+
+.unit-page__layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: var(--space-6); align-items: start; }
+.unit-outline { position: sticky; top: calc(var(--header-height) + var(--space-4)); font-size: var(--text-sm); }
+.unit-outline summary { cursor: pointer; padding: var(--space-2) 0; color: var(--color-text-muted); }
+.unit-outline ol { list-style: none; margin: var(--space-2) 0 0; padding: 0; display: grid; gap: var(--space-1); }
+.unit-outline a { display: block; padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm); color: var(--color-text-muted); text-decoration: none; }
+.unit-outline a:hover { color: var(--color-text); background: var(--color-surface-raised); }
+.unit-outline a[aria-current="location"] { color: var(--color-text); background: var(--color-primary-soft); font-weight: 600; }
+.unit-outline__progress { margin: 0; color: var(--color-text-muted); display: grid; gap: var(--space-1); }
+.unit-outline__progress progress { width: 100%; }
+
+.unit-content { min-width: 0; max-width: 72ch; }
+.unit-content p, .unit-content li { line-height: 1.65; }
+.learn-section, .unit-read { scroll-margin-top: calc(var(--header-height) + var(--space-4)); }
+.learn-subtitle { font-size: var(--text-md); margin: 0; }
+.learn-walkthrough { margin: 0; padding-left: 1.4em; display: grid; gap: var(--space-1); }
+.unit-read { padding: var(--space-3) 0; border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); }
+
+.code-block {
+  margin: 0; padding: var(--space-3) var(--space-4); overflow-x: auto; border: 1px solid var(--color-border);
+  border-radius: var(--radius-md); background: var(--color-surface-sunken); color: var(--color-text);
+  font-family: var(--font-mono); font-size: var(--text-sm); line-height: 1.55; tab-size: 4;
+}
+.code-block:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.learn-mode { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-2) var(--space-3); display: grid; gap: var(--space-1); }
+.learn-mode legend { padding: 0 var(--space-1); font-size: var(--text-sm); color: var(--color-text-muted); }
+.learn-mode label, .learn-option { display: flex; gap: var(--space-2); align-items: flex-start; cursor: pointer; }
+.learn-mode input, .learn-option input { margin-top: 0.3em; }
+.learn-draft--code { font-family: var(--font-mono); font-size: var(--text-sm); }
+.learn-steps { margin: 0; padding-left: 1.4em; display: grid; gap: var(--space-2); }
+.learn-solution { border-left: 3px solid var(--color-warning); padding-left: var(--space-3); }
+
+.learn-question { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-3); display: grid; gap: var(--space-2); }
+.learn-question legend { font-weight: 600; padding: 0 var(--space-1); }
+.learn-question--right { border-color: var(--color-success); }
+.learn-question--wrong { border-color: var(--color-warning); }
+.learn-feedback { margin: 0; font-size: var(--text-sm); }
+
+.learn-refs { margin: 0; padding-left: 1.2em; display: grid; gap: var(--space-2); }
+.learn-refs__note { display: block; font-size: var(--text-xs); }
+.learn-events { margin: 0; padding-left: 1.2em; display: grid; gap: var(--space-1); font-size: var(--text-sm); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .unit-page { scroll-behavior: smooth; }
+}
+
+@media (max-width: 860px) {
+  .unit-page__layout { grid-template-columns: minmax(0, 1fr); }
+  .unit-outline { position: static; }
+  .unit-outline ol { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+}

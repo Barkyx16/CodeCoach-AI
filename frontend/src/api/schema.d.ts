@@ -644,6 +644,125 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/learn": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Learning units for a career, and which careers have any */
+        get: operations["list_units_api_v1_learn_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/learn/related": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Units that prepare for a question or coding problem */
+        get: operations["related_units_api_v1_learn_related_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/learn/units/{unit_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A learning unit (the check's answers are not included) */
+        get: operations["get_unit_api_v1_learn_units__unit_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/learn": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your progress on every unit of a career */
+        get: operations["my_units_api_v1_me_learn_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/learn/units/{unit_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your progress on a unit (also records 'practiced' when the linked practice has been done) */
+        get: operations["my_progress_api_v1_me_learn_units__unit_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/learn/units/{unit_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record that you opened ('started') or finished reading ('read') the unit version on screen */
+        post: operations["record_event_api_v1_me_learn_units__unit_id__events_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/learn/units/{unit_id}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit the comprehension check; graded on the server under the unit's rule */
+        post: operations["submit_check_api_v1_me_learn_units__unit_id__check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/submissions": {
         parameters: {
             query?: never;
@@ -1684,6 +1803,15 @@ export interface components {
                 [key: string]: string;
             };
         };
+        /** CareerCoverage */
+        CareerCoverage: {
+            /** Track */
+            track: string;
+            /** Title */
+            title: string;
+            /** Units */
+            units: number;
+        };
         /** CareerSummary */
         CareerSummary: {
             /** Slug */
@@ -1721,6 +1849,57 @@ export interface components {
             current_password: string;
             /** New Password */
             new_password: string;
+        };
+        /** CheckIn */
+        CheckIn: {
+            /** Version */
+            version: number;
+            /**
+             * Answers
+             * @description Check question id -> chosen option index
+             */
+            answers: {
+                [key: string]: number;
+            };
+        };
+        /** CheckItemResult */
+        CheckItemResult: {
+            /** Id */
+            id: string;
+            /** Chosen */
+            chosen: number | null;
+            /** Correct */
+            correct: boolean;
+            /** Answer */
+            answer: number;
+            /** Explanation */
+            explanation: string;
+        };
+        /**
+         * CheckQuestionOut
+         * @description A check question without its answer: answers are graded on the server.
+         */
+        CheckQuestionOut: {
+            /** Id */
+            id: string;
+            /** Prompt */
+            prompt: string;
+            /** Options */
+            options: string[];
+        };
+        /** CheckResult */
+        CheckResult: {
+            /** Passed */
+            passed: boolean;
+            /** Correct */
+            correct: number;
+            /** Total */
+            total: number;
+            /** Pass Rule */
+            pass_rule: string;
+            /** Results */
+            results: components["schemas"]["CheckItemResult"][];
+            progress: components["schemas"]["UnitProgress"];
         };
         /**
          * CodeReview
@@ -2064,6 +2243,36 @@ export interface components {
             /** Average Best Score */
             average_best_score: number;
         };
+        /** EventIn */
+        EventIn: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "started" | "read";
+            /**
+             * Version
+             * @description The unit version on screen
+             */
+            version: number;
+        };
+        /** EventOut */
+        EventOut: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "started" | "read" | "check_attempted" | "check_passed" | "practiced";
+            /** Version */
+            version: number;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Detail */
+            detail: string | null;
+        };
         /** EvidenceLink */
         EvidenceLink: {
             /**
@@ -2088,6 +2297,19 @@ export interface components {
             /** Explanation */
             explanation?: string | null;
         };
+        /** ExampleOut */
+        ExampleOut: {
+            /** Title */
+            title: string;
+            /** Intro */
+            intro: string;
+            /** Code */
+            code: string | null;
+            /** Language */
+            language: string | null;
+            /** Walkthrough */
+            walkthrough: string[];
+        };
         /** ExecutionResultOut */
         ExecutionResultOut: {
             /** Runtime Ms */
@@ -2109,6 +2331,25 @@ export interface components {
              * @description Compiler output (compile errors only)
              */
             stderr_excerpt?: string | null;
+        };
+        /** ExerciseOut */
+        ExerciseOut: {
+            /** Prompt */
+            prompt: string;
+            /** Draft Label */
+            draft_label: string;
+            /**
+             * Guided Steps
+             * @description Think, concept, example, fuller explanation: revealed in order
+             */
+            guided_steps: string[];
+            /**
+             * Solution
+             * @description Shown only when the learner asks for it, behind a spoiler warning
+             */
+            solution: string;
+            /** Solution Language */
+            solution_language: string | null;
         };
         /** ExperienceIn */
         ExperienceIn: {
@@ -2780,6 +3021,19 @@ export interface components {
             /** Collection Ids */
             collection_ids: string[];
         };
+        /** LearnCatalog */
+        LearnCatalog: {
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /** Units */
+            units: components["schemas"]["UnitSummary"][];
+            /** Coverage Note */
+            coverage_note: string;
+            /** Careers With Units */
+            careers_with_units: components["schemas"]["CareerCoverage"][];
+        };
         /** LoginRequest */
         LoginRequest: {
             /**
@@ -2828,6 +3082,16 @@ export interface components {
             status: {
                 [key: string]: components["schemas"]["ItemStatus"];
             };
+        };
+        /** NextAction */
+        NextAction: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "read" | "check" | "practice" | "done";
+            /** Label */
+            label: string;
         };
         /** OrderIn */
         OrderIn: {
@@ -2953,7 +3217,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "assessment" | "question" | "retry" | "review" | "voice" | "mock" | "coding";
+            kind: "assessment" | "question" | "retry" | "review" | "voice" | "mock" | "coding" | "learn";
             /** Skill */
             skill: string;
             /** Title */
@@ -3083,6 +3347,20 @@ export interface components {
             answered: boolean;
             /** Best Score */
             best_score?: number | null;
+        };
+        /** PracticeOut */
+        PracticeOut: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "question" | "problem";
+            /** Ref Id */
+            ref_id: string;
+            /** Label */
+            label: string;
+            /** Href */
+            href: string;
         };
         /** ProblemDetail */
         ProblemDetail: {
@@ -3307,6 +3585,27 @@ export interface components {
              * @enum {string}
              */
             kind: "retry" | "weak_topic" | "next_step" | "interview";
+        };
+        /** ReferenceOut */
+        ReferenceOut: {
+            /** Title */
+            title: string;
+            /** Publisher */
+            publisher: string;
+            /**
+             * Url
+             * @description Null when no stable link is recorded (links are never guessed)
+             */
+            url: string | null;
+            /** Published */
+            published: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "external" | "repository";
+            /** Note */
+            note: string | null;
         };
         /** RegisterRequest */
         RegisterRequest: {
@@ -3542,6 +3841,20 @@ export interface components {
             in_review_queue: boolean;
             /** Question Id */
             question_id?: string | null;
+        };
+        /** ReviewOut */
+        ReviewOut: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "author_reviewed" | "generated_draft";
+            /** By */
+            by: string;
+            /** On */
+            on: string;
+            /** Note */
+            note: string;
         };
         /** ReviewQueue */
         ReviewQueue: {
@@ -4101,6 +4414,138 @@ export interface components {
          * @enum {string}
          */
         TurnRole: "interviewer" | "candidate";
+        /** UnitLink */
+        UnitLink: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+        };
+        /** UnitOut */
+        UnitOut: {
+            /** Id */
+            id: string;
+            /** Track */
+            track: string;
+            /** Title */
+            title: string;
+            /** Skill */
+            skill: string | null;
+            /** Topics */
+            topics: string[];
+            /** Minutes */
+            minutes: number;
+            /** Objective */
+            objective: string;
+            /** Prerequisites */
+            prerequisites: components["schemas"]["UnitLink"][];
+            /** Version */
+            version: number;
+            /**
+             * Review Status
+             * @enum {string}
+             */
+            review_status: "author_reviewed" | "generated_draft";
+            /**
+             * Regulated
+             * @description Has a scope and jurisdiction note (e.g. nursing)
+             */
+            regulated: boolean;
+            /** Career Title */
+            career_title: string;
+            /**
+             * Changes
+             * @description What changed in each version, oldest first
+             */
+            changes: string[];
+            /** Scope Note */
+            scope_note: string | null;
+            /** Explanation */
+            explanation: string[];
+            example: components["schemas"]["ExampleOut"];
+            /** Mistakes */
+            mistakes: string[];
+            exercise: components["schemas"]["ExerciseOut"];
+            /** Check */
+            check: components["schemas"]["CheckQuestionOut"][];
+            /** Pass Rule */
+            pass_rule: string;
+            practice: components["schemas"]["PracticeOut"];
+            /** References */
+            references: components["schemas"]["ReferenceOut"][];
+            review: components["schemas"]["ReviewOut"];
+            /** Question Ids */
+            question_ids: string[];
+        };
+        /** UnitProgress */
+        UnitProgress: {
+            /** Unit Id */
+            unit_id: string;
+            /** Current Version */
+            current_version: number;
+            /**
+             * Versions Used
+             * @description Unit versions you have events on
+             */
+            versions_used: number[];
+            /** Started */
+            started: boolean;
+            /**
+             * Read
+             * @description Read the current version (reading alone is not mastery)
+             */
+            read: boolean;
+            /** Check Attempts */
+            check_attempts: number;
+            /**
+             * Check Passed
+             * @description Passed the check on the current version
+             */
+            check_passed: boolean;
+            /** Passed Versions */
+            passed_versions: number[];
+            /**
+             * Practiced
+             * @description A real answer or submission to the linked practice since you started
+             */
+            practiced: boolean;
+            /** Practiced Evidence */
+            practiced_evidence: string | null;
+            /** Events */
+            events: components["schemas"]["EventOut"][];
+            next_action: components["schemas"]["NextAction"];
+        };
+        /** UnitSummary */
+        UnitSummary: {
+            /** Id */
+            id: string;
+            /** Track */
+            track: string;
+            /** Title */
+            title: string;
+            /** Skill */
+            skill: string | null;
+            /** Topics */
+            topics: string[];
+            /** Minutes */
+            minutes: number;
+            /** Objective */
+            objective: string;
+            /** Prerequisites */
+            prerequisites: components["schemas"]["UnitLink"][];
+            /** Version */
+            version: number;
+            /**
+             * Review Status
+             * @enum {string}
+             */
+            review_status: "author_reviewed" | "generated_draft";
+            /**
+             * Regulated
+             * @description Has a scope and jurisdiction note (e.g. nursing)
+             */
+            regulated: boolean;
+        };
         /**
          * UpdateProfileRequest
          * @description Only the fields you send are changed. Send display_name: null to clear the name.
@@ -6382,6 +6827,343 @@ export interface operations {
             };
             /** @description Not found (also returned for resources owned by another user) */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_units_api_v1_learn_get: {
+        parameters: {
+            query?: {
+                track?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnCatalog"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    related_units_api_v1_learn_related_get: {
+        parameters: {
+            query?: {
+                track?: string | null;
+                question_id?: string | null;
+                problem_slug?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnitLink"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_unit_api_v1_learn_units__unit_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                unit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnitOut"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_units_api_v1_me_learn_get: {
+        parameters: {
+            query?: {
+                track?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: components["schemas"]["UnitProgress"];
+                    };
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_progress_api_v1_me_learn_units__unit_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                unit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnitProgress"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    record_event_api_v1_me_learn_units__unit_id__events_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                unit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnitProgress"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    submit_check_api_v1_me_learn_units__unit_id__check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                unit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckResult"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

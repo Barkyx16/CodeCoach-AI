@@ -20,6 +20,7 @@ import "./styles/plan.css";
 import "./styles/targets.css";
 import "./styles/review.css";
 import "./styles/saved.css";
+import "./styles/learn.css";
 
 const queryClient = makeQueryClient();
 const router = createRouter();

@@ -184,6 +184,16 @@ Append-only activity log: `opened` (deduplicated per user, problem and day), `su
 transcript; `ai_interactions` rows for interview turns keep only cost and latency
 (`response` is NULL), so text isn't duplicated.
 
+### Saved items and Learn progress
+- `bookmarks`: `(user_id, item_type, track, ref_id)` unique; `item_type` is `question` (with its
+  career in `track`) or `problem` (`track` empty). Items are referenced by stable id, so a retired
+  question shows as unavailable instead of being replaced.
+- `practice_collections` / `collection_items`: an ordered list per collection (`position`), one
+  copy of an item per collection, queue progress (`queue_position`, `queue_done_at`) kept apart
+  from scores.
+- `learn_events`: `started | read | check_attempted | check_passed | practiced` per unit version;
+  only check attempts repeat.
+
 ## Design notes
 
 - **Enums are stored as strings** (`native_enum=False`), so adding a status is a code change,
@@ -208,6 +218,8 @@ transcript; `ai_interactions` rows for interview turns keep only cost and latenc
 | `991fd8b47342` password reset tokens | Adds `password_reset_tokens` |
 | `aacf788a8eb5` rate limit counters | Adds `rate_limit_counters` |
 | `236640408846` email verification | Adds `users.email_verified_at` (nullable: existing accounts start unverified) and `email_verification_tokens` |
+| `e1a7c5b9d204` bookmarks and collections | Adds `bookmarks` (unique per user, type, career and item), `practice_collections` (name, queue position, queue start) and `collection_items` (position, `queue_done_at`, unique per collection and item). New tables, cascading with the user |
+| `f3b8d1e6c527` learn events | Adds `learn_events` (unit id and version, kind, detail, `dedupe_key` unique per user so once-per-version events can't race). New table, cascading with the user |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running
