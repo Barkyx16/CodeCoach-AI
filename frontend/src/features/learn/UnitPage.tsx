@@ -11,6 +11,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Icon } from "@/components/Icon";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { NoteCapture } from "@/features/notes/NoteCapture";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { timeAgo } from "@/lib/format";
 
@@ -193,6 +194,8 @@ export function UnitPage() {
               ? <p className="subtle"><Icon name="check" size={14} /> Practised since you started this unit: {p.practiced_evidence}.</p>
               : <p className="subtle">Not practised yet. It's recorded from your real {u.practice.kind === "problem" ? "submission" : "answer"}, not from reading.</p>)}
           </section>
+
+          {isAuthenticated && <NoteCapture source={{ type: "lesson", id: u.id }} excerpt={u.objective} excerptLabel="the lesson's objective" />}
 
           <section className="learn-section stack-sm" id="sources" aria-labelledby="sources-title">
             <h2 className="section-title" id="sources-title">Sources and review</h2>

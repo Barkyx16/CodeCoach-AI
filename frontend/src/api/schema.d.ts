@@ -763,6 +763,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search and filter your notes */
+        get: operations["list_notes_api_v1_me_notes_get"];
+        put?: never;
+        /** Create a note, optionally from a question, problem, lesson or interview */
+        post: operations["create_note_api_v1_me_notes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/notes/{note_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One note */
+        get: operations["get_note_api_v1_me_notes__note_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete a note (restorable for 10 minutes, then purged) */
+        delete: operations["delete_note_api_v1_me_notes__note_id__delete"];
+        options?: never;
+        head?: never;
+        /** Save changes (text changes need base_revision; 409 note_conflict carries the current note) */
+        patch: operations["update_note_api_v1_me_notes__note_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/me/notes/{note_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undo a delete within the window */
+        post: operations["restore_note_api_v1_me_notes__note_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/notes/{note_id}/key-points": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suggest key points from the note's own sentences (no AI model; nothing is saved) */
+        post: operations["suggest_key_points_api_v1_me_notes__note_id__key_points_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/submissions": {
         parameters: {
             query?: never;
@@ -2138,6 +2209,16 @@ export interface components {
              */
             confirm: string;
         };
+        /** DeletedOut */
+        DeletedOut: {
+            /** Id */
+            id: string;
+            /**
+             * Restorable Until
+             * Format: date-time
+             */
+            restorable_until: string;
+        };
         /**
          * Difficulty
          * @enum {string}
@@ -3021,6 +3102,16 @@ export interface components {
             /** Collection Ids */
             collection_ids: string[];
         };
+        /** KeyPoints */
+        KeyPoints: {
+            /** Points */
+            points: string[];
+            /**
+             * Method
+             * @description How the points were found (no AI model is used)
+             */
+            method: string;
+        };
         /** LearnCatalog */
         LearnCatalog: {
             /** Track */
@@ -3092,6 +3183,146 @@ export interface components {
             kind: "read" | "check" | "practice" | "done";
             /** Label */
             label: string;
+        };
+        /** NoteIn */
+        NoteIn: {
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+            /**
+             * Body
+             * @description Plain text or Markdown (rendered safely)
+             * @default
+             */
+            body: string;
+            /**
+             * Reflection
+             * @default
+             */
+            reflection: string;
+            /** Tags */
+            tags?: string[];
+            source?: components["schemas"]["SourceIn"] | null;
+            /**
+             * Excerpt
+             * @description A snapshot, not a live reference
+             */
+            excerpt?: string | null;
+            /** Excerpt Kind */
+            excerpt_kind?: ("quote" | "code") | null;
+        };
+        /** NoteOut */
+        NoteOut: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Snippet */
+            snippet: string;
+            /** Tags */
+            tags: string[];
+            source: components["schemas"]["SourceOut"] | null;
+            /** Pinned */
+            pinned: boolean;
+            /** Archived */
+            archived: boolean;
+            /** Revision */
+            revision: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Body */
+            body: string;
+            /** Reflection */
+            reflection: string;
+            /** Excerpt */
+            excerpt: string | null;
+            /** Excerpt Kind */
+            excerpt_kind: ("quote" | "code") | null;
+            /** Key Points */
+            key_points: string[] | null;
+        };
+        /** NotePage */
+        NotePage: {
+            /** Items */
+            items: components["schemas"]["NoteSummary"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Tags */
+            tags: components["schemas"]["TagCount"][];
+            /**
+             * Careers
+             * @description Careers your notes come from, with counts
+             */
+            careers: components["schemas"]["TagCount"][];
+            /** Pinned Limit */
+            pinned_limit: number;
+        };
+        /** NotePatch */
+        NotePatch: {
+            /**
+             * Base Revision
+             * @description Required when changing text: the revision this edit started from
+             */
+            base_revision?: number | null;
+            /** Title */
+            title?: string | null;
+            /** Body */
+            body?: string | null;
+            /** Reflection */
+            reflection?: string | null;
+            /** Tags */
+            tags?: string[] | null;
+            /**
+             * Key Points
+             * @description Accepted key points; [] clears
+             */
+            key_points?: string[] | null;
+            /** Pinned */
+            pinned?: boolean | null;
+            /** Archived */
+            archived?: boolean | null;
+        };
+        /** NoteSummary */
+        NoteSummary: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Snippet */
+            snippet: string;
+            /** Tags */
+            tags: string[];
+            source: components["schemas"]["SourceOut"] | null;
+            /** Pinned */
+            pinned: boolean;
+            /** Archived */
+            archived: boolean;
+            /** Revision */
+            revision: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /** OrderIn */
         OrderIn: {
@@ -4082,6 +4313,57 @@ export interface components {
              */
             days: 1 | 3 | 7;
         };
+        /** SourceIn */
+        SourceIn: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "question" | "problem" | "lesson" | "interview";
+            /**
+             * Id
+             * @description Question id, problem slug, unit id or interview id
+             */
+            id: string;
+            /**
+             * Track
+             * @description Career, for questions
+             */
+            track?: string | null;
+            /**
+             * Question Index
+             * @description Interviews: which question
+             */
+            question_index?: number | null;
+        };
+        /** SourceOut */
+        SourceOut: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "question" | "problem" | "lesson" | "interview";
+            /** Id */
+            id: string;
+            /** Track */
+            track: string | null;
+            /** Version */
+            version: string | null;
+            /**
+             * Title
+             * @description The source's title when the note was captured
+             */
+            title: string | null;
+            /** Href */
+            href: string | null;
+            /**
+             * Available
+             * @description False when the source left the library; the note is kept
+             */
+            available: boolean;
+            /** Career Title */
+            career_title: string | null;
+        };
         /** SubmissionCreate */
         SubmissionCreate: {
             /** Problem Slug */
@@ -4165,6 +4447,13 @@ export interface components {
          * @enum {string}
          */
         SubmissionStatus: "QUEUED" | "RUNNING" | "PASSED" | "FAILED" | "COMPILE_ERROR" | "RUNTIME_ERROR" | "TIME_LIMIT" | "MEMORY_LIMIT" | "INTERNAL_ERROR";
+        /** TagCount */
+        TagCount: {
+            /** Tag */
+            tag: string;
+            /** Count */
+            count: number;
+        };
         /** TargetIn */
         TargetIn: {
             /** Title */
@@ -7178,6 +7467,382 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_notes_api_v1_me_notes_get: {
+        parameters: {
+            query?: {
+                /** @description Words in the title, text, reflection or tags */
+                q?: string | null;
+                career?: string | null;
+                source_type?: ("question" | "problem" | "lesson" | "interview") | null;
+                tag?: string | null;
+                /** @description Notes on one item (with source_type) */
+                source_id?: string | null;
+                status?: "active" | "archived" | "all";
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotePage"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_note_api_v1_me_notes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_note_api_v1_me_notes__note_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_note_api_v1_me_notes__note_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletedOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_note_api_v1_me_notes__note_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotePatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    restore_note_api_v1_me_notes__note_id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    suggest_key_points_api_v1_me_notes__note_id__key_points_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeyPoints"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

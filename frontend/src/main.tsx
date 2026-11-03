@@ -21,6 +21,7 @@ import "./styles/targets.css";
 import "./styles/review.css";
 import "./styles/saved.css";
 import "./styles/learn.css";
+import "./styles/notes.css";
 
 const queryClient = makeQueryClient();
 const router = createRouter();

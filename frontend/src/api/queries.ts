@@ -5,7 +5,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { ApiError } from "./client";
-import { api, type ActivityFilters, type ExploreFilters, type ProblemFilters, type QuestionFilters } from "./endpoints";
+import { api, type ActivityFilters, type ExploreFilters, type NoteFilters, type ProblemFilters, type QuestionFilters } from "./endpoints";
 import type { AIHistoryAction, AnswerSource, Bookmark, Collection, GoalsInput, MyExploreResult, ReviewQueue, SavedItemRef, Target, UnitProgress, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
 
 export const queryKeys = {
@@ -486,4 +486,19 @@ export function useLearnMutation<V, R>(id: string, fn: (vars: V) => Promise<R>, 
       void qc.invalidateQueries({ queryKey: ["me", "plan"] });
     },
   });
+}
+
+// --- notebook ----------------------------------------------------------------------------------
+
+export function useNotes(filters: NoteFilters, enabled = true) {
+  return useQuery({
+    queryKey: ["me", "notes", filters],
+    queryFn: ({ signal }) => api.notes(filters, signal),
+    enabled,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useNote(id: string) {
+  return useQuery({ queryKey: ["me", "note", id], queryFn: () => api.note(id), staleTime: 0 });
 }

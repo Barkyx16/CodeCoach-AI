@@ -113,3 +113,11 @@ export type LearnUnit = S["UnitOut"];
 export type UnitLink = S["UnitLink"];
 export type UnitProgress = S["UnitProgress"];
 export type CheckResult = S["CheckResult"];
+
+export type Note = S["NoteOut"];
+export type NoteSummary = S["NoteSummary"];
+export type NotePage = S["NotePage"];
+export type NoteInput = S["NoteIn"];
+export type NotePatch = S["NotePatch"];
+export type NoteSource = S["SourceIn"];
+export type KeyPoints = S["KeyPoints"];

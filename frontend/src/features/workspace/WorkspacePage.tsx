@@ -19,6 +19,7 @@ import { useDraft, type SaveState } from "./useDraft";
 import { WorkspaceFrame } from "./WorkspaceFrame";
 import { Icon } from "@/components/Icon";
 import { LearnLinks } from "@/features/learn/LearnLinks";
+import { NoteCapture } from "@/features/notes/NoteCapture";
 import { QueueBar } from "@/features/saved/QueueBar";
 import { SaveControls } from "@/features/saved/SaveControls";
 
@@ -123,6 +124,7 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
         after={<>
           <LearnLinks query={{ problem_slug: problem.slug }} from={{ from: `/problems/${problem.slug}`, fromLabel: "Back to the problem" }} />
           {isAuthenticated && <SaveControls item={savedRef} title={problem.title} />}
+          {isAuthenticated && <NoteCapture source={{ type: "problem", id: problem.slug }} excerpt={draft.code} excerptKind="code" excerptLabel="your current code" />}
         </>} />
     </section>
   );

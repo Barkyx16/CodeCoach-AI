@@ -4,6 +4,7 @@ import { afterAll, afterEach, beforeAll, vi } from "vitest";
 
 import { resetExploreStore } from "./explore";
 import { resetLearnStore } from "./learn";
+import { resetNoteStore } from "./notes";
 import { cookieJar, server } from "./server";
 
 // Monaco needs a real browser; in jsdom we swap it for a textarea with the same contract.
@@ -37,5 +38,6 @@ afterEach(() => {
   cookieJar.hasSession = false;
   resetExploreStore();
   resetLearnStore();
+  resetNoteStore();
 });
 afterAll(() => server.close());

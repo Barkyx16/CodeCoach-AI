@@ -553,6 +553,17 @@ These are moments where the obvious path was wrong and a deliberate decision was
     practice plan only counts a lesson when its check is passed. A version number on every unit
     keeps old progress meaningful after edits.
 
+42. **Autosave that can't lose or clobber text.** The notebook saves as you type, but every
+    text edit carries the revision it started from. If another tab saved first, the server
+    refuses the stale edit (409) and the page shows both versions with three choices, instead of
+    "last write wins". Unsaved text is also kept in the browser until the server confirms it, and
+    leaving the page sends it with `keepalive`. The prompt allowed an AI "Summarize" only if it
+    could reuse the existing provider and budget; the budget table is tied to coding problems, so
+    reusing it would have meant reworking AI history. Instead there's a clearly labelled, non-AI
+    "key points" helper that only lists the learner's own sentences and saves nothing until they
+    accept. The browser test for problem opens also exposed a real race (pages fetched before the
+    session restored), now fixed and reproduced deterministically in the test.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -1176,4 +1187,23 @@ built as a complete, tested slice and committed on its own.
   plus WCAG scans of the Learn pages on desktop and mobile.
 - **Limits:** six units only; reference links weren't checked from this environment (no outbound
   access); the site has one (dark) theme until U07 adds light/system.
+
+**Also fixed:** CI's History test saw 8 of 12 problem opens: on a full page load the problem was
+fetched before the session restored, so the open wasn't recorded. The pages now wait; the test
+slows the refresh call to reproduce it (1 of 12 before the fix, 12 of 12 after).
+
+**U03 Personal practice notebook (built and verified):**
+- Notes captured from questions, coding problems, lessons and interview reviews, keeping the
+  source id/version/title and an optional labelled snapshot; title, safe Markdown, tags,
+  reflection; pin (max 5), archive, delete with a 10-minute undo; search and filters in the URL
+  with Back/scroll restored.
+- Reliable writing: autosave states, retry, recovery copy in the browser, flush on navigation
+  (`keepalive`), revision-based conflict detection with a side-by-side resolution.
+- Non-AI key points with preview and explicit save. Private by owner on every operation; text never
+  logged; export and account deletion include notes; retired sources keep the note.
+- Tests: 10 backend (SQLite and PostgreSQL), 9 frontend (incl. failure/retry, reload recovery,
+  conflicts, navigation during a save, malicious Markdown, undo), a real-browser journey with two
+  tabs, a second account in a separate browser context and WCAG scans.
+- **Limits:** no AI summary (see judgment call 42); local recovery copies stay in the browser for
+  the account that wrote them until restored or discarded.
 

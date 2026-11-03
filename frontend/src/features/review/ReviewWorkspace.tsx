@@ -17,6 +17,7 @@ import { OVERALL_LABELS } from "@/features/interview/phases";
 import { RubricChart } from "@/features/interview/RubricChart";
 import { roundDraftKey } from "@/features/interview/roundDrafts";
 import { EngagementNote } from "@/features/voice/EngagementMeter";
+import { NoteCapture } from "@/features/notes/NoteCapture";
 
 const STATUS_TEXT: Record<ReviewEntry["status"], string> = {
   answered: "Answered", skipped: "Skipped", not_reached: "Not reached", said: "",
@@ -247,6 +248,10 @@ function Detail({ r, item, focusable = false }: { r: InterviewReview; item: Revi
         </div>
       )}
       <InlineError error={save.error} />
+      {isRound && (
+        <NoteCapture key={item.key} source={{ type: "interview", id: r.id, question_index: item.index }}
+          excerpt={item.answer_text} excerptLabel="your answer" />
+      )}
     </article>
   );
 }

@@ -15,6 +15,7 @@ import { useStoredDraft } from "@/hooks/useStoredDraft";
 import { timeAgo } from "@/lib/format";
 
 import { LearnLinks } from "@/features/learn/LearnLinks";
+import { NoteCapture } from "@/features/notes/NoteCapture";
 import { QueueBar } from "@/features/saved/QueueBar";
 import { SaveControls } from "@/features/saved/SaveControls";
 
@@ -124,6 +125,7 @@ export function QuestionPage() {
         <aside className="stack">
           <LearnLinks query={{ track, question_id: id }} from={{ from: `/careers/${track}/questions/${id}`, fromLabel: "Back to the question" }} />
           {isAuthenticated && <SaveControls item={{ item_type: "question", track, ref_id: id }} title={q.title} />}
+          {isAuthenticated && <NoteCapture source={{ type: "question", id, track }} excerpt={q.prompt} excerptLabel="the question" />}
           <Card className="stack">
             <h2 className="section-title"><Icon name="spark" size={16} />Tips</h2>
             <ul className="mini-list">{q.tips.map((t) => <li key={t}>{t}</li>)}</ul>

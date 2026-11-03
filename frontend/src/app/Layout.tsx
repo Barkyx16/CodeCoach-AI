@@ -63,6 +63,7 @@ export function Layout() {
           {isAuthenticated && <NavLink to="/targets" className={navClass}>Roles</NavLink>}
           {isAuthenticated && <NavLink to="/analytics" className={navClass}>Analytics</NavLink>}
           {isAuthenticated && <NavLink to="/history" className={navClass}>History</NavLink>}
+          {isAuthenticated && <NavLink to="/notes" className={navClass}>Notes</NavLink>}
           {isAuthenticated && <NavLink to="/saved" className={navClass}>Saved</NavLink>}
         </nav>
         <div className="header__account">

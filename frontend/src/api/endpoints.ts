@@ -67,6 +67,11 @@ import type {
   LearnUnit,
   UnitLink,
   UnitProgress,
+  KeyPoints,
+  Note,
+  NoteInput,
+  NotePage,
+  NotePatch,
 } from "./types";
 
 export interface ProblemFilters {
@@ -91,6 +96,17 @@ export interface ExploreFilters {
   skill?: string;
   status?: "attempted" | "unattempted" | "bookmarked";
   sort?: ExploreSort;
+  page?: number;
+  page_size?: number;
+}
+
+export interface NoteFilters {
+  q?: string;
+  career?: string;
+  source_type?: "question" | "problem" | "lesson" | "interview";
+  source_id?: string;
+  tag?: string;
+  status?: "active" | "archived" | "all";
   page?: number;
   page_size?: number;
 }
@@ -296,6 +312,16 @@ export const api = {
     apiRequest<UnitProgress>(`/api/v1/me/learn/units/${encodeURIComponent(id)}/events`, { method: "POST", body: { kind, version } }),
   learnCheck: (id: string, version: number, answers: Record<string, number>) =>
     apiRequest<CheckResult>(`/api/v1/me/learn/units/${encodeURIComponent(id)}/check`, { method: "POST", body: { version, answers } }),
+
+  // notebook
+  notes: (filters: NoteFilters, signal?: AbortSignal) => apiRequest<NotePage>("/api/v1/me/notes", { query: { ...filters }, signal }),
+  note: (id: string) => apiRequest<Note>(`/api/v1/me/notes/${encodeURIComponent(id)}`),
+  createNote: (body: NoteInput) => apiRequest<Note>("/api/v1/me/notes", { method: "POST", body }),
+  updateNote: (id: string, body: NotePatch, keepalive = false) =>
+    apiRequest<Note>(`/api/v1/me/notes/${encodeURIComponent(id)}`, { method: "PATCH", body, keepalive }),
+  deleteNote: (id: string) => apiRequest<{ id: string; restorable_until: string }>(`/api/v1/me/notes/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  restoreNote: (id: string) => apiRequest<Note>(`/api/v1/me/notes/${encodeURIComponent(id)}/restore`, { method: "POST" }),
+  keyPoints: (id: string) => apiRequest<KeyPoints>(`/api/v1/me/notes/${encodeURIComponent(id)}/key-points`, { method: "POST" }),
 
   // progress
   progress: () => apiRequest<Progress>("/api/v1/me/progress"),

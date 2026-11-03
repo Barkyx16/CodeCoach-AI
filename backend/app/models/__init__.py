@@ -728,3 +728,36 @@ class LearnEvent(Base):
     detail: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
     dedupe_key: Mapped[str | None] = mapped_column(String(120), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class Note(Base):
+    """A private notebook entry, optionally captured from a question, problem, lesson or interview.
+
+    The source is referenced by stable id (plus the version when one exists) and a title snapshot,
+    so a retired source never destroys the note. `excerpt` is a snapshot, not a live reference.
+    `revision` increments on every save; a save based on an older revision is refused (409) so
+    newer text is never silently replaced. `deleted_at` gives a short undo window before purge."""
+
+    __tablename__ = "notes"
+    __table_args__ = (Index("ix_notes_user_updated", "user_id", "updated_at"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(200), default="")
+    body: Mapped[str] = mapped_column(Text, default="")
+    reflection: Mapped[str] = mapped_column(Text, default="")
+    tags: Mapped[list[str]] = mapped_column(JSONType, default=list)
+    source_type: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    source_id: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    source_track: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    source_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    source_title: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    excerpt: Mapped[str | None] = mapped_column(Text, nullable=True)
+    excerpt_kind: Mapped[str | None] = mapped_column(String(8), nullable=True)  # quote | code
+    key_points: Mapped[list[str] | None] = mapped_column(JSONType, nullable=True)  # accepted only
+    pinned: Mapped[bool] = mapped_column(Boolean, default=False)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False)
+    revision: Mapped[int] = mapped_column(Integer, default=1)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    deleted_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)

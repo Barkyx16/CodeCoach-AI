@@ -730,6 +730,29 @@ on these endpoints.
 - The practice plan may include a `learn` item (before the retry it prepares for) whose completion
   is a passed check after it was planned; reading alone never completes it.
 
+### Notebook
+
+All under `/api/v1/me/notes` 🔒; a note is only ever visible to its owner (anyone else gets 404).
+
+- `GET /me/notes?q=&career=&source_type=question|problem|lesson|interview&source_id=&tag=&status=active|archived|all`
+  → `{items, total, page, page_size, tags, careers, pinned_limit}`; pinned notes first, then most
+  recently updated. Search covers titles, text, reflections and tags.
+- `POST /me/notes {title, body, reflection, tags, source?: {type, id, track?, question_index?}, excerpt?, excerpt_kind?: quote|code}`
+  → `201`. The source must exist (interviews must be yours); its id, version (when one exists)
+  and title are stored, and `excerpt` is a snapshot. Bounds: title 200, body 20,000, reflection
+  5,000, excerpt 4,000 characters, 12 tags.
+- `GET|PATCH|DELETE /me/notes/{id}`. Text changes need `base_revision`; if the note changed since,
+  the answer is `409 note_conflict` with `details.current` (the saved note) and nothing is
+  overwritten. `pinned` (at most 5, `409 pin_limit`) and `archived` don't need a revision and
+  don't conflict. `source.available` is false once the source leaves the library; the note stays.
+- `DELETE` starts a 10-minute undo window (`{restorable_until}`); `POST /me/notes/{id}/restore`
+  undoes it; afterwards the note is purged.
+- `POST /me/notes/{id}/key-points` → `{points, method}`: a deterministic, non-AI helper that
+  lists the note's own action or lesson sentences. Nothing is saved until the client sends them
+  as `key_points` in a `PATCH`.
+- Bodies are stored as untrusted text and never logged; the web app renders Markdown without HTML
+  or images. Notes are in the data export and deleted with the account.
+
 ### Practice plan
 
 Deterministic rules over recorded evidence (`app/services/roadmap.py` documents them); no AI.

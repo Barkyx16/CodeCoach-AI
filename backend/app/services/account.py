@@ -13,6 +13,7 @@ from app.models import (
     ExperienceEntry,
     InterviewRetry,
     LearnEvent,
+    Note,
     PracticeAnswer,
     PracticeCollection,
     PracticeGoal,
@@ -62,6 +63,9 @@ def export_user_data(db: Session, user: User) -> dict:
     experience = db.scalars(select(ExperienceEntry).where(ExperienceEntry.user_id == user.id)).all()
     retries = db.scalars(select(InterviewRetry).where(InterviewRetry.user_id == user.id)).all()
     queue = db.scalars(select(ReviewItem).where(ReviewItem.user_id == user.id)).all()
+    notes = db.scalars(
+        select(Note).where(Note.user_id == user.id, Note.deleted_at.is_(None)).order_by(Note.created_at)
+    ).all()
     learn_events = db.scalars(
         select(LearnEvent).where(LearnEvent.user_id == user.id).order_by(LearnEvent.created_at)
     ).all()
@@ -304,5 +308,31 @@ def export_user_data(db: Session, user: User) -> dict:
                 "at": iso(e.created_at),
             }
             for e in learn_events
+        ],
+        "notes": [
+            {
+                "title": n.title,
+                "body": n.body,
+                "reflection": n.reflection,
+                "tags": n.tags,
+                "source": (
+                    {
+                        "type": n.source_type,
+                        "id": n.source_id,
+                        "career": n.source_track,
+                        "version": n.source_version,
+                        "title": n.source_title,
+                    }
+                    if n.source_type
+                    else None
+                ),
+                "excerpt": n.excerpt,
+                "key_points": n.key_points,
+                "pinned": n.pinned,
+                "archived": n.archived,
+                "created_at": iso(n.created_at),
+                "updated_at": iso(n.updated_at),
+            }
+            for n in notes
         ],
     }

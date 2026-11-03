@@ -59,6 +59,8 @@ export interface RequestOptions {
   signal?: AbortSignal;
   /** Send the bearer token if we have one (default true). */
   auth?: boolean;
+  /** Let the request finish even if the page is being unloaded (saving on navigation). */
+  keepalive?: boolean;
   headers?: Record<string, string>;
 }
 
@@ -93,6 +95,7 @@ async function send<T>(path: string, options: RequestOptions, isRetry: boolean):
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
       signal,
+      keepalive: options.keepalive,
       // The refresh cookie is path-scoped to /api/v1/auth; only those calls need credentials.
       credentials: path.startsWith(AUTH_PATH) ? "include" : "same-origin",
     });
