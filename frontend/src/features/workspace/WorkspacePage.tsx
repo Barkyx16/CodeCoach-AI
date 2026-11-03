@@ -18,6 +18,8 @@ import { ContentInfo } from "@/features/content/ContentInfo";
 import { ReportIssue } from "@/features/content/ReportIssue";
 
 import { CoachPanel } from "./CoachPanel";
+import { GuidedTour } from "@/features/onboarding/GuidedTour";
+
 import { CodeEditor } from "./CodeEditor";
 import { ProblemStatement } from "./ProblemStatement";
 import { SubmissionPanel } from "./SubmissionPanel";
@@ -129,12 +131,12 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
     <div className="editor-toolbar">
       <span className="editor-toolbar__lang"><Icon name="code" size={15} />Solution.java</span>
       {/* Not a live region: it changes with every keystroke. A failure is announced once. */}
-      <span className={`save-state save-state--${draft.saveState}`}
+      <span className={`save-state save-state--${draft.saveState}`} data-tour="save"
         title={draft.saveState === "saved" ? "Your draft is kept in this browser. It isn't submitted until you submit it." : undefined}>
         {SAVE_LABEL[draft.saveState]}
       </span>
       {draft.saveState === "error" && <span className="visually-hidden" role="alert">Your draft isn't being saved: this browser's storage is unavailable.</span>}
-      <div className="editor-toolbar__actions">
+      <div className="editor-toolbar__actions" data-tour="submit">
         <Button size="sm" variant="ghost" aria-expanded={showSettings} aria-controls={settingsId}
           onClick={() => setShowSettings((value) => !value)}>Editor settings</Button>
         <Button size="sm" variant="ghost" disabled={!draft.isModified}
@@ -160,7 +162,7 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
 
   const savedRef = { item_type: "problem" as const, track: "", ref_id: problem.slug };
   const statement = (
-    <section className="panel-scroll" aria-label="Problem description" tabIndex={0}>
+    <section className="panel-scroll" aria-label="Problem description" tabIndex={0} data-tour="statement">
       <ProblemStatement problem={problem}
         before={isAuthenticated ? <div className="focus-hide display-contents"><QueueBar item={savedRef} /></div> : undefined}
         after={<div className="focus-hide display-contents">
@@ -176,7 +178,7 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
     </section>
   );
   const editor = (
-    <div className="editor-pane">
+    <div className="editor-pane" data-tour="editor">
       {offeredCode && (
         <div className="banner banner--info load-offer" role="region" aria-label="Open past code">
           <span>Open the code you submitted{offer?.loadFrom ? ` on ${offer.loadFrom}` : ""}? It replaces what's in the editor now{draft.isModified ? " (your current draft)" : ""}.</span>
@@ -225,7 +227,7 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
     </section>
   );
   const coach = (
-    <div className="panel-scroll">
+    <div className="panel-scroll" data-tour="coach">
       <CoachPanel problemSlug={problem.slug} maxLevel={problem.hint_levels} code={draft.code}
         submissionId={submissionId} enabled={isAuthenticated} onSignInRequired={goSignIn} onHighlightLine={jumpToLine} />
     </div>
@@ -243,6 +245,7 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
           className="workspace__tab-system" listClassName="workspace__tabs" panelClassName="workspace__mobile-panel">
           {tabs.find((t) => t.id === mobileTab)?.content}
         </Tabs>
+        <GuidedTour kind="coding" />
       </div></WorkspaceFrame>
     );
   }
@@ -262,6 +265,7 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
         <Separator className="resize-handle" />
         <Panel id="coach" defaultSize="26" minSize="18" className="workspace__panel">{coach}</Panel>
       </Group>
+      <GuidedTour kind="coding" />
     </div></WorkspaceFrame>
   );
 }

@@ -5297,6 +5297,96 @@
         }
       }
     },
+    "/api/v1/me/onboarding": {
+      "get": {
+        "tags": [
+          "onboarding"
+        ],
+        "summary": "Where you are in the introduction, and a real starter activity for your career",
+        "operationId": "get_onboarding_api_v1_me_onboarding_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "onboarding"
+        ],
+        "summary": "Record a choice about the introduction (never answer text; never practice progress)",
+        "operationId": "update_onboarding_api_v1_me_onboarding_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnboardingUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/scenarios": {
       "get": {
         "tags": [
@@ -12529,6 +12619,34 @@
         ],
         "title": "CareerCoverage"
       },
+      "CareerIntro": {
+        "properties": {
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "written",
+              "coding"
+            ],
+            "title": "Kind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "track",
+          "title",
+          "kind"
+        ],
+        "title": "CareerIntro",
+        "description": "Offered once after a career change: how practice works for the new career's format."
+      },
       "CareerSummary": {
         "properties": {
           "slug": {
@@ -17207,6 +17325,228 @@
         ],
         "title": "NoteSummary"
       },
+      "OnboardingOut": {
+        "properties": {
+          "tour_status": {
+            "type": "string",
+            "enum": [
+              "not_started",
+              "in_progress",
+              "paused",
+              "completed",
+              "skipped"
+            ],
+            "title": "Tour Status"
+          },
+          "tour_kind": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "written",
+                  "coding"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tour Kind"
+          },
+          "tour_step": {
+            "type": "integer",
+            "title": "Tour Step"
+          },
+          "tour_steps": {
+            "type": "integer",
+            "title": "Tour Steps",
+            "description": "How many steps the tour for tour_kind has"
+          },
+          "start_choice": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "practice",
+                  "intro",
+                  "library",
+                  "later"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Choice"
+          },
+          "welcome_due": {
+            "type": "boolean",
+            "title": "Welcome Due",
+            "description": "Hasn't chosen how to start and hasn't practised yet"
+          },
+          "resume_due": {
+            "type": "boolean",
+            "title": "Resume Due",
+            "description": "Left the tour part-way and hasn't dismissed the reminder"
+          },
+          "career_intro": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CareerIntro"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "first_activity_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Activity At",
+            "description": "When the learner first answered a question or submitted code (from their real activity; the tour never counts)"
+          },
+          "starter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StarterActivity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "written",
+              "coding"
+            ],
+            "title": "Format",
+            "description": "The current career's practice format"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tour_status",
+          "tour_kind",
+          "tour_step",
+          "tour_steps",
+          "start_choice",
+          "welcome_due",
+          "resume_due",
+          "career_intro",
+          "first_activity_at",
+          "starter",
+          "format"
+        ],
+        "title": "OnboardingOut"
+      },
+      "OnboardingUpdate": {
+        "properties": {
+          "start_choice": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "practice",
+                  "intro",
+                  "library",
+                  "later"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Choice"
+          },
+          "tour": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "start",
+                  "step",
+                  "pause",
+                  "complete",
+                  "skip"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tour"
+          },
+          "tour_kind": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "written",
+                  "coding"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tour Kind",
+            "description": "With tour=start; defaults to the career's format"
+          },
+          "tour_step": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 20.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tour Step",
+            "description": "With tour=start or tour=step"
+          },
+          "dismiss": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "welcome",
+                  "resume_tour"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dismiss"
+          },
+          "career_intro_seen": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Career Intro Seen",
+            "description": "true: don't offer the current career's format introduction again"
+          }
+        },
+        "type": "object",
+        "title": "OnboardingUpdate",
+        "description": "One change at a time is typical; every field is optional and each is idempotent."
+      },
       "OptionOut": {
         "properties": {
           "id": {
@@ -21455,6 +21795,56 @@
         "type": "object",
         "title": "StartIn"
       },
+      "StarterActivity": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "question",
+              "problem"
+            ],
+            "title": "Kind"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "ref": {
+            "type": "string",
+            "title": "Ref",
+            "description": "Question id or problem slug"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "difficulty": {
+            "type": "string",
+            "title": "Difficulty"
+          },
+          "href": {
+            "type": "string",
+            "title": "Href"
+          },
+          "minutes": {
+            "type": "integer",
+            "title": "Minutes",
+            "description": "A rough estimate of how long it takes, for planning only"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "track",
+          "ref",
+          "title",
+          "difficulty",
+          "href",
+          "minutes"
+        ],
+        "title": "StarterActivity",
+        "description": "A real, short activity from the learner's own career: never a sample or a demo record."
+      },
       "StatusIn": {
         "properties": {
           "status": {
@@ -23315,6 +23705,10 @@
     {
       "name": "content quality",
       "description": "Content metadata and trust labels, issue reports, and admin triage (corrections, retirement). Admin routes answer 404 to everyone who isn't an admin."
+    },
+    {
+      "name": "onboarding",
+      "description": "The optional first-session introduction: the learner's choices about it and a real starter activity for their career. Records no answer text and no practice progress."
     },
     {
       "name": "sharing",

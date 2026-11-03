@@ -133,6 +133,7 @@ test("every control does something", async ({ page, context }) => {
   // Sign in as a guest and create real activity so every page has content.
   await page.goto("/");
   await page.getByRole("button", { name: /try it now/i }).click();
+  await page.getByRole("button", { name: "Start this problem" }).click(); // the optional welcome
   await expect(page).toHaveURL(/two-sum/);
   await page.getByRole("button", { name: "Get a hint" }).click();
   await expect(page.getByText(/level 1/i).first()).toBeVisible();

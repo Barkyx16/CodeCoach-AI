@@ -12,6 +12,7 @@ import { KIND_LABEL } from "@/features/careers/kinds";
 
 import { ProgressBars } from "./ProgressBars";
 import { TodayCard } from "@/features/plan/TodayCard";
+import { OnboardingBanner } from "@/features/onboarding/OnboardingBanner";
 
 import { ContinueCard } from "./ContinueCard";
 import { StatTile } from "./StatTile";
@@ -63,6 +64,7 @@ export function CareerDashboard({ track, careerTitle }: { track: string; careerT
         </div>
       </div>
 
+      <OnboardingBanner />
       <TodayCard />
       <ContinueCard />
 

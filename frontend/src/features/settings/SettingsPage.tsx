@@ -62,6 +62,7 @@ export function SettingsPage() {
             {user.is_guest && <KeepProgressRow onUpgraded={() => setUpgraded(true)} />}
             <ProfileRow />
             <CareerRow />
+            <HelpRow />
             {!user.is_guest && <EmailRow />}
           </Section>
           <Section id="security" title="Sign-in & security" description="Your password and where you're signed in.">
@@ -468,6 +469,21 @@ function AIPrivacyRow() {
         <ul className="privacy-points">
           {PRIVACY_POINTS.map((point) => <li key={point}><Icon name="check" size={15} />{point}</li>)}
         </ul>
+      </div>
+    </div>
+  );
+}
+
+function HelpRow() {
+  return (
+    <div className="setting" role="group" aria-labelledby="help-row-title">
+      <RowIntro icon="book" id="help-row-title" title="Help and the introduction">
+        Short answers about practice, drafts, feedback, voice and history, and the guided tour to take again.
+      </RowIntro>
+      <div className="setting__body setting__body--center">
+        <div className="setting__actions">
+          <Link className="btn btn--secondary btn--md" to="/help">Open Help</Link>
+        </div>
       </div>
     </div>
   );

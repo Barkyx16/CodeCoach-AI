@@ -960,3 +960,31 @@ class ContentCheck(Base):
     passed: Mapped[bool] = mapped_column(Boolean)
     detail: Mapped[str | None] = mapped_column(Text, nullable=True)
     checked_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class OnboardingState(Base):
+    """Where a learner is in the optional first-session introduction. One row per account,
+    created on first use. It records only the learner's choices about the introduction (never
+    answer text): whether the guided tour was started, paused, finished or skipped and at which
+    step, which start they chose, which careers' format introductions they've seen, and which
+    banners they dismissed. Whether they've done a real activity is worked out from their actual
+    answers and submissions, not stored here."""
+
+    __tablename__ = "user_onboarding"
+
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    # not_started | in_progress | paused | completed | skipped
+    tour_status: Mapped[str] = mapped_column(String(16), default="not_started")
+    tour_kind: Mapped[str | None] = mapped_column(String(12), nullable=True)  # written | coding
+    tour_step: Mapped[int] = mapped_column(Integer, default=0)
+    tour_version: Mapped[int] = mapped_column(Integer, default=1)
+    start_choice: Mapped[str | None] = mapped_column(
+        String(12), nullable=True
+    )  # practice | intro | library | later
+    intro_track: Mapped[str | None] = mapped_column(String(64), nullable=True)  # career when they started
+    career_intros_seen: Mapped[list[str]] = mapped_column(JSONType, default=list)
+    dismissed: Mapped[list[str]] = mapped_column(JSONType, default=list)
+    welcomed_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    tour_started_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    tour_finished_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)

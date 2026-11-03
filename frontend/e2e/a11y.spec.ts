@@ -35,6 +35,7 @@ test("public pages have no WCAG 2.1 A/AA violations", async ({ page }) => {
     ["/learn/se-sliding-window", /sliding windows/i],
     ["/scenarios?career=registered-nurse", /registered nurse scenarios/i],
     ["/scenarios/rn-two-patients", /two call lights/i],
+    ["/help", /how codecoach works/i],
     ["/no-such-page", /page not found/i],
   ] as const) {
     await page.goto(path);
@@ -47,6 +48,11 @@ test("signed-in screens have no WCAG 2.1 A/AA violations", async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
   await page.goto("/");
   await page.getByRole("button", { name: /try it now/i }).click();
+  // The guest demo starts on the optional welcome, then opens the real starter problem.
+  await expect(page).toHaveURL(/\/welcome$/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Welcome");
+  await expectNoViolations(page, "welcome");
+  await page.getByRole("button", { name: "Start this problem" }).click();
   await expect(page).toHaveURL(/two-sum/);
   await expect(page.getByRole("heading", { name: "Two Sum", level: 1 })).toBeVisible();
   await expectNoViolations(page, "workspace");

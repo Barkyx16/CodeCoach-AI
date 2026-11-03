@@ -15,6 +15,7 @@ test("review a round, retry one question, compare, queue it, and come back to Hi
   await page.getByLabel("Job you're preparing for").selectOption("registered-nurse");
   await page.locator("#main").getByRole("button", { name: "Create account" }).click();
   await page.getByRole("link", { name: "Do this later" }).click();
+  await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click(); // the optional welcome
 
   await page.goto("/interviews/questions");
   await page.getByRole("button", { name: "Start interview" }).click();

@@ -12,16 +12,17 @@ import { CareerSelect } from "@/features/careers/CareerSelect";
 
 import { AuthLayout } from "./AuthLayout";
 
-/** After signing in: back to the page that asked for it (e.g. a problem), else the dashboard. */
-function useRedirectTarget(): string {
+/** After signing in: back to the page that asked for it (e.g. a problem), else `fallback`: the
+ * dashboard for returning accounts, the optional welcome for new ones. */
+function useRedirectTarget(fallback = "/dashboard"): string {
   const location = useLocation();
-  return (location.state as { from?: string } | null)?.from ?? "/dashboard";
+  return (location.state as { from?: string } | null)?.from ?? fallback;
 }
 
 function GuestButton() {
   const { continueAsGuest } = useAuth();
   const navigate = useNavigate();
-  const target = useRedirectTarget();
+  const target = useRedirectTarget("/welcome");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   return (
@@ -94,7 +95,7 @@ export function LoginPage() {
 export function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
-  const target = useRedirectTarget();
+  const target = useRedirectTarget("/welcome");
   const [form, setForm] = useState({ display_name: "", email: "", password: "", career_track: "" });
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);

@@ -31,6 +31,7 @@ from app.models import (
     Submission,
     User,
 )
+from app.services.onboarding import Onboarding
 from app.services.shares import status_of
 
 EXPORT_VERSION = 1
@@ -359,6 +360,8 @@ def export_user_data(db: Session, user: User) -> dict:
             }
             for n in notes
         ],
+        # Your choices about the first-session introduction (no answer text is part of it).
+        "onboarding": Onboarding(db, user).export(),
         # Problems you reported in questions or feedback, and what happened (no internal notes).
         "content_reports": [
             {

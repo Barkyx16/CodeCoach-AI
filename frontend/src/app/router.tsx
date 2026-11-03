@@ -40,6 +40,8 @@ import { AttemptPage } from "@/features/scenarios/AttemptPage";
 import { ScenarioBriefing, ScenariosPage } from "@/features/scenarios/ScenariosPage";
 import { QueuePage } from "@/features/saved/QueuePage";
 import { SavedPage } from "@/features/saved/SavedPage";
+import { HelpPage } from "@/features/onboarding/HelpPage";
+import { WelcomePage } from "@/features/onboarding/WelcomePage";
 
 import { Layout } from "./Layout";
 import { NotFoundPage } from "./NotFoundPage";
@@ -103,6 +105,8 @@ export const routes: RouteObject[] = [
       // Public: anyone holding a share link (its secret is in the #fragment).
       { path: "/shared", element: <SharedPage /> },
       { path: "/offline", element: <OfflinePage /> },
+      { path: "/help", element: <HelpPage /> },
+      { path: "/welcome", element: <RequireAuth><WelcomePage /></RequireAuth> },
       { path: "/reports", element: <RequireAuth><MyReportsPage /></RequireAuth> },
       { path: "/admin/reports", element: <RequireAuth><AdminGuard><AdminReportsPage /></AdminGuard></RequireAuth> },
       { path: "/admin/reports/:id", element: <RequireAuth><AdminGuard><AdminReportPage /></AdminGuard></RequireAuth> },

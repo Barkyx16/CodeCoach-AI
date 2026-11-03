@@ -40,10 +40,10 @@ describe("Authentication", () => {
     expect(await screen.findByText("Ada's progress")).toBeInTheDocument();
   });
 
-  it("opens the dashboard after continuing as a guest", async () => {
+  it("offers the optional welcome after continuing as a guest", async () => {
     const { user, router } = renderApp("/login");
     await user.click(await screen.findByRole("button", { name: "Continue as guest" }));
-    await waitFor(() => expect(router.state.location.pathname).toBe("/dashboard"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/welcome"));
   });
 
   it("shows the generic login error", async () => {
@@ -73,7 +73,8 @@ describe("Authentication", () => {
   it("starts a guest session from the landing page", async () => {
     const { user, router } = renderApp("/");
     await user.click(await screen.findByRole("button", { name: /try it now/i }));
-    await waitFor(() => expect(router.state.location.pathname).toBe("/problems/two-sum"));
+    // A deliberate demo: the guest chooses how to start on the optional welcome.
+    await waitFor(() => expect(router.state.location.pathname).toBe("/welcome"));
     expect(await screen.findByText("Guest")).toBeInTheDocument();
   });
 

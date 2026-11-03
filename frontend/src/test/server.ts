@@ -4,6 +4,7 @@ import { setupServer } from "msw/node";
 import type { Interview } from "@/api/types";
 
 import { contentHandlers } from "./content";
+import { onboardingHandlers } from "./onboarding";
 import { exploreHandlers } from "./explore";
 import { learnHandlers } from "./learn";
 import { noteHandlers } from "./notes";
@@ -28,6 +29,7 @@ export function filterProblems<P extends { title: string; summary: string; topic
 
 export const handlers = [
   ...contentHandlers,
+  ...onboardingHandlers,
   ...exploreHandlers,
   ...learnHandlers,
   ...noteHandlers,

@@ -27,6 +27,8 @@ import { QueueBar } from "@/features/saved/QueueBar";
 import { SaveControls } from "@/features/saved/SaveControls";
 import { ShareEntry } from "@/features/sharing/ShareEntry";
 
+import { GuidedTour } from "@/features/onboarding/GuidedTour";
+
 import { FeedbackCard } from "./FeedbackCard";
 import { KIND_LABEL } from "./kinds";
 
@@ -108,7 +110,7 @@ export function QuestionPage() {
           <ContentInfo type="question" id={`${track}/${id}`}
             seenVersion={answers.data?.[0]?.content_version ?? savedVersion}
             seenWhat={answers.data?.[0] ? "answered" : "saved"} />
-          <Card className="question-page__prompt">
+          <Card className="question-page__prompt" data-tour="question">
             <h2 className="visually-hidden">The question</h2>
             <p>{q.prompt}</p>
           </Card>
@@ -117,20 +119,20 @@ export function QuestionPage() {
           <form className="card stack" onSubmit={onSubmit} aria-labelledby="answer-title">
             <h2 className="section-title" id="answer-title">Write your answer</h2>
             <label className="visually-hidden" htmlFor="answer-text">Your answer</label>
-            <textarea id="answer-text" className="input answer-input" rows={10} maxLength={MAX_CHARS} value={draft}
+            <textarea id="answer-text" data-tour="answer" className="input answer-input" rows={10} maxLength={MAX_CHARS} value={draft}
               placeholder="Write it the way you'd say it in the interview…"
               aria-describedby={submit.error ? "answer-count answer-error" : "answer-count"}
               aria-invalid={submit.error instanceof ApiError && submit.error.status === 422 ? true : undefined}
               onChange={(e) => setDraft(e.target.value)} />
             <div className="answer-actions">
-              <span id="answer-count" className="subtle">{words} {words === 1 ? "word" : "words"} · aim for 120-350</span>
+              <span id="answer-count" className="subtle" data-tour="draft">{words} {words === 1 ? "word" : "words"} · aim for 120-350</span>
               {isAuthenticated || offlineUser ? (
-                <Button type="submit" variant="primary" loading={submit.isPending} disabled={!draft.trim() || !online || retired}
+                <Button type="submit" variant="primary" data-tour="feedback" loading={submit.isPending} disabled={!draft.trim() || !online || retired}
                   aria-describedby={!online ? "answer-offline" : retired ? "answer-retired" : undefined}>
                   Get feedback
                 </Button>
               ) : (
-                <span className="row">
+                <span className="row" data-tour="feedback">
                   <Link className="btn btn--secondary btn--md" to="/login" state={{ from: `/careers/${track}/questions/${id}` }}>Sign in</Link>
                   <Button variant="primary" onClick={() => { setGuestError(null); continueAsGuest(undefined, track).catch(setGuestError); }}>
                     Try as a guest
@@ -147,7 +149,7 @@ export function QuestionPage() {
             <InlineError id="answer-error" error={submit.error ?? guestError} />
           </form>
 
-          {shown && <FeedbackCard answer={shown} track={track} title={shown === latest ? "Feedback" : `Feedback on your answer from ${timeAgo(shown.created_at)}`} />}
+          {shown && <div data-tour="next"><FeedbackCard answer={shown} track={track} title={shown === latest ? "Feedback" : `Feedback on your answer from ${timeAgo(shown.created_at)}`} /></div>}
           {shown && isAuthenticated && <div className="focus-hide"><ShareEntry answerId={shown.id} fromLabel="Back to the question" /></div>}
           {wanted && answers.data && !linked && !latest && <p className="banner banner--warning">That answer couldn't be found. It may have been deleted.</p>}
         </div>
@@ -181,6 +183,7 @@ export function QuestionPage() {
           )}
         </aside>
       </div>
+      <GuidedTour kind="written" />
     </div>
   );
 }

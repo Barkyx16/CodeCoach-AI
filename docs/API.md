@@ -791,6 +791,23 @@ the JSON body, never a URL:
   `400 empty_feedback | unknown_sentence` (comments only on shared sentences). Both endpoints
   are rate-limited per client IP (`429`).
 
+### First-session introduction
+
+The optional welcome and guided tour ([ONBOARDING.md](ONBOARDING.md)). Owner-only (`/me`).
+Nothing here stores answer text or creates practice activity.
+
+- `GET /api/v1/me/onboarding` 🔒 → `{tour_status: not_started|in_progress|paused|completed|skipped,
+  tour_kind: written|coding|null, tour_step, tour_steps, start_choice, welcome_due, resume_due,
+  career_intro: {track, title, kind}|null, first_activity_at, starter: {kind: question|problem,
+  track, ref, title, difficulty, href, minutes}|null, format}`. `starter` is a real, easy,
+  non-retired item from the learner's own career; `first_activity_at` comes from their answers
+  and submissions. Reading never creates a row.
+- `PATCH /api/v1/me/onboarding` 🔒 `{start_choice?: practice|intro|library|later, tour?:
+  start|step|pause|complete|skip, tour_kind?, tour_step? (0-20), dismiss?: welcome|resume_tour,
+  career_intro_seen?: true}` → the new state. Each change is idempotent: `step` only moves a
+  running or paused tour (clamped to the last step), `complete` and `skip` don't reopen anything,
+  `start` (also used to replay) begins at step 0. Unknown values are `422`.
+
 ### Content quality: labels, reports, corrections and retirement
 
 How content is labelled, reported, corrected and retired is described in

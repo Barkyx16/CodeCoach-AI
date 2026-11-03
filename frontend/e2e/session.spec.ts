@@ -4,6 +4,7 @@ import { expect, test } from "@playwright/test";
 test("the session survives reloads via an HttpOnly cookie that page scripts can't read", async ({ page, context }) => {
   await page.goto("/");
   await page.getByRole("button", { name: /try it now/i }).click();
+  await page.getByRole("button", { name: "Start this problem" }).click(); // the optional welcome
   await expect(page).toHaveURL(/two-sum/);
 
   const cookie = (await context.cookies()).find((c) => c.name === "cc_refresh");
@@ -35,6 +36,7 @@ test("a guest keeps their work by upgrading to a full account", async ({ page })
   const email = `upgrade-${Date.now()}@example.com`;
   await page.goto("/");
   await page.getByRole("button", { name: /try it now/i }).click();
+  await page.getByRole("button", { name: "Start this problem" }).click(); // the optional welcome
   await expect(page).toHaveURL(/two-sum/);
   await page.getByRole("button", { name: "Get a hint" }).click(); // some guest activity to keep
   await expect(page.getByText(/level 1/i).first()).toBeVisible();

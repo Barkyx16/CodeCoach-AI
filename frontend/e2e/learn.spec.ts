@@ -13,6 +13,7 @@ test("a nurse learns before practising: prerequisite, guided help, solution, che
   await page.getByLabel("Job you're preparing for").selectOption("registered-nurse");
   await page.locator("#main").getByRole("button", { name: "Create account" }).click();
   await page.getByRole("link", { name: "Do this later" }).click();
+  await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click(); // the optional welcome
 
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Learn" }).click();
   await expect(page.getByRole("heading", { name: "Registered Nurse lessons" })).toBeVisible();
@@ -69,6 +70,7 @@ test("a nurse learns before practising: prerequisite, guided help, solution, che
 test("a coding unit shows accessible code and passing its check doesn't solve a problem", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: /try it now/i }).click();
+  await page.getByRole("button", { name: "Start this problem" }).click(); // the optional welcome
   await expect(page).toHaveURL(/two-sum/);
   await expect(page.getByRole("region", { name: "Learn first" }).getByRole("link", { name: "Hash maps for fast lookup" })).toBeVisible();
   await page.getByRole("region", { name: "Learn first" }).getByRole("link", { name: "Hash maps for fast lookup" }).click();

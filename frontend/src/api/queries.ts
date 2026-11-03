@@ -6,7 +6,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 
 import { ApiError } from "./client";
 import { api, type ActivityFilters, type ExploreFilters, type NoteFilters, type ProblemFilters, type QuestionFilters } from "./endpoints";
-import type { AIHistoryAction, AnswerSource, Difficulty, Bookmark, Collection, GoalsInput, MyExploreResult, ReviewQueue, SavedItemRef, ShareDetail, Target, ContentKind, UnitProgress, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
+import type { AIHistoryAction, AnswerSource, Difficulty, Bookmark, Collection, GoalsInput, MyExploreResult, ReviewQueue, SavedItemRef, ShareDetail, Target, ContentKind, Onboarding, OnboardingUpdate, UnitProgress, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
 import { withOfflineCopy } from "@/features/offline/offlineStore";
 
 export const queryKeys = {
@@ -605,5 +605,35 @@ export function useSkipFollowup(id: string) {
   return useMutation({
     mutationFn: () => api.skipFollowup(id),
     onSuccess: (iv) => qc.setQueryData(queryKeys.interview(id), iv),
+  });
+}
+
+// --- the optional first-session introduction --------------------------------------------------
+
+export function useOnboarding(enabled = true) {
+  return useQuery({ queryKey: ["me", "onboarding"], queryFn: api.onboarding, enabled, staleTime: 30_000 });
+}
+
+/** Introduction choices are written straight into the cache, so the tour moves without waiting. */
+export function useUpdateOnboarding() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: OnboardingUpdate) => api.updateOnboarding(body),
+    // Optimistic, and never rolled back: if saving fails (offline, say), the tour still moves on
+    // this page and can always be left. The server's answer replaces it when it arrives.
+    onMutate: (body) => {
+      const prev = qc.getQueryData<Onboarding>(["me", "onboarding"]);
+      if (!prev) return;
+      let next: Onboarding | null = null;
+      if (body.tour === "step" && body.tour_step != null && (prev.tour_status === "in_progress" || prev.tour_status === "paused")) {
+        next = { ...prev, tour_status: "in_progress", tour_step: Math.min(body.tour_step, prev.tour_steps - 1) };
+      } else if (body.tour === "pause" && prev.tour_status === "in_progress") {
+        next = { ...prev, tour_status: "paused", resume_due: true };
+      } else if (body.tour === "complete") {
+        next = { ...prev, tour_status: "completed", resume_due: false };
+      }
+      if (next) qc.setQueryData<Onboarding>(["me", "onboarding"], next);
+    },
+    onSuccess: (state) => qc.setQueryData(["me", "onboarding"], state),
   });
 }

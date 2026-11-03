@@ -1021,6 +1021,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/onboarding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Where you are in the introduction, and a real starter activity for your career */
+        get: operations["get_onboarding_api_v1_me_onboarding_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Record a choice about the introduction (never answer text; never practice progress) */
+        patch: operations["update_onboarding_api_v1_me_onboarding_patch"];
+        trace?: never;
+    };
     "/api/v1/scenarios": {
         parameters: {
             query?: never;
@@ -2590,6 +2608,21 @@ export interface components {
             title: string;
             /** Units */
             units: number;
+        };
+        /**
+         * CareerIntro
+         * @description Offered once after a career change: how practice works for the new career's format.
+         */
+        CareerIntro: {
+            /** Track */
+            track: string;
+            /** Title */
+            title: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "written" | "coding";
         };
         /** CareerSummary */
         CareerSummary: {
@@ -4459,6 +4492,75 @@ export interface components {
              */
             updated_at: string;
         };
+        /** OnboardingOut */
+        OnboardingOut: {
+            /**
+             * Tour Status
+             * @enum {string}
+             */
+            tour_status: "not_started" | "in_progress" | "paused" | "completed" | "skipped";
+            /** Tour Kind */
+            tour_kind: ("written" | "coding") | null;
+            /** Tour Step */
+            tour_step: number;
+            /**
+             * Tour Steps
+             * @description How many steps the tour for tour_kind has
+             */
+            tour_steps: number;
+            /** Start Choice */
+            start_choice: ("practice" | "intro" | "library" | "later") | null;
+            /**
+             * Welcome Due
+             * @description Hasn't chosen how to start and hasn't practised yet
+             */
+            welcome_due: boolean;
+            /**
+             * Resume Due
+             * @description Left the tour part-way and hasn't dismissed the reminder
+             */
+            resume_due: boolean;
+            career_intro: components["schemas"]["CareerIntro"] | null;
+            /**
+             * First Activity At
+             * @description When the learner first answered a question or submitted code (from their real activity; the tour never counts)
+             */
+            first_activity_at: string | null;
+            starter: components["schemas"]["StarterActivity"] | null;
+            /**
+             * Format
+             * @description The current career's practice format
+             * @enum {string}
+             */
+            format: "written" | "coding";
+        };
+        /**
+         * OnboardingUpdate
+         * @description One change at a time is typical; every field is optional and each is idempotent.
+         */
+        OnboardingUpdate: {
+            /** Start Choice */
+            start_choice?: ("practice" | "intro" | "library" | "later") | null;
+            /** Tour */
+            tour?: ("start" | "step" | "pause" | "complete" | "skip") | null;
+            /**
+             * Tour Kind
+             * @description With tour=start; defaults to the career's format
+             */
+            tour_kind?: ("written" | "coding") | null;
+            /**
+             * Tour Step
+             * @description With tour=start or tour=step
+             */
+            tour_step?: number | null;
+            /** Dismiss */
+            dismiss?: ("welcome" | "resume_tour") | null;
+            /**
+             * Career Intro Seen
+             * @description true: don't offer the current career's format introduction again
+             */
+            career_intro_seen?: boolean | null;
+        };
         /** OptionOut */
         OptionOut: {
             /** Id */
@@ -6145,6 +6247,35 @@ export interface components {
              * @description Exploration: the completed attempt you're trying another approach to
              */
             parent_id?: string | null;
+        };
+        /**
+         * StarterActivity
+         * @description A real, short activity from the learner's own career: never a sample or a demo record.
+         */
+        StarterActivity: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "question" | "problem";
+            /** Track */
+            track: string;
+            /**
+             * Ref
+             * @description Question id or problem slug
+             */
+            ref: string;
+            /** Title */
+            title: string;
+            /** Difficulty */
+            difficulty: string;
+            /** Href */
+            href: string;
+            /**
+             * Minutes
+             * @description A rough estimate of how long it takes, for planning only
+             */
+            minutes: number;
         };
         /** StatusIn */
         StatusIn: {
@@ -10270,6 +10401,77 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_onboarding_api_v1_me_onboarding_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    update_onboarding_api_v1_me_onboarding_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnboardingUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

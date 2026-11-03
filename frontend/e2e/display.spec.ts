@@ -32,6 +32,10 @@ async function startGuestByKeyboard(page: Page) {
   await page.goto("/");
   await tabTo(page, page.getByRole("button", { name: /try it now/i }));
   await page.keyboard.press("Enter");
+  // The optional welcome, by keyboard too.
+  await expect(page).toHaveURL(/\/welcome$/);
+  await tabTo(page, page.getByRole("button", { name: "Start this problem" }));
+  await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/two-sum/);
   await expect(page.getByRole("heading", { name: "Two Sum", level: 1 })).toBeVisible();
 }

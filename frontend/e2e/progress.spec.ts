@@ -15,6 +15,7 @@ test("coding: activity shows up honestly, and Back returns to the same filtered,
   await page.setViewportSize({ width: 1280, height: 640 });
   await page.goto("/");
   await page.getByRole("button", { name: /try it now/i }).click();
+  await page.getByRole("button", { name: "Start this problem" }).click(); // the optional welcome
   await expect(page).toHaveURL(/\/problems\/two-sum$/);
   await page.getByRole("button", { name: /^(Submit|Save attempt)$/ }).click(); // "Save attempt" when no judge is configured
   await expect(page.getByText(/Saved, but not run yet|All tests passed|didn't pass|Failed/i).first()).toBeVisible({ timeout: 60_000 });
@@ -73,6 +74,7 @@ test("non-coding: answer, find it in History, inspect Analytics, switch careers 
   await page.getByLabel("Job you're preparing for").selectOption("registered-nurse");
   await page.locator("#main").getByRole("button", { name: "Create account" }).click();
   await page.getByRole("link", { name: "Do this later" }).click();
+  await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click(); // the optional welcome
   await expect(page).toHaveURL(/\/dashboard$/);
 
   await page.getByRole("link", { name: "Practice questions" }).click();

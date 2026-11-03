@@ -6,6 +6,7 @@ test("signed-in navigation fits narrow screens and keeps account settings access
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/");
   await page.getByRole("button", { name: /try it now/i }).click();
+  await page.getByRole("button", { name: "Start this problem" }).click(); // the optional welcome
   await expect(page).toHaveURL(/two-sum/);
   for (const width of [320, 375, 390, 768]) {
     await page.setViewportSize({ width, height: 812 });
@@ -46,6 +47,7 @@ test("a question round fits a 320px screen and keeps every control reachable", a
   await page.setViewportSize({ width: 320, height: 720 });
   await page.goto("/");
   await page.getByRole("button", { name: /try it now/i }).click();
+  await page.getByRole("button", { name: "Start this problem" }).click(); // the optional welcome
   await expect(page).toHaveURL(/two-sum/);
   await page.goto("/interviews/questions");
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

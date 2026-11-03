@@ -636,6 +636,17 @@ These are moments where the obvious path was wrong and a deliberate decision was
     its grouped duplicate open, so the second reporter would never have heard back; corrections
     now resolve the duplicates too.
 
+50. **A tour that can't get in the way.** Product tours usually float a box over the page with a
+    dimmed backdrop, which hides controls, traps keyboard users and breaks on phones. This one is
+    docked at the bottom; the page makes room for it (padding, plus `scroll-padding-bottom` so
+    that tabbing to a control scrolls it clear). Nothing is disabled while it's open, every step
+    explains a real element, and a missing element is described instead of breaking the tour.
+    The first browser run caught the one thing the unit tests couldn't: scrolling to "Get
+    feedback" on a 320px screen put it behind the panel, which is exactly the kind of covered
+    control the brief ruled out. What's stored is only the learner's choices about the
+    introduction; "did they practise?" comes from their real answers, so the tour can never
+    inflate progress.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -1425,3 +1436,27 @@ slows the refresh call to reproduce it (1 of 12 before the fix, 12 of 12 after).
 - **Limits:** no subject-matter expert has reviewed any content, and the app says so; coding
   problems are corrected in their seed files, not from the triage page; no emails or
   notifications about report outcomes. See docs/CONTENT_QUALITY.md.
+
+### Session 20: ten more upgrades (volume 2)
+You uploaded a second pack of ten upgrade prompts and asked for them until the usage runs out.
+They're built in order, each as a complete, tested slice committed on its own.
+
+**V2-01 Guided first session and Help (built and verified):**
+- An optional **welcome** after sign-up or a guest demo: your job (changeable right there), one
+  real easy item from your own bank (nurses get a nursing question, coding careers an easy
+  problem; retired items never), a 5-step tour of that same page, or the library; "Not now"
+  goes to the dashboard. It says what feedback you'll really get, including when this server
+  can't judge code, and how long a guest account is kept.
+- A **guided tour** of the real question page or coding workspace: docked panel, highlighted
+  real elements, focus on each step's heading, Esc or "Leave" to exit with focus returned, steps
+  that explain missing elements, saved on the server (reload resumes), one dismissible "Resume"
+  reminder, replay from Help, and a format introduction once after a career change.
+- **Help**: searchable topics for practice, drafts, feedback, voice, history and data, each
+  linking to the real page; no contact channel or response time is promised.
+- Only the learner's choices about the introduction are stored (`user_onboarding`); no answer
+  text; the tour never counts as practice. Export and deletion include it.
+- Tests: 10 backend (SQLite and PostgreSQL), 10 frontend, 3 Playwright journeys (nurse sign-up
+  to real feedback and a returning sign-in; coding guest with reload, leave, resume, dismiss;
+  guest changing job at 320px in the light theme) with axe scans; 16 existing browser specs
+  updated to pass through the welcome.
+- **Not verified:** screen readers, Safari/Firefox, real phones.

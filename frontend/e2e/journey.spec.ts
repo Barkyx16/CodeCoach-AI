@@ -37,6 +37,7 @@ test("guest journey: try it, code, hints, review, submit, progress", async ({ pa
   await page.screenshot({ path: "e2e/screenshots/01-landing.png", fullPage: true });
 
   await page.getByRole("button", { name: /try it now/i }).click();
+  await page.getByRole("button", { name: "Start this problem" }).click(); // the optional welcome
   await expect(page).toHaveURL(/\/problems\/two-sum$/);
   await expect(page.getByRole("heading", { name: "Two Sum", level: 1 })).toBeVisible();
   await expect(page.locator(".monaco-editor")).toBeVisible();
@@ -113,7 +114,8 @@ test("account journey: register, filter library, sign out, sign in", async ({ pa
   // New accounts are asked for the emailed code first; it can be done later.
   await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible();
   await page.getByRole("link", { name: "Do this later" }).click();
-  // New accounts land on their dashboard.
+  await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click(); // the optional welcome
+  // New accounts are welcomed; this journey goes straight to the dashboard.
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByText("Ada's progress")).toBeVisible();
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Practice" }).click();

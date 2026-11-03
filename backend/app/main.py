@@ -22,6 +22,7 @@ from app.api.routes import (
     me,
     meta,
     notes,
+    onboarding,
     plan,
     problems,
     scenarios,
@@ -67,6 +68,11 @@ TAGS = [
         "name": "content quality",
         "description": "Content metadata and trust labels, issue reports, and admin triage (corrections, "
         "retirement). Admin routes answer 404 to everyone who isn't an admin.",
+    },
+    {
+        "name": "onboarding",
+        "description": "The optional first-session introduction: the learner's choices about it and a real "
+        "starter activity for their career. Records no answer text and no practice progress.",
     },
     {
         "name": "sharing",
@@ -172,6 +178,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         explore.router,
         learn.router,
         notes.router,
+        onboarding.router,
         scenarios.router,
         shares.me_router,
         shares.public_router,

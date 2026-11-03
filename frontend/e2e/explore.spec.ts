@@ -8,6 +8,7 @@ async function signUpNurse(page: Page, tag: string) {
   await page.getByLabel("Job you're preparing for").selectOption("registered-nurse");
   await page.locator("#main").getByRole("button", { name: "Create account" }).click();
   await page.getByRole("link", { name: "Do this later" }).click();
+  await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click(); // the optional welcome
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 

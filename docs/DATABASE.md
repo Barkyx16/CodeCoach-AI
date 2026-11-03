@@ -237,6 +237,15 @@ or `problem` + slug), not a foreign key, so a report outlives a renamed or retir
   (JSON), optional admin-only `internal_note`, `report_id` (no foreign key, so the trail stays even
   if a report is deleted with its reporter's account).
 
+### First-session introduction
+- `user_onboarding`: one row per account (primary key `user_id`, cascades with the user), created
+  on the first choice. `tour_status` (`not_started | in_progress | paused | completed |
+  skipped`), `tour_kind` (`written | coding`), `tour_step`, `tour_version`, `start_choice`
+  (`practice | intro | library | later`), `intro_track` (career at the welcome),
+  `career_intros_seen` and `dismissed` (JSON lists of slugs and reminder keys), and timestamps
+  (`welcomed_at`, `tour_started_at`, `tour_finished_at`, `updated_at`). No answer text; whether a
+  real activity happened is derived from `practice_answers` and `submissions`.
+
 ## Design notes
 
 - **Enums are stored as strings** (`native_enum=False`), so adding a status is a code change,
@@ -268,6 +277,7 @@ or `problem` + slug), not a foreign key, so a report outlives a renamed or retir
 | `c3e8a1d5f924` submission client request id | Adds nullable `submissions.client_request_id` with a unique constraint on `(user_id, client_request_id)` so a retried POST returns the original submission. Safe on populated tables |
 | `d4f1b8c2e637` shares and share feedback | Adds `shares` (owner, hashed link secret, source reference and digest, snapshot, expiry/close/revoke times) and `share_feedback` (structured feedback, reviewer or guest name, unique retry key). New tables; shares cascade with the owner, a reviewer's deletion clears `reviewer_id` |
 | `e5a2c7f1b948` content quality | Adds `content_reports`, `content_versions`, `content_status`, `content_checks` and `content_audit`; nullable `content_version` on `practice_answers` and `bookmarks` (NULL means version 1, so existing rows need no backfill); `users.is_admin` with server default false. New tables and nullable/defaulted columns, so populated databases migrate safely; round-tripped (upgrade, downgrade, upgrade) on PostgreSQL |
+| `d52cf325b19a` onboarding state | Adds `user_onboarding` (one row per account, cascading with the user). New table, safe on populated databases; round-tripped on PostgreSQL |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

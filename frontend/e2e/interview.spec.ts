@@ -24,6 +24,7 @@ test("mock interview: five phases, real editor, rubric feedback, history", async
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto("/");
   await page.getByRole("button", { name: /try it now/i }).click();
+  await page.getByRole("button", { name: "Start this problem" }).click(); // the optional welcome
   await expect(page).toHaveURL(/two-sum/);
 
   await page.getByRole("link", { name: "Interview" }).click();

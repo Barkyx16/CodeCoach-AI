@@ -107,6 +107,7 @@ export function Layout() {
           {user?.is_admin && <NavLink to="/admin/reports" className={navClass}>Triage</NavLink>}
         </nav>
         <div className="header__account">
+          <NavLink to="/help" className={navClass}>Help</NavLink>
           {isAuthenticated ? (
             <>
               <NavLink to="/settings" className="header__user" title="Account settings"

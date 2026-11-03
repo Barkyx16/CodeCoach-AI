@@ -13,6 +13,7 @@ test("a new nurse skips setup, takes the baseline, and the plan adapts for state
   await page.getByLabel("Job you're preparing for").selectOption("registered-nurse");
   await page.locator("#main").getByRole("button", { name: "Create account" }).click();
   await page.getByRole("link", { name: "Do this later" }).click();
+  await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click(); // the optional welcome
 
   const today = page.getByRole("region", { name: "Today" });
   await today.getByRole("button", { name: "Not now, use a starter plan" }).click();
@@ -63,6 +64,7 @@ test("a new nurse skips setup, takes the baseline, and the plan adapts for state
 test("a software engineer's plan differs and includes coding", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: /try it now/i }).click();
+  await page.getByRole("button", { name: "Start this problem" }).click(); // the optional welcome
   await expect(page).toHaveURL(/two-sum/);
   await page.goto("/plan");
   await expect(page.getByText("YOUR PRACTICE PLAN · SOFTWARE ENGINEER")).toBeVisible();

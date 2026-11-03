@@ -95,6 +95,8 @@ import type {
   ScenarioCatalog,
   ScenarioDetail,
   InterviewFormat,
+  Onboarding,
+  OnboardingUpdate,
 } from "./types";
 
 export interface ProblemFilters {
@@ -375,6 +377,10 @@ export const api = {
     apiRequest<ContentMeta>(`/api/v1/admin/content/${type}/${id.split("/").map(encodeURIComponent).join("/")}/retire`, { method: "POST", body }),
   adminRestore: (type: ContentKind, id: string) =>
     apiRequest<ContentMeta>(`/api/v1/admin/content/${type}/${id.split("/").map(encodeURIComponent).join("/")}/restore`, { method: "POST", body: {} }),
+
+  // the optional first-session introduction
+  onboarding: () => apiRequest<Onboarding>("/api/v1/me/onboarding"),
+  updateOnboarding: (body: OnboardingUpdate) => apiRequest<Onboarding>("/api/v1/me/onboarding", { method: "PATCH", body }),
 
   // sharing an answer for feedback (owner)
   sharePreview: (body: ShareSelection) => apiRequest<SharePreview>("/api/v1/me/shares/preview", { method: "POST", body }),

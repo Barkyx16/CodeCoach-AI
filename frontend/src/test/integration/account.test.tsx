@@ -64,7 +64,7 @@ describe("Email verification", () => {
     await user.clear(code);
     await user.type(code, "123456");
     await user.click(screen.getByRole("button", { name: "Verify email" }));
-    await waitFor(() => expect(router.state.location.pathname).toBe("/dashboard"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/welcome")); // new accounts are welcomed
   });
 
   it("can send a new code", async () => {

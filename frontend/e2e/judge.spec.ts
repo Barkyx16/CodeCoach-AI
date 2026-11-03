@@ -38,6 +38,7 @@ test("submissions are judged in the gVisor sandbox", async ({ page, context }) =
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto("/");
   await page.getByRole("button", { name: /try it now/i }).click();
+  await page.getByRole("button", { name: "Start this problem" }).click(); // the optional welcome
   await expect(page).toHaveURL(/two-sum/);
   await expect(page.locator(".monaco-editor")).toBeVisible();
 
@@ -83,6 +84,7 @@ test("the judge reports ready, and a reload while judging picks the submission b
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto("/");
   await page.getByRole("button", { name: /try it now/i }).click();
+  await page.getByRole("button", { name: "Start this problem" }).click(); // the optional welcome
   await expect(page).toHaveURL(/two-sum/);
   await expect(page.locator(".monaco-editor")).toBeVisible();
   // A real, authenticated probe found the runner: no "unavailable" banner, Run is offered.

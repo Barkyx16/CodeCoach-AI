@@ -158,3 +158,8 @@ export type ScenarioStep = S["StepOut"];
 export type InterviewFormat = S["FormatOption"];
 export type InterviewFormatId = S["FormatOption"]["id"];
 export type RoundFormat = S["RoundFormatOut"];
+
+export type Onboarding = S["OnboardingOut"];
+export type OnboardingUpdate = S["OnboardingUpdate"];
+export type TourKind = S["OnboardingOut"]["format"];
+export type StarterActivity = S["StarterActivity"];
