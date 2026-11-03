@@ -16,6 +16,7 @@ import { FeedbackCard } from "@/features/careers/FeedbackCard";
 import { KIND_LABEL } from "@/features/careers/kinds";
 import { OVERALL_LABELS } from "@/features/interview/phases";
 import { RubricChart } from "@/features/interview/RubricChart";
+import { screenChanged } from "@/features/interview/roundDiag";
 import { roundDraftKey } from "@/features/interview/roundDrafts";
 import { EngagementNote } from "@/features/voice/EngagementMeter";
 import { NoteCapture } from "@/features/notes/NoteCapture";
@@ -34,9 +35,11 @@ function minutes(seconds: number | null | undefined): string {
 /** The post-interview review for both interview kinds: summary, focus, timeline and detail. */
 export function ReviewWorkspace({ iv }: { iv: Interview }) {
   const review = useInterviewReview(iv.id);
+  const state = review.isPending ? "loading" : review.isError ? "error" : "ready";
   useEffect(() => {
-    diag("review_view", { interviewId: iv.id, status: iv.status, state: review.isPending ? "loading" : review.isError ? "error" : "ready" });
-  }, [iv.id, iv.status, review.isPending, review.isError]);
+    diag("review_view", { interviewId: iv.id, status: iv.status, state });
+    screenChanged(iv.id, `results:${state}`); // the round's last action is on screen
+  }, [iv.id, iv.status, state]);
   if (review.isPending) return <LoadingState label="Loading your review…" />;
   if (review.isError) return <div className="page"><BackLink /><ErrorState error={review.error} onRetry={() => void review.refetch()} /></div>;
   return <Review iv={iv} r={review.data} />;

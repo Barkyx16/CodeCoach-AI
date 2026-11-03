@@ -32,6 +32,7 @@ from typing import Literal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app import tracing
 from app.careers import CATALOG
 from app.careers.answers import OFFLINE_COACH, answer_out, graded_answer
 from app.careers.formats import (
@@ -224,10 +225,11 @@ class QuestionRounds:
                     details={"retry_after_seconds": int(retry_after) + 1},
                 )
         text = body.answer.strip()
-        row = graded_answer(user.id, question, text)
+        with tracing.span("evaluate", evaluator="rubric"):
+            row = graded_answer(user.id, question, text)
+            read = engagement.for_career_answer(question, text, grade(question, text))
         self.db.add(row)
         self.db.flush()
-        read = engagement.for_career_answer(question, text, grade(question, text))
         self._add(
             session,
             TurnRole.CANDIDATE,

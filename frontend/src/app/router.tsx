@@ -35,6 +35,7 @@ import { MyReportsPage } from "@/features/content/MyReportsPage";
 import { AdminGuard } from "@/features/admin/AdminGuard";
 import { AdminReportPage } from "@/features/admin/AdminReportPage";
 import { AdminReportsPage } from "@/features/admin/AdminReportsPage";
+import { AdminTracePage } from "@/features/admin/AdminTracePage";
 import { CollectionPage } from "@/features/saved/CollectionPage";
 import { AttemptPage } from "@/features/scenarios/AttemptPage";
 import { ScenarioBriefing, ScenariosPage } from "@/features/scenarios/ScenariosPage";
@@ -136,6 +137,8 @@ export const routes: RouteObject[] = [
       { path: "/welcome", element: <RequireAuth><WelcomePage /></RequireAuth> },
       { path: "/reports", element: <RequireAuth><MyReportsPage /></RequireAuth> },
       { path: "/admin/reports", element: <RequireAuth><AdminGuard><AdminReportsPage /></AdminGuard></RequireAuth> },
+      { path: "/admin/traces", element: <RequireAuth><AdminGuard><AdminTracePage /></AdminGuard></RequireAuth> },
+      { path: "/admin/traces/:id", element: <RequireAuth><AdminGuard><AdminTracePage /></AdminGuard></RequireAuth> },
       { path: "/admin/reports/:id", element: <RequireAuth><AdminGuard><AdminReportPage /></AdminGuard></RequireAuth> },
       { path: "/saved", element: <RequireAuth><SavedPage /></RequireAuth> },
       { path: "/saved/collections/:id", element: <RequireAuth><CollectionPage /></RequireAuth> },

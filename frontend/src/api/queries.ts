@@ -252,9 +252,12 @@ function useInterviewMutation<V>(fn: (vars: V) => Promise<Interview>) {
 export const useStartInterview = () => useInterviewMutation((body: InterviewStart) => api.startInterview(body));
 export const useInterviewMessage = (id: string) =>
   useInterviewMutation((body: { message: string; code?: string | null; source?: AnswerSource }) => api.interviewMessage(id, body));
+/** Round actions carry the W3C trace context of the learner's action (lib/trace.ts). */
 export const useAnswerRoundQuestion = (id: string) =>
-  useInterviewMutation((body: { question_index: number; answer: string; source: AnswerSource }) => api.answerRoundQuestion(id, body));
-export const useSkipRoundQuestion = (id: string) => useInterviewMutation((index: number) => api.skipRoundQuestion(id, index));
+  useInterviewMutation(({ traceparent, ...body }: { question_index: number; answer: string; source: AnswerSource; traceparent?: string }) =>
+    api.answerRoundQuestion(id, body, traceparent));
+export const useSkipRoundQuestion = (id: string) =>
+  useInterviewMutation(({ index, traceparent }: { index: number; traceparent?: string }) => api.skipRoundQuestion(id, index, traceparent));
 export const useFinishInterview = (id: string) =>
   useInterviewMutation((code: string | null) => api.finishInterview(id, code));
 export const useAbandonInterview = (id: string) => useInterviewMutation((_: void) => api.abandonInterview(id));
@@ -596,7 +599,8 @@ export function useInterviewFormats(track: string, difficulty: Difficulty) {
 export function useAnswerFollowup(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { answer: string; source: AnswerSource }) => api.answerFollowup(id, body),
+    mutationFn: ({ traceparent, ...body }: { answer: string; source: AnswerSource; traceparent?: string }) =>
+      api.answerFollowup(id, body, traceparent),
     onSuccess: (iv) => qc.setQueryData(queryKeys.interview(id), iv),
   });
 }
@@ -604,7 +608,7 @@ export function useAnswerFollowup(id: string) {
 export function useSkipFollowup(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () => api.skipFollowup(id),
+    mutationFn: (traceparent?: string) => api.skipFollowup(id, traceparent),
     onSuccess: (iv) => qc.setQueryData(queryKeys.interview(id), iv),
   });
 }

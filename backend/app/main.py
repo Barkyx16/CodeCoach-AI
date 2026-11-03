@@ -37,6 +37,7 @@ from app.api.routes import (
     stories,
     submissions,
     targets,
+    telemetry,
     whiteboard,
 )
 from app.config import Settings, get_settings
@@ -50,6 +51,7 @@ from app.services.email import build_email_sender
 from app.services.judge.backends import build_backend
 from app.services.judge.health import ExecutionHealth
 from app.services.rate_limit import DatabaseRateLimiter, SlidingWindowLimiter
+from app.tracing import TraceStore
 
 logger = logging.getLogger("codecoach.app")
 
@@ -121,14 +123,22 @@ TAGS = [
 ]
 
 
-def _start_embedded_worker(settings: Settings, session_factory):
+def _judge_queue_state(session_factory) -> tuple[int, float]:
+    from app.worker import judge_queue_state
+
+    return judge_queue_state(session_factory)
+
+
+def _start_embedded_worker(settings: Settings, session_factory, traces=None, metrics=None):
     import threading
 
     from app.services.judge.runner_client import HttpRunner
     from app.worker import JudgeWorker
 
     assert settings.runner_token is not None
-    worker = JudgeWorker(session_factory, HttpRunner(settings.runner_url, settings.runner_token), settings)
+    worker = JudgeWorker(
+        session_factory, HttpRunner(settings.runner_url, settings.runner_token), settings, traces, metrics
+    )
     threading.Thread(target=worker.run_forever, name="judge-worker", daemon=True).start()
     logger.info("embedded judge worker started")
     return worker
@@ -150,7 +160,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 seed_problems(session)
         worker = None
         if settings.execution_enabled and settings.embedded_worker:
-            worker = _start_embedded_worker(settings, session_factory)
+            worker = _start_embedded_worker(settings, session_factory, app.state.traces, app.state.metrics)
         logger.info("startup complete")
         yield
         if worker is not None:
@@ -191,7 +201,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.share_feedback_limiter = limiter(settings.share_feedback_per_hour, 3600)
     app.state.share_create_limiter = limiter(settings.shares_created_per_hour, 3600)
     app.state.report_limiter = limiter(settings.content_reports_per_hour, 3600)
+    app.state.telemetry_limiter = SlidingWindowLimiter(120, 600.0)  # per account: 120 batches / 10 min
     app.state.metrics = Metrics() if settings.metrics_enabled else None
+    app.state.traces = (
+        TraceStore(settings.trace_store_max_traces, ttl_seconds=settings.trace_store_ttl_seconds)
+        if settings.trace_store_max_traces
+        else None
+    )
+    if app.state.metrics is not None:
+        app.state.metrics.queue_probe = lambda: _judge_queue_state(session_factory)
 
     install_error_handlers(app)
     app.add_middleware(RequestContextMiddleware)
@@ -208,8 +226,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "X-Request-ID",
             "X-Requested-With",
             "X-Refresh-Attempt",
+            "traceparent",
         ],
-        expose_headers=["X-Request-ID"],
+        expose_headers=["X-Request-ID", "X-Trace-ID"],
         max_age=600,
     )
 
@@ -243,6 +262,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         plan.router,
         targets.router,
         meta.router,
+        telemetry.router,
     ):
         app.include_router(router)
 

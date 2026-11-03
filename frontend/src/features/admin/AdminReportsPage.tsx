@@ -31,6 +31,7 @@ export function AdminReportsPage() {
           <h1 className="page__title">Reports</h1>
           <p className="page__subtitle">Learners' reports, grouped by question or problem. Report text is shown exactly as written, as plain text.</p>
         </div>
+        <div className="row dashboard__actions"><Link to="/admin/traces" className="btn btn--secondary btn--md">Trace lookup</Link></div>
       </div>
       <Tabs label="Status" tabs={FILTERS.map((f) => ({ id: f.id, label: f.label }))} value={filter}
         onChange={(id) => setParams(id === "open" ? {} : { status: id }, { replace: true })}>

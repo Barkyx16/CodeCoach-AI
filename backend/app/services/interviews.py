@@ -24,6 +24,7 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
+from app import tracing
 from app.careers import CATALOG
 from app.careers.formats import FORMATS, KIND_LABEL, MAX_FOLLOWUPS, PANEL_ORDER, availability, panel_roles
 from app.config import Settings
@@ -204,34 +205,61 @@ class InterviewService:
         return self._to_out(session)
 
     def answer_question(self, user: User, interview_id: str, body: RoundAnswer) -> InterviewOut:
-        session = self._load(user, interview_id)
-        self._expire_if_due(user, session)
-        self._require_kind(session, PracticeMode.QUESTIONS)
-        if not self.rounds._already_handled(session, body.question_index):
-            self._require_in_progress(session)
-        self.rounds.answer(user, session, body)
-        self.db.commit()
-        return self._to_out(session)
+        with tracing.round_action("answer") as step:
+            session = self._load(user, interview_id)
+            step.set(format=(session.plan or {}).get("format"))
+            self._expire_if_due(user, session)
+            self._require_kind(session, PracticeMode.QUESTIONS)
+            duplicate = self.rounds._already_handled(session, body.question_index)
+            if not duplicate:
+                self._require_in_progress(session)
+            self.rounds.answer(user, session, body)
+            self._commit()
+            step.set(result=self._round_result(session, duplicate))
+            return self._to_out(session)
 
     def skip_question(self, user: User, interview_id: str, body: RoundSkip) -> InterviewOut:
-        session = self._load(user, interview_id)
-        self._expire_if_due(user, session)
-        self._require_kind(session, PracticeMode.QUESTIONS)
-        if not self.rounds._already_handled(session, body.question_index):
-            self._require_in_progress(session)
-        self.rounds.skip(session, body)
-        self.db.commit()
-        return self._to_out(session)
+        with tracing.round_action("skip") as step:
+            session = self._load(user, interview_id)
+            step.set(format=(session.plan or {}).get("format"))
+            self._expire_if_due(user, session)
+            self._require_kind(session, PracticeMode.QUESTIONS)
+            duplicate = self.rounds._already_handled(session, body.question_index)
+            if not duplicate:
+                self._require_in_progress(session)
+            self.rounds.skip(session, body)
+            self._commit()
+            step.set(result=self._round_result(session, duplicate))
+            return self._to_out(session)
 
     def followup(self, user: User, interview_id: str, body: FollowupAnswer | None) -> InterviewOut:
-        session = self._load(user, interview_id)
-        self._expire_if_due(user, session)
-        self._require_kind(session, PracticeMode.QUESTIONS)
+        with tracing.round_action("reply" if body is not None else "skip_followup") as step:
+            session = self._load(user, interview_id)
+            step.set(format=(session.plan or {}).get("format"))
+            self._expire_if_due(user, session)
+            self._require_kind(session, PracticeMode.QUESTIONS)
+            waiting = bool((session.plan or {}).get("pending_followup"))
+            if waiting:
+                self._require_in_progress(session)
+            self.rounds.answer_followup(session, body)
+            self._commit()
+            step.set(result=self._round_result(session, duplicate=not waiting))
+            return self._to_out(session)
+
+    def _commit(self) -> None:
+        with tracing.span("db.commit"):
+            self.db.commit()
+
+    @staticmethod
+    def _round_result(session: PracticeSession, duplicate: bool) -> str:
+        """What a round action did, for traces and metrics (a fixed set of values)."""
+        if duplicate:
+            return "duplicate"  # a repeated submit: nothing changed, nothing graded again
+        if session.status != InterviewStatus.IN_PROGRESS:
+            return "completed"
         if (session.plan or {}).get("pending_followup"):
-            self._require_in_progress(session)
-        self.rounds.answer_followup(session, body)
-        self.db.commit()
-        return self._to_out(session)
+            return "followup"
+        return "advanced"
 
     def finish(self, user: User, interview_id: str, body: InterviewFinish | None = None) -> InterviewOut:
         session = self._load(user, interview_id)

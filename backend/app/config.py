@@ -130,6 +130,13 @@ class Settings(BaseSettings):
 
     # --- Observability ----------------------------------------------------------------------
     metrics_enabled: bool = True
+    # Recent traces kept in memory for the admin lookup (GET /api/v1/admin/traces/{id}). Spans are
+    # also written to the log either way. 0 traces turns the in-memory store off.
+    trace_store_max_traces: int = Field(default=500, ge=0, le=20000)
+    trace_store_ttl_seconds: int = Field(default=3600, ge=60, le=86400)
+    # The browser reports how its round actions ended (no answers, no ids beyond trace/request
+    # ids) to this API only. Off: the browser sends nothing and the endpoint returns 404.
+    ui_telemetry_enabled: bool = True
 
     @field_validator("cors_origins", mode="before")
     @classmethod

@@ -3,6 +3,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
+from app import tracing
 from app.api.deps import get_current_user, get_db, get_settings_dep
 from app.config import Settings
 from app.errors import AppError, ConflictError, NotFoundError
@@ -101,6 +102,7 @@ def create_submission(
         mode=body.mode,
         status=SubmissionStatus.QUEUED,
         client_request_id=body.client_request_id,
+        trace_id=tracing.current_trace_id(),
     )
     db.add(sub)
     try:

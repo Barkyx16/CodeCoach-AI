@@ -15911,6 +15911,143 @@
           }
         }
       }
+    },
+    "/api/v1/telemetry/ui": {
+      "post": {
+        "tags": [
+          "telemetry"
+        ],
+        "summary": "Report how a round action ended in the browser (outcome and timing only)",
+        "operationId": "ui_events_api_v1_telemetry_ui_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UiEventBatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/traces/{lookup}": {
+      "get": {
+        "tags": [
+          "telemetry"
+        ],
+        "summary": "Admin: one action's trace (server spans and browser reports) by trace id or request id",
+        "operationId": "get_trace_api_v1_admin_traces__lookup__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "lookup",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]{8,64}$",
+              "title": "Lookup"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TraceOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -18052,6 +18189,12 @@
             "type": "integer",
             "title": "Guest Retention Days",
             "description": "Guest accounts inactive this long are deleted with their data (0: kept forever)"
+          },
+          "ui_telemetry": {
+            "type": "boolean",
+            "title": "Ui Telemetry",
+            "description": "The app may report how its round actions ended (outcome and timing only) to POST /api/v1/telemetry/ui",
+            "default": false
           }
         },
         "type": "object",
@@ -31867,6 +32010,191 @@
         ],
         "title": "TopicProgress"
       },
+      "TraceEventOut": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "outcome": {
+            "type": "string",
+            "title": "Outcome"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "title": "Duration Ms"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "at": {
+            "type": "number",
+            "title": "At",
+            "description": "Unix time the server received it, seconds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source",
+          "action",
+          "outcome",
+          "duration_ms",
+          "request_id",
+          "status",
+          "error_code",
+          "at"
+        ],
+        "title": "TraceEventOut"
+      },
+      "TraceOut": {
+        "properties": {
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "spans": {
+            "items": {
+              "$ref": "#/components/schemas/TraceSpanOut"
+            },
+            "type": "array",
+            "title": "Spans",
+            "description": "Server steps, in start order"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/TraceEventOut"
+            },
+            "type": "array",
+            "title": "Events",
+            "description": "What the browser reported for this action"
+          }
+        },
+        "type": "object",
+        "required": [
+          "trace_id",
+          "spans",
+          "events"
+        ],
+        "title": "TraceOut"
+      },
+      "TraceSpanOut": {
+        "properties": {
+          "span_id": {
+            "type": "string",
+            "title": "Span Id"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "started_at": {
+            "type": "number",
+            "title": "Started At",
+            "description": "Unix time, seconds"
+          },
+          "duration_ms": {
+            "type": "number",
+            "title": "Duration Ms"
+          },
+          "outcome": {
+            "type": "string",
+            "title": "Outcome"
+          },
+          "attrs": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Attrs"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          }
+        },
+        "type": "object",
+        "required": [
+          "span_id",
+          "parent_id",
+          "name",
+          "started_at",
+          "duration_ms",
+          "outcome",
+          "attrs",
+          "request_id",
+          "source"
+        ],
+        "title": "TraceSpanOut"
+      },
       "TrackProgress": {
         "properties": {
           "track": {
@@ -32074,6 +32402,110 @@
           "candidate"
         ],
         "title": "TurnRole"
+      },
+      "UiEvent": {
+        "properties": {
+          "trace_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$",
+            "title": "Trace Id",
+            "description": "The action's W3C trace id"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "answer",
+              "skip",
+              "reply",
+              "skip_followup"
+            ],
+            "title": "Action"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "rendered",
+              "rejected",
+              "server_error",
+              "network_error",
+              "not_rendered",
+              "ignored"
+            ],
+            "title": "Outcome",
+            "description": "rendered: the next state was on screen; rejected: the server refused it; server_error: the server failed; network_error: no answer arrived; not_rendered: the server answered but the screen didn't change; ignored: the click didn't send anything"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "maximum": 600000.0,
+            "minimum": 0.0,
+            "title": "Duration Ms",
+            "description": "From the click to the outcome, in the browser"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9._-]{8,64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 599.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status",
+            "description": "HTTP status, 0 for no response"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z0-9_]{1,40}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "trace_id",
+          "action",
+          "outcome",
+          "duration_ms"
+        ],
+        "title": "UiEvent"
+      },
+      "UiEventBatch": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/UiEvent"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "events"
+        ],
+        "title": "UiEventBatch"
       },
       "UnitLink": {
         "properties": {

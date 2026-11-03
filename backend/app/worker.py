@@ -20,11 +20,13 @@ import signal
 import time
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload, sessionmaker
 
+from app import tracing
 from app.config import Settings, get_settings
 from app.db.session import make_engine, make_session_factory
+from app.metrics import Metrics
 from app.models import ProgressEvent, ProgressEventType, Submission, SubmissionMode, SubmissionStatus
 from app.observability import configure_logging
 from app.services.judge.judge import STATUS_DETAIL, JudgeInfrastructureError, judge_submission
@@ -34,16 +36,47 @@ from app.services.retention import prune_inactive_guests
 logger = logging.getLogger("codecoach.worker")
 
 
+def _as_utc(value: datetime) -> datetime:
+    return value if value.tzinfo else value.replace(tzinfo=UTC)
+
+
 def _now() -> datetime:
     return datetime.now(UTC)
 
 
+def judge_queue_state(session_factory: sessionmaker[Session]) -> tuple[int, float]:
+    """(queued submissions, age in seconds of the oldest one): for metrics, read at scrape time."""
+    with session_factory() as db:
+        count, oldest = db.execute(
+            select(func.count(), func.min(Submission.created_at)).where(
+                Submission.status == SubmissionStatus.QUEUED
+            )
+        ).one()
+    age = (_now() - _as_utc(oldest)).total_seconds() if oldest is not None else 0.0
+    return int(count), max(0.0, age)
+
+
 class JudgeWorker:
-    def __init__(self, session_factory: sessionmaker[Session], runner: Runner, settings: Settings):
+    def __init__(
+        self,
+        session_factory: sessionmaker[Session],
+        runner: Runner,
+        settings: Settings,
+        traces: tracing.TraceStore | None = None,
+        metrics: Metrics | None = None,
+    ):
         self.session_factory = session_factory
         self.runner = runner
         self.settings = settings
+        # Each job continues the trace of the request that queued it (Submission.trace_id). An
+        # embedded worker shares the API's trace store and metrics; a separate worker process
+        # writes its spans to its own log.
+        self.traces = traces
+        self.metrics = metrics
         self._stop = False
+
+    def _trace(self, trace_id: str | None):
+        return tracing.start_trace(trace_id=trace_id, store=self.traces, metrics=self.metrics)
 
     def stop(self, *_: object) -> None:
         self._stop = True
@@ -77,7 +110,11 @@ class JudgeWorker:
             )
         ).all()
         for sub in stale:
-            self._retry_or_fail(sub, "worker stopped while judging")
+            # The job ran past its time without a result: a timeout, recorded on its own trace.
+            with self._trace(sub.trace_id), tracing.span("judge.recover", attempt=sub.attempts) as step:
+                step.outcome = "timeout"
+                self._retry_or_fail(sub, "worker stopped while judging")
+                step.set(result="requeued" if sub.status == SubmissionStatus.QUEUED else "failed")
         db.commit()
         return len(stale)
 
@@ -100,19 +137,35 @@ class JudgeWorker:
             sub = self.claim(db)
             if sub is None:
                 return False
-            sub_id = sub.id
-        with self.session_factory() as db:
-            sub = db.scalar(
-                select(Submission).options(selectinload(Submission.problem)).where(Submission.id == sub_id)
-            )
-            assert sub is not None
+            sub_id, trace_id, attempt, language = sub.id, sub.trace_id, sub.attempts, sub.language
+            waited = (sub.judge_started_at or _now()) - _as_utc(sub.created_at)
+        with (
+            self.session_factory() as db,
+            self._trace(trace_id),
+            tracing.span(
+                "judge.run",
+                language=language,
+                attempt=attempt,
+                queue_wait_ms=max(0, round(waited.total_seconds() * 1000)),
+            ) as step,
+        ):
+            return self._judge(db, sub_id, step)
+
+    def _judge(self, db: Session, sub_id: str, step: tracing.Span) -> bool:
+        sub = db.scalar(
+            select(Submission).options(selectinload(Submission.problem)).where(Submission.id == sub_id)
+        )
+        if sub is not None:
             tests = sub.problem.test_cases
             try:
                 verdict = judge_submission(sub, self.runner, self.settings.judge_time_limit_s)
             except (RunnerUnavailable, JudgeInfrastructureError) as exc:
                 self._retry_or_fail(sub, str(exc))
                 db.commit()
+                step.outcome = "judge_unavailable"
+                step.set(result="requeued" if sub.status == SubmissionStatus.QUEUED else "failed")
                 return True
+            step.set(verdict=verdict.status.value)
             sub.status = verdict.status
             sub.status_detail = STATUS_DETAIL[verdict.status]
             sub.judged_at = _now()
@@ -126,7 +179,7 @@ class JudgeWorker:
                 )
             db.commit()
             logger.info("judged submission %s -> %s", sub_id, verdict.status.value)
-            return True
+        return True
 
     def run_forever(self) -> None:
         last_recovery = 0.0

@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 
 import { ApiError } from "@/api/client";
-import { queryKeys, useAbandonInterview, useAnswerRoundQuestion, useSkipRoundQuestion } from "@/api/queries";
+import { queryKeys, useAbandonInterview, useAnswerRoundQuestion, useCapabilities, useSkipRoundQuestion } from "@/api/queries";
 import type { AnswerSource, Difficulty, Interview } from "@/api/types";
 import { Badge, DifficultyBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
@@ -21,7 +21,8 @@ import { useVoicePrefs } from "@/features/voice/voicePrefs";
 
 import { FollowupTurn } from "./FollowupTurn";
 import { roundDraftKey } from "./roundDrafts";
-import { tracedRoundAction, useRoundViewDiag } from "./roundDiag";
+import { reportIgnored, tracedRoundAction, useRoundViewDiag } from "./roundDiag";
+import { setUiTelemetryEnabled } from "@/lib/uiTelemetry";
 import { formatClock, useCountdown } from "./useCountdown";
 
 
@@ -50,6 +51,9 @@ export function LiveRound({ iv }: { iv: Interview }) {
   const role = iv.career_title ?? titleCase(iv.track ?? "");
   const last = [...iv.turns].reverse().find((t) => t.role === "candidate" && t.engagement)?.engagement ?? null;
   const error = answer.error ?? skip.error ?? abandon.error;
+  // Report how actions ended on screen only when this server allows it.
+  const telemetry = useCapabilities().data?.ui_telemetry ?? false;
+  useEffect(() => setUiTelemetryEnabled(telemetry), [telemetry]);
 
   // When the clock runs out, ask the server: it closes the round and the results page shows.
   useEffect(() => {
@@ -77,7 +81,8 @@ export function LiveRound({ iv }: { iv: Interview }) {
   async function submit(source: AnswerSource): Promise<boolean> {
     const key = roundDraftKey(iv.id, index);
     try {
-      await tracedRoundAction("answer", iv.id, index, () => answer.mutateAsync({ question_index: index, answer: draft.trim(), source }));
+      await tracedRoundAction("answer", iv.id, index, (traceparent) =>
+        answer.mutateAsync({ question_index: index, answer: draft.trim(), source, traceparent }));
       clearStoredDraft(key);
       return true;
     } catch {
@@ -130,13 +135,13 @@ export function LiveRound({ iv }: { iv: Interview }) {
 
           <VoiceComposer
             id="round-answer" label="Your answer" value={draft} onChange={setDraft} onSubmit={submit}
-            submitting={answer.isPending} disabled={busy && !answer.isPending} maxLength={6000}
+            submitting={answer.isPending} disabled={busy && !answer.isPending} maxLength={6000} onIgnored={() => reportIgnored("answer")}
             submitLabel={index + 1 === iv.questions.length ? "Finish interview" : "Next question"}
             placeholder="Answer the way you'd say it in the interview…" voice={voice}
             hint={`${words(draft)} words · aim for 120-350`} errorId={error ? "round-answer-error" : undefined}
             extraActions={
               <Button type="button" variant="ghost" disabled={busy} loading={skip.isPending}
-                onClick={() => void tracedRoundAction("skip", iv.id, index, () => skip.mutateAsync(index)).catch(() => undefined)}>Skip</Button>
+                onClick={() => void tracedRoundAction("skip", iv.id, index, (traceparent) => skip.mutateAsync({ index, traceparent })).catch(() => undefined)}>Skip</Button>
             }
           />
           {!online && (

@@ -39,6 +39,11 @@ class Capabilities(APIModel):
     guest_retention_days: int = Field(
         description="Guest accounts inactive this long are deleted with their data (0: kept forever)"
     )
+    ui_telemetry: bool = Field(
+        default=False,
+        description="The app may report how its round actions ended (outcome and timing only) to "
+        "POST /api/v1/telemetry/ui",
+    )
 
 
 @router.get("/capabilities", response_model=Capabilities, summary="Features available on this deployment")
@@ -64,4 +69,5 @@ def capabilities(request: Request, db: Session = Depends(get_db)) -> Capabilitie
             setup_help=None if settings.environment == "production" else SETUP_HELP.get(reason),
         ),
         guest_retention_days=settings.guest_retention_days,
+        ui_telemetry=settings.ui_telemetry_enabled,
     )

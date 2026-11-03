@@ -84,3 +84,8 @@
 .admin-audit__note { margin: var(--space-1) 0 0; font-size: var(--text-sm); white-space: pre-wrap; }
 .workspace-content-info { margin-top: var(--space-4); }
 .admin-reports a, .report-list__head a, .content-info a { text-decoration: underline; text-underline-offset: 0.15em; }
+
+/* Admin trace lookup: server steps as a nested list, browser reports below. */
+.trace-spans, .trace-events { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2, 0.5rem); }
+.trace-spans li, .trace-events li { overflow-wrap: anywhere; }
+.trace-attrs { font-family: var(--font-mono, ui-monospace, monospace); font-size: 0.875em; }

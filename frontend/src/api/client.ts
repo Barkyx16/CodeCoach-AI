@@ -71,6 +71,10 @@ export interface RequestOptions {
   /** Return the body as text (for files such as .ics) instead of parsing JSON. */
   raw?: boolean;
   headers?: Record<string, string>;
+  /** W3C trace context of the user action this request belongs to (lib/trace.ts). */
+  traceparent?: string;
+  /** Never refresh the session or sign out on a 401 (background telemetry). */
+  noRefresh?: boolean;
 }
 
 export function buildUrl(path: string, query?: RequestOptions["query"]): string {
@@ -114,6 +118,7 @@ async function send<T>(path: string, options: RequestOptions, isRetry: boolean):
   if (body !== undefined || options.rawBody !== undefined) headers["Content-Type"] = "application/json";
   const token = auth ? getToken() : null;
   if (token) headers.Authorization = `Bearer ${token}`;
+  if (options.traceparent) headers.traceparent = options.traceparent;
 
   const started = performance.now();
   const where = { method, path: diagPath(path), retry: isRetry };
@@ -136,6 +141,7 @@ async function send<T>(path: string, options: RequestOptions, isRetry: boolean):
   }
   diag("http", {
     ...where, status: response.status, ms: Math.round(performance.now() - started), requestId: response.headers.get("X-Request-ID"),
+    traceId: response.headers.get("X-Trace-ID"),
   });
 
   if (response.status === 204) return undefined as T;
@@ -157,7 +163,7 @@ async function send<T>(path: string, options: RequestOptions, isRetry: boolean):
       ? new ApiError(response.status, data.error.code, data.error.message, data.error.details ?? null,
           data.error.request_id ?? requestId)
       : new ApiError(response.status, "http_error", `Request failed with status ${response.status}`, null, requestId);
-    if (error.status === 401 && token) {
+    if (error.status === 401 && token && !options.noRefresh) {
       // The access token expired or was revoked: try the refresh cookie once, then retry. If the
       // refresh couldn't reach the server, that network error is thrown instead (still signed in).
       if (!isRetry && !path.startsWith(AUTH_PATH) && (await refreshToken())) return send<T>(path, options, true);

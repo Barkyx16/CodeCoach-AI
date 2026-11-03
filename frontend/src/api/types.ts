@@ -32,6 +32,8 @@ export type SubmissionListItem = S["SubmissionListItem"];
 export type SubmissionStatus = S["SubmissionStatus"];
 export type SubmissionMode = S["SubmissionMode"];
 export type Capabilities = S["Capabilities"];
+export type TraceOut = S["TraceOut"];
+export type TraceSpan = S["TraceSpanOut"];
 
 export type HintRequest = S["HintRequest"];
 export type HintResponse = S["HintResponse"];

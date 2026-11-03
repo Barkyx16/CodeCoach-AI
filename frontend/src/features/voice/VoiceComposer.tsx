@@ -34,7 +34,7 @@ const STATE_TEXT: Record<DictationState, string> = {
  */
 export function VoiceComposer({
   id, label, value, onChange, onSubmit, submitting, disabled = false, submitLabel, placeholder,
-  voice, extraActions, maxLength, hint, rows = 8, errorId,
+  voice, extraActions, maxLength, hint, rows = 8, errorId, onIgnored,
 }: {
   id: string;
   label: string;
@@ -53,6 +53,8 @@ export function VoiceComposer({
   rows?: number;
   /** Id of the error shown under the composer (when there is one), so the answer box describes it. */
   errorId?: string;
+  /** A click that sent nothing although nothing was visibly being sent (for diagnostics). */
+  onIgnored?: () => void;
 }) {
   const valueRef = useRef(value);
   useLayoutEffect(() => {
@@ -65,6 +67,7 @@ export function VoiceComposer({
     onChange((current && !/\s$/.test(current) ? `${current} ` : current) + text);
   });
   const sending = useRef<string | null>(null); // the text being sent, or just sent
+  const sendingSince = useRef(0);
 
   // A fresh, empty answer box (e.g. the next question) starts with a clean source record.
   useEffect(() => {
@@ -93,9 +96,12 @@ export function VoiceComposer({
 
   function submit(e?: FormEvent) {
     e?.preventDefault();
+    // Held for seconds while nothing is visibly being sent: the box looks ready but won't send.
+    if (sending.current !== null && !submitting && performance.now() - sendingSince.current > 3000) onIgnored?.();
     if (sending.current !== null || submitting || busyMic || disabled || !value.trim()) return;
     const text = value;
     sending.current = text;
+    sendingSince.current = performance.now();
     const { typed, voice: spoke } = used.current;
     const release = () => { if (sending.current === text) sending.current = null; };
     onSubmit(spoke && typed ? "mixed" : spoke ? "voice" : "typed").then((sent) => { if (!sent) release(); }, release);

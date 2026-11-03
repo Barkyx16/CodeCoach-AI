@@ -2882,6 +2882,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/telemetry/ui": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Report how a round action ended in the browser (outcome and timing only) */
+        post: operations["ui_events_api_v1_telemetry_ui_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/traces/{lookup}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin: one action's trace (server spans and browser reports) by trace id or request id */
+        get: operations["get_trace_api_v1_admin_traces__lookup__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3675,6 +3709,12 @@ export interface components {
              * @description Guest accounts inactive this long are deleted with their data (0: kept forever)
              */
             guest_retention_days: number;
+            /**
+             * Ui Telemetry
+             * @description The app may report how its round actions ended (outcome and timing only) to POST /api/v1/telemetry/ui
+             * @default false
+             */
+            ui_telemetry: boolean;
         };
         /** CareerAnalytics */
         CareerAnalytics: {
@@ -9002,6 +9042,69 @@ export interface components {
             /** Solved */
             solved: number;
         };
+        /** TraceEventOut */
+        TraceEventOut: {
+            /** Source */
+            source: string;
+            /** Action */
+            action: string;
+            /** Outcome */
+            outcome: string;
+            /** Duration Ms */
+            duration_ms: number;
+            /** Request Id */
+            request_id: string | null;
+            /** Status */
+            status: number | null;
+            /** Error Code */
+            error_code: string | null;
+            /**
+             * At
+             * @description Unix time the server received it, seconds
+             */
+            at: number;
+        };
+        /** TraceOut */
+        TraceOut: {
+            /** Trace Id */
+            trace_id: string;
+            /**
+             * Spans
+             * @description Server steps, in start order
+             */
+            spans: components["schemas"]["TraceSpanOut"][];
+            /**
+             * Events
+             * @description What the browser reported for this action
+             */
+            events: components["schemas"]["TraceEventOut"][];
+        };
+        /** TraceSpanOut */
+        TraceSpanOut: {
+            /** Span Id */
+            span_id: string;
+            /** Parent Id */
+            parent_id: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Started At
+             * @description Unix time, seconds
+             */
+            started_at: number;
+            /** Duration Ms */
+            duration_ms: number;
+            /** Outcome */
+            outcome: string;
+            /** Attrs */
+            attrs: {
+                [key: string]: string | number | boolean;
+            };
+            /** Request Id */
+            request_id: string | null;
+            /** Source */
+            source: string;
+        };
         /** TrackProgress */
         TrackProgress: {
             /** Track */
@@ -9086,6 +9189,44 @@ export interface components {
          * @enum {string}
          */
         TurnRole: "interviewer" | "candidate";
+        /** UiEvent */
+        UiEvent: {
+            /**
+             * Trace Id
+             * @description The action's W3C trace id
+             */
+            trace_id: string;
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "answer" | "skip" | "reply" | "skip_followup";
+            /**
+             * Outcome
+             * @description rendered: the next state was on screen; rejected: the server refused it; server_error: the server failed; network_error: no answer arrived; not_rendered: the server answered but the screen didn't change; ignored: the click didn't send anything
+             * @enum {string}
+             */
+            outcome: "rendered" | "rejected" | "server_error" | "network_error" | "not_rendered" | "ignored";
+            /**
+             * Duration Ms
+             * @description From the click to the outcome, in the browser
+             */
+            duration_ms: number;
+            /** Request Id */
+            request_id?: string | null;
+            /**
+             * Status
+             * @description HTTP status, 0 for no response
+             */
+            status?: number | null;
+            /** Error Code */
+            error_code?: string | null;
+        };
+        /** UiEventBatch */
+        UiEventBatch: {
+            /** Events */
+            events: components["schemas"]["UiEvent"][];
+        };
         /** UnitLink */
         UnitLink: {
             /** Id */
@@ -20412,6 +20553,113 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Capabilities"];
+                };
+            };
+        };
+    };
+    ui_events_api_v1_telemetry_ui_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UiEventBatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_trace_api_v1_admin_traces__lookup__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lookup: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TraceOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

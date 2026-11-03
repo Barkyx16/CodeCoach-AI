@@ -295,6 +295,9 @@ class Submission(Base):
     # Set by the client so a retried request (network failure, double send) returns the same
     # submission instead of judging twice. Unique per user.
     client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # The trace of the request that queued it, so the judge worker continues the same trace.
+    # An opaque random id: it says nothing about the user or the code.
+    trace_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, onupdate=utcnow)
 
