@@ -33,7 +33,9 @@ import logging
 import os
 import re
 import statistics
+import subprocess
 import sys
+import tempfile
 import time
 from collections import Counter
 from collections.abc import Callable
@@ -290,9 +292,19 @@ def evaluate_hints(provider: CoachProvider, problems: dict[str, ProblemContext],
 # --- the run ----------------------------------------------------------------------------------
 
 
-def load_grader(path: str) -> tuple[career.Grader, str, str]:
-    """A grader from a file, e.g. an earlier rubric from git:
-    git show <commit>:backend/app/careers/grading.py > /tmp/grading_v1.py"""
+GRADER_PATH = "backend/app/careers/grading.py"
+
+
+def load_grader(source: str) -> tuple[career.Grader, str, str]:
+    """The grade() of another rubric: `git:<commit>` (that commit's app/careers/grading.py) or a file."""
+    if source.startswith("git:"):
+        rev = source.removeprefix("git:")
+        text = subprocess.check_output(["git", "show", f"{rev}:{GRADER_PATH}"], cwd=EVAL_DIR, text=True)
+        tmp = Path(tempfile.mkdtemp(prefix="career-grader-")) / "grading.py"
+        tmp.write_text(text, encoding="utf-8")
+        grader, version, _ = load_grader(str(tmp))
+        return grader, version, f"git {rev}:{GRADER_PATH} (sha256 {meta.sha256_file(tmp)[:16]})"
+    path = source
     spec = importlib.util.spec_from_file_location("career_grader_under_test", path)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
@@ -696,7 +708,9 @@ def main() -> None:
     parser.add_argument("--split", default="all", choices=["all", "dev", "holdout"])
     parser.add_argument("--sections", nargs="+", default=list(SECTIONS), choices=SECTIONS)
     parser.add_argument("--limit", type=int, help="first N cases per set only (marks the run partial)")
-    parser.add_argument("--career-grader", help="grade career answers with the grade() in this file instead")
+    parser.add_argument(
+        "--career-grader", help="grade career answers with another grade(): git:<commit> or a file"
+    )
     parser.add_argument("--label", help="report name (default: the provider)")
     parser.add_argument("--allow-paid-calls", action="store_true", help="required for --provider anthropic")
     parser.add_argument(

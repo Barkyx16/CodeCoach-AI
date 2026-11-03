@@ -322,3 +322,15 @@ def test_calls_to_claude_need_an_explicit_flag_and_a_budget(monkeypatch):
     metered = Metered(Fake(), max_calls=0)
     with pytest.raises(BudgetExhausted):
         metered.review(None)
+
+
+def test_another_rubric_can_be_loaded_from_git_for_a_comparison():
+    from app.careers.grading import RUBRIC_VERSION
+    from evals.run import load_grader
+
+    grader, version, described = load_grader("git:HEAD")
+    assert version == RUBRIC_VERSION and described.startswith(
+        "git HEAD:backend/app/careers/grading.py (sha256 "
+    )
+    data = career.load("career_dev.json")
+    assert career.evaluate_case(data["cases"][0], data["track"], grader)["checks"]["evidence"]["passed"]

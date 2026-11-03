@@ -126,8 +126,8 @@ everything (injection fails on both injection cases).
 
 ## Results: career answers (written-answer coach), rubric v1 → v2
 
-Measured 2026-11-03 with the same harness and data on both rubrics (rubric v1 loaded from git,
-`git show 58d52ec:backend/app/careers/grading.py`). Reports: `evals/results/career-rubric-v1.*`
+Measured 2026-11-03 with the same harness and data on both rubrics (rubric v1 loaded from git:
+`python -m evals.run --sections career --career-grader git:58d52ec --label career-rubric-v1`). Reports: `evals/results/career-rubric-v1.*`
 and `career-rubric-v2.*`; the complete run is `evals/results/offline.*`.
 
 **What the first measurement found (rubric v1, development set):**

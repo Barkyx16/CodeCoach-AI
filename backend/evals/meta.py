@@ -107,9 +107,13 @@ def git_state() -> dict:
             return None
 
     status = git("status", "--porcelain", "--untracked-files=no")
+    # Reports written by earlier runs are outputs, not code or data: they don't make a run dirty.
+    changed = (
+        None if status is None else [line for line in status.splitlines() if "evals/results/" not in line]
+    )
     return {
         "commit": git("rev-parse", "HEAD"),
-        "uncommitted_changes": bool(status) if status is not None else None,
+        "uncommitted_changes": bool(changed) if changed is not None else None,
     }
 
 
