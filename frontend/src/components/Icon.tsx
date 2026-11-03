@@ -2,6 +2,8 @@ import type { SVGProps } from "react";
 
 const paths = {
   arrow: "M5 12h14m-6-6 6 6-6 6",
+  bookmark: "M6 3h12v18l-6-4.5L6 21V3Z",
+  list: "M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01",
   book: "M4 4h6a3 3 0 0 1 3 3v14a4 4 0 0 0-4-3H4V4Zm9 3a3 3 0 0 1 3-3h5v14h-4a4 4 0 0 0-4 3",
   alert: "M12 9v4m0 4h.01M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z",
   chart: "M4 4v16h16M8 15v-4m5 4V7m5 8v-6",

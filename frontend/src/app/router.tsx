@@ -22,6 +22,9 @@ import { SettingsPage } from "@/features/settings/SettingsPage";
 import { LandingPage } from "@/features/landing/LandingPage";
 import { PracticePage } from "@/features/careers/PracticePage";
 import { QuestionPage } from "@/features/careers/QuestionPage";
+import { CollectionPage } from "@/features/saved/CollectionPage";
+import { QueuePage } from "@/features/saved/QueuePage";
+import { SavedPage } from "@/features/saved/SavedPage";
 
 import { Layout } from "./Layout";
 import { NotFoundPage } from "./NotFoundPage";
@@ -72,6 +75,9 @@ export const routes: RouteObject[] = [
       { path: "/plan/goals", element: <RequireAuth><GoalsPage /></RequireAuth> },
       { path: "/analytics", element: <RequireAuth><Suspense fallback={<LoadingState label="Loading analytics…" />}><AnalyticsPage /></Suspense></RequireAuth> },
       { path: "/history", element: <RequireAuth><HistoryPage /></RequireAuth> },
+      { path: "/saved", element: <RequireAuth><SavedPage /></RequireAuth> },
+      { path: "/saved/collections/:id", element: <RequireAuth><CollectionPage /></RequireAuth> },
+      { path: "/saved/collections/:id/practice", element: <RequireAuth><QueuePage /></RequireAuth> },
       { path: "/history/submissions/:id", element: <RequireAuth><SubmissionDetailPage /></RequireAuth> },
       { path: "/history/coaching/:id", element: <RequireAuth><CoachingDetailPage /></RequireAuth> },
       { path: "/settings", element: <RequireAuth><SettingsPage /></RequireAuth> },

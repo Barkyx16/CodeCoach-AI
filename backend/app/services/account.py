@@ -9,9 +9,11 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.models import (
     AIInteraction,
+    Bookmark,
     ExperienceEntry,
     InterviewRetry,
     PracticeAnswer,
+    PracticeCollection,
     PracticeGoal,
     PracticeMode,
     PracticePlan,
@@ -59,6 +61,15 @@ def export_user_data(db: Session, user: User) -> dict:
     experience = db.scalars(select(ExperienceEntry).where(ExperienceEntry.user_id == user.id)).all()
     retries = db.scalars(select(InterviewRetry).where(InterviewRetry.user_id == user.id)).all()
     queue = db.scalars(select(ReviewItem).where(ReviewItem.user_id == user.id)).all()
+    bookmarks = db.scalars(
+        select(Bookmark).where(Bookmark.user_id == user.id).order_by(Bookmark.created_at)
+    ).all()
+    collections = db.scalars(
+        select(PracticeCollection)
+        .options(selectinload(PracticeCollection.items))
+        .where(PracticeCollection.user_id == user.id)
+        .order_by(PracticeCollection.created_at)
+    ).all()
     events = db.scalars(
         select(ProgressEvent).where(ProgressEvent.user_id == user.id).order_by(ProgressEvent.created_at)
     ).all()
@@ -250,5 +261,34 @@ def export_user_data(db: Session, user: User) -> dict:
                 "created_at": iso(q.created_at),
             }
             for q in queue
+        ],
+        "bookmarks": [
+            {
+                "type": b.item_type,
+                "career": b.track or None,
+                "item": b.ref_id,
+                "created_at": iso(b.created_at),
+            }
+            for b in bookmarks
+        ],
+        "collections": [
+            {
+                "name": c.name,
+                "queue_position": c.queue_position,
+                "queue_started_at": iso(c.queue_started_at),
+                "created_at": iso(c.created_at),
+                "items": [
+                    {
+                        "type": i.item_type,
+                        "career": i.track or None,
+                        "item": i.ref_id,
+                        "position": i.position,
+                        "added_at": iso(i.added_at),
+                        "queue_done_at": iso(i.queue_done_at),
+                    }
+                    for i in c.items
+                ],
+            }
+            for c in collections
         ],
     }

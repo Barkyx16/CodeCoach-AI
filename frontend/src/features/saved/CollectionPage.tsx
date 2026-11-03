@@ -1,0 +1,158 @@
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+
+import { api } from "@/api/endpoints";
+import { useCollection, useCollectionMutation, useDeleteCollection } from "@/api/queries";
+import type { CollectionItem } from "@/api/types";
+import { BackLink } from "@/components/BackLink";
+import { Badge } from "@/components/Badge";
+import { Button } from "@/components/Button";
+import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
+
+import { useItemKind } from "./labels";
+
+/** One collection: rename, reorder (buttons, keyboard-friendly), remove items, start the practice queue. */
+export function CollectionPage() {
+  const { id = "" } = useParams();
+  const navigate = useNavigate();
+  const collection = useCollection(id);
+  const rename = useCollectionMutation((name: string) => api.renameCollection(id, name));
+  const reorder = useCollectionMutation((ids: string[]) => api.reorderCollection(id, ids));
+  const remove = useCollectionMutation((itemId: string) => api.removeFromCollection(id, itemId));
+  const start = useCollectionMutation((position: number) => api.setQueuePosition(id, position));
+  const destroy = useDeleteCollection();
+  const itemKind = useItemKind();
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState("");
+  const [confirming, setConfirming] = useState(false);
+  const [announce, setAnnounce] = useState("");
+  // After a move, keep keyboard focus on the same button of the moved item.
+  const focusAfter = useRef<{ itemId: string; dir: "up" | "down" } | null>(null);
+  const buttons = useRef(new Map<string, HTMLButtonElement>());
+
+  useEffect(() => {
+    const f = focusAfter.current;
+    if (!f) return;
+    const el = buttons.current.get(`${f.itemId}:${f.dir}`);
+    const fallback = buttons.current.get(`${f.itemId}:${f.dir === "up" ? "down" : "up"}`);
+    (el && !el.disabled ? el : fallback)?.focus();
+    focusAfter.current = null;
+  }, [collection.data]);
+
+  if (collection.isPending) return <LoadingState label="Loading collection…" />;
+  if (collection.isError) return <div className="page"><ErrorState error={collection.error} onRetry={() => void collection.refetch()} /></div>;
+  const c = collection.data;
+  const items = c.item_list;
+
+  function move(item: CollectionItem, dir: "up" | "down") {
+    const ids = items.map((i) => i.id);
+    const from = ids.indexOf(item.id);
+    const to = dir === "up" ? from - 1 : from + 1;
+    if (to < 0 || to >= ids.length) return;
+    [ids[from], ids[to]] = [ids[to]!, ids[from]!];
+    focusAfter.current = { itemId: item.id, dir };
+    reorder.mutate(ids, { onSuccess: () => setAnnounce(`Moved “${item.title}” to position ${to + 1} of ${ids.length}.`) });
+  }
+
+  async function onRename(e: FormEvent) {
+    e.preventDefault();
+    const done = await rename.mutateAsync(name.trim() || c.name).catch(() => null);
+    if (done) setEditing(false);
+  }
+
+  async function onStart() {
+    const position = c.queue_started ? c.queue_position : 0;
+    const done = await start.mutateAsync(position).catch(() => null);
+    if (done) navigate(`/saved/collections/${id}/practice`);
+  }
+
+  return (
+    <div className="page collection-page">
+      <BackLink fallback={{ to: "/saved", label: "All saved items" }} />
+      <div className="page__header">
+        <div>
+          <p className="eyebrow">COLLECTION</p>
+          {editing ? (
+            <form className="row" onSubmit={onRename}>
+              <label className="field">
+                <span className="field__label">Collection name</span>
+                <input className="input" value={name} maxLength={80} autoFocus onChange={(e) => setName(e.target.value)} />
+              </label>
+              <Button type="submit" size="sm" variant="primary" loading={rename.isPending}>Save name</Button>
+              <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
+            </form>
+          ) : (
+            <h1 className="page__title">{c.name}</h1>
+          )}
+          <p className="page__subtitle">
+            {c.items} {c.items === 1 ? "item" : "items"} · Queue: {c.queue_done} of {c.items} marked done
+            {c.queue_started && c.items > 0 ? ` · at item ${c.queue_position + 1}` : ""}
+          </p>
+          <InlineError error={rename.error} />
+        </div>
+        <div className="row">
+          {!editing && <Button size="sm" variant="ghost" onClick={() => { setName(c.name); setEditing(true); }}>Rename</Button>}
+          <Button size="sm" variant="ghost" onClick={() => setConfirming(true)}>Delete</Button>
+          {items.length > 0 && (
+            <Button variant="primary" loading={start.isPending} onClick={() => void onStart()}>
+              {c.queue_started ? "Continue practice" : "Start this collection"}
+            </Button>
+          )}
+        </div>
+      </div>
+      <InlineError error={start.error} />
+
+      {confirming && (
+        <div className="banner banner--warning stack-sm" role="alertdialog" aria-labelledby="delete-title" aria-describedby="delete-desc">
+          <strong id="delete-title">Delete “{c.name}”?</strong>
+          <p id="delete-desc">This removes the list and its queue progress. The questions, your answers and your bookmarks stay.</p>
+          <span className="row">
+            <Button variant="danger" size="sm" loading={destroy.isPending} autoFocus
+              onClick={() => destroy.mutate(id, { onSuccess: () => navigate("/saved", { replace: true }) })}>Delete collection</Button>
+            <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>Cancel</Button>
+          </span>
+          <InlineError error={destroy.error} />
+        </div>
+      )}
+
+      <p className="visually-hidden" role="status">{announce}</p>
+      {items.length === 0 ? (
+        <EmptyState title="This collection is empty" action={<Link className="btn btn--secondary btn--md" to="/problems?view=questions">Browse questions</Link>}>
+          Open a question and use “Add to a collection”.
+        </EmptyState>
+      ) : (
+        <ol className="collection-items" aria-label="Items in order">
+          {items.map((item, index) => (
+            <li key={item.id} className={`card collection-item${item.available ? "" : " collection-item--gone"}`}>
+              <span className="collection-item__pos" aria-hidden="true">{index + 1}</span>
+              <div className="collection-item__main stack-sm">
+                {item.available && item.href
+                  ? <Link to={item.href} state={{ from: `/saved/collections/${id}`, fromLabel: `Back to ${c.name}` }}>{item.title}</Link>
+                  : <strong>{item.title}</strong>}
+                <span className="subtle">{itemKind(item.item_type, item.track)}</span>
+                <span className="row">
+                  {item.queue_done && <Badge tone="success">Done in queue</Badge>}
+                  {item.practiced_since_added && <Badge tone="info">Practiced since added</Badge>}
+                </span>
+                {!item.available && <p className="banner banner--warning">{item.unavailable_reason} Nothing was swapped in for it.</p>}
+              </div>
+              <div className="collection-item__actions">
+                <button type="button" className="btn btn--ghost btn--sm" aria-label={`Move “${item.title}” up`}
+                  disabled={index === 0 || reorder.isPending}
+                  ref={(el) => { if (el) buttons.current.set(`${item.id}:up`, el); }}
+                  onClick={() => move(item, "up")}>↑</button>
+                <button type="button" className="btn btn--ghost btn--sm" aria-label={`Move “${item.title}” down`}
+                  disabled={index === items.length - 1 || reorder.isPending}
+                  ref={(el) => { if (el) buttons.current.set(`${item.id}:down`, el); }}
+                  onClick={() => move(item, "down")}>↓</button>
+                <Button size="sm" variant="ghost" aria-label={`Remove “${item.title}” from this collection`}
+                  loading={remove.isPending && remove.variables === item.id} onClick={() => remove.mutate(item.id)}>Remove</Button>
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
+      <InlineError error={reorder.error ?? remove.error} />
+    </div>
+  );
+}

@@ -535,6 +535,15 @@ These are moments where the obvious path was wrong and a deliberate decision was
     original, and a score change is only shown when both attempts were graded by the same
     evaluator and rubric version; otherwise the page compares the points covered instead.
 
+40. **Filters that tell the truth about themselves.** The explorer request asked for filters
+    like estimated time and sorts like "recently added". The question bank has neither (questions
+    are generated, so they have no added date and no timing), so the explorer doesn't offer them:
+    `estimated_minutes` is `null` and the page says why, instead of inventing numbers. Each
+    filter option's count is computed with every *other* filter applied, so a count always says
+    exactly what clicking it will return. Personal status lives only in the signed-in endpoint;
+    the public one ignores a token entirely. A browser test also caught the list flashing the
+    default career's questions before the session finished restoring, so the page now waits.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -1117,3 +1126,28 @@ You asked for a replay and improvement workspace after interviews.
 - **Limits:** no audio replay (audio is never kept); coding interviews can't be retried question
   by question (the action reopens the problem); review completion isn't yet an activity type in
   History.
+
+### Session 19: ten more upgrades
+You uploaded ten more upgrade prompts and asked for all of them, without errors. Each one is
+built as a complete, tested slice and committed on its own.
+
+**U01 Find the right practice, faster (built and verified):**
+- **Explorer** for every career: search over titles, skills, tags, career name and question
+  text with exact-title-first ranking; difficulty tabs plus format, skill and (signed in) your
+  practice status filters, each option with an accurate count; stable sorts; removable chips, a
+  plain explanation of what's applied, suggestions when nothing matches; all state in the URL,
+  with Back/Forward/reload restoring the same results and scroll position.
+- **Bookmarks** (optimistic, rolled back with a recoverable error on failure) and **private
+  collections** of questions and coding problems: create, rename, reorder, delete with
+  confirmation, multi-membership without duplicates (also under concurrent requests), and a
+  **practice queue** with position and done marks separate from scores, reachable from the
+  question or problem page ("Mark done and go to next").
+- Retired items stay listed as unavailable with a reason and a Remove button; nothing is
+  swapped in. Two accounts can't see or change each other's collections (every endpoint checked).
+  Export includes bookmarks and collections; account deletion removes them.
+- Migration (3 tables, cascades), OpenAPI and generated types, a "Saved" nav link.
+- Tests: 18 backend (SQLite and PostgreSQL), 9 frontend, 2 Playwright journeys (filtered list →
+  question → reload → Back with scroll; bookmarks → collection → reorder → reload → queue → a
+  second browser context sees nothing → delete), plus WCAG scans of the new pages on desktop and
+  mobile.
+

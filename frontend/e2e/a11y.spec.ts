@@ -57,11 +57,21 @@ test("signed-in screens have no WCAG 2.1 A/AA violations", async ({ page }) => {
     await expectNoViolations(page, "workspace with hint and review");
   }
 
-  for (const path of ["/dashboard", "/analytics", "/analytics?career=registered-nurse", "/history", "/history?career=coding&type=coaching", "/interviews", "/interviews/questions", "/plan", "/plan/goals", "/settings"]) {
+  for (const path of ["/dashboard", "/analytics", "/analytics?career=registered-nurse", "/history", "/history?career=coding&type=coaching", "/interviews", "/interviews/questions", "/plan", "/plan/goals", "/settings", "/saved"]) {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
     await expectNoViolations(page, path);
   }
+
+  // A collection with an item, and the filtered question explorer.
+  await page.goto("/saved");
+  await page.getByLabel("New collection").fill("Accessibility check");
+  await page.getByRole("button", { name: "Create collection" }).click();
+  await expect(page.getByRole("heading", { name: "Accessibility check" })).toBeVisible();
+  await expectNoViolations(page, "empty collection");
+  await page.goto("/problems?view=questions&kind=behavioral&q=time");
+  await expect(page.getByRole("button", { name: /Remove Format/ })).toBeVisible();
+  await expectNoViolations(page, "filtered explorer");
 
   // A live question round (voice controls, engagement indicator) and its results page.
   await page.goto("/interviews/questions");

@@ -654,3 +654,56 @@ class ReviewItem(Base):
     snoozed: Mapped[bool] = mapped_column(Boolean, default=False)
     removed: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class Bookmark(Base):
+    """A private bookmark on a career question (track + id) or a coding problem (slug)."""
+
+    __tablename__ = "bookmarks"
+    __table_args__ = (UniqueConstraint("user_id", "item_type", "track", "ref_id", name="uq_bookmark"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    item_type: Mapped[str] = mapped_column(String(12))  # question | problem
+    track: Mapped[str] = mapped_column(String(64), default="")  # "" for coding problems
+    ref_id: Mapped[str] = mapped_column(String(80))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class PracticeCollection(Base):
+    """A private, ordered set of practice items. Its queue position and "done in this queue" marks
+    are separate from mastery: finishing a queue doesn't mean a skill is mastered."""
+
+    __tablename__ = "practice_collections"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(80))
+    queue_position: Mapped[int] = mapped_column(Integer, default=0)
+    queue_started_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, onupdate=utcnow)
+
+    items: Mapped[list[CollectionItem]] = relationship(
+        back_populates="collection", cascade="all, delete-orphan", order_by="CollectionItem.position"
+    )
+
+
+class CollectionItem(Base):
+    __tablename__ = "collection_items"
+    __table_args__ = (
+        UniqueConstraint("collection_id", "item_type", "track", "ref_id", name="uq_collection_item"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    collection_id: Mapped[str] = mapped_column(
+        ForeignKey("practice_collections.id", ondelete="CASCADE"), index=True
+    )
+    item_type: Mapped[str] = mapped_column(String(12))
+    track: Mapped[str] = mapped_column(String(64), default="")
+    ref_id: Mapped[str] = mapped_column(String(80))
+    position: Mapped[int] = mapped_column(Integer)
+    added_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    queue_done_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+
+    collection: Mapped[PracticeCollection] = relationship(back_populates="items")

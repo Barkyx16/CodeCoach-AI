@@ -19,6 +19,7 @@ import "./styles/progress.css";
 import "./styles/plan.css";
 import "./styles/targets.css";
 import "./styles/review.css";
+import "./styles/saved.css";
 
 const queryClient = makeQueryClient();
 const router = createRouter();

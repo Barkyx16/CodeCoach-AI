@@ -469,6 +469,181 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/careers/{slug}/explore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search and filter a career's questions, with counts per filter option (no personal data) */
+        get: operations["explore_public_api_v1_careers__slug__explore_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/explore/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The explorer with your practice status, bookmark/attempt filters and personal sorts */
+        get: operations["explore_mine_api_v1_me_explore__slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/bookmarks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your bookmarks */
+        get: operations["list_bookmarks_api_v1_me_bookmarks_get"];
+        /** Bookmark a question or problem (idempotent) */
+        put: operations["add_bookmark_api_v1_me_bookmarks_put"];
+        post?: never;
+        /** Remove a bookmark (idempotent; works for items that left the library) */
+        delete: operations["remove_bookmark_api_v1_me_bookmarks_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/collections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your private collections, most recently changed first */
+        get: operations["list_collections_api_v1_me_collections_get"];
+        put?: never;
+        /** Create a collection */
+        post: operations["create_collection_api_v1_me_collections_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/collections/{collection_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A collection with its items in order */
+        get: operations["get_collection_api_v1_me_collections__collection_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete a collection (the questions and your answers are not affected) */
+        delete: operations["delete_collection_api_v1_me_collections__collection_id__delete"];
+        options?: never;
+        head?: never;
+        /** Rename a collection */
+        patch: operations["rename_collection_api_v1_me_collections__collection_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/me/collections/{collection_id}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a question or problem (409 if it's already in this collection) */
+        post: operations["add_collection_item_api_v1_me_collections__collection_id__items_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/collections/{collection_id}/items/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove an item (also how a retired question is cleared out) */
+        delete: operations["remove_collection_item_api_v1_me_collections__collection_id__items__item_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/collections/{collection_id}/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Reorder: send every item id once, in the new order */
+        put: operations["reorder_collection_api_v1_me_collections__collection_id__order_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/collections/{collection_id}/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Start the collection as a practice queue, or move to a position in it */
+        put: operations["set_queue_position_api_v1_me_collections__collection_id__queue_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/collections/{collection_id}/items/{item_id}/done": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Mark an item done in this queue (queue progress only; mastery comes from your answers) */
+        put: operations["mark_item_done_api_v1_me_collections__collection_id__items__item_id__done_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/submissions": {
         parameters: {
             query?: never;
@@ -1423,6 +1598,29 @@ export interface components {
             /** Requirement Ids */
             requirement_ids: string[];
         };
+        /** BookmarkOut */
+        BookmarkOut: {
+            /**
+             * Item Type
+             * @enum {string}
+             */
+            item_type: "question" | "problem";
+            /** Track */
+            track: string;
+            /** Ref Id */
+            ref_id: string;
+            /** Title */
+            title: string;
+            /** Href */
+            href: string | null;
+            /** Available */
+            available: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
         /** Capabilities */
         Capabilities: {
             /**
@@ -1555,6 +1753,110 @@ export interface components {
             passed: number;
             /** Saved Not Judged */
             saved_not_judged: number;
+        };
+        /** CollectionIn */
+        CollectionIn: {
+            /** Name */
+            name: string;
+        };
+        /** CollectionItemIn */
+        CollectionItemIn: {
+            /**
+             * Item Type
+             * @enum {string}
+             */
+            item_type: "question" | "problem";
+            /**
+             * Track
+             * @default
+             */
+            track: string;
+            /** Ref Id */
+            ref_id: string;
+        };
+        /** CollectionItemOut */
+        CollectionItemOut: {
+            /** Id */
+            id: string;
+            /**
+             * Item Type
+             * @enum {string}
+             */
+            item_type: "question" | "problem";
+            /** Track */
+            track: string;
+            /** Ref Id */
+            ref_id: string;
+            /** Position */
+            position: number;
+            /** Title */
+            title: string;
+            /** Href */
+            href: string | null;
+            /** Available */
+            available: boolean;
+            /** Unavailable Reason */
+            unavailable_reason: string | null;
+            /**
+             * Queue Done
+             * @description Marked done in this collection's queue (not mastery)
+             */
+            queue_done: boolean;
+            /**
+             * Practiced Since Added
+             * @description An answer or submission exists since it was added
+             */
+            practiced_since_added: boolean;
+        };
+        /** CollectionOut */
+        CollectionOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Items */
+            items: number;
+            /** Queue Position */
+            queue_position: number;
+            /** Queue Started */
+            queue_started: boolean;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Contains
+             * @description Whether it holds the item named in the request (null when none was named)
+             */
+            contains?: boolean | null;
+            /** Item List */
+            item_list: components["schemas"]["CollectionItemOut"][];
+            /** Queue Done */
+            queue_done: number;
+        };
+        /** CollectionSummary */
+        CollectionSummary: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Items */
+            items: number;
+            /** Queue Position */
+            queue_position: number;
+            /** Queue Started */
+            queue_started: boolean;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Contains
+             * @description Whether it holds the item named in the request (null when none was named)
+             */
+            contains?: boolean | null;
         };
         /** Comparison */
         Comparison: {
@@ -1698,6 +2000,11 @@ export interface components {
             points?: string[];
             /** Evidence */
             evidence?: components["schemas"]["EvidenceLink"][];
+        };
+        /** DoneIn */
+        DoneIn: {
+            /** Done */
+            done: boolean;
         };
         /**
          * Engagement
@@ -1883,6 +2190,81 @@ export interface components {
              * @default Explanations are based only on the public tests and compiler output. Hidden test inputs are never shown to the AI or to you.
              */
             disclaimer: string;
+        };
+        /** ExploreFacets */
+        ExploreFacets: {
+            /** Difficulty */
+            difficulty: components["schemas"]["Facet"][];
+            /** Kind */
+            kind: components["schemas"]["Facet"][];
+            /** Skill */
+            skill: components["schemas"]["Facet"][];
+        };
+        /**
+         * ExploreItem
+         * @description Public description of a question: no personal data.
+         */
+        ExploreItem: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Prompt */
+            prompt: string;
+            /** Difficulty */
+            difficulty: string;
+            /** Kind */
+            kind: string;
+            /** Skills */
+            skills: string[];
+            /** Tags */
+            tags: string[];
+            /**
+             * Estimated Minutes
+             * @description Null: the bank doesn't estimate this question's length
+             */
+            estimated_minutes: number | null;
+        };
+        /** ExploreResult */
+        ExploreResult: {
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /** Items */
+            items: components["schemas"]["ExploreItem"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** @description Counts for each option, given the other active filters */
+            facets: components["schemas"]["ExploreFacets"];
+            /**
+             * Explanation
+             * @description The active filters, in words
+             */
+            explanation: string[];
+            /**
+             * Suggestions
+             * @description Ways to widen a search that found nothing
+             */
+            suggestions: string[];
+            /**
+             * Sorts
+             * @description Sorts available here (personal ones need sign-in)
+             */
+            sorts: ("relevance" | "library" | "last_practiced" | "lowest_score")[];
+        };
+        /** Facet */
+        Facet: {
+            /** Value */
+            value: string;
+            /** Label */
+            label: string;
+            /** Count */
+            count: number;
         };
         /** FacetOption */
         FacetOption: {
@@ -2382,6 +2764,22 @@ export interface components {
             /** Average Score */
             average_score: number | null;
         };
+        /**
+         * ItemStatus
+         * @description Private practice status for one question (signed-in explorer only).
+         */
+        ItemStatus: {
+            /** Best Score */
+            best_score: number | null;
+            /** Attempts */
+            attempts: number;
+            /** Last Practiced At */
+            last_practiced_at: string | null;
+            /** Bookmarked */
+            bookmarked: boolean;
+            /** Collection Ids */
+            collection_ids: string[];
+        };
         /** LoginRequest */
         LoginRequest: {
             /**
@@ -2391,6 +2789,53 @@ export interface components {
             email: string;
             /** Password */
             password: string;
+        };
+        /** MyExploreResult */
+        MyExploreResult: {
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /** Items */
+            items: components["schemas"]["ExploreItem"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** @description Counts for each option, given the other active filters */
+            facets: components["schemas"]["ExploreFacets"];
+            /**
+             * Explanation
+             * @description The active filters, in words
+             */
+            explanation: string[];
+            /**
+             * Suggestions
+             * @description Ways to widen a search that found nothing
+             */
+            suggestions: string[];
+            /**
+             * Sorts
+             * @description Sorts available here (personal ones need sign-in)
+             */
+            sorts: ("relevance" | "library" | "last_practiced" | "lowest_score")[];
+            /**
+             * Status
+             * @description Your practice status, keyed by question id
+             */
+            status: {
+                [key: string]: components["schemas"]["ItemStatus"];
+            };
+        };
+        /** OrderIn */
+        OrderIn: {
+            /**
+             * Item Ids
+             * @description Every item id of the collection, in the new order
+             */
+            item_ids: string[];
         };
         /** Page[AIHistoryItem] */
         Page_AIHistoryItem_: {
@@ -2840,6 +3285,11 @@ export interface components {
              * @description Your best score on this question, when signed in
              */
             best_score?: number | null;
+        };
+        /** QueueIn */
+        QueueIn: {
+            /** Position */
+            position: number;
         };
         /** Recommendation */
         Recommendation: {
@@ -5174,6 +5624,778 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    explore_public_api_v1_careers__slug__explore_get: {
+        parameters: {
+            query?: {
+                /** @description Keywords or a plain description */
+                q?: string | null;
+                difficulty?: string | null;
+                kind?: string | null;
+                skill?: string | null;
+                sort?: ("relevance" | "library") | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExploreResult"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    explore_mine_api_v1_me_explore__slug__get: {
+        parameters: {
+            query?: {
+                /** @description Keywords or a plain description */
+                q?: string | null;
+                difficulty?: string | null;
+                kind?: string | null;
+                skill?: string | null;
+                status?: ("attempted" | "unattempted" | "bookmarked") | null;
+                sort?: ("relevance" | "library" | "last_practiced" | "lowest_score") | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyExploreResult"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_bookmarks_api_v1_me_bookmarks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookmarkOut"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    add_bookmark_api_v1_me_bookmarks_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionItemIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookmarkOut"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    remove_bookmark_api_v1_me_bookmarks_delete: {
+        parameters: {
+            query: {
+                item_type: "question" | "problem";
+                ref_id: string;
+                track?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookmarkOut"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_collections_api_v1_me_collections_get: {
+        parameters: {
+            query?: {
+                /** @description With ref_id: report which collections hold it */
+                item_type?: ("question" | "problem") | null;
+                track?: string;
+                ref_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_collection_api_v1_me_collections_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_collection_api_v1_me_collections__collection_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_collection_api_v1_me_collections__collection_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rename_collection_api_v1_me_collections__collection_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    add_collection_item_api_v1_me_collections__collection_id__items_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionItemIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    remove_collection_item_api_v1_me_collections__collection_id__items__item_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reorder_collection_api_v1_me_collections__collection_id__order_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    set_queue_position_api_v1_me_collections__collection_id__queue_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QueueIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    mark_item_done_api_v1_me_collections__collection_id__items__item_id__done_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DoneIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

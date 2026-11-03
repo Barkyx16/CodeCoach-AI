@@ -5,8 +5,8 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { ApiError } from "./client";
-import { api, type ActivityFilters, type ProblemFilters, type QuestionFilters } from "./endpoints";
-import type { AIHistoryAction, AnswerSource, GoalsInput, ReviewQueue, Target, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
+import { api, type ActivityFilters, type ExploreFilters, type ProblemFilters, type QuestionFilters } from "./endpoints";
+import type { AIHistoryAction, AnswerSource, Bookmark, Collection, GoalsInput, MyExploreResult, ReviewQueue, SavedItemRef, Target, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
 
 export const queryKeys = {
   problems: (filters: ProblemFilters) => ["problems", filters] as const,
@@ -353,6 +353,102 @@ export function useReviewQueueMutation<V>(fn: (vars: V) => Promise<ReviewQueue>)
     onSuccess: (q) => {
       qc.setQueryData(["me", "review-queue"], q);
       void qc.invalidateQueries({ queryKey: ["me", "interview-review"] });
+    },
+  });
+}
+
+// --- explorer, bookmarks, collections -----------------------------------------------------------
+
+/** The question explorer. Signed in: your status, personal filters and sorts; signed out: the public list. */
+export function useExplore(track: string, filters: ExploreFilters, signedIn: boolean) {
+  return useQuery({
+    queryKey: signedIn ? ["me", "explore", track, filters] : ["careers", track, "explore", filters],
+    queryFn: ({ signal }) => (signedIn ? api.myExplore(track, filters, signal) : api.explore(track, filters, signal)),
+    placeholderData: keepPreviousData,
+    enabled: Boolean(track),
+  });
+}
+
+export function useBookmarks(enabled = true) {
+  return useQuery({ queryKey: ["me", "bookmarks"], queryFn: api.bookmarks, enabled });
+}
+
+const sameRef = (a: SavedItemRef, b: { item_type: string; track?: string; ref_id: string }) =>
+  a.item_type === b.item_type && (a.track ?? "") === (b.track ?? "") && a.ref_id === b.ref_id;
+
+/**
+ * Bookmark or un-bookmark with an optimistic update: the star flips at once and flips back (with
+ * the error kept on the mutation) if the server refuses, so nothing claims a save that didn't happen.
+ */
+export function useToggleBookmark() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ref, on }: { ref: SavedItemRef; on: boolean }) => (on ? api.addBookmark(ref) : api.removeBookmark(ref)),
+    onMutate: async ({ ref, on }) => {
+      await qc.cancelQueries({ queryKey: ["me", "explore"] });
+      await qc.cancelQueries({ queryKey: ["me", "bookmarks"] });
+      const explore = qc.getQueriesData<MyExploreResult>({ queryKey: ["me", "explore"] });
+      const marks = qc.getQueryData<Bookmark[]>(["me", "bookmarks"]);
+      for (const [key, data] of explore) {
+        if (!data || ref.item_type !== "question" || data.track !== ref.track) continue;
+        const prev = data.status[ref.ref_id] ?? { best_score: null, attempts: 0, last_practiced_at: null, bookmarked: false, collection_ids: [] };
+        qc.setQueryData<MyExploreResult>(key, { ...data, status: { ...data.status, [ref.ref_id]: { ...prev, bookmarked: on } } });
+      }
+      if (marks) {
+        qc.setQueryData<Bookmark[]>(["me", "bookmarks"], on
+          ? [{ item_type: ref.item_type, track: ref.track ?? "", ref_id: ref.ref_id, title: "", href: null, available: true, created_at: new Date().toISOString() }, ...marks]
+          : marks.filter((b) => !sameRef(ref, b)));
+      }
+      return { explore, marks };
+    },
+    onError: (_error, _vars, context) => {
+      for (const [key, data] of context?.explore ?? []) qc.setQueryData(key, data);
+      if (context?.marks) qc.setQueryData(["me", "bookmarks"], context.marks);
+    },
+    onSuccess: (marks) => qc.setQueryData(["me", "bookmarks"], marks),
+    onSettled: () => void qc.invalidateQueries({ queryKey: ["me", "explore"] }),
+  });
+}
+
+export function useIsBookmarked(ref: SavedItemRef, enabled: boolean): boolean | undefined {
+  const marks = useBookmarks(enabled);
+  return marks.data ? marks.data.some((b) => sameRef(ref, b)) : undefined;
+}
+
+/** Your collections; with `ref`, each says whether it already holds that item. */
+export function useCollections(enabled = true, ref?: SavedItemRef) {
+  return useQuery({
+    queryKey: ref ? ["me", "collections", ref.item_type, ref.track ?? "", ref.ref_id] : ["me", "collections"],
+    queryFn: () => api.collections(ref),
+    enabled,
+  });
+}
+
+export function useCollection(id: string, enabled = true) {
+  return useQuery({ queryKey: ["me", "collection", id], queryFn: () => api.collection(id), enabled });
+}
+
+/** Every collection edit returns the fresh collection; write it into the cache. */
+export function useCollectionMutation<V>(fn: (vars: V) => Promise<Collection>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: (c) => {
+      qc.setQueryData(["me", "collection", c.id], c);
+      void qc.invalidateQueries({ queryKey: ["me", "collections"] });
+      void qc.invalidateQueries({ queryKey: ["me", "explore"] });
+    },
+  });
+}
+
+export function useDeleteCollection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteCollection(id),
+    onSuccess: (_v, id) => {
+      qc.removeQueries({ queryKey: ["me", "collection", id] });
+      void qc.invalidateQueries({ queryKey: ["me", "collections"] });
+      void qc.invalidateQueries({ queryKey: ["me", "explore"] });
     },
   });
 }

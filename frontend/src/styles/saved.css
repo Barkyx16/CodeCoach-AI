@@ -1,0 +1,65 @@
+/* Practice explorer filters, bookmarks, collections and the practice queue. */
+
+.explore-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-3); }
+.explore-filter { display: grid; gap: var(--space-1); font-size: var(--text-sm); color: var(--color-text-muted); min-width: 0; }
+.explore-filter .input { width: 100%; min-width: 0; }
+.explore-note { font-size: var(--text-xs); margin: 0; }
+
+.filter-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.filter-chip {
+  display: inline-flex; align-items: center; gap: var(--space-1); min-height: 32px; padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-strong); border-radius: var(--radius-full); background: var(--color-primary-soft);
+  color: var(--color-text); font: inherit; font-size: var(--text-sm); cursor: pointer; max-width: 100%; overflow-wrap: anywhere; text-align: left;
+}
+.filter-chip:hover { border-color: var(--color-link); }
+
+.explore-row { display: flex; align-items: stretch; }
+.explore-row .problem-row { flex: 1; min-width: 0; }
+.bookmark-toggle {
+  flex: none; display: grid; place-items: center; width: 48px; border: none; border-left: 1px solid var(--color-border);
+  background: var(--color-surface); color: var(--color-text-muted); cursor: pointer;
+}
+.bookmark-toggle:hover { color: var(--color-text); background: var(--color-surface-raised); }
+.bookmark-toggle[aria-pressed="true"] { color: var(--color-warning); }
+.bookmark-toggle[aria-pressed="true"] svg path { fill: currentColor; }
+
+.save-controls .btn[aria-pressed="true"] { border-color: var(--color-warning); }
+.save-controls .btn[aria-pressed="true"] svg path { fill: currentColor; }
+
+.saved-page__create { align-items: flex-end; flex-wrap: wrap; }
+.saved-page__create .field { flex: 1 1 220px; }
+.saved-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.saved-list__item { display: grid; gap: var(--space-2); }
+.saved-list__title { font-weight: 600; overflow-wrap: anywhere; }
+
+.collection-items { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.collection-item { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: var(--space-3); align-items: start; }
+.collection-item__pos { font-family: var(--font-mono); color: var(--color-text-muted); padding-top: 2px; }
+.collection-item__main a, .collection-item__main strong { overflow-wrap: anywhere; }
+.collection-item__actions { display: flex; flex-wrap: wrap; gap: var(--space-1); justify-content: flex-end; }
+.collection-item__actions .btn { min-width: 40px; min-height: 40px; }
+.collection-item--gone { border-style: dashed; }
+
+.queue-progress { display: grid; gap: var(--space-2); }
+.queue-progress progress { display: block; width: 100%; margin-top: var(--space-2); }
+.queue-current__nav { justify-content: space-between; }
+.queue-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); }
+.queue-list__item {
+  width: 100%; display: flex; justify-content: space-between; gap: var(--space-3); padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface);
+  color: var(--color-text); font: inherit; text-align: left; cursor: pointer;
+}
+.queue-list li[aria-current="step"] .queue-list__item { border-color: var(--color-link); background: var(--color-primary-soft); cursor: default; }
+.queue-list__item:disabled { opacity: 1; }
+
+.queue-bar {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4); margin-bottom: var(--space-4); border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md); background: var(--color-primary-soft);
+}
+
+@media (max-width: 560px) {
+  .collection-item { grid-template-columns: 24px minmax(0, 1fr); }
+  .collection-item__actions { grid-column: 1 / -1; justify-content: flex-start; }
+  .bookmark-toggle { width: 44px; }
+}

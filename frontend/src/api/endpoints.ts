@@ -55,6 +55,13 @@ import type {
   Plan,
   PlanItem,
   TrackProgress,
+  Bookmark,
+  Collection,
+  CollectionSummary,
+  ExploreResult,
+  ExploreSort,
+  MyExploreResult,
+  SavedItemRef,
 } from "./types";
 
 export interface ProblemFilters {
@@ -68,6 +75,17 @@ export interface ProblemFilters {
 export interface QuestionFilters {
   difficulty?: Difficulty | "";
   q?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export interface ExploreFilters {
+  q?: string;
+  difficulty?: Difficulty;
+  kind?: string;
+  skill?: string;
+  status?: "attempted" | "unattempted" | "bookmarked";
+  sort?: ExploreSort;
   page?: number;
   page_size?: number;
 }
@@ -234,6 +252,33 @@ export const api = {
     apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/skip`, { method: "POST", body: { question_index } }),
   abandonInterview: (id: string) =>
     apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/abandon`, { method: "POST" }),
+
+  // explorer, bookmarks, collections
+  explore: (track: string, filters: ExploreFilters, signal?: AbortSignal) =>
+    apiRequest<ExploreResult>(`/api/v1/careers/${encodeURIComponent(track)}/explore`, { query: { ...filters, status: undefined }, signal, auth: false }),
+  myExplore: (track: string, filters: ExploreFilters, signal?: AbortSignal) =>
+    apiRequest<MyExploreResult>(`/api/v1/me/explore/${encodeURIComponent(track)}`, { query: { ...filters }, signal }),
+  bookmarks: () => apiRequest<Bookmark[]>("/api/v1/me/bookmarks"),
+  addBookmark: (body: SavedItemRef) => apiRequest<Bookmark[]>("/api/v1/me/bookmarks", { method: "PUT", body }),
+  removeBookmark: (ref: SavedItemRef) =>
+    apiRequest<Bookmark[]>("/api/v1/me/bookmarks", { method: "DELETE", query: { item_type: ref.item_type, track: ref.track ?? "", ref_id: ref.ref_id } }),
+  collections: (ref?: SavedItemRef) =>
+    apiRequest<CollectionSummary[]>("/api/v1/me/collections", { query: ref ? { item_type: ref.item_type, track: ref.track ?? "", ref_id: ref.ref_id } : {} }),
+  collection: (id: string) => apiRequest<Collection>(`/api/v1/me/collections/${encodeURIComponent(id)}`),
+  createCollection: (name: string) => apiRequest<Collection>("/api/v1/me/collections", { method: "POST", body: { name } }),
+  renameCollection: (id: string, name: string) =>
+    apiRequest<Collection>(`/api/v1/me/collections/${encodeURIComponent(id)}`, { method: "PATCH", body: { name } }),
+  deleteCollection: (id: string) => apiRequest<void>(`/api/v1/me/collections/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  addToCollection: (id: string, body: SavedItemRef) =>
+    apiRequest<Collection>(`/api/v1/me/collections/${encodeURIComponent(id)}/items`, { method: "POST", body }),
+  removeFromCollection: (id: string, itemId: string) =>
+    apiRequest<Collection>(`/api/v1/me/collections/${encodeURIComponent(id)}/items/${encodeURIComponent(itemId)}`, { method: "DELETE" }),
+  reorderCollection: (id: string, itemIds: string[]) =>
+    apiRequest<Collection>(`/api/v1/me/collections/${encodeURIComponent(id)}/order`, { method: "PUT", body: { item_ids: itemIds } }),
+  setQueuePosition: (id: string, position: number) =>
+    apiRequest<Collection>(`/api/v1/me/collections/${encodeURIComponent(id)}/queue`, { method: "PUT", body: { position } }),
+  markQueueDone: (id: string, itemId: string, done: boolean) =>
+    apiRequest<Collection>(`/api/v1/me/collections/${encodeURIComponent(id)}/items/${encodeURIComponent(itemId)}/done`, { method: "PUT", body: { done } }),
 
   // progress
   progress: () => apiRequest<Progress>("/api/v1/me/progress"),

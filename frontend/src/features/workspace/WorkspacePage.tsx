@@ -18,6 +18,8 @@ import { SubmissionPanel } from "./SubmissionPanel";
 import { useDraft, type SaveState } from "./useDraft";
 import { WorkspaceFrame } from "./WorkspaceFrame";
 import { Icon } from "@/components/Icon";
+import { QueueBar } from "@/features/saved/QueueBar";
+import { SaveControls } from "@/features/saved/SaveControls";
 
 const SAVE_LABEL: Record<SaveState, string> = { saved: "Draft saved", saving: "Saving…", unsaved: "Unsaved changes", error: "Draft not saved — browser storage unavailable" };
 
@@ -109,7 +111,14 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
     </div>
   );
 
-  const statement = <section className="panel-scroll" aria-label="Problem description" tabIndex={0}><ProblemStatement problem={problem} /></section>;
+  const savedRef = { item_type: "problem" as const, track: "", ref_id: problem.slug };
+  const statement = (
+    <section className="panel-scroll" aria-label="Problem description" tabIndex={0}>
+      <ProblemStatement problem={problem}
+        before={isAuthenticated ? <QueueBar item={savedRef} /> : undefined}
+        after={isAuthenticated ? <SaveControls item={savedRef} title={problem.title} /> : undefined} />
+    </section>
+  );
   const editor = (
     <div className="editor-pane">
       {offeredCode && (

@@ -676,6 +676,35 @@ All under `/api/v1/targets` 🔒 and scoped to the owner (another user's id is a
   target's requirements. Targets, requirements and examples are in the data export and are
   deleted with the account.
 
+### Question explorer, bookmarks and collections
+
+- `GET /api/v1/careers/{slug}/explore?q=&difficulty=&kind=&skill=&sort=relevance|library&page=&page_size≤100`
+  (public): `{track, career_title, items, total, page, page_size, facets, explanation,
+  suggestions, sorts}`. Search covers titles, skills, tags, the career's name and the question
+  text; an exact title match ranks first. `facets.difficulty|kind|skill` give, for each option,
+  how many results choosing it would return with the *other* filters applied. Items carry
+  `estimated_minutes: null` (the bank doesn't time questions; nothing is invented). Never
+  contains personal data, even when a token is sent.
+- `GET /api/v1/me/explore/{slug}` 🔒: the same plus `status=attempted|unattempted|bookmarked`,
+  `sort=last_practiced|lowest_score`, and a `status` map (`best_score, attempts,
+  last_practiced_at, bookmarked, collection_ids`) for the questions on the page. Sorts are stable,
+  so pages never shuffle; there is no "recently added" or "personalized" order because the data
+  doesn't support one.
+- `GET /api/v1/me/bookmarks`, `PUT /api/v1/me/bookmarks {item_type: question|problem, track,
+  ref_id}` (idempotent, 404 for items not in the library), `DELETE
+  /api/v1/me/bookmarks?item_type=&track=&ref_id=` (idempotent; works for retired items) 🔒.
+- Collections 🔒, private to the owner (another user's id is a 404): `GET|POST
+  /api/v1/me/collections` (`GET` with `item_type, track, ref_id` adds `contains` to each),
+  `GET|PATCH|DELETE /me/collections/{id}`, `POST /me/collections/{id}/items` (`409
+  already_in_collection`; the unique constraint also settles races), `DELETE …/items/{item_id}`,
+  `PUT …/order {item_ids}` (every id exactly once, else `400 invalid_order`), `PUT …/queue
+  {position}` (start or move the practice queue; `409 empty_collection`), `PUT
+  …/items/{item_id}/done {done}`. Items keep stable ids; an item that leaves the library comes
+  back `available: false` with an `unavailable_reason` and is never swapped for another.
+  `queue_done` is queue progress only; `practiced_since_added` comes from real answers or judged
+  submissions. Limits: 50 collections, 200 items each. Bookmarks and collections are in the data
+  export and deleted with the account.
+
 ### Practice plan
 
 Deterministic rules over recorded evidence (`app/services/roadmap.py` documents them); no AI.

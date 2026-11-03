@@ -94,3 +94,15 @@ export type ReviewEntry = S["ReviewItem"];
 export type Comparison = S["Comparison"];
 export type ReviewQueue = S["ReviewQueue"];
 export type ReviewQueueItem = S["ReviewQueueItem"];
+
+export type ExploreResult = S["ExploreResult"];
+export type MyExploreResult = S["MyExploreResult"];
+export type ExploreItem = S["ExploreItem"];
+export type ExploreSort = S["MyExploreResult"]["sorts"][number];
+export type ItemStatus = S["ItemStatus"];
+export type Facet = S["Facet"];
+export type Bookmark = S["BookmarkOut"];
+export type SavedItemRef = S["CollectionItemIn"];
+export type CollectionSummary = S["CollectionSummary"];
+export type Collection = S["CollectionOut"];
+export type CollectionItem = S["CollectionItemOut"];
