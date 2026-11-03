@@ -8,7 +8,15 @@ from pydantic import Field
 from app.models import InterviewStatus
 from app.schemas.careers import AnswerOut
 from app.schemas.common import APIModel
-from app.schemas.interview import AnswerSource, Engagement, InterviewKind, InterviewProblem
+from app.schemas.interview import (
+    AnswerSource,
+    Engagement,
+    FollowupOut,
+    InterviewKind,
+    InterviewProblem,
+    RoundFormatOut,
+    SpeakerOut,
+)
 
 DimensionStatus = Literal["evaluated", "not_evaluated", "not_applicable"]
 
@@ -61,6 +69,20 @@ class ReviewItem(APIModel):
     retries: int
     in_review_queue: bool
     question_id: str | None = None
+    speaker: SpeakerOut | None = Field(
+        default=None, description="Panel interviews: the simulated role who asked"
+    )
+    followup: FollowupOut | None = None
+
+
+class Perspective(APIModel):
+    """One simulated panel role's view: the same rubric, applied to the questions that role asked."""
+
+    role: SpeakerOut
+    asked: int
+    answered: int
+    average_score: int | None
+    summary: str
 
 
 class InterviewReview(APIModel):
@@ -86,6 +108,13 @@ class InterviewReview(APIModel):
     evaluator: str | None
     disclaimer: str
     final_code: str | None
+    round_format: RoundFormatOut | None = Field(
+        default=None, description="Question rounds: format, roles, versions"
+    )
+    perspectives: list[Perspective] = Field(
+        default_factory=list,
+        description="Panel only. Not independent judgments: one rubric, split by who asked.",
+    )
 
 
 class RetryIn(APIModel):

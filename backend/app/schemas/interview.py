@@ -59,6 +59,63 @@ class InterviewStart(APIModel):
         "start a practice plan",
     )
     duration_minutes: int = Field(default=30, ge=10, le=60)
+    format: Literal["mixed", "behavioral", "situational", "technical", "panel"] = Field(
+        default="mixed",
+        description="questions: the interview format (see GET /interviews/formats). Can't change once started.",
+    )
+
+
+class FollowupAnswer(APIModel):
+    answer: str = Field(min_length=1, max_length=3000)
+    source: AnswerSource = Field(default="typed")
+
+
+class SpeakerOut(APIModel):
+    id: str
+    title: str = Field(description="A simulated role, never a real person or employer")
+    objective: str
+
+
+class FollowupOut(APIModel):
+    question_index: int
+    detail: str = Field(description="The detail asked about, e.g. result or ownership")
+    question: str
+    speaker: SpeakerOut | None
+    status: Literal["pending", "answered", "skipped"]
+    answer: str | None = None
+    covered: bool | None = Field(
+        default=None, description="Whether the reply supplied the detail (simple check)"
+    )
+
+
+class FormatSlot(APIModel):
+    position: int
+    speaker: SpeakerOut | None
+    kind_label: str
+
+
+class FormatOption(APIModel):
+    id: Literal["mixed", "behavioral", "situational", "technical", "panel"]
+    title: str
+    practices: str
+    available: bool
+    unavailable_reason: str | None
+    follow_ups: int = Field(description="Most follow-up questions this format may ask")
+    roles: list[SpeakerOut]
+    structure: list[FormatSlot] = Field(
+        description="Who asks what, in order (no questions or answers revealed)"
+    )
+
+
+class RoundFormatOut(APIModel):
+    id: Literal["mixed", "behavioral", "situational", "technical", "panel"]
+    title: str
+    version: str
+    rubric_version: str
+    roles: list[SpeakerOut]
+    followups_used: int
+    followups_max: int
+    pending_followup: FollowupOut | None
 
 
 class RoundAnswer(APIModel):
@@ -156,6 +213,8 @@ class RoundQuestion(APIModel):
     difficulty: Difficulty
     status: Literal["pending", "current", "answered", "skipped"]
     answer: AnswerOut | None = None
+    speaker: SpeakerOut | None = Field(default=None, description="Panel interviews: who asks this question")
+    followup: FollowupOut | None = None
 
 
 class RoundSummary(APIModel):
@@ -184,6 +243,7 @@ class InterviewOut(APIModel):
     career_title: str | None = None
     questions: list[RoundQuestion] = Field(description="Question rounds only; empty for coding interviews")
     round_summary: RoundSummary | None = Field(default=None, description="Question rounds only")
+    round_format: RoundFormatOut | None = Field(default=None, description="Question rounds only")
     duration_seconds: int
     started_at: datetime
     deadline_at: datetime

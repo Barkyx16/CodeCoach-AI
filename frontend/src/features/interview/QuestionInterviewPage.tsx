@@ -2,14 +2,16 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
-import { useStartInterview } from "@/api/queries";
-import type { Difficulty } from "@/api/types";
+import { useInterviewFormats, useStartInterview } from "@/api/queries";
+import type { Difficulty, InterviewFormatId } from "@/api/types";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { InlineError } from "@/components/States";
 import { titleCase } from "@/lib/format";
 import { usePracticeTrack } from "@/features/careers/practiceTrack";
 import { VoiceSetup } from "@/features/voice/VoiceSetup";
+
+import { FormatPicker } from "./FormatPicker";
 import { useVoicePrefs } from "@/features/voice/voicePrefs";
 
 const LEVELS: Difficulty[] = ["easy", "medium", "hard"];
@@ -26,6 +28,10 @@ export function QuestionInterviewPage() {
   const [prefs, setPrefs] = useVoicePrefs();
   const [level, setLevel] = useState<Difficulty>("easy");
   const [minutes, setMinutes] = useState(15);
+  const [chosenFormat, setFormat] = useState<InterviewFormatId>("mixed");
+  const formats = useInterviewFormats(track, level);
+  // A format that isn't available at this level falls back to the default instead of failing on start.
+  const format: InterviewFormatId = formats.data?.find((f) => f.id === chosenFormat)?.available ? chosenFormat : "mixed";
   const role = career?.title ?? titleCase(track);
   const activeId = start.error instanceof ApiError && start.error.code === "interview_in_progress"
     ? (start.error.details as { interview_id?: string } | null)?.interview_id ?? null
@@ -34,7 +40,7 @@ export function QuestionInterviewPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     try {
-      const iv = await start.mutateAsync({ kind: "questions", purpose: "practice", track, difficulty: level, duration_minutes: minutes });
+      const iv = await start.mutateAsync({ kind: "questions", purpose: "practice", track, difficulty: level, duration_minutes: minutes, ...(format !== "mixed" ? { format } : {}) });
       navigate(`/interviews/${iv.id}`);
     } catch {
       /* shown below */
@@ -60,7 +66,7 @@ export function QuestionInterviewPage() {
             <li>Each answer is scored when you submit it and saved to your practice.</li>
             <li>At the end you get every score, what you covered and what to add.</li>
           </ol>
-          <p className="subtle">The timer runs on the server from the moment you start. It keeps running if you leave the page, and it can't be paused.</p>
+          <p className="subtle">The timer runs on the server from the moment you start. It keeps running if you leave the page, and it can't be paused. The format can't be changed once you start.</p>
         </Card>
         <form className="card stack" onSubmit={onSubmit} aria-labelledby="round-setup">
           <h2 className="section-title" id="round-setup">Set up your interview</h2>
@@ -75,6 +81,7 @@ export function QuestionInterviewPage() {
               ))}
             </div>
           </fieldset>
+          <FormatPicker track={track} level={level} value={format} onChange={setFormat} />
           <fieldset className="field">
             <legend className="field__label">Time limit</legend>
             <div className="segmented">

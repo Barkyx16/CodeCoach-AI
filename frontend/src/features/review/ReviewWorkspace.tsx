@@ -138,6 +138,21 @@ function Review({ iv, r }: { iv: Interview; r: InterviewReview }) {
             </ul>
             <p className="subtle">{r.disclaimer}</p>
           </Card>
+          {(r.perspectives ?? []).length > 0 && (
+            <Card className="stack" role="region" aria-labelledby="perspectives-title">
+              <h2 className="section-title" id="perspectives-title">Panel perspectives (simulated)</h2>
+              <p className="subtle">The same rubric, split by which simulated role asked. Not separate human judgments.</p>
+              <ul className="perspectives">
+                {(r.perspectives ?? []).map((p) => (
+                  <li key={p.role.id} className="card stack-sm">
+                    <strong>{p.role.title}</strong>
+                    <span className="subtle">{p.summary}</span>
+                    <span>{p.average_score !== null && p.average_score !== undefined ? `${p.average_score}/100 average` : "No answers"} · {p.answered} of {p.asked} answered</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
         </div>
 
         <section className="stack" aria-labelledby="timeline-title">
@@ -150,7 +165,7 @@ function Review({ iv, r }: { iv: Interview; r: InterviewReview }) {
               <li key={i.key}>
                 <button type="button" className={`timeline-item${i === selected ? " is-selected" : ""}`} aria-current={i === selected ? "true" : undefined} onClick={() => select(i.key)}>
                   <span className="timeline-item__n">{n + 1}</span>
-                  <span className="timeline-item__title">{isRound ? i.title : i.title}</span>
+                  <span className="timeline-item__title">{i.speaker ? `${i.speaker.title}: ` : ""}{i.title}</span>
                   <span className="subtle timeline-item__status">
                     {isRound ? (i.feedback ? `${i.feedback.score}/100 · ${i.feedback.rating}` : STATUS_TEXT[i.status]) : i.asked_at ? new Date(i.asked_at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : ""}
                   </span>
@@ -214,12 +229,24 @@ function Detail({ r, item, focusable = false }: { r: InterviewReview; item: Revi
         <h3 className="section-title" id={`detail-${item.key}`}>{isRound ? `${item.index + 1}. ${item.title}` : item.title}</h3>
         {isRound && <Badge>{KIND_LABEL[item.kind] ?? titleCase(item.kind)}</Badge>}
       </div>
+      {item.speaker && <p className="speaker-label">Asked by the {item.speaker.title.toLowerCase()} (simulated role)</p>}
       {isRound && <p className="question-page__prompt-text">{item.prompt}</p>}
       {item.asked_at && <p className="subtle review-detail__time">{isRound ? "Asked" : "Said"} {formatDateTime(item.asked_at)}{item.answered_at ? ` · answered ${formatDateTime(item.answered_at)}` : ""}</p>}
       {!isRound && <blockquote className="round-result__answer">{item.prompt}</blockquote>}
       {isRound && (item.answer_text
         ? <blockquote className="round-result__answer">{item.answer_text}</blockquote>
         : <p className="banner banner--info">{item.status === "skipped" ? "Skipped" : "Not reached"}: no answer, so no feedback.</p>)}
+      {item.followup && item.followup.status !== "pending" && (
+        <div className="review-followup stack-sm">
+          <p><span className="speaker-label">Follow-up{item.followup.speaker ? ` from the ${item.followup.speaker.title.toLowerCase()}` : ""}:</span> {item.followup.question}</p>
+          {item.followup.status === "skipped"
+            ? <p className="subtle">You skipped this follow-up.</p>
+            : <>
+                <blockquote className="round-result__answer">{item.followup.answer}</blockquote>
+                <p className="subtle">{item.followup.covered ? `Your reply gave the ${item.followup.detail} it asked for.` : `Your reply didn't clearly give the ${item.followup.detail} it asked for.`} (A simple check, not a score.)</p>
+              </>}
+        </div>
+      )}
       {item.transcription_note && <p className="subtle">{item.transcription_note}</p>}
       {item.engagement && <EngagementNote engagement={item.engagement} />}
       {item.dimensions.length > 0 && (

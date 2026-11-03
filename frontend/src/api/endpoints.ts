@@ -76,6 +76,7 @@ import type {
   ScenarioAttemptSummary,
   ScenarioCatalog,
   ScenarioDetail,
+  InterviewFormat,
 } from "./types";
 
 export interface ProblemFilters {
@@ -275,6 +276,12 @@ export const api = {
     apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/answers`, { method: "POST", body }),
   skipRoundQuestion: (id: string, question_index: number) =>
     apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/skip`, { method: "POST", body: { question_index } }),
+  interviewFormats: (track: string, difficulty: Difficulty) =>
+    apiRequest<InterviewFormat[]>("/api/v1/interviews/formats", { query: { track, difficulty }, auth: false }),
+  answerFollowup: (id: string, body: { answer: string; source: AnswerSource }) =>
+    apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/followup`, { method: "POST", body }),
+  skipFollowup: (id: string) =>
+    apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/followup/skip`, { method: "POST" }),
   abandonInterview: (id: string) =>
     apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/abandon`, { method: "POST" }),
 

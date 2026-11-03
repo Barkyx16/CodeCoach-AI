@@ -218,3 +218,26 @@ export function executionStatus(state: "ready" | "unavailable" | "not_configured
   }
   return { state, reason: "not_configured", message: "This server isn't connected to a code judge, so code can't run here. Submitting saves your attempt without a verdict; you can still ask for a code review.", run_available: false, submit_mode: "saved_only", checked_at: now, setup_help: setupHelp };
 }
+
+const PANEL_ROLES = [
+  { id: "hiring_manager", title: "Nurse manager", objective: "Motivation, accountability and teamwork on the unit" },
+  { id: "peer", title: "Charge nurse (peer)", objective: "Clinical judgment and safe practice" },
+  { id: "partner", title: "Physician colleague (interdisciplinary partner)", objective: "Clear, structured communication and escalation" },
+];
+export const panelRoles = PANEL_ROLES;
+
+/** GET /interviews/formats for the nurse career at a level (mirrors the backend's availability rules). */
+export function nurseFormats(level: string) {
+  const slot = (n: number, label: string, speaker: (typeof PANEL_ROLES)[number] | null = null) => ({ position: n, speaker, kind_label: label });
+  const five = (label: string) => [1, 2, 3, 4, 5].map((n) => slot(n, label));
+  return [
+    { id: "mixed", title: "Mixed interview", practices: "One of each kind of question.", available: true, unavailable_reason: null, follow_ups: 0, roles: [], structure: five("Mixed") },
+    { id: "behavioral", title: "Behavioral interview", practices: "Real examples from your experience.", available: true, unavailable_reason: null, follow_ups: 2, roles: [], structure: five("A time you did it (behavioral)") },
+    { id: "situational", title: "Situational interview", practices: "How you'd handle realistic situations.", available: level !== "easy",
+      unavailable_reason: level === "easy" ? "Registered Nurse has 0 Easy questions of this kind (5 needed). Try Medium or Hard." : null, follow_ups: 2, roles: [], structure: five("What would you do (scenario)") },
+    { id: "technical", title: "Technical / professional interview", practices: "What you know about the work.", available: level === "easy",
+      unavailable_reason: level === "easy" ? null : "Not enough questions of this kind.", follow_ups: 2, roles: [], structure: five("Professional knowledge") },
+    { id: "panel", title: "Panel interview (simulated)", practices: "Three simulated interviewers take turns.", available: true, unavailable_reason: null, follow_ups: 2,
+      roles: PANEL_ROLES, structure: ["hiring_manager", "peer", "partner", "peer", "hiring_manager"].map((id, i) => slot(i + 1, "Varies by role", PANEL_ROLES.find((r) => r.id === id)!)) },
+  ];
+}

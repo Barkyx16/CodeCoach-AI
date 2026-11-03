@@ -40,6 +40,7 @@ from app.schemas.review import (
     EvidenceLink,
     Improvement,
     InterviewReview,
+    Perspective,
     PracticeAction,
     RetryIn,
     ReviewItem,
@@ -174,6 +175,8 @@ class InterviewReviews:
                     retries=retries.get(q.index, 0),
                     in_review_queue=q.id in queued,
                     question_id=q.id,
+                    speaker=q.speaker,
+                    followup=q.followup,
                 )
             )
         answered = [i for i in items if i.feedback]
@@ -246,7 +249,62 @@ class InterviewReviews:
                 ),
             ),
         ]
+        followups = [i for i in items if i.followup and i.followup.status != "pending"]
+        if followups:
+            supplied = [i for i in followups if i.followup and i.followup.covered]
+            overall.append(
+                Dimension(
+                    name="Follow-up questions",
+                    status="evaluated",
+                    summary=(
+                        f"{len(supplied)} of {len(followups)} follow-up repl{'ies' if len(followups) != 1 else 'y'} "
+                        "supplied the detail that was asked for (a simple check for that detail, not a score)."
+                    ),
+                    points=[
+                        f"{i.title}: asked for {i.followup.detail}; "
+                        + (
+                            "skipped"
+                            if i.followup.status == "skipped"
+                            else "supplied"
+                            if i.followup.covered
+                            else "not supplied"
+                        )
+                        for i in followups
+                        if i.followup
+                    ],
+                    evidence=[
+                        EvidenceLink(item_key=i.key, label=i.title, excerpt=None) for i in followups[:3]
+                    ],
+                )
+            )
+        perspectives: list[Perspective] = []
+        fmt = self.rounds.format_out(s)
+        for role in fmt.roles:
+            mine = [i for i in items if i.speaker and i.speaker.id == role.id]
+            role_scores = [i.feedback.score for i in mine if i.feedback]
+            perspectives.append(
+                Perspective(
+                    role=role,
+                    asked=len(mine),
+                    answered=len(role_scores),
+                    average_score=round(sum(role_scores) / len(role_scores)) if role_scores else None,
+                    summary=(
+                        f"Focus: {role.objective.lower()}. "
+                        + (
+                            f"Average {round(sum(role_scores) / len(role_scores))}/100 on the {len(role_scores)} "
+                            f"question{'s' if len(role_scores) != 1 else ''} this role asked."
+                            if role_scores
+                            else "None of this role's questions were answered."
+                        )
+                    ),
+                )
+            )
         disclaimer = "Scores come from the built-in rubric: they measure what an answer covers and how it's structured, not whether it's correct."
+        if perspectives:
+            disclaimer += (
+                " The panel is simulated: each role's view applies the same rubric to the questions that role "
+                "asked. They aren't separate human judgments and don't predict a hiring decision."
+            )
         if not coding_career:
             disclaimer += (
                 " The feedback is about interview communication; it isn't professional or clinical guidance."
@@ -272,6 +330,8 @@ class InterviewReviews:
             evaluator=evaluator,
             disclaimer=disclaimer,
             final_code=None,
+            round_format=fmt,
+            perspectives=perspectives,
         )
 
     @staticmethod

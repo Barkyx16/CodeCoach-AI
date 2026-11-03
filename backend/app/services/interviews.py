@@ -25,6 +25,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.careers import CATALOG
+from app.careers.formats import FORMATS, KIND_LABEL, MAX_FOLLOWUPS, PANEL_ORDER, availability, panel_roles
 from app.config import Settings
 from app.errors import AppError, ConflictError, NotFoundError, RateLimitedError
 from app.models import (
@@ -44,6 +45,9 @@ from app.schemas.common import Page
 from app.schemas.interview import (
     PHASE_GUIDE,
     Engagement,
+    FollowupAnswer,
+    FormatOption,
+    FormatSlot,
     InterviewEvaluation,
     InterviewFinish,
     InterviewKind,
@@ -54,6 +58,7 @@ from app.schemas.interview import (
     InterviewSummary,
     RoundAnswer,
     RoundSkip,
+    SpeakerOut,
     TurnOut,
 )
 from app.services import engagement
@@ -62,7 +67,7 @@ from app.services.ai.offline import OfflineCoach
 from app.services.ai.service import CoachService, problem_context, sanitize_code
 from app.services.ai.static_analysis import analyze
 from app.services.progress import ProgressService
-from app.services.question_rounds import QuestionRounds
+from app.services.question_rounds import ROUND, QuestionRounds
 
 MAX_CANDIDATE_TURNS = 30
 PHASES = list(InterviewPhase)
@@ -215,6 +220,16 @@ class InterviewService:
         if not self.rounds._already_handled(session, body.question_index):
             self._require_in_progress(session)
         self.rounds.skip(session, body)
+        self.db.commit()
+        return self._to_out(session)
+
+    def followup(self, user: User, interview_id: str, body: FollowupAnswer | None) -> InterviewOut:
+        session = self._load(user, interview_id)
+        self._expire_if_due(user, session)
+        self._require_kind(session, PracticeMode.QUESTIONS)
+        if (session.plan or {}).get("pending_followup"):
+            self._require_in_progress(session)
+        self.rounds.answer_followup(session, body)
         self.db.commit()
         return self._to_out(session)
 
@@ -417,6 +432,7 @@ class InterviewService:
             career_title=self._career_title(session),
             questions=questions,
             round_summary=self.rounds.summary(questions) if session.mode == PracticeMode.QUESTIONS else None,
+            round_format=self.rounds.format_out(session) if session.mode == PracticeMode.QUESTIONS else None,
             status=session.status,
             phase=phase,
             phase_index=PHASES.index(phase) if phase else len(PHASES),
@@ -449,3 +465,52 @@ class InterviewService:
             overall=ev.get("overall"),
             average_score=round(sum(scores) / len(scores), 2) if scores else None,
         )
+
+
+def format_options(track: str, difficulty: str) -> list[FormatOption]:
+    """Every format with its availability for this career and level, and a preview of who asks what."""
+    if track not in CATALOG:
+        raise NotFoundError(f"Career '{track}' not found")
+    roles = panel_roles(track) or ()
+    by_id = {r.id: SpeakerOut(id=r.id, title=r.title, objective=r.objective) for r in roles}
+    out = []
+    for fmt_id, d in FORMATS.items():
+        ok, reason = availability(track, fmt_id, difficulty)
+        if fmt_id == "panel":
+            slots = (
+                [
+                    FormatSlot(
+                        position=i + 1,
+                        speaker=by_id.get(rid),
+                        kind_label=" or ".join(
+                            KIND_LABEL[k] for k in next(r for r in roles if r.id == rid).kinds[:2]
+                        )
+                        if roles
+                        else "",
+                    )
+                    for i, rid in enumerate(PANEL_ORDER)
+                ]
+                if roles
+                else []
+            )
+        elif fmt_id == "mixed":
+            slots = [
+                FormatSlot(position=i + 1, speaker=None, kind_label=KIND_LABEL[k])
+                for i, k in enumerate(ROUND)
+            ]
+        else:
+            label = " or ".join(KIND_LABEL[k] for k in d.kinds)
+            slots = [FormatSlot(position=i + 1, speaker=None, kind_label=label) for i in range(5)]
+        out.append(
+            FormatOption(
+                id=d.id,
+                title=d.title,
+                practices=d.practices,
+                available=ok,
+                unavailable_reason=reason,
+                follow_ups=MAX_FOLLOWUPS if d.followups else 0,
+                roles=list(by_id.values()) if fmt_id == "panel" else [],
+                structure=slots,
+            )
+        )
+    return out

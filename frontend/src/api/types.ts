@@ -50,7 +50,8 @@ export type Recommendation = S["Recommendation"];
 
 export type Interview = S["InterviewOut"];
 export type InterviewSummary = S["InterviewSummary"];
-export type InterviewStart = S["InterviewStart"];
+/** `format` defaults to "mixed" on the server. */
+export type InterviewStart = Omit<S["InterviewStart"], "format"> & { format?: S["InterviewStart"]["format"] };
 export type InterviewPhase = S["InterviewPhase"];
 export type InterviewEvaluation = S["InterviewEvaluation"];
 export type RubricScore = S["RubricScore"];
@@ -128,3 +129,7 @@ export type ScenarioDetail = S["ScenarioDetail"];
 export type ScenarioAttempt = S["ScenarioAttemptOut"];
 export type ScenarioAttemptSummary = S["ScenarioAttemptSummary"];
 export type ScenarioStep = S["StepOut"];
+
+export type InterviewFormat = S["FormatOption"];
+export type InterviewFormatId = S["FormatOption"]["id"];
+export type RoundFormat = S["RoundFormatOut"];

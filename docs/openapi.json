@@ -6026,6 +6026,79 @@
         }
       }
     },
+    "/api/v1/interviews/formats": {
+      "get": {
+        "tags": [
+          "interviews"
+        ],
+        "summary": "Question-round formats for a career and level: which are available, and their structure",
+        "operationId": "list_formats_api_v1_interviews_formats_get",
+        "parameters": [
+          {
+            "name": "track",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "default": "software-engineer",
+              "title": "Track"
+            }
+          },
+          {
+            "name": "difficulty",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "easy",
+                "medium",
+                "hard"
+              ],
+              "type": "string",
+              "default": "easy",
+              "title": "Difficulty"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FormatOption"
+                  },
+                  "title": "Response List Formats Api V1 Interviews Formats Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/interviews/{interview_id}": {
       "get": {
         "tags": [
@@ -6370,6 +6443,210 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interviews/{interview_id}/followup": {
+      "post": {
+        "tags": [
+          "interviews"
+        ],
+        "summary": "Question rounds: answer the pending follow-up (then the next question is asked)",
+        "operationId": "answer_followup_api_v1_interviews__interview_id__followup_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "interview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Interview Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FollowupAnswer"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interviews/{interview_id}/followup/skip": {
+      "post": {
+        "tags": [
+          "interviews"
+        ],
+        "summary": "Question rounds: skip the pending follow-up",
+        "operationId": "skip_followup_api_v1_interviews__interview_id__followup_skip_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "interview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Interview Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -12023,6 +12300,198 @@
         ],
         "title": "FeedbackPoint"
       },
+      "FollowupAnswer": {
+        "properties": {
+          "answer": {
+            "type": "string",
+            "maxLength": 3000,
+            "minLength": 1,
+            "title": "Answer"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "typed",
+              "voice",
+              "mixed"
+            ],
+            "title": "Source",
+            "default": "typed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer"
+        ],
+        "title": "FollowupAnswer"
+      },
+      "FollowupOut": {
+        "properties": {
+          "question_index": {
+            "type": "integer",
+            "title": "Question Index"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail",
+            "description": "The detail asked about, e.g. result or ownership"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "speaker": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SpeakerOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "answered",
+              "skipped"
+            ],
+            "title": "Status"
+          },
+          "answer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answer"
+          },
+          "covered": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Covered",
+            "description": "Whether the reply supplied the detail (simple check)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question_index",
+          "detail",
+          "question",
+          "speaker",
+          "status"
+        ],
+        "title": "FollowupOut"
+      },
+      "FormatOption": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "mixed",
+              "behavioral",
+              "situational",
+              "technical",
+              "panel"
+            ],
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "practices": {
+            "type": "string",
+            "title": "Practices"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "unavailable_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unavailable Reason"
+          },
+          "follow_ups": {
+            "type": "integer",
+            "title": "Follow Ups",
+            "description": "Most follow-up questions this format may ask"
+          },
+          "roles": {
+            "items": {
+              "$ref": "#/components/schemas/SpeakerOut"
+            },
+            "type": "array",
+            "title": "Roles"
+          },
+          "structure": {
+            "items": {
+              "$ref": "#/components/schemas/FormatSlot"
+            },
+            "type": "array",
+            "title": "Structure",
+            "description": "Who asks what, in order (no questions or answers revealed)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "practices",
+          "available",
+          "unavailable_reason",
+          "follow_ups",
+          "roles",
+          "structure"
+        ],
+        "title": "FormatOption"
+      },
+      "FormatSlot": {
+        "properties": {
+          "position": {
+            "type": "integer",
+            "title": "Position"
+          },
+          "speaker": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SpeakerOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind_label": {
+            "type": "string",
+            "title": "Kind Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "position",
+          "speaker",
+          "kind_label"
+        ],
+        "title": "FormatSlot"
+      },
       "GoalsIn": {
         "properties": {
           "track": {
@@ -12682,6 +13151,17 @@
             ],
             "description": "Question rounds only"
           },
+          "round_format": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoundFormatOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Question rounds only"
+          },
           "duration_seconds": {
             "type": "integer",
             "title": "Duration Seconds"
@@ -12963,6 +13443,25 @@
               }
             ],
             "title": "Final Code"
+          },
+          "round_format": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoundFormatOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Question rounds: format, roles, versions"
+          },
+          "perspectives": {
+            "items": {
+              "$ref": "#/components/schemas/Perspective"
+            },
+            "type": "array",
+            "title": "Perspectives",
+            "description": "Panel only. Not independent judgments: one rubric, split by who asked."
           }
         },
         "type": "object",
@@ -13070,6 +13569,19 @@
             "minimum": 10.0,
             "title": "Duration Minutes",
             "default": 30
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "mixed",
+              "behavioral",
+              "situational",
+              "technical",
+              "panel"
+            ],
+            "title": "Format",
+            "description": "questions: the interview format (see GET /interviews/formats). Can't change once started.",
+            "default": "mixed"
           }
         },
         "type": "object",
@@ -14179,6 +14691,46 @@
           "email"
         ],
         "title": "PasswordResetRequest"
+      },
+      "Perspective": {
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/SpeakerOut"
+          },
+          "asked": {
+            "type": "integer",
+            "title": "Asked"
+          },
+          "answered": {
+            "type": "integer",
+            "title": "Answered"
+          },
+          "average_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Score"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "asked",
+          "answered",
+          "average_score",
+          "summary"
+        ],
+        "title": "Perspective",
+        "description": "One simulated panel role's view: the same rubric, applied to the questions that role asked."
       },
       "PlanItemOut": {
         "properties": {
@@ -15865,6 +16417,27 @@
               }
             ],
             "title": "Question Id"
+          },
+          "speaker": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SpeakerOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Panel interviews: the simulated role who asked"
+          },
+          "followup": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FollowupOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -16147,6 +16720,70 @@
         ],
         "title": "RoundAnswer"
       },
+      "RoundFormatOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "mixed",
+              "behavioral",
+              "situational",
+              "technical",
+              "panel"
+            ],
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "rubric_version": {
+            "type": "string",
+            "title": "Rubric Version"
+          },
+          "roles": {
+            "items": {
+              "$ref": "#/components/schemas/SpeakerOut"
+            },
+            "type": "array",
+            "title": "Roles"
+          },
+          "followups_used": {
+            "type": "integer",
+            "title": "Followups Used"
+          },
+          "followups_max": {
+            "type": "integer",
+            "title": "Followups Max"
+          },
+          "pending_followup": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FollowupOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "version",
+          "rubric_version",
+          "roles",
+          "followups_used",
+          "followups_max",
+          "pending_followup"
+        ],
+        "title": "RoundFormatOut"
+      },
       "RoundQuestion": {
         "properties": {
           "index": {
@@ -16186,6 +16823,27 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/AnswerOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "speaker": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SpeakerOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Panel interviews: who asks this question"
+          },
+          "followup": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FollowupOut"
               },
               {
                 "type": "null"
@@ -17040,6 +17698,30 @@
           "career_title"
         ],
         "title": "SourceOut"
+      },
+      "SpeakerOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "A simulated role, never a real person or employer"
+          },
+          "objective": {
+            "type": "string",
+            "title": "Objective"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "objective"
+        ],
+        "title": "SpeakerOut"
       },
       "StartIn": {
         "properties": {

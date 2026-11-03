@@ -1107,6 +1107,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/interviews/formats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Question-round formats for a career and level: which are available, and their structure */
+        get: operations["list_formats_api_v1_interviews_formats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/interviews/{interview_id}": {
         parameters: {
             query?: never;
@@ -1169,6 +1186,40 @@ export interface paths {
         put?: never;
         /** Question rounds: skip the current question (idempotent per question) */
         post: operations["skip_question_api_v1_interviews__interview_id__skip_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interviews/{interview_id}/followup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Question rounds: answer the pending follow-up (then the next question is asked) */
+        post: operations["answer_followup_api_v1_interviews__interview_id__followup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interviews/{interview_id}/followup/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Question rounds: skip the pending follow-up */
+        post: operations["skip_followup_api_v1_interviews__interview_id__followup_skip_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2862,6 +2913,78 @@ export interface components {
             /** Advice */
             advice: string;
         };
+        /** FollowupAnswer */
+        FollowupAnswer: {
+            /** Answer */
+            answer: string;
+            /**
+             * Source
+             * @default typed
+             * @enum {string}
+             */
+            source: "typed" | "voice" | "mixed";
+        };
+        /** FollowupOut */
+        FollowupOut: {
+            /** Question Index */
+            question_index: number;
+            /**
+             * Detail
+             * @description The detail asked about, e.g. result or ownership
+             */
+            detail: string;
+            /** Question */
+            question: string;
+            speaker: components["schemas"]["SpeakerOut"] | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "answered" | "skipped";
+            /** Answer */
+            answer?: string | null;
+            /**
+             * Covered
+             * @description Whether the reply supplied the detail (simple check)
+             */
+            covered?: boolean | null;
+        };
+        /** FormatOption */
+        FormatOption: {
+            /**
+             * Id
+             * @enum {string}
+             */
+            id: "mixed" | "behavioral" | "situational" | "technical" | "panel";
+            /** Title */
+            title: string;
+            /** Practices */
+            practices: string;
+            /** Available */
+            available: boolean;
+            /** Unavailable Reason */
+            unavailable_reason: string | null;
+            /**
+             * Follow Ups
+             * @description Most follow-up questions this format may ask
+             */
+            follow_ups: number;
+            /** Roles */
+            roles: components["schemas"]["SpeakerOut"][];
+            /**
+             * Structure
+             * @description Who asks what, in order (no questions or answers revealed)
+             */
+            structure: components["schemas"]["FormatSlot"][];
+        };
+        /** FormatSlot */
+        FormatSlot: {
+            /** Position */
+            position: number;
+            speaker: components["schemas"]["SpeakerOut"] | null;
+            /** Kind Label */
+            kind_label: string;
+        };
         /** GoalsIn */
         GoalsIn: {
             /**
@@ -3125,6 +3248,8 @@ export interface components {
             questions: components["schemas"]["RoundQuestion"][];
             /** @description Question rounds only */
             round_summary?: components["schemas"]["RoundSummary"] | null;
+            /** @description Question rounds only */
+            round_format?: components["schemas"]["RoundFormatOut"] | null;
             /** Duration Seconds */
             duration_seconds: number;
             /**
@@ -3223,6 +3348,13 @@ export interface components {
             disclaimer: string;
             /** Final Code */
             final_code: string | null;
+            /** @description Question rounds: format, roles, versions */
+            round_format?: components["schemas"]["RoundFormatOut"] | null;
+            /**
+             * Perspectives
+             * @description Panel only. Not independent judgments: one rubric, split by who asked.
+             */
+            perspectives?: components["schemas"]["Perspective"][];
         };
         /** InterviewStart */
         InterviewStart: {
@@ -3262,6 +3394,13 @@ export interface components {
              * @default 30
              */
             duration_minutes: number;
+            /**
+             * Format
+             * @description questions: the interview format (see GET /interviews/formats). Can't change once started.
+             * @default mixed
+             * @enum {string}
+             */
+            format: "mixed" | "behavioral" | "situational" | "technical" | "panel";
         };
         /**
          * InterviewStatus
@@ -3672,6 +3811,21 @@ export interface components {
              * Format: email
              */
             email: string;
+        };
+        /**
+         * Perspective
+         * @description One simulated panel role's view: the same rubric, applied to the questions that role asked.
+         */
+        Perspective: {
+            role: components["schemas"]["SpeakerOut"];
+            /** Asked */
+            asked: number;
+            /** Answered */
+            answered: number;
+            /** Average Score */
+            average_score: number | null;
+            /** Summary */
+            summary: string;
         };
         /** PlanItemOut */
         PlanItemOut: {
@@ -4307,6 +4461,9 @@ export interface components {
             in_review_queue: boolean;
             /** Question Id */
             question_id?: string | null;
+            /** @description Panel interviews: the simulated role who asked */
+            speaker?: components["schemas"]["SpeakerOut"] | null;
+            followup?: components["schemas"]["FollowupOut"] | null;
         };
         /** ReviewOut */
         ReviewOut: {
@@ -4411,6 +4568,27 @@ export interface components {
              */
             source: "typed" | "voice" | "mixed";
         };
+        /** RoundFormatOut */
+        RoundFormatOut: {
+            /**
+             * Id
+             * @enum {string}
+             */
+            id: "mixed" | "behavioral" | "situational" | "technical" | "panel";
+            /** Title */
+            title: string;
+            /** Version */
+            version: string;
+            /** Rubric Version */
+            rubric_version: string;
+            /** Roles */
+            roles: components["schemas"]["SpeakerOut"][];
+            /** Followups Used */
+            followups_used: number;
+            /** Followups Max */
+            followups_max: number;
+            pending_followup: components["schemas"]["FollowupOut"] | null;
+        };
         /** RoundQuestion */
         RoundQuestion: {
             /** Index */
@@ -4430,6 +4608,9 @@ export interface components {
              */
             status: "pending" | "current" | "answered" | "skipped";
             answer?: components["schemas"]["AnswerOut"] | null;
+            /** @description Panel interviews: who asks this question */
+            speaker?: components["schemas"]["SpeakerOut"] | null;
+            followup?: components["schemas"]["FollowupOut"] | null;
         };
         /** RoundSkip */
         RoundSkip: {
@@ -4766,6 +4947,18 @@ export interface components {
             available: boolean;
             /** Career Title */
             career_title: string | null;
+        };
+        /** SpeakerOut */
+        SpeakerOut: {
+            /** Id */
+            id: string;
+            /**
+             * Title
+             * @description A simulated role, never a real person or employer
+             */
+            title: string;
+            /** Objective */
+            objective: string;
         };
         /** StartIn */
         StartIn: {
@@ -9440,6 +9633,47 @@ export interface operations {
             };
         };
     };
+    list_formats_api_v1_interviews_formats_get: {
+        parameters: {
+            query?: {
+                track?: string;
+                difficulty?: "easy" | "medium" | "hard";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormatOption"][];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     get_interview_api_v1_interviews__interview_id__get: {
         parameters: {
             query?: never;
@@ -9690,6 +9924,162 @@ export interface operations {
                 "application/json": components["schemas"]["RoundSkip"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    answer_followup_api_v1_interviews__interview_id__followup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FollowupAnswer"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    skip_followup_api_v1_interviews__interview_id__followup_skip_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

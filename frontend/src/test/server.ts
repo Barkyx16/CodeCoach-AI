@@ -8,7 +8,7 @@ import { learnHandlers } from "./learn";
 import { noteHandlers } from "./notes";
 import { scenarioHandlers } from "./scenarios";
 import { reviewFor } from "./review";
-import { activityFacets, activityItems, careers, executionStatus, hint, makePlan, nurseAnalytics, nurseGoals, nurseAnswer, nurseQuestions, page, problems, progress, queuedSubmission, review, tokenResponse, twoSum, user } from "./fixtures";
+import { activityFacets, activityItems, careers, executionStatus, nurseFormats, hint, makePlan, nurseAnalytics, nurseGoals, nurseAnswer, nurseQuestions, page, problems, progress, queuedSubmission, review, tokenResponse, twoSum, user } from "./fixtures";
 
 export const API = "http://localhost:8000";
 
@@ -31,6 +31,7 @@ export const handlers = [
   ...noteHandlers,
   ...scenarioHandlers,
   http.get(`${API}/api/v1/careers`, () => HttpResponse.json(careers)),
+  http.get(`${API}/api/v1/interviews/formats`, ({ request }) => HttpResponse.json(nurseFormats(new URL(request.url).searchParams.get("difficulty") ?? "easy"))),
   http.get(`${API}/api/v1/careers/:track/questions/counts`, ({ request }) => {
     const items = filterProblems(nurseQuestions.map((x) => ({ ...x, summary: x.prompt, topics: [] })), new URL(request.url).searchParams);
     const count = (d: string) => items.filter((x) => x.difficulty === d).length;

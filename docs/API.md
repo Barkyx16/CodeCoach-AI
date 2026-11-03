@@ -828,6 +828,26 @@ interview sessions), so nothing is back-filled or counted twice. All scoped to t
 Problem opens are recorded at most once per user, problem and UTC day, enforced by a unique key
 so concurrent requests can't double-count.
 
+### Interview formats and follow-ups
+
+- `GET /api/v1/interviews/formats?track=&difficulty=` (public): every format (`mixed`, `behavioral`,
+  `situational`, `technical`, `panel`) with `available`, `unavailable_reason`, `follow_ups`, the
+  panel `roles` (generic titles, never a real employer) and a `structure` preview (who asks what,
+  no questions). A career without a reviewed panel gets the panel as unavailable with a reason.
+- `POST /api/v1/interviews {kind: "questions", format, difficulty, …}`: `409 format_unavailable`
+  when the level can't fill the format; `400 format_not_allowed` with `question_ids` or a
+  baseline. The format can't change once started. `round_format` on the interview reports
+  `{id, title, version, rubric_version, roles, followups_used, followups_max, pending_followup}`;
+  each question carries `speaker` (panel) and `followup`.
+- After an answer the server may ask one follow-up (at most two per round) about a detail the
+  answer left out and no earlier reply supplied. While it's pending, answering the next question
+  is `409 followup_pending`. `POST /interviews/{id}/followup {answer, source}` replies (a repeat of
+  the same reply is a no-op) and `POST /interviews/{id}/followup/skip` skips; then the next
+  question is asked. Replies are stored on the question's turn and don't change its score.
+- The review adds who asked each question, the follow-up and reply, a "Follow-up questions"
+  dimension, `round_format`, and for panels `perspectives` (the same rubric split by role; not
+  independent judgments). See [docs/INTERVIEW_FORMATS.md](INTERVIEW_FORMATS.md).
+
 ### Mock interviews
 
 A timed interview with an AI interviewer that moves through five phases:

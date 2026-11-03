@@ -6,7 +6,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 
 import { ApiError } from "./client";
 import { api, type ActivityFilters, type ExploreFilters, type NoteFilters, type ProblemFilters, type QuestionFilters } from "./endpoints";
-import type { AIHistoryAction, AnswerSource, Bookmark, Collection, GoalsInput, MyExploreResult, ReviewQueue, SavedItemRef, Target, UnitProgress, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
+import type { AIHistoryAction, AnswerSource, Difficulty, Bookmark, Collection, GoalsInput, MyExploreResult, ReviewQueue, SavedItemRef, Target, UnitProgress, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
 
 export const queryKeys = {
   problems: (filters: ProblemFilters) => ["problems", filters] as const,
@@ -528,4 +528,27 @@ export function useScenarioAttempts(scenarioId: string | undefined, enabled: boo
 
 export function useScenarioAttempt(id: string) {
   return useQuery({ queryKey: ["me", "scenario-attempt", id], queryFn: () => api.scenarioAttempt(id) });
+}
+
+// --- interview formats -------------------------------------------------------------------------
+
+export function useInterviewFormats(track: string, difficulty: Difficulty) {
+  return useQuery({ queryKey: ["interview-formats", track, difficulty], queryFn: () => api.interviewFormats(track, difficulty), staleTime: 10 * 60_000 });
+}
+
+/** Follow-up replies return the whole interview; write it into the cache. */
+export function useAnswerFollowup(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { answer: string; source: AnswerSource }) => api.answerFollowup(id, body),
+    onSuccess: (iv) => qc.setQueryData(queryKeys.interview(id), iv),
+  });
+}
+
+export function useSkipFollowup(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.skipFollowup(id),
+    onSuccess: (iv) => qc.setQueryData(queryKeys.interview(id), iv),
+  });
 }

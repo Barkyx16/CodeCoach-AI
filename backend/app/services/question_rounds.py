@@ -12,6 +12,13 @@ Answers are idempotent per question: a repeated submit (double click, retry afte
 response) for a question that already has an answer returns the current state without grading
 again. Answering a question that hasn't been asked yet is a conflict. No AI calls are made, so
 rounds never use the AI budget; each answer counts toward the practice-answer hourly limit.
+
+Formats (app/careers/formats.py) choose which questions are asked and, for a panel, which
+simulated role asks each one. After an answer the server may ask one follow-up about a detail the
+answer left out; until it's answered or skipped, the next question isn't asked (409
+`followup_pending`). The follow-up and its reply are stored on that question's candidate turn
+(`meta.followup`), so every other reader of turns sees the same one-reply-per-question shape.
+The format is fixed when the round starts.
 """
 
 from __future__ import annotations
@@ -27,9 +34,21 @@ from sqlalchemy.orm import Session
 
 from app.careers import CATALOG
 from app.careers.answers import OFFLINE_COACH, answer_out, graded_answer
+from app.careers.formats import (
+    FORMAT_VERSION,
+    FORMATS,
+    MAX_FOLLOWUPS,
+    PROBE_QUESTION,
+    availability,
+    choose_probe,
+    details_in,
+    panel_roles,
+    pick_format,
+    probes_for,
+)
 from app.careers.grading import grade
 from app.careers.questions import Question, get_question, questions_for
-from app.errors import ConflictError, NotFoundError, RateLimitedError
+from app.errors import AppError, ConflictError, NotFoundError, RateLimitedError
 from app.models import (
     InterviewStatus,
     InterviewTurn,
@@ -39,11 +58,22 @@ from app.models import (
     TurnRole,
     User,
 )
-from app.schemas.interview import InterviewStart, RoundAnswer, RoundQuestion, RoundSkip, RoundSummary
+from app.schemas.interview import (
+    FollowupAnswer,
+    FollowupOut,
+    InterviewStart,
+    RoundAnswer,
+    RoundFormatOut,
+    RoundQuestion,
+    RoundSkip,
+    RoundSummary,
+    SpeakerOut,
+)
 from app.services import engagement
 
 ROUND = ("motivation", "knowledge", "situational", "behavioral", "leadership")
 DEFAULT_TRACK = "software-engineer"
+RUBRIC_VERSION = "rubric v1"
 
 
 def _now() -> datetime:
@@ -120,7 +150,18 @@ class QuestionRounds:
             ).all()
         )
         purpose: str = body.purpose
-        if body.question_ids:
+        fmt = body.format
+        speakers: list[str | None] = []
+        if fmt != "mixed" and (body.question_ids or purpose == "baseline"):
+            raise AppError("Formats apply to regular practice rounds only.", code="format_not_allowed")
+        if fmt != "mixed":
+            ok, reason = availability(track, fmt, difficulty)
+            if not ok:
+                raise ConflictError(reason or "This format isn't available.", code="format_unavailable")
+            pool = [q for q in questions_for(track) if q.difficulty == difficulty]
+            random.Random().shuffle(pool)
+            picked, speakers = pick_format(track, fmt, difficulty, answered, pool)
+        elif body.question_ids:
             picked = []
             for qid in dict.fromkeys(body.question_ids):  # keep order, drop repeats
                 q = get_question(track, qid)
@@ -146,7 +187,23 @@ class QuestionRounds:
             started_at=now,
             deadline_at=now + timedelta(seconds=duration),
             track=track,
-            plan={"difficulty": difficulty, "question_ids": [q.id for q in picked], "purpose": purpose},
+            plan={
+                "difficulty": difficulty,
+                "question_ids": [q.id for q in picked],
+                "purpose": purpose,
+                "format": fmt,
+                "format_version": FORMAT_VERSION,
+                "rubric_version": RUBRIC_VERSION,
+                "speakers": speakers if fmt == "panel" else [],
+                "roles": [
+                    {"id": r.id, "title": r.title, "objective": r.objective}
+                    for r in (panel_roles(track) or ())
+                ]
+                if fmt == "panel"
+                else [],
+                "followups": {"asked": [], "supplied": []},
+                "pending_followup": None,
+            },
             provider=OFFLINE_COACH,
         )
         self.db.add(session)
@@ -157,6 +214,7 @@ class QuestionRounds:
     def answer(self, user: User, session: PracticeSession, body: RoundAnswer) -> None:
         if self._already_handled(session, body.question_index):
             return  # repeated submit: keep the first answer, don't grade again
+        self._no_pending_followup(session)
         question = self._current(session, body.question_index)
         if self.limiter is not None:
             allowed, retry_after = self.limiter.hit(f"practice:{user.id}")
@@ -178,16 +236,120 @@ class QuestionRounds:
             answer_id=row.id,
             meta={"source": body.source, "engagement": read.model_dump(mode="json")},
         )
-        self._advance(session, body.question_index)
+        if not self._maybe_follow_up(session, body.question_index, text):
+            self._advance(session, body.question_index)
 
     def skip(self, session: PracticeSession, body: RoundSkip) -> None:
         if self._already_handled(session, body.question_index):
             return
+        self._no_pending_followup(session)
         self._current(session, body.question_index)
         self._add(session, TurnRole.CANDIDATE, "", body.question_index, meta={"skipped": True})
         self._advance(session, body.question_index)
 
+    def answer_followup(self, session: PracticeSession, body: FollowupAnswer | None) -> None:
+        """Reply to (or, with body None, skip) the pending follow-up; then the next question is asked."""
+        plan = dict(session.plan or {})
+        pending = plan.get("pending_followup")
+        if pending is None:
+            last = self._reply(session, self.current_index(session) - 1)
+            done = (last.meta or {}).get("followup") if last is not None else None
+            if done and body is not None and done.get("answer") == body.answer.strip():
+                return  # the same reply again: nothing to do
+            if done and body is None and done.get("status") == "skipped":
+                return
+            raise ConflictError("There's no follow-up question waiting.", code="no_followup")
+        index = pending["question_index"]
+        turn = self._reply(session, index)
+        assert turn is not None
+        record = dict(pending)
+        followups = dict(plan.get("followups") or {})
+        if body is None:
+            record |= {"status": "skipped", "answer": None, "covered": None}
+        else:
+            text = body.answer.strip()
+            covered = pending["detail"] in details_in(text)
+            record |= {"status": "answered", "answer": text, "covered": covered, "source": body.source}
+            followups["supplied"] = sorted(set(followups.get("supplied", [])) | details_in(text))
+        record["answered_at"] = _now().isoformat()
+        turn.meta = {**(turn.meta or {}), "followup": record}
+        plan["followups"] = followups
+        plan["pending_followup"] = None
+        session.plan = plan
+        self._advance(session, index)
+
+    def _maybe_follow_up(self, session: PracticeSession, index: int, text: str) -> bool:
+        plan = dict(session.plan or {})
+        fmt = plan.get("format", "mixed")
+        followups = dict(plan.get("followups") or {"asked": [], "supplied": []})
+        supplied = set(followups.get("supplied", []))
+        asked = list(followups.get("asked", []))
+        speakers = plan.get("speakers") or []
+        speaker = speakers[index] if index < len(speakers) else None
+        probe = None
+        if FORMATS.get(fmt) and FORMATS[fmt].followups and len(asked) < MAX_FOLLOWUPS:
+            probe = choose_probe(text, probes_for(fmt, session.track or "", speaker), supplied, set(asked))
+        followups["supplied"] = sorted(supplied | details_in(text))
+        if probe is not None:
+            asked.append(probe)
+            plan["pending_followup"] = {
+                "question_index": index,
+                "detail": probe,
+                "question": PROBE_QUESTION[probe],
+                "speaker": speaker,
+                "status": "pending",
+                "asked_at": _now().isoformat(),
+            }
+        followups["asked"] = asked
+        plan["followups"] = followups
+        session.plan = plan
+        return probe is not None
+
+    @staticmethod
+    def _no_pending_followup(session: PracticeSession) -> None:
+        if (session.plan or {}).get("pending_followup"):
+            raise ConflictError("Answer or skip the follow-up question first.", code="followup_pending")
+
+    @staticmethod
+    def _reply(session: PracticeSession, index: int) -> InterviewTurn | None:
+        return next(
+            (t for t in session.turns if t.role == TurnRole.CANDIDATE and t.question_index == index), None
+        )
+
     # --- reads ------------------------------------------------------------------------
+
+    def _speaker(self, session: PracticeSession, speaker_id: str | None) -> SpeakerOut | None:
+        if not speaker_id:
+            return None
+        role = next((r for r in (session.plan or {}).get("roles", []) if r["id"] == speaker_id), None)
+        return SpeakerOut(**role) if role else None
+
+    def _followup_out(self, session: PracticeSession, record: dict | None) -> FollowupOut | None:
+        if not record:
+            return None
+        return FollowupOut(
+            question_index=record["question_index"],
+            detail=record["detail"],
+            question=record["question"],
+            speaker=self._speaker(session, record.get("speaker")),
+            status=record.get("status", "pending"),
+            answer=record.get("answer"),
+            covered=record.get("covered"),
+        )
+
+    def format_out(self, session: PracticeSession) -> RoundFormatOut:
+        plan = session.plan or {}
+        fmt = plan.get("format", "mixed")
+        return RoundFormatOut(
+            id=fmt,
+            title=FORMATS[fmt].title if fmt in FORMATS else fmt,
+            version=plan.get("format_version", FORMAT_VERSION),
+            rubric_version=plan.get("rubric_version", RUBRIC_VERSION),
+            roles=[SpeakerOut(**r) for r in plan.get("roles", [])],
+            followups_used=len((plan.get("followups") or {}).get("asked", [])),
+            followups_max=MAX_FOLLOWUPS if fmt in FORMATS and FORMATS[fmt].followups else 0,
+            pending_followup=self._followup_out(session, plan.get("pending_followup")),
+        )
 
     def questions_out(self, session: PracticeSession) -> list[RoundQuestion]:
         ids: list[str] = (session.plan or {}).get("question_ids", [])
@@ -200,7 +362,8 @@ class QuestionRounds:
                 )
             ).all()
         }
-        current = self.current_index(session)
+        current = -1 if (session.plan or {}).get("pending_followup") else self.current_index(session)
+        speakers = (session.plan or {}).get("speakers") or []
         out = []
         for i, qid in enumerate(ids):
             q = get_question(session.track or "", qid)
@@ -225,6 +388,16 @@ class QuestionRounds:
                     difficulty=q.difficulty,
                     status=status,
                     answer=answer_out(row) if row is not None else None,
+                    speaker=self._speaker(session, speakers[i] if i < len(speakers) else None),
+                    followup=self._followup_out(
+                        session,
+                        (reply.meta or {}).get("followup") if reply is not None else None,
+                    )
+                    or (
+                        self._followup_out(session, (session.plan or {}).get("pending_followup"))
+                        if ((session.plan or {}).get("pending_followup") or {}).get("question_index") == i
+                        else None
+                    ),
                 )
             )
         return out
@@ -269,7 +442,11 @@ class QuestionRounds:
         ids = (session.plan or {}).get("question_ids", [])
         q = get_question(session.track or "", ids[index])
         assert q is not None
-        self._add(session, TurnRole.INTERVIEWER, q.prompt, index)
+        speakers = (session.plan or {}).get("speakers") or []
+        speaker = speakers[index] if index < len(speakers) else None
+        self._add(
+            session, TurnRole.INTERVIEWER, q.prompt, index, meta={"speaker": speaker} if speaker else None
+        )
 
     def _advance(self, session: PracticeSession, index: int) -> None:
         total = len((session.plan or {}).get("question_ids", []))

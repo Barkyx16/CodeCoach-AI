@@ -1,3 +1,5 @@
+from typing import Literal
+
 from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.orm import Session
 
@@ -6,6 +8,8 @@ from app.config import Settings
 from app.models import User
 from app.schemas.common import Page, error_responses
 from app.schemas.interview import (
+    FollowupAnswer,
+    FormatOption,
     InterviewFinish,
     InterviewMessage,
     InterviewOut,
@@ -15,7 +19,7 @@ from app.schemas.interview import (
     RoundSkip,
 )
 from app.schemas.review import Comparison, InterviewReview, RetryIn
-from app.services.interviews import InterviewService
+from app.services.interviews import InterviewService, format_options
 from app.services.review import InterviewReviews
 
 router = APIRouter(prefix="/api/v1/interviews", tags=["interviews"])
@@ -43,6 +47,19 @@ def start(
     svc: InterviewService = Depends(get_interviews),
 ) -> InterviewOut:
     return svc.start(user, body)
+
+
+@router.get(
+    "/formats",
+    response_model=list[FormatOption],
+    responses=error_responses(404, 422),
+    summary="Question-round formats for a career and level: which are available, and their structure",
+)
+def list_formats(
+    track: str = Query(default="software-engineer", max_length=64),
+    difficulty: Literal["easy", "medium", "hard"] = Query(default="easy"),
+) -> list[FormatOption]:
+    return format_options(track, difficulty)
 
 
 @router.get("", response_model=Page[InterviewSummary], responses=_ERRORS, summary="Your interview history")
@@ -110,6 +127,35 @@ def skip_question(
     svc: InterviewService = Depends(get_interviews),
 ) -> InterviewOut:
     return svc.skip_question(user, interview_id, body)
+
+
+@router.post(
+    "/{interview_id}/followup",
+    response_model=InterviewOut,
+    responses=_ERRORS,
+    summary="Question rounds: answer the pending follow-up (then the next question is asked)",
+)
+def answer_followup(
+    interview_id: str,
+    body: FollowupAnswer,
+    user: User = Depends(get_current_user),
+    svc: InterviewService = Depends(get_interviews),
+) -> InterviewOut:
+    return svc.followup(user, interview_id, body)
+
+
+@router.post(
+    "/{interview_id}/followup/skip",
+    response_model=InterviewOut,
+    responses=_ERRORS,
+    summary="Question rounds: skip the pending follow-up",
+)
+def skip_followup(
+    interview_id: str,
+    user: User = Depends(get_current_user),
+    svc: InterviewService = Depends(get_interviews),
+) -> InterviewOut:
+    return svc.followup(user, interview_id, None)
 
 
 @router.get(

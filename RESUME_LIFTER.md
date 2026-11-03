@@ -582,6 +582,14 @@ These are moments where the obvious path was wrong and a deliberate decision was
     judging a known-correct and a known-wrong program. This container turned out to have
     Docker and gVisor, so the real judge suites and browser journeys were run for real.
 
+45. **A panel without a second interview engine.** Formats could have meant a new session type
+    per format. Instead they're data on the existing round: which questions, who asks each, and
+    which details a follow-up may ask for. Follow-ups are chosen by simple, disclosed patterns
+    from what the answer left out, with a shared session memory so no role asks for something
+    already given, and a hard cap of two. The reply is stored on the same turn as the answer, so
+    the review, retries, History and the plan keep working unchanged. Panel roles are generic
+    titles authored for two careers; every other career is told plainly there's no panel yet.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -1256,4 +1264,20 @@ slows the refresh call to reproduce it (1 of 12 before the fix, 12 of 12 after).
   1 runner, 4 frontend.
 - **Not verified:** Safari/WebKit (not installed here) and a judge on a separate machine over a
   real tunnel or proxy; no remote service was provisioned.
+
+**U06 Interview formats incl. panel (built and verified):**
+- Formats on the existing round engine with availability per career and level, a no-spoilers
+  preview, a fixed format per session, recorded format/rubric versions, roles and speakers.
+- Simulated panels for Software Engineer and Registered Nurse: stable role ids, one active
+  speaker named in text, a roster and turn cue, no overlapping audio (speech is cancelled before
+  each new prompt), typed fallback.
+- Follow-ups from the actual answer, bounded (two per round), never repeating a supplied detail,
+  validated on the server (`followup_pending`), resumable after a reload, idempotent, skippable,
+  expired by the deadline; reviews show speakers, follow-ups, a follow-up dimension and per-role
+  perspectives labelled as simulated.
+- Tests: 10 backend (SQLite), 3 frontend, 2 Playwright journeys (nurse panel at Medium with a
+  follow-up, a reload mid-follow-up and the review; an Electrician seeing why there's no panel and
+  completing a behavioral round's follow-up) with a WCAG scan of the live panel.
+- **Limits:** panels for two careers only; follow-up detection is keyword-based and says so; no
+  model writes follow-ups.
 
