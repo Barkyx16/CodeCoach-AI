@@ -1714,3 +1714,14 @@ They're built in order, each as a complete, tested slice committed on its own.
 - **Limits:** collections, job targets, kits, reflections and all practice results are listed as
   not restored; restored records are dated at the time of the restore, not their original
   dates.
+
+**After the last upgrade: CI on the final commit.** Backend (SQLite and PostgreSQL, migrations,
+content gates), frontend, runner, Docker and audits passed; the browser job failed one test (74
+passed, 3 skipped): the job-targets journey clicked "Roles" while the welcome's "Not now" was
+still saving, and the welcome then navigated to the dashboard anyway. That's a real (small)
+bug from V2-01: leaving the page during the save pulled the learner back. The welcome now
+navigates only if it's still on screen (a regression test fails without the fix), and the test
+waits for the dashboard like the other journeys. CI also showed a `SyntaxWarning` in the
+calendar file writer: escaping `;` used a backslash sequence Python doesn't define (it happened
+to produce the right text). It's now written explicitly; the output is unchanged, and the whole
+backend compiles with syntax warnings treated as errors.

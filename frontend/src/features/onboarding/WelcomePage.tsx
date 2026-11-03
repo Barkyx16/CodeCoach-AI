@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
@@ -21,6 +21,15 @@ import { FeedbackNote } from "./FeedbackNote";
 export function WelcomePage() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
+  // A choice is saved before moving on; if the learner has already gone elsewhere meanwhile,
+  // don't pull them back.
+  const here = useRef(true);
+  useEffect(() => {
+    here.current = true;
+    return () => {
+      here.current = false;
+    };
+  }, []);
   const qc = useQueryClient();
   const onboarding = useOnboarding();
   const update = useUpdateOnboarding();
@@ -52,7 +61,7 @@ export function WelcomePage() {
     } catch {
       if (body.tour === "start") return; // the tour needs its saved state; the error is shown below
     }
-    navigate(to);
+    if (here.current) navigate(to);
   }
 
   async function saveCareer() {

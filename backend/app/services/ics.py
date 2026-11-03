@@ -35,7 +35,7 @@ def escape(text: str) -> str:
     """TEXT values: backslash, semicolon, comma and newlines are escaped."""
     return (
         text.replace("\\", "\\\\")
-        .replace(";", "\;")
+        .replace(";", "\\;")
         .replace(",", "\\,")
         .replace("\r\n", "\\n")
         .replace("\n", "\\n")

@@ -28,6 +28,7 @@ test("a nurse turns a posting into a workspace, corrects it, practises, and star
   await page.locator("#main").getByRole("button", { name: "Create account" }).click();
   await page.getByRole("link", { name: "Do this later" }).click();
   await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click(); // the optional welcome
+  await expect(page).toHaveURL(/\/dashboard$/);
 
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Roles" }).click();
   await noViolations(page, "/targets");

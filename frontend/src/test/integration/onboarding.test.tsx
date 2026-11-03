@@ -100,6 +100,23 @@ describe("the welcome", () => {
     expect(sent).toEqual([{ start_choice: "library" }]);
   });
 
+  it("doesn't pull the learner back if they leave while “Not now” is still saving", async () => {
+    asUser();
+    fakeOnboarding({ welcome_due: true, start_choice: null, format: "written", starter: nurseStarter });
+    let release: () => void = () => undefined;
+    server.use(http.patch(`${API}/api/v1/me/onboarding`, async () => {
+      await new Promise<void>((resolve) => { release = resolve; });
+      return HttpResponse.json(onboardingState({ welcome_due: false, start_choice: "later" }));
+    }));
+    const { user, router } = renderApp("/welcome", { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Not now, take me to my dashboard" }));
+    await router.navigate("/targets"); // the learner moves on before the save finishes
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Not now, take me to my dashboard" })).not.toBeInTheDocument());
+    release();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(router.state.location.pathname).toBe("/targets");
+  });
+
   it("can be put off, and still offers a way forward if it can't load", async () => {
     asUser();
     const sent = fakeOnboarding({ welcome_due: true, start_choice: null, format: "written", starter: nurseStarter });
