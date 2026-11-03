@@ -263,6 +263,13 @@ or `problem` + slug), not a foreign key, so a report outlives a renamed or retir
   `prompt_id`, `prompt_version`, `rubric_version`, `diagram` (JSON as sent), `digest` (a
   fingerprint of it), `explanation`, `feedback` (JSON), `created_at`.
 
+### Restores
+- `import_batches`: one per restore (cascade with the account): `file_sha256` (to recognise the
+  same file; the file itself isn't stored), `export_version`, `categories`, `status`
+  (applied|failed|removed), `counts` and `removal` (JSON), `removed_at`.
+- `imported_records`: which record each batch added (`kind`, `record_id`) with a `fingerprint` of
+  it as restored, so removal can leave anything edited since.
+
 ### Interview reflections
 - `interview_reflections`: one per application event (primary key `event_id`, cascading with the
   event, the application and the account): copies of `role_title`, `employer`, `stage`,
@@ -362,6 +369,7 @@ or `problem` + slug), not a foreign key, so a report outlives a renamed or retir
 | `99be925bf8d1` drill attempts | Adds `drill_attempts`. New table, cascading with the user; round-tripped on PostgreSQL |
 | `c2cc8ed140c2` answer reviews | Adds `answer_self_reviews`, `answer_flags` and `answer_evaluations`. New tables, cascading with the answer and the user; round-tripped on PostgreSQL |
 | `76e9a3e567dc` interview reflections | Adds `interview_reflections` (one per event) and `reflection_actions`. New tables, cascading with the event, application and user; round-tripped on PostgreSQL |
+| `9fa5ab598fa5` restores | Adds `import_batches` and `imported_records`. New tables, cascading with the user; round-tripped on PostgreSQL |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

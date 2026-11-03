@@ -217,6 +217,9 @@ export type ReflectionAction = S["ReflectionActionOut"];
 export type ReflectionSummary = S["ReflectionSummary"];
 export type ReflectionOutcome = S["ReflectionOutcomeIn"]["outcome"];
 
+export type RestorePreview = S["RestorePreview"];
+export type RestoreBatch = S["RestoreBatch"];
+
 export type Drill = S["DrillOut"];
 export type DrillAttempt = S["DrillAttemptOut"];
 export type DrillAttemptIn = S["DrillAttemptIn"];

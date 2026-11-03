@@ -34,6 +34,7 @@ import "./styles/whiteboard.css";
 import "./styles/drills.css";
 import "./styles/answer-review.css";
 import "./styles/reflections.css";
+import "./styles/restore.css";
 import { startAppShell } from "./pwa/appShell";
 
 const queryClient = makeQueryClient();

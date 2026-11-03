@@ -103,6 +103,8 @@ import type {
   AnswerReview,
   Criteria,
   Drill,
+  RestoreBatch,
+  RestorePreview,
   Reflection,
   ReflectionIn,
   ReflectionSummary,
@@ -232,6 +234,11 @@ export const api = {
   deleteAccount: (body: { password?: string; confirm: string }) =>
     apiRequest<void>("/api/v1/auth/me", { method: "DELETE", body }),
   exportData: () => apiRequest<Record<string, unknown>>("/api/v1/me/export"),
+  previewRestore: (fileText: string) => apiRequest<RestorePreview>("/api/v1/me/restore/preview", { method: "POST", rawBody: fileText }),
+  applyRestore: (fileText: string, categories: string[]) =>
+    apiRequest<RestoreBatch>(`/api/v1/me/restore?${categories.map((c) => `categories=${encodeURIComponent(c)}`).join("&")}`, { method: "POST", rawBody: fileText }),
+  restoreBatches: () => apiRequest<RestoreBatch[]>("/api/v1/me/restore/batches"),
+  removeRestore: (id: string) => apiRequest<RestoreBatch>(`/api/v1/me/restore/batches/${encodeURIComponent(id)}/remove`, { method: "POST" }),
 
   // problems
   problems: (filters: ProblemFilters = {}, signal?: AbortSignal) =>

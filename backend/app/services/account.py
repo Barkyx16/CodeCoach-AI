@@ -38,6 +38,7 @@ from app.services.drills import Drills
 from app.services.kits import Kits
 from app.services.onboarding import Onboarding
 from app.services.reflections import Reflections
+from app.services.restore import Restore
 from app.services.schedule import Schedule
 from app.services.shares import status_of
 from app.services.stories import snapshot
@@ -405,6 +406,8 @@ def export_user_data(db: Session, user: User) -> dict:
         "whiteboard": Whiteboard(db, user).export(),
         # Private reflections on real interviews, with the next steps you accepted or dismissed.
         "interview_reflections": Reflections(db, user).export(),
+        # Restores you made from backup files (what each added and, if removed, what it kept).
+        "restores": Restore(db, user).export(),
         # Interview-day kits: logistics, checklists, questions and chosen stories.
         "interview_kits": Kits(db, user).export(),
         # Applications you recorded, with their interview events and stage history.

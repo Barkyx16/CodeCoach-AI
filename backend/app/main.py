@@ -30,6 +30,7 @@ from app.api.routes import (
     plan,
     problems,
     reflections,
+    restore,
     scenarios,
     schedule,
     shares,
@@ -106,6 +107,11 @@ TAGS = [
         "name": "whiteboard",
         "description": "System-design practice with a small, plain-text diagram: drafts with conflict-safe saves, "
         "attempts frozen with their prompt and rubric versions, and feedback that names the elements it found.",
+    },
+    {
+        "name": "backup",
+        "description": "Restore your own notes, stories, bookmarks and applications from a CodeCoach backup: "
+        "previewed first, additive only, never trusting ids, roles or results in the file, and removable later.",
     },
     {
         "name": "sharing",
@@ -218,6 +224,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         stories.router,
         applications.router,
         kits.router,
+        restore.router,
         reflections.router,
         answer_review.router,
         drills.router,

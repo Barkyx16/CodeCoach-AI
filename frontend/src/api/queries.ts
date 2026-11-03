@@ -726,3 +726,7 @@ export function useReflection(appId: string, eventId: string) {
 export function useReflections(f: { q?: string; outcome?: string; include_archived?: boolean }) {
   return useQuery({ queryKey: ["me", "reflections", f], queryFn: () => api.reflections(f), staleTime: 0, placeholderData: (prev) => prev });
 }
+
+export function useRestoreBatches() {
+  return useQuery({ queryKey: ["me", "restore-batches"], queryFn: api.restoreBatches, staleTime: 0 });
+}

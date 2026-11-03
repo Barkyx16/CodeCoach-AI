@@ -873,6 +873,25 @@ Owner-only.
 - `GET …/{prompt_id}/attempts` → summaries (`addressed`, `total`, versions); `GET
   /api/v1/me/whiteboard/attempts/{id}` → one frozen attempt.
 
+### Restore from a backup
+
+Bring your own data back from a CodeCoach backup ([BACKUP_FORMAT.md](BACKUP_FORMAT.md)). Additive
+only; ids, account details, roles and results in the file are never trusted.
+
+- `POST /api/v1/me/restore/preview` 🔒 (the backup file as the JSON body, at most 5 MB) →
+  `{export_version, exported_at, file_sha256, from_other_account, categories: [{key: notes|stories|
+  bookmarks|applications, label, found, new, duplicates, skipped: [{reason, count}], samples}],
+  not_restored: [{key, count, reason}], ignored_fields, previous}`. Nothing changes. `400
+  invalid_json | not_a_backup | unsupported_version (details.supported) | file_too_large`.
+- `POST /api/v1/me/restore?categories=notes&categories=stories…` 🔒 (the same file) → `201` the
+  batch `{id, status: applied, categories, counts: {category: {added, duplicates, skipped}}}`, or
+  `200` with the earlier batch when the same file and categories were already restored. One
+  transaction: `400 restore_failed` (and a recorded `failed` batch) means nothing was changed;
+  `400 over_limit` when the account limits would be exceeded.
+- `GET /api/v1/me/restore/batches` → your restores, newest first.
+- `POST /api/v1/me/restore/batches/{id}/remove` → removes the records the batch added that are
+  still exactly as restored; `removal: {removed, kept_edited, already_gone}`. Idempotent.
+
 ### Interview reflections
 
 A private debrief of a real interview event ([REFLECTIONS.md](REFLECTIONS.md)). Owner-only,

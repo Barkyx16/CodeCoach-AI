@@ -61,6 +61,8 @@ export interface RequestOptions {
   auth?: boolean;
   /** Let the request finish even if the page is being unloaded (saving on navigation). */
   keepalive?: boolean;
+  /** Send this JSON text as the body exactly as it is (a backup file), instead of serializing `body`. */
+  rawBody?: string;
   /** Return the body as text (for files such as .ics) instead of parsing JSON. */
   raw?: boolean;
   headers?: Record<string, string>;
@@ -104,7 +106,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 async function send<T>(path: string, options: RequestOptions, isRetry: boolean): Promise<T> {
   const { method = "GET", body, query, signal, auth = true } = options;
   const headers: Record<string, string> = { Accept: "application/json", ...options.headers };
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (body !== undefined || options.rawBody !== undefined) headers["Content-Type"] = "application/json";
   const token = auth ? getToken() : null;
   if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -113,7 +115,7 @@ async function send<T>(path: string, options: RequestOptions, isRetry: boolean):
     response = await fetch(buildUrl(path, query), {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: options.rawBody ?? (body === undefined ? undefined : JSON.stringify(body)),
       signal,
       keepalive: options.keepalive,
       // The refresh cookie is path-scoped to /api/v1/auth; only those calls need credentials.

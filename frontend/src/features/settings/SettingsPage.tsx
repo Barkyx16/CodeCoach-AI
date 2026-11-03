@@ -546,6 +546,7 @@ function DataRow() {
         <div className="setting__actions">
           <Button onClick={() => void download()} loading={form.busy}><Icon name="download" size={16} />Download my data</Button>
           {form.done && <Status>{form.done}</Status>}
+          <Link to="/settings/restore" className="btn btn--ghost btn--md">Restore from a backup</Link>
         </div>
         <InlineError error={form.error} />
       </div>

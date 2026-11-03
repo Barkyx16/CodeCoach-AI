@@ -1593,6 +1593,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/restore/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check a backup and show what would be restored (nothing changes) */
+        post: operations["preview_api_v1_me_restore_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add the chosen kinds of records (the same file again changes nothing) */
+        post: operations["apply_api_v1_me_restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/restore/batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your restores */
+        get: operations["batches_api_v1_me_restore_batches_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/restore/batches/{batch_id}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remove what a restore added, except anything you've edited since */
+        post: operations["remove_api_v1_me_restore_batches__batch_id__remove_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/reflections": {
         parameters: {
             query?: never;
@@ -7028,10 +7096,116 @@ export interface components {
             /** Removed */
             removed?: boolean | null;
         };
+        /** RestoreBatch */
+        RestoreBatch: {
+            /** Id */
+            id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "applied" | "failed" | "removed";
+            /** Categories */
+            categories: string[];
+            /** Counts */
+            counts: {
+                [key: string]: unknown;
+            };
+            /**
+             * Removal
+             * @description After removal: removed, kept_edited, already_gone
+             */
+            removal: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Removed At */
+            removed_at: string | null;
+        };
+        /** RestoreCategory */
+        RestoreCategory: {
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "notes" | "stories" | "bookmarks" | "applications";
+            /** Label */
+            label: string;
+            /**
+             * Found
+             * @description Records of this kind in the file
+             */
+            found: number;
+            /**
+             * New
+             * @description Would be added
+             */
+            new: number;
+            /**
+             * Duplicates
+             * @description Already in your account (or twice in the file): skipped
+             */
+            duplicates: number;
+            /** Skipped */
+            skipped: components["schemas"]["RestoreSkip"][];
+            /**
+             * Samples
+             * @description A few titles, so you can recognise them
+             */
+            samples: string[];
+        };
         /** RestoreIn */
         RestoreIn: {
             /** Internal Note */
             internal_note?: string | null;
+        };
+        /** RestorePreview */
+        RestorePreview: {
+            /** Export Version */
+            export_version: number;
+            /** Exported At */
+            exported_at: string | null;
+            /** File Sha256 */
+            file_sha256: string;
+            /**
+             * From Other Account
+             * @description The file names a different account; only its content can come into yours
+             */
+            from_other_account: boolean;
+            /** Categories */
+            categories: components["schemas"]["RestoreCategory"][];
+            /** Not Restored */
+            not_restored: components["schemas"]["RestoreUnsupported"][];
+            /**
+             * Ignored Fields
+             * @description Unknown fields inside records, ignored
+             */
+            ignored_fields: number;
+            /**
+             * Previous
+             * @description Earlier restores of this same file
+             */
+            previous: components["schemas"]["RestoreBatch"][];
+        };
+        /** RestoreSkip */
+        RestoreSkip: {
+            /** Reason */
+            reason: string;
+            /** Count */
+            count: number;
+        };
+        /** RestoreUnsupported */
+        RestoreUnsupported: {
+            /** Key */
+            key: string;
+            /** Count */
+            count: number;
+            /** Reason */
+            reason: string;
         };
         /** ResumeInterview */
         ResumeInterview: {
@@ -15152,6 +15326,180 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    preview_api_v1_me_restore_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestorePreview"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    apply_api_v1_me_restore_post: {
+        parameters: {
+            query: {
+                /** @description notes, stories, bookmarks, applications */
+                categories: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestoreBatch"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    batches_api_v1_me_restore_batches_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestoreBatch"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    remove_api_v1_me_restore_batches__batch_id__remove_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestoreBatch"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

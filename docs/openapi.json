@@ -8584,6 +8584,253 @@
         }
       }
     },
+    "/api/v1/me/restore/preview": {
+      "post": {
+        "tags": [
+          "backup"
+        ],
+        "summary": "Check a backup and show what would be restored (nothing changes)",
+        "operationId": "preview_api_v1_me_restore_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "A CodeCoach backup (the export file), as is"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestorePreview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/restore": {
+      "post": {
+        "tags": [
+          "backup"
+        ],
+        "summary": "Add the chosen kinds of records (the same file again changes nothing)",
+        "operationId": "apply_api_v1_me_restore_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "categories",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "notes, stories, bookmarks, applications",
+              "title": "Categories"
+            },
+            "description": "notes, stories, bookmarks, applications"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestoreBatch"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "A CodeCoach backup (the export file), as is"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/restore/batches": {
+      "get": {
+        "tags": [
+          "backup"
+        ],
+        "summary": "Your restores",
+        "operationId": "batches_api_v1_me_restore_batches_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RestoreBatch"
+                  },
+                  "type": "array",
+                  "title": "Response Batches Api V1 Me Restore Batches Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/restore/batches/{batch_id}/remove": {
+      "post": {
+        "tags": [
+          "backup"
+        ],
+        "summary": "Remove what a restore added, except anything you've edited since",
+        "operationId": "remove_api_v1_me_restore_batches__batch_id__remove_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Batch Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestoreBatch"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/reflections": {
       "get": {
         "tags": [
@@ -26517,6 +26764,135 @@
         "type": "object",
         "title": "RequirementPatch"
       },
+      "RestoreBatch": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "applied",
+              "failed",
+              "removed"
+            ],
+            "title": "Status"
+          },
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Categories"
+          },
+          "counts": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Counts"
+          },
+          "removal": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removal",
+            "description": "After removal: removed, kept_edited, already_gone"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "removed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "categories",
+          "counts",
+          "removal",
+          "created_at",
+          "removed_at"
+        ],
+        "title": "RestoreBatch"
+      },
+      "RestoreCategory": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "notes",
+              "stories",
+              "bookmarks",
+              "applications"
+            ],
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "found": {
+            "type": "integer",
+            "title": "Found",
+            "description": "Records of this kind in the file"
+          },
+          "new": {
+            "type": "integer",
+            "title": "New",
+            "description": "Would be added"
+          },
+          "duplicates": {
+            "type": "integer",
+            "title": "Duplicates",
+            "description": "Already in your account (or twice in the file): skipped"
+          },
+          "skipped": {
+            "items": {
+              "$ref": "#/components/schemas/RestoreSkip"
+            },
+            "type": "array",
+            "title": "Skipped"
+          },
+          "samples": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Samples",
+            "description": "A few titles, so you can recognise them"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "found",
+          "new",
+          "duplicates",
+          "skipped",
+          "samples"
+        ],
+        "title": "RestoreCategory"
+      },
       "RestoreIn": {
         "properties": {
           "internal_note": {
@@ -26534,6 +26910,114 @@
         },
         "type": "object",
         "title": "RestoreIn"
+      },
+      "RestorePreview": {
+        "properties": {
+          "export_version": {
+            "type": "integer",
+            "title": "Export Version"
+          },
+          "exported_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exported At"
+          },
+          "file_sha256": {
+            "type": "string",
+            "title": "File Sha256"
+          },
+          "from_other_account": {
+            "type": "boolean",
+            "title": "From Other Account",
+            "description": "The file names a different account; only its content can come into yours"
+          },
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/RestoreCategory"
+            },
+            "type": "array",
+            "title": "Categories"
+          },
+          "not_restored": {
+            "items": {
+              "$ref": "#/components/schemas/RestoreUnsupported"
+            },
+            "type": "array",
+            "title": "Not Restored"
+          },
+          "ignored_fields": {
+            "type": "integer",
+            "title": "Ignored Fields",
+            "description": "Unknown fields inside records, ignored"
+          },
+          "previous": {
+            "items": {
+              "$ref": "#/components/schemas/RestoreBatch"
+            },
+            "type": "array",
+            "title": "Previous",
+            "description": "Earlier restores of this same file"
+          }
+        },
+        "type": "object",
+        "required": [
+          "export_version",
+          "exported_at",
+          "file_sha256",
+          "from_other_account",
+          "categories",
+          "not_restored",
+          "ignored_fields",
+          "previous"
+        ],
+        "title": "RestorePreview"
+      },
+      "RestoreSkip": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason",
+          "count"
+        ],
+        "title": "RestoreSkip"
+      },
+      "RestoreUnsupported": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "count",
+          "reason"
+        ],
+        "title": "RestoreUnsupported"
       },
       "ResumeInterview": {
         "properties": {
@@ -32701,6 +33185,10 @@
     {
       "name": "whiteboard",
       "description": "System-design practice with a small, plain-text diagram: drafts with conflict-safe saves, attempts frozen with their prompt and rubric versions, and feedback that names the elements it found."
+    },
+    {
+      "name": "backup",
+      "description": "Restore your own notes, stories, bookmarks and applications from a CodeCoach backup: previewed first, additive only, never trusting ids, roles or results in the file, and removable later."
     },
     {
       "name": "sharing",

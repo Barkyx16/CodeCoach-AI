@@ -1362,3 +1362,36 @@ class ReflectionAction(Base):
     applied_ref: Mapped[str | None] = mapped_column(String(64), nullable=True)  # the note / entry it created
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class ImportBatch(Base):
+    """One restore from a backup file into this account. Additive only; a batch can later remove
+    the records it added, but only those still exactly as they were imported."""
+
+    __tablename__ = "import_batches"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    file_sha256: Mapped[str] = mapped_column(String(64))
+    export_version: Mapped[int] = mapped_column(Integer)
+    categories: Mapped[list] = mapped_column(JSONType, default=list)
+    status: Mapped[str] = mapped_column(String(12))  # applied | failed | removed
+    counts: Mapped[dict] = mapped_column(JSONType, default=dict)  # {category: {added, duplicates, skipped}}
+    removal: Mapped[dict | None] = mapped_column(
+        JSONType, nullable=True
+    )  # {removed, kept_edited, already_gone}
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    removed_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+
+
+class ImportedRecord(Base):
+    """Which record a batch added, with a fingerprint of it as imported (to tell later edits)."""
+
+    __tablename__ = "imported_records"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    batch_id: Mapped[str] = mapped_column(ForeignKey("import_batches.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(16))  # note | story | bookmark | application
+    record_id: Mapped[str] = mapped_column(String(64))
+    fingerprint: Mapped[str] = mapped_column(String(64))

@@ -724,6 +724,16 @@ These are moments where the obvious path was wrong and a deliberate decision was
     copy of role, employer and date on first save keeps old reflections readable after edits or
     archiving. Text is kept out of logs (the access log records paths only) and nothing goes to
     an AI provider.
+59. **Restore adds; it never trusts the file and never overwrites.** A backup is a file the
+    learner (or anyone) can edit, so restore reads only user-authored records (notes, stories,
+    bookmarks, applications), re-validates each against the app's own input schemas, gives it a
+    new id in the signed-in account and ignores every id, role, score or result in the file.
+    Practice results aren't restored at all, which is the only way to be sure an edited file
+    can't create a pass or progress. Duplicates are found by content fingerprints, a batch is
+    one transaction (a failure part-way leaves nothing behind), the same file twice returns the
+    first batch, and undo removes only what's unchanged since, so it can never roll back a
+    later edit. Writing rows directly (instead of calling the feature services, which commit as
+    they go) is what makes the all-or-nothing batch possible.
 
 ## 6. Python concepts used here (for a Java developer)
 
@@ -1682,3 +1692,25 @@ They're built in order, each as a complete, tested slice committed on its own.
   backend) before each commit.
 - **Limits:** no AI help for reflections; "add to plan" isn't offered because the adaptive plan
   has no hand-added steps (the schedule covers it).
+
+**V2-10 Validated backup restore (built and verified):**
+- A documented version-1 contract (docs/BACKUP_FORMAT.md); preview with new, duplicate and
+  skipped counts and reasons, everything not restored and why, and whether the file came from
+  another account or was restored before; chosen categories; one-transaction batches with
+  idempotency, limits checked first and a recorded failed batch; batch history and removal that
+  keeps edited records; export of restores; deletion with the account.
+- Tests: 8 backend (a real export into a fresh account and exported again; duplicates and the
+  same file twice; malformed, non-backup, old-version, oversized and unknown-field files;
+  missing content never remapped, a tampered profile, results, shares and another account's
+  story id all ignored; a failure part-way rolled back and retried; removal after an edit,
+  owner-only and idempotent; export and account deletion; no credentials in a backup), 2
+  frontend integration, 2 Playwright journeys (download a real backup, restore it into another
+  account, restore again, edit, remove; a tampered file at 320px in dark) with axe scans. Only
+  synthetic accounts and files were used.
+- Full runs: backend 1838 passed, 1 skipped (PostgreSQL-only concurrency test on SQLite), 2,223
+  collected with the 384 gVisor sandbox tests that only run in CI's sandbox job; restore tests
+  also on PostgreSQL (8 passed); frontend 523 passed; Playwright 75 passed, 3 skipped, 0 failed
+  (78 listed). Migration round-tripped on PostgreSQL. README totals updated.
+- **Limits:** collections, job targets, kits, reflections and all practice results are listed as
+  not restored; restored records are dated at the time of the restore, not their original
+  dates.
