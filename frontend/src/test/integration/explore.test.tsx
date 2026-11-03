@@ -150,7 +150,8 @@ describe("Collections and the practice queue", () => {
     expect(bar).toHaveTextContent("Queue · item 1 of 2");
     await user.click(within(bar).getByRole("button", { name: "Mark done and go to next" }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/careers/registered-nurse/questions/e-time-0"));
-    expect(await screen.findByRole("region", { name: "Practice queue" })).toHaveTextContent("item 2 of 2");
+    // The page re-renders for the next question; wait for it rather than reading the old bar.
+    await waitFor(() => expect(screen.getByRole("region", { name: "Practice queue" })).toHaveTextContent("item 2 of 2"));
     expect(store.collections[0]!.item_list[0]!.queue_done).toBe(true);
     expect(store.collections[0]!.queue_position).toBe(1);
   });
