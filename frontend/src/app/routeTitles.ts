@@ -5,7 +5,7 @@ const TITLES: Record<string, string> = {
   "/problems": "Practice library", "/dashboard": "Dashboard", "/analytics": "Analytics",
   "/history": "History", "/settings": "Settings", "/interviews": "Mock interviews", "/interviews/questions": "Interview question round", "/plan": "Your plan", "/plan/goals": "Your goals", "/targets": "Target roles", "/reviews": "Review queue",
   "/learn": "Lessons", "/scenarios": "Scenarios", "/notes": "Notes", "/notes/new": "New note", "/saved": "Saved",
-  "/offline": "Saved for offline", "/help": "Help", "/welcome": "Welcome", "/reports": "Your reports", "/admin/reports": "Content reports", "/share/new": "Ask for feedback", "/shares": "Shared for feedback", "/shared": "Shared answer",
+  "/offline": "Saved for offline", "/help": "Help", "/stories": "Your stories", "/stories/new": "Write a story", "/welcome": "Welcome", "/reports": "Your reports", "/admin/reports": "Content reports", "/share/new": "Ask for feedback", "/shares": "Shared for feedback", "/shared": "Shared answer",
 };
 
 /** Dynamic routes, most specific first; each must match a route in router.tsx. */
@@ -20,6 +20,7 @@ const PATTERNS: [RegExp, string][] = [
   [/^\/scenarios\/attempts\/[^/]+$/, "Scenario attempt"],
   [/^\/scenarios\/[^/]+$/, "Scenario"],
   [/^\/notes\/[^/]+$/, "Note"],
+  [/^\/stories\/[^/]+$/, "Story"],
   [/^\/shares\/[^/]+$/, "Shared answer and feedback"],
   [/^\/admin\/reports\/[^/]+$/, "Content report"],
   [/^\/saved\/collections\/[^/]+\/practice$/, "Practice queue"],

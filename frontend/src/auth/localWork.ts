@@ -23,6 +23,7 @@ export function localWorkKeys(userId: string): string[] {
     `note-draft:${userId}:`,
     `note-capture:${userId}:`,
     `learn-draft:${userId}:`,
+    `story-draft:${userId}:`,
     "codecoach.round.",
   ];
   return keys().filter((k) => prefixes.some((p) => k.startsWith(p)));

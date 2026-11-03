@@ -237,6 +237,19 @@ or `problem` + slug), not a foreign key, so a report outlives a renamed or retir
   (JSON), optional admin-only `internal_note`, `report_id` (no foreign key, so the trail stays even
   if a report is deleted with its reporter's account).
 
+### Story bank
+- `experience_entries` holds **stories** (also the examples written in a job target): `title`,
+  `track`, `context`, `situation`, `task`, `action`, `result`, `reflection`, `notes`, `evidence`,
+  `competencies`, `tags`, `question_refs` (stable `track/question_id` links), `short_version`,
+  `long_version`, `revision`, `archived`, and `target_id` + `requirement_ids` for one job target.
+  `target_id` is `ON DELETE SET NULL` (`fk_experience_target`): deleting a target unlinks its
+  stories instead of deleting them.
+- `story_revisions`: one full snapshot per saved version (`story_id`, `revision`, `reason`
+  created|edited|assisted|restored, `fields` JSON), unique per story and revision, cascading with
+  the story. At most 100 per story; the first is always kept.
+- `practice_answers.story_id` (`fk_answer_story`, `ON DELETE SET NULL`): the story an answer
+  rehearsed. The answer is never changed when the story is.
+
 ### First-session introduction
 - `user_onboarding`: one row per account (primary key `user_id`, cascades with the user), created
   on the first choice. `tour_status` (`not_started | in_progress | paused | completed |
@@ -278,6 +291,7 @@ or `problem` + slug), not a foreign key, so a report outlives a renamed or retir
 | `d4f1b8c2e637` shares and share feedback | Adds `shares` (owner, hashed link secret, source reference and digest, snapshot, expiry/close/revoke times) and `share_feedback` (structured feedback, reviewer or guest name, unique retry key). New tables; shares cascade with the owner, a reviewer's deletion clears `reviewer_id` |
 | `e5a2c7f1b948` content quality | Adds `content_reports`, `content_versions`, `content_status`, `content_checks` and `content_audit`; nullable `content_version` on `practice_answers` and `bookmarks` (NULL means version 1, so existing rows need no backfill); `users.is_admin` with server default false. New tables and nullable/defaulted columns, so populated databases migrate safely; round-tripped (upgrade, downgrade, upgrade) on PostgreSQL |
 | `d52cf325b19a` onboarding state | Adds `user_onboarding` (one row per account, cascading with the user). New table, safe on populated databases; round-tripped on PostgreSQL |
+| `178db0129ee0` story bank | Adds story columns to `experience_entries` (text with server default `''`, JSON lists with `'[]'`, `revision` 1, `archived` false), `story_revisions`, and `practice_answers.story_id`; changes `experience_entries.target_id` to `ON DELETE SET NULL`. Existing examples keep every word, get their target's career and a first revision with their exact text. Verified on PostgreSQL with seeded data, and round-tripped |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

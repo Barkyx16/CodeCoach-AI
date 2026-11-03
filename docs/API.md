@@ -791,6 +791,33 @@ the JSON body, never a URL:
   `400 empty_feedback | unknown_sentence` (comments only on shared sentences). Both endpoints
   are rate-limited per client IP (`429`).
 
+### Story bank
+
+Your own STAR stories ([STORIES.md](STORIES.md)). Everything is owner-only (404 for anyone else).
+Job-target examples (`/targets/{id}/experience`) are the same stories.
+
+- `GET /api/v1/me/stories?archived=&q=&competency=` 🔒 → summaries (`missing` sections, `target`,
+  `practice_count`, `preview`, `revision`). `q` matches every word across everything you wrote.
+- `POST /api/v1/me/stories` 🔒 `{title, track?, context?, situation, task, action, result,
+  reflection, notes, evidence, competencies, tags, short_version, long_version, target_id?,
+  question_refs?}` → `201` the story. Up to 200 stories (`400 too_many_stories`); unknown career
+  `400 unknown_career`; a question ref that doesn't exist `400 unknown_question`; someone else's
+  target `404`.
+- `GET /api/v1/me/stories/{id}` 🔒 → the story with `questions`, `practice` (answers that
+  rehearsed it) and `privacy_hints`.
+- `PATCH /api/v1/me/stories/{id}` 🔒 `{…fields to change, expected_revision, reason:
+  edited|assisted, clear_target}` → a new revision, or `409 stale_revision`
+  (`details.current_revision`) if it changed since. Nothing changed: no new revision.
+- `POST …/{id}/archive` and `…/unarchive`; `DELETE …/{id}` (`204`; answers that rehearsed it are
+  kept).
+- `GET …/{id}/revisions` → every saved version, newest first; `POST
+  …/{id}/revisions/{n}/restore {expected_revision}` → saved as a new version.
+- `POST …/{id}/assist {action: check|shorten|clarity, situation?, task?, action_text?, result?,
+  reflection?}` → `{method, proposals: [{field, original, proposed, changes}], questions}`.
+  Built-in rules, not AI; nothing is saved; proposals only ever remove words.
+- Answers: `POST /api/v1/careers/{slug}/questions/{id}/answers` takes an optional `story_id`
+  (your own story, else `404`); `AnswerOut.story_id` echoes it.
+
 ### First-session introduction
 
 The optional welcome and guided tour ([ONBOARDING.md](ONBOARDING.md)). Owner-only (`/me`).

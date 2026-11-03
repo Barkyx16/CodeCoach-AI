@@ -26,6 +26,7 @@ import "./styles/scenarios.css";
 import "./styles/sharing.css";
 import "./styles/formats.css";
 import "./styles/onboarding.css";
+import "./styles/stories.css";
 import { startAppShell } from "./pwa/appShell";
 
 const queryClient = makeQueryClient();

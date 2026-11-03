@@ -647,6 +647,16 @@ These are moments where the obvious path was wrong and a deliberate decision was
     introduction; "did they practise?" comes from their real answers, so the tour can never
     inflate progress.
 
+51. **Extend the model that's there; make the helper unable to lie.** Job targets already stored
+    "examples" with a situation, action and result. A story bank beside them would have meant two
+    copies of the same experience drifting apart, so the story bank is the same table with more
+    columns, and the migration turns every existing example into a story without changing a word.
+    Deleting a target used to delete its examples; now it only unlinks them. For writing help,
+    the safe version of "AI must not invent metrics" is a helper that can't invent anything: it
+    only removes filler or asks questions, every proposal is checked to use only words already in
+    the learner's text, and nothing leaves the server. A model-based rewrite can come later
+    behind the AI coach's budget, redaction and an explicit warning.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -1460,3 +1470,22 @@ They're built in order, each as a complete, tested slice committed on its own.
   guest changing job at 320px in the light theme) with axe scans; 16 existing browser specs
   updated to pass through the welcome.
 - **Not verified:** screen readers, Safari/Firefox, real phones.
+
+**V2-02 Story bank (built and verified):**
+- Stories in STAR form with an optional reflection, career, context, competencies, tags, private
+  notes, optional evidence and rehearsal versions, on the same model as job-target examples (the
+  migration keeps every existing example's text and gives it a first version; deleting a target
+  now unlinks its stories instead of deleting them).
+- Private server-side search and competency filter, missing sections listed neutrally, privacy
+  hints for possible identifiers, archive, delete.
+- Every save is a version: conflict-safe saves (409 with a choice), restore as a new version,
+  unsaved edits recovered on the device after a reload.
+- A built-in writing check (rules, not AI; nothing sent anywhere): questions about missing parts
+  and "we" vs "I", and side-by-side proposals that only remove words, accepted one at a time.
+- Practise a story on any question: starts the draft, optionally links the question, and the
+  answer records the story it rehearsed; the story never changes; shares never include it.
+- Tests: 11 backend (SQLite and PostgreSQL) plus a seeded migration check on PostgreSQL, 7
+  frontend, 2 Playwright journeys (target example to practice with every version kept, another
+  account, deletion; the editor at 320px in the light theme) with axe scans.
+- **Limits:** no model-based rewriting; practising on a question page is typed (voice is in mock
+  interviews); one target per story.

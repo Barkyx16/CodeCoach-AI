@@ -25,6 +25,7 @@ from app.schemas.careers import (
 from app.schemas.common import Page, error_responses
 from app.schemas.problem import DifficultyCounts
 from app.services import search
+from app.services.stories import check_story_owner
 
 router = APIRouter(prefix="/api/v1", tags=["careers"])
 
@@ -183,7 +184,9 @@ def answer_question(
             "You've answered a lot of questions this hour. Take a short break and try again soon.",
             details={"retry_after_seconds": int(retry_after) + 1},
         )
+    story_id = check_story_owner(db, user, body.story_id)  # your own story, or 404
     row = graded_answer(user.id, question, body.answer)
+    row.story_id = story_id
     db.add(row)
     db.commit()
     return answer_out(row)

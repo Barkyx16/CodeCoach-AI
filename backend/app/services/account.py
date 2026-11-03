@@ -28,11 +28,13 @@ from app.models import (
     ScenarioAttempt,
     Share,
     ShareFeedback,
+    StoryRevision,
     Submission,
     User,
 )
 from app.services.onboarding import Onboarding
 from app.services.shares import status_of
+from app.services.stories import snapshot
 
 EXPORT_VERSION = 1
 
@@ -202,6 +204,7 @@ def export_user_data(db: Session, user: User) -> dict:
                 "feedback": a.feedback,
                 "coach": a.provider,
                 "question_version": a.content_version or 1,
+                "story": a.story_id,
                 "created_at": iso(a.created_at),
             }
             for a in answers
@@ -359,6 +362,31 @@ def export_user_data(db: Session, user: User) -> dict:
                 "updated_at": iso(n.updated_at),
             }
             for n in notes
+        ],
+        # Your story bank: every story (also the examples written in a job target) and every saved version.
+        "stories": [
+            {
+                "id": e.id,
+                **snapshot(e),
+                "revision": e.revision,
+                "archived": e.archived,
+                "created_at": iso(e.created_at),
+                "updated_at": iso(e.updated_at),
+                "revisions": [
+                    {
+                        "revision": r.revision,
+                        "reason": r.reason,
+                        "fields": r.fields,
+                        "created_at": iso(r.created_at),
+                    }
+                    for r in db.scalars(
+                        select(StoryRevision)
+                        .where(StoryRevision.story_id == e.id)
+                        .order_by(StoryRevision.revision)
+                    )
+                ],
+            }
+            for e in experience
         ],
         # Your choices about the first-session introduction (no answer text is part of it).
         "onboarding": Onboarding(db, user).export(),

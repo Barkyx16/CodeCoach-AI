@@ -97,6 +97,13 @@ import type {
   InterviewFormat,
   Onboarding,
   OnboardingUpdate,
+  Story,
+  StoryAssist,
+  StoryAssistAction,
+  StoryCreate,
+  StoryRevision,
+  StorySummary,
+  StoryUpdate,
 } from "./types";
 
 export interface ProblemFilters {
@@ -208,9 +215,9 @@ export const api = {
     apiRequest<DifficultyCounts>(`/api/v1/careers/${encodeURIComponent(track)}/questions/counts`, { query: { q }, signal }),
   question: (track: string, id: string, signal?: AbortSignal) =>
     apiRequest<QuestionDetail>(`/api/v1/careers/${encodeURIComponent(track)}/questions/${encodeURIComponent(id)}`, { signal }),
-  answerQuestion: (track: string, id: string, answer: string) =>
+  answerQuestion: (track: string, id: string, answer: string, storyId: string | null = null) =>
     apiRequest<InterviewAnswer>(`/api/v1/careers/${encodeURIComponent(track)}/questions/${encodeURIComponent(id)}/answers`, {
-      method: "POST", body: { answer },
+      method: "POST", body: storyId ? { answer, story_id: storyId } : { answer },
     }),
   myAnswers: (track: string, id: string) =>
     apiRequest<InterviewAnswer[]>(`/api/v1/careers/${encodeURIComponent(track)}/questions/${encodeURIComponent(id)}/answers`),
@@ -381,6 +388,21 @@ export const api = {
   // the optional first-session introduction
   onboarding: () => apiRequest<Onboarding>("/api/v1/me/onboarding"),
   updateOnboarding: (body: OnboardingUpdate) => apiRequest<Onboarding>("/api/v1/me/onboarding", { method: "PATCH", body }),
+
+  // the story bank
+  stories: (filters: { archived?: boolean; q?: string; competency?: string } = {}) =>
+    apiRequest<StorySummary[]>("/api/v1/me/stories", { query: { archived: filters.archived ? "true" : undefined, q: filters.q || undefined, competency: filters.competency || undefined } }),
+  story: (id: string) => apiRequest<Story>(`/api/v1/me/stories/${encodeURIComponent(id)}`),
+  createStory: (body: StoryCreate) => apiRequest<Story>("/api/v1/me/stories", { method: "POST", body }),
+  updateStory: (id: string, body: StoryUpdate) => apiRequest<Story>(`/api/v1/me/stories/${encodeURIComponent(id)}`, { method: "PATCH", body }),
+  archiveStory: (id: string, archived: boolean) =>
+    apiRequest<Story>(`/api/v1/me/stories/${encodeURIComponent(id)}/${archived ? "archive" : "unarchive"}`, { method: "POST" }),
+  deleteStory: (id: string) => apiRequest<void>(`/api/v1/me/stories/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  storyRevisions: (id: string) => apiRequest<StoryRevision[]>(`/api/v1/me/stories/${encodeURIComponent(id)}/revisions`),
+  restoreStoryRevision: (id: string, revision: number, expected: number) =>
+    apiRequest<Story>(`/api/v1/me/stories/${encodeURIComponent(id)}/revisions/${revision}/restore`, { method: "POST", body: { expected_revision: expected } }),
+  assistStory: (id: string, body: { action: StoryAssistAction; situation?: string; task?: string; action_text?: string; result?: string; reflection?: string }) =>
+    apiRequest<StoryAssist>(`/api/v1/me/stories/${encodeURIComponent(id)}/assist`, { method: "POST", body }),
 
   // sharing an answer for feedback (owner)
   sharePreview: (body: ShareSelection) => apiRequest<SharePreview>("/api/v1/me/shares/preview", { method: "POST", body }),

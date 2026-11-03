@@ -42,6 +42,8 @@ import { QueuePage } from "@/features/saved/QueuePage";
 import { SavedPage } from "@/features/saved/SavedPage";
 import { HelpPage } from "@/features/onboarding/HelpPage";
 import { WelcomePage } from "@/features/onboarding/WelcomePage";
+import { StoriesPage } from "@/features/stories/StoriesPage";
+import { StoryEditorPage } from "@/features/stories/StoryEditorPage";
 
 import { Layout } from "./Layout";
 import { NotFoundPage } from "./NotFoundPage";
@@ -106,6 +108,9 @@ export const routes: RouteObject[] = [
       { path: "/shared", element: <SharedPage /> },
       { path: "/offline", element: <OfflinePage /> },
       { path: "/help", element: <HelpPage /> },
+      { path: "/stories", element: <RequireAuth><StoriesPage /></RequireAuth> },
+      { path: "/stories/new", element: <RequireAuth><StoryEditorPage /></RequireAuth> },
+      { path: "/stories/:id", element: <RequireAuth><StoryEditorPage /></RequireAuth> },
       { path: "/welcome", element: <RequireAuth><WelcomePage /></RequireAuth> },
       { path: "/reports", element: <RequireAuth><MyReportsPage /></RequireAuth> },
       { path: "/admin/reports", element: <RequireAuth><AdminGuard><AdminReportsPage /></AdminGuard></RequireAuth> },

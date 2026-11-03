@@ -95,7 +95,8 @@ export function useMyAnswers(track: string, id: string, enabled: boolean) {
 export function useAnswerQuestion(track: string, id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (answer: string) => api.answerQuestion(track, id, answer),
+    mutationFn: (input: string | { answer: string; storyId: string | null }) =>
+      typeof input === "string" ? api.answerQuestion(track, id, input) : api.answerQuestion(track, id, input.answer, input.storyId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["careers", track] });
       void qc.invalidateQueries({ queryKey: ["me"] }); // activity, analytics, resume
@@ -636,4 +637,21 @@ export function useUpdateOnboarding() {
     },
     onSuccess: (state) => qc.setQueryData(["me", "onboarding"], state),
   });
+}
+
+// --- the story bank ---------------------------------------------------------------------------
+
+export function useStories(filters: { archived?: boolean; q?: string; competency?: string } = {}, enabled = true) {
+  return useQuery({
+    queryKey: ["me", "stories", filters], queryFn: () => api.stories(filters), enabled, staleTime: 0,
+    placeholderData: (prev) => prev, // keep the list on screen while a new search loads
+  });
+}
+
+export function useStory(id: string | undefined) {
+  return useQuery({ queryKey: ["me", "story", id], queryFn: () => api.story(id!), enabled: !!id, staleTime: 0 });
+}
+
+export function useStoryRevisions(id: string | undefined, enabled = true) {
+  return useQuery({ queryKey: ["me", "story", id, "revisions"], queryFn: () => api.storyRevisions(id!), enabled: !!id && enabled, staleTime: 0 });
 }

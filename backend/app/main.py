@@ -27,6 +27,7 @@ from app.api.routes import (
     problems,
     scenarios,
     shares,
+    stories,
     submissions,
     targets,
 )
@@ -73,6 +74,11 @@ TAGS = [
         "name": "onboarding",
         "description": "The optional first-session introduction: the learner's choices about it and a real "
         "starter activity for their career. Records no answer text and no practice progress.",
+    },
+    {
+        "name": "stories",
+        "description": "The story bank: your own STAR stories, private to you, with every saved version kept. "
+        "Writing help is built-in rules (never AI) and changes nothing until you accept it.",
     },
     {
         "name": "sharing",
@@ -182,6 +188,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         scenarios.router,
         shares.me_router,
         shares.public_router,
+        stories.router,
         submissions.router,
         ai.router,
         interviews.router,

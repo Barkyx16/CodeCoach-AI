@@ -258,7 +258,7 @@ function ExperienceSection({ t }: { t: Target }) {
   return (
     <Card className="stack">
       <h2 className="section-title">Your examples</h2>
-      <p className="subtle">Short notes on real things you've done, linked to the requirements they show. Written by you; nothing is added or rewritten for you.</p>
+      <p className="subtle">Short notes on real things you've done, linked to the requirements they show. Written by you; nothing is added or rewritten for you. Each one is also in <Link to="/stories">your story bank</Link>, where you can add the task, a reflection and more.</p>
       {t.experience.map((e) => editing !== e && (
         <div key={e.id} className="experience">
           <strong>{e.title}</strong>
@@ -266,7 +266,10 @@ function ExperienceSection({ t }: { t: Target }) {
           {e.action && <p><span className="activity-card__label">What I did:</span> {e.action}</p>}
           {e.result && <p><span className="activity-card__label">Result:</span> {e.result}</p>}
           <p className="subtle">Shows: {(e.requirement_ids ?? []).map((id) => t.requirement_list.find((r) => r.id === id)?.text).filter(Boolean).join("; ") || "no requirement linked"}</p>
-          <Button size="sm" variant="ghost" onClick={() => setEditing(e)}>Edit</Button>
+          <span className="row">
+            <Button size="sm" variant="ghost" onClick={() => setEditing(e)}>Edit</Button>
+            <Link to={`/stories/${e.id}`}>Open in your story bank</Link>
+          </span>
         </div>
       ))}
       {editing ? <ExperienceForm key={editing === "new" ? "new" : editing.id} t={t} entry={editing === "new" ? null : editing} onDone={() => setEditing(null)} />

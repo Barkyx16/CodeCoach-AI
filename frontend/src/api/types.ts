@@ -163,3 +163,14 @@ export type Onboarding = S["OnboardingOut"];
 export type OnboardingUpdate = S["OnboardingUpdate"];
 export type TourKind = S["OnboardingOut"]["format"];
 export type StarterActivity = S["StarterActivity"];
+
+export type StorySummary = S["StorySummary"];
+export type Story = S["StoryOut"];
+export type StoryCreate = S["StoryCreate"];
+export type StoryUpdate = S["StoryUpdate"];
+export type StoryRevision = S["StoryRevisionOut"];
+export type StoryAssist = S["StoryAssistOut"];
+export type StoryAssistAction = S["StoryAssistIn"]["action"];
+export type Competency = S["StoryCreate"]["competencies"] extends (infer C)[] | null | undefined ? C : never;
+export type StoryContext = NonNullable<S["StoryCreate"]["context"]>;
+export type StorySection = S["StoryProposal"]["field"];

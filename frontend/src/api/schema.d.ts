@@ -1330,6 +1330,128 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/stories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your stories */
+        get: operations["list_stories_api_v1_me_stories_get"];
+        put?: never;
+        /** Write a new story */
+        post: operations["create_story_api_v1_me_stories_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/stories/{story_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One story */
+        get: operations["get_story_api_v1_me_stories__story_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete a story and its revisions (answers that rehearsed it are kept) */
+        delete: operations["delete_story_api_v1_me_stories__story_id__delete"];
+        options?: never;
+        head?: never;
+        /** Save changes (a new revision; 409 stale_revision if it changed since you opened it) */
+        patch: operations["update_story_api_v1_me_stories__story_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/me/stories/{story_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive */
+        post: operations["archive_story_api_v1_me_stories__story_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/stories/{story_id}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unarchive */
+        post: operations["unarchive_story_api_v1_me_stories__story_id__unarchive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/stories/{story_id}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every saved version, newest first */
+        get: operations["story_revisions_api_v1_me_stories__story_id__revisions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/stories/{story_id}/revisions/{revision}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bring back an earlier version (as a new revision; nothing is deleted) */
+        post: operations["restore_revision_api_v1_me_stories__story_id__revisions__revision__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/stories/{story_id}/assist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Built-in writing check: proposals to review and questions (rules, not AI; nothing is saved) */
+        post: operations["assist_story_api_v1_me_stories__story_id__assist_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/submissions": {
         parameters: {
             query?: never;
@@ -2430,11 +2552,21 @@ export interface components {
              * @default 1
              */
             content_version: number;
+            /**
+             * Story Id
+             * @description The story this answer rehearsed, if any
+             */
+            story_id?: string | null;
         };
         /** AnswerRequest */
         AnswerRequest: {
             /** Answer */
             answer: string;
+            /**
+             * Story Id
+             * @description One of your stories this answer rehearses (it isn't changed)
+             */
+            story_id?: string | null;
         };
         /** AssessmentOut */
         AssessmentOut: {
@@ -6347,6 +6479,344 @@ export interface components {
              * Format: date-time
              */
             at: string;
+        };
+        /** StoryAssistIn */
+        StoryAssistIn: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "check" | "shorten" | "clarity";
+            /** Situation */
+            situation?: string | null;
+            /** Task */
+            task?: string | null;
+            /** Action Text */
+            action_text?: string | null;
+            /** Result */
+            result?: string | null;
+            /** Reflection */
+            reflection?: string | null;
+        };
+        /** StoryAssistOut */
+        StoryAssistOut: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "check" | "shorten" | "clarity";
+            /**
+             * Method
+             * @description How the suggestions were made
+             */
+            method: string;
+            /**
+             * Proposals
+             * @description Edits to review; nothing is changed until you accept one
+             */
+            proposals: components["schemas"]["StoryProposal"][];
+            /**
+             * Questions
+             * @description Things only you can answer; nothing is guessed for you
+             */
+            questions: string[];
+        };
+        /** StoryCreate */
+        StoryCreate: {
+            /** Title */
+            title: string;
+            /**
+             * Track
+             * @description Career context (a career slug)
+             */
+            track?: string | null;
+            /** Context */
+            context?: ("work" | "study" | "volunteering" | "personal" | "other") | null;
+            /** Situation */
+            situation?: string | null;
+            /** Task */
+            task?: string | null;
+            /** Action */
+            action?: string | null;
+            /** Result */
+            result?: string | null;
+            /** Reflection */
+            reflection?: string | null;
+            /**
+             * Notes
+             * @description Private supporting notes
+             */
+            notes?: string | null;
+            /**
+             * Evidence
+             * @description Optional evidence of the outcome
+             */
+            evidence?: string | null;
+            /** Competencies */
+            competencies?: ("teamwork" | "conflict" | "leadership" | "prioritization" | "mistakes" | "communication" | "problem_solving" | "adaptability" | "care" | "initiative")[] | null;
+            /** Tags */
+            tags?: string[] | null;
+            /** Short Version */
+            short_version?: string | null;
+            /** Long Version */
+            long_version?: string | null;
+            /**
+             * Target Id
+             * @description Link to one of your job targets
+             */
+            target_id?: string | null;
+            /**
+             * Question Refs
+             * @description 'track/question_id' links
+             */
+            question_refs?: string[] | null;
+        };
+        /** StoryOut */
+        StoryOut: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Track */
+            track: string | null;
+            /** Context */
+            context: ("work" | "study" | "volunteering" | "personal" | "other") | null;
+            /** Competencies */
+            competencies: ("teamwork" | "conflict" | "leadership" | "prioritization" | "mistakes" | "communication" | "problem_solving" | "adaptability" | "care" | "initiative")[];
+            /** Tags */
+            tags: string[];
+            /**
+             * Missing
+             * @description Required sections not written yet
+             */
+            missing: ("situation" | "task" | "action" | "result" | "reflection")[];
+            target: components["schemas"]["StoryTargetLink"] | null;
+            /** Revision */
+            revision: number;
+            /** Archived */
+            archived: boolean;
+            /** Practice Count */
+            practice_count: number;
+            /**
+             * Preview
+             * @description The start of the situation, for the list
+             */
+            preview: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Situation */
+            situation: string;
+            /** Task */
+            task: string;
+            /** Action */
+            action: string;
+            /** Result */
+            result: string;
+            /** Reflection */
+            reflection: string;
+            /** Notes */
+            notes: string;
+            /** Evidence */
+            evidence: string;
+            /** Short Version */
+            short_version: string;
+            /** Long Version */
+            long_version: string;
+            /** Questions */
+            questions: components["schemas"]["StoryQuestionLink"][];
+            /** Practice */
+            practice: components["schemas"]["StoryPractice"][];
+            /**
+             * Privacy Hints
+             * @description Possible identifying details, for the learner to review
+             */
+            privacy_hints: string[];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** StoryPractice */
+        StoryPractice: {
+            /** Answer Id */
+            answer_id: string;
+            /** Question Title */
+            question_title: string;
+            /** Href */
+            href: string;
+            /** Score */
+            score: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** StoryProposal */
+        StoryProposal: {
+            /**
+             * Field
+             * @enum {string}
+             */
+            field: "situation" | "task" | "action" | "result" | "reflection";
+            /** Original */
+            original: string;
+            /** Proposed */
+            proposed: string;
+            /**
+             * Changes
+             * @description What the proposal changes, in plain words
+             */
+            changes: string[];
+        };
+        /** StoryQuestionLink */
+        StoryQuestionLink: {
+            /** Ref */
+            ref: string;
+            /** Title */
+            title: string;
+            /** Href */
+            href: string;
+            /** Available */
+            available: boolean;
+        };
+        /** StoryRestoreIn */
+        StoryRestoreIn: {
+            /** Expected Revision */
+            expected_revision: number;
+        };
+        /** StoryRevisionOut */
+        StoryRevisionOut: {
+            /** Revision */
+            revision: number;
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "created" | "edited" | "assisted" | "restored";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Fields */
+            fields: {
+                [key: string]: unknown;
+            };
+        };
+        /** StorySummary */
+        StorySummary: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Track */
+            track: string | null;
+            /** Context */
+            context: ("work" | "study" | "volunteering" | "personal" | "other") | null;
+            /** Competencies */
+            competencies: ("teamwork" | "conflict" | "leadership" | "prioritization" | "mistakes" | "communication" | "problem_solving" | "adaptability" | "care" | "initiative")[];
+            /** Tags */
+            tags: string[];
+            /**
+             * Missing
+             * @description Required sections not written yet
+             */
+            missing: ("situation" | "task" | "action" | "result" | "reflection")[];
+            target: components["schemas"]["StoryTargetLink"] | null;
+            /** Revision */
+            revision: number;
+            /** Archived */
+            archived: boolean;
+            /** Practice Count */
+            practice_count: number;
+            /**
+             * Preview
+             * @description The start of the situation, for the list
+             */
+            preview: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** StoryTargetLink */
+        StoryTargetLink: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+        };
+        /** StoryUpdate */
+        StoryUpdate: {
+            /** Title */
+            title?: string | null;
+            /**
+             * Track
+             * @description Career context (a career slug)
+             */
+            track?: string | null;
+            /** Context */
+            context?: ("work" | "study" | "volunteering" | "personal" | "other") | null;
+            /** Situation */
+            situation?: string | null;
+            /** Task */
+            task?: string | null;
+            /** Action */
+            action?: string | null;
+            /** Result */
+            result?: string | null;
+            /** Reflection */
+            reflection?: string | null;
+            /**
+             * Notes
+             * @description Private supporting notes
+             */
+            notes?: string | null;
+            /**
+             * Evidence
+             * @description Optional evidence of the outcome
+             */
+            evidence?: string | null;
+            /** Competencies */
+            competencies?: ("teamwork" | "conflict" | "leadership" | "prioritization" | "mistakes" | "communication" | "problem_solving" | "adaptability" | "care" | "initiative")[] | null;
+            /** Tags */
+            tags?: string[] | null;
+            /** Short Version */
+            short_version?: string | null;
+            /** Long Version */
+            long_version?: string | null;
+            /**
+             * Target Id
+             * @description Link to one of your job targets
+             */
+            target_id?: string | null;
+            /**
+             * Question Refs
+             * @description 'track/question_id' links
+             */
+            question_refs?: string[] | null;
+            /**
+             * Expected Revision
+             * @description The revision you edited; a newer one is a 409
+             */
+            expected_revision: number;
+            /**
+             * Reason
+             * @default edited
+             * @enum {string}
+             */
+            reason: "edited" | "assisted";
+            /**
+             * Clear Target
+             * @default false
+             */
+            clear_target: boolean;
         };
         /** SubmissionCreate */
         SubmissionCreate: {
@@ -11527,6 +11997,540 @@ export interface operations {
             };
             /** @description Rate limit or AI budget exceeded */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_stories_api_v1_me_stories_get: {
+        parameters: {
+            query?: {
+                /** @description true: only archived stories */
+                archived?: boolean;
+                /** @description Words that must all appear in the story */
+                q?: string;
+                competency?: ("teamwork" | "conflict" | "leadership" | "prioritization" | "mistakes" | "communication" | "problem_solving" | "adaptability" | "care" | "initiative") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StorySummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_story_api_v1_me_stories_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoryCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoryOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_story_api_v1_me_stories__story_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoryOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_story_api_v1_me_stories__story_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_story_api_v1_me_stories__story_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoryUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoryOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    archive_story_api_v1_me_stories__story_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoryOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unarchive_story_api_v1_me_stories__story_id__unarchive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoryOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    story_revisions_api_v1_me_stories__story_id__revisions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoryRevisionOut"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_revision_api_v1_me_stories__story_id__revisions__revision__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+                revision: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoryRestoreIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoryOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assist_story_api_v1_me_stories__story_id__assist_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoryAssistIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoryAssistOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

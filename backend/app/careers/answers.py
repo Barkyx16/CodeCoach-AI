@@ -50,4 +50,5 @@ def answer_out(row: PracticeAnswer) -> AnswerOut:
         coach=row.provider,
         created_at=row.created_at,
         content_version=row.content_version or 1,
+        story_id=row.story_id,
     )

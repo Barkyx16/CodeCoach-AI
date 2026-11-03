@@ -53,6 +53,7 @@ from app.schemas.roles import (
 )
 from app.services.content import retired_problem_slugs
 from app.services.jd_extract import extract, map_skills
+from app.services.stories import record_revision, snapshot
 
 MAX_TARGETS = 20
 MAX_REQUIREMENTS = 60
@@ -203,7 +204,7 @@ class RoleTargets:
 
     def delete(self, user: User, target_id: str) -> None:
         t = self._load(user, target_id)
-        self.db.delete(t)  # requirements and experience go with it; recorded attempts are untouched
+        self.db.delete(t)  # requirements go with it; its stories stay in the story bank, unlinked
         self.db.commit()
 
     def reextract(self, user: User, target_id: str) -> TargetOut:
@@ -281,16 +282,24 @@ class RoleTargets:
         )
         if n >= MAX_EXPERIENCE:
             raise AppError(f"Up to {MAX_EXPERIENCE} examples per target.", code="too_many_examples")
-        self.db.add(ExperienceEntry(user_id=user.id, target_id=t.id, **self._experience_fields(t, body)))
+        entry = ExperienceEntry(
+            user_id=user.id, target_id=t.id, track=t.track, **self._experience_fields(t, body)
+        )
+        self.db.add(entry)
+        self.db.flush()
+        record_revision(self.db, entry, "created", bump=False)  # it's a story in the story bank too
         self.db.commit()
         return self.get(user, t.id)
 
     def patch_experience(self, user: User, target_id: str, entry_id: str, body: ExperienceIn) -> TargetOut:
         t = self._load(user, target_id)
         e = self._entry(user, t, entry_id)
+        before = snapshot(e)
         for k, v in self._experience_fields(t, body).items():
             setattr(e, k, v)
         e.updated_at = datetime.now(UTC)
+        if snapshot(e) != before:
+            record_revision(self.db, e, "edited", bump=True)
         self.db.commit()
         return self.get(user, t.id)
 

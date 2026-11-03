@@ -495,6 +495,12 @@ class PracticeAnswer(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     # The question's content version when it was answered (None: before versions existed, i.e. 1).
     content_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # The learner's own story this answer rehearsed (the story itself is never changed by it).
+    story_id: Mapped[str | None] = mapped_column(
+        ForeignKey("experience_entries.id", ondelete="SET NULL", name="fk_answer_story"),
+        nullable=True,
+        index=True,
+    )
 
 
 class PracticeGoal(Base):
@@ -605,22 +611,60 @@ class TargetRequirement(Base):
 
 
 class ExperienceEntry(Base):
-    """A learner's own example of their work, written by them and linked to requirements."""
+    """A learner's own story: an experience from work, study, volunteering or their own projects,
+    written by them in Situation / Task / Action / Result form with an optional reflection.
+
+    One model serves both the story bank and job targets (a story can be linked to one target and
+    to that target's requirements), so there are never two diverging copies. Deleting a target
+    unlinks its stories; it never deletes them. Every save is kept in `story_revisions`."""
 
     __tablename__ = "experience_entries"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     target_id: Mapped[str | None] = mapped_column(
-        ForeignKey("role_targets.id", ondelete="CASCADE"), nullable=True, index=True
+        ForeignKey("role_targets.id", ondelete="SET NULL", name="fk_experience_target"),
+        nullable=True,
+        index=True,
     )
     title: Mapped[str] = mapped_column(String(120))
+    track: Mapped[str | None] = mapped_column(String(64), nullable=True)  # career context
+    context: Mapped[str | None] = mapped_column(
+        String(16), nullable=True
+    )  # work|study|volunteering|personal|other
     situation: Mapped[str] = mapped_column(Text, default="")
+    task: Mapped[str] = mapped_column(Text, default="", server_default="")
     action: Mapped[str] = mapped_column(Text, default="")
     result: Mapped[str] = mapped_column(Text, default="")
+    reflection: Mapped[str] = mapped_column(Text, default="", server_default="")
+    notes: Mapped[str] = mapped_column(Text, default="", server_default="")  # private supporting notes
+    evidence: Mapped[str] = mapped_column(Text, default="", server_default="")  # optional outcome evidence
+    competencies: Mapped[list] = mapped_column(JSONType, default=list, server_default="[]")
+    tags: Mapped[list] = mapped_column(JSONType, default=list, server_default="[]")
+    question_refs: Mapped[list] = mapped_column(
+        JSONType, default=list, server_default="[]"
+    )  # "track/question_id"
+    short_version: Mapped[str] = mapped_column(Text, default="", server_default="")  # rehearsal, user-written
+    long_version: Mapped[str] = mapped_column(Text, default="", server_default="")
+    revision: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     requirement_ids: Mapped[list] = mapped_column(JSONType, default=list)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, onupdate=utcnow)
+
+
+class StoryRevision(Base):
+    """A saved version of a story. Restoring one creates a new revision; none is ever changed."""
+
+    __tablename__ = "story_revisions"
+    __table_args__ = (UniqueConstraint("story_id", "revision", name="uq_story_revision"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    story_id: Mapped[str] = mapped_column(ForeignKey("experience_entries.id", ondelete="CASCADE"), index=True)
+    revision: Mapped[int] = mapped_column(Integer)
+    reason: Mapped[str] = mapped_column(String(16))  # created | edited | assisted | restored
+    fields: Mapped[dict] = mapped_column(JSONType)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
 
 class InterviewRetry(Base):

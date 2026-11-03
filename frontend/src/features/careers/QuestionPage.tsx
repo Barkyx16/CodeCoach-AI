@@ -28,6 +28,7 @@ import { SaveControls } from "@/features/saved/SaveControls";
 import { ShareEntry } from "@/features/sharing/ShareEntry";
 
 import { GuidedTour } from "@/features/onboarding/GuidedTour";
+import { StoryPicker } from "@/features/stories/StoryPicker";
 
 import { FeedbackCard } from "./FeedbackCard";
 import { KIND_LABEL } from "./kinds";
@@ -64,6 +65,7 @@ export function QuestionPage() {
   const linked = wanted && answers.data ? answers.data.find((a) => a.id === wanted) ?? null : null;
   const shown = latest ?? linked;
   const [guestError, setGuestError] = useState<unknown>(null);
+  const [storyId, setStoryId] = useState<string | null>(null);
 
   if (question.isPending) return <LoadingState label="Loading question…" />;
   if (question.isError) {
@@ -76,10 +78,11 @@ export function QuestionPage() {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    const result = await submit.mutateAsync(draft.trim()).catch(() => null);
+    const result = await submit.mutateAsync({ answer: draft.trim(), storyId }).catch(() => null);
     if (result) {
       setLatest(result);
       setDraft("");
+      setStoryId(null); // the next answer is only tied to a story if you choose one again
     }
   }
 
@@ -118,6 +121,7 @@ export function QuestionPage() {
 
           <form className="card stack" onSubmit={onSubmit} aria-labelledby="answer-title">
             <h2 className="section-title" id="answer-title">Write your answer</h2>
+            {isAuthenticated && <div className="focus-hide"><StoryPicker track={track} questionId={id} draft={draft} setDraft={setDraft} storyId={storyId} setStoryId={setStoryId} /></div>}
             <label className="visually-hidden" htmlFor="answer-text">Your answer</label>
             <textarea id="answer-text" data-tour="answer" className="input answer-input" rows={10} maxLength={MAX_CHARS} value={draft}
               placeholder="Write it the way you'd say it in the interview…"
