@@ -108,7 +108,9 @@ def _faults(report: dict) -> list[str] | None:
 
 
 def _integrity(report: dict) -> list[str] | None:
-    meta = report["meta"]
+    meta = report.get("meta")
+    if meta is None:
+        return None
     out = []
     if meta.get("report_schema") != REPORT_SCHEMA:
         out.append(f"report schema {meta.get('report_schema')}, this code reads {REPORT_SCHEMA}")

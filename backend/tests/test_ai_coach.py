@@ -250,6 +250,29 @@ def test_anthropic_api_errors_become_provider_errors():
         coach.hint(_ctx())
 
 
+def test_a_cut_off_structured_reply_is_a_provider_error():
+    """The SDK validates the reply's JSON while parsing it, so a reply cut off mid-JSON raises a
+    pydantic error from messages.parse: it must become a ProviderError (and so a fallback)."""
+    from pydantic import TypeAdapter, ValidationError
+
+    try:
+        TypeAdapter(HintContent).validate_json('{"hint": "Think about')
+    except ValidationError as exc:
+        cut_off = exc
+    coach = AnthropicCoach(
+        api_key=None, model="m", client=SimpleNamespace(messages=FakeMessages(exc=cut_off))
+    )
+    with pytest.raises(ProviderError, match="did not match the expected schema"):
+        coach.hint(_ctx())
+    body = anthropic.APIResponseValidationError(
+        response=httpx.Response(200, request=httpx.Request("POST", "https://api.anthropic.com/v1/messages")),
+        body=None,
+    )
+    coach = AnthropicCoach(api_key=None, model="m", client=SimpleNamespace(messages=FakeMessages(exc=body)))
+    with pytest.raises(ProviderError, match="unusable response"):
+        coach.hint(_ctx())
+
+
 def test_provider_failure_falls_back_to_offline(client, user_headers):
     class Broken:
         name, model = "anthropic", "m"

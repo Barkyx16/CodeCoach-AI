@@ -19,7 +19,7 @@ from typing import Literal, TypeVar
 
 import anthropic
 from anthropic.types import OutputConfigParam
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from app.schemas.ai import HINT_LEVEL_NAMES, CodeReview, FailureExplanation, HintContent
 from app.schemas.interview import PHASE_GUIDE, RUBRIC_DIMENSIONS, InterviewerReply, InterviewEvaluation
@@ -266,6 +266,12 @@ class AnthropicCoach:
             raise ProviderError(f"AI provider returned HTTP {exc.status_code}") from exc
         except anthropic.APIConnectionError as exc:
             raise ProviderError("Could not reach the AI provider") from exc
+        except ValidationError as exc:
+            # The SDK validates the reply against the schema while parsing it, so a reply cut off
+            # mid-JSON (or one that doesn't fit the schema) raises here, before stop_reason is seen.
+            raise ProviderError("AI response did not match the expected schema") from exc
+        except anthropic.APIError as exc:  # anything else the SDK raises, e.g. an unexpected body
+            raise ProviderError("AI provider returned an unusable response") from exc
 
         if response.stop_reason == "refusal":
             raise ProviderError("AI provider declined this request")

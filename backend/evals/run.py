@@ -296,6 +296,7 @@ def load_grader(path: str) -> tuple[career.Grader, str, str]:
     spec = importlib.util.spec_from_file_location("career_grader_under_test", path)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module  # dataclasses look their module up while being defined
     spec.loader.exec_module(module)
     return (
         module.grade,

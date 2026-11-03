@@ -39,7 +39,15 @@
       "provenance": "Hand-written Java solutions to this repository's seeded problems, written for this project (no learner submissions). Each verdict label is verified by submitting the sample to the real judge (tests/test_judge_sandbox.py::test_eval_set_verdict_labels_match_the_real_judge, in CI).",
       "labels": "Issue categories and Big-O labels were assigned by hand from what a good interviewer would say about the code; they are not produced by the reviewer under test.",
       "used_for": "measurement only; written after the session-5 rules",
-      "sha256": "f76f1cfefc1ebe3e9ec358ff0ff066da0a4d9f9c956734873efd72ae60a72216"
+      "sha256": "f76f1cfefc1ebe3e9ec358ff0ff066da0a4d9f9c956734873efd72ae60a72216",
+      "known_overlap": [
+        {
+          "sample": "md-rotated-linear",
+          "shares_code_with": "review_set.json / bsearch-linear",
+          "found": "2026-11-03, by tests/test_eval_harness.py",
+          "effect": "Different problems (search-rotated-array vs binary-search), so different cases, but the reviewer rule that flags a linear scan where O(log n) is required was tuned on this exact code. Treat this sample as not independent of tuning (1 of 14)."
+        }
+      ]
     },
     {
       "id": "coding-hint-terms",
@@ -57,28 +65,28 @@
     {
       "id": "career-rn-dev",
       "file": "career_dev.json",
-      "version": 1,
+      "version": 2,
       "split": "dev",
       "domain": "career-answer",
-      "created": "2026-11-03",
+      "created": "2026-11-03 (v1), v2 the same day: see label_changes in the file",
       "cases": 23,
       "provenance": "See the file: synthetic answers written for this evaluation.",
       "labels": "See the file: written from the rubric text before any grader run (commit 7129ffa); unreviewed.",
-      "used_for": "improving the written-answer coach (rubric v2)",
-      "sha256": "f91c55771802d9d975372218e6f57639cbd4500627b6bc68f213454795b8c0fd"
+      "used_for": "developing rubric v2 (2026-11-03): its failures were read and fixed",
+      "sha256": "c1619da3a4acbe50a90c26417671d0d6255b8d45ef821e8010140738e03220f7"
     },
     {
       "id": "career-rn-holdout",
       "file": "career_holdout.json",
-      "version": 1,
+      "version": 2,
       "split": "holdout",
       "domain": "career-answer",
-      "created": "2026-11-03",
+      "created": "2026-11-03 (v1), v2 the same day: see label_changes in the file",
       "cases": 17,
       "provenance": "See the file: synthetic answers written for this evaluation.",
       "labels": "See the file: written from the rubric text before any grader run (commit 7129ffa); unreviewed.",
-      "used_for": "measurement only",
-      "sha256": "f8e9693260b710fa7eb8ea12a529413ffdb7ebfde477b191248a2c8f2ea25ad0"
+      "used_for": "measurement only. First evaluated 2026-11-03 after rubric v2 was final, compared with v1, and its case details were then read for docs/AI_EVALUATION.md: a later rule change aimed at those failures needs a fresh held-out set",
+      "sha256": "d43b284d6a71105e428887d747d3aed1413ecb4ad59cedf7d1953e0e42a57bc4"
     }
   ]
 }

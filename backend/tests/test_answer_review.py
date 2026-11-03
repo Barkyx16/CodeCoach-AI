@@ -127,16 +127,17 @@ def test_reevaluation_only_when_it_could_differ_and_the_original_is_kept(client,
     assert review["can_reevaluate"] is False and "same result" in review["reevaluate_note"]
     same = client.post(f"{url}/evaluations", headers=h, json={"reason": "please"})
     assert same.status_code == 409 and same.json()["error"]["code"] == "no_reevaluation"
-    monkeypatch.setattr(grading, "RUBRIC_VERSION", "v2")  # as if the rules changed since
+    graded_with = grading.RUBRIC_VERSION
+    monkeypatch.setattr(grading, "RUBRIC_VERSION", "v-next")  # as if the rules changed since
     r = client.post(f"{url}/evaluations", headers=h, json={"reason": "The rubric changed."})
     assert r.status_code == 200, r.text
     out = r.json()
     assert (
-        out["evaluations"][0]["rubric_version"] == "v2"
+        out["evaluations"][0]["rubric_version"] == "v-next"
         and out["evaluations"][0]["reason"] == "The rubric changed."
     )
     assert (
-        out["answer"]["rubric_version"] == "v1" and out["answer"]["score"] == a["score"]
+        out["answer"]["rubric_version"] == graded_with and out["answer"]["score"] == a["score"]
     )  # the original stays
     assert (
         client.post(f"{url}/evaluations", headers=h, json={}).status_code == 409

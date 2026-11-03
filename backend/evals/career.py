@@ -69,8 +69,8 @@ def _evidence_problems(fb: Feedback, q: Question, answer: str, forbidden: list[s
             problems.append(f"{p.label}: marked covered with no quote")
             continue
         quote = _norm(p.evidence)
-        truncated = quote.endswith("…")
-        body = quote[:-1].rstrip() if truncated else quote
+        truncated = quote.startswith("…") or quote.endswith("…")
+        body = quote.strip("…").strip()  # an ellipsis marks where a long sentence was cut
         if body not in flat:
             problems.append(f"{p.label}: quote is not the learner's words: {p.evidence[:60]!r}")
             continue
