@@ -61,6 +61,8 @@ export interface RequestOptions {
   auth?: boolean;
   /** Let the request finish even if the page is being unloaded (saving on navigation). */
   keepalive?: boolean;
+  /** Return the body as text (for files such as .ics) instead of parsing JSON. */
+  raw?: boolean;
   headers?: Record<string, string>;
 }
 
@@ -125,6 +127,7 @@ async function send<T>(path: string, options: RequestOptions, isRetry: boolean):
   if (response.status === 204) return undefined as T;
 
   const text = await response.text();
+  if (options.raw && response.ok) return text as T;
   let data: unknown = null;
   if (text) {
     try {

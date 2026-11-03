@@ -1575,6 +1575,111 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Entries in a date range */
+        get: operations["list_entries_api_v1_me_schedule_get"];
+        put?: never;
+        /** Schedule an activity (a retry with the same client_request_id returns the first, 200) */
+        post: operations["create_entry_api_v1_me_schedule_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/schedule/schedulable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What you could schedule */
+        get: operations["schedulable_api_v1_me_schedule_schedulable_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/schedule/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Time zone and reminders */
+        get: operations["get_settings_api_v1_me_schedule_settings_get"];
+        /** Change them */
+        put: operations["put_settings_api_v1_me_schedule_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/schedule/export.ics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download selected entries (ids) or a date range as an .ics file */
+        get: operations["export_ics_api_v1_me_schedule_export_ics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/schedule/{entry_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One entry */
+        get: operations["get_entry_api_v1_me_schedule__entry_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Move it */
+        patch: operations["move_entry_api_v1_me_schedule__entry_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/me/schedule/{entry_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel it */
+        post: operations["cancel_entry_api_v1_me_schedule__entry_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/submissions": {
         parameters: {
             query?: never;
@@ -3685,6 +3790,143 @@ export interface components {
              * @description The signals found in (or missing from) the answer
              */
             evidence: string[];
+        };
+        /** EntryIn */
+        EntryIn: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "plan_item" | "review_item" | "question" | "problem" | "application_event";
+            /**
+             * Ref
+             * @description The activity's id (question: 'track/question_id')
+             */
+            ref: string;
+            /**
+             * On Date
+             * Format: date
+             */
+            on_date: string;
+            /**
+             * All Day
+             * @default false
+             */
+            all_day: boolean;
+            /**
+             * Local Time
+             * @description HH:MM in `timezone`; required unless all-day
+             */
+            local_time?: string | null;
+            /** Timezone */
+            timezone?: string | null;
+            /**
+             * Fold
+             * @description For a time that happens twice: 0 first, 1 second
+             */
+            fold?: number | null;
+            /**
+             * Duration Min
+             * @default 30
+             */
+            duration_min: number;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+            /** Client Request Id */
+            client_request_id?: string | null;
+        };
+        /** EntryMove */
+        EntryMove: {
+            /**
+             * On Date
+             * Format: date
+             */
+            on_date: string;
+            /**
+             * All Day
+             * @default false
+             */
+            all_day: boolean;
+            /** Local Time */
+            local_time?: string | null;
+            /** Timezone */
+            timezone?: string | null;
+            /** Fold */
+            fold?: number | null;
+            /** Duration Min */
+            duration_min?: number | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** EntryOut */
+        EntryOut: {
+            /** Id */
+            id: string;
+            /** Uid */
+            uid: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "plan_item" | "review_item" | "question" | "problem" | "application_event";
+            /** Ref */
+            ref: string;
+            /** Title */
+            title: string;
+            /**
+             * Href
+             * @description Where to do the activity
+             */
+            href: string | null;
+            /** All Day */
+            all_day: boolean;
+            /**
+             * On Date
+             * Format: date
+             */
+            on_date: string;
+            /** Local Time */
+            local_time: string | null;
+            /** Timezone */
+            timezone: string | null;
+            /** Starts At */
+            starts_at: string | null;
+            /** Ends At */
+            ends_at: string | null;
+            /** Duration Min */
+            duration_min: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "scheduled" | "cancelled";
+            /**
+             * Done At
+             * @description When the activity was actually done, by its own rules
+             */
+            done_at: string | null;
+            /**
+             * Available
+             * @description False if the activity is gone or retired
+             */
+            available: boolean;
+            /**
+             * Conflicts
+             * @description Ids of other timed entries that overlap this one
+             */
+            conflicts: string[];
+            /** Sequence */
+            sequence: number;
+            /** Notes */
+            notes: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** ErrorBody */
         ErrorBody: {
@@ -6347,6 +6589,60 @@ export interface components {
             /** Endings */
             endings: number;
             review: components["schemas"]["ReviewOut"];
+        };
+        /**
+         * SchedulableOut
+         * @description Something you could put on the schedule, from your plan, review queue or applications.
+         */
+        SchedulableOut: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "plan_item" | "review_item" | "question" | "problem" | "application_event";
+            /** Ref */
+            ref: string;
+            /** Title */
+            title: string;
+            /** Detail */
+            detail: string;
+            /** Minutes */
+            minutes: number | null;
+        };
+        /** ScheduleSettingsIn */
+        ScheduleSettingsIn: {
+            /** Timezone */
+            timezone?: string | null;
+            /** Reminders */
+            reminders?: boolean | null;
+            /** Reminder Minutes */
+            reminder_minutes?: number | null;
+            /**
+             * Quiet Start
+             * @description HH:MM, or empty to turn quiet hours off
+             */
+            quiet_start?: string | null;
+            /** Quiet End */
+            quiet_end?: string | null;
+        };
+        /** ScheduleSettingsOut */
+        ScheduleSettingsOut: {
+            /**
+             * Timezone
+             * @description The schedule's IANA time zone; null until one is chosen
+             */
+            timezone: string | null;
+            /**
+             * Reminders
+             * @description In-app reminders, shown only while CodeCoach is open in a tab
+             */
+            reminders: boolean;
+            /** Reminder Minutes */
+            reminder_minutes: number;
+            /** Quiet Start */
+            quiet_start: string | null;
+            /** Quiet End */
+            quiet_end: string | null;
         };
         /** SelfRating */
         SelfRating: {
@@ -13479,6 +13775,466 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_entries_api_v1_me_schedule_get: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                include_cancelled?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"][];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_entry_api_v1_me_schedule_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntryIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    schedulable_api_v1_me_schedule_schedulable_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchedulableOut"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_settings_api_v1_me_schedule_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleSettingsOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    put_settings_api_v1_me_schedule_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleSettingsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleSettingsOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    export_ics_api_v1_me_schedule_export_ics_get: {
+        parameters: {
+            query?: {
+                /** @description Comma-separated entry ids */
+                ids?: string | null;
+                from?: string | null;
+                to?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description An iCalendar file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    "text/calendar": unknown;
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_entry_api_v1_me_schedule__entry_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    move_entry_api_v1_me_schedule__entry_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntryMove"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    cancel_entry_api_v1_me_schedule__entry_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"];
                 };
             };
             /** @description Missing, invalid, expired or revoked access token */

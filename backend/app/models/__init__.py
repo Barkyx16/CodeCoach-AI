@@ -1117,3 +1117,55 @@ class ApplicationEvent(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
     application: Mapped[Application] = relationship(back_populates="events")
+
+
+class ScheduleSettings(Base):
+    """How a learner's schedule is shown, and their reminder choices (off unless turned on)."""
+
+    __tablename__ = "schedule_settings"
+
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    timezone: Mapped[str] = mapped_column(String(64))  # IANA; new entries default to it
+    reminders: Mapped[bool] = mapped_column(Boolean, default=False)  # in-app only, while a tab is open
+    reminder_minutes: Mapped[int] = mapped_column(Integer, default=10)
+    quiet_start: Mapped[str | None] = mapped_column(String(5), nullable=True)  # "22:00"
+    quiet_end: Mapped[str | None] = mapped_column(String(5), nullable=True)  # "07:00"
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class ScheduleEntry(Base):
+    """A time the learner set aside for an existing activity (a plan item, a review, a question, a
+    problem, or preparation for an interview). It points at the activity by id; scheduling it
+    is not doing it, and completion comes from the activity's own rules.
+
+    Timed entries keep what the learner chose (date, wall-clock time, IANA zone) and the exact
+    instant; all-day entries are just a date. `uid` and `sequence` let a calendar file update or
+    cancel the same event."""
+
+    __tablename__ = "schedule_entries"
+    __table_args__ = (
+        UniqueConstraint("user_id", "client_request_id", name="uq_schedule_client_request"),
+        Index("ix_schedule_user_date", "user_id", "on_date"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    uid: Mapped[str] = mapped_column(String(80), unique=True)
+    kind: Mapped[str] = mapped_column(
+        String(20)
+    )  # plan_item | review_item | question | problem | application_event
+    ref: Mapped[str] = mapped_column(String(200))
+    title: Mapped[str] = mapped_column(String(200))
+    all_day: Mapped[bool] = mapped_column(Boolean, default=False)
+    on_date: Mapped[date] = mapped_column(Date)
+    local_time: Mapped[str | None] = mapped_column(String(5), nullable=True)
+    timezone: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    fold: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    starts_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    duration_min: Mapped[int] = mapped_column(Integer, default=30)
+    status: Mapped[str] = mapped_column(String(12), default="scheduled")  # scheduled | cancelled
+    sequence: Mapped[int] = mapped_column(Integer, default=0)
+    notes: Mapped[str] = mapped_column(Text, default="")
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)

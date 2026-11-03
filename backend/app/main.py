@@ -27,6 +27,7 @@ from app.api.routes import (
     plan,
     problems,
     scenarios,
+    schedule,
     shares,
     stories,
     submissions,
@@ -85,6 +86,11 @@ TAGS = [
         "name": "applications",
         "description": "A private tracker of real applications as you record them: stages with history, "
         "interview events with exact times, links to targets and stories. Nothing is sent or submitted.",
+    },
+    {
+        "name": "schedule",
+        "description": "Existing activities on dates and times you choose, in your time zone, with .ics files. "
+        "Scheduling isn't doing; nothing is sent, and reminders exist only inside an open tab.",
     },
     {
         "name": "sharing",
@@ -196,6 +202,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         shares.public_router,
         stories.router,
         applications.router,
+        schedule.router,
         submissions.router,
         ai.router,
         interviews.router,

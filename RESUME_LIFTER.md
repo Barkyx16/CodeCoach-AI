@@ -668,6 +668,15 @@ These are moments where the obvious path was wrong and a deliberate decision was
     issues: the sort arrow was read as part of the column name, and a checkbox that only changed
     after the server answered looked like it ignored the click.
 
+53. **A schedule that never pretends.** "Reminders" usually mean a queue, a worker and an email
+    provider, and the easy failure is showing "reminder sent" because a job was queued. There's
+    no delivery system here, so reminders are what can be true: opt-in, shown only inside an open
+    tab, respecting quiet hours, never for work already done. Calendar export is a file, written
+    by hand to RFC 5545 (UTC times, stable UIDs, SEQUENCE, escaping, 75-byte folding), and the
+    page says a file copies events once rather than claiming to sync. Time is the shared module
+    from the tracker: an entry keeps what the learner chose and the exact instant, so travel moves
+    only how it's displayed, and the two daylight-saving traps are refused or asked about.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -1516,3 +1525,19 @@ They're built in order, each as a complete, tested slice committed on its own.
   320px light) with axe scans.
 - **Limits:** no job-board or email integrations by design; touch dragging and Safari/Firefox
   drag and drop weren't tested (the "Move to" menu works everywhere).
+
+**V2-04 Schedule and calendar files (built and verified):**
+- Schedule existing plan steps, reviews, questions, problems and interview preparation (by id)
+  from their own pages; timed or all-day; moving, cancelling, safe retries; overlaps explained.
+- An explicit IANA schedule zone (device zone until chosen), a mismatch banner when travelling,
+  timed entries kept at the same moment, all-day entries on their date, DST traps refused or
+  asked about. "Done" only from the activity's own rules.
+- `.ics` downloads for an entry or a week: stable UID, SEQUENCE, cancellations, UTC times,
+  escaping and folding; only selected data; honest wording about re-imports.
+- Reminders: opt-in, in-app only while a tab is open, quiet hours, once per entry version,
+  never for done or cancelled entries; nothing sent anywhere.
+- Tests: 11 backend (SQLite and PostgreSQL), 11 frontend, 2 Playwright journeys (Chicago
+  browser: DST choice, overlap, file contents, move/sequence, cancel, Tokyo view; a live
+  reminder at 320px light) with axe scans.
+- **Limits:** no calendar sync, email or push by design; importing into real calendar apps
+  wasn't testable here.

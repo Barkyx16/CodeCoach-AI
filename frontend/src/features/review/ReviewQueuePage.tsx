@@ -1,3 +1,4 @@
+import { ScheduleLink } from "@/features/schedule/ScheduleLink";
 import { Link } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
@@ -61,6 +62,7 @@ function QueueRow({ item }: { item: ReviewQueueItem }) {
           </Button>
         ))}
         <Button size="sm" variant="ghost" loading={remove.isPending} onClick={() => remove.mutate(undefined)}>Remove</Button>
+        <ScheduleLink kind="review_item" refId={item.id} title={`Review: ${item.title}`} />
       </div>
       <InlineError error={snooze.error ?? remove.error} />
     </li>

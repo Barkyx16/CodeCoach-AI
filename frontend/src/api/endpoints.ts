@@ -97,6 +97,11 @@ import type {
   InterviewFormat,
   Onboarding,
   OnboardingUpdate,
+  Schedulable,
+  ScheduleEntry,
+  ScheduleEntryIn,
+  ScheduleMove,
+  ScheduleSettings,
   Application,
   ApplicationCreate,
   ApplicationEventIn,
@@ -425,6 +430,18 @@ export const api = {
     apiRequest<Application>(`/api/v1/me/applications/${encodeURIComponent(id)}/events/${encodeURIComponent(eventId)}`, { method: "PUT", body }),
   deleteApplicationEvent: (id: string, eventId: string) =>
     apiRequest<Application>(`/api/v1/me/applications/${encodeURIComponent(id)}/events/${encodeURIComponent(eventId)}`, { method: "DELETE" }),
+
+  // your schedule (nothing is sent; .ics files are downloads)
+  schedule: (from: string, to: string, includeCancelled = false) =>
+    apiRequest<ScheduleEntry[]>("/api/v1/me/schedule", { query: { from, to, include_cancelled: includeCancelled ? "true" : undefined } }),
+  scheduleSettings: () => apiRequest<ScheduleSettings>("/api/v1/me/schedule/settings"),
+  saveScheduleSettings: (body: Partial<ScheduleSettings>) => apiRequest<ScheduleSettings>("/api/v1/me/schedule/settings", { method: "PUT", body }),
+  schedulable: () => apiRequest<Schedulable[]>("/api/v1/me/schedule/schedulable"),
+  createScheduleEntry: (body: ScheduleEntryIn) => apiRequest<ScheduleEntry>("/api/v1/me/schedule", { method: "POST", body }),
+  moveScheduleEntry: (id: string, body: ScheduleMove) => apiRequest<ScheduleEntry>(`/api/v1/me/schedule/${encodeURIComponent(id)}`, { method: "PATCH", body }),
+  cancelScheduleEntry: (id: string) => apiRequest<ScheduleEntry>(`/api/v1/me/schedule/${encodeURIComponent(id)}/cancel`, { method: "POST" }),
+  scheduleIcs: (query: { ids?: string; from?: string; to?: string }) =>
+    apiRequest<string>("/api/v1/me/schedule/export.ics", { query, raw: true, headers: { Accept: "text/calendar" } }),
 
   // sharing an answer for feedback (owner)
   sharePreview: (body: ShareSelection) => apiRequest<SharePreview>("/api/v1/me/shares/preview", { method: "POST", body }),

@@ -14,6 +14,8 @@ import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { formatDateTime } from "@/lib/format";
 
 import { browserTimeZone, describeWhen } from "./dates";
+import { ScheduleLink } from "@/features/schedule/ScheduleLink";
+
 import { DraftComposer } from "./DraftComposer";
 import { EVENT_KIND_LABEL, STAGE_HINT, STAGE_LABEL, STAGES } from "./labels";
 
@@ -148,6 +150,7 @@ function EventsCard({ a, onDone }: { a: Application; onDone: (a: Application) =>
             {e.notes && <p className="subtle">{e.notes}</p>}
             <span className="row">
               <Button size="sm" variant="ghost" onClick={() => setEditing(e)}>Edit</Button>
+              <ScheduleLink kind="application_event" refId={e.id} title={`Prepare: ${e.title} (${a.employer})`} label="Schedule preparation time" />
               <Button size="sm" variant="ghost" onClick={async () => { if (window.confirm(`Remove “${e.title}”?`)) onDone(await api.deleteApplicationEvent(a.id, e.id)); }}>Remove</Button>
             </span>
           </li>

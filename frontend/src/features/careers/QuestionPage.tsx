@@ -29,6 +29,7 @@ import { ShareEntry } from "@/features/sharing/ShareEntry";
 
 import { GuidedTour } from "@/features/onboarding/GuidedTour";
 import { StoryPicker } from "@/features/stories/StoryPicker";
+import { ScheduleLink } from "@/features/schedule/ScheduleLink";
 
 import { FeedbackCard } from "./FeedbackCard";
 import { KIND_LABEL } from "./kinds";
@@ -162,6 +163,7 @@ export function QuestionPage() {
           <div className="focus-hide display-contents">
             <LearnLinks query={{ track, question_id: id }} from={{ from: `/careers/${track}/questions/${id}`, fromLabel: "Back to the question" }} />
             {isAuthenticated && <SaveControls item={{ item_type: "question", track, ref_id: id }} title={q.title} />}
+            {isAuthenticated && <p className="schedule-link-row"><ScheduleLink kind="question" refId={`${track}/${id}`} title={q.title} /></p>}
             {isAuthenticated && <NoteCapture source={{ type: "question", id, track }} excerpt={q.prompt} excerptLabel="the question" />}
           </div>
           <div className="focus-hide display-contents"><SaveOffline kind="question" itemKey={`${track}/${id}`} label="question" /></div>

@@ -28,6 +28,7 @@ import "./styles/formats.css";
 import "./styles/onboarding.css";
 import "./styles/stories.css";
 import "./styles/applications.css";
+import "./styles/schedule.css";
 import { startAppShell } from "./pwa/appShell";
 
 const queryClient = makeQueryClient();

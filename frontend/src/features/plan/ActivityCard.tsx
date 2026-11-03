@@ -1,3 +1,4 @@
+import { ScheduleLink } from "@/features/schedule/ScheduleLink";
 import { Link } from "react-router-dom";
 
 import type { PlanItem } from "@/api/types";
@@ -53,6 +54,7 @@ export function ActivityCard({ item, headingLevel = 3, compact = false }: { item
           ) : (
             <Button variant="primary" loading={start.pending} onClick={() => void start.open(item)}>Start <Icon name="arrow" size={15} /></Button>
           )}
+          <ScheduleLink kind="plan_item" refId={item.id} title={item.title} />
           {item.can_mark_reviewed && (
             <Button variant="secondary" loading={action.isPending && action.variables?.action === "reviewed"}
               onClick={() => action.mutate({ id: item.id, action: "reviewed" })}>I've reviewed it</Button>

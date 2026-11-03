@@ -237,6 +237,15 @@ or `problem` + slug), not a foreign key, so a report outlives a renamed or retir
   (JSON), optional admin-only `internal_note`, `report_id` (no foreign key, so the trail stays even
   if a report is deleted with its reporter's account).
 
+### Schedule
+- `schedule_settings`: one row per account (cascade): `timezone` (IANA), `reminders` (off by
+  default), `reminder_minutes`, `quiet_start`, `quiet_end`.
+- `schedule_entries`: `kind` + `ref` (the activity's id), `title` (for display and export),
+  `all_day`, `on_date`, `local_time`, `timezone`, `fold`, `starts_at` (UTC, timed only),
+  `duration_min`, `status` (scheduled|cancelled), `uid` (unique, for calendar files), `sequence`
+  (grows with each change), `notes`, `client_request_id` (unique per user); indexed by user and
+  date.
+
 ### Applications
 - `applications`: one row per real application (owner cascade): `employer`, `role_title`, `link`
   (http(s), never fetched), `applied_on` and `next_action_due` (plain dates, unknown allowed),
@@ -304,6 +313,7 @@ or `problem` + slug), not a foreign key, so a report outlives a renamed or retir
 | `d52cf325b19a` onboarding state | Adds `user_onboarding` (one row per account, cascading with the user). New table, safe on populated databases; round-tripped on PostgreSQL |
 | `178db0129ee0` story bank | Adds story columns to `experience_entries` (text with server default `''`, JSON lists with `'[]'`, `revision` 1, `archived` false), `story_revisions`, and `practice_answers.story_id`; changes `experience_entries.target_id` to `ON DELETE SET NULL`. Existing examples keep every word, get their target's career and a first revision with their exact text. Verified on PostgreSQL with seeded data, and round-tripped |
 | `4e7000f6addb` applications | Adds `applications`, `application_stage_changes` and `application_events`. New tables, cascading with the user; round-tripped on PostgreSQL |
+| `f781df0f6728` schedule | Adds `schedule_settings` and `schedule_entries`. New tables, cascading with the user; round-tripped on PostgreSQL |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

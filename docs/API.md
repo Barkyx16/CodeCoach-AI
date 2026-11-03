@@ -791,6 +791,27 @@ the JSON body, never a URL:
   `400 empty_feedback | unknown_sentence` (comments only on shared sentences). Both endpoints
   are rate-limited per client IP (`429`).
 
+### Schedule
+
+Existing activities on dates and times you choose ([SCHEDULE.md](SCHEDULE.md)). Owner-only.
+
+- `GET /api/v1/me/schedule?from=&to=&include_cancelled=` 🔒 → entries (`all_day`, `on_date`,
+  `local_time`, `timezone`, `starts_at`/`ends_at` UTC, `status`, `done_at` from the activity's
+  own rules, `available`, `conflicts`, `uid`, `sequence`). Up to 120 days per request.
+- `POST /api/v1/me/schedule` 🔒 `{kind: plan_item|review_item|question|problem|application_event,
+  ref, on_date, all_day, local_time?, timezone?, fold?, duration_min, notes, client_request_id?}`
+  → `201` (or `200` with the first for a retry). `404` for someone else's activity; `409
+  not_available` for retired content; `400 time_required | invalid_timezone | invalid_time |
+  nonexistent_time | ambiguous_time`.
+- `PATCH /api/v1/me/schedule/{id}` (move; `SEQUENCE` + 1; `409 entry_cancelled`), `POST
+  …/{id}/cancel` (idempotent), `GET …/{id}`.
+- `GET /api/v1/me/schedule/schedulable` → open plan steps, reviews due within two weeks and
+  upcoming interview events.
+- `GET` / `PUT /api/v1/me/schedule/settings` `{timezone, reminders, reminder_minutes,
+  quiet_start, quiet_end}` (a zone is required before anything else is saved).
+- `GET /api/v1/me/schedule/export.ics?ids=a,b` or `?from=&to=` → `text/calendar` attachment
+  (`Cache-Control: no-store`); a range includes cancelled entries as `STATUS:CANCELLED`.
+
 ### Applications
 
 A private tracker of real applications ([APPLICATIONS.md](APPLICATIONS.md)). Owner-only (404 for

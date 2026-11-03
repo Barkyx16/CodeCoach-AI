@@ -8,6 +8,7 @@ import { FocusModeContext } from "@/features/display/focusContext";
 import { countLocalWork } from "@/auth/localWork";
 
 import { AppStatus } from "./AppStatus";
+import { Reminders } from "@/features/schedule/Reminders";
 import { RouteAccessibility } from "./RouteAccessibility";
 
 export function Layout() {
@@ -102,6 +103,7 @@ export function Layout() {
           {isAuthenticated && <NavLink to="/targets" className={navClass}>Roles</NavLink>}
           {isAuthenticated && <NavLink to="/stories" className={navClass}>Stories</NavLink>}
           {isAuthenticated && <NavLink to="/applications" className={navClass}>Applications</NavLink>}
+          {isAuthenticated && <NavLink to="/schedule" className={navClass}>Schedule</NavLink>}
           {isAuthenticated && <NavLink to="/analytics" className={navClass}>Analytics</NavLink>}
           {isAuthenticated && <NavLink to="/history" className={navClass}>History</NavLink>}
           {isAuthenticated && <NavLink to="/notes" className={navClass}>Notes</NavLink>}
@@ -139,6 +141,7 @@ export function Layout() {
       </header>
       )}
       <AppStatus />
+      <Reminders />
       {signedOutReason && !isAuthenticated && (
         <div className="banner banner--warning app__banner" role="status">{signedOutReason}</div>
       )}

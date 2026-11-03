@@ -183,3 +183,10 @@ export type EventKind = S["ApplicationEventOut"]["kind"];
 export type ApplicationCreate = S["ApplicationCreate"];
 export type ApplicationUpdate = S["ApplicationUpdate"];
 export type ApplicationEventIn = S["ApplicationEventIn"];
+
+export type ScheduleEntry = S["EntryOut"];
+export type ScheduleSettings = S["ScheduleSettingsOut"];
+export type ScheduleKind = S["EntryOut"]["kind"];
+export type ScheduleEntryIn = S["EntryIn"];
+export type ScheduleMove = S["EntryMove"];
+export type Schedulable = S["SchedulableOut"];

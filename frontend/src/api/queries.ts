@@ -665,3 +665,20 @@ export function useApplications(archived = false) {
 export function useApplication(id: string) {
   return useQuery({ queryKey: ["me", "application", id], queryFn: () => api.application(id), enabled: !!id, staleTime: 0 });
 }
+
+// --- schedule ---------------------------------------------------------------------------------
+
+export function useScheduleSettings(enabled = true) {
+  return useQuery({ queryKey: ["me", "schedule", "settings"], queryFn: api.scheduleSettings, enabled, staleTime: 60_000 });
+}
+
+export function useSchedule(from: string, to: string, includeCancelled = false, enabled = true, refetchInterval?: number) {
+  return useQuery({
+    queryKey: ["me", "schedule", "entries", from, to, includeCancelled], queryFn: () => api.schedule(from, to, includeCancelled),
+    enabled, staleTime: 0, refetchInterval, placeholderData: (prev) => prev,
+  });
+}
+
+export function useSchedulable() {
+  return useQuery({ queryKey: ["me", "schedule", "schedulable"], queryFn: api.schedulable, staleTime: 0 });
+}
