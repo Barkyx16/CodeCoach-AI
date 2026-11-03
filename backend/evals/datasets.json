@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "_doc": "Every evaluation dataset, its version, split and content hash. Changing a file without giving it a new version and hash here fails tests/test_eval_harness.py, so results from different content are never compared as if they were the same. dev sets may be used to improve the coach; holdout sets are only measured (see docs/AI_EVALUATION.md, 'Held-out sets').",
+  "datasets": [
+    {
+      "id": "coding-review-tuning",
+      "file": "review_set.json",
+      "version": 1,
+      "split": "dev",
+      "domain": "coding-review",
+      "created": "2026-11-01",
+      "cases": 38,
+      "provenance": "Hand-written Java solutions to this repository's seeded problems, written for this project (no learner submissions). Each verdict label is verified by submitting the sample to the real judge (tests/test_judge_sandbox.py::test_eval_set_verdict_labels_match_the_real_judge, in CI).",
+      "labels": "Issue categories and Big-O labels were assigned by hand from what a good interviewer would say about the code; they are not produced by the reviewer under test.",
+      "used_for": "tuning the offline reviewer rules (2026-11-01, 2026-11-02)",
+      "sha256": "7abdd3f8a80643956bb0a8ef301d0c4dbb7f31a67fe79667cd3cc9fed83a5a11"
+    },
+    {
+      "id": "coding-review-holdout",
+      "file": "holdout_set.json",
+      "version": 1,
+      "split": "holdout",
+      "domain": "coding-review",
+      "created": "2026-11-01",
+      "cases": 14,
+      "provenance": "Hand-written Java solutions to this repository's seeded problems, written for this project (no learner submissions). Each verdict label is verified by submitting the sample to the real judge (tests/test_judge_sandbox.py::test_eval_set_verdict_labels_match_the_real_judge, in CI).",
+      "labels": "Issue categories and Big-O labels were assigned by hand from what a good interviewer would say about the code; they are not produced by the reviewer under test.",
+      "used_for": "measurement only; written after the first rules were tuned",
+      "sha256": "959b45746084b39f084b69815968a8a48f006fdaf47275f35ce6c97b81e1b700"
+    },
+    {
+      "id": "coding-review-medium-holdout",
+      "file": "medium_set.json",
+      "version": 1,
+      "split": "holdout",
+      "domain": "coding-review",
+      "created": "2026-11-02",
+      "cases": 14,
+      "provenance": "Hand-written Java solutions to this repository's seeded problems, written for this project (no learner submissions). Each verdict label is verified by submitting the sample to the real judge (tests/test_judge_sandbox.py::test_eval_set_verdict_labels_match_the_real_judge, in CI).",
+      "labels": "Issue categories and Big-O labels were assigned by hand from what a good interviewer would say about the code; they are not produced by the reviewer under test.",
+      "used_for": "measurement only; written after the session-5 rules",
+      "sha256": "f76f1cfefc1ebe3e9ec358ff0ff066da0a4d9f9c956734873efd72ae60a72216"
+    },
+    {
+      "id": "coding-hint-terms",
+      "file": "hint_terms.json",
+      "version": 1,
+      "split": "dev",
+      "domain": "coding-hints",
+      "created": "2026-11-01",
+      "cases": 22,
+      "provenance": "Hand-written per-problem term lists (give-away terms and key concepts) for this repository's problems.",
+      "labels": "Terms chosen by hand from each problem's intended approach.",
+      "used_for": "spoiler and relevance scoring of hints",
+      "sha256": "a6de5fb6fe2ccaca9fe57bc632d47e64c6bd071cf322dd97e655fab1a3d0553c"
+    },
+    {
+      "id": "career-rn-dev",
+      "file": "career_dev.json",
+      "version": 1,
+      "split": "dev",
+      "domain": "career-answer",
+      "created": "2026-11-03",
+      "cases": 23,
+      "provenance": "See the file: synthetic answers written for this evaluation.",
+      "labels": "See the file: written from the rubric text before any grader run (commit 7129ffa); unreviewed.",
+      "used_for": "improving the written-answer coach (rubric v2)",
+      "sha256": "f91c55771802d9d975372218e6f57639cbd4500627b6bc68f213454795b8c0fd"
+    },
+    {
+      "id": "career-rn-holdout",
+      "file": "career_holdout.json",
+      "version": 1,
+      "split": "holdout",
+      "domain": "career-answer",
+      "created": "2026-11-03",
+      "cases": 17,
+      "provenance": "See the file: synthetic answers written for this evaluation.",
+      "labels": "See the file: written from the rubric text before any grader run (commit 7129ffa); unreviewed.",
+      "used_for": "measurement only",
+      "sha256": "f8e9693260b710fa7eb8ea12a529413ffdb7ebfde477b191248a2c8f2ea25ad0"
+    }
+  ]
+}

@@ -35,6 +35,9 @@ from app.services.ai.base import (
 from app.services.ai.static_analysis import Analysis
 
 logger = logging.getLogger("codecoach.ai.anthropic")
+# Change with any prompt, prompt builder, token limit, effort or output schema; evaluation reports
+# record it, and evals/prompt_versions.json holds the fingerprint each version was recorded with.
+PROMPT_VERSION = "coach-2026-11-03"
 T = TypeVar("T", bound=BaseModel)
 Effort = Literal["low", "medium", "high"]
 

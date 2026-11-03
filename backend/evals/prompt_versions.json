@@ -1,0 +1,11 @@
+{
+  "_doc": "Each coach prompt version and the fingerprint of the prompts and request settings it names (evals/meta.py:request_fingerprint). tests/test_eval_harness.py fails when the prompts change without a new version here.",
+  "current": "coach-2026-11-03",
+  "versions": {
+    "coach-2026-11-03": {
+      "fingerprint": "f7a9c11481d697f2564299101984818644836f905a7094a304890a53c9de1586",
+      "recorded": "2026-11-03",
+      "notes": "First recorded version: the prompts as they were at commit 7129ffa (no prompt text changed)."
+    }
+  }
+}
