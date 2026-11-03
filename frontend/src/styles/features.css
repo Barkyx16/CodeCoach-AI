@@ -291,3 +291,8 @@ fieldset.field { border: none; padding: 0; margin: 0; }
 /* Password reset */
 .auth__forgot { justify-self: end; font-size: var(--text-sm); }
 .code-input { font-family: var(--font-mono, monospace); font-size: var(--text-lg); letter-spacing: 0.4em; }
+
+/* Execution availability in the workspace. */
+.judge-status { margin: 0 0 var(--space-2); font-size: var(--text-sm); }
+.judge-status__help summary { cursor: pointer; margin-top: var(--space-1); }
+.judge-status__help p { margin: var(--space-1) 0 0; overflow-wrap: anywhere; }

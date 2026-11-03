@@ -265,6 +265,7 @@ class TestCase(Base):
 class Submission(Base):
     __tablename__ = "submissions"
     __table_args__ = (
+        UniqueConstraint("user_id", "client_request_id", name="uq_submission_client_request"),
         Index("ix_submissions_user_created", "user_id", "created_at"),
         # The worker's queue scan: oldest QUEUED first.
         Index("ix_submissions_status_created", "status", "created_at"),
@@ -287,6 +288,9 @@ class Submission(Base):
     judge_started_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     judged_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     test_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Set by the client so a retried request (network failure, double send) returns the same
+    # submission instead of judging twice. Unique per user.
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, onupdate=utcnow)
 

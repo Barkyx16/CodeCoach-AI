@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 
 import type { ExplainFailureResponse, Submission } from "@/api/types";
 
-import { queuedSubmission } from "../fixtures";
+import { executionStatus, queuedSubmission } from "../fixtures";
 import { renderApp } from "../render";
 import { API, server } from "../server";
 
@@ -144,12 +144,15 @@ describe("Judge results", () => {
 
   describe("Run (public tests only)", () => {
     const enableExecution = () => server.use(
-      http.get(`${API}/api/v1/capabilities`, () => HttpResponse.json({ execution_enabled: true, ai_provider: "offline", guest_retention_days: 30 })));
+      http.get(`${API}/api/v1/capabilities`, () => HttpResponse.json({ execution_enabled: true, ai_provider: "offline", execution: executionStatus("ready"), guest_retention_days: 30 })));
 
     it("is hidden when this deployment can't run code", async () => {
       renderApp("/problems/two-sum", { signedIn: true });
-      expect(await screen.findByRole("button", { name: "Submit" })).toBeInTheDocument();
+      // With no judge, the main button says what it really does, and the page explains why.
+      expect(await screen.findByRole("button", { name: "Save attempt" })).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Run" })).not.toBeInTheDocument();
+      expect(screen.getByText("Code can't run on this server.")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Ask the coach for a code review" })).toBeInTheDocument();
     });
 
     it("runs the public tests and says the attempt isn't recorded", async () => {

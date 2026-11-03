@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import get_current_user, get_db, get_settings_dep
 from app.config import Settings
-from app.errors import AppError, NotFoundError
+from app.errors import AppError, ConflictError, NotFoundError
 from app.models import (
     Problem,
     ProgressEvent,
@@ -20,7 +21,8 @@ from app.schemas.submission import (
     SubmissionDetail,
     SubmissionListItem,
 )
-from app.services.judge.backends import ExecutionDisabledError
+from app.services.judge.backends import ExecutionDisabledError, JudgeUnavailableError
+from app.services.judge.health import MESSAGES
 from app.services.judge.views import public_result_view
 
 router = APIRouter(prefix="/api/v1", tags=["submissions"])
@@ -70,11 +72,20 @@ def create_submission(
     if problem is None:
         raise NotFoundError(f"Problem '{body.problem_slug}' not found")
     backend = request.app.state.execution_backend
+    if body.client_request_id:
+        existing = _by_request_id(db, user, body.client_request_id)
+        if existing is not None:
+            return _replay(existing, problem, body, backend.enabled)
     if body.mode == SubmissionMode.RUN and not backend.enabled:
         # A queued run that can never execute is useless; a submission is still worth saving.
         raise ExecutionDisabledError(
             "Running code isn't available on this deployment. Submit to save your attempt."
         )
+    if body.mode == SubmissionMode.RUN:
+        state, reason, _ = request.app.state.execution_health.check(db)
+        if state != "ready" and reason != "queue_delayed":
+            # Run is for quick feedback; queueing it behind an outage helps no one. Submit still queues.
+            raise JudgeUnavailableError(MESSAGES[reason])
     backend.admit(db, user)
     sub = Submission(
         user_id=user.id,
@@ -83,15 +94,46 @@ def create_submission(
         source_code=body.source_code,
         mode=body.mode,
         status=SubmissionStatus.QUEUED,
+        client_request_id=body.client_request_id,
     )
     db.add(sub)
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError:
+        # The same request is being handled concurrently: answer with that submission.
+        db.rollback()
+        existing = _by_request_id(db, user, body.client_request_id or "")
+        if existing is None:
+            raise
+        return _replay(existing, problem, body, backend.enabled)
     backend.enqueue(db, sub)
     if body.mode == SubmissionMode.SUBMIT:
         db.add(ProgressEvent(user_id=user.id, problem_id=problem.id, event_type=ProgressEventType.SUBMITTED))
     db.commit()
     db.refresh(sub)
     return to_detail(sub, backend.enabled)
+
+
+def _by_request_id(db: Session, user: User, key: str) -> Submission | None:
+    return db.scalar(
+        select(Submission)
+        .options(selectinload(Submission.result))
+        .where(Submission.user_id == user.id, Submission.client_request_id == key)
+    )
+
+
+def _replay(
+    existing: Submission, problem: Problem, body: SubmissionCreate, enabled: bool
+) -> SubmissionDetail:
+    if (
+        existing.problem_id != problem.id
+        or existing.mode != body.mode
+        or existing.source_code != body.source_code
+    ):
+        raise ConflictError(
+            "That request id was already used for a different submission.", code="idempotency_key_reused"
+        )
+    return to_detail(existing, enabled)
 
 
 @router.get(

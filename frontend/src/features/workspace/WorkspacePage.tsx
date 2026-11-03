@@ -2,8 +2,9 @@ import { useId, useState, type ReactNode } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
-import { useCapabilities, useProblem, useSubmission, useSubmit } from "@/api/queries";
-import type { SubmissionMode } from "@/api/types";
+import { ApiError } from "@/api/client";
+import { useCapabilities, useMySubmissions, useProblem, useSubmission, useSubmit } from "@/api/queries";
+import type { SubmissionCreate, SubmissionMode } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/Button";
 import { ErrorState, LoadingState } from "@/components/States";
@@ -22,6 +23,14 @@ import { LearnLinks } from "@/features/learn/LearnLinks";
 import { NoteCapture } from "@/features/notes/NoteCapture";
 import { QueueBar } from "@/features/saved/QueueBar";
 import { SaveControls } from "@/features/saved/SaveControls";
+
+function newRequestId(): string {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+  }
+}
 
 const SAVE_LABEL: Record<SaveState, string> = { saved: "Draft saved", saving: "Saving…", unsaved: "Unsaved changes", error: "Draft not saved — browser storage unavailable" };
 
@@ -50,10 +59,19 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
   const isNarrow = useMediaQuery("(max-width: 900px)");
   const draft = useDraft(problem.slug, problem.starter_code, user?.id ?? "anon");
   const submit = useSubmit();
-  const canRun = useCapabilities().data?.execution_enabled === true;
+  const execution = useCapabilities().data?.execution;
+  const canRun = execution?.run_available === true;
+  const savedOnly = execution?.submit_mode === "saved_only";
   const [pendingMode, setPendingMode] = useState<SubmissionMode>("submit");
-  const [submissionId, setSubmissionId] = useState<string | null>(null);
+  const [chosenId, setSubmissionId] = useState<string | null>(null);
+  // Reload recovery: until you submit again, show a submission of this problem that's still queued or running.
+  const latest = useMySubmissions({ problem_slug: problem.slug, page: 1, page_size: 1 }, isAuthenticated);
+  const pendingLatest = latest.data?.items[0];
+  const resumable = pendingLatest && (pendingLatest.status === "QUEUED" || pendingLatest.status === "RUNNING") ? pendingLatest.id : null;
+  const submissionId = chosenId ?? resumable;
   const submission = useSubmission(submissionId);
+  // A request that failed in the network keeps its id, so "Try again" can't create a duplicate.
+  const [unconfirmed, setUnconfirmed] = useState<SubmissionCreate | null>(null);
   const [highlightLine, setHighlightLine] = useState<number | null>(null);
   const [mobileTab, setMobileTab] = useState<"problem" | "code" | "coach">("problem");
   const [showSettings, setShowSettings] = useState(false);
@@ -71,17 +89,23 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
     navigate(location.pathname + location.search, { replace: true, state: null });
   };
 
+  async function send(body: SubmissionCreate) {
+    setPendingMode(body.mode ?? "submit");
+    try {
+      const created = await submit.mutateAsync(body);
+      setUnconfirmed(null);
+      setSubmissionId(created.id);
+      if (isNarrow) setMobileTab("code");
+    } catch (e) {
+      // Only a lost connection leaves it unknown whether the server got the request.
+      setUnconfirmed(e instanceof ApiError && e.code === "network_error" ? body : null);
+    }
+  }
+
   async function handleSubmit(mode: SubmissionMode = "submit") {
     if (!isAuthenticated) return goSignIn();
     if (submit.isPending || judging) return;
-    setPendingMode(mode);
-    try {
-      const created = await submit.mutateAsync({ problem_slug: problem.slug, language: "java", source_code: draft.code, mode });
-      setSubmissionId(created.id);
-      if (isNarrow) setMobileTab("code");
-    } catch {
-      /* error rendered by SubmissionPanel */
-    }
+    await send({ problem_slug: problem.slug, language: "java", source_code: draft.code, mode, client_request_id: newRequestId() });
   }
 
   function jumpToLine(line: number | null) {
@@ -109,8 +133,9 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
         )}
         <Button size="sm" variant="primary" loading={submit.isPending && pendingMode === "submit"}
           disabled={judging || (submit.isPending && pendingMode !== "submit")} onClick={() => void handleSubmit()}
-          title="Submit (Ctrl/⌘ + Enter)">
-          Submit <Icon name="arrow" size={14} />
+          title={savedOnly ? "Save this attempt without a verdict (Ctrl/⌘ + Enter)" : "Submit (Ctrl/⌘ + Enter)"}
+          aria-label={savedOnly ? "Save attempt" : undefined}>
+          {savedOnly ? "Save attempt" : "Submit"} <Icon name="arrow" size={14} />
         </Button>
       </div>
     </div>
@@ -137,6 +162,22 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
             <Button size="sm" variant="primary" onClick={() => settleOffer(true)}>Replace my draft</Button>
             <Button size="sm" variant="ghost" onClick={() => settleOffer(false)}>Keep my draft</Button>
           </span>
+        </div>
+      )}
+      {execution && execution.state !== "ready" && (
+        <div className={`banner ${execution.state === "not_configured" ? "banner--info" : "banner--warning"} judge-status`} role="status">
+          <strong>{execution.state === "not_configured" ? "Code can't run on this server." : "The code judge is temporarily unavailable."}</strong>{" "}
+          {execution.message}
+          {savedOnly && <> <button type="button" className="link-button" onClick={() => setMobileTab("coach")}>Ask the coach for a code review</button> instead.</>}
+          {execution.setup_help && (
+            <details className="judge-status__help"><summary>Developer setup</summary><p>{execution.setup_help}</p></details>
+          )}
+        </div>
+      )}
+      {unconfirmed && (
+        <div className="banner banner--warning row" role="alert">
+          <span>We couldn't confirm your {unconfirmed.mode === "run" ? "run" : "submission"} because the connection dropped. Trying again won't create a duplicate.</span>
+          <Button size="sm" loading={submit.isPending} onClick={() => void send(unconfirmed)}>Try again</Button>
         </div>
       )}
       {toolbar}

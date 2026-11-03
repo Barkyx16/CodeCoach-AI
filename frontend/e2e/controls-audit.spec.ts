@@ -139,7 +139,7 @@ test("every control does something", async ({ page, context }) => {
   await page.getByRole("tab", { name: "Code review" }).click();
   await page.getByRole("button", { name: /review my code/i }).click();
   await expect(page.getByText(/AI feedback can be wrong/)).toBeVisible();
-  await page.getByRole("button", { name: "Submit" }).click();
+  await page.getByRole("button", { name: /^(Submit|Save attempt)$/ }).click(); // "Save attempt" when no judge is configured
   await expect(page.getByText(/Some tests failed|Your code didn't compile|All tests passed|Saved, but not run/)).toBeVisible({ timeout: 60_000 });
   // A finished interview (for history and results pages) and a live one.
   await page.goto("/interviews");

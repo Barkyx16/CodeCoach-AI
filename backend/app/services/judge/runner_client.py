@@ -24,6 +24,10 @@ class RunnerResult:
     duration_ms: int
 
 
+class RunnerAuthError(RunnerUnavailable):
+    """The runner refused our token: a configuration problem, not a learner problem."""
+
+
 class Runner(Protocol):
     def run(self, files: dict[str, str], nonce: str, time_limit_s: float) -> RunnerResult: ...
 
@@ -36,13 +40,28 @@ class HttpRunner:
         *,
         timeout_s: float = 90.0,
         transport: httpx.BaseTransport | None = None,
+        ca_bundle: str | None = None,
     ):
+        # TLS certificates are always verified; a private CA can be added, never verification removed.
         self._client = httpx.Client(
             base_url=base_url.rstrip("/"),
             timeout=timeout_s,
             transport=transport,
+            verify=ca_bundle or True,
             headers={"Authorization": f"Bearer {token}"},
         )
+
+    def status(self, timeout_s: float = 3.0) -> bool:
+        """Authenticated readiness probe: True when the runner can start sandboxes now."""
+        try:
+            r = self._client.get("/v1/status", timeout=timeout_s)
+        except httpx.HTTPError as exc:
+            raise RunnerUnavailable(f"runner unreachable: {exc.__class__.__name__}") from exc
+        if r.status_code in (401, 403):
+            raise RunnerAuthError("runner rejected the token")
+        if r.status_code != 200:
+            raise RunnerUnavailable(f"runner returned HTTP {r.status_code}")
+        return bool(r.json().get("ready"))
 
     def run(self, files: dict[str, str], nonce: str, time_limit_s: float) -> RunnerResult:
         try:

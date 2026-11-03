@@ -355,12 +355,11 @@ evaluations. Credentials (password hash, token version) are never included.
 
 ### Capabilities
 
-#### `GET /api/v1/capabilities` → `200`
-Public. Lets the client show only features that work on this deployment. Deliberately coarse:
-no versions, hostnames, model names or limits.
-```json
-{"execution_enabled": true, "ai_provider": "offline", "guest_retention_days": 30}
-```
+`GET /api/v1/capabilities` (public) → `{execution_enabled, ai_provider, execution, guest_retention_days}`.
+`execution` is `{state: ready|unavailable|not_configured, reason, message, run_available,
+submit_mode: judged|queued_until_available|saved_only, checked_at, setup_help}` from an
+authenticated runner probe (cached 15 s) plus a check that the queue is moving; `setup_help` is null
+in production. See [docs/REMOTE_JUDGE.md](REMOTE_JUDGE.md).
 
 ### Problems
 
@@ -421,6 +420,12 @@ polls `GET /submissions/{id}` until `is_terminal` is `true`.
 
 Status lifecycle:
 `QUEUED → RUNNING → PASSED | FAILED | COMPILE_ERROR | RUNTIME_ERROR | TIME_LIMIT | MEMORY_LIMIT | INTERNAL_ERROR`
+
+> **Idempotency:** send a `client_request_id` (8–64 characters, `[A-Za-z0-9_-]`) with each new
+> submission and reuse it when retrying after a network error: the same id returns the original
+> submission (`409 idempotency_key_reused` if the body differs). **Run while the judge is
+> unavailable** is refused with `503 judge_unavailable`; Submit still queues. The web client polls
+> every 1.5 s, every 5 s after a minute, and stops after 15 minutes.
 
 #### `POST /api/v1/submissions` 🔒 → `202`
 ```json

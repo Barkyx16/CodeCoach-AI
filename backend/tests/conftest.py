@@ -104,6 +104,7 @@ def judged(make_client):
 
     def _make(script, **settings):
         c = make_client(execution_enabled=True, runner_token=TOKEN, **settings)
+        c.app.state.execution_health.probe = lambda: True  # the fake runner is "up"
         runner = FakeRunner(script)
         worker = JudgeWorker(c.app.state.session_factory, runner, c.app.state.settings)
         headers = auth_headers(register(c))

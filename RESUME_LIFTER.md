@@ -572,6 +572,16 @@ These are moments where the obvious path was wrong and a deliberate decision was
     two tabs are safe. Each step stores a snapshot of its text and authored feedback, so a
     debrief still reads correctly after the scenario is revised. No model writes the feedback.
 
+44. **"Ready" has to be earned, not configured.** Code execution used to be a single
+    on/off flag, so a judge that was configured but down still showed a working Submit button.
+    Now the API asks the runner, with its token, whether it can start sandboxes, checks that the
+    queue is moving, and reports Ready, Temporarily unavailable or Not configured; with no judge
+    the button honestly says "Save attempt". gVisor can't run on macOS, so instead of weakening
+    isolation for a Mac demo, the guide shows how to reach a Linux runner over an SSH tunnel or
+    HTTPS (the API refuses plain HTTP to remote hosts), and `judge-check` proves it works by
+    judging a known-correct and a known-wrong program. This container turned out to have
+    Docker and gVisor, so the real judge suites and browser journeys were run for real.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -1228,4 +1238,22 @@ slows the refresh call to reproduce it (1 of 12 before the fix, 12 of 12 after).
   the coding incident at 320px) with a WCAG scan.
 - **Limits:** two scenarios; no AI character (none is needed for the authored graph); written
   responses are keyword-checked, which the page says.
+
+**U05 Code execution from a Mac (built and verified):**
+- Truthful execution states from an authenticated runner probe (`/v1/status`, new) plus queue
+  health; Run gated (503 when the judge is down), Submit queued, "Save attempt" when there is no
+  judge, developer setup help outside production only.
+- Safety: plain-HTTP runner URLs refused except localhost/private container names, TLS always
+  verified (optional private CA), token server-side only, constant-time token checks unchanged.
+- Idempotent submissions (`client_request_id`, unique per user, race-safe), a "Try again" that
+  reuses the id after a dropped connection, bounded polling, reload recovery of in-flight
+  submissions, `python -m app.cli judge-check`, docs/REMOTE_JUDGE.md, compose fix (the API now
+  knows the runner URL).
+- Verified against a real Linux judge in this container (Docker + gVisor): runner threat-model
+  tests (16), the backend real-judge suite (correct/wrong/compile/crash/infinite loop/output/
+  memory, every reference solution), `judge-check` (pass, and fail on a wrong token), and the
+  browser journeys in Chromium including a reload during judging. New unit tests: 22 backend,
+  1 runner, 4 frontend.
+- **Not verified:** Safari/WebKit (not installed here) and a judge on a separate machine over a
+  real tunnel or proxy; no remote service was provisioned.
 

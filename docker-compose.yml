@@ -43,6 +43,7 @@ services:
       CORS_ORIGINS: http://localhost:3000,http://localhost:5173
       EXECUTION_ENABLED: ${EXECUTION_ENABLED:-false}
       RUNNER_TOKEN: ${RUNNER_TOKEN:-}
+      RUNNER_URL: ${RUNNER_URL:-http://runner:8100}   # the API probes the runner to report whether code can run
     ports: ["8000:8000"]
     depends_on:
       migrate: {condition: service_completed_successfully}

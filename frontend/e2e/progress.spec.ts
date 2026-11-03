@@ -16,7 +16,7 @@ test("coding: activity shows up honestly, and Back returns to the same filtered,
   await page.goto("/");
   await page.getByRole("button", { name: /try it now/i }).click();
   await expect(page).toHaveURL(/\/problems\/two-sum$/);
-  await page.getByRole("button", { name: "Submit" }).click();
+  await page.getByRole("button", { name: /^(Submit|Save attempt)$/ }).click(); // "Save attempt" when no judge is configured
   await expect(page.getByText(/Saved, but not run yet|All tests passed|didn't pass|Failed/i).first()).toBeVisible({ timeout: 60_000 });
   // Opening problems is recorded as activity (but never as an attempt).
   const slugs = ["valid-parentheses", "climbing-stairs", "coin-change", "binary-search", "maximum-subarray",

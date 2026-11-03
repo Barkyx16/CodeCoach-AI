@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
-import { useExplainFailure } from "@/api/queries";
+import { POLL_GIVE_UP_MS, useExplainFailure } from "@/api/queries";
+import { useNow } from "@/hooks/useNow";
 import type { Submission } from "@/api/types";
 import { StatusBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
@@ -35,6 +36,7 @@ interface SubmissionPanelProps {
 }
 
 export function SubmissionPanel({ submission, error, onHighlightLine }: SubmissionPanelProps) {
+  const now = useNow();
   if (error) return <ErrorState error={error} />;
   if (!submission) {
     return (
@@ -63,6 +65,11 @@ export function SubmissionPanel({ submission, error, onHighlightLine }: Submissi
         <span className="subtle">{isRun ? "Ran" : "Submitted"} {timeAgo(submission.created_at)}</span>
       </div>
       {statusText && <p className="subtle" role="status">{statusText}</p>}
+      {running && now - new Date(submission.created_at).getTime() > POLL_GIVE_UP_MS && (
+        <p className="banner banner--warning" role="status">
+          Still waiting after 15 minutes, so this page stopped checking. It will be judged when the judge catches up; reload the page to check again.
+        </p>
+      )}
 
       {!submission.execution_enabled && (
         <div className="banner" role="status">

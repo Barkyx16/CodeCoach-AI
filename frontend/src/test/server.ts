@@ -8,7 +8,7 @@ import { learnHandlers } from "./learn";
 import { noteHandlers } from "./notes";
 import { scenarioHandlers } from "./scenarios";
 import { reviewFor } from "./review";
-import { activityFacets, activityItems, careers, hint, makePlan, nurseAnalytics, nurseGoals, nurseAnswer, nurseQuestions, page, problems, progress, queuedSubmission, review, tokenResponse, twoSum, user } from "./fixtures";
+import { activityFacets, activityItems, careers, executionStatus, hint, makePlan, nurseAnalytics, nurseGoals, nurseAnswer, nurseQuestions, page, problems, progress, queuedSubmission, review, tokenResponse, twoSum, user } from "./fixtures";
 
 export const API = "http://localhost:8000";
 
@@ -66,7 +66,7 @@ export const handlers = [
     const size = Number(params.get("page_size") ?? 20);
     return HttpResponse.json({ ...page(items.slice(0, size)), total: items.length, page_size: size });
   }),
-  http.get(`${API}/api/v1/capabilities`, () => HttpResponse.json({ execution_enabled: false, ai_provider: "offline", guest_retention_days: 30 })),
+  http.get(`${API}/api/v1/capabilities`, () => HttpResponse.json({ execution_enabled: false, ai_provider: "offline", execution: executionStatus("not_configured"), guest_retention_days: 30 })),
   http.get(`${API}/api/v1/topics`, () => HttpResponse.json([{ topic: "arrays", count: 3 }, { topic: "hash-maps", count: 1 }])),
   http.get(`${API}/api/v1/problems/two-sum`, () => HttpResponse.json(twoSum)),
   http.get(`${API}/api/v1/problems/:slug`, ({ params }) =>

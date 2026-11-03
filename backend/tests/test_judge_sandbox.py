@@ -380,3 +380,25 @@ def test_run_mode_executes_public_tests_only_in_the_sandbox(judge):
         mode="run",
     )
     assert bad["status"] == "FAILED" and bad["result"]["public_results"][0]["line"] == 3
+
+
+def test_judge_check_passes_against_the_real_runner(runner_url, make_settings):
+    """The operator command proves the real gVisor judge accepts the token and judges correctly."""
+    from app.services.judge.check import judge_check
+
+    lines: list[str] = []
+    settings = make_settings(execution_enabled=True, runner_token=TOKEN, runner_url=runner_url)
+    assert judge_check(settings, out=lines.append) == 0, lines
+    assert lines[-1] == "Judge check passed." and any("known-wrong solution was rejected" in x for x in lines)
+    lines.clear()
+    bad = make_settings(execution_enabled=True, runner_token="w" * 40, runner_url=runner_url)
+    assert judge_check(bad, out=lines.append) == 1 and "rejected RUNNER_TOKEN" in lines[-1]
+
+
+def test_capabilities_report_ready_only_when_the_real_runner_answers(judge, runner_url, make_client):
+    c = make_client(execution_enabled=True, runner_token=TOKEN, runner_url=runner_url)
+    e = c.get("/api/v1/capabilities").json()["execution"]
+    assert e["state"] == "ready" and e["run_available"]
+    wrong = make_client(execution_enabled=True, runner_token="w" * 40, runner_url=runner_url)
+    e = wrong.get("/api/v1/capabilities").json()["execution"]
+    assert e["state"] == "unavailable" and e["reason"] == "judge_misconfigured"

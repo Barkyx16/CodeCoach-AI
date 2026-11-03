@@ -7,11 +7,30 @@ See .env.example at the repository root for the full list.
 
 from functools import lru_cache
 from typing import Annotated, Literal
+from urllib.parse import urlparse
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 _INSECURE_DEFAULT_SECRET = "dev-only-insecure-secret-change-me-0000"
+_LOOPBACK = {"localhost", "127.0.0.1", "::1"}
+
+
+def check_runner_url(url: str) -> None:
+    """The runner receives untrusted code and a bearer token: plain HTTP is only allowed to this
+    machine or to a single-label name on a private container network (e.g. http://runner:8100).
+    Anything else must be https:// (or reached through an SSH tunnel to localhost)."""
+    parsed = urlparse(url)
+    host = parsed.hostname or ""
+    if parsed.scheme not in ("http", "https") or not host:
+        raise ValueError("RUNNER_URL must be an http(s) URL")
+    if parsed.username or parsed.password:
+        raise ValueError("RUNNER_URL must not contain credentials; use RUNNER_TOKEN")
+    if parsed.scheme == "http" and host not in _LOOPBACK and "." in host:
+        raise ValueError(
+            "RUNNER_URL must use https:// for a remote judge (plain http is only allowed for localhost or a "
+            "private container name like http://runner:8100). From a Mac, use an SSH tunnel to localhost or a TLS proxy."
+        )
 
 
 class Settings(BaseSettings):
@@ -85,6 +104,11 @@ class Settings(BaseSettings):
     execution_enabled: bool = False
     runner_url: str = "http://localhost:8100"
     runner_token: str | None = None
+    # A private CA for a TLS runner (e.g. a self-signed internal proxy). Verification is never
+    # turned off; this only adds the CA to trust.
+    runner_ca_bundle: str | None = None
+    # A queued submission older than this means the worker or judge isn't keeping up.
+    queue_stall_seconds: int = 120
     judge_time_limit_s: float = Field(default=15.0, gt=0, le=60)
     max_source_chars: int = Field(default=20_000, ge=100)
     submission_rate_limit_per_minute: int = Field(default=6, ge=1)
@@ -124,6 +148,8 @@ class Settings(BaseSettings):
                 raise ValueError("REFRESH_COOKIE_SECURE can't be false in production (cookies need HTTPS)")
         if self.execution_enabled and (not self.runner_token or len(self.runner_token) < 32):
             raise ValueError("EXECUTION_ENABLED=true requires RUNNER_TOKEN (at least 32 characters)")
+        if self.execution_enabled:
+            check_runner_url(self.runner_url)
         if self.ai_provider == "anthropic" and not self.anthropic_api_key:
             raise ValueError("AI_PROVIDER=anthropic requires ANTHROPIC_API_KEY")
         return self

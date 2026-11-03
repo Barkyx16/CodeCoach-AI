@@ -4,6 +4,7 @@ python -m app.cli seed        # upsert the curated problem library
 python -m app.cli openapi     # print the OpenAPI schema (JSON) to stdout
 python -m app.cli prune-guests [--days N]   # delete guest accounts inactive for N days
                                             # (default GUEST_RETENTION_DAYS)
+python -m app.cli judge-check # prove the configured code judge works, end to end
 """
 
 from __future__ import annotations
@@ -41,6 +42,10 @@ def main(argv: list[str]) -> int:
         with make_session_factory(engine)() as session:
             print(f"Deleted {prune_inactive_guests(session, days)} guest accounts inactive for {days}+ days")
         return 0
+    if command == "judge-check":
+        from app.services.judge.check import judge_check
+
+        return judge_check(get_settings())
     print(__doc__)
     return 1
 

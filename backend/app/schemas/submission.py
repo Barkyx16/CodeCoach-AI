@@ -15,6 +15,14 @@ class SubmissionCreate(APIModel):
         description="`submit`: judge against all tests and record the attempt. "
         "`run`: public tests only, for quick feedback; never counts as an attempt.",
     )
+    client_request_id: str | None = Field(
+        default=None,
+        min_length=8,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9_-]+$",
+        description="Idempotency key chosen by the client: resending the same request (e.g. after a network "
+        "error) returns the original submission instead of judging twice",
+    )
 
     @field_validator("source_code")
     @classmethod

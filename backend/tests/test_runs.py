@@ -137,10 +137,15 @@ def test_export_includes_mode(judged):
 
 
 def test_capabilities_say_whether_runs_work(client, make_client):
-    assert client.get("/api/v1/capabilities").json() == {
-        "execution_enabled": False,
-        "ai_provider": "offline",
-        "guest_retention_days": 30,
-    }
+    caps = client.get("/api/v1/capabilities").json()
+    assert set(caps) == {"execution_enabled", "ai_provider", "execution", "guest_retention_days"}
+    assert (
+        caps["execution_enabled"] is False
+        and caps["ai_provider"] == "offline"
+        and caps["guest_retention_days"] == 30
+    )
+    assert caps["execution"]["state"] == "not_configured" and caps["execution"]["submit_mode"] == "saved_only"
     enabled = make_client(execution_enabled=True, runner_token="r" * 40)
-    assert enabled.get("/api/v1/capabilities").json()["execution_enabled"] is True
+    enabled.app.state.execution_health.probe = lambda: True
+    caps = enabled.get("/api/v1/capabilities").json()
+    assert caps["execution_enabled"] is True and caps["execution"]["state"] == "ready"

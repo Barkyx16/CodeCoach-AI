@@ -206,3 +206,15 @@ export const nurseGoals: Goals = {
   specialty: null, experience: null, target_date: null, weekly_minutes: null, focus_areas: [], formats: [], confidence: {},
   setup_skipped: false,
 };
+
+/** What /capabilities reports for each execution state (see backend app/services/judge/health.py). */
+export function executionStatus(state: "ready" | "unavailable" | "not_configured", setupHelp: string | null = null) {
+  const now = new Date().toISOString();
+  if (state === "ready") {
+    return { state, reason: "ok", message: "Run and Submit execute your code in an isolated Linux judge.", run_available: true, submit_mode: "judged", checked_at: now, setup_help: null };
+  }
+  if (state === "unavailable") {
+    return { state, reason: "judge_unreachable", message: "The code judge can't be reached right now. Submissions wait in the queue and are judged when it's back; Run is paused.", run_available: false, submit_mode: "queued_until_available", checked_at: now, setup_help: setupHelp };
+  }
+  return { state, reason: "not_configured", message: "This server isn't connected to a code judge, so code can't run here. Submitting saves your attempt without a verdict; you can still ask for a code review.", run_available: false, submit_mode: "saved_only", checked_at: now, setup_help: setupHelp };
+}

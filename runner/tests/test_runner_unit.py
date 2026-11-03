@@ -280,3 +280,16 @@ def test_a_flood_is_reported_as_output_limit_even_if_the_kill_outlasts_the_deadl
 def test_a_silent_infinite_loop_is_still_a_timeout():
     res = _sandbox_with(_FakeProc(b"", slow_first_wait=True)).run(FILES, "0123456789abcdef", 5)
     assert res.status == "timeout" and not res.output_truncated
+
+
+def test_status_requires_the_token_and_reveals_only_readiness(monkeypatch):
+    import app.main as main_mod
+
+    monkeypatch.setattr(main_mod, "docker_reachable", lambda _settings: True)
+    c_ = client()
+    assert c_.get("/v1/status").status_code == 401
+    assert c_.get("/v1/status", headers={"Authorization": "Bearer " + "x" * 40}).status_code == 401
+    r = c_.get("/v1/status", headers=AUTH)
+    assert r.status_code == 200 and r.json() == {"ready": True}
+    monkeypatch.setattr(main_mod, "docker_reachable", lambda _settings: False)
+    assert c_.get("/v1/status", headers=AUTH).json() == {"ready": False}

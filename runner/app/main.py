@@ -87,6 +87,11 @@ def create_app(
         ok = docker_reachable(settings)
         return JSONResponse(status_code=200 if ok else 503, content={"status": "ok" if ok else "unavailable"})
 
+    @app.get("/v1/status", dependencies=[Depends(authorize)])
+    def runner_status() -> dict:
+        """Authenticated readiness for the API: proves the token works, not just that a port answers."""
+        return {"ready": docker_reachable(settings)}
+
     @app.post("/v1/run", response_model=RunResponse, dependencies=[Depends(authorize)])
     def run(body: RunRequest, request: Request) -> RunResponse:
         for name, src in body.files.items():

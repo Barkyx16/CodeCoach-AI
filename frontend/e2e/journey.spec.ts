@@ -62,12 +62,13 @@ test("guest journey: try it, code, hints, review, submit, progress", async ({ pa
   await page.screenshot({ path: "e2e/screenshots/02-workspace-review.png" });
 
   // Submit: stored, honest about execution being disabled.
-  await page.getByRole("button", { name: "Submit" }).click();
+  await page.getByRole("button", { name: /^(Submit|Save attempt)$/ }).click(); // "Save attempt" when no judge is configured
   if (judging) {
     // The O(n^2) solution is correct, so the real judge passes it.
     await expect(page.getByText("All tests passed. Nice work.")).toBeVisible({ timeout: 60_000 });
   } else {
-    // Execution off: stored, and honest that it won't run.
+    // Execution off: the button said "Save attempt", the page says why, and the result is honest.
+    await expect(page.getByText("Code can't run on this server.")).toBeVisible();
     await expect(page.getByText("Saved, but not run yet.")).toBeVisible();
     await expect(page.getByText("Queued", { exact: true })).toBeVisible();
   }

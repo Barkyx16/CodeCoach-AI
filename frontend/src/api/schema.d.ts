@@ -1938,6 +1938,7 @@ export interface components {
              * @enum {string}
              */
             ai_provider: "offline" | "anthropic";
+            execution: components["schemas"]["ExecutionStatus"];
             /**
              * Guest Retention Days
              * @description Guest accounts inactive this long are deleted with their data (0: kept forever)
@@ -2581,6 +2582,45 @@ export interface components {
              * @description Compiler output (compile errors only)
              */
             stderr_excerpt?: string | null;
+        };
+        /** ExecutionStatus */
+        ExecutionStatus: {
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "ready" | "unavailable" | "not_configured";
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "ok" | "not_configured" | "judge_unreachable" | "judge_not_ready" | "judge_misconfigured" | "queue_delayed";
+            /**
+             * Message
+             * @description What this means for the learner, in plain words
+             */
+            message: string;
+            /**
+             * Run Available
+             * @description Run (public tests only) can be used right now
+             */
+            run_available: boolean;
+            /**
+             * Submit Mode
+             * @description judged: verdict follows; queued_until_available: judged when the judge is back; saved_only: no judge on this deployment, attempts are saved without a verdict
+             * @enum {string}
+             */
+            submit_mode: "judged" | "queued_until_available" | "saved_only";
+            /**
+             * Checked At
+             * Format: date-time
+             */
+            checked_at: string;
+            /**
+             * Setup Help
+             * @description Development only: how to connect a judge
+             */
+            setup_help: string | null;
         };
         /** ExerciseOut */
         ExerciseOut: {
@@ -4805,6 +4845,11 @@ export interface components {
              * @default submit
              */
             mode: components["schemas"]["SubmissionMode"];
+            /**
+             * Client Request Id
+             * @description Idempotency key chosen by the client: resending the same request (e.g. after a network error) returns the original submission instead of judging twice
+             */
+            client_request_id?: string | null;
         };
         /** SubmissionDetail */
         SubmissionDetail: {

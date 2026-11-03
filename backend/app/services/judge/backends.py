@@ -38,6 +38,11 @@ class ExecutionDisabledError(AppError):
     code = "execution_disabled"
 
 
+class JudgeUnavailableError(AppError):
+    status_code = 503
+    code = "judge_unavailable"
+
+
 class ExecutionBackend(Protocol):
     name: str
     enabled: bool

@@ -9860,6 +9860,9 @@
             "title": "Ai Provider",
             "description": "Which AI coach answers by default"
           },
+          "execution": {
+            "$ref": "#/components/schemas/ExecutionStatus"
+          },
           "guest_retention_days": {
             "type": "integer",
             "title": "Guest Retention Days",
@@ -9870,6 +9873,7 @@
         "required": [
           "execution_enabled",
           "ai_provider",
+          "execution",
           "guest_retention_days"
         ],
         "title": "Capabilities"
@@ -11414,6 +11418,79 @@
           "public_results"
         ],
         "title": "ExecutionResultOut"
+      },
+      "ExecutionStatus": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "unavailable",
+              "not_configured"
+            ],
+            "title": "State"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "not_configured",
+              "judge_unreachable",
+              "judge_not_ready",
+              "judge_misconfigured",
+              "queue_delayed"
+            ],
+            "title": "Reason"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "What this means for the learner, in plain words"
+          },
+          "run_available": {
+            "type": "boolean",
+            "title": "Run Available",
+            "description": "Run (public tests only) can be used right now"
+          },
+          "submit_mode": {
+            "type": "string",
+            "enum": [
+              "judged",
+              "queued_until_available",
+              "saved_only"
+            ],
+            "title": "Submit Mode",
+            "description": "judged: verdict follows; queued_until_available: judged when the judge is back; saved_only: no judge on this deployment, attempts are saved without a verdict"
+          },
+          "checked_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Checked At"
+          },
+          "setup_help": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Setup Help",
+            "description": "Development only: how to connect a judge"
+          }
+        },
+        "type": "object",
+        "required": [
+          "state",
+          "reason",
+          "message",
+          "run_available",
+          "submit_mode",
+          "checked_at",
+          "setup_help"
+        ],
+        "title": "ExecutionStatus"
       },
       "ExerciseOut": {
         "properties": {
@@ -17167,6 +17244,21 @@
             "$ref": "#/components/schemas/SubmissionMode",
             "description": "`submit`: judge against all tests and record the attempt. `run`: public tests only, for quick feedback; never counts as an attempt.",
             "default": "submit"
+          },
+          "client_request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 8,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Request Id",
+            "description": "Idempotency key chosen by the client: resending the same request (e.g. after a network error) returns the original submission instead of judging twice"
           }
         },
         "type": "object",

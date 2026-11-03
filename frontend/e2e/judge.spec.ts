@@ -78,3 +78,25 @@ test("submissions are judged in the gVisor sandbox", async ({ page, context }) =
   await expect(summary.getByText("Solved")).toBeVisible();
   await expect(summary.getByText("1", { exact: true }).first()).toBeVisible();
 });
+
+test("the judge reports ready, and a reload while judging picks the submission back up", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/");
+  await page.getByRole("button", { name: /try it now/i }).click();
+  await expect(page).toHaveURL(/two-sum/);
+  await expect(page.locator(".monaco-editor")).toBeVisible();
+  // A real, authenticated probe found the runner: no "unavailable" banner, Run is offered.
+  await expect(page.getByRole("button", { name: "Run", exact: true })).toBeVisible();
+  await expect(page.getByText(/temporarily unavailable|can't run on this server/)).toHaveCount(0);
+
+  // An infinite loop: submit, reload straight away, and the verdict still arrives on the reloaded page.
+  await paste(page, `class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        while (true) { }
+    }
+}`);
+  await page.getByRole("button", { name: "Submit" }).click();
+  await expect(page.getByText(/Queued|Running your code/).first()).toBeVisible({ timeout: 30_000 });
+  await page.reload();
+  await expect(page.getByText("Your code ran too long. Look for an infinite loop or a slower-than-needed approach.")).toBeVisible({ timeout: 90_000 });
+});

@@ -119,11 +119,18 @@ export function useProblem(slug: string, enabled = true) {
 }
 
 export const SUBMISSION_POLL_MS = 1500;
+export const SLOW_POLL_MS = 5000;
+/** Stop polling a submission that has waited this long; the page says so and a reload resumes. */
+export const POLL_GIVE_UP_MS = 15 * 60_000;
 
 /** Poll while the job is still running AND the backend can actually execute code. */
-export function submissionPollInterval(submission: Submission | undefined): number | false {
+export function submissionPollInterval(submission: Submission | undefined, now = Date.now()): number | false {
   if (!submission) return false;
-  return !submission.is_terminal && submission.execution_enabled ? SUBMISSION_POLL_MS : false;
+  if (submission.is_terminal || !submission.execution_enabled) return false;
+  // Bounded: quick at first, slower after a minute, and stop after 15 minutes.
+  const age = now - new Date(submission.created_at).getTime();
+  if (age > POLL_GIVE_UP_MS) return false;
+  return age > 60_000 ? SLOW_POLL_MS : SUBMISSION_POLL_MS;
 }
 
 export function useSubmission(id: string | null) {
@@ -141,6 +148,8 @@ export function useSubmit() {
     mutationFn: (body: SubmissionCreate) => api.submit(body),
     onSuccess: (submission) => {
       queryClient.setQueryData(queryKeys.submission(submission.id), submission);
+      // A replayed request (same client_request_id) may already have a verdict: check now.
+      if (!submission.is_terminal) void queryClient.invalidateQueries({ queryKey: queryKeys.submission(submission.id) });
       void queryClient.invalidateQueries({ queryKey: ["me"] });
     },
   });
