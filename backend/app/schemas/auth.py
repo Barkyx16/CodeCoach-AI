@@ -132,6 +132,9 @@ class UserOut(APIModel):
     created_at: datetime
     email_verified: bool = Field(description="The owner confirmed this email address")
     career_track: str = Field(description="The job this person is preparing for")
+    is_admin: bool = Field(
+        default=False, description="Can triage content reports (granted from the command line)"
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -146,6 +149,7 @@ class UserOut(APIModel):
                 "created_at": data.created_at,  # type: ignore[attr-defined]
                 "email_verified": data.email_verified_at is not None,
                 "career_track": data.career_track or DEFAULT_TRACK,  # type: ignore[attr-defined]
+                "is_admin": bool(getattr(data, "is_admin", False)),
             }
         return data
 

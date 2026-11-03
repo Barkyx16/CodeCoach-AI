@@ -102,11 +102,15 @@ function BookmarkRow({ mark, onRemove }: { mark: Bookmark; onRemove: () => void 
   const itemKind = useItemKind();
   return (
     <li className="card saved-list__item">
-      {mark.available && mark.href
+      {mark.href /* retired items stay readable */
         ? <Link to={mark.href} state={{ from: "/saved", fromLabel: "Back to Saved" }} className="saved-list__title">{mark.title}</Link>
         : <span className="saved-list__title">{mark.title}</span>}
       <span className="subtle">{itemKind(mark.item_type, mark.track)} · saved {timeAgo(mark.created_at)}</span>
-      {!mark.available && <p className="banner banner--warning">This item left the library. Nothing replaced it; remove the bookmark when you're ready.</p>}
+      {!mark.available && (
+        <p className="banner banner--warning">
+          {mark.unavailable_reason ?? "This item left the library."}{mark.href ? " You can still open it; it isn't used for practice." : ""} Nothing replaced it; remove the bookmark when you're ready.
+        </p>
+      )}
       <span className="row">
         <Button size="sm" variant="ghost" aria-label={`Remove bookmark: ${mark.title}`} onClick={onRemove}>Remove</Button>
       </span>

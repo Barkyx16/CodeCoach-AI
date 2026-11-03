@@ -21,6 +21,7 @@ def graded_answer(user_id: str, question: Question, text: str) -> PracticeAnswer
         answer=text,
         score=fb.score,
         provider=OFFLINE_COACH,
+        content_version=question.version,  # the version answered; later corrections never touch it
         feedback={
             "rating": fb.rating,
             "summary": fb.summary,
@@ -48,4 +49,5 @@ def answer_out(row: PracticeAnswer) -> AnswerOut:
         word_count=fb["word_count"],
         coach=row.provider,
         created_at=row.created_at,
+        content_version=row.content_version or 1,
     )

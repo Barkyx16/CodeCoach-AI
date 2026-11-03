@@ -21,6 +21,16 @@ from app.main import create_app
 TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
 
 
+@pytest.fixture(autouse=True)
+def _fresh_content_state() -> Iterator[None]:
+    """Corrections and retirements are cached per process; never let one test's leak into the next."""
+    from app.content import state as content_state
+
+    content_state.invalidate()
+    yield
+    content_state.invalidate()
+
+
 @pytest.fixture
 def database_url(tmp_path) -> Iterator[str]:
     if TEST_DATABASE_URL:

@@ -149,6 +149,7 @@ Every non-2xx response has this shape:
 | 409 | `not_judged` | Explain-failure on a submission that's still queued or running | Wait for the verdict |
 | 409 | `not_failed` | Explain-failure on a submission that passed | Hide the button |
 | 409 | `judge_error` | Explain-failure on an `INTERNAL_ERROR` (the judge's fault, not the code's) | Suggest resubmitting |
+| 409 | `content_retired` | Answering, retrying or submitting retired content (`details.reason`) | Keep it readable; disable answering |
 | 429 | `submission_pending` | A previous submission is still being judged (`details.max_pending`) | Wait for the verdict |
 | 503 | `judge_busy` | The judge queue is full | Retry in a minute |
 | 503 | `execution_disabled` | `mode: run` on a deployment without code execution (check `GET /capabilities` first) | Hide the Run button |
@@ -790,6 +791,55 @@ the JSON body, never a URL:
   `400 empty_feedback | unknown_sentence` (comments only on shared sentences). Both endpoints
   are rate-limited per client IP (`429`).
 
+### Content quality: labels, reports, corrections and retirement
+
+How content is labelled, reported, corrected and retired is described in
+[CONTENT_QUALITY.md](CONTENT_QUALITY.md). Content ids are `track/question_id` for career
+questions and the slug for coding problems.
+
+- `GET /api/v1/content/{question|problem}/{id}/meta` (public) → `{content_type, content_id,
+  version, version_label, career, topic, level, status: active|retired, retired_reason, labels:
+  [{key, text}], changes: [{version, note, significant, at}]}`. Labels come only from recorded
+  facts: `generated` (or `authored`), `not_expert_reviewed`, `reference_verified` (only a recorded
+  passing check for the problem's current test version) or `tests_not_checked`, and `corrected`.
+- `GET /api/v1/careers/{slug}/questions/{id}/versions/{n}` (public) → `{version, title, prompt}`
+  as the question read at version `n` (for answers written against it). Versions only grow.
+- `POST /api/v1/reports` 🔒 `{content_type, content_id, content_version, category, details,
+  context: content|feedback, answer_id?, excerpt?}` → `201` the report as the reporter sees it.
+  Categories: `ambiguous_wording | incorrect_example | outdated_guidance | wrong_career_topic |
+  accessibility | technical_bug | other`; `details` ≤ 2,000 characters. `content_version` is the version on screen (`400 invalid_version` if it
+  doesn't exist). Feedback reports need your own `answer_id` (`400 answer_required`, `404`
+  otherwise); `excerpt` (≤ 1,500 characters) is only what the learner chose to attach. Text is
+  stored as plain text with control characters removed. The same person can't file the same open
+  report twice (`409 already_reported`, `details.report_id`); someone else's matching report is
+  grouped as a likely duplicate. Rate-limited per user (`429`).
+- `GET /api/v1/me/reports` 🔒 → your reports with status (`open | investigating | resolved |
+  not_actionable`) and the public `resolution`; never other reporters or internal notes.
+
+Admin routes (`/api/v1/admin/…`) answer **404** to anyone who isn't an admin. Admin is granted
+only from the command line (`python -m app.cli grant-admin EMAIL`); no endpoint can grant it.
+Every change is written to the append-only `content_audit` table.
+
+- `GET /admin/reports?status=` → reports grouped by content, duplicates included (`open` also
+  matches `investigating`; omit for all). Reporters are named by display name, never email.
+- `GET /admin/reports/{id}` → the report, `duplicates`, `current_version`, the content's `meta`
+  and the `audit` trail (with internal notes).
+- `POST /admin/reports/{id}/status {status, resolution?, internal_note?, include_duplicates}`:
+  `resolved` and `not_actionable` need a `resolution` for the reporter
+  (`400 resolution_required`); grouped duplicates follow by default.
+- `POST /admin/reports/{id}/duplicate {duplicate_of: id | null, internal_note?}`: group under
+  another report about the same content (`400 invalid_duplicate`) or ungroup. Nothing is merged
+  or deleted.
+- `POST /admin/content/question/{slug}/{id}/corrections {title?, prompt?, tips?, outline?,
+  change_note, significant, report_ids, internal_note?}` → the new `meta`. Publishes the next
+  version (`400 no_change` if nothing differs); linked reports and their duplicates are resolved
+  with "Corrected in version N: …" (`400 invalid_reports` for reports about other content).
+  Existing answers keep their `content_version` and score.
+- `POST /admin/content/{type}/{id}/retire {reason, report_ids, internal_note?}` and
+  `POST /admin/content/{type}/{id}/restore {internal_note?}` → the new `meta`. Retired content
+  leaves lists, rounds, plans and recommendations, and answering or submitting it is
+  `409 content_retired`; it stays readable in history and saved items.
+
 ### Branching scenarios
 
 Authored graphs ([docs/SCENARIOS.md](SCENARIOS.md)); no model is used.
@@ -1096,6 +1146,7 @@ All configuration is environment variables (or a `.env` file; see
 | `SHARE_OPENS_PER_10_MINUTES` | `120` | Per-IP opens of shared-answer links. |
 | `SHARE_FEEDBACK_PER_HOUR` | `20` | Per-IP feedback submissions on shared answers. |
 | `SHARES_CREATED_PER_HOUR` | `30` | Share links (new or replaced) per user per hour. |
+| `CONTENT_REPORTS_PER_HOUR` | `10` | Content reports per user per hour. |
 | `AUTH_RATE_LIMIT_PER_MINUTE` | `10` | Per-IP attempts per minute for register, login, guest, upgrade, password change and password reset. |
 | `RATE_LIMIT_BACKEND` | `database` | `database`: counters shared by every API replica (sliding window, atomic upsert). `memory`: one process only. |
 | `FORWARDED_ALLOW_IPS` | `127.0.0.1` | (uvicorn) Proxies whose `X-Forwarded-For` is trusted. Set it to your load balancer's address, or every user shares the proxy's IP for rate limiting. Untrusted headers are ignored, so they can't be spoofed. |

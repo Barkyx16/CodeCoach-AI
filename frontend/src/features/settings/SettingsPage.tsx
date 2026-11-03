@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } 
 import { Link, useNavigate } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
-import { useAIUsage, useCapabilities, useShares } from "@/api/queries";
+import { useAIUsage, useCapabilities, useMyReports, useShares } from "@/api/queries";
 import type { User } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { Badge } from "@/components/Badge";
@@ -95,6 +95,7 @@ export function SettingsPage() {
           <Section id="privacy" title="Privacy & data" description="What the AI coach sees, and a copy of everything we store.">
             <AIPrivacyRow />
             <SharedRow />
+            <ReportsRow />
             <DataRow />
           </Section>
           <Section id="danger" title="Danger zone" description="Permanent actions. Take a moment before using these." tone="danger">
@@ -467,6 +468,24 @@ function AIPrivacyRow() {
         <ul className="privacy-points">
           {PRIVACY_POINTS.map((point) => <li key={point}><Icon name="check" size={15} />{point}</li>)}
         </ul>
+      </div>
+    </div>
+  );
+}
+
+function ReportsRow() {
+  const reports = useMyReports();
+  const open = reports.data?.filter((r) => r.status === "open" || r.status === "investigating").length ?? 0;
+  return (
+    <div className="setting" role="group" aria-labelledby="reports-title">
+      <RowIntro icon="alert" id="reports-title" title="Your reports">
+        Problems you reported with questions, coding problems or feedback, and what happened to them.
+      </RowIntro>
+      <div className="setting__body setting__body--center">
+        <div className="setting__actions">
+          <Link className="btn btn--secondary btn--md" to="/reports">See your reports</Link>
+          {reports.data && <span className="subtle">{reports.data.length === 0 ? "None yet" : `${open} open of ${reports.data.length}`}</span>}
+        </div>
       </div>
     </div>
   );

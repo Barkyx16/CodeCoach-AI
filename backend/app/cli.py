@@ -5,6 +5,11 @@ python -m app.cli openapi     # print the OpenAPI schema (JSON) to stdout
 python -m app.cli prune-guests [--days N]   # delete guest accounts inactive for N days
                                             # (default GUEST_RETENTION_DAYS)
 python -m app.cli judge-check # prove the configured code judge works, end to end
+python -m app.cli grant-admin EMAIL    # let a registered account triage content reports
+python -m app.cli revoke-admin EMAIL
+python -m app.cli validate-content [--run-reference] [--record]
+                              # content quality gates; --run-reference compiles and runs the
+                              # trusted reference solutions (local JDK); --record stores results
 """
 
 from __future__ import annotations
@@ -46,6 +51,39 @@ def main(argv: list[str]) -> int:
         from app.services.judge.check import judge_check
 
         return judge_check(get_settings())
+    if command in ("grant-admin", "revoke-admin"):
+        from sqlalchemy import func, select
+
+        from app.models import User
+
+        if len(argv) < 3:
+            print(f"usage: python -m app.cli {command} EMAIL")
+            return 1
+        engine = make_engine(get_settings().database_url)
+        with make_session_factory(engine)() as session:
+            user = session.scalar(select(User).where(func.lower(User.email) == argv[2].strip().lower()))
+            if user is None or user.is_guest:
+                print("No registered account has that email.")
+                return 1
+            user.is_admin = command == "grant-admin"
+            session.commit()
+            print(f"{user.email}: admin {'granted' if user.is_admin else 'revoked'}")
+        return 0
+    if command == "validate-content":
+        from app.content.validate import run
+
+        engine = make_engine(get_settings().database_url)
+        with make_session_factory(engine)() as session:
+            report = run(session, run_reference="--run-reference" in argv, record="--record" in argv)
+        for line in report.errors:
+            print(f"ERROR   {line}")
+        for line in report.warnings:
+            print(f"warning {line}")
+        counts = ", ".join(f"{n} {k}" for k, n in report.counts.items())
+        ran = f"; reference solutions run for {len(report.checks)} problems" if report.checks else ""
+        print(f"Checked {counts}{ran}: {len(report.errors)} errors, {len(report.warnings)} warnings.")
+        print("This is automated validation, not expert review.")
+        return 0 if report.ok else 1
     print(__doc__)
     return 1
 

@@ -68,6 +68,8 @@ class Settings(BaseSettings):
     share_opens_per_10_minutes: int = 120
     share_feedback_per_hour: int = 20
     shares_created_per_hour: int = 30
+    # Content issue reports per user per hour.
+    content_reports_per_hour: int = 10
     # "database": shared by every API replica and survives restarts. "memory": one process only.
     # Behind a reverse proxy, also set FORWARDED_ALLOW_IPS to the proxy's address so uvicorn
     # uses the real client IP from X-Forwarded-For (otherwise everyone shares the proxy's IP).

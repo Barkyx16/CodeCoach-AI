@@ -123,6 +123,18 @@ export type NotePatch = S["NotePatch"];
 export type NoteSource = S["SourceIn"];
 export type KeyPoints = S["KeyPoints"];
 
+export type ContentMeta = S["ContentMeta"];
+export type ContentKind = S["ContentMeta"]["content_type"];
+export type ReportInput = S["ReportIn"];
+export type ReportCategory = S["ReportIn"]["category"];
+export type MyReport = S["MyReport"];
+export type AdminReport = S["AdminReport"];
+export type AdminReportDetail = S["AdminReportDetail"];
+export type ReportGroup = S["ReportGroup"];
+export type ReportStatusValue = S["MyReport"]["status"];
+export type QuestionVersion = S["QuestionVersionOut"];
+export type CorrectionInput = S["CorrectionIn"];
+
 export type ShareSelection = S["ShareSelection"];
 export type ShareCreate = S["ShareCreate"];
 export type SharePreview = S["SharePreview"];

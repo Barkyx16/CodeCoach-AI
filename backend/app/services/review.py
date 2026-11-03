@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.careers import CATALOG
 from app.careers.answers import answer_out, graded_answer
-from app.careers.questions import Question, get_question
+from app.careers.questions import Question, get_question, is_retired
 from app.errors import ConflictError, NotFoundError, RateLimitedError
 from app.models import (
     InterviewPhase,
@@ -550,6 +550,11 @@ class InterviewReviews:
                     "You've answered a lot of questions this hour. Take a short break and try again soon.",
                     details={"retry_after_seconds": int(retry_after) + 1},
                 )
+        if is_retired(q.track, q.id):
+            raise ConflictError(
+                "This question was retired and isn't used for practice any more. Earlier answers to it are kept.",
+                code="content_retired",
+            )
         row = graded_answer(user.id, q, body.answer.strip())
         self.db.add(row)
         self.db.flush()

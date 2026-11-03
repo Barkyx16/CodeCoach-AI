@@ -12,7 +12,7 @@ from __future__ import annotations
 from functools import lru_cache
 
 from app.careers import CATALOG
-from app.careers.questions import Question, questions_for
+from app.careers.questions import Question, generated_questions
 
 COMPETENCY_BY_KIND = {
     "behavioral": "Working with people",
@@ -37,7 +37,7 @@ def career_skills(track: str) -> tuple[str, ...]:
     if profile is None:
         return ()
     seen: dict[str, None] = {}
-    for q in questions_for(track):
+    for q in generated_questions(track):  # the taxonomy, retired questions included
         for s in question_skills(q):
             seen.setdefault(s, None)
     order = {s: i for i, s in enumerate((*profile.skills, *profile.tools, *COMPETENCY_BY_KIND.values()))}
@@ -47,7 +47,7 @@ def career_skills(track: str) -> tuple[str, ...]:
 @lru_cache(maxsize=256)
 def questions_by_skill(track: str) -> dict[str, frozenset[str]]:
     out: dict[str, set[str]] = {}
-    for q in questions_for(track):
+    for q in generated_questions(track):  # the taxonomy, retired questions included
         for s in question_skills(q):
             out.setdefault(s, set()).add(q.id)
     return {k: frozenset(v) for k, v in out.items()}

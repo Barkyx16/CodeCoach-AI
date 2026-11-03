@@ -68,7 +68,16 @@ import type {
   UnitLink,
   UnitProgress,
   KeyPoints,
+  AdminReportDetail,
+  ContentKind,
+  ContentMeta,
+  CorrectionInput,
   FeedbackInput,
+  MyReport,
+  QuestionVersion,
+  ReportGroup,
+  ReportInput,
+  ReportStatusValue,
   FeedbackReceipt,
   RecipientView,
   ShareCreate,
@@ -346,6 +355,26 @@ export const api = {
   deleteNote: (id: string) => apiRequest<{ id: string; restorable_until: string }>(`/api/v1/me/notes/${encodeURIComponent(id)}`, { method: "DELETE" }),
   restoreNote: (id: string) => apiRequest<Note>(`/api/v1/me/notes/${encodeURIComponent(id)}/restore`, { method: "POST" }),
   keyPoints: (id: string) => apiRequest<KeyPoints>(`/api/v1/me/notes/${encodeURIComponent(id)}/key-points`, { method: "POST" }),
+
+  // content quality: metadata, reports and (admins) triage
+  contentMeta: (type: ContentKind, id: string) =>
+    apiRequest<ContentMeta>(`/api/v1/content/${type}/${id.split("/").map(encodeURIComponent).join("/")}/meta`, { auth: false }),
+  questionVersion: (track: string, id: string, version: number) =>
+    apiRequest<QuestionVersion>(`/api/v1/careers/${encodeURIComponent(track)}/questions/${encodeURIComponent(id)}/versions/${version}`, { auth: false }),
+  report: (body: ReportInput) => apiRequest<MyReport>("/api/v1/reports", { method: "POST", body }),
+  myReports: () => apiRequest<MyReport[]>("/api/v1/me/reports"),
+  adminReports: (status?: string) => apiRequest<ReportGroup[]>("/api/v1/admin/reports", { query: { status } }),
+  adminReport: (id: string) => apiRequest<AdminReportDetail>(`/api/v1/admin/reports/${encodeURIComponent(id)}`),
+  adminSetStatus: (id: string, body: { status: ReportStatusValue; resolution?: string; internal_note?: string; include_duplicates?: boolean }) =>
+    apiRequest<AdminReportDetail>(`/api/v1/admin/reports/${encodeURIComponent(id)}/status`, { method: "POST", body }),
+  adminSetDuplicate: (id: string, body: { duplicate_of: string | null; internal_note?: string }) =>
+    apiRequest<AdminReportDetail>(`/api/v1/admin/reports/${encodeURIComponent(id)}/duplicate`, { method: "POST", body }),
+  adminCorrect: (contentId: string, body: CorrectionInput) =>
+    apiRequest<ContentMeta>(`/api/v1/admin/content/question/${contentId.split("/").map(encodeURIComponent).join("/")}/corrections`, { method: "POST", body }),
+  adminRetire: (type: ContentKind, id: string, body: { reason: string; report_ids?: string[]; internal_note?: string }) =>
+    apiRequest<ContentMeta>(`/api/v1/admin/content/${type}/${id.split("/").map(encodeURIComponent).join("/")}/retire`, { method: "POST", body }),
+  adminRestore: (type: ContentKind, id: string) =>
+    apiRequest<ContentMeta>(`/api/v1/admin/content/${type}/${id.split("/").map(encodeURIComponent).join("/")}/restore`, { method: "POST", body: {} }),
 
   // sharing an answer for feedback (owner)
   sharePreview: (body: ShareSelection) => apiRequest<SharePreview>("/api/v1/me/shares/preview", { method: "POST", body }),

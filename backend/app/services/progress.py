@@ -38,6 +38,7 @@ from app.schemas.progress import (
     Recommendation,
     TopicProgress,
 )
+from app.services.content import retired_problem_slugs
 
 _DIFFICULTY_RANK = {Difficulty.EASY: 0, Difficulty.MEDIUM: 1, Difficulty.HARD: 2}
 
@@ -240,7 +241,8 @@ class ProgressService:
         self, user: User, *, limit: int = 5, facts: dict[int, _ProblemFacts] | None = None
     ) -> list[Recommendation]:
         facts = facts if facts is not None else self._facts(user)
-        values = list(facts.values())
+        retired = retired_problem_slugs()  # never recommended; still counted in history
+        values = [f for f in facts.values() if f.problem.slug not in retired]
         picks: list[Recommendation] = []
         chosen: set[str] = set()
 

@@ -21,6 +21,7 @@ from app.schemas.submission import (
     SubmissionDetail,
     SubmissionListItem,
 )
+from app.services.content import is_problem_retired
 from app.services.judge.backends import ExecutionDisabledError, JudgeUnavailableError
 from app.services.judge.health import MESSAGES
 from app.services.judge.views import public_result_view
@@ -76,6 +77,11 @@ def create_submission(
         existing = _by_request_id(db, user, body.client_request_id)
         if existing is not None:
             return _replay(existing, problem, body, backend.enabled)
+    if is_problem_retired(problem.slug):
+        raise ConflictError(
+            "This problem was retired and isn't used for practice any more. Your earlier submissions are kept.",
+            code="content_retired",
+        )
     if body.mode == SubmissionMode.RUN and not backend.enabled:
         # A queued run that can never execute is useless; a submission is still worth saving.
         raise ExecutionDisabledError(

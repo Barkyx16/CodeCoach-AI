@@ -623,6 +623,19 @@ These are moments where the obvious path was wrong and a deliberate decision was
     the API answers before spending the one-use refresh cookie. Root-caused by comparing the
     server's access log with what the browser reported, not by adding retries to the test.
 
+49. **Labels from records, corrections as versions.** A "trustworthy question bank" invites
+    badges like "expert reviewed" or "verified". Nothing here has been reviewed by an expert, so
+    the labels are built only from facts the database can show: the content was generated, it
+    wasn't expert-reviewed, a reference solution passed the current tests on a recorded date,
+    and it was corrected N times. A correction never edits text in place: it publishes version
+    N+1, answers keep the version they were written against and their score, and learners who
+    answered see what changed. Retirement hides content from practice and assessment but keeps it
+    readable wherever a learner already has it. Admin is a database flag set only from the
+    command line, and admin routes are 404s to everyone else, so there's no web path to
+    escalate. The end-to-end test found that a correction resolved the linked report but left
+    its grouped duplicate open, so the second reporter would never have heard back; corrections
+    now resolve the duplicates too.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -1384,3 +1397,31 @@ slows the refresh call to reproduce it (1 of 12 before the fix, 12 of 12 after).
 - **Not verified:** real devices and installation (iOS, Android, desktop), Safari and Firefox,
   the install prompt itself (headless Chromium doesn't offer it). See docs/OFFLINE.md.
 
+**U10 Trustworthy question bank (built and verified):**
+- "About this question / problem": career, topic, level, version and labels built only from
+  recorded facts ("Generated…", "Not reviewed by a subject-matter expert", "Reference solution
+  passed all N tests (checked …)" only from a recorded check for the current tests, "Corrected
+  N times" with notes).
+- **Report an issue** on questions, coding problems and feedback: seven categories, the content
+  id and the version on screen, an excerpt only if the learner ticks it and reviews it, rate
+  limits, no double reports, likely duplicates grouped (nothing merged), plain text everywhere,
+  and **Your reports** with status and the public outcome (never internal notes).
+- **Triage** for admins (granted only by `python -m app.cli grant-admin`; every admin route is a
+  404 to anyone else): reports grouped by content, statuses with a required public explanation,
+  grouping, internal notes and an append-only audit trail.
+- **Corrections are new versions**: answers keep their version and score, learners who answered
+  or saved a question see what changed and can read the wording they answered; linked reports
+  and their duplicates are resolved with "Corrected in version N".
+- **Retirement**: out of lists, rounds, plans, recommendations and role prep; answering or
+  submitting is a 409; still readable in history and saved items with the reason; restorable.
+- **`validate-content`** (questions, corrections, retirements, lessons, scenarios, problems; with
+  `--run-reference --record`, every reference solution against every test) now runs in CI. Here:
+  33,000 questions, 300 problems, 6 lessons, 2 scenarios, 0 errors; 300 of 300 reference
+  solutions passed.
+- Tests: 13 backend (SQLite and PostgreSQL: labels, reporting rules and privacy, rate limits,
+  duplicates, admin 404s, the grant/revoke commands, corrections and old answers, retirement,
+  audit, export, validation), 7 frontend, 1 Playwright journey with three browser contexts
+  (learner, second learner, admin) and WCAG scans, including 320px.
+- **Limits:** no subject-matter expert has reviewed any content, and the app says so; coding
+  problems are corrected in their seed files, not from the triage page; no emails or
+  notifications about report outcomes. See docs/CONTENT_QUALITY.md.

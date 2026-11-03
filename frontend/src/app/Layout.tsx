@@ -104,6 +104,7 @@ export function Layout() {
           {isAuthenticated && <NavLink to="/history" className={navClass}>History</NavLink>}
           {isAuthenticated && <NavLink to="/notes" className={navClass}>Notes</NavLink>}
           {isAuthenticated && <NavLink to="/saved" className={navClass}>Saved</NavLink>}
+          {user?.is_admin && <NavLink to="/admin/reports" className={navClass}>Triage</NavLink>}
         </nav>
         <div className="header__account">
           {isAuthenticated ? (

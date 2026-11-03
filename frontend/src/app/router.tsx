@@ -31,6 +31,10 @@ import { ShareDetailPage } from "@/features/sharing/ShareDetailPage";
 import { SharedPage } from "@/features/sharing/SharedPage";
 import { SharesPage } from "@/features/sharing/SharesPage";
 import { OfflinePage } from "@/features/offline/OfflinePage";
+import { MyReportsPage } from "@/features/content/MyReportsPage";
+import { AdminGuard } from "@/features/admin/AdminGuard";
+import { AdminReportPage } from "@/features/admin/AdminReportPage";
+import { AdminReportsPage } from "@/features/admin/AdminReportsPage";
 import { CollectionPage } from "@/features/saved/CollectionPage";
 import { AttemptPage } from "@/features/scenarios/AttemptPage";
 import { ScenarioBriefing, ScenariosPage } from "@/features/scenarios/ScenariosPage";
@@ -99,6 +103,9 @@ export const routes: RouteObject[] = [
       // Public: anyone holding a share link (its secret is in the #fragment).
       { path: "/shared", element: <SharedPage /> },
       { path: "/offline", element: <OfflinePage /> },
+      { path: "/reports", element: <RequireAuth><MyReportsPage /></RequireAuth> },
+      { path: "/admin/reports", element: <RequireAuth><AdminGuard><AdminReportsPage /></AdminGuard></RequireAuth> },
+      { path: "/admin/reports/:id", element: <RequireAuth><AdminGuard><AdminReportPage /></AdminGuard></RequireAuth> },
       { path: "/saved", element: <RequireAuth><SavedPage /></RequireAuth> },
       { path: "/saved/collections/:id", element: <RequireAuth><CollectionPage /></RequireAuth> },
       { path: "/saved/collections/:id/practice", element: <RequireAuth><QueuePage /></RequireAuth> },

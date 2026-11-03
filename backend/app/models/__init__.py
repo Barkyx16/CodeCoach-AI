@@ -27,6 +27,7 @@ from sqlalchemy import (
     Text,
     TypeDecorator,
     UniqueConstraint,
+    false,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.engine import Dialect
@@ -146,6 +147,9 @@ class User(Base):
     password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     display_name: Mapped[str | None] = mapped_column(String(80), nullable=True)
     is_guest: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Content triage (reports, corrections, retirement). Granted only from the command line
+    # (python -m app.cli grant-admin EMAIL); no API can set it.
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     # Bumped on logout / password change; tokens carrying an older version are rejected.
     token_version: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
@@ -489,6 +493,8 @@ class PracticeAnswer(Base):
     feedback: Mapped[dict] = mapped_column(JSONType)
     provider: Mapped[str] = mapped_column(String(32))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    # The question's content version when it was answered (None: before versions existed, i.e. 1).
+    content_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class PracticeGoal(Base):
@@ -672,6 +678,8 @@ class Bookmark(Base):
     track: Mapped[str] = mapped_column(String(64), default="")  # "" for coding problems
     ref_id: Mapped[str] = mapped_column(String(80))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    # Career questions: the content version when saved, so a significant change can be shown later.
+    content_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class PracticeCollection(Base):
@@ -852,3 +860,103 @@ class ShareFeedback(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
     share: Mapped[Share] = relationship(back_populates="feedback")
+
+
+class ContentReport(Base):
+    """A learner's report of a problem with a question, a coding problem or the feedback on an
+    answer. Pinned to the content id and version it was made against. Never changes any score.
+
+    `duplicate_of` groups likely duplicates under the first open report; nothing is deleted.
+    `resolution` is the plain-language explanation the reporter sees; internal notes live only
+    in `content_audit`."""
+
+    __tablename__ = "content_reports"
+    __table_args__ = (Index("ix_reports_content", "content_type", "content_id", "status"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    reporter_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    content_type: Mapped[str] = mapped_column(String(12))  # question | problem
+    content_id: Mapped[str] = mapped_column(String(160))  # "track/question_id" or problem slug
+    content_version: Mapped[int] = mapped_column(Integer)
+    context: Mapped[str] = mapped_column(String(12), default="content")  # content | feedback
+    answer_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True
+    )  # feedback reports: whose feedback
+    category: Mapped[str] = mapped_column(String(32))
+    details: Mapped[str] = mapped_column(Text, default="")
+    excerpt: Mapped[str | None] = mapped_column(Text, nullable=True)  # only what the reporter chose to attach
+    status: Mapped[str] = mapped_column(
+        String(16), default="open"
+    )  # open|investigating|resolved|not_actionable
+    resolution: Mapped[str | None] = mapped_column(Text, nullable=True)
+    duplicate_of: Mapped[str | None] = mapped_column(
+        ForeignKey("content_reports.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class ContentAudit(Base):
+    """Append-only record of every triage action: who, what, when, and internal notes."""
+
+    __tablename__ = "content_audit"
+    __table_args__ = (Index("ix_audit_content", "content_type", "content_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    actor_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    action: Mapped[str] = mapped_column(String(32))
+    content_type: Mapped[str] = mapped_column(String(12))
+    content_id: Mapped[str] = mapped_column(String(160))
+    report_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    detail: Mapped[dict] = mapped_column(JSONType, default=dict)
+    internal_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class ContentVersion(Base):
+    """A published correction: the next version of a career question, with the changed fields
+    and a short note for learners. Version 1 is the generated original; versions only grow."""
+
+    __tablename__ = "content_versions"
+    __table_args__ = (UniqueConstraint("content_type", "content_id", "version", name="uq_content_version"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    content_type: Mapped[str] = mapped_column(String(12))
+    content_id: Mapped[str] = mapped_column(String(160))
+    version: Mapped[int] = mapped_column(Integer)
+    fields: Mapped[dict] = mapped_column(JSONType)  # only the corrected fields, e.g. {"prompt": "..."}
+    change_note: Mapped[str] = mapped_column(Text)
+    significant: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_by: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class ContentStatus(Base):
+    """Retired content: kept readable in history and private collections, but no longer offered
+    for practice or assessment. No row means active."""
+
+    __tablename__ = "content_status"
+
+    content_type: Mapped[str] = mapped_column(String(12), primary_key=True)
+    content_id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    status: Mapped[str] = mapped_column(String(12), default="retired")
+    reason: Mapped[str] = mapped_column(Text)
+    changed_by: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    changed_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class ContentCheck(Base):
+    """Recorded result of an automated check (e.g. the reference solution passing every test).
+    Trust labels are shown only from rows like these, never assumed."""
+
+    __tablename__ = "content_checks"
+    __table_args__ = (UniqueConstraint("content_type", "content_id", "check", name="uq_content_check"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    content_type: Mapped[str] = mapped_column(String(12))
+    content_id: Mapped[str] = mapped_column(String(160))
+    check: Mapped[str] = mapped_column(String(40))  # e.g. reference_solution
+    content_version: Mapped[int | None] = mapped_column(Integer, nullable=True)  # problems: the test version
+    passed: Mapped[bool] = mapped_column(Boolean)
+    detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    checked_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)

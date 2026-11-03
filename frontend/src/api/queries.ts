@@ -6,7 +6,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 
 import { ApiError } from "./client";
 import { api, type ActivityFilters, type ExploreFilters, type NoteFilters, type ProblemFilters, type QuestionFilters } from "./endpoints";
-import type { AIHistoryAction, AnswerSource, Difficulty, Bookmark, Collection, GoalsInput, MyExploreResult, ReviewQueue, SavedItemRef, ShareDetail, Target, UnitProgress, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
+import type { AIHistoryAction, AnswerSource, Difficulty, Bookmark, Collection, GoalsInput, MyExploreResult, ReviewQueue, SavedItemRef, ShareDetail, Target, ContentKind, UnitProgress, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
 import { withOfflineCopy } from "@/features/offline/offlineStore";
 
 export const queryKeys = {
@@ -517,6 +517,16 @@ export function useNotes(filters: NoteFilters, enabled = true) {
 
 export function useNote(id: string) {
   return useQuery({ queryKey: ["me", "note", id], queryFn: () => api.note(id), staleTime: 0 });
+}
+
+// --- content quality ---------------------------------------------------------------------------
+
+export function useContentMeta(type: ContentKind, id: string, enabled = true) {
+  return useQuery({ queryKey: ["content", type, id], queryFn: () => api.contentMeta(type, id), enabled, staleTime: 60_000, retry: false });
+}
+
+export function useMyReports(enabled = true) {
+  return useQuery({ queryKey: ["me", "reports"], queryFn: api.myReports, enabled, staleTime: 0 });
 }
 
 // --- sharing an answer for feedback ------------------------------------------------------------

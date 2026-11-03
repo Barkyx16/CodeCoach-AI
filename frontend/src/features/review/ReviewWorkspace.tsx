@@ -258,7 +258,7 @@ function Detail({ r, item, focusable = false }: { r: InterviewReview; item: Revi
       {item.feedback && (
         <details className="review-detail__feedback">
           <summary>Full feedback and a strong-answer outline</summary>
-          <FeedbackCard answer={item.feedback} title="Feedback" headingId={`fb-${item.key}`} />
+          <FeedbackCard answer={item.feedback} title="Feedback" headingId={`fb-${item.key}`} track={r.track ?? undefined} />
         </details>
       )}
       {isRound && (

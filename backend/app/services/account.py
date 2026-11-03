@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.models import (
     AIInteraction,
     Bookmark,
+    ContentReport,
     ExperienceEntry,
     InterviewRetry,
     LearnEvent,
@@ -90,6 +91,9 @@ def export_user_data(db: Session, user: User) -> dict:
     ).all()
     answers = db.scalars(
         select(PracticeAnswer).where(PracticeAnswer.user_id == user.id).order_by(PracticeAnswer.created_at)
+    ).all()
+    reports = db.scalars(
+        select(ContentReport).where(ContentReport.reporter_id == user.id).order_by(ContentReport.created_at)
     ).all()
     shares = db.scalars(
         select(Share)
@@ -196,6 +200,7 @@ def export_user_data(db: Session, user: User) -> dict:
                 "score": a.score,
                 "feedback": a.feedback,
                 "coach": a.provider,
+                "question_version": a.content_version or 1,
                 "created_at": iso(a.created_at),
             }
             for a in answers
@@ -353,6 +358,21 @@ def export_user_data(db: Session, user: User) -> dict:
                 "updated_at": iso(n.updated_at),
             }
             for n in notes
+        ],
+        # Problems you reported in questions or feedback, and what happened (no internal notes).
+        "content_reports": [
+            {
+                "content": f"{r.content_type}:{r.content_id}",
+                "version": r.content_version,
+                "category": r.category,
+                "context": r.context,
+                "details": r.details,
+                "excerpt": r.excerpt,
+                "status": r.status,
+                "resolution": r.resolution,
+                "created_at": iso(r.created_at),
+            }
+            for r in reports
         ],
         # Answers you shared for feedback: the exact snapshot, link status and feedback received.
         # Link secrets aren't stored, so none can be exported.

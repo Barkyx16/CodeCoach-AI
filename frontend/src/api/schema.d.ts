@@ -469,6 +469,193 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/content/{content_type}/{content_id}/meta": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Where this content came from, its version, status, corrections and trust labels */
+        get: operations["meta_api_v1_content__content_type___content_id__meta_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/careers/{slug}/questions/{question_id}/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A question as it read at an earlier version (for answers written against it) */
+        get: operations["question_version_api_v1_careers__slug__questions__question_id__versions__version__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Report a problem with a question, a coding problem, or the feedback on your answer */
+        post: operations["report_api_v1_reports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your reports and what happened to them (never other people's, never internal notes) */
+        get: operations["my_reports_api_v1_me_reports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reports grouped by content */
+        get: operations["admin_reports_api_v1_admin_reports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/reports/{report_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One report with its audit trail */
+        get: operations["admin_report_api_v1_admin_reports__report_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/reports/{report_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change a report's status */
+        post: operations["admin_status_api_v1_admin_reports__report_id__status_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/reports/{report_id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Group a report under another (or ungroup it) */
+        post: operations["admin_duplicate_api_v1_admin_reports__report_id__duplicate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/content/question/{slug}/{question_id}/corrections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish a correction as a new version (answers keep the version they were written against) */
+        post: operations["admin_correct_api_v1_admin_content_question__slug___question_id__corrections_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/content/{content_type}/{content_id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire content: readable in history and saved items, no longer used for practice or assessment */
+        post: operations["admin_retire_api_v1_admin_content__content_type___content_id__retire_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/content/{content_type}/{content_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undo a retirement */
+        post: operations["admin_restore_api_v1_admin_content__content_type___content_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/careers/{slug}/explore": {
         parameters: {
             query?: never;
@@ -2049,6 +2236,129 @@ export interface components {
             /** Ai Interaction Id */
             ai_interaction_id?: string | null;
         };
+        /** AdminReport */
+        AdminReport: {
+            /** Id */
+            id: string;
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "question" | "problem";
+            /** Content Id */
+            content_id: string;
+            /** Content Title */
+            content_title: string;
+            /** Content Href */
+            content_href: string | null;
+            /** Content Version */
+            content_version: number;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "ambiguous_wording" | "incorrect_example" | "outdated_guidance" | "wrong_career_topic" | "accessibility" | "technical_bug" | "other";
+            /**
+             * Context
+             * @enum {string}
+             */
+            context: "content" | "feedback";
+            /** Details */
+            details: string;
+            /** Excerpt */
+            excerpt: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "investigating" | "resolved" | "not_actionable";
+            /** Resolution */
+            resolution: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Reporter
+             * @description Who reported it: display name or 'A learner'; never an email
+             */
+            reporter: string;
+            /** Duplicate Of */
+            duplicate_of: string | null;
+            /** Duplicates */
+            duplicates: string[];
+            /** Current Version */
+            current_version: number;
+        };
+        /** AdminReportDetail */
+        AdminReportDetail: {
+            /** Id */
+            id: string;
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "question" | "problem";
+            /** Content Id */
+            content_id: string;
+            /** Content Title */
+            content_title: string;
+            /** Content Href */
+            content_href: string | null;
+            /** Content Version */
+            content_version: number;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "ambiguous_wording" | "incorrect_example" | "outdated_guidance" | "wrong_career_topic" | "accessibility" | "technical_bug" | "other";
+            /**
+             * Context
+             * @enum {string}
+             */
+            context: "content" | "feedback";
+            /** Details */
+            details: string;
+            /** Excerpt */
+            excerpt: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "investigating" | "resolved" | "not_actionable";
+            /** Resolution */
+            resolution: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Reporter
+             * @description Who reported it: display name or 'A learner'; never an email
+             */
+            reporter: string;
+            /** Duplicate Of */
+            duplicate_of: string | null;
+            /** Duplicates */
+            duplicates: string[];
+            /** Current Version */
+            current_version: number;
+            /** Audit */
+            audit: components["schemas"]["AuditEntry"][];
+            meta: components["schemas"]["ContentMeta"];
+        };
         /** Alternative */
         Alternative: {
             /** Label */
@@ -2096,6 +2406,12 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Content Version
+             * @description The question's version when this was answered
+             * @default 1
+             */
+            content_version: number;
         };
         /** AnswerRequest */
         AnswerRequest: {
@@ -2142,6 +2458,24 @@ export interface components {
             /** Requirement Ids */
             requirement_ids: string[];
         };
+        /** AuditEntry */
+        AuditEntry: {
+            /** Action */
+            action: string;
+            /** Actor */
+            actor: string | null;
+            /** Detail */
+            detail: {
+                [key: string]: unknown;
+            };
+            /** Internal Note */
+            internal_note: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
         /** BookmarkOut */
         BookmarkOut: {
             /**
@@ -2159,6 +2493,16 @@ export interface components {
             href: string | null;
             /** Available */
             available: boolean;
+            /**
+             * Unavailable Reason
+             * @description e.g. 'Retired: …' (still readable)
+             */
+            unavailable_reason?: string | null;
+            /**
+             * Content Version
+             * @description Questions: the version when it was saved
+             */
+            content_version?: number | null;
             /**
              * Created At
              * Format: date-time
@@ -2521,6 +2865,85 @@ export interface components {
              */
             space: string;
         };
+        /** ContentChange */
+        ContentChange: {
+            /** Version */
+            version: number;
+            /** Note */
+            note: string;
+            /** Significant */
+            significant: boolean;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+        };
+        /**
+         * ContentMeta
+         * @description What a learner should know about where this content came from and its state.
+         */
+        ContentMeta: {
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "question" | "problem";
+            /** Content Id */
+            content_id: string;
+            /** Version */
+            version: number;
+            /**
+             * Version Label
+             * @description e.g. 'Version 2' or 'Test version 3'
+             */
+            version_label: string;
+            /** Career */
+            career: string | null;
+            /** Topic */
+            topic: string | null;
+            /** Level */
+            level: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "retired";
+            /** Retired Reason */
+            retired_reason: string | null;
+            /** Labels */
+            labels: components["schemas"]["TrustLabel"][];
+            /**
+             * Changes
+             * @description Published corrections, oldest first
+             */
+            changes: components["schemas"]["ContentChange"][];
+        };
+        /** CorrectionIn */
+        CorrectionIn: {
+            /** Title */
+            title?: string | null;
+            /** Prompt */
+            prompt?: string | null;
+            /** Tips */
+            tips?: string[] | null;
+            /** Outline */
+            outline?: string[] | null;
+            /**
+             * Change Note
+             * @description Plain language, shown to learners
+             */
+            change_note: string;
+            /**
+             * Significant
+             * @default true
+             */
+            significant: boolean;
+            /** Report Ids */
+            report_ids?: string[];
+            /** Internal Note */
+            internal_note?: string | null;
+        };
         /** Coverage */
         Coverage: {
             /**
@@ -2675,6 +3098,16 @@ export interface components {
         DoneIn: {
             /** Done */
             done: boolean;
+        };
+        /** DuplicateIn */
+        DuplicateIn: {
+            /**
+             * Duplicate Of
+             * @description Another report's id, or null to ungroup
+             */
+            duplicate_of: string | null;
+            /** Internal Note */
+            internal_note?: string | null;
         };
         /**
          * Engagement
@@ -3805,6 +4238,58 @@ export interface components {
                 [key: string]: components["schemas"]["ItemStatus"];
             };
         };
+        /**
+         * MyReport
+         * @description A reporter's view: their own words and the public outcome, never internal notes.
+         */
+        MyReport: {
+            /** Id */
+            id: string;
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "question" | "problem";
+            /** Content Id */
+            content_id: string;
+            /** Content Title */
+            content_title: string;
+            /** Content Href */
+            content_href: string | null;
+            /** Content Version */
+            content_version: number;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "ambiguous_wording" | "incorrect_example" | "outdated_guidance" | "wrong_career_topic" | "accessibility" | "technical_bug" | "other";
+            /**
+             * Context
+             * @enum {string}
+             */
+            context: "content" | "feedback";
+            /** Details */
+            details: string;
+            /** Excerpt */
+            excerpt: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "investigating" | "resolved" | "not_actionable";
+            /** Resolution */
+            resolution: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** NextAction */
         NextAction: {
             /**
@@ -4467,6 +4952,15 @@ export interface components {
              */
             best_score?: number | null;
         };
+        /** QuestionVersionOut */
+        QuestionVersionOut: {
+            /** Version */
+            version: number;
+            /** Title */
+            title: string;
+            /** Prompt */
+            prompt: string;
+        };
         /** QueueIn */
         QueueIn: {
             /** Position */
@@ -4550,6 +5044,66 @@ export interface components {
              */
             career_track?: string | null;
         };
+        /** ReportGroup */
+        ReportGroup: {
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "question" | "problem";
+            /** Content Id */
+            content_id: string;
+            /** Content Title */
+            content_title: string;
+            /** Open Count */
+            open_count: number;
+            /** Reports */
+            reports: components["schemas"]["AdminReport"][];
+        };
+        /** ReportIn */
+        ReportIn: {
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "question" | "problem";
+            /**
+             * Content Id
+             * @description 'track/question_id' or a problem slug
+             */
+            content_id: string;
+            /**
+             * Content Version
+             * @description The version the reporter saw
+             */
+            content_version: number;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "ambiguous_wording" | "incorrect_example" | "outdated_guidance" | "wrong_career_topic" | "accessibility" | "technical_bug" | "other";
+            /**
+             * Details
+             * @default
+             */
+            details: string;
+            /**
+             * Context
+             * @default content
+             * @enum {string}
+             */
+            context: "content" | "feedback";
+            /**
+             * Answer Id
+             * @description Feedback reports: your answer
+             */
+            answer_id?: string | null;
+            /**
+             * Excerpt
+             * @description Only what you reviewed and chose to attach
+             */
+            excerpt?: string | null;
+        };
         /** RequirementIn */
         RequirementIn: {
             /**
@@ -4610,6 +5164,11 @@ export interface components {
             /** Removed */
             removed?: boolean | null;
         };
+        /** RestoreIn */
+        RestoreIn: {
+            /** Internal Note */
+            internal_note?: string | null;
+        };
         /** ResumeInterview */
         ResumeInterview: {
             /** Id */
@@ -4663,6 +5222,18 @@ export interface components {
              * Format: date-time
              */
             at: string;
+        };
+        /** RetireIn */
+        RetireIn: {
+            /**
+             * Reason
+             * @description Shown to learners
+             */
+            reason: string;
+            /** Report Ids */
+            report_ids?: string[];
+            /** Internal Note */
+            internal_note?: string | null;
         };
         /** RetryIn */
         RetryIn: {
@@ -5575,6 +6146,29 @@ export interface components {
              */
             parent_id?: string | null;
         };
+        /** StatusIn */
+        StatusIn: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "investigating" | "resolved" | "not_actionable";
+            /**
+             * Resolution
+             * @description Shown to the reporter
+             */
+            resolution?: string | null;
+            /**
+             * Internal Note
+             * @description Admins only
+             */
+            internal_note?: string | null;
+            /**
+             * Include Duplicates
+             * @default true
+             */
+            include_duplicates: boolean;
+        };
         /** StepIn */
         StepIn: {
             /**
@@ -5938,6 +6532,16 @@ export interface components {
             /** Points */
             points: components["schemas"]["TrendPoint"][];
         };
+        /** TrustLabel */
+        TrustLabel: {
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "generated" | "authored" | "not_expert_reviewed" | "reference_verified" | "tests_not_checked" | "corrected";
+            /** Text */
+            text: string;
+        };
         /** TurnOut */
         TurnOut: {
             /** Seq */
@@ -6174,6 +6778,12 @@ export interface components {
              * @description The job this person is preparing for
              */
             career_track: string;
+            /**
+             * Is Admin
+             * @description Can triage content reports (granted from the command line)
+             * @default false
+             */
+            is_admin: boolean;
         };
         /** ValidationError */
         ValidationError: {
@@ -7645,6 +8255,536 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    meta_api_v1_content__content_type___content_id__meta_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                content_type: "question" | "problem";
+                content_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentMeta"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    question_version_api_v1_careers__slug__questions__question_id__versions__version__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                question_id: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionVersionOut"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_api_v1_reports_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyReport"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    my_reports_api_v1_me_reports_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyReport"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    admin_reports_api_v1_admin_reports_get: {
+        parameters: {
+            query?: {
+                /** @description 'open' includes investigating */
+                status?: ("open" | "investigating" | "resolved" | "not_actionable") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportGroup"][];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_report_api_v1_admin_reports__report_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminReportDetail"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_status_api_v1_admin_reports__report_id__status_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatusIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminReportDetail"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    admin_duplicate_api_v1_admin_reports__report_id__duplicate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DuplicateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminReportDetail"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    admin_correct_api_v1_admin_content_question__slug___question_id__corrections_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CorrectionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentMeta"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    admin_retire_api_v1_admin_content__content_type___content_id__retire_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                content_type: "question" | "problem";
+                content_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetireIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentMeta"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    admin_restore_api_v1_admin_content__content_type___content_id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                content_type: "question" | "problem";
+                content_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestoreIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentMeta"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

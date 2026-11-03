@@ -65,6 +65,13 @@ jobs:
           alembic downgrade base
       - name: Reference solutions pass every seeded test
         run: python scripts/verify_reference_solutions.py
+      - name: Content quality gates (questions, corrections, lessons, scenarios, problems)
+        env:
+          DATABASE_URL: postgresql+psycopg://codecoach:codecoach@localhost:5432/codecoach_test
+        run: |
+          alembic upgrade head
+          python -m app.cli seed
+          python -m app.cli validate-content
 
   frontend:
     name: Frontend (lint, types, unit tests, build, API contract)

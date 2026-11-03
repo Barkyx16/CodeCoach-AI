@@ -14,6 +14,7 @@ from app.api.routes import (
     ai,
     auth,
     careers,
+    content,
     explore,
     health,
     interviews,
@@ -62,6 +63,11 @@ TAGS = [
     {"name": "ai coach", "description": "Progressive hints, structured code reviews, budgets and history"},
     {"name": "interviews", "description": "Timed mock interviews with an AI interviewer and rubric feedback"},
     {"name": "progress", "description": "Analytics and personalized recommendations"},
+    {
+        "name": "content quality",
+        "description": "Content metadata and trust labels, issue reports, and admin triage (corrections, "
+        "retirement). Admin routes answer 404 to everyone who isn't an admin.",
+    },
     {
         "name": "sharing",
         "description": "Share a chosen answer with a reviewer through an unlisted, revocable link; "
@@ -139,6 +145,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.share_open_limiter = limiter(settings.share_opens_per_10_minutes, 600)
     app.state.share_feedback_limiter = limiter(settings.share_feedback_per_hour, 3600)
     app.state.share_create_limiter = limiter(settings.shares_created_per_hour, 3600)
+    app.state.report_limiter = limiter(settings.content_reports_per_hour, 3600)
     app.state.metrics = Metrics() if settings.metrics_enabled else None
 
     install_error_handlers(app)
@@ -160,6 +167,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         auth.router,
         problems.router,
         careers.router,
+        content.router,
+        content.admin_router,
         explore.router,
         learn.router,
         notes.router,

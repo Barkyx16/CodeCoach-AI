@@ -1999,6 +1999,821 @@
         }
       }
     },
+    "/api/v1/content/{content_type}/{content_id}/meta": {
+      "get": {
+        "tags": [
+          "content quality"
+        ],
+        "summary": "Where this content came from, its version, status, corrections and trust labels",
+        "operationId": "meta_api_v1_content__content_type___content_id__meta_get",
+        "parameters": [
+          {
+            "name": "content_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "question",
+                "problem"
+              ],
+              "type": "string",
+              "title": "Content Type"
+            }
+          },
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Content Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentMeta"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/careers/{slug}/questions/{question_id}/versions/{version}": {
+      "get": {
+        "tags": [
+          "content quality"
+        ],
+        "summary": "A question as it read at an earlier version (for answers written against it)",
+        "operationId": "question_version_api_v1_careers__slug__questions__question_id__versions__version__get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "question_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Question Id"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionVersionOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports": {
+      "post": {
+        "tags": [
+          "content quality"
+        ],
+        "summary": "Report a problem with a question, a coding problem, or the feedback on your answer",
+        "operationId": "report_api_v1_reports_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/reports": {
+      "get": {
+        "tags": [
+          "content quality"
+        ],
+        "summary": "Your reports and what happened to them (never other people's, never internal notes)",
+        "operationId": "my_reports_api_v1_me_reports_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MyReport"
+                  },
+                  "type": "array",
+                  "title": "Response My Reports Api V1 Me Reports Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/reports": {
+      "get": {
+        "tags": [
+          "content quality"
+        ],
+        "summary": "Reports grouped by content",
+        "operationId": "admin_reports_api_v1_admin_reports_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "open",
+                    "investigating",
+                    "resolved",
+                    "not_actionable"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "'open' includes investigating",
+              "title": "Status"
+            },
+            "description": "'open' includes investigating"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReportGroup"
+                  },
+                  "title": "Response Admin Reports Api V1 Admin Reports Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/reports/{report_id}": {
+      "get": {
+        "tags": [
+          "content quality"
+        ],
+        "summary": "One report with its audit trail",
+        "operationId": "admin_report_api_v1_admin_reports__report_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Report Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReportDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/reports/{report_id}/status": {
+      "post": {
+        "tags": [
+          "content quality"
+        ],
+        "summary": "Change a report's status",
+        "operationId": "admin_status_api_v1_admin_reports__report_id__status_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Report Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StatusIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReportDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/reports/{report_id}/duplicate": {
+      "post": {
+        "tags": [
+          "content quality"
+        ],
+        "summary": "Group a report under another (or ungroup it)",
+        "operationId": "admin_duplicate_api_v1_admin_reports__report_id__duplicate_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Report Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DuplicateIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReportDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/content/question/{slug}/{question_id}/corrections": {
+      "post": {
+        "tags": [
+          "content quality"
+        ],
+        "summary": "Publish a correction as a new version (answers keep the version they were written against)",
+        "operationId": "admin_correct_api_v1_admin_content_question__slug___question_id__corrections_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "question_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Question Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrectionIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentMeta"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/content/{content_type}/{content_id}/retire": {
+      "post": {
+        "tags": [
+          "content quality"
+        ],
+        "summary": "Retire content: readable in history and saved items, no longer used for practice or assessment",
+        "operationId": "admin_retire_api_v1_admin_content__content_type___content_id__retire_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "content_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "question",
+                "problem"
+              ],
+              "type": "string",
+              "title": "Content Type"
+            }
+          },
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Content Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetireIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentMeta"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/content/{content_type}/{content_id}/restore": {
+      "post": {
+        "tags": [
+          "content quality"
+        ],
+        "summary": "Undo a retirement",
+        "operationId": "admin_restore_api_v1_admin_content__content_type___content_id__restore_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "content_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "question",
+                "problem"
+              ],
+              "type": "string",
+              "title": "Content Type"
+            }
+          },
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Content Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentMeta"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/careers/{slug}/explore": {
       "get": {
         "tags": [
@@ -10857,6 +11672,328 @@
         "title": "ActivityTarget",
         "description": "Where the row opens: a page path plus the stable ids it refers to."
       },
+      "AdminReport": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "content_type": {
+            "type": "string",
+            "enum": [
+              "question",
+              "problem"
+            ],
+            "title": "Content Type"
+          },
+          "content_id": {
+            "type": "string",
+            "title": "Content Id"
+          },
+          "content_title": {
+            "type": "string",
+            "title": "Content Title"
+          },
+          "content_href": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Href"
+          },
+          "content_version": {
+            "type": "integer",
+            "title": "Content Version"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "ambiguous_wording",
+              "incorrect_example",
+              "outdated_guidance",
+              "wrong_career_topic",
+              "accessibility",
+              "technical_bug",
+              "other"
+            ],
+            "title": "Category"
+          },
+          "context": {
+            "type": "string",
+            "enum": [
+              "content",
+              "feedback"
+            ],
+            "title": "Context"
+          },
+          "details": {
+            "type": "string",
+            "title": "Details"
+          },
+          "excerpt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Excerpt"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "investigating",
+              "resolved",
+              "not_actionable"
+            ],
+            "title": "Status"
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "reporter": {
+            "type": "string",
+            "title": "Reporter",
+            "description": "Who reported it: display name or 'A learner'; never an email"
+          },
+          "duplicate_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duplicate Of"
+          },
+          "duplicates": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Duplicates"
+          },
+          "current_version": {
+            "type": "integer",
+            "title": "Current Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "content_type",
+          "content_id",
+          "content_title",
+          "content_href",
+          "content_version",
+          "category",
+          "context",
+          "details",
+          "excerpt",
+          "status",
+          "resolution",
+          "created_at",
+          "updated_at",
+          "reporter",
+          "duplicate_of",
+          "duplicates",
+          "current_version"
+        ],
+        "title": "AdminReport"
+      },
+      "AdminReportDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "content_type": {
+            "type": "string",
+            "enum": [
+              "question",
+              "problem"
+            ],
+            "title": "Content Type"
+          },
+          "content_id": {
+            "type": "string",
+            "title": "Content Id"
+          },
+          "content_title": {
+            "type": "string",
+            "title": "Content Title"
+          },
+          "content_href": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Href"
+          },
+          "content_version": {
+            "type": "integer",
+            "title": "Content Version"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "ambiguous_wording",
+              "incorrect_example",
+              "outdated_guidance",
+              "wrong_career_topic",
+              "accessibility",
+              "technical_bug",
+              "other"
+            ],
+            "title": "Category"
+          },
+          "context": {
+            "type": "string",
+            "enum": [
+              "content",
+              "feedback"
+            ],
+            "title": "Context"
+          },
+          "details": {
+            "type": "string",
+            "title": "Details"
+          },
+          "excerpt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Excerpt"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "investigating",
+              "resolved",
+              "not_actionable"
+            ],
+            "title": "Status"
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "reporter": {
+            "type": "string",
+            "title": "Reporter",
+            "description": "Who reported it: display name or 'A learner'; never an email"
+          },
+          "duplicate_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duplicate Of"
+          },
+          "duplicates": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Duplicates"
+          },
+          "current_version": {
+            "type": "integer",
+            "title": "Current Version"
+          },
+          "audit": {
+            "items": {
+              "$ref": "#/components/schemas/AuditEntry"
+            },
+            "type": "array",
+            "title": "Audit"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ContentMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "content_type",
+          "content_id",
+          "content_title",
+          "content_href",
+          "content_version",
+          "category",
+          "context",
+          "details",
+          "excerpt",
+          "status",
+          "resolution",
+          "created_at",
+          "updated_at",
+          "reporter",
+          "duplicate_of",
+          "duplicates",
+          "current_version",
+          "audit",
+          "meta"
+        ],
+        "title": "AdminReportDetail"
+      },
       "Alternative": {
         "properties": {
           "label": {
@@ -10946,6 +12083,12 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "content_version": {
+            "type": "integer",
+            "title": "Content Version",
+            "description": "The question's version when this was answered",
+            "default": 1
           }
         },
         "type": "object",
@@ -11074,6 +12217,55 @@
         ],
         "title": "AttemptOut"
       },
+      "AuditEntry": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "actor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor"
+          },
+          "detail": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Detail"
+          },
+          "internal_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Internal Note"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "action",
+          "actor",
+          "detail",
+          "internal_note",
+          "created_at"
+        ],
+        "title": "AuditEntry"
+      },
       "BookmarkOut": {
         "properties": {
           "item_type": {
@@ -11110,6 +12302,30 @@
           "available": {
             "type": "boolean",
             "title": "Available"
+          },
+          "unavailable_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unavailable Reason",
+            "description": "e.g. 'Retired: \u2026' (still readable)"
+          },
+          "content_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Version",
+            "description": "Questions: the version when it was saved"
           },
           "created_at": {
             "type": "string",
@@ -11966,6 +13182,240 @@
         ],
         "title": "Complexity"
       },
+      "ContentChange": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          },
+          "significant": {
+            "type": "boolean",
+            "title": "Significant"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "note",
+          "significant",
+          "at"
+        ],
+        "title": "ContentChange"
+      },
+      "ContentMeta": {
+        "properties": {
+          "content_type": {
+            "type": "string",
+            "enum": [
+              "question",
+              "problem"
+            ],
+            "title": "Content Type"
+          },
+          "content_id": {
+            "type": "string",
+            "title": "Content Id"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "version_label": {
+            "type": "string",
+            "title": "Version Label",
+            "description": "e.g. 'Version 2' or 'Test version 3'"
+          },
+          "career": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Career"
+          },
+          "topic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "retired"
+            ],
+            "title": "Status"
+          },
+          "retired_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retired Reason"
+          },
+          "labels": {
+            "items": {
+              "$ref": "#/components/schemas/TrustLabel"
+            },
+            "type": "array",
+            "title": "Labels"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/ContentChange"
+            },
+            "type": "array",
+            "title": "Changes",
+            "description": "Published corrections, oldest first"
+          }
+        },
+        "type": "object",
+        "required": [
+          "content_type",
+          "content_id",
+          "version",
+          "version_label",
+          "career",
+          "topic",
+          "level",
+          "status",
+          "retired_reason",
+          "labels",
+          "changes"
+        ],
+        "title": "ContentMeta",
+        "description": "What a learner should know about where this content came from and its state."
+      },
+      "CorrectionIn": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "prompt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000,
+                "minLength": 10
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt"
+          },
+          "tips": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 8
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tips"
+          },
+          "outline": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 10
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outline"
+          },
+          "change_note": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 5,
+            "title": "Change Note",
+            "description": "Plain language, shown to learners"
+          },
+          "significant": {
+            "type": "boolean",
+            "title": "Significant",
+            "default": true
+          },
+          "report_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Report Ids"
+          },
+          "internal_note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Internal Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "change_note"
+        ],
+        "title": "CorrectionIn"
+      },
       "Coverage": {
         "properties": {
           "level": {
@@ -12330,6 +13780,39 @@
           "done"
         ],
         "title": "DoneIn"
+      },
+      "DuplicateIn": {
+        "properties": {
+          "duplicate_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duplicate Of",
+            "description": "Another report's id, or null to ungroup"
+          },
+          "internal_note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Internal Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "duplicate_of"
+        ],
+        "title": "DuplicateIn"
       },
       "Engagement": {
         "properties": {
@@ -15110,6 +16593,131 @@
         ],
         "title": "MyExploreResult"
       },
+      "MyReport": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "content_type": {
+            "type": "string",
+            "enum": [
+              "question",
+              "problem"
+            ],
+            "title": "Content Type"
+          },
+          "content_id": {
+            "type": "string",
+            "title": "Content Id"
+          },
+          "content_title": {
+            "type": "string",
+            "title": "Content Title"
+          },
+          "content_href": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Href"
+          },
+          "content_version": {
+            "type": "integer",
+            "title": "Content Version"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "ambiguous_wording",
+              "incorrect_example",
+              "outdated_guidance",
+              "wrong_career_topic",
+              "accessibility",
+              "technical_bug",
+              "other"
+            ],
+            "title": "Category"
+          },
+          "context": {
+            "type": "string",
+            "enum": [
+              "content",
+              "feedback"
+            ],
+            "title": "Context"
+          },
+          "details": {
+            "type": "string",
+            "title": "Details"
+          },
+          "excerpt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Excerpt"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "investigating",
+              "resolved",
+              "not_actionable"
+            ],
+            "title": "Status"
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "content_type",
+          "content_id",
+          "content_title",
+          "content_href",
+          "content_version",
+          "category",
+          "context",
+          "details",
+          "excerpt",
+          "status",
+          "resolution",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "MyReport",
+        "description": "A reporter's view: their own words and the public outcome, never internal notes."
+      },
       "NextAction": {
         "properties": {
           "kind": {
@@ -16834,6 +18442,29 @@
         ],
         "title": "QuestionSummary"
       },
+      "QuestionVersionOut": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "prompt": {
+            "type": "string",
+            "title": "Prompt"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "title",
+          "prompt"
+        ],
+        "title": "QuestionVersionOut"
+      },
       "QueueIn": {
         "properties": {
           "position": {
@@ -17053,6 +18684,133 @@
         ],
         "title": "RegisterRequest"
       },
+      "ReportGroup": {
+        "properties": {
+          "content_type": {
+            "type": "string",
+            "enum": [
+              "question",
+              "problem"
+            ],
+            "title": "Content Type"
+          },
+          "content_id": {
+            "type": "string",
+            "title": "Content Id"
+          },
+          "content_title": {
+            "type": "string",
+            "title": "Content Title"
+          },
+          "open_count": {
+            "type": "integer",
+            "title": "Open Count"
+          },
+          "reports": {
+            "items": {
+              "$ref": "#/components/schemas/AdminReport"
+            },
+            "type": "array",
+            "title": "Reports"
+          }
+        },
+        "type": "object",
+        "required": [
+          "content_type",
+          "content_id",
+          "content_title",
+          "open_count",
+          "reports"
+        ],
+        "title": "ReportGroup"
+      },
+      "ReportIn": {
+        "properties": {
+          "content_type": {
+            "type": "string",
+            "enum": [
+              "question",
+              "problem"
+            ],
+            "title": "Content Type"
+          },
+          "content_id": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Content Id",
+            "description": "'track/question_id' or a problem slug"
+          },
+          "content_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Content Version",
+            "description": "The version the reporter saw"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "ambiguous_wording",
+              "incorrect_example",
+              "outdated_guidance",
+              "wrong_career_topic",
+              "accessibility",
+              "technical_bug",
+              "other"
+            ],
+            "title": "Category"
+          },
+          "details": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Details",
+            "default": ""
+          },
+          "context": {
+            "type": "string",
+            "enum": [
+              "content",
+              "feedback"
+            ],
+            "title": "Context",
+            "default": "content"
+          },
+          "answer_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 36
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answer Id",
+            "description": "Feedback reports: your answer"
+          },
+          "excerpt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Excerpt",
+            "description": "Only what you reviewed and chose to attach"
+          }
+        },
+        "type": "object",
+        "required": [
+          "content_type",
+          "content_id",
+          "content_version",
+          "category"
+        ],
+        "title": "ReportIn"
+      },
       "RequirementIn": {
         "properties": {
           "category": {
@@ -17246,6 +19004,24 @@
         "type": "object",
         "title": "RequirementPatch"
       },
+      "RestoreIn": {
+        "properties": {
+          "internal_note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Internal Note"
+          }
+        },
+        "type": "object",
+        "title": "RestoreIn"
+      },
       "ResumeInterview": {
         "properties": {
           "id": {
@@ -17383,6 +19159,42 @@
           "at"
         ],
         "title": "ResumeQuestion"
+      },
+      "RetireIn": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 5,
+            "title": "Reason",
+            "description": "Shown to learners"
+          },
+          "report_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Report Ids"
+          },
+          "internal_note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Internal Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "RetireIn"
       },
       "RetryIn": {
         "properties": {
@@ -19643,6 +21455,56 @@
         "type": "object",
         "title": "StartIn"
       },
+      "StatusIn": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "investigating",
+              "resolved",
+              "not_actionable"
+            ],
+            "title": "Status"
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution",
+            "description": "Shown to the reporter"
+          },
+          "internal_note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Internal Note",
+            "description": "Admins only"
+          },
+          "include_duplicates": {
+            "type": "boolean",
+            "title": "Include Duplicates",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "StatusIn"
+      },
       "StepIn": {
         "properties": {
           "node_id": {
@@ -20663,6 +22525,32 @@
         ],
         "title": "TrendSeries"
       },
+      "TrustLabel": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "generated",
+              "authored",
+              "not_expert_reviewed",
+              "reference_verified",
+              "tests_not_checked",
+              "corrected"
+            ],
+            "title": "Key"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "text"
+        ],
+        "title": "TrustLabel"
+      },
       "TurnOut": {
         "properties": {
           "seq": {
@@ -21258,6 +23146,12 @@
             "type": "string",
             "title": "Career Track",
             "description": "The job this person is preparing for"
+          },
+          "is_admin": {
+            "type": "boolean",
+            "title": "Is Admin",
+            "description": "Can triage content reports (granted from the command line)",
+            "default": false
           }
         },
         "type": "object",
@@ -21417,6 +23311,10 @@
     {
       "name": "progress",
       "description": "Analytics and personalized recommendations"
+    },
+    {
+      "name": "content quality",
+      "description": "Content metadata and trust labels, issue reports, and admin triage (corrections, retirement). Admin routes answer 404 to everyone who isn't an admin."
     },
     {
       "name": "sharing",

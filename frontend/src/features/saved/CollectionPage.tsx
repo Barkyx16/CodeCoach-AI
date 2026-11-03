@@ -142,7 +142,7 @@ export function CollectionPage() {
             <li key={item.id} className={`card collection-item${item.available ? "" : " collection-item--gone"}`}>
               <span className="collection-item__pos" aria-hidden="true">{index + 1}</span>
               <div className="collection-item__main stack-sm">
-                {item.available && item.href
+                {item.href /* retired items stay readable */
                   ? <Link to={item.href} state={{ from: `/saved/collections/${id}`, fromLabel: `Back to ${c.name}` }}>{item.title}</Link>
                   : <strong>{item.title}</strong>}
                 <span className="subtle">{itemKind(item.item_type, item.track)}</span>
@@ -150,7 +150,7 @@ export function CollectionPage() {
                   {item.queue_done && <Badge tone="success">Done in queue</Badge>}
                   {item.practiced_since_added && <Badge tone="info">Practiced since added</Badge>}
                 </span>
-                {!item.available && <p className="banner banner--warning">{item.unavailable_reason} Nothing was swapped in for it.</p>}
+                {!item.available && <p className="banner banner--warning">{item.unavailable_reason}{item.href ? " You can still open it; it isn't used for practice." : ""} Nothing was swapped in for it.</p>}
               </div>
               <div className="collection-item__actions">
                 <button type="button" className="btn btn--ghost btn--sm" aria-label={`Move “${item.title}” up`}

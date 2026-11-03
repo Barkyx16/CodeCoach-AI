@@ -9,7 +9,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.config import Settings
-from app.errors import UnauthorizedError
+from app.content import state as content_state
+from app.errors import NotFoundError, UnauthorizedError
 from app.models import User
 from app.services.auth import decode_access_token
 
@@ -22,6 +23,8 @@ def get_settings_dep(request: Request) -> Settings:
 
 def get_db(request: Request) -> Iterator[Session]:
     session = request.app.state.session_factory()
+    # Corrections and retirements published by triage apply to the generated question bank.
+    content_state.refresh(session)
     try:
         yield session
     finally:
@@ -48,4 +51,12 @@ def get_optional_user(
 def get_current_user(user: User | None = Depends(get_optional_user)) -> User:
     if user is None:
         raise UnauthorizedError("Authentication required. Log in at POST /api/v1/auth/login")
+    return user
+
+
+def require_admin(user: User | None = Depends(get_optional_user)) -> User:
+    """Content triage only. Everyone else (signed out or not an admin) gets a plain 404, so the
+    admin area isn't discoverable."""
+    if user is None or not user.is_admin:
+        raise NotFoundError("Not found")
     return user

@@ -18,12 +18,13 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable, Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import lru_cache
 from itertools import combinations
 
 from app.careers import CATALOG
 from app.careers.profiles import JobProfile
+from app.content import state as content_state
 
 PER_LEVEL = 100
 LEVELS = ("easy", "medium", "hard")
@@ -49,6 +50,8 @@ class Question:
     rubric: tuple[RubricPoint, ...]
     outline: tuple[str, ...]
     tips: tuple[str, ...]
+    # 1 is the generated original; each published correction adds one (app/content).
+    version: int = 1
 
 
 # ----------------------------------------------------------------------------------------------
@@ -1205,9 +1208,10 @@ def _build(p: JobProfile, t: Template, suffix: str, slots: Slots) -> Question:
 
 
 @lru_cache(maxsize=256)
-def questions_for(track: str) -> tuple[Question, ...]:
-    """All questions for a career, easy first. Within a level, templates are interleaved so the first
-    few questions shown cover different kinds of question."""
+def generated_questions(track: str) -> tuple[Question, ...]:
+    """All generated questions for a career (version 1, retired ones included), easy first.
+    Within a level, templates are interleaved so the first few questions shown cover different
+    kinds of question."""
     p = CATALOG[track]
     out: list[Question] = []
     for level in LEVELS:
@@ -1226,7 +1230,45 @@ def questions_for(track: str) -> tuple[Question, ...]:
     return tuple(out)
 
 
-def get_question(track: str, question_id: str) -> Question | None:
+CORRECTABLE_FIELDS = ("title", "prompt", "tips", "outline")
+
+
+def content_key(track: str, question_id: str) -> str:
+    return f"{track}/{question_id}"
+
+
+def _corrected(q: Question, version: int | None = None) -> Question:
+    """Apply published corrections up to `version` (default: all of them)."""
+    corrections = content_state.current().corrections.get(("question", content_key(q.track, q.id)), [])
+    changes: dict = {}
+    latest = 1
+    for c in corrections:
+        if version is not None and c.version > version:
+            break
+        changes.update(
+            {
+                k: (tuple(v) if isinstance(v, list) else v)
+                for k, v in c.fields.items()
+                if k in CORRECTABLE_FIELDS
+            }
+        )
+        latest = c.version
+    return replace(q, **changes, version=latest) if corrections and latest > 1 else q
+
+
+def is_retired(track: str, question_id: str) -> bool:
+    return ("question", content_key(track, question_id)) in content_state.current().retired
+
+
+def questions_for(track: str) -> tuple[Question, ...]:
+    """The questions offered for practice: current versions, retired ones left out."""
+    return tuple(_corrected(q) for q in generated_questions(track) if not is_retired(track, q.id))
+
+
+def get_question(track: str, question_id: str, version: int | None = None) -> Question | None:
+    """One question, retired or not (history and saved items still need it), at its current
+    version or, with `version`, as it was then."""
     if track not in CATALOG:
         return None
-    return next((q for q in questions_for(track) if q.id == question_id), None)
+    base = next((q for q in generated_questions(track) if q.id == question_id), None)
+    return _corrected(base, version) if base else None

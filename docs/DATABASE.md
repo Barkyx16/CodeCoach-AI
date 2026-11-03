@@ -41,6 +41,7 @@ SQLite for speed, and CI runs it on both. Schema changes go through **Alembic** 
 | `token_version` | integer | Incremented on logout or password change; JWTs carrying an older version are rejected |
 | `created_at`, `last_login_at` | timestamptz | |
 | `career_track` | varchar(64), default `software-engineer` | The job they're preparing for: a slug from `app/careers` |
+| `is_admin` | boolean, default false | Content triage access. Set only from the command line (`python -m app.cli grant-admin EMAIL`); no endpoint changes it |
 
 ### `practice_answers`
 
@@ -57,6 +58,7 @@ from the career catalog, so they're referenced by `(track, question_id)`, not a 
 | `score` | integer | 0-100 |
 | `feedback` | JSONB | rating, summary, rubric points, notes, outline, word count |
 | `provider` | varchar(32) | Which coach graded it (`built-in (offline)` today) |
+| `content_version` | integer null | The question version it was written against (NULL for answers from before versioning, which means version 1). Never rewritten when the question is corrected |
 | `created_at` | timestamptz | |
 
 ### `problems`
@@ -187,7 +189,8 @@ transcript; `ai_interactions` rows for interview turns keep only cost and latenc
 ### Saved items and Learn progress
 - `bookmarks`: `(user_id, item_type, track, ref_id)` unique; `item_type` is `question` (with its
   career in `track`) or `problem` (`track` empty). Items are referenced by stable id, so a retired
-  question shows as unavailable instead of being replaced.
+  question shows as unavailable instead of being replaced. `content_version` remembers the version
+  a question was saved at, so a significant correction since then can be pointed out.
 - `practice_collections` / `collection_items`: an ordered list per collection (`position`), one
   copy of an item per collection, queue progress (`queue_position`, `queue_done_at`) kept apart
   from scores.
@@ -207,6 +210,32 @@ transcript; `ai_interactions` rows for interview turns keep only cost and latenc
   to snapshot sentence indices). `reviewer_id` is set for signed-in registered reviewers and set to
   NULL if that account is deleted; `guest_name` is unverified. `(share_id, client_request_id)` is
   unique so a retried submission is stored once. Never linked to scores.
+
+### Content quality
+Generated questions and seeded problems live in code; these tables hold what happened to them
+since. Content is referenced by `(content_type, content_id)` (`question` + `track/question_id`,
+or `problem` + slug), not a foreign key, so a report outlives a renamed or retired item.
+
+- `content_reports`: a learner's report. `content_version` is the version they saw; `context` is
+  `content` or `feedback` (then `answer_id` names their own answer); `details` and the optional
+  `excerpt` are plain text the learner chose to send. `status` is `open | investigating | resolved
+  | not_actionable` and `resolution` is the public explanation. `duplicate_of` groups a likely
+  duplicate under the first report (set NULL if that one is ever removed; nothing is merged).
+  Cascades with the reporter; indexed by content and status.
+- `content_versions`: published corrections. One row per version ≥ 2 (version 1 is the generated
+  original), with the changed fields, a learner-facing `change_note` and `significant`. Unique per
+  `(content_type, content_id, version)`; versions only grow. `created_by` is set NULL if that
+  admin's account is deleted.
+- `content_status`: one row per retired item (primary key `(content_type, content_id)`): the
+  learner-facing `reason`, who retired it and when. No row means active; restoring deletes the
+  row (the audit log keeps the history).
+- `content_checks`: recorded automated checks (today `reference_solution`) with the test
+  `content_version` they ran against, `passed`, a short `detail` and `checked_at`. Unique per
+  content and check; the "reference solution passed" label is built only from these rows.
+- `content_audit`: append-only log of reports, groupings, status changes, corrections,
+  retirements and restores: `actor_id` (set NULL if the account is deleted), `action`, `detail`
+  (JSON), optional admin-only `internal_note`, `report_id` (no foreign key, so the trail stays even
+  if a report is deleted with its reporter's account).
 
 ## Design notes
 
@@ -236,8 +265,9 @@ transcript; `ai_interactions` rows for interview turns keep only cost and latenc
 | `f3b8d1e6c527` learn events | Adds `learn_events` (unit id and version, kind, detail, `dedupe_key` unique per user so once-per-version events can't race). New table, cascading with the user |
 | `a5c9e2f7d318` notes | Adds `notes` (text, tags, source reference and snapshot, pin/archive, `revision` for conflict detection, `deleted_at` for the undo window) with an index on `(user_id, updated_at)`. New table, cascading with the user |
 | `b7d2f4a9c613` scenario attempts | Adds `scenario_attempts` (scenario id and version, mode, parent attempt, current node, recorded steps with text/feedback snapshots, ending). New table, cascading with the user |
-| `d4f1b8c2e637` shares and share feedback | Adds `shares` (owner, hashed link secret, source reference and digest, snapshot, expiry/close/revoke times) and `share_feedback` (structured feedback, reviewer or guest name, unique retry key). New tables; shares cascade with the owner, a reviewer's deletion clears `reviewer_id` |
 | `c3e8a1d5f924` submission client request id | Adds nullable `submissions.client_request_id` with a unique constraint on `(user_id, client_request_id)` so a retried POST returns the original submission. Safe on populated tables |
+| `d4f1b8c2e637` shares and share feedback | Adds `shares` (owner, hashed link secret, source reference and digest, snapshot, expiry/close/revoke times) and `share_feedback` (structured feedback, reviewer or guest name, unique retry key). New tables; shares cascade with the owner, a reviewer's deletion clears `reviewer_id` |
+| `e5a2c7f1b948` content quality | Adds `content_reports`, `content_versions`, `content_status`, `content_checks` and `content_audit`; nullable `content_version` on `practice_answers` and `bookmarks` (NULL means version 1, so existing rows need no backfill); `users.is_admin` with server default false. New tables and nullable/defaulted columns, so populated databases migrate safely; round-tripped (upgrade, downgrade, upgrade) on PostgreSQL |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

@@ -11,6 +11,7 @@ from app.models import Difficulty, Problem, ProgressEvent, ProgressEventType, Te
 from app.schemas.common import Page, error_responses
 from app.schemas.problem import DifficultyCounts, ProblemDetail, ProblemSummary, PublicTestCase, TopicCount
 from app.services import search
+from app.services.content import retired_problem_slugs
 
 router = APIRouter(prefix="/api/v1", tags=["problems"])
 
@@ -53,7 +54,12 @@ def _search_text(p: Problem) -> search.Searchable:
 
 def _matching(db: Session, topic: str | None, q: str | None) -> list[Problem]:
     """Problems matching the topic and search words, in library order (or by relevance)."""
-    rows = list(db.scalars(select(Problem).order_by(Problem.order_index, Problem.id)).all())
+    retired = retired_problem_slugs()  # not offered for practice; still readable by link
+    rows = [
+        p
+        for p in db.scalars(select(Problem).order_by(Problem.order_index, Problem.id)).all()
+        if p.slug not in retired
+    ]
     # Topics are a small JSON list per problem; filtering in Python keeps the query portable
     # across SQLite and Postgres. With thousands of problems this moves to a join table.
     if topic:

@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
-import { useAnswerQuestion, useMyAnswers, useQuestion } from "@/api/queries";
+import { useAnswerQuestion, useBookmarks, useContentMeta, useMyAnswers, useQuestion } from "@/api/queries";
 import type { Difficulty, InterviewAnswer } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { BackLink } from "@/components/BackLink";
@@ -17,6 +17,8 @@ import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { useOnline } from "@/hooks/useOnline";
 import { useStoredDraft } from "@/hooks/useStoredDraft";
 import { SaveOffline } from "@/features/offline/SaveOffline";
+import { ContentInfo } from "@/features/content/ContentInfo";
+import { ReportIssue } from "@/features/content/ReportIssue";
 import { timeAgo } from "@/lib/format";
 
 import { LearnLinks } from "@/features/learn/LearnLinks";
@@ -42,6 +44,9 @@ export function QuestionPage() {
   const question = useQuestion(track, id, !isRestoring); // its best score depends on who's asking
   const answers = useMyAnswers(track, id, isAuthenticated);
   const submit = useAnswerQuestion(track, id);
+  const content = useContentMeta("question", `${track}/${id}`);
+  const bookmarks = useBookmarks(isAuthenticated);
+  const retired = content.data?.status === "retired";
   // Unsent drafts are kept in this browser; a draft carried over from an interview that ended
   // before this question was answered fills an empty box (never overwrites one).
   const carried = (useLocation().state as { draft?: string } | null)?.draft ?? "";
@@ -63,6 +68,7 @@ export function QuestionPage() {
     return <div className="page"><ErrorState error={question.error} onRetry={() => question.refetch()} /></div>;
   }
   const q = question.data;
+  const savedVersion = bookmarks.data?.find((b) => b.item_type === "question" && b.track === track && b.ref_id === id)?.content_version ?? null;
   const words = countWords(draft);
   const backTo = user?.career_track === track ? "/problems?view=questions" : `/problems?career=${track}&view=questions`;
 
@@ -99,10 +105,14 @@ export function QuestionPage() {
 
       <div className="question-page__layout">
         <div className="stack">
+          <ContentInfo type="question" id={`${track}/${id}`}
+            seenVersion={answers.data?.[0]?.content_version ?? savedVersion}
+            seenWhat={answers.data?.[0] ? "answered" : "saved"} />
           <Card className="question-page__prompt">
             <h2 className="visually-hidden">The question</h2>
             <p>{q.prompt}</p>
           </Card>
+          {content.data && <div className="focus-hide"><ReportIssue type="question" id={`${track}/${id}`} version={content.data.version} excerptSource={draft.trim() || undefined} /></div>}
 
           <form className="card stack" onSubmit={onSubmit} aria-labelledby="answer-title">
             <h2 className="section-title" id="answer-title">Write your answer</h2>
@@ -115,8 +125,8 @@ export function QuestionPage() {
             <div className="answer-actions">
               <span id="answer-count" className="subtle">{words} {words === 1 ? "word" : "words"} · aim for 120-350</span>
               {isAuthenticated || offlineUser ? (
-                <Button type="submit" variant="primary" loading={submit.isPending} disabled={!draft.trim() || !online}
-                  aria-describedby={!online ? "answer-offline" : undefined}>
+                <Button type="submit" variant="primary" loading={submit.isPending} disabled={!draft.trim() || !online || retired}
+                  aria-describedby={!online ? "answer-offline" : retired ? "answer-retired" : undefined}>
                   Get feedback
                 </Button>
               ) : (
@@ -131,12 +141,13 @@ export function QuestionPage() {
             {draft.trim() && (kept
               ? <p className="subtle draft-state">Draft saved on this device, not sent yet.</p>
               : <p className="banner banner--warning" role="alert">Your draft couldn't be saved on this device (browser storage is blocked or full). Copy it somewhere safe before leaving this page.</p>)}
+            {retired && <p className="subtle" id="answer-retired">This question is retired, so it isn't graded any more. Your draft stays on this device.</p>}
             {!online && <p className="subtle" id="answer-offline">You're offline. Feedback needs a connection; your draft stays on this device until you send it.</p>}
             {!isAuthenticated && !offlineUser && <p className="subtle">Feedback needs an account so your answers are saved. A guest session takes one click.</p>}
             <InlineError id="answer-error" error={submit.error ?? guestError} />
           </form>
 
-          {shown && <FeedbackCard answer={shown} title={shown === latest ? "Feedback" : `Feedback on your answer from ${timeAgo(shown.created_at)}`} />}
+          {shown && <FeedbackCard answer={shown} track={track} title={shown === latest ? "Feedback" : `Feedback on your answer from ${timeAgo(shown.created_at)}`} />}
           {shown && isAuthenticated && <div className="focus-hide"><ShareEntry answerId={shown.id} fromLabel="Back to the question" /></div>}
           {wanted && answers.data && !linked && !latest && <p className="banner banner--warning">That answer couldn't be found. It may have been deleted.</p>}
         </div>

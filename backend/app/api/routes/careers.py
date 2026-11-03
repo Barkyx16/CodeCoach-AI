@@ -11,8 +11,8 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_db, get_optional_user
 from app.careers import CATALOG, CATEGORIES
 from app.careers.answers import answer_out, graded_answer
-from app.careers.questions import Question, get_question, questions_for
-from app.errors import NotFoundError, RateLimitedError
+from app.careers.questions import Question, get_question, is_retired, questions_for
+from app.errors import ConflictError, NotFoundError, RateLimitedError
 from app.models import PracticeAnswer, User
 from app.schemas.careers import (
     AnswerOut,
@@ -172,6 +172,11 @@ def answer_question(
     question = get_question(_track_or_404(slug), question_id)
     if question is None:
         raise NotFoundError(f"Question '{question_id}' not found")
+    if is_retired(slug, question_id):
+        raise ConflictError(
+            "This question was retired and isn't used for practice any more. Earlier answers to it are kept.",
+            code="content_retired",
+        )
     allowed, retry_after = request.app.state.practice_limiter.hit(f"practice:{user.id}")
     if not allowed:
         raise RateLimitedError(

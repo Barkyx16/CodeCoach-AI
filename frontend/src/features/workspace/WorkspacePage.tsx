@@ -3,7 +3,7 @@ import { Group, Panel, Separator } from "react-resizable-panels";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
-import { useCapabilities, useMySubmissions, useProblem, useSubmission, useSubmit } from "@/api/queries";
+import { useCapabilities, useContentMeta, useMySubmissions, useProblem, useSubmission, useSubmit } from "@/api/queries";
 import type { SubmissionCreate, SubmissionMode } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/Button";
@@ -14,6 +14,8 @@ import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useOnline } from "@/hooks/useOnline";
 import { SaveOffline } from "@/features/offline/SaveOffline";
+import { ContentInfo } from "@/features/content/ContentInfo";
+import { ReportIssue } from "@/features/content/ReportIssue";
 
 import { CoachPanel } from "./CoachPanel";
 import { CodeEditor } from "./CodeEditor";
@@ -67,6 +69,8 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
   useLeaveWarning(draft.saveState === "error");
   const submit = useSubmit();
   const execution = useCapabilities().data?.execution;
+  const content = useContentMeta("problem", problem.slug);
+  const retired = content.data?.status === "retired";
   const canRun = execution?.run_available === true;
   const savedOnly = execution?.submit_mode === "saved_only";
   const [pendingMode, setPendingMode] = useState<SubmissionMode>("submit");
@@ -110,7 +114,7 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
   }
 
   async function handleSubmit(mode: SubmissionMode = "submit") {
-    if (!online) return; // the judge is on the server: nothing is "run" or "graded" offline
+    if (!online || retired) return; // the judge is on the server: nothing is "run" or "graded" offline
     if (!isAuthenticated) return goSignIn();
     if (submit.isPending || judging) return;
     await send({ problem_slug: problem.slug, language: "java", source_code: draft.code, mode, client_request_id: newRequestId() });
@@ -139,13 +143,13 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
         </Button>
         {canRun && (
           <Button size="sm" variant="secondary" loading={submit.isPending && pendingMode === "run"}
-            disabled={!online || judging || (submit.isPending && pendingMode !== "run")} onClick={() => void handleSubmit("run")}
+            disabled={!online || retired || judging || (submit.isPending && pendingMode !== "run")} onClick={() => void handleSubmit("run")}
             title="Run the public tests only (Ctrl/⌘ + ')">
             Run
           </Button>
         )}
         <Button size="sm" variant="primary" loading={submit.isPending && pendingMode === "submit"}
-          disabled={!online || judging || (submit.isPending && pendingMode !== "submit")} onClick={() => void handleSubmit()}
+          disabled={!online || retired || judging || (submit.isPending && pendingMode !== "submit")} onClick={() => void handleSubmit()}
           title={savedOnly ? "Save this attempt without a verdict (Ctrl/⌘ + Enter)" : "Submit (Ctrl/⌘ + Enter)"}
           aria-label={savedOnly ? "Save attempt" : undefined}>
           {savedOnly ? "Save attempt" : "Submit"} <Icon name="arrow" size={14} />
@@ -165,6 +169,10 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
           {isAuthenticated && <NoteCapture source={{ type: "problem", id: problem.slug }} excerpt={draft.code} excerptKind="code" excerptLabel="your current code" />}
           <SaveOffline kind="problem" itemKey={problem.slug} label="problem" />
         </div>} />
+      <div className="workspace-content-info stack-sm">
+        <ContentInfo type="problem" id={problem.slug} />
+        {content.data && <ReportIssue type="problem" id={problem.slug} version={content.data.version} />}
+      </div>
     </section>
   );
   const editor = (
@@ -186,6 +194,11 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
           {execution.setup_help && (
             <details className="judge-status__help"><summary>Developer setup</summary><p>{execution.setup_help}</p></details>
           )}
+        </div>
+      )}
+      {retired && (
+        <div className="banner banner--warning" role="status">
+          <strong>Retired problem.</strong> {content.data?.retired_reason} You can still read it and edit your code; it isn't judged any more.
         </div>
       )}
       {!online && (

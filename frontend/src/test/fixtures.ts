@@ -9,7 +9,7 @@ import type {
   InterviewAnswer,
   QuestionSummary, HintResponse, Page, ProblemDetail, ProblemSummary, Progress, ReviewResponse, Submission, TokenResponse, User } from "@/api/types";
 
-export const user: User = { id: "u-1", email: "ada@example.com", display_name: "Ada", is_guest: false, created_at: "2026-11-01T08:00:00Z", email_verified: true, career_track: "software-engineer" };
+export const user: User = { id: "u-1", email: "ada@example.com", display_name: "Ada", is_guest: false, created_at: "2026-11-01T08:00:00Z", email_verified: true, career_track: "software-engineer", is_admin: false };
 
 export const tokenResponse = (overrides: Partial<TokenResponse> = {}): TokenResponse => ({
   access_token: "test-token",
@@ -105,7 +105,7 @@ export const nurseAnswer: InterviewAnswer = {
   ],
   notes: ["No numbers yet. A figure (time, %, count) makes your result concrete."],
   outline: ["Situation: what made it high-pressure.", "Result: the outcome."],
-  word_count: 140, coach: "built-in (offline)", created_at: "2026-11-01T09:00:00Z",
+  word_count: 140, coach: "built-in (offline)", created_at: "2026-11-01T09:00:00Z", content_version: 1,
 };
 
 const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000).toISOString();

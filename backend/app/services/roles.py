@@ -51,6 +51,7 @@ from app.schemas.roles import (
     TargetPatch,
     TargetSummary,
 )
+from app.services.content import retired_problem_slugs
 from app.services.jd_extract import extract, map_skills
 
 MAX_TARGETS = 20
@@ -371,7 +372,12 @@ class RoleTargets:
             counts[a.question_id] += 1
         by_skill = questions_by_skill(track)
         bank = sorted(questions_for(track), key=lambda q: (DIFFICULTY_ORDER.get(q.difficulty, 3), q.id))
-        problems: list[Problem] = list(self.db.scalars(select(Problem)).all()) if profile.has_coding else []
+        retired = retired_problem_slugs()
+        problems: list[Problem] = (
+            [p for p in self.db.scalars(select(Problem)).all() if p.slug not in retired]
+            if profile.has_coding
+            else []
+        )
         sub_rows = (
             self.db.execute(
                 select(Submission.problem_id, Submission.status).where(

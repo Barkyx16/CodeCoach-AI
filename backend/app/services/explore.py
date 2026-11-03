@@ -22,8 +22,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.careers import CATALOG
-from app.careers.questions import Question, get_question, questions_for
+from app.careers.questions import Question, content_key, get_question, questions_for
 from app.careers.skills import question_skills
+from app.content import state as content_state
 from app.errors import AppError, ConflictError, NotFoundError, UnauthorizedError
 from app.models import (
     Bookmark,
@@ -293,6 +294,10 @@ class Explorer:
                     False,
                     "This question was retired or removed from the library. Your saved spot is kept until you remove it.",
                 )
+            reason = content_state.current().retired.get(("question", content_key(track, ref_id)))
+            if reason is not None:
+                # Retired: still readable from here, no longer offered for practice.
+                return q.title, f"/careers/{track}/questions/{ref_id}", False, f"Retired: {reason}"
             return q.title, f"/careers/{track}/questions/{ref_id}", True, None
         p = self.db.scalar(select(Problem).where(Problem.slug == ref_id))
         if p is None:
@@ -302,6 +307,9 @@ class Explorer:
                 False,
                 "This problem was removed from the library. Your saved spot is kept until you remove it.",
             )
+        reason = content_state.current().retired.get(("problem", ref_id))
+        if reason is not None:
+            return p.title, f"/problems/{ref_id}", False, f"Retired: {reason}"
         return p.title, f"/problems/{ref_id}", True, None
 
     def _validate(self, body: CollectionItemIn) -> tuple[str, str, str]:
@@ -317,7 +325,7 @@ class Explorer:
         ).all()
         out = []
         for b in rows:
-            title, href, ok, _ = self._describe(b.item_type, b.track, b.ref_id)
+            title, href, ok, why = self._describe(b.item_type, b.track, b.ref_id)
             out.append(
                 BookmarkOut(
                     item_type=b.item_type,
@@ -326,6 +334,8 @@ class Explorer:
                     title=title,
                     href=href,
                     available=ok,
+                    unavailable_reason=why,
+                    content_version=b.content_version,
                     created_at=b.created_at,
                 )
             )
@@ -343,7 +353,16 @@ class Explorer:
         )
         if on and existing is None:
             self._validate(body)
-            self.db.add(Bookmark(user_id=user.id, item_type=body.item_type, track=track, ref_id=body.ref_id))
+            q = get_question(track, body.ref_id) if body.item_type == "question" else None
+            self.db.add(
+                Bookmark(
+                    user_id=user.id,
+                    item_type=body.item_type,
+                    track=track,
+                    ref_id=body.ref_id,
+                    content_version=q.version if q else None,  # to show later what changed since
+                )
+            )
         elif not on and existing is not None:
             self.db.delete(existing)  # removing works even for retired items
         try:

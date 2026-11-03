@@ -1,8 +1,13 @@
 import type { InterviewAnswer } from "@/api/types";
+import { ReportIssue } from "@/features/content/ReportIssue";
+
+import { AnsweredVersion } from "./AnsweredVersion";
 
 /** Rubric feedback on one written answer. `title` and `headingId` let several share a page. */
-export function FeedbackCard({ answer, title = "Feedback", headingId = "feedback-title" }: {
+export function FeedbackCard({ answer, title = "Feedback", headingId = "feedback-title", track }: {
   answer: InterviewAnswer; title?: string; headingId?: string;
+  /** The answer's career: enables "Report a problem with this feedback" and version notes. */
+  track?: string;
 }) {
   const tone = answer.score >= 85 ? "success" : answer.score >= 65 ? "info" : "warning";
   return (
@@ -39,6 +44,11 @@ export function FeedbackCard({ answer, title = "Feedback", headingId = "feedback
         <ol className="mini-list mini-list--numbered">{answer.outline.map((line) => <li key={line}>{line}</li>)}</ol>
       </div>
       <p className="subtle">Coach: {answer.coach}. It checks what your answer covers and how it's built, not whether every detail is right.</p>
+      {track && <AnsweredVersion track={track} questionId={answer.question_id} version={answer.content_version} />}
+      {track && (
+        <ReportIssue type="question" id={`${track}/${answer.question_id}`} version={answer.content_version}
+          context="feedback" answerId={answer.id} excerptSource={answer.answer} />
+      )}
     </section>
   );
 }

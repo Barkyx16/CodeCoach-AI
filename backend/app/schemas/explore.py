@@ -73,6 +73,8 @@ class BookmarkOut(APIModel):
     title: str
     href: str | None
     available: bool
+    unavailable_reason: str | None = Field(default=None, description="e.g. 'Retired: …' (still readable)")
+    content_version: int | None = Field(default=None, description="Questions: the version when it was saved")
     created_at: datetime
 
 

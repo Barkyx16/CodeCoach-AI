@@ -55,6 +55,7 @@ class AnswerOut(APIModel):
     word_count: int
     coach: str = Field(description="Which coach graded it: 'built-in (offline)' or the AI provider")
     created_at: datetime
+    content_version: int = Field(default=1, description="The question's version when this was answered")
 
 
 class TrackProgress(APIModel):
