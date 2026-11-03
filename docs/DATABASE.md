@@ -237,6 +237,12 @@ or `problem` + slug), not a foreign key, so a report outlives a renamed or retir
   (JSON), optional admin-only `internal_note`, `report_id` (no foreign key, so the trail stays even
   if a report is deleted with its reporter's account).
 
+### Interview-day kits
+- `interview_kits`: one row per interview event (primary key `event_id`, cascading with the event
+  and so with its application; `user_id` cascades with the account), created on the first save:
+  `format`, `location`, `meeting_link` (http(s), never fetched), `interviewers`, `notes`,
+  `checklist`, `questions` and `story_ids` (JSON, in the learner's order).
+
 ### Schedule
 - `schedule_settings`: one row per account (cascade): `timezone` (IANA), `reminders` (off by
   default), `reminder_minutes`, `quiet_start`, `quiet_end`.
@@ -314,6 +320,7 @@ or `problem` + slug), not a foreign key, so a report outlives a renamed or retir
 | `178db0129ee0` story bank | Adds story columns to `experience_entries` (text with server default `''`, JSON lists with `'[]'`, `revision` 1, `archived` false), `story_revisions`, and `practice_answers.story_id`; changes `experience_entries.target_id` to `ON DELETE SET NULL`. Existing examples keep every word, get their target's career and a first revision with their exact text. Verified on PostgreSQL with seeded data, and round-tripped |
 | `4e7000f6addb` applications | Adds `applications`, `application_stage_changes` and `application_events`. New tables, cascading with the user; round-tripped on PostgreSQL |
 | `f781df0f6728` schedule | Adds `schedule_settings` and `schedule_entries`. New tables, cascading with the user; round-tripped on PostgreSQL |
+| `5f47fa286244` interview kits | Adds `interview_kits` (one per interview event). New table, cascading with the event and the user; round-tripped on PostgreSQL |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

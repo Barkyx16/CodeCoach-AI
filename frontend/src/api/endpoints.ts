@@ -97,6 +97,8 @@ import type {
   InterviewFormat,
   Onboarding,
   OnboardingUpdate,
+  Kit,
+  KitUpdate,
   Schedulable,
   ScheduleEntry,
   ScheduleEntryIn,
@@ -442,6 +444,11 @@ export const api = {
   cancelScheduleEntry: (id: string) => apiRequest<ScheduleEntry>(`/api/v1/me/schedule/${encodeURIComponent(id)}/cancel`, { method: "POST" }),
   scheduleIcs: (query: { ids?: string; from?: string; to?: string }) =>
     apiRequest<string>("/api/v1/me/schedule/export.ics", { query, raw: true, headers: { Accept: "text/calendar" } }),
+
+  // interview-day kits
+  kit: (appId: string, eventId: string) => apiRequest<Kit>(`/api/v1/me/applications/${encodeURIComponent(appId)}/events/${encodeURIComponent(eventId)}/kit`),
+  saveKit: (appId: string, eventId: string, body: KitUpdate) =>
+    apiRequest<Kit>(`/api/v1/me/applications/${encodeURIComponent(appId)}/events/${encodeURIComponent(eventId)}/kit`, { method: "PUT", body }),
 
   // sharing an answer for feedback (owner)
   sharePreview: (body: ShareSelection) => apiRequest<SharePreview>("/api/v1/me/shares/preview", { method: "POST", body }),

@@ -1,0 +1,29 @@
+/* Interview-day kit, and its printed pack. */
+
+.kit-page__layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--space-6); align-items: start; margin-top: var(--space-4); }
+@media (max-width: 960px) { .kit-page__layout { grid-template-columns: minmax(0, 1fr); } }
+.before-view { border-color: var(--color-primary); }
+.before-view__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-4); }
+.kit-checklist, .kit-questions { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-2); }
+.kit-checklist > li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.kit-questions > li { display: grid; gap: var(--space-1); padding: var(--space-2); border: 1px solid var(--color-border); border-radius: 8px; }
+.kit-questions__excluded .input { text-decoration: line-through; color: var(--color-text-muted); }
+.kit-interviewer { align-items: end; }
+.kit-save { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.kit-preview { margin-top: var(--space-6); }
+.print-pack { border: 1px solid var(--color-border-strong); border-radius: 12px; padding: var(--space-5); background: var(--color-surface); display: grid; gap: var(--space-3); overflow-wrap: anywhere; }
+.print-pack h2 { font-size: 1.125rem; }
+.print-pack h3 { font-size: 1rem; margin-bottom: var(--space-1); }
+.print-pack__note { color: var(--color-text-muted); font-size: 0.875rem; }
+.print-pack__notes { white-space: pre-wrap; }
+
+/* Printing: only the pack, in black on white, with readable page breaks. */
+@media print {
+  body * { visibility: hidden; }
+  .print-pack, .print-pack * { visibility: visible; }
+  .print-pack { position: absolute; inset: 0 auto auto 0; width: 100%; border: 0; padding: 0; background: #fff; color: #000; }
+  .print-pack__note { color: #333; }
+  .print-pack section { break-inside: avoid; }
+  .no-print, .header, .reminders { display: none !important; }
+}
+.before-view a, .print-pack a { text-decoration: underline; text-underline-offset: 2px; }

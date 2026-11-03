@@ -190,3 +190,8 @@ export type ScheduleKind = S["EntryOut"]["kind"];
 export type ScheduleEntryIn = S["EntryIn"];
 export type ScheduleMove = S["EntryMove"];
 export type Schedulable = S["SchedulableOut"];
+
+export type Kit = S["KitOut"];
+export type KitQuestion = S["AskQuestion"];
+export type KitChecklistItem = S["ChecklistItem"];
+export type KitUpdate = S["KitUpdate"];

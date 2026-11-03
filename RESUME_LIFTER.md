@@ -677,6 +677,14 @@ These are moments where the obvious path was wrong and a deliberate decision was
     from the tracker: an entry keeps what the learner chose and the exact instant, so travel moves
     only how it's displayed, and the two daylight-saving traps are refused or asked about.
 
+54. **Suggestions the learner owns, and a printout that can't surprise.** A kit could easily
+    say "camera checked" or "you're 80% ready". It does neither: a tick means the learner
+    ticked it, suggestions say they're suggestions, questions come from the learner's own job
+    target (and point out when the posting may already answer them, without hiding them), and
+    there's no score. The printed pack is the same component as the on-screen preview, so they
+    can't differ, and private details stay out until chosen. A browser test caught a real bug:
+    saving a new format together with the page's checklist overwrote the new suggestions.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -1541,3 +1549,17 @@ They're built in order, each as a complete, tested slice committed on its own.
   reminder at 320px light) with axe scans.
 - **Limits:** no calendar sync, email or push by design; importing into real calendar apps
   wasn't testable here.
+
+**V2-05 Interview-day kit (built and verified):**
+- One kit per recorded interview event, useful with only a role and time (suggestions until the
+  first save): logistics, interviewers, a format-aware checklist (suggested vs yours, tick, hide,
+  restore, add), questions to ask (from the learner's target and common topics, reorder by
+  keyboard, exclude, add), stories to bring, private notes, a calm "Before the interview" view
+  that links to the existing microphone check, and a print/PDF pack with opt-in private details.
+- Tests: 7 backend (SQLite and PostgreSQL), 3 frontend, 2 Playwright journeys (full kit with
+  reload, print media and another account; 320px light) with axe scans.
+- Full runs: backend 1798 passed, 1 skipped (a PostgreSQL-only concurrency test on SQLite);
+  Playwright 61 passed, 3 skipped, 1 failed. The failure was a timing race in the existing
+  History test (it clicked while the previous results were still shown after the URL changed);
+  fixed in the test in a separate commit and then passed 6 of 6 runs.
+- **Limits:** printing checked through Chromium's print media, not paper or a PDF viewer.

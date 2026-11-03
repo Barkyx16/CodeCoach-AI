@@ -682,3 +682,7 @@ export function useSchedule(from: string, to: string, includeCancelled = false, 
 export function useSchedulable() {
   return useQuery({ queryKey: ["me", "schedule", "schedulable"], queryFn: api.schedulable, staleTime: 0 });
 }
+
+export function useKit(appId: string, eventId: string) {
+  return useQuery({ queryKey: ["me", "kit", appId, eventId], queryFn: () => api.kit(appId, eventId), staleTime: 0 });
+}

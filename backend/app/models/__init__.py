@@ -1169,3 +1169,25 @@ class ScheduleEntry(Base):
     client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class InterviewKit(Base):
+    """The interview-day kit for one recorded interview event: logistics, an editable checklist,
+    questions to ask and the stories to bring. Everything here is the learner's own (suggestions
+    are labelled); a ticked item means they ticked it, not that anything was checked for them."""
+
+    __tablename__ = "interview_kits"
+
+    event_id: Mapped[str] = mapped_column(
+        ForeignKey("application_events.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    format: Mapped[str] = mapped_column(String(12), default="unknown")  # remote | in_person | phone | unknown
+    location: Mapped[str] = mapped_column(Text, default="")
+    meeting_link: Mapped[str | None] = mapped_column(String(500), nullable=True)  # http(s), never fetched
+    interviewers: Mapped[list] = mapped_column(JSONType, default=list)  # [{name, role}], as typed
+    notes: Mapped[str] = mapped_column(Text, default="")
+    checklist: Mapped[list] = mapped_column(JSONType, default=list)  # [{id, text, origin, done, hidden}]
+    questions: Mapped[list] = mapped_column(JSONType, default=list)  # [{id, text, group, origin, excluded}]
+    story_ids: Mapped[list] = mapped_column(JSONType, default=list)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)

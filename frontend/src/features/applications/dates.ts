@@ -45,7 +45,7 @@ export function formatDay(date: string): string {
 }
 
 /** How an event's time reads, with what's still unknown said plainly. */
-export function describeWhen(e: ApplicationEvent): string {
+export function describeWhen(e: Pick<ApplicationEvent, "on_date" | "local_time" | "timezone">): string {
   if (!e.on_date) return "Date not known yet";
   const day = formatDay(e.on_date);
   if (!e.local_time) return `${day} (time not known yet)`;

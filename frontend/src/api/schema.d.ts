@@ -1575,6 +1575,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/applications/{app_id}/events/{event_id}/kit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The interview-day kit (suggestions only, until you change something) */
+        get: operations["get_kit_api_v1_me_applications__app_id__events__event_id__kit_get"];
+        /** Save changes to the kit (lists are saved in the order given) */
+        put: operations["put_kit_api_v1_me_applications__app_id__events__event_id__kit_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/schedule": {
         parameters: {
             query?: never;
@@ -3059,6 +3077,34 @@ export interface components {
              */
             clear?: ("link" | "applied_on" | "next_action_due" | "target_id")[];
         };
+        /** AskQuestion */
+        AskQuestion: {
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+            /**
+             * Group
+             * @default other
+             * @enum {string}
+             */
+            group: "role" | "team" | "training" | "workflow" | "next_steps" | "other";
+            /**
+             * Origin
+             * @enum {string}
+             */
+            origin: "suggested" | "yours";
+            /**
+             * Excluded
+             * @default false
+             */
+            excluded: boolean;
+            /**
+             * Note
+             * @description Why it was suggested, or a caution
+             */
+            note?: string | null;
+        };
         /** AssessmentOut */
         AssessmentOut: {
             /**
@@ -3335,6 +3381,28 @@ export interface components {
             /** Results */
             results: components["schemas"]["CheckItemResult"][];
             progress: components["schemas"]["UnitProgress"];
+        };
+        /** ChecklistItem */
+        ChecklistItem: {
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+            /**
+             * Origin
+             * @enum {string}
+             */
+            origin: "suggested" | "yours";
+            /**
+             * Done
+             * @default false
+             */
+            done: boolean;
+            /**
+             * Hidden
+             * @default false
+             */
+            hidden: boolean;
         };
         /**
          * CodeReview
@@ -4943,6 +5011,20 @@ export interface components {
             /** Average Score */
             average_score: number | null;
         };
+        /** Interviewer */
+        Interviewer: {
+            /**
+             * Name
+             * @description As you know it; unknown is fine
+             * @default
+             */
+            name: string;
+            /**
+             * Role
+             * @default
+             */
+            role: string;
+        };
         /**
          * ItemStatus
          * @description Private practice status for one question (signed-in explorer only).
@@ -4968,6 +5050,91 @@ export interface components {
              * @description How the points were found (no AI model is used)
              */
             method: string;
+        };
+        /** KitOut */
+        KitOut: {
+            /** Event Id */
+            event_id: string;
+            /** Application Id */
+            application_id: string;
+            /** Role Title */
+            role_title: string;
+            /** Employer */
+            employer: string;
+            /** Event Title */
+            event_title: string;
+            /** Event Kind */
+            event_kind: string;
+            /** On Date */
+            on_date: string | null;
+            /** Local Time */
+            local_time: string | null;
+            /** Timezone */
+            timezone: string | null;
+            /** Starts At */
+            starts_at: string | null;
+            /**
+             * Format
+             * @enum {string}
+             */
+            format: "remote" | "in_person" | "phone" | "unknown";
+            /** Location */
+            location: string;
+            /** Meeting Link */
+            meeting_link: string | null;
+            /** Interviewers */
+            interviewers: components["schemas"]["Interviewer"][];
+            /** Notes */
+            notes: string;
+            /** Checklist */
+            checklist: components["schemas"]["ChecklistItem"][];
+            /** Questions */
+            questions: components["schemas"]["AskQuestion"][];
+            /** Stories */
+            stories: components["schemas"]["KitStory"][];
+            /** Target Title */
+            target_title: string | null;
+            /**
+             * Saved
+             * @description False until you change something: the suggestions aren't stored yet
+             */
+            saved: boolean;
+        };
+        /** KitStory */
+        KitStory: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Short Version */
+            short_version: string;
+        };
+        /**
+         * KitUpdate
+         * @description Replace whichever parts you send. Lists are saved in the order given (that's the priority).
+         */
+        KitUpdate: {
+            /** Format */
+            format?: ("remote" | "in_person" | "phone" | "unknown") | null;
+            /** Location */
+            location?: string | null;
+            /** Meeting Link */
+            meeting_link?: string | null;
+            /**
+             * Clear Meeting Link
+             * @default false
+             */
+            clear_meeting_link: boolean;
+            /** Interviewers */
+            interviewers?: components["schemas"]["Interviewer"][] | null;
+            /** Notes */
+            notes?: string | null;
+            /** Checklist */
+            checklist?: components["schemas"]["ChecklistItem"][] | null;
+            /** Questions */
+            questions?: components["schemas"]["AskQuestion"][] | null;
+            /** Story Ids */
+            story_ids?: string[] | null;
         };
         /** LearnCatalog */
         LearnCatalog: {
@@ -13802,6 +13969,110 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_kit_api_v1_me_applications__app_id__events__event_id__kit_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KitOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_kit_api_v1_me_applications__app_id__events__event_id__kit_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KitUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KitOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

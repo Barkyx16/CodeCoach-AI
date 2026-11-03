@@ -791,6 +791,20 @@ the JSON body, never a URL:
   `400 empty_feedback | unknown_sentence` (comments only on shared sentences). Both endpoints
   are rate-limited per client IP (`429`).
 
+### Interview-day kit
+
+One kit per recorded interview event ([INTERVIEW_KIT.md](INTERVIEW_KIT.md)). Owner-only, `Cache-Control: no-store`.
+
+- `GET /api/v1/me/applications/{id}/events/{event_id}/kit` 🔒 → `{event details, format:
+  remote|in_person|phone|unknown, location, meeting_link, interviewers: [{name, role}], notes,
+  checklist: [{id, text, origin: suggested|yours, done, hidden}], questions: [{id, text, group,
+  origin, excluded, note}], stories: [{id, title, short_version}], target_title, saved}`. Until
+  the first change, `saved` is false and everything is a suggestion (nothing stored).
+- `PUT …/kit {format?, location?, meeting_link?, clear_meeting_link?, interviewers?, notes?,
+  checklist?, questions?, story_ids?}` → the kit. Lists are saved in the order sent (priority).
+  A new format swaps untouched suggestions only. Links must be `http(s)` (`422`); someone else's
+  story `404`.
+
 ### Schedule
 
 Existing activities on dates and times you choose ([SCHEDULE.md](SCHEDULE.md)). Owner-only.

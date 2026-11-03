@@ -8422,6 +8422,166 @@
         }
       }
     },
+    "/api/v1/me/applications/{app_id}/events/{event_id}/kit": {
+      "get": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "The interview-day kit (suggestions only, until you change something)",
+        "operationId": "get_kit_api_v1_me_applications__app_id__events__event_id__kit_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "App Id"
+            }
+          },
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KitOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Save changes to the kit (lists are saved in the order given)",
+        "operationId": "put_kit_api_v1_me_applications__app_id__events__event_id__kit_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "App Id"
+            }
+          },
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KitUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KitOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/schedule": {
       "get": {
         "tags": [
@@ -15335,6 +15495,67 @@
         "type": "object",
         "title": "ApplicationUpdate"
       },
+      "AskQuestion": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 40,
+            "title": "Id"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Text"
+          },
+          "group": {
+            "type": "string",
+            "enum": [
+              "role",
+              "team",
+              "training",
+              "workflow",
+              "next_steps",
+              "other"
+            ],
+            "title": "Group",
+            "default": "other"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "suggested",
+              "yours"
+            ],
+            "title": "Origin"
+          },
+          "excluded": {
+            "type": "boolean",
+            "title": "Excluded",
+            "default": false
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note",
+            "description": "Why it was suggested, or a caution"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "text",
+          "origin"
+        ],
+        "title": "AskQuestion"
+      },
       "AssessmentOut": {
         "properties": {
           "state": {
@@ -15981,6 +16202,46 @@
           "progress"
         ],
         "title": "CheckResult"
+      },
+      "ChecklistItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 40,
+            "title": "Id"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Text"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "suggested",
+              "yours"
+            ],
+            "title": "Origin"
+          },
+          "done": {
+            "type": "boolean",
+            "title": "Done",
+            "default": false
+          },
+          "hidden": {
+            "type": "boolean",
+            "title": "Hidden",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "text",
+          "origin"
+        ],
+        "title": "ChecklistItem"
       },
       "CodeReview": {
         "properties": {
@@ -19966,6 +20227,25 @@
         ],
         "title": "InterviewSummary"
       },
+      "Interviewer": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "title": "Name",
+            "description": "As you know it; unknown is fine",
+            "default": ""
+          },
+          "role": {
+            "type": "string",
+            "maxLength": 80,
+            "title": "Role",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "Interviewer"
+      },
       "ItemStatus": {
         "properties": {
           "best_score": {
@@ -20039,6 +20319,325 @@
           "method"
         ],
         "title": "KeyPoints"
+      },
+      "KitOut": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "application_id": {
+            "type": "string",
+            "title": "Application Id"
+          },
+          "role_title": {
+            "type": "string",
+            "title": "Role Title"
+          },
+          "employer": {
+            "type": "string",
+            "title": "Employer"
+          },
+          "event_title": {
+            "type": "string",
+            "title": "Event Title"
+          },
+          "event_kind": {
+            "type": "string",
+            "title": "Event Kind"
+          },
+          "on_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On Date"
+          },
+          "local_time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Local Time"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone"
+          },
+          "starts_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starts At"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "remote",
+              "in_person",
+              "phone",
+              "unknown"
+            ],
+            "title": "Format"
+          },
+          "location": {
+            "type": "string",
+            "title": "Location"
+          },
+          "meeting_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meeting Link"
+          },
+          "interviewers": {
+            "items": {
+              "$ref": "#/components/schemas/Interviewer"
+            },
+            "type": "array",
+            "title": "Interviewers"
+          },
+          "notes": {
+            "type": "string",
+            "title": "Notes"
+          },
+          "checklist": {
+            "items": {
+              "$ref": "#/components/schemas/ChecklistItem"
+            },
+            "type": "array",
+            "title": "Checklist"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/AskQuestion"
+            },
+            "type": "array",
+            "title": "Questions"
+          },
+          "stories": {
+            "items": {
+              "$ref": "#/components/schemas/KitStory"
+            },
+            "type": "array",
+            "title": "Stories"
+          },
+          "target_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Title"
+          },
+          "saved": {
+            "type": "boolean",
+            "title": "Saved",
+            "description": "False until you change something: the suggestions aren't stored yet"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event_id",
+          "application_id",
+          "role_title",
+          "employer",
+          "event_title",
+          "event_kind",
+          "on_date",
+          "local_time",
+          "timezone",
+          "starts_at",
+          "format",
+          "location",
+          "meeting_link",
+          "interviewers",
+          "notes",
+          "checklist",
+          "questions",
+          "stories",
+          "target_title",
+          "saved"
+        ],
+        "title": "KitOut"
+      },
+      "KitStory": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "short_version": {
+            "type": "string",
+            "title": "Short Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "short_version"
+        ],
+        "title": "KitStory"
+      },
+      "KitUpdate": {
+        "properties": {
+          "format": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "remote",
+                  "in_person",
+                  "phone",
+                  "unknown"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Format"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "meeting_link": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meeting Link"
+          },
+          "clear_meeting_link": {
+            "type": "boolean",
+            "title": "Clear Meeting Link",
+            "default": false
+          },
+          "interviewers": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Interviewer"
+                },
+                "type": "array",
+                "maxItems": 10
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interviewers"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "checklist": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ChecklistItem"
+                },
+                "type": "array",
+                "maxItems": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checklist"
+          },
+          "questions": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AskQuestion"
+                },
+                "type": "array",
+                "maxItems": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Questions"
+          },
+          "story_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 10
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Story Ids"
+          }
+        },
+        "type": "object",
+        "title": "KitUpdate",
+        "description": "Replace whichever parts you send. Lists are saved in the order given (that's the priority)."
       },
       "LearnCatalog": {
         "properties": {
