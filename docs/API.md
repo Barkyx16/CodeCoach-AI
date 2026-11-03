@@ -805,6 +805,30 @@ One kit per recorded interview event ([INTERVIEW_KIT.md](INTERVIEW_KIT.md)). Own
   A new format swaps untouched suggestions only. Links must be `http(s)` (`422`); someone else's
   story `404`.
 
+### How answers are evaluated, and your reflection
+
+Rubric transparency and self-review for written answers ([RUBRIC_TRANSPARENCY.md](RUBRIC_TRANSPARENCY.md)).
+
+- `GET /api/v1/careers/{slug}/questions/{id}/criteria` (public) → `{question_id, content_version,
+  rubric_version, coach, criteria: [{label, description, levels: [{level: not_yet|there,
+  text}]}], checks: [{kind: "deterministic", text}], disclaimer}`. The matching patterns are
+  never included.
+- Answers (`AnswerOut`) now include `rubric_version`, `evidence_level`
+  (`sufficient|insufficient`: under 40 words, show "not enough to score" rather than the number)
+  and, per point, `evidence`: the learner's own sentence where it was found (`null` when missing
+  or for answers saved before this).
+- `GET /api/v1/me/answers/{id}/review` 🔒 → `{answer, self_review, perspectives: [{criterion,
+  yours, coach}], repeated: [{criterion, times, of}], flags, evaluations, can_reevaluate,
+  reevaluate_note}` (`Cache-Control: no-store`).
+- `PUT …/self-review {went_well, improve, ratings: {label: no|partly|yes}, skipped,
+  before_feedback}` → the review. Never changes the answer or its score; `400 unknown_criterion`
+  for a rating on a point the answer doesn't have.
+- `POST …/flags {criterion (a point's label or "Overall"), kind: unclear|disagree, note}` (one per
+  criterion; saving again updates it), `DELETE …/flags/{flag_id}`.
+- `POST …/evaluations {reason}` → a new evaluation stored beside the original, only when the
+  rubric or the question's version changed since the last one; otherwise `409 no_reevaluation`
+  with the reason (the built-in coach is deterministic). At most three per answer.
+
 ### Communication drills
 
 Short drills with career-aware prompts ([DRILLS.md](DRILLS.md)). Owner-only.

@@ -237,6 +237,17 @@ or `problem` + slug), not a foreign key, so a report outlives a renamed or retir
   (JSON), optional admin-only `internal_note`, `report_id` (no foreign key, so the trail stays even
   if a report is deleted with its reporter's account).
 
+### Answer reviews
+- `answer_self_reviews`: one per answer (primary key `answer_id`, cascading with the answer and
+  the account): `went_well`, `improve`, `ratings` (JSON, by criterion label), `skipped`,
+  `before_feedback`, `updated_at`.
+- `answer_flags`: one per answer and criterion (unique): `kind` (unclear|disagree), private
+  `note`.
+- `answer_evaluations`: later evaluations of an answer (the original stays on
+  `practice_answers`): `rubric_version`, `content_version`, `score`, `feedback` (JSON), `reason`.
+- `practice_answers.feedback` now also stores `evidence` per point, `evidence_level` and
+  `rubric_version` (older rows are read as before; nothing is back-filled).
+
 ### Communication drills
 - `drill_attempts`: one row per attempt (cascade with the account), indexed by user and drill:
   `drill_id`, `track` and `prompt` as they were, `text` (typed, or a transcript the learner
@@ -338,6 +349,7 @@ or `problem` + slug), not a foreign key, so a report outlives a renamed or retir
 | `5f47fa286244` interview kits | Adds `interview_kits` (one per interview event). New table, cascading with the event and the user; round-tripped on PostgreSQL |
 | `1bbae318ce1d` whiteboard practice | Adds `whiteboard_drafts` (one per user and prompt) and `whiteboard_attempts`. New tables, cascading with the user; round-tripped on PostgreSQL |
 | `99be925bf8d1` drill attempts | Adds `drill_attempts`. New table, cascading with the user; round-tripped on PostgreSQL |
+| `c2cc8ed140c2` answer reviews | Adds `answer_self_reviews`, `answer_flags` and `answer_evaluations`. New tables, cascading with the answer and the user; round-tripped on PostgreSQL |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

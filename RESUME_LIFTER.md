@@ -705,6 +705,16 @@ These are moments where the obvious path was wrong and a deliberate decision was
     recording can't become a "low score". Repeats are compared only under the same rubric
     version. Drills reuse bookmarks, collections and the schedule by adding one item kind to
     each rather than a new saving system, and they stay out of analytics and readiness.
+57. **Evidence, not a verdict; a second look that can't rewrite the first.** The grader already
+    knew *whether* a point was covered; it now also keeps *where* (the learner's own sentence,
+    quoted exactly), so an explanation points at the answer instead of restating a number.
+    Under 40 words the page says there isn't enough to score rather than showing a precise but
+    meaningless figure. The reflection is opt-in and held only on the client (the answer is
+    saved and graded either way), so it can't block anything and never touches the score.
+    "Check again" is honest about a deterministic grader: same answer, same rubric, same
+    question version means the same result, so the button only appears when one of those
+    changed, and the new evaluation sits beside the original. The panel is a disclosure that
+    loads only when opened, which kept the existing pages and their tests unchanged.
 
 ## 6. Python concepts used here (for a Java developer)
 
@@ -1622,3 +1632,21 @@ They're built in order, each as a complete, tested slice committed on its own.
   Playwright 69 passed, 3 skipped, 0 failed. Migration round-tripped on PostgreSQL.
 - **Limits:** real speech recognition wasn't exercised (Chromium's needs a network service; the
   browser test injects a stand-in); spoken time is microphone-on time, pauses included.
+
+**V2-08 Rubric transparency and self-review (built and verified):**
+- Criteria before answering (qualitative points with "not yet / there", fixed checks labelled
+  apart, no patterns); an opt-in reflection between sending and reading the feedback with
+  save, skip and a failure path that can't trap the feedback; quoted evidence on every found
+  point; "not enough to score" for answers under 40 words; "different perspectives" and
+  "came up more than once"; private flags per criterion; re-evaluation only when the rubric or
+  question changed, stored beside the original (at most three).
+- Tests: 7 backend, 6 frontend integration, 2 Playwright journeys (keyboard: criteria, the
+  reflection, quoted evidence matching the answer, perspectives, a flag, reopening it from a
+  link; dark and 320px light with an insufficient answer and a skipped reflection) with axe
+  scans. The existing careers, content and onboarding journeys still pass.
+- Full runs: backend 1823 passed, 1 skipped (PostgreSQL-only concurrency test on SQLite);
+  answer-review tests also on PostgreSQL (7 passed); 177 existing answer, round, content and
+  sharing tests still pass with the grader change; frontend 514 passed; Playwright 71 passed,
+  3 skipped, 0 failed. Migration round-tripped on PostgreSQL.
+- **Limits:** the built-in coach is the only evaluator for written answers, so a "second
+  evaluation" was exercised by changing the rubric version in a test, not by a real provider.

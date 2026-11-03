@@ -31,10 +31,14 @@ import { GuidedTour } from "@/features/onboarding/GuidedTour";
 import { StoryPicker } from "@/features/stories/StoryPicker";
 import { ScheduleLink } from "@/features/schedule/ScheduleLink";
 
+import { AnswerReviewPanel } from "./AnswerReviewPanel";
+import { CriteriaPanel } from "./CriteriaPanel";
 import { FeedbackCard } from "./FeedbackCard";
+import { SelfReviewGate } from "./SelfReviewGate";
 import { KIND_LABEL } from "./kinds";
 
 const MAX_CHARS = 6000;
+const REFLECT_KEY = "codecoach.reflect-first";
 
 function countWords(text: string): number {
   return text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -67,6 +71,12 @@ export function QuestionPage() {
   const shown = latest ?? linked;
   const [guestError, setGuestError] = useState<unknown>(null);
   const [storyId, setStoryId] = useState<string | null>(null);
+  // Optional: reflect on the answer before the coach's feedback is shown (remembered on this device).
+  const [reflectFirst, setReflectFirst] = useState(() => {
+    try { return localStorage.getItem(REFLECT_KEY) === "on"; } catch { return false; }
+  });
+  const [gated, setGated] = useState(false);
+  const [reflected, setReflected] = useState<string | null>(null);
 
   if (question.isPending) return <LoadingState label="Loading question…" />;
   if (question.isError) {
@@ -82,6 +92,7 @@ export function QuestionPage() {
     const result = await submit.mutateAsync({ answer: draft.trim(), storyId }).catch(() => null);
     if (result) {
       setLatest(result);
+      setGated(reflectFirst); // the answer is saved either way; only the reveal waits
       setDraft("");
       setStoryId(null); // the next answer is only tied to a story if you choose one again
     }
@@ -120,6 +131,8 @@ export function QuestionPage() {
           </Card>
           {content.data && <div className="focus-hide"><ReportIssue type="question" id={`${track}/${id}`} version={content.data.version} excerptSource={draft.trim() || undefined} /></div>}
 
+          <div className="focus-hide"><CriteriaPanel track={track} questionId={id} /></div>
+
           <form className="card stack" onSubmit={onSubmit} aria-labelledby="answer-title">
             <h2 className="section-title" id="answer-title">Write your answer</h2>
             {isAuthenticated && <div className="focus-hide"><StoryPicker track={track} questionId={id} draft={draft} setDraft={setDraft} storyId={storyId} setStoryId={setStoryId} /></div>}
@@ -148,14 +161,30 @@ export function QuestionPage() {
             {draft.trim() && (kept
               ? <p className="subtle draft-state">Draft saved on this device, not sent yet.</p>
               : <p className="banner banner--warning" role="alert">Your draft couldn't be saved on this device (browser storage is blocked or full). Copy it somewhere safe before leaving this page.</p>)}
+            {(isAuthenticated || offlineUser) && (
+              <label className="checkbox focus-hide">
+                <input type="checkbox" checked={reflectFirst} onChange={(e) => {
+                  setReflectFirst(e.target.checked);
+                  try { localStorage.setItem(REFLECT_KEY, e.target.checked ? "on" : "off"); } catch { /* this visit only */ }
+                }} />
+                Reflect on my answer before seeing the feedback (optional)
+              </label>
+            )}
             {retired && <p className="subtle" id="answer-retired">This question is retired, so it isn't graded any more. Your draft stays on this device.</p>}
             {!online && <p className="subtle" id="answer-offline">You're offline. Feedback needs a connection; your draft stays on this device until you send it.</p>}
             {!isAuthenticated && !offlineUser && <p className="subtle">Feedback needs an account so your answers are saved. A guest session takes one click.</p>}
             <InlineError id="answer-error" error={submit.error ?? guestError} />
           </form>
 
-          {shown && <div data-tour="next"><FeedbackCard answer={shown} track={track} title={shown === latest ? "Feedback" : `Feedback on your answer from ${timeAgo(shown.created_at)}`} /></div>}
-          {shown && isAuthenticated && <div className="focus-hide"><ShareEntry answerId={shown.id} fromLabel="Back to the question" /></div>}
+          {shown && gated && shown === latest ? (
+            <SelfReviewGate answer={shown} onDone={() => { setGated(false); setReflected(shown.id); }} />
+          ) : shown && (
+            <>
+              <div data-tour="next"><FeedbackCard answer={shown} track={track} title={shown === latest ? "Feedback" : `Feedback on your answer from ${timeAgo(shown.created_at)}`} /></div>
+              {isAuthenticated && <div className="focus-hide"><AnswerReviewPanel key={shown.id} answerId={shown.id} defaultOpen={reflected === shown.id} /></div>}
+            </>
+          )}
+          {shown && isAuthenticated && !(gated && shown === latest) && <div className="focus-hide"><ShareEntry answerId={shown.id} fromLabel="Back to the question" /></div>}
           {wanted && answers.data && !linked && !latest && <p className="banner banner--warning">That answer couldn't be found. It may have been deleted.</p>}
         </div>
 

@@ -106,6 +106,7 @@ export const nurseAnswer: InterviewAnswer = {
   notes: ["No numbers yet. A figure (time, %, count) makes your result concrete."],
   outline: ["Situation: what made it high-pressure.", "Result: the outcome."],
   word_count: 140, coach: "built-in (offline)", created_at: "2026-11-01T09:00:00Z", content_version: 1,
+  rubric_version: "v1", evidence_level: "sufficient",
 };
 
 const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000).toISOString();

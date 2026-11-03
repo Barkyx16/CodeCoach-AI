@@ -99,7 +99,11 @@ import type {
   OnboardingUpdate,
   Kit,
   KitUpdate,
+  AnswerFlagIn,
+  AnswerReview,
+  Criteria,
   Drill,
+  SelfReviewIn,
   DrillAttempt,
   DrillAttemptIn,
   WhiteboardAttempt,
@@ -454,6 +458,19 @@ export const api = {
   cancelScheduleEntry: (id: string) => apiRequest<ScheduleEntry>(`/api/v1/me/schedule/${encodeURIComponent(id)}/cancel`, { method: "POST" }),
   scheduleIcs: (query: { ids?: string; from?: string; to?: string }) =>
     apiRequest<string>("/api/v1/me/schedule/export.ics", { query, raw: true, headers: { Accept: "text/calendar" } }),
+
+  // rubric transparency and self-review
+  criteria: (track: string, id: string) =>
+    apiRequest<Criteria>(`/api/v1/careers/${encodeURIComponent(track)}/questions/${encodeURIComponent(id)}/criteria`, { auth: false }),
+  answerReview: (id: string) => apiRequest<AnswerReview>(`/api/v1/me/answers/${encodeURIComponent(id)}/review`),
+  saveSelfReview: (id: string, body: SelfReviewIn) =>
+    apiRequest<AnswerReview>(`/api/v1/me/answers/${encodeURIComponent(id)}/self-review`, { method: "PUT", body }),
+  addAnswerFlag: (id: string, body: AnswerFlagIn) =>
+    apiRequest<AnswerReview>(`/api/v1/me/answers/${encodeURIComponent(id)}/flags`, { method: "POST", body }),
+  removeAnswerFlag: (id: string, flagId: number) =>
+    apiRequest<AnswerReview>(`/api/v1/me/answers/${encodeURIComponent(id)}/flags/${flagId}`, { method: "DELETE" }),
+  reevaluateAnswer: (id: string, reason: string) =>
+    apiRequest<AnswerReview>(`/api/v1/me/answers/${encodeURIComponent(id)}/evaluations`, { method: "POST", body: { reason } }),
 
   // communication drills
   drills: () => apiRequest<Drill[]>("/api/v1/me/drills"),

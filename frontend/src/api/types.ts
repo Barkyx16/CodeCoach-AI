@@ -205,6 +205,12 @@ export type WhiteboardAttemptIn = S["WhiteboardAttemptIn"];
 export type WhiteboardAttempt = S["WhiteboardAttemptOut"];
 export type WhiteboardAttemptSummary = S["WhiteboardAttemptSummary"];
 
+export type Criteria = S["CriteriaOut"];
+export type AnswerReview = S["AnswerReviewOut"];
+export type SelfReviewIn = S["SelfReviewIn"];
+export type SelfRating = NonNullable<S["AnswerPerspective"]["yours"]>;
+export type AnswerFlagIn = S["FlagIn"];
+
 export type Drill = S["DrillOut"];
 export type DrillAttempt = S["DrillAttemptOut"];
 export type DrillAttemptIn = S["DrillAttemptIn"];

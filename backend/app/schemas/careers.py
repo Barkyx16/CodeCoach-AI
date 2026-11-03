@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import Field
 
@@ -45,6 +46,9 @@ class FeedbackPoint(APIModel):
     label: str
     covered: bool
     advice: str
+    evidence: str | None = Field(
+        default=None, description="Your own sentence where it was found (older answers: none recorded)"
+    )
 
 
 class AnswerOut(APIModel):
@@ -62,6 +66,10 @@ class AnswerOut(APIModel):
     created_at: datetime
     content_version: int = Field(default=1, description="The question's version when this was answered")
     story_id: str | None = Field(default=None, description="The story this answer rehearsed, if any")
+    rubric_version: str = Field(default="v1", description="The rubric the coach used")
+    evidence_level: Literal["sufficient", "insufficient"] = Field(
+        default="sufficient", description="insufficient: too short to evaluate, so no score should be shown"
+    )
 
 
 class TrackProgress(APIModel):

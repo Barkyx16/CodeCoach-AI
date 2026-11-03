@@ -32,6 +32,7 @@ from app.models import (
     Submission,
     User,
 )
+from app.services.answer_review import AnswerReview
 from app.services.applications import Applications
 from app.services.drills import Drills
 from app.services.kits import Kits
@@ -395,6 +396,8 @@ def export_user_data(db: Session, user: User) -> dict:
         ],
         # Your schedule: entries and time zone / reminder settings.
         "schedule": Schedule(db, user).export(),
+        # Your reflections, flags and later evaluations of written answers (the originals are above).
+        "answer_reviews": AnswerReview(db, user).export(),
         # Communication drills: each attempt's words, how they were given and the feedback.
         "drill_attempts": Drills(db, user).export(),
         # Whiteboard practice: working drafts, and attempts frozen with their feedback.

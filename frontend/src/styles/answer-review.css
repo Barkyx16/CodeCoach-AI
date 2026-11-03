@@ -1,0 +1,27 @@
+/* Rubric transparency: criteria up front, self-review, evidence and perspectives. */
+
+.score-pill--neutral { color: var(--color-text-muted); background: var(--color-surface-sunken); border-color: var(--color-border-strong); }
+.feedback-card__evidence { margin: var(--space-1) 0 0; font-size: 0.9375rem; overflow-wrap: anywhere; }
+
+.criteria-panel > summary { cursor: pointer; font-weight: 600; }
+.criteria-panel[open] > summary { margin-bottom: var(--space-3); }
+.criteria-list { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-2); }
+
+.self-review__ratings { border: 0; padding: 0; margin: 0; }
+.self-review__row { display: grid; gap: var(--space-1); padding: var(--space-2) 0; border-top: 1px solid var(--color-border); }
+.self-review__row .row { flex-wrap: wrap; }
+
+.answer-review__notes { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-3); margin: 0; }
+.answer-review__notes dt { font-weight: 600; }
+.answer-review__notes dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 480px) { .answer-review__notes { grid-template-columns: minmax(0, 1fr); } }
+.answer-review__table { width: 100%; border-collapse: collapse; font-size: 0.9375rem; }
+.answer-review__table th, .answer-review__table td { text-align: left; padding: var(--space-1) var(--space-2); border-top: 1px solid var(--color-border); vertical-align: top; }
+.answer-review__table thead th { border-top: 0; color: var(--color-text-muted); font-weight: 600; }
+.answer-review__table tbody th { font-weight: 400; }
+.answer-review__flags { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-2); }
+.answer-review__flags > li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); padding: var(--space-2) 0; border-top: 1px solid var(--color-border); }
+.answer-review__flag-form { flex-basis: 100%; }
+.answer-review__flag-form fieldset { border: 0; padding: 0; margin: 0; flex-wrap: wrap; }
+.answer-review-disclosure > summary { cursor: pointer; font-weight: 600; }
+.answer-review-disclosure[open] > summary { margin-bottom: var(--space-3); }

@@ -710,3 +710,11 @@ export function useDrill(id: string) {
 export function useDrillAttempts(id: string) {
   return useQuery({ queryKey: ["me", "drills", id, "attempts"], queryFn: () => api.drillAttempts(id), staleTime: 0 });
 }
+
+export function useCriteria(track: string, id: string) {
+  return useQuery({ queryKey: ["criteria", track, id], queryFn: () => api.criteria(track, id), staleTime: 5 * 60_000 });
+}
+
+export function useAnswerReview(answerId: string) {
+  return useQuery({ queryKey: ["me", "answer-review", answerId], queryFn: () => api.answerReview(answerId), staleTime: 0 });
+}

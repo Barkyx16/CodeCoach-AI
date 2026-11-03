@@ -12,6 +12,7 @@ from fastapi.responses import Response
 
 from app.api.routes import (
     ai,
+    answer_review,
     applications,
     auth,
     careers,
@@ -216,6 +217,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         stories.router,
         applications.router,
         kits.router,
+        answer_review.router,
         drills.router,
         whiteboard.router,
         schedule.router,

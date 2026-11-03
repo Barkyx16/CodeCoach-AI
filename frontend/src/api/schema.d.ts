@@ -1593,6 +1593,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/careers/{slug}/questions/{question_id}/criteria": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the coach looks for in this question, before you answer */
+        get: operations["criteria_api_v1_careers__slug__questions__question_id__criteria_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/answers/{answer_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your answer, its feedback and your reflection */
+        get: operations["get_review_api_v1_me_answers__answer_id__review_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/answers/{answer_id}/self-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save (or skip) your own reflection; it never changes the answer or its result */
+        put: operations["put_self_review_api_v1_me_answers__answer_id__self_review_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/answers/{answer_id}/flags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a criterion as unclear or one you disagree with, with a private note */
+        post: operations["add_flag_api_v1_me_answers__answer_id__flags_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/answers/{answer_id}/flags/{flag_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a flag */
+        delete: operations["remove_flag_api_v1_me_answers__answer_id__flags__flag_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/answers/{answer_id}/evaluations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check again under the current rubric (only when it could change; the original is kept) */
+        post: operations["reevaluate_api_v1_me_answers__answer_id__evaluations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/drills": {
         parameters: {
             query?: never;
@@ -2942,6 +3044,34 @@ export interface components {
              * @description The story this answer rehearsed, if any
              */
             story_id?: string | null;
+            /**
+             * Rubric Version
+             * @description The rubric the coach used
+             * @default v1
+             */
+            rubric_version: string;
+            /**
+             * Evidence Level
+             * @description insufficient: too short to evaluate, so no score should be shown
+             * @default sufficient
+             * @enum {string}
+             */
+            evidence_level: "sufficient" | "insufficient";
+        };
+        /** AnswerPerspective */
+        AnswerPerspective: {
+            /** Criterion */
+            criterion: string;
+            /**
+             * Yours
+             * @description Your rating, if you gave one
+             */
+            yours: ("no" | "partly" | "yes") | null;
+            /**
+             * Coach
+             * @description Whether the coach found it in your words
+             */
+            coach: boolean;
         };
         /** AnswerRequest */
         AnswerRequest: {
@@ -2952,6 +3082,26 @@ export interface components {
              * @description One of your stories this answer rehearses (it isn't changed)
              */
             story_id?: string | null;
+        };
+        /** AnswerReviewOut */
+        AnswerReviewOut: {
+            answer: components["schemas"]["AnswerOut"];
+            self_review: components["schemas"]["SelfReviewOut"] | null;
+            /** Perspectives */
+            perspectives: components["schemas"]["AnswerPerspective"][];
+            /** Repeated */
+            repeated: components["schemas"]["RepeatedArea"][];
+            /** Flags */
+            flags: components["schemas"]["FlagOut"][];
+            /**
+             * Evaluations
+             * @description Later evaluations; the original result is never replaced
+             */
+            evaluations: components["schemas"]["EvaluationOut"][];
+            /** Can Reevaluate */
+            can_reevaluate: boolean;
+            /** Reevaluate Note */
+            reevaluate_note: string;
         };
         /** ApplicationCreate */
         ApplicationCreate: {
@@ -3470,6 +3620,17 @@ export interface components {
             /** New Password */
             new_password: string;
         };
+        /** Check */
+        Check: {
+            /** Text */
+            text: string;
+            /**
+             * Kind
+             * @default deterministic
+             * @constant
+             */
+            kind: "deterministic";
+        };
         /** CheckIn */
         CheckIn: {
             /** Version */
@@ -3832,6 +3993,54 @@ export interface components {
              * @default 0
              */
             passed: number;
+        };
+        /** CriteriaOut */
+        CriteriaOut: {
+            /** Question Id */
+            question_id: string;
+            /** Content Version */
+            content_version: number;
+            /** Rubric Version */
+            rubric_version: string;
+            /** Coach */
+            coach: string;
+            /**
+             * Criteria
+             * @description Qualitative points the coach looks for in your words
+             */
+            criteria: components["schemas"]["Criterion"][];
+            /**
+             * Checks
+             * @description Fixed rules that apply to every answer (length, numbers)
+             */
+            checks: components["schemas"]["Check"][];
+            /** Disclaimer */
+            disclaimer: string;
+        };
+        /** Criterion */
+        Criterion: {
+            /**
+             * Label
+             * @description What a strong answer does
+             */
+            label: string;
+            /**
+             * Description
+             * @description In plain words, what to include
+             */
+            description: string;
+            /** Levels */
+            levels: components["schemas"]["CriterionLevel"][];
+        };
+        /** CriterionLevel */
+        CriterionLevel: {
+            /**
+             * Level
+             * @enum {string}
+             */
+            level: "not_yet" | "there";
+            /** Text */
+            text: string;
         };
         /** DayCount */
         DayCount: {
@@ -4241,6 +4450,37 @@ export interface components {
             answers: number;
             /** Average Best Score */
             average_best_score: number;
+        };
+        /** EvaluationOut */
+        EvaluationOut: {
+            /** Id */
+            id: number;
+            /** Rubric Version */
+            rubric_version: string;
+            /** Content Version */
+            content_version: number;
+            /** Score */
+            score: number;
+            /** Rating */
+            rating: string;
+            /** Summary */
+            summary: string;
+            /**
+             * Evidence Level
+             * @enum {string}
+             */
+            evidence_level: "sufficient" | "insufficient";
+            /** Points */
+            points: {
+                [key: string]: unknown;
+            }[];
+            /** Reason */
+            reason: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** EventIn */
         EventIn: {
@@ -4691,6 +4931,11 @@ export interface components {
             covered: boolean;
             /** Advice */
             advice: string;
+            /**
+             * Evidence
+             * @description Your own sentence where it was found (older answers: none recorded)
+             */
+            evidence?: string | null;
         };
         /**
          * FeedbackReceipt
@@ -4703,6 +4948,40 @@ export interface components {
              * @description True when this was a retry of feedback already received
              */
             duplicate: boolean;
+        };
+        /** FlagIn */
+        FlagIn: {
+            /** Criterion */
+            criterion: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "unclear" | "disagree";
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /** FlagOut */
+        FlagOut: {
+            /** Id */
+            id: number;
+            /** Criterion */
+            criterion: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "unclear" | "disagree";
+            /** Note */
+            note: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** FollowupAnswer */
         FollowupAnswer: {
@@ -6242,6 +6521,15 @@ export interface components {
              */
             kind: "retry" | "weak_topic" | "next_step" | "interview";
         };
+        /** ReevaluateIn */
+        ReevaluateIn: {
+            /**
+             * Reason
+             * @description Why you'd like it checked again (private)
+             * @default
+             */
+            reason: string;
+        };
         /** ReferenceOut */
         ReferenceOut: {
             /** Title */
@@ -6286,6 +6574,18 @@ export interface components {
              * @example registered-nurse
              */
             career_track?: string | null;
+        };
+        /** RepeatedArea */
+        RepeatedArea: {
+            /** Criterion */
+            criterion: string;
+            /**
+             * Times
+             * @description How many of your recent answers on this career it wasn't found in
+             */
+            times: number;
+            /** Of */
+            of: number;
         };
         /** ReportGroup */
         ReportGroup: {
@@ -7031,6 +7331,57 @@ export interface components {
             skill: string;
             /** Rating */
             rating: number;
+        };
+        /** SelfReviewIn */
+        SelfReviewIn: {
+            /**
+             * Went Well
+             * @default
+             */
+            went_well: string;
+            /**
+             * Improve
+             * @default
+             */
+            improve: string;
+            /**
+             * Ratings
+             * @description Criterion label → your rating
+             */
+            ratings?: {
+                [key: string]: "no" | "partly" | "yes";
+            };
+            /**
+             * Skipped
+             * @default false
+             */
+            skipped: boolean;
+            /**
+             * Before Feedback
+             * @description Written before reading the feedback
+             * @default true
+             */
+            before_feedback: boolean;
+        };
+        /** SelfReviewOut */
+        SelfReviewOut: {
+            /** Went Well */
+            went_well: string;
+            /** Improve */
+            improve: string;
+            /** Ratings */
+            ratings: {
+                [key: string]: "no" | "partly" | "yes";
+            };
+            /** Skipped */
+            skipped: boolean;
+            /** Before Feedback */
+            before_feedback: boolean;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /** SessionPlan */
         SessionPlan: {
@@ -14466,6 +14817,332 @@ export interface operations {
             };
             /** @description Not found (also returned for resources owned by another user) */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    criteria_api_v1_careers__slug__questions__question_id__criteria_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CriteriaOut"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_review_api_v1_me_answers__answer_id__review_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                answer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnswerReviewOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_self_review_api_v1_me_answers__answer_id__self_review_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                answer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SelfReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnswerReviewOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    add_flag_api_v1_me_answers__answer_id__flags_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                answer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlagIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnswerReviewOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    remove_flag_api_v1_me_answers__answer_id__flags__flag_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                answer_id: string;
+                flag_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnswerReviewOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reevaluate_api_v1_me_answers__answer_id__evaluations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                answer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReevaluateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnswerReviewOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

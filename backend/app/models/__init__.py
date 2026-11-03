@@ -1248,3 +1248,56 @@ class DrillAttempt(Base):
     feedback: Mapped[dict] = mapped_column(JSONType)
     client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class AnswerSelfReview(Base):
+    """The learner's own reflection on an answer, written before (or instead of) reading the
+    feedback. Kept apart from the answer and its score, and never changes either."""
+
+    __tablename__ = "answer_self_reviews"
+
+    answer_id: Mapped[str] = mapped_column(
+        ForeignKey("practice_answers.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    went_well: Mapped[str] = mapped_column(Text, default="")
+    improve: Mapped[str] = mapped_column(Text, default="")
+    ratings: Mapped[dict] = mapped_column(
+        JSONType, default=dict
+    )  # {criterion label: "no" | "partly" | "yes"}
+    skipped: Mapped[bool] = mapped_column(Boolean, default=False)
+    # True only while every save happened before the learner read the feedback.
+    before_feedback: Mapped[bool] = mapped_column(Boolean, default=True)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class AnswerFlag(Base):
+    """A criterion the learner found unclear or disagrees with, with a private note."""
+
+    __tablename__ = "answer_flags"
+    __table_args__ = (UniqueConstraint("answer_id", "criterion", name="uq_answer_flag"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    answer_id: Mapped[str] = mapped_column(ForeignKey("practice_answers.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    criterion: Mapped[str] = mapped_column(String(200))
+    kind: Mapped[str] = mapped_column(String(12))  # unclear | disagree
+    note: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class AnswerEvaluation(Base):
+    """A later evaluation of the same answer (for example under a newer rubric). The original
+    feedback on the answer is never replaced; each evaluation is its own record."""
+
+    __tablename__ = "answer_evaluations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    answer_id: Mapped[str] = mapped_column(ForeignKey("practice_answers.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    rubric_version: Mapped[str] = mapped_column(String(16))
+    content_version: Mapped[int] = mapped_column(Integer)
+    score: Mapped[int] = mapped_column(Integer)
+    feedback: Mapped[dict] = mapped_column(JSONType)
+    reason: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)

@@ -8584,6 +8584,471 @@
         }
       }
     },
+    "/api/v1/careers/{slug}/questions/{question_id}/criteria": {
+      "get": {
+        "tags": [
+          "careers"
+        ],
+        "summary": "What the coach looks for in this question, before you answer",
+        "operationId": "criteria_api_v1_careers__slug__questions__question_id__criteria_get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "question_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Question Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CriteriaOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/answers/{answer_id}/review": {
+      "get": {
+        "tags": [
+          "careers"
+        ],
+        "summary": "Your answer, its feedback and your reflection",
+        "operationId": "get_review_api_v1_me_answers__answer_id__review_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "answer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Answer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnswerReviewOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/answers/{answer_id}/self-review": {
+      "put": {
+        "tags": [
+          "careers"
+        ],
+        "summary": "Save (or skip) your own reflection; it never changes the answer or its result",
+        "operationId": "put_self_review_api_v1_me_answers__answer_id__self_review_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "answer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Answer Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelfReviewIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnswerReviewOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/answers/{answer_id}/flags": {
+      "post": {
+        "tags": [
+          "careers"
+        ],
+        "summary": "Mark a criterion as unclear or one you disagree with, with a private note",
+        "operationId": "add_flag_api_v1_me_answers__answer_id__flags_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "answer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Answer Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlagIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnswerReviewOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/answers/{answer_id}/flags/{flag_id}": {
+      "delete": {
+        "tags": [
+          "careers"
+        ],
+        "summary": "Remove a flag",
+        "operationId": "remove_flag_api_v1_me_answers__answer_id__flags__flag_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "answer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Answer Id"
+            }
+          },
+          {
+            "name": "flag_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Flag Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnswerReviewOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/answers/{answer_id}/evaluations": {
+      "post": {
+        "tags": [
+          "careers"
+        ],
+        "summary": "Check again under the current rubric (only when it could change; the original is kept)",
+        "operationId": "reevaluate_api_v1_me_answers__answer_id__evaluations_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "answer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Answer Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReevaluateIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnswerReviewOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/drills": {
       "get": {
         "tags": [
@@ -15348,6 +15813,22 @@
             ],
             "title": "Story Id",
             "description": "The story this answer rehearsed, if any"
+          },
+          "rubric_version": {
+            "type": "string",
+            "title": "Rubric Version",
+            "description": "The rubric the coach used",
+            "default": "v1"
+          },
+          "evidence_level": {
+            "type": "string",
+            "enum": [
+              "sufficient",
+              "insufficient"
+            ],
+            "title": "Evidence Level",
+            "description": "insufficient: too short to evaluate, so no score should be shown",
+            "default": "sufficient"
           }
         },
         "type": "object",
@@ -15366,6 +15847,43 @@
           "created_at"
         ],
         "title": "AnswerOut"
+      },
+      "AnswerPerspective": {
+        "properties": {
+          "criterion": {
+            "type": "string",
+            "title": "Criterion"
+          },
+          "yours": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "no",
+                  "partly",
+                  "yes"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Yours",
+            "description": "Your rating, if you gave one"
+          },
+          "coach": {
+            "type": "boolean",
+            "title": "Coach",
+            "description": "Whether the coach found it in your words"
+          }
+        },
+        "type": "object",
+        "required": [
+          "criterion",
+          "yours",
+          "coach"
+        ],
+        "title": "AnswerPerspective"
       },
       "AnswerRequest": {
         "properties": {
@@ -15394,6 +15912,72 @@
           "answer"
         ],
         "title": "AnswerRequest"
+      },
+      "AnswerReviewOut": {
+        "properties": {
+          "answer": {
+            "$ref": "#/components/schemas/AnswerOut"
+          },
+          "self_review": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SelfReviewOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "perspectives": {
+            "items": {
+              "$ref": "#/components/schemas/AnswerPerspective"
+            },
+            "type": "array",
+            "title": "Perspectives"
+          },
+          "repeated": {
+            "items": {
+              "$ref": "#/components/schemas/RepeatedArea"
+            },
+            "type": "array",
+            "title": "Repeated"
+          },
+          "flags": {
+            "items": {
+              "$ref": "#/components/schemas/FlagOut"
+            },
+            "type": "array",
+            "title": "Flags"
+          },
+          "evaluations": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationOut"
+            },
+            "type": "array",
+            "title": "Evaluations",
+            "description": "Later evaluations; the original result is never replaced"
+          },
+          "can_reevaluate": {
+            "type": "boolean",
+            "title": "Can Reevaluate"
+          },
+          "reevaluate_note": {
+            "type": "string",
+            "title": "Reevaluate Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer",
+          "self_review",
+          "perspectives",
+          "repeated",
+          "flags",
+          "evaluations",
+          "can_reevaluate",
+          "reevaluate_note"
+        ],
+        "title": "AnswerReviewOut"
       },
       "ApplicationCreate": {
         "properties": {
@@ -16816,6 +17400,25 @@
         ],
         "title": "ChangePasswordRequest"
       },
+      "Check": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "kind": {
+            "type": "string",
+            "const": "deterministic",
+            "title": "Kind",
+            "default": "deterministic"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "Check"
+      },
       "CheckIn": {
         "properties": {
           "version": {
@@ -17717,6 +18320,107 @@
           "average_best_score"
         ],
         "title": "Coverage"
+      },
+      "CriteriaOut": {
+        "properties": {
+          "question_id": {
+            "type": "string",
+            "title": "Question Id"
+          },
+          "content_version": {
+            "type": "integer",
+            "title": "Content Version"
+          },
+          "rubric_version": {
+            "type": "string",
+            "title": "Rubric Version"
+          },
+          "coach": {
+            "type": "string",
+            "title": "Coach"
+          },
+          "criteria": {
+            "items": {
+              "$ref": "#/components/schemas/Criterion"
+            },
+            "type": "array",
+            "title": "Criteria",
+            "description": "Qualitative points the coach looks for in your words"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/Check"
+            },
+            "type": "array",
+            "title": "Checks",
+            "description": "Fixed rules that apply to every answer (length, numbers)"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question_id",
+          "content_version",
+          "rubric_version",
+          "coach",
+          "criteria",
+          "checks",
+          "disclaimer"
+        ],
+        "title": "CriteriaOut"
+      },
+      "Criterion": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "What a strong answer does"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "In plain words, what to include"
+          },
+          "levels": {
+            "items": {
+              "$ref": "#/components/schemas/CriterionLevel"
+            },
+            "type": "array",
+            "title": "Levels"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "description",
+          "levels"
+        ],
+        "title": "Criterion"
+      },
+      "CriterionLevel": {
+        "properties": {
+          "level": {
+            "type": "string",
+            "enum": [
+              "not_yet",
+              "there"
+            ],
+            "title": "Level"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "level",
+          "text"
+        ],
+        "title": "CriterionLevel"
       },
       "DayCount": {
         "properties": {
@@ -18727,6 +19431,73 @@
         ],
         "title": "EvaluatedSkill"
       },
+      "EvaluationOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "rubric_version": {
+            "type": "string",
+            "title": "Rubric Version"
+          },
+          "content_version": {
+            "type": "integer",
+            "title": "Content Version"
+          },
+          "score": {
+            "type": "integer",
+            "title": "Score"
+          },
+          "rating": {
+            "type": "string",
+            "title": "Rating"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "evidence_level": {
+            "type": "string",
+            "enum": [
+              "sufficient",
+              "insufficient"
+            ],
+            "title": "Evidence Level"
+          },
+          "points": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Points"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "rubric_version",
+          "content_version",
+          "score",
+          "rating",
+          "summary",
+          "evidence_level",
+          "points",
+          "reason",
+          "created_at"
+        ],
+        "title": "EvaluationOut"
+      },
       "EventIn": {
         "properties": {
           "kind": {
@@ -19733,6 +20504,18 @@
           "advice": {
             "type": "string",
             "title": "Advice"
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence",
+            "description": "Your own sentence where it was found (older answers: none recorded)"
           }
         },
         "type": "object",
@@ -19761,6 +20544,74 @@
         ],
         "title": "FeedbackReceipt",
         "description": "What the reviewer sent, echoed back so they can see it was received."
+      },
+      "FlagIn": {
+        "properties": {
+          "criterion": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Criterion"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "unclear",
+              "disagree"
+            ],
+            "title": "Kind"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Note",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "criterion",
+          "kind"
+        ],
+        "title": "FlagIn"
+      },
+      "FlagOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "criterion": {
+            "type": "string",
+            "title": "Criterion"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "unclear",
+              "disagree"
+            ],
+            "title": "Kind"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "criterion",
+          "kind",
+          "note",
+          "created_at"
+        ],
+        "title": "FlagOut"
       },
       "FollowupAnswer": {
         "properties": {
@@ -23914,6 +24765,19 @@
         ],
         "title": "Recommendation"
       },
+      "ReevaluateIn": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Reason",
+            "description": "Why you'd like it checked again (private)",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "ReevaluateIn"
+      },
       "ReferenceOut": {
         "properties": {
           "title": {
@@ -24033,6 +24897,30 @@
           "password"
         ],
         "title": "RegisterRequest"
+      },
+      "RepeatedArea": {
+        "properties": {
+          "criterion": {
+            "type": "string",
+            "title": "Criterion"
+          },
+          "times": {
+            "type": "integer",
+            "title": "Times",
+            "description": "How many of your recent answers on this career it wasn't found in"
+          },
+          "of": {
+            "type": "integer",
+            "title": "Of"
+          }
+        },
+        "type": "object",
+        "required": [
+          "criterion",
+          "times",
+          "of"
+        ],
+        "title": "RepeatedArea"
       },
       "ReportGroup": {
         "properties": {
@@ -26021,6 +26909,95 @@
           "rating"
         ],
         "title": "SelfRating"
+      },
+      "SelfReviewIn": {
+        "properties": {
+          "went_well": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Went Well",
+            "default": ""
+          },
+          "improve": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Improve",
+            "default": ""
+          },
+          "ratings": {
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "no",
+                "partly",
+                "yes"
+              ]
+            },
+            "type": "object",
+            "title": "Ratings",
+            "description": "Criterion label \u2192 your rating"
+          },
+          "skipped": {
+            "type": "boolean",
+            "title": "Skipped",
+            "default": false
+          },
+          "before_feedback": {
+            "type": "boolean",
+            "title": "Before Feedback",
+            "description": "Written before reading the feedback",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "SelfReviewIn"
+      },
+      "SelfReviewOut": {
+        "properties": {
+          "went_well": {
+            "type": "string",
+            "title": "Went Well"
+          },
+          "improve": {
+            "type": "string",
+            "title": "Improve"
+          },
+          "ratings": {
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "no",
+                "partly",
+                "yes"
+              ]
+            },
+            "type": "object",
+            "title": "Ratings"
+          },
+          "skipped": {
+            "type": "boolean",
+            "title": "Skipped"
+          },
+          "before_feedback": {
+            "type": "boolean",
+            "title": "Before Feedback"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "went_well",
+          "improve",
+          "ratings",
+          "skipped",
+          "before_feedback",
+          "updated_at"
+        ],
+        "title": "SelfReviewOut"
       },
       "SessionPlan": {
         "properties": {

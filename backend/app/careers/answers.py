@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from app.careers.grading import RUBRIC_VERSION, grade
+from app.careers import grading
+from app.careers.grading import MIN_WORDS, Feedback, grade
 from app.careers.questions import Question
 from app.models import PracticeAnswer
 from app.schemas.careers import AnswerOut, FeedbackPoint
@@ -22,16 +23,34 @@ def graded_answer(user_id: str, question: Question, text: str) -> PracticeAnswer
         score=fb.score,
         provider=OFFLINE_COACH,
         content_version=question.version,  # the version answered; later corrections never touch it
-        feedback={
-            "rating": fb.rating,
-            "summary": fb.summary,
-            "points": [{"label": p.label, "covered": p.covered, "advice": p.advice} for p in fb.points],
-            "notes": list(fb.notes),
-            "outline": list(question.outline),
-            "word_count": fb.word_count,
-            "evaluator": f"{OFFLINE_COACH} · rubric {RUBRIC_VERSION}",
-        },
+        feedback=feedback_dict(fb, question),
     )
+
+
+def feedback_dict(fb: Feedback, question: Question) -> dict:
+    """How a grade is stored: what the coach found, quoted evidence, and the versions it used."""
+    return {
+        "rating": fb.rating,
+        "summary": fb.summary,
+        "points": [
+            {"label": p.label, "covered": p.covered, "advice": p.advice, "evidence": p.evidence}
+            for p in fb.points
+        ],
+        "notes": list(fb.notes),
+        "outline": list(question.outline),
+        "word_count": fb.word_count,
+        "evidence_level": fb.evidence_level,
+        "rubric_version": grading.RUBRIC_VERSION,
+        "evaluator": f"{OFFLINE_COACH} · rubric {grading.RUBRIC_VERSION}",
+    }
+
+
+def rubric_version_of(feedback: dict) -> str:
+    """The rubric an older stored grade used (before it was stored separately it was in "evaluator")."""
+    if feedback.get("rubric_version"):
+        return str(feedback["rubric_version"])
+    tail = str(feedback.get("evaluator", "")).rpartition("rubric ")[2].strip()
+    return tail or "v1"
 
 
 def answer_out(row: PracticeAnswer) -> AnswerOut:
@@ -44,6 +63,10 @@ def answer_out(row: PracticeAnswer) -> AnswerOut:
         rating=fb["rating"],
         summary=fb["summary"],
         points=[FeedbackPoint(**p) for p in fb["points"]],
+        rubric_version=rubric_version_of(fb),
+        # Older answers didn't store this; their word count says it.
+        evidence_level=fb.get("evidence_level")
+        or ("insufficient" if fb["word_count"] < MIN_WORDS else "sufficient"),
         notes=fb["notes"],
         outline=fb["outline"],
         word_count=fb["word_count"],

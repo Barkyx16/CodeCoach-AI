@@ -23,6 +23,7 @@ class PointResult:
     label: str
     covered: bool
     advice: str
+    evidence: str | None = None  # the learner's own sentence where it was found (quoted, never paraphrased)
 
 
 @dataclass(frozen=True)
@@ -33,6 +34,8 @@ class Feedback:
     points: tuple[PointResult, ...]
     notes: tuple[str, ...]  # structure and length observations
     word_count: int
+    # "insufficient" when the answer is too short to evaluate: the UI shows that state, not a score.
+    evidence_level: str = "sufficient"
 
 
 def _count(pattern: str, text: str) -> int:
@@ -42,6 +45,19 @@ def _count(pattern: str, text: str) -> int:
 def _covered(text: str, patterns: tuple[str, ...], min_hits: int) -> bool:
     hits = sum(_count(p, text) for p in patterns)
     return hits >= min_hits
+
+
+_SENTENCE = re.compile(r"[^.!?\n]+[.!?]?")
+
+
+def _excerpt(answer: str, patterns: tuple[str, ...]) -> str | None:
+    """The first sentence of the answer in which one of the point's patterns matches."""
+    for m in _SENTENCE.finditer(answer):
+        sentence = m.group(0).strip()
+        padded = " " + re.sub(r"\s+", " ", sentence) + " "
+        if sentence and any(re.search(p, padded, flags=re.IGNORECASE) for p in patterns):
+            return sentence if len(sentence) <= 200 else sentence[:199].rstrip() + "…"
+    return None
 
 
 def _rating(score: int) -> str:
@@ -58,7 +74,13 @@ def grade(question: Question, answer: str) -> Feedback:
     text = " " + re.sub(r"\s+", " ", answer.strip()) + " "
     words = len(answer.split())
     points = tuple(
-        PointResult(rp.label, _covered(text, rp.patterns, rp.min_hits), rp.advice) for rp in question.rubric
+        PointResult(
+            rp.label,
+            covered := _covered(text, rp.patterns, rp.min_hits),
+            rp.advice,
+            _excerpt(answer, rp.patterns) if covered else None,
+        )
+        for rp in question.rubric
     )
     coverage = sum(p.covered for p in points) / len(points) if points else 0.0
 
@@ -118,4 +140,5 @@ def grade(question: Question, answer: str) -> Feedback:
         points=points,
         notes=tuple(notes),
         word_count=words,
+        evidence_level="insufficient" if words < MIN_WORDS else "sufficient",
     )
