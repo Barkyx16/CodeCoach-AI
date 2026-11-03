@@ -79,16 +79,18 @@ function LiveInterview({ iv, problemSlug }: { iv: Interview; problemSlug: string
     if (prefs.readAloud && lastInterviewer) speak(lastInterviewer.content);
   }, [lastInterviewer?.seq, prefs.readAloud, speak]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function onSend(source: AnswerSource = "typed") {
+  async function onSend(source: AnswerSource = "typed"): Promise<boolean> {
     const text = message.trim();
-    if (!text || !canSend) return;
+    if (!text || !canSend) return false;
     setPending({ text, baseline: iv.turns.length });
     setMessage("");
     try {
       await send.mutateAsync({ message: text, code: draft.code, source });
       clearStoredDraft(messageKey);
+      return true;
     } catch {
       setMessage(text); // give the text back (and save it again) so nothing is lost
+      return false;
     } finally {
       setPending(null);
     }
@@ -133,7 +135,7 @@ function LiveInterview({ iv, problemSlug }: { iv: Interview; problemSlug: string
               onToggle={() => setPrefs({ showEngagement: !prefs.showEngagement })} />
           </div>
           <VoiceComposer
-            id="iv-message" label="Your answer" value={message} onChange={setMessage} onSubmit={(source) => void onSend(source)}
+            id="iv-message" label="Your answer" value={message} onChange={setMessage} onSubmit={onSend}
             submitting={send.isPending} rows={3} maxLength={4000} submitLabel="Send" voice={voice}
             disabled={ready || seconds === 0 || iv.candidate_turns_remaining === 0 || finish.isPending || abandon.isPending}
             placeholder={ready ? "The interviewer has wrapped up. Click Finish to see your feedback." : "Think out loud… (Ctrl/⌘ + Enter to send)"}

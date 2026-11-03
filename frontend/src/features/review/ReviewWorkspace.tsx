@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
@@ -10,6 +10,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { readStoredDraft } from "@/hooks/useStoredDraft";
+import { diag } from "@/lib/diagnostics";
 import { formatDateTime, titleCase } from "@/lib/format";
 import { FeedbackCard } from "@/features/careers/FeedbackCard";
 import { KIND_LABEL } from "@/features/careers/kinds";
@@ -33,6 +34,9 @@ function minutes(seconds: number | null | undefined): string {
 /** The post-interview review for both interview kinds: summary, focus, timeline and detail. */
 export function ReviewWorkspace({ iv }: { iv: Interview }) {
   const review = useInterviewReview(iv.id);
+  useEffect(() => {
+    diag("review_view", { interviewId: iv.id, status: iv.status, state: review.isPending ? "loading" : review.isError ? "error" : "ready" });
+  }, [iv.id, iv.status, review.isPending, review.isError]);
   if (review.isPending) return <LoadingState label="Loading your review…" />;
   if (review.isError) return <div className="page"><BackLink /><ErrorState error={review.error} onRetry={() => void review.refetch()} /></div>;
   return <Review iv={iv} r={review.data} />;

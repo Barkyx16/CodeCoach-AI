@@ -24,13 +24,14 @@ export function RetryPage() {
   if (comparison.isError) return <div className="page"><BackLink fallback={{ to: `/interviews/${id}`, label: "Back to the review" }} /><ErrorState error={comparison.error} onRetry={() => void comparison.refetch()} /></div>;
   const c = comparison.data;
 
-  async function submit(source: AnswerSource) {
+  async function submit(source: AnswerSource): Promise<boolean> {
     try {
       await retry.mutateAsync({ answer: draft.trim(), source });
       clearStoredDraft(key);
       setDraft("");
+      return true;
     } catch {
-      /* draft kept; error shown */
+      return false; // draft kept; error shown
     }
   }
 
@@ -51,7 +52,7 @@ export function RetryPage() {
           <blockquote className="round-result__answer">{c.original.answer}</blockquote>
         </details>
       )}
-      <VoiceComposer id="retry-answer" label="Your new answer" value={draft} onChange={setDraft} onSubmit={(s) => void submit(s)}
+      <VoiceComposer id="retry-answer" label="Your new answer" value={draft} onChange={setDraft} onSubmit={submit}
         submitting={retry.isPending} maxLength={6000} submitLabel="Get feedback and compare" voice={voice}
         placeholder="Answer it again, using the feedback…" hint="Your draft is saved in this browser until you send it." />
       <InlineError error={retry.error} />

@@ -10,6 +10,7 @@ import { clearStoredDraft, useStoredDraft } from "@/hooks/useStoredDraft";
 import type { useInterviewerVoice } from "@/features/voice/useInterviewerVoice";
 import { VoiceComposer } from "@/features/voice/VoiceComposer";
 
+import { tracedRoundAction } from "./roundDiag";
 import { roundDraftKey } from "./roundDrafts";
 
 type Followup = NonNullable<NonNullable<Interview["round_format"]>["pending_followup"]>;
@@ -36,12 +37,13 @@ export function FollowupTurn({ iv, followup, voice, readAloud }: {
     if (readAloud) speak(followup.question); // speak() stops anything already playing first
   }, [followup.question, readAloud, speak]);
 
-  async function send(source: AnswerSource) {
+  async function send(source: AnswerSource): Promise<boolean> {
     try {
-      await reply.mutateAsync({ answer: draft.trim(), source });
+      await tracedRoundAction("reply", iv.id, followup.question_index, () => reply.mutateAsync({ answer: draft.trim(), source }));
       clearStoredDraft(key);
+      return true;
     } catch {
-      /* kept in the draft; error shown */
+      return false; // kept in the draft; error shown
     }
   }
 
@@ -63,11 +65,11 @@ export function FollowupTurn({ iv, followup, voice, readAloud }: {
         <p className="turn-cue" role="status">Your turn: reply to the {asker.toLowerCase()}.</p>
       </Card>
       <VoiceComposer
-        id="followup-answer" label="Your reply" value={draft} onChange={setDraft} onSubmit={(s) => void send(s)}
+        id="followup-answer" label="Your reply" value={draft} onChange={setDraft} onSubmit={send}
         submitting={reply.isPending} disabled={busy && !reply.isPending} maxLength={3000}
         submitLabel="Send reply" placeholder="A sentence or two is enough…" voice={voice}
         hint="Typing works too. The next question comes after you reply or skip." errorId={reply.error ?? skip.error ? "followup-error" : undefined}
-        extraActions={<Button type="button" variant="ghost" disabled={busy} loading={skip.isPending} onClick={() => skip.mutate()}>Skip follow-up</Button>}
+        extraActions={<Button type="button" variant="ghost" disabled={busy} loading={skip.isPending} onClick={() => void tracedRoundAction("skip_followup", iv.id, followup.question_index, () => skip.mutateAsync()).catch(() => undefined)}>Skip follow-up</Button>}
       />
       <InlineError id="followup-error" error={reply.error ?? skip.error} />
     </div>

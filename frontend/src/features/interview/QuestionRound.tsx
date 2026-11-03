@@ -21,6 +21,7 @@ import { useVoicePrefs } from "@/features/voice/voicePrefs";
 
 import { FollowupTurn } from "./FollowupTurn";
 import { roundDraftKey } from "./roundDrafts";
+import { tracedRoundAction, useRoundViewDiag } from "./roundDiag";
 import { formatClock, useCountdown } from "./useCountdown";
 
 
@@ -69,16 +70,18 @@ export function LiveRound({ iv }: { iv: Interview }) {
     if (prefs.readAloud) speak(prompt);
   }, [prompt, prefs.readAloud, speak]);
 
+  useRoundViewDiag(iv, pending ? "followup" : current ? "question" : "empty");
   if (!current && !pending) return null; // completed or out of questions; the parent shows results after refetch
   const speaker = pending?.speaker ?? current?.speaker ?? null;
 
-  async function submit(source: AnswerSource) {
+  async function submit(source: AnswerSource): Promise<boolean> {
     const key = roundDraftKey(iv.id, index);
     try {
-      await answer.mutateAsync({ question_index: index, answer: draft.trim(), source });
+      await tracedRoundAction("answer", iv.id, index, () => answer.mutateAsync({ question_index: index, answer: draft.trim(), source }));
       clearStoredDraft(key);
+      return true;
     } catch {
-      /* the draft is kept (stored) and the error is shown */
+      return false; // the draft is kept (stored) and the error is shown
     }
   }
 
@@ -126,14 +129,14 @@ export function LiveRound({ iv }: { iv: Interview }) {
           </Card>
 
           <VoiceComposer
-            id="round-answer" label="Your answer" value={draft} onChange={setDraft} onSubmit={(s) => void submit(s)}
+            id="round-answer" label="Your answer" value={draft} onChange={setDraft} onSubmit={submit}
             submitting={answer.isPending} disabled={busy && !answer.isPending} maxLength={6000}
             submitLabel={index + 1 === iv.questions.length ? "Finish interview" : "Next question"}
             placeholder="Answer the way you'd say it in the interview…" voice={voice}
             hint={`${words(draft)} words · aim for 120-350`} errorId={error ? "round-answer-error" : undefined}
             extraActions={
               <Button type="button" variant="ghost" disabled={busy} loading={skip.isPending}
-                onClick={() => skip.mutate(index)}>Skip</Button>
+                onClick={() => void tracedRoundAction("skip", iv.id, index, () => skip.mutateAsync(index)).catch(() => undefined)}>Skip</Button>
             }
           />
           {!online && (

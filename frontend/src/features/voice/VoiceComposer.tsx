@@ -25,7 +25,12 @@ const STATE_TEXT: Record<DictationState, string> = {
  *   never sent; the learner stops, reviews, then submits.
  * - The microphone and the interviewer's voice never run together: talking stops playback, and
  *   playback starting cancels listening.
- * - `submitting` comes from the caller's request state; a ref also guards double submits.
+ * - `submitting` comes from the caller's request state. A ref also guards double submits: it
+ *   holds the text being sent and is released when that send fails (so the kept draft can be
+ *   sent again) or when the box shows something else (the next question, or a cleared box), so
+ *   the same answer is never sent twice. It never waits for a "submitting" render, which React
+ *   can skip when the answer is saved before it gets to render; waiting for one left the guard
+ *   shut and the next answer's button silently did nothing.
  */
 export function VoiceComposer({
   id, label, value, onChange, onSubmit, submitting, disabled = false, submitLabel, placeholder,
@@ -35,7 +40,8 @@ export function VoiceComposer({
   label: string;
   value: string;
   onChange: (value: string) => void;
-  onSubmit: (source: AnswerSource) => void;
+  /** Send the answer. Resolves true once it was saved, false if it wasn't (the draft is kept). */
+  onSubmit: (source: AnswerSource) => Promise<boolean>;
   submitting: boolean;
   disabled?: boolean;
   submitLabel: string;
@@ -58,15 +64,13 @@ export function VoiceComposer({
     const current = valueRef.current;
     onChange((current && !/\s$/.test(current) ? `${current} ` : current) + text);
   });
-  const sending = useRef(false);
+  const sending = useRef<string | null>(null); // the text being sent, or just sent
 
   // A fresh, empty answer box (e.g. the next question) starts with a clean source record.
   useEffect(() => {
     if (!value) used.current = { typed: false, voice: false };
+    if (sending.current !== null && value !== sending.current) sending.current = null;
   }, [value]);
-  useEffect(() => {
-    if (!submitting) sending.current = false;
-  }, [submitting]);
   // Never transcribe the interviewer: if playback starts, stop listening.
   useEffect(() => {
     if (voice.speaking && dictation.state === "listening") dictation.cancel();
@@ -89,10 +93,12 @@ export function VoiceComposer({
 
   function submit(e?: FormEvent) {
     e?.preventDefault();
-    if (sending.current || submitting || busyMic || disabled || !value.trim()) return;
-    sending.current = true;
+    if (sending.current !== null || submitting || busyMic || disabled || !value.trim()) return;
+    const text = value;
+    sending.current = text;
     const { typed, voice: spoke } = used.current;
-    onSubmit(spoke && typed ? "mixed" : spoke ? "voice" : "typed");
+    const release = () => { if (sending.current === text) sending.current = null; };
+    onSubmit(spoke && typed ? "mixed" : spoke ? "voice" : "typed").then((sent) => { if (!sent) release(); }, release);
   }
 
   return (
