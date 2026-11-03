@@ -25,9 +25,12 @@ from app.models import (
     ReviewItem,
     RoleTarget,
     ScenarioAttempt,
+    Share,
+    ShareFeedback,
     Submission,
     User,
 )
+from app.services.shares import status_of
 
 EXPORT_VERSION = 1
 
@@ -87,6 +90,18 @@ def export_user_data(db: Session, user: User) -> dict:
     ).all()
     answers = db.scalars(
         select(PracticeAnswer).where(PracticeAnswer.user_id == user.id).order_by(PracticeAnswer.created_at)
+    ).all()
+    shares = db.scalars(
+        select(Share)
+        .options(selectinload(Share.feedback))
+        .where(Share.owner_id == user.id)
+        .order_by(Share.created_at)
+    ).all()
+    given = db.execute(
+        select(ShareFeedback, Share.snapshot)
+        .join(Share, Share.id == ShareFeedback.share_id)
+        .where(ShareFeedback.reviewer_id == user.id)
+        .order_by(ShareFeedback.created_at)
     ).all()
 
     def iso(dt: datetime | None) -> str | None:
@@ -338,6 +353,44 @@ def export_user_data(db: Session, user: User) -> dict:
                 "updated_at": iso(n.updated_at),
             }
             for n in notes
+        ],
+        # Answers you shared for feedback: the exact snapshot, link status and feedback received.
+        # Link secrets aren't stored, so none can be exported.
+        "shares": [
+            {
+                "status": status_of(sh),
+                "snapshot": sh.snapshot,
+                "created_at": iso(sh.created_at),
+                "expires_at": iso(sh.expires_at),
+                "closed_at": iso(sh.closed_at),
+                "revoked_at": iso(sh.revoked_at),
+                "feedback": [
+                    {
+                        "reviewer": "signed-in user" if f.reviewer_kind == "account" else "guest",
+                        "guest_name": f.guest_name,
+                        "clear": f.clear,
+                        "needs_evidence": f.needs_evidence,
+                        "next_step": f.next_step,
+                        "comments": f.comments,
+                        "useful": f.useful,
+                        "created_at": iso(f.created_at),
+                    }
+                    for f in sh.feedback
+                ],
+            }
+            for sh in shares
+        ],
+        # Feedback you wrote on someone else's shared answer (your words, and which question).
+        "feedback_given": [
+            {
+                "question": (snap or {}).get("question", {}).get("title"),
+                "clear": f.clear,
+                "needs_evidence": f.needs_evidence,
+                "next_step": f.next_step,
+                "comments": f.comments,
+                "created_at": iso(f.created_at),
+            }
+            for f, snap in given
         ],
         "scenario_attempts": [
             {

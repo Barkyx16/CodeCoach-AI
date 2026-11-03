@@ -758,6 +758,38 @@ All under `/api/v1/me/notes` 🔒; a note is only ever visible to its owner (any
 - Bodies are stored as untrusted text and never logged; the web app renders Markdown without HTML
   or images. Notes are in the data export and deleted with the account.
 
+### Sharing an answer for feedback
+
+Owner endpoints under `/api/v1/me/shares` 🔒 (anyone else's share is a 404). The security and
+retention model is in [SHARING.md](SHARING.md). Every response is `Cache-Control: no-store`,
+`X-Robots-Tag: noindex, nofollow`, `Referrer-Policy: no-referrer`.
+
+- `POST /me/shares/preview {answer_id, sentences?: [int] | null, include_ai_feedback, include_followup, note}`
+  → `{source_sentences, has_followup, view}`. `view` is exactly what a reviewer will see. Errors:
+  `404` (not your answer), `409 interview_in_progress`, `400 empty_selection | unknown_sentence`.
+- `POST /me/shares {…selection, expires_in_days: 1|7|30, acknowledge_link_access: true}` → `201
+  {share, token, path}`. `path` is `/shared#t=<token>`; the token is returned **only here** (only
+  its SHA-256 is stored). `acknowledge_link_access` must be true (`400 acknowledgement_required`).
+  At most 50 working links per account (`409 share_limit`); creation is rate-limited per user.
+- `GET /me/shares?answer_id=` → summaries (status `active | closed | revoked | expired`, counts).
+- `GET /me/shares/{id}` → the snapshot, feedback, `source_changed`, `source_missing`.
+- `POST /me/shares/{id}/close | reopen | revoke`; `POST /me/shares/{id}/link` replaces the link
+  (old one stops working; new token returned once); `DELETE /me/shares/{id}` removes the share,
+  snapshot and feedback.
+- `PUT /me/shares/{id}/feedback/{fid}/useful {useful}`, `DELETE /me/shares/{id}/feedback/{fid}`.
+
+Link holders (no account needed; a signed-in reviewer is named as such). The secret is always in
+the JSON body, never a URL:
+
+- `POST /shared/open {token}` → `{status: active|closed, expires_at, view, reviewer}`.
+  `404 share_not_found` (unknown or replaced), `410 share_revoked | share_expired`.
+- `POST /shared/feedback {token, client_request_id, clear, needs_evidence, next_step, comments: [{sentence, text}], guest_name}`
+  → `201 {feedback, duplicate: false}`, or `200` with `duplicate: true` for a retry with the same
+  `client_request_id`. Bounds: 1,500 characters per box, 8 comments of 600, a 60-character
+  guest name, 30 pieces of feedback per share. `409 share_closed | own_share | feedback_limit`,
+  `400 empty_feedback | unknown_sentence` (comments only on shared sentences). Both endpoints
+  are rate-limited per client IP (`429`).
+
 ### Branching scenarios
 
 Authored graphs ([docs/SCENARIOS.md](SCENARIOS.md)); no model is used.
@@ -1061,6 +1093,9 @@ All configuration is environment variables (or a `.env` file; see
 | `REFRESH_TOKEN_TTL_DAYS` | `30` | Refresh-cookie lifetime; it rotates on every use (1–90). |
 | `REFRESH_COOKIE_SECURE` | unset | Unset: `Secure` in production only. `false` is refused in production. |
 | `ALLOW_GUEST_SESSIONS` | `true` | Enables `POST /auth/guest`. |
+| `SHARE_OPENS_PER_10_MINUTES` | `120` | Per-IP opens of shared-answer links. |
+| `SHARE_FEEDBACK_PER_HOUR` | `20` | Per-IP feedback submissions on shared answers. |
+| `SHARES_CREATED_PER_HOUR` | `30` | Share links (new or replaced) per user per hour. |
 | `AUTH_RATE_LIMIT_PER_MINUTE` | `10` | Per-IP attempts per minute for register, login, guest, upgrade, password change and password reset. |
 | `RATE_LIMIT_BACKEND` | `database` | `database`: counters shared by every API replica (sliding window, atomic upsert). `memory`: one process only. |
 | `FORWARDED_ALLOW_IPS` | `127.0.0.1` | (uvicorn) Proxies whose `X-Forwarded-For` is trusted. Set it to your load balancer's address, or every user shares the proxy's IP for rate limiting. Untrusted headers are ignored, so they can't be spoofed. |

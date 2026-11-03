@@ -936,6 +936,195 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/shares/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** See exactly what a reviewer would see, without creating a link */
+        post: operations["preview_api_v1_me_shares_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/shares": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your shared answers, newest first */
+        get: operations["mine_api_v1_me_shares_get"];
+        put?: never;
+        /** Create an unlisted link to a snapshot of your selection (the link is returned once) */
+        post: operations["create_api_v1_me_shares_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/shares/{share_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One share: the snapshot and the feedback received */
+        get: operations["detail_api_v1_me_shares__share_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete the share, its snapshot and all feedback on it */
+        delete: operations["delete_api_v1_me_shares__share_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/shares/{share_id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop taking feedback (the link still shows the snapshot) */
+        post: operations["close_api_v1_me_shares__share_id__close_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/shares/{share_id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take feedback again on a closed share */
+        post: operations["reopen_api_v1_me_shares__share_id__reopen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/shares/{share_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Turn the link off for good (you keep the snapshot and feedback until you delete them) */
+        post: operations["revoke_api_v1_me_shares__share_id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/shares/{share_id}/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replace the link (the old one stops working); the new link is returned once */
+        post: operations["new_link_api_v1_me_shares__share_id__link_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/shares/{share_id}/feedback/{feedback_id}/useful": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Mark a reviewer's feedback as useful (or not) */
+        put: operations["useful_api_v1_me_shares__share_id__feedback__feedback_id__useful_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/shares/{share_id}/feedback/{feedback_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete one piece of feedback (e.g. abusive or unwanted) */
+        delete: operations["delete_feedback_api_v1_me_shares__share_id__feedback__feedback_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shared/open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Open a shared snapshot with its link secret (sent in the body, never the URL) */
+        post: operations["open_shared_api_v1_shared_open_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shared/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Leave structured feedback on a shared snapshot (retries with the same request id are ignored) */
+        post: operations["leave_feedback_api_v1_shared_feedback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/submissions": {
         parameters: {
             query?: never;
@@ -2904,6 +3093,88 @@ export interface components {
              */
             confidence: "low" | "medium" | "high";
         };
+        /** FeedbackComment */
+        FeedbackComment: {
+            /**
+             * Sentence
+             * @description Which shared sentence this is about
+             */
+            sentence: number;
+            /** Text */
+            text: string;
+        };
+        /** FeedbackCommentOut */
+        FeedbackCommentOut: {
+            /**
+             * Sentence
+             * @description Which shared sentence this is about
+             */
+            sentence: number;
+            /** Text */
+            text: string;
+            /**
+             * Quote
+             * @description The sentence it refers to, from the snapshot
+             */
+            quote: string;
+        };
+        /** FeedbackIn */
+        FeedbackIn: {
+            /** Token */
+            token: string;
+            /**
+             * Client Request Id
+             * @description Retries with the same id are ignored
+             */
+            client_request_id: string;
+            /**
+             * Clear
+             * @description What was clear?
+             * @default
+             */
+            clear: string;
+            /**
+             * Needs Evidence
+             * @description What needs more evidence?
+             * @default
+             */
+            needs_evidence: string;
+            /**
+             * Next Step
+             * @description One useful next step
+             * @default
+             */
+            next_step: string;
+            /** Comments */
+            comments?: components["schemas"]["FeedbackComment"][];
+            /**
+             * Guest Name
+             * @description Used only when not signed in
+             * @default
+             */
+            guest_name: string;
+        };
+        /** FeedbackOut */
+        FeedbackOut: {
+            /** Id */
+            id: string;
+            reviewer: components["schemas"]["ReviewerIdentity"];
+            /** Clear */
+            clear: string;
+            /** Needs Evidence */
+            needs_evidence: string;
+            /** Next Step */
+            next_step: string;
+            /** Comments */
+            comments: components["schemas"]["FeedbackCommentOut"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Useful */
+            useful: boolean;
+        };
         /** FeedbackPoint */
         FeedbackPoint: {
             /** Label */
@@ -2912,6 +3183,18 @@ export interface components {
             covered: boolean;
             /** Advice */
             advice: string;
+        };
+        /**
+         * FeedbackReceipt
+         * @description What the reviewer sent, echoed back so they can see it was received.
+         */
+        FeedbackReceipt: {
+            feedback: components["schemas"]["FeedbackOut"];
+            /**
+             * Duplicate
+             * @description True when this was a retry of feedback already received
+             */
+            duplicate: boolean;
         };
         /** FollowupAnswer */
         FollowupAnswer: {
@@ -4189,6 +4472,22 @@ export interface components {
             /** Position */
             position: number;
         };
+        /** RecipientView */
+        RecipientView: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "closed";
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            view: components["schemas"]["SharedView"];
+            /** @description Who the feedback will be attributed to, when the reviewer is signed in */
+            reviewer: components["schemas"]["ReviewerIdentity"] | null;
+        };
         /** Recommendation */
         Recommendation: {
             /** Slug */
@@ -4551,6 +4850,19 @@ export interface components {
              */
             disclaimer: string;
         };
+        /** ReviewerIdentity */
+        ReviewerIdentity: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "account" | "guest" | "former_account";
+            /**
+             * Label
+             * @description How the reviewer is named, e.g. 'Grace (signed-in CodeCoach user)'
+             */
+            label: string;
+        };
         /** RoundAnswer */
         RoundAnswer: {
             /**
@@ -4863,6 +5175,295 @@ export interface components {
             scope: string;
             /** @description Null when there's nothing in the bank to practise */
             round: components["schemas"]["RoundStart"] | null;
+        };
+        /** ShareCreate */
+        ShareCreate: {
+            /**
+             * Answer Id
+             * @description One of your graded answers
+             */
+            answer_id: string;
+            /**
+             * Sentences
+             * @description Which sentences of the answer to include (0-based); null means all of them
+             */
+            sentences?: number[] | null;
+            /**
+             * Include Ai Feedback
+             * @description Add CodeCoach's automated feedback, labelled
+             * @default false
+             */
+            include_ai_feedback: boolean;
+            /**
+             * Include Followup
+             * @description Interview answers: add the follow-up and your reply
+             * @default true
+             */
+            include_followup: boolean;
+            /**
+             * Note
+             * @description A short note to your reviewer
+             * @default
+             */
+            note: string;
+            /**
+             * Expires In Days
+             * @default 7
+             * @enum {integer}
+             */
+            expires_in_days: 1 | 7 | 30;
+            /**
+             * Acknowledge Link Access
+             * @description Must be true: anyone holding the link can see the selected snapshot until it expires or is revoked
+             */
+            acknowledge_link_access: boolean;
+        };
+        /**
+         * ShareCreated
+         * @description The link is in here once. Only a hash is stored, so it can be replaced but never shown again.
+         */
+        ShareCreated: {
+            share: components["schemas"]["ShareDetail"];
+            /** Token */
+            token: string;
+            /**
+             * Path
+             * @description Append to the site's address, e.g. https://example.com/shared#t=…
+             */
+            path: string;
+        };
+        /** ShareDetail */
+        ShareDetail: {
+            /** Id */
+            id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "closed" | "revoked" | "expired";
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "practice_answer" | "interview_answer";
+            /** Career Title */
+            career_title: string;
+            /** Question Title */
+            question_title: string;
+            /** Source Answer Id */
+            source_answer_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Closed At */
+            closed_at: string | null;
+            /** Revoked At */
+            revoked_at: string | null;
+            /**
+             * Last Opened At
+             * @description When the link was last opened by anyone
+             */
+            last_opened_at: string | null;
+            /** Feedback Count */
+            feedback_count: number;
+            /** Last Feedback At */
+            last_feedback_at: string | null;
+            view: components["schemas"]["SharedView"];
+            /** Feedback */
+            feedback: components["schemas"]["FeedbackOut"][];
+            /**
+             * Source Changed
+             * @description The original answer differs from what was shared
+             */
+            source_changed: boolean;
+            /**
+             * Source Missing
+             * @description The original answer is no longer in your history
+             */
+            source_missing: boolean;
+        };
+        /** SharePreview */
+        SharePreview: {
+            /**
+             * Source Sentences
+             * @description Every sentence of the answer, to choose from
+             */
+            source_sentences: components["schemas"]["SharedSentence"][];
+            /** Has Followup */
+            has_followup: boolean;
+            view: components["schemas"]["SharedView"];
+        };
+        /**
+         * ShareSelection
+         * @description What to share from one of your answers. Nothing else from your account is included.
+         */
+        ShareSelection: {
+            /**
+             * Answer Id
+             * @description One of your graded answers
+             */
+            answer_id: string;
+            /**
+             * Sentences
+             * @description Which sentences of the answer to include (0-based); null means all of them
+             */
+            sentences?: number[] | null;
+            /**
+             * Include Ai Feedback
+             * @description Add CodeCoach's automated feedback, labelled
+             * @default false
+             */
+            include_ai_feedback: boolean;
+            /**
+             * Include Followup
+             * @description Interview answers: add the follow-up and your reply
+             * @default true
+             */
+            include_followup: boolean;
+            /**
+             * Note
+             * @description A short note to your reviewer
+             * @default
+             */
+            note: string;
+        };
+        /** ShareSummary */
+        ShareSummary: {
+            /** Id */
+            id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "closed" | "revoked" | "expired";
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "practice_answer" | "interview_answer";
+            /** Career Title */
+            career_title: string;
+            /** Question Title */
+            question_title: string;
+            /** Source Answer Id */
+            source_answer_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Closed At */
+            closed_at: string | null;
+            /** Revoked At */
+            revoked_at: string | null;
+            /**
+             * Last Opened At
+             * @description When the link was last opened by anyone
+             */
+            last_opened_at: string | null;
+            /** Feedback Count */
+            feedback_count: number;
+            /** Last Feedback At */
+            last_feedback_at: string | null;
+        };
+        /**
+         * SharedAIFeedback
+         * @description CodeCoach's automated rubric feedback, included only when the owner chose to.
+         */
+        SharedAIFeedback: {
+            /** Score */
+            score: number;
+            /** Rating */
+            rating: string;
+            /** Summary */
+            summary: string;
+            /** Points */
+            points: components["schemas"]["SharedPoint"][];
+            /** Coach */
+            coach: string;
+        };
+        /** SharedFollowup */
+        SharedFollowup: {
+            /** Asked By */
+            asked_by: string;
+            /** Question */
+            question: string;
+            /** Answer */
+            answer: string;
+        };
+        /** SharedPoint */
+        SharedPoint: {
+            /** Label */
+            label: string;
+            /** Covered */
+            covered: boolean;
+        };
+        /** SharedQuestion */
+        SharedQuestion: {
+            /** Title */
+            title: string;
+            /** Prompt */
+            prompt: string;
+            /** Kind */
+            kind: string;
+            /** Difficulty */
+            difficulty: string;
+        };
+        /** SharedSentence */
+        SharedSentence: {
+            /**
+             * Index
+             * @description Position in the original answer: a stable anchor for comments
+             */
+            index: number;
+            /** Text */
+            text: string;
+        };
+        /**
+         * SharedView
+         * @description Exactly what the reviewer sees. Built from the immutable snapshot.
+         */
+        SharedView: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "practice_answer" | "interview_answer";
+            /** Career Title */
+            career_title: string;
+            question: components["schemas"]["SharedQuestion"];
+            /** Excerpt */
+            excerpt: components["schemas"]["SharedSentence"][];
+            /** Total Sentences */
+            total_sentences: number;
+            /** Omitted Sentences */
+            omitted_sentences: number;
+            followup: components["schemas"]["SharedFollowup"] | null;
+            ai_feedback: components["schemas"]["SharedAIFeedback"] | null;
+            /** Note */
+            note: string;
+            /**
+             * Answered On
+             * @description The day the answer was written (YYYY-MM-DD)
+             */
+            answered_on: string;
+            /**
+             * Prompts
+             * @description The questions the reviewer is asked to answer
+             */
+            prompts: string[];
         };
         /** Signature */
         Signature: {
@@ -5258,6 +5859,11 @@ export interface components {
              */
             note: string | null;
         };
+        /** TokenIn */
+        TokenIn: {
+            /** Token */
+            token: string;
+        };
         /** TokenResponse */
         TokenResponse: {
             /** Access Token */
@@ -5537,6 +6143,11 @@ export interface components {
              * @example registered-nurse
              */
             career_track?: string | null;
+        };
+        /** UsefulIn */
+        UsefulIn: {
+            /** Useful */
+            useful: boolean;
         };
         /** UserOut */
         UserOut: {
@@ -8825,6 +9436,755 @@ export interface operations {
             };
             /** @description Request validation failed */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    preview_api_v1_me_shares_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShareSelection"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharePreview"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    mine_api_v1_me_shares_get: {
+        parameters: {
+            query?: {
+                /** @description Only shares of this answer */
+                answer_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_api_v1_me_shares_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShareCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareCreated"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    detail_api_v1_me_shares__share_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                share_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareDetail"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_api_v1_me_shares__share_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                share_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    close_api_v1_me_shares__share_id__close_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                share_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareDetail"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reopen_api_v1_me_shares__share_id__reopen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                share_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareDetail"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_api_v1_me_shares__share_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                share_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareDetail"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    new_link_api_v1_me_shares__share_id__link_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                share_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareCreated"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    useful_api_v1_me_shares__share_id__feedback__feedback_id__useful_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                share_id: string;
+                feedback_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UsefulIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareDetail"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    delete_feedback_api_v1_me_shares__share_id__feedback__feedback_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                share_id: string;
+                feedback_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareDetail"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    open_shared_api_v1_shared_open_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientView"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    leave_feedback_api_v1_shared_feedback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeedbackIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackReceipt"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

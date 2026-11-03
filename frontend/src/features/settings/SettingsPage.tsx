@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } 
 import { Link, useNavigate } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
-import { useAIUsage, useCapabilities } from "@/api/queries";
+import { useAIUsage, useCapabilities, useShares } from "@/api/queries";
 import type { User } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { Badge } from "@/components/Badge";
@@ -89,6 +89,7 @@ export function SettingsPage() {
           </Section>
           <Section id="privacy" title="Privacy & data" description="What the AI coach sees, and a copy of everything we store.">
             <AIPrivacyRow />
+            <SharedRow />
             <DataRow />
           </Section>
           <Section id="danger" title="Danger zone" description="Permanent actions. Take a moment before using these." tone="danger">
@@ -461,6 +462,24 @@ function AIPrivacyRow() {
         <ul className="privacy-points">
           {PRIVACY_POINTS.map((point) => <li key={point}><Icon name="check" size={15} />{point}</li>)}
         </ul>
+      </div>
+    </div>
+  );
+}
+
+function SharedRow() {
+  const shares = useShares();
+  const active = shares.data?.filter((s) => s.status === "active" || s.status === "closed").length ?? 0;
+  return (
+    <div className="setting" role="group" aria-labelledby="shared-title">
+      <RowIntro icon="link" id="shared-title" title="Shared for feedback">
+        Answers you shared with a reviewer through a private link. Turn links off or delete them at any time.
+      </RowIntro>
+      <div className="setting__body setting__body--center">
+        <div className="setting__actions">
+          <Link className="btn btn--secondary btn--md" to="/shares">Manage shared answers</Link>
+          {shares.data && <span className="subtle">{active === 0 ? "No working links" : `${active} working ${active === 1 ? "link" : "links"}`}</span>}
+        </div>
       </div>
     </div>
   );

@@ -26,6 +26,10 @@ import { LearnPage } from "@/features/learn/LearnPage";
 import { UnitPage } from "@/features/learn/UnitPage";
 import { NotePage } from "@/features/notes/NotePage";
 import { NotesPage } from "@/features/notes/NotesPage";
+import { ShareComposerPage } from "@/features/sharing/ShareComposerPage";
+import { ShareDetailPage } from "@/features/sharing/ShareDetailPage";
+import { SharedPage } from "@/features/sharing/SharedPage";
+import { SharesPage } from "@/features/sharing/SharesPage";
 import { CollectionPage } from "@/features/saved/CollectionPage";
 import { AttemptPage } from "@/features/scenarios/AttemptPage";
 import { ScenarioBriefing, ScenariosPage } from "@/features/scenarios/ScenariosPage";
@@ -88,6 +92,11 @@ export const routes: RouteObject[] = [
       { path: "/scenarios/attempts/:attemptId", element: <RequireAuth><AttemptPage /></RequireAuth> },
       { path: "/notes", element: <RequireAuth><NotesPage /></RequireAuth> },
       { path: "/notes/:id", element: <RequireAuth><NotePage /></RequireAuth> },
+      { path: "/share/new", element: <RequireAuth><ShareComposerPage /></RequireAuth> },
+      { path: "/shares", element: <RequireAuth><SharesPage /></RequireAuth> },
+      { path: "/shares/:id", element: <RequireAuth><ShareDetailPage /></RequireAuth> },
+      // Public: anyone holding a share link (its secret is in the #fragment).
+      { path: "/shared", element: <SharedPage /> },
       { path: "/saved", element: <RequireAuth><SavedPage /></RequireAuth> },
       { path: "/saved/collections/:id", element: <RequireAuth><CollectionPage /></RequireAuth> },
       { path: "/saved/collections/:id/practice", element: <RequireAuth><QueuePage /></RequireAuth> },

@@ -267,6 +267,10 @@ function Detail({ r, item, focusable = false }: { r: InterviewReview; item: Revi
             {item.feedback ? "Retry this question" : "Answer this question"}
           </Link>
           {item.retries > 0 && <Link className="btn btn--secondary btn--sm" to={`/interviews/${r.id}/retry/${item.index}`}>Compare {item.retries} {item.retries === 1 ? "retry" : "retries"}</Link>}
+          {item.feedback && (
+            <Link className="btn btn--ghost btn--sm" to={`/share/new?answer=${encodeURIComponent(item.feedback.id)}`}
+              state={{ from: location.pathname + location.search, fromLabel: "Back to the review" }}>Ask someone for feedback</Link>
+          )}
           {saved ? <span className="subtle">In your review queue</span>
             : <Button size="sm" variant="ghost" loading={save.isPending} onClick={() => save.mutate(undefined)}>Save for later review</Button>}
           {draft && (

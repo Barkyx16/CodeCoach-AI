@@ -123,6 +123,19 @@ export type NotePatch = S["NotePatch"];
 export type NoteSource = S["SourceIn"];
 export type KeyPoints = S["KeyPoints"];
 
+export type ShareSelection = S["ShareSelection"];
+export type ShareCreate = S["ShareCreate"];
+export type SharePreview = S["SharePreview"];
+export type SharedView = S["SharedView"];
+export type SharedSentence = S["SharedSentence"];
+export type ShareCreated = S["ShareCreated"];
+export type ShareSummary = S["ShareSummary"];
+export type ShareDetail = S["ShareDetail"];
+export type ShareFeedback = S["FeedbackOut"];
+export type FeedbackInput = S["FeedbackIn"];
+export type FeedbackReceipt = S["FeedbackReceipt"];
+export type RecipientView = S["RecipientView"];
+
 export type ScenarioCatalog = S["ScenarioCatalog"];
 export type ScenarioSummary = S["ScenarioSummary"];
 export type ScenarioDetail = S["ScenarioDetail"];

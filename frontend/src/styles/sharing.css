@@ -1,0 +1,46 @@
+/* Sharing an answer for feedback: composer, link panel, owner pages and the reviewer's page. */
+.share-page { display: grid; gap: var(--space-4); align-content: start; }
+.share-page > .back-link, .share-page > .row { justify-self: start; }
+.share-page .page__header { margin-bottom: 0; }
+.shared-snapshot__title { font-size: 1.25rem; line-height: 1.35; margin: 0; }
+.share-composer { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-5); align-items: start; }
+.share-review { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: var(--space-5); align-items: start; }
+@media (max-width: 900px) { .share-composer, .share-review { grid-template-columns: minmax(0, 1fr); } }
+.share-preview { position: sticky; top: calc(var(--header-height) + var(--space-4)); max-height: calc(100dvh - var(--header-height) - 2rem); overflow: auto; }
+@media (max-width: 900px) { .share-preview { position: static; max-height: none; } }
+
+.share-sentences { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); }
+.share-sentences__item { align-items: flex-start; padding: var(--space-2); border-radius: var(--radius-sm); line-height: 1.5; }
+.share-sentences__item:hover { background: var(--tint-hover); }
+.share-sentences__item input { margin-top: 0.15rem; flex-shrink: 0; }
+.share-sentences__n { color: var(--color-text-subtle); font-variant-numeric: tabular-nums; }
+.share-consent { align-items: flex-start; padding: var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); }
+.share-consent input { margin-top: 0.15rem; flex-shrink: 0; }
+
+.shared-snapshot__prompt { font-size: var(--text-lg, 1.0625rem); line-height: 1.6; }
+.shared-excerpt { margin: 0; padding-left: 2.25rem; display: grid; gap: var(--space-2); line-height: 1.65; }
+.shared-excerpt li::marker { color: var(--color-text-subtle); font-variant-numeric: tabular-nums; }
+.shared-excerpt__gap { list-style: none; margin-left: -2.25rem; color: var(--color-text-subtle); font-style: italic; font-size: var(--text-sm); }
+.shared-snapshot__reply, .share-comments__quote { margin: 0; padding: var(--space-2) var(--space-3); border-left: 3px solid var(--color-border-strong); color: var(--color-text-muted); }
+.shared-snapshot__note { white-space: pre-wrap; }
+.shared-ai { padding: var(--space-4); border: 1px dashed var(--color-border-strong); border-radius: var(--radius-md); background: var(--tint-panel); }
+
+.share-link__row { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.share-link__url { flex: 1 1 16rem; min-width: 0; font-family: var(--font-mono, ui-monospace, monospace); font-size: var(--text-sm); }
+
+.share-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.share-list__item { display: grid; gap: var(--space-2); }
+.share-list__title { font-weight: var(--weight-bold); font-size: 1.0625rem; }
+.share-list__meta { flex-wrap: wrap; font-size: var(--text-sm); }
+.share-controls__actions { flex-wrap: wrap; }
+
+.share-feedback-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.share-feedback__head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); }
+.share-feedback__head p { margin: 0; }
+.share-feedback__answers { margin: 0; display: grid; gap: var(--space-3); }
+.share-feedback__answers dt { font-size: var(--text-sm); font-weight: var(--weight-bold); color: var(--color-text-muted); }
+.share-feedback__answers dd { margin: var(--space-1) 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.share-feedback__sub { font-size: var(--text-sm); margin: 0; }
+.share-comments { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.share-comments p { margin: var(--space-1) 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.share-entry { flex-wrap: wrap; }

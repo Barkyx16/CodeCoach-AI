@@ -45,6 +45,13 @@ class ConflictError(AppError):
     code = "conflict"
 
 
+class GoneError(AppError):
+    """The thing existed but has been turned off for good (e.g. a revoked or expired share link)."""
+
+    status_code = 410
+    code = "gone"
+
+
 class RateLimitedError(AppError):
     status_code = 429
     code = "rate_limited"

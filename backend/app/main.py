@@ -24,6 +24,7 @@ from app.api.routes import (
     plan,
     problems,
     scenarios,
+    shares,
     submissions,
     targets,
 )
@@ -61,6 +62,11 @@ TAGS = [
     {"name": "ai coach", "description": "Progressive hints, structured code reviews, budgets and history"},
     {"name": "interviews", "description": "Timed mock interviews with an AI interviewer and rubric feedback"},
     {"name": "progress", "description": "Analytics and personalized recommendations"},
+    {
+        "name": "sharing",
+        "description": "Share a chosen answer with a reviewer through an unlisted, revocable link; "
+        "collect their structured feedback. The link secret travels in request bodies, never URLs.",
+    },
 ]
 
 
@@ -124,6 +130,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if settings.rate_limit_backend == "database"
         else SlidingWindowLimiter(settings.practice_answers_per_hour, 3600.0)
     )
+
+    def limiter(limit: int, window_s: int) -> DatabaseRateLimiter | SlidingWindowLimiter:
+        if settings.rate_limit_backend == "database":
+            return DatabaseRateLimiter(session_factory, limit, window_s)
+        return SlidingWindowLimiter(limit, float(window_s))
+
+    app.state.share_open_limiter = limiter(settings.share_opens_per_10_minutes, 600)
+    app.state.share_feedback_limiter = limiter(settings.share_feedback_per_hour, 3600)
+    app.state.share_create_limiter = limiter(settings.shares_created_per_hour, 3600)
     app.state.metrics = Metrics() if settings.metrics_enabled else None
 
     install_error_handlers(app)
@@ -149,6 +164,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         learn.router,
         notes.router,
         scenarios.router,
+        shares.me_router,
+        shares.public_router,
         submissions.router,
         ai.router,
         interviews.router,

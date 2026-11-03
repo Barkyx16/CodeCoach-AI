@@ -157,3 +157,11 @@ def test_unknown_career_is_rejected_at_signup(client):
         json={"email": "x@example.com", "password": "CorrectHorse42", "career_track": "astronaut"},
     )
     assert r.status_code == 422
+
+
+def test_a_too_short_answer_is_never_summarised_as_solid():
+    q = get_question("registered-nurse", "m-walk-0")
+    assert q is not None
+    fb = grade(q, "I checked the airway, prioritized, called the team and followed up.")
+    assert fb.score <= 35 and fb.rating == "Needs work"
+    assert fb.summary.startswith("Too short to be convincing yet") and "Solid" not in fb.summary

@@ -24,7 +24,9 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     op.add_column("submissions", sa.Column("client_request_id", sa.String(length=64), nullable=True))
-    op.create_unique_constraint("uq_submission_client_request", "submissions", ["user_id", "client_request_id"])
+    op.create_unique_constraint(
+        "uq_submission_client_request", "submissions", ["user_id", "client_request_id"]
+    )
 
 
 def downgrade() -> None:

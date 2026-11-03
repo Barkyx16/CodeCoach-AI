@@ -68,6 +68,15 @@ import type {
   UnitLink,
   UnitProgress,
   KeyPoints,
+  FeedbackInput,
+  FeedbackReceipt,
+  RecipientView,
+  ShareCreate,
+  ShareCreated,
+  ShareDetail,
+  SharePreview,
+  ShareSelection,
+  ShareSummary,
   Note,
   NoteInput,
   NotePage,
@@ -333,6 +342,23 @@ export const api = {
   deleteNote: (id: string) => apiRequest<{ id: string; restorable_until: string }>(`/api/v1/me/notes/${encodeURIComponent(id)}`, { method: "DELETE" }),
   restoreNote: (id: string) => apiRequest<Note>(`/api/v1/me/notes/${encodeURIComponent(id)}/restore`, { method: "POST" }),
   keyPoints: (id: string) => apiRequest<KeyPoints>(`/api/v1/me/notes/${encodeURIComponent(id)}/key-points`, { method: "POST" }),
+
+  // sharing an answer for feedback (owner)
+  sharePreview: (body: ShareSelection) => apiRequest<SharePreview>("/api/v1/me/shares/preview", { method: "POST", body }),
+  createShare: (body: ShareCreate) => apiRequest<ShareCreated>("/api/v1/me/shares", { method: "POST", body }),
+  shares: (answerId?: string) => apiRequest<ShareSummary[]>("/api/v1/me/shares", { query: { answer_id: answerId } }),
+  share: (id: string) => apiRequest<ShareDetail>(`/api/v1/me/shares/${encodeURIComponent(id)}`),
+  shareAction: (id: string, action: "close" | "reopen" | "revoke") =>
+    apiRequest<ShareDetail>(`/api/v1/me/shares/${encodeURIComponent(id)}/${action}`, { method: "POST" }),
+  newShareLink: (id: string) => apiRequest<ShareCreated>(`/api/v1/me/shares/${encodeURIComponent(id)}/link`, { method: "POST" }),
+  deleteShare: (id: string) => apiRequest<void>(`/api/v1/me/shares/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  markFeedbackUseful: (id: string, feedbackId: string, useful: boolean) =>
+    apiRequest<ShareDetail>(`/api/v1/me/shares/${encodeURIComponent(id)}/feedback/${encodeURIComponent(feedbackId)}/useful`, { method: "PUT", body: { useful } }),
+  deleteFeedback: (id: string, feedbackId: string) =>
+    apiRequest<ShareDetail>(`/api/v1/me/shares/${encodeURIComponent(id)}/feedback/${encodeURIComponent(feedbackId)}`, { method: "DELETE" }),
+  // ...and the reviewer's side: the link secret goes in the body, never in a URL.
+  openShared: (token: string) => apiRequest<RecipientView>("/api/v1/shared/open", { method: "POST", body: { token } }),
+  sendFeedback: (body: FeedbackInput) => apiRequest<FeedbackReceipt>("/api/v1/shared/feedback", { method: "POST", body }),
 
   // branching scenarios
   scenarios: (track: string) => apiRequest<ScenarioCatalog>("/api/v1/scenarios", { query: { track }, auth: false }),

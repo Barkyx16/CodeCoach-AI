@@ -790,3 +790,65 @@ class ScenarioAttempt(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     completed_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+
+
+class Share(Base):
+    """A learner's answer, shared for feedback through an unlisted link.
+
+    The link's secret is never stored: only its SHA-256 (`token_hash`), so a database leak doesn't
+    expose working links and a lost link can only be replaced (`rotate`), not recovered. What the
+    reviewer sees is `snapshot`, built once from the owner's selection and never changed, so later
+    edits to the source can't silently change it (`source_digest` lets the owner see that the
+    source changed). `revoked_at` turns the link off on the server; `closed_at` keeps it readable
+    but stops new feedback. The row and its feedback stay, for the owner only, until the owner
+    deletes the share or the account."""
+
+    __tablename__ = "shares"
+    __table_args__ = (Index("ix_shares_owner_created", "owner_id", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    owner_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    source_type: Mapped[str] = mapped_column(String(20))  # practice_answer | interview_answer
+    source_id: Mapped[str] = mapped_column(String(36))  # the PracticeAnswer id
+    source_digest: Mapped[str] = mapped_column(String(64))
+    snapshot: Mapped[dict] = mapped_column(JSONType)
+    expires_at: Mapped[datetime] = mapped_column(UTCDateTime())
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    closed_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    link_rotated_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    last_opened_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+
+    feedback: Mapped[list[ShareFeedback]] = relationship(
+        back_populates="share", cascade="all, delete-orphan", order_by="ShareFeedback.created_at"
+    )
+
+
+class ShareFeedback(Base):
+    """Structured feedback a person left on a share. Human feedback, kept apart from AI scores:
+    it never changes the answer, its score, the plan or progress.
+
+    `reviewer_id` is set when the reviewer was signed in with a registered account (their display
+    name is read live, so deleting that account leaves "a former CodeCoach user"); otherwise
+    `guest_name` is whatever the reviewer typed, shown as unverified."""
+
+    __tablename__ = "share_feedback"
+    __table_args__ = (UniqueConstraint("share_id", "client_request_id", name="uq_share_feedback_request"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    share_id: Mapped[str] = mapped_column(ForeignKey("shares.id", ondelete="CASCADE"), index=True)
+    reviewer_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    reviewer_kind: Mapped[str] = mapped_column(String(8))  # account | guest
+    guest_name: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    clear: Mapped[str] = mapped_column(Text, default="")
+    needs_evidence: Mapped[str] = mapped_column(Text, default="")
+    next_step: Mapped[str] = mapped_column(Text, default="")
+    comments: Mapped[list[dict]] = mapped_column(JSONType, default=list)  # [{sentence, text}]
+    client_request_id: Mapped[str] = mapped_column(String(64))
+    useful: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+    share: Mapped[Share] = relationship(back_populates="feedback")

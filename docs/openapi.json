@@ -4918,6 +4918,1014 @@
         }
       }
     },
+    "/api/v1/me/shares/preview": {
+      "post": {
+        "tags": [
+          "sharing"
+        ],
+        "summary": "See exactly what a reviewer would see, without creating a link",
+        "operationId": "preview_api_v1_me_shares_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShareSelection"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharePreview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/shares": {
+      "post": {
+        "tags": [
+          "sharing"
+        ],
+        "summary": "Create an unlisted link to a snapshot of your selection (the link is returned once)",
+        "operationId": "create_api_v1_me_shares_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShareCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareCreated"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "sharing"
+        ],
+        "summary": "Your shared answers, newest first",
+        "operationId": "mine_api_v1_me_shares_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "answer_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 36
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only shares of this answer",
+              "title": "Answer Id"
+            },
+            "description": "Only shares of this answer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ShareSummary"
+                  },
+                  "title": "Response Mine Api V1 Me Shares Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/shares/{share_id}": {
+      "get": {
+        "tags": [
+          "sharing"
+        ],
+        "summary": "One share: the snapshot and the feedback received",
+        "operationId": "detail_api_v1_me_shares__share_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "share_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Share Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "sharing"
+        ],
+        "summary": "Delete the share, its snapshot and all feedback on it",
+        "operationId": "delete_api_v1_me_shares__share_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "share_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Share Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/shares/{share_id}/close": {
+      "post": {
+        "tags": [
+          "sharing"
+        ],
+        "summary": "Stop taking feedback (the link still shows the snapshot)",
+        "operationId": "close_api_v1_me_shares__share_id__close_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "share_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Share Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/shares/{share_id}/reopen": {
+      "post": {
+        "tags": [
+          "sharing"
+        ],
+        "summary": "Take feedback again on a closed share",
+        "operationId": "reopen_api_v1_me_shares__share_id__reopen_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "share_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Share Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/shares/{share_id}/revoke": {
+      "post": {
+        "tags": [
+          "sharing"
+        ],
+        "summary": "Turn the link off for good (you keep the snapshot and feedback until you delete them)",
+        "operationId": "revoke_api_v1_me_shares__share_id__revoke_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "share_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Share Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/shares/{share_id}/link": {
+      "post": {
+        "tags": [
+          "sharing"
+        ],
+        "summary": "Replace the link (the old one stops working); the new link is returned once",
+        "operationId": "new_link_api_v1_me_shares__share_id__link_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "share_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Share Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareCreated"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/shares/{share_id}/feedback/{feedback_id}/useful": {
+      "put": {
+        "tags": [
+          "sharing"
+        ],
+        "summary": "Mark a reviewer's feedback as useful (or not)",
+        "operationId": "useful_api_v1_me_shares__share_id__feedback__feedback_id__useful_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "share_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Share Id"
+            }
+          },
+          {
+            "name": "feedback_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Feedback Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsefulIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/shares/{share_id}/feedback/{feedback_id}": {
+      "delete": {
+        "tags": [
+          "sharing"
+        ],
+        "summary": "Delete one piece of feedback (e.g. abusive or unwanted)",
+        "operationId": "delete_feedback_api_v1_me_shares__share_id__feedback__feedback_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "share_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Share Id"
+            }
+          },
+          {
+            "name": "feedback_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Feedback Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/shared/open": {
+      "post": {
+        "tags": [
+          "sharing"
+        ],
+        "summary": "Open a shared snapshot with its link secret (sent in the body, never the URL)",
+        "operationId": "open_shared_api_v1_shared_open_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecipientView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/shared/feedback": {
+      "post": {
+        "tags": [
+          "sharing"
+        ],
+        "summary": "Leave structured feedback on a shared snapshot (retries with the same request id are ignored)",
+        "operationId": "leave_feedback_api_v1_shared_feedback_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/submissions": {
       "post": {
         "tags": [
@@ -12277,6 +13285,168 @@
         "title": "FailureExplanation",
         "description": "Schema the model must fill when explaining a failed submission."
       },
+      "FeedbackComment": {
+        "properties": {
+          "sentence": {
+            "type": "integer",
+            "maximum": 400.0,
+            "minimum": 0.0,
+            "title": "Sentence",
+            "description": "Which shared sentence this is about"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 600,
+            "minLength": 1,
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sentence",
+          "text"
+        ],
+        "title": "FeedbackComment"
+      },
+      "FeedbackCommentOut": {
+        "properties": {
+          "sentence": {
+            "type": "integer",
+            "maximum": 400.0,
+            "minimum": 0.0,
+            "title": "Sentence",
+            "description": "Which shared sentence this is about"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 600,
+            "minLength": 1,
+            "title": "Text"
+          },
+          "quote": {
+            "type": "string",
+            "title": "Quote",
+            "description": "The sentence it refers to, from the snapshot"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sentence",
+          "text",
+          "quote"
+        ],
+        "title": "FeedbackCommentOut"
+      },
+      "FeedbackIn": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 32,
+            "title": "Token"
+          },
+          "client_request_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 8,
+            "title": "Client Request Id",
+            "description": "Retries with the same id are ignored"
+          },
+          "clear": {
+            "type": "string",
+            "maxLength": 1500,
+            "title": "Clear",
+            "description": "What was clear?",
+            "default": ""
+          },
+          "needs_evidence": {
+            "type": "string",
+            "maxLength": 1500,
+            "title": "Needs Evidence",
+            "description": "What needs more evidence?",
+            "default": ""
+          },
+          "next_step": {
+            "type": "string",
+            "maxLength": 1500,
+            "title": "Next Step",
+            "description": "One useful next step",
+            "default": ""
+          },
+          "comments": {
+            "items": {
+              "$ref": "#/components/schemas/FeedbackComment"
+            },
+            "type": "array",
+            "maxItems": 8,
+            "title": "Comments"
+          },
+          "guest_name": {
+            "type": "string",
+            "maxLength": 60,
+            "title": "Guest Name",
+            "description": "Used only when not signed in",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "client_request_id"
+        ],
+        "title": "FeedbackIn"
+      },
+      "FeedbackOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "reviewer": {
+            "$ref": "#/components/schemas/ReviewerIdentity"
+          },
+          "clear": {
+            "type": "string",
+            "title": "Clear"
+          },
+          "needs_evidence": {
+            "type": "string",
+            "title": "Needs Evidence"
+          },
+          "next_step": {
+            "type": "string",
+            "title": "Next Step"
+          },
+          "comments": {
+            "items": {
+              "$ref": "#/components/schemas/FeedbackCommentOut"
+            },
+            "type": "array",
+            "title": "Comments"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "useful": {
+            "type": "boolean",
+            "title": "Useful"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "reviewer",
+          "clear",
+          "needs_evidence",
+          "next_step",
+          "comments",
+          "created_at",
+          "useful"
+        ],
+        "title": "FeedbackOut"
+      },
       "FeedbackPoint": {
         "properties": {
           "label": {
@@ -12299,6 +13469,25 @@
           "advice"
         ],
         "title": "FeedbackPoint"
+      },
+      "FeedbackReceipt": {
+        "properties": {
+          "feedback": {
+            "$ref": "#/components/schemas/FeedbackOut"
+          },
+          "duplicate": {
+            "type": "boolean",
+            "title": "Duplicate",
+            "description": "True when this was a retry of feedback already received"
+          }
+        },
+        "type": "object",
+        "required": [
+          "feedback",
+          "duplicate"
+        ],
+        "title": "FeedbackReceipt",
+        "description": "What the reviewer sent, echoed back so they can see it was received."
       },
       "FollowupAnswer": {
         "properties": {
@@ -15659,6 +16848,45 @@
         ],
         "title": "QueueIn"
       },
+      "RecipientView": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "closed"
+            ],
+            "title": "Status"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "view": {
+            "$ref": "#/components/schemas/SharedView"
+          },
+          "reviewer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewerIdentity"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Who the feedback will be attributed to, when the reviewer is signed in"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "expires_at",
+          "view",
+          "reviewer"
+        ],
+        "title": "RecipientView"
+      },
       "Recommendation": {
         "properties": {
           "slug": {
@@ -16687,6 +17915,30 @@
         ],
         "title": "ReviewResponse"
       },
+      "ReviewerIdentity": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "account",
+              "guest",
+              "former_account"
+            ],
+            "title": "Kind"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "How the reviewer is named, e.g. 'Grace (signed-in CodeCoach user)'"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "label"
+        ],
+        "title": "ReviewerIdentity"
+      },
       "RoundAnswer": {
         "properties": {
           "question_index": {
@@ -17468,6 +18720,647 @@
           "round"
         ],
         "title": "SessionPlan"
+      },
+      "ShareCreate": {
+        "properties": {
+          "answer_id": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Answer Id",
+            "description": "One of your graded answers"
+          },
+          "sentences": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array",
+                "maxItems": 400
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sentences",
+            "description": "Which sentences of the answer to include (0-based); null means all of them"
+          },
+          "include_ai_feedback": {
+            "type": "boolean",
+            "title": "Include Ai Feedback",
+            "description": "Add CodeCoach's automated feedback, labelled",
+            "default": false
+          },
+          "include_followup": {
+            "type": "boolean",
+            "title": "Include Followup",
+            "description": "Interview answers: add the follow-up and your reply",
+            "default": true
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Note",
+            "description": "A short note to your reviewer",
+            "default": ""
+          },
+          "expires_in_days": {
+            "type": "integer",
+            "enum": [
+              1,
+              7,
+              30
+            ],
+            "title": "Expires In Days",
+            "default": 7
+          },
+          "acknowledge_link_access": {
+            "type": "boolean",
+            "title": "Acknowledge Link Access",
+            "description": "Must be true: anyone holding the link can see the selected snapshot until it expires or is revoked"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer_id",
+          "acknowledge_link_access"
+        ],
+        "title": "ShareCreate"
+      },
+      "ShareCreated": {
+        "properties": {
+          "share": {
+            "$ref": "#/components/schemas/ShareDetail"
+          },
+          "token": {
+            "type": "string",
+            "title": "Token"
+          },
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "description": "Append to the site's address, e.g. https://example.com/shared#t=\u2026"
+          }
+        },
+        "type": "object",
+        "required": [
+          "share",
+          "token",
+          "path"
+        ],
+        "title": "ShareCreated",
+        "description": "The link is in here once. Only a hash is stored, so it can be replaced but never shown again."
+      },
+      "ShareDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "closed",
+              "revoked",
+              "expired"
+            ],
+            "title": "Status"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "practice_answer",
+              "interview_answer"
+            ],
+            "title": "Kind"
+          },
+          "career_title": {
+            "type": "string",
+            "title": "Career Title"
+          },
+          "question_title": {
+            "type": "string",
+            "title": "Question Title"
+          },
+          "source_answer_id": {
+            "type": "string",
+            "title": "Source Answer Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "last_opened_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Opened At",
+            "description": "When the link was last opened by anyone"
+          },
+          "feedback_count": {
+            "type": "integer",
+            "title": "Feedback Count"
+          },
+          "last_feedback_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Feedback At"
+          },
+          "view": {
+            "$ref": "#/components/schemas/SharedView"
+          },
+          "feedback": {
+            "items": {
+              "$ref": "#/components/schemas/FeedbackOut"
+            },
+            "type": "array",
+            "title": "Feedback"
+          },
+          "source_changed": {
+            "type": "boolean",
+            "title": "Source Changed",
+            "description": "The original answer differs from what was shared"
+          },
+          "source_missing": {
+            "type": "boolean",
+            "title": "Source Missing",
+            "description": "The original answer is no longer in your history"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "kind",
+          "career_title",
+          "question_title",
+          "source_answer_id",
+          "created_at",
+          "expires_at",
+          "closed_at",
+          "revoked_at",
+          "last_opened_at",
+          "feedback_count",
+          "last_feedback_at",
+          "view",
+          "feedback",
+          "source_changed",
+          "source_missing"
+        ],
+        "title": "ShareDetail"
+      },
+      "SharePreview": {
+        "properties": {
+          "source_sentences": {
+            "items": {
+              "$ref": "#/components/schemas/SharedSentence"
+            },
+            "type": "array",
+            "title": "Source Sentences",
+            "description": "Every sentence of the answer, to choose from"
+          },
+          "has_followup": {
+            "type": "boolean",
+            "title": "Has Followup"
+          },
+          "view": {
+            "$ref": "#/components/schemas/SharedView"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source_sentences",
+          "has_followup",
+          "view"
+        ],
+        "title": "SharePreview"
+      },
+      "ShareSelection": {
+        "properties": {
+          "answer_id": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Answer Id",
+            "description": "One of your graded answers"
+          },
+          "sentences": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array",
+                "maxItems": 400
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sentences",
+            "description": "Which sentences of the answer to include (0-based); null means all of them"
+          },
+          "include_ai_feedback": {
+            "type": "boolean",
+            "title": "Include Ai Feedback",
+            "description": "Add CodeCoach's automated feedback, labelled",
+            "default": false
+          },
+          "include_followup": {
+            "type": "boolean",
+            "title": "Include Followup",
+            "description": "Interview answers: add the follow-up and your reply",
+            "default": true
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Note",
+            "description": "A short note to your reviewer",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer_id"
+        ],
+        "title": "ShareSelection",
+        "description": "What to share from one of your answers. Nothing else from your account is included."
+      },
+      "ShareSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "closed",
+              "revoked",
+              "expired"
+            ],
+            "title": "Status"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "practice_answer",
+              "interview_answer"
+            ],
+            "title": "Kind"
+          },
+          "career_title": {
+            "type": "string",
+            "title": "Career Title"
+          },
+          "question_title": {
+            "type": "string",
+            "title": "Question Title"
+          },
+          "source_answer_id": {
+            "type": "string",
+            "title": "Source Answer Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "last_opened_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Opened At",
+            "description": "When the link was last opened by anyone"
+          },
+          "feedback_count": {
+            "type": "integer",
+            "title": "Feedback Count"
+          },
+          "last_feedback_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Feedback At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "kind",
+          "career_title",
+          "question_title",
+          "source_answer_id",
+          "created_at",
+          "expires_at",
+          "closed_at",
+          "revoked_at",
+          "last_opened_at",
+          "feedback_count",
+          "last_feedback_at"
+        ],
+        "title": "ShareSummary"
+      },
+      "SharedAIFeedback": {
+        "properties": {
+          "score": {
+            "type": "integer",
+            "title": "Score"
+          },
+          "rating": {
+            "type": "string",
+            "title": "Rating"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/SharedPoint"
+            },
+            "type": "array",
+            "title": "Points"
+          },
+          "coach": {
+            "type": "string",
+            "title": "Coach"
+          }
+        },
+        "type": "object",
+        "required": [
+          "score",
+          "rating",
+          "summary",
+          "points",
+          "coach"
+        ],
+        "title": "SharedAIFeedback",
+        "description": "CodeCoach's automated rubric feedback, included only when the owner chose to."
+      },
+      "SharedFollowup": {
+        "properties": {
+          "asked_by": {
+            "type": "string",
+            "title": "Asked By"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "asked_by",
+          "question",
+          "answer"
+        ],
+        "title": "SharedFollowup"
+      },
+      "SharedPoint": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "covered": {
+            "type": "boolean",
+            "title": "Covered"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "covered"
+        ],
+        "title": "SharedPoint"
+      },
+      "SharedQuestion": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "prompt": {
+            "type": "string",
+            "title": "Prompt"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "difficulty": {
+            "type": "string",
+            "title": "Difficulty"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "prompt",
+          "kind",
+          "difficulty"
+        ],
+        "title": "SharedQuestion"
+      },
+      "SharedSentence": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "title": "Index",
+            "description": "Position in the original answer: a stable anchor for comments"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "index",
+          "text"
+        ],
+        "title": "SharedSentence"
+      },
+      "SharedView": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "practice_answer",
+              "interview_answer"
+            ],
+            "title": "Kind"
+          },
+          "career_title": {
+            "type": "string",
+            "title": "Career Title"
+          },
+          "question": {
+            "$ref": "#/components/schemas/SharedQuestion"
+          },
+          "excerpt": {
+            "items": {
+              "$ref": "#/components/schemas/SharedSentence"
+            },
+            "type": "array",
+            "title": "Excerpt"
+          },
+          "total_sentences": {
+            "type": "integer",
+            "title": "Total Sentences"
+          },
+          "omitted_sentences": {
+            "type": "integer",
+            "title": "Omitted Sentences"
+          },
+          "followup": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SharedFollowup"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ai_feedback": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SharedAIFeedback"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          },
+          "answered_on": {
+            "type": "string",
+            "title": "Answered On",
+            "description": "The day the answer was written (YYYY-MM-DD)"
+          },
+          "prompts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Prompts",
+            "description": "The questions the reviewer is asked to answer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "career_title",
+          "question",
+          "excerpt",
+          "total_sentences",
+          "omitted_sentences",
+          "followup",
+          "ai_feedback",
+          "note",
+          "answered_on",
+          "prompts"
+        ],
+        "title": "SharedView",
+        "description": "Exactly what the reviewer sees. Built from the immutable snapshot."
       },
       "Signature": {
         "properties": {
@@ -18591,6 +20484,21 @@
         ],
         "title": "TodayOut"
       },
+      "TokenIn": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 32,
+            "title": "Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token"
+        ],
+        "title": "TokenIn"
+      },
       "TokenResponse": {
         "properties": {
           "access_token": {
@@ -19291,6 +21199,19 @@
         "title": "UpgradeGuestRequest",
         "description": "Same fields and rules as registration; the guest's data is kept."
       },
+      "UsefulIn": {
+        "properties": {
+          "useful": {
+            "type": "boolean",
+            "title": "Useful"
+          }
+        },
+        "type": "object",
+        "required": [
+          "useful"
+        ],
+        "title": "UsefulIn"
+      },
       "UserOut": {
         "properties": {
           "id": {
@@ -19496,6 +21417,10 @@
     {
       "name": "progress",
       "description": "Analytics and personalized recommendations"
+    },
+    {
+      "name": "sharing",
+      "description": "Share a chosen answer with a reviewer through an unlisted, revocable link; collect their structured feedback. The link secret travels in request bodies, never URLs."
     }
   ]
 }

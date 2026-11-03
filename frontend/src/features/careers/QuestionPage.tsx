@@ -20,6 +20,7 @@ import { LearnLinks } from "@/features/learn/LearnLinks";
 import { NoteCapture } from "@/features/notes/NoteCapture";
 import { QueueBar } from "@/features/saved/QueueBar";
 import { SaveControls } from "@/features/saved/SaveControls";
+import { ShareEntry } from "@/features/sharing/ShareEntry";
 
 import { FeedbackCard } from "./FeedbackCard";
 import { KIND_LABEL } from "./kinds";
@@ -126,6 +127,7 @@ export function QuestionPage() {
           </form>
 
           {shown && <FeedbackCard answer={shown} title={shown === latest ? "Feedback" : `Feedback on your answer from ${timeAgo(shown.created_at)}`} />}
+          {shown && isAuthenticated && <div className="focus-hide"><ShareEntry answerId={shown.id} fromLabel="Back to the question" /></div>}
           {wanted && answers.data && !linked && !latest && <p className="banner banner--warning">That answer couldn't be found. It may have been deleted.</p>}
         </div>
 

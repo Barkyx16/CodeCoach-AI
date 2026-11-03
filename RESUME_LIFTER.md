@@ -600,6 +600,15 @@ These are moments where the obvious path was wrong and a deliberate decision was
     what's optional. The doc lists the manual checks actually done and says plainly that no
     screen reader was available here.
 
+47. **The link secret goes in the fragment, and only its hash is stored.** A shareable link
+    usually means a token in the path, which then sits in access logs, proxies and Referer
+    headers. Here the secret is after `#`, which browsers never send anywhere, and the page posts
+    it in a request body; the database keeps a SHA-256, so the owner gets the link once and can
+    only replace it. Reviewers see a snapshot the owner chose sentence by sentence and previewed
+    from the server's own rendering; feedback is a person's plain-text opinion, shown apart from
+    the automated scores and never feeding them. No emails, no moderation queue pretending to
+    exist: the owner controls the link and can delete feedback.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -1312,4 +1321,29 @@ slows the refresh call to reproduce it (1 of 12 before the fix, 12 of 12 after).
 - **Not verified:** no screen reader exists in this environment (checked through Chromium's
   accessibility tree instead); Chromium only; browser zoom approximated by viewport width; no
   testing with disabled users. See docs/ACCESSIBILITY.md.
+
+**U08 Feedback from a trusted person (built and verified):**
+- From a graded answer or a finished interview's review: choose sentences (gaps are marked),
+  optionally the follow-up and the labelled automated feedback, a note and an expiry; see the
+  server-rendered reviewer view; confirm that anyone with the link can see it; copy the link
+  (shown once).
+- Link security: 256-bit secret in the URL fragment, sent in POST bodies, only its SHA-256
+  stored, never in access logs (tested), no-store/noindex/no-referrer, 404 for unknown or
+  replaced links and 410 for revoked or expired ones, per-IP and per-user rate limits, at most 50
+  working links.
+- Reviewers: three prompts and sentence-anchored comments, plain text only, idempotent retries,
+  honest labels (signed-in user vs unverified guest), can't review their own share. Owners:
+  list, detail, useful, delete feedback, close/reopen, new link, revoke, delete; a notice when the
+  original answer changed or is gone. Export and deletion (a deleted reviewer becomes "a former
+  CodeCoach user").
+- Also fixed: a too-short answer (score capped at 35, "Needs work") was summarised as "Solid";
+  `.stack-sm` was used in 53 places but never defined.
+- Tests: 14 backend (SQLite and PostgreSQL: exact snapshot, nothing else exposed, guessing,
+  hash-only storage, revoke/expire/replace, closed shares, malicious and oversized feedback,
+  retries, limits, cross-account 404s, source changes, logs, export/deletion), 5 frontend, 2
+  Playwright journeys (owner → copy → separate browser context sees exactly the preview → double
+  submit stored once, injection inert → another account refused → revoke → reload and the API
+  both refuse; light theme at 320px) with WCAG scans.
+- **Limits:** one written answer per share (no code or whole transcripts yet); a link can be
+  forwarded while it works; no notifications by design. See docs/SHARING.md.
 

@@ -100,7 +100,12 @@ def grade(question: Question, answer: str) -> Feedback:
     if words < MIN_WORDS:
         score = min(score, 35)  # a few keywords shouldn't score well
     missed = [p for p in points if not p.covered]
-    if not missed:
+    if words < MIN_WORDS:
+        # The score is capped above; the summary must say why rather than praise keyword hits.
+        summary = (
+            f"Too short to be convincing yet ({words} words). Say what happened, what you did and the result."
+        )
+    elif not missed:
         summary = "You covered everything interviewers listen for in this question."
     elif len(missed) == 1:
         summary = f"Solid. One thing to add: {missed[0].label.lower()}."

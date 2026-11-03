@@ -63,6 +63,11 @@ class Settings(BaseSettings):
     auth_rate_limit_per_minute: int = 10
     # Written interview answers graded per user per hour (offline grading is cheap; this bounds storage).
     practice_answers_per_hour: int = 60
+    # Shared answer links (per client IP / per user). The link secret is 256 bits, so these bound
+    # abuse and load rather than being what stops guessing.
+    share_opens_per_10_minutes: int = 120
+    share_feedback_per_hour: int = 20
+    shares_created_per_hour: int = 30
     # "database": shared by every API replica and survives restarts. "memory": one process only.
     # Behind a reverse proxy, also set FORWARDED_ALLOW_IPS to the proxy's address so uvicorn
     # uses the real client IP from X-Forwarded-For (otherwise everyone shares the proxy's IP).

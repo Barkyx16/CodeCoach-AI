@@ -1,0 +1,6 @@
+# Shared-answer links are private (their secret is in the #fragment, which crawlers never see),
+# but keep the page itself out of indexes too. Account pages need sign-in anyway.
+User-agent: *
+Disallow: /shared
+Disallow: /shares
+Disallow: /share/

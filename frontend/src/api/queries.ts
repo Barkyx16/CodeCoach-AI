@@ -6,7 +6,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 
 import { ApiError } from "./client";
 import { api, type ActivityFilters, type ExploreFilters, type NoteFilters, type ProblemFilters, type QuestionFilters } from "./endpoints";
-import type { AIHistoryAction, AnswerSource, Difficulty, Bookmark, Collection, GoalsInput, MyExploreResult, ReviewQueue, SavedItemRef, Target, UnitProgress, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
+import type { AIHistoryAction, AnswerSource, Difficulty, Bookmark, Collection, GoalsInput, MyExploreResult, ReviewQueue, SavedItemRef, ShareDetail, Target, UnitProgress, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
 
 export const queryKeys = {
   problems: (filters: ProblemFilters) => ["problems", filters] as const,
@@ -510,6 +510,44 @@ export function useNotes(filters: NoteFilters, enabled = true) {
 
 export function useNote(id: string) {
   return useQuery({ queryKey: ["me", "note", id], queryFn: () => api.note(id), staleTime: 0 });
+}
+
+// --- sharing an answer for feedback ------------------------------------------------------------
+
+export function useShares(answerId?: string, enabled = true) {
+  return useQuery({ queryKey: ["me", "shares", answerId ?? "all"], queryFn: () => api.shares(answerId), enabled, staleTime: 0 });
+}
+
+export function useShare(id: string) {
+  return useQuery({ queryKey: ["me", "share", id], queryFn: () => api.share(id), staleTime: 0 });
+}
+
+/** Owner actions that return the updated share: keeps the detail and the lists in step. */
+export function useShareMutation<V>(fn: (vars: V) => Promise<ShareDetail>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: (share) => {
+      qc.setQueryData(["me", "share", share.id], share);
+      void qc.invalidateQueries({ queryKey: ["me", "shares"] });
+    },
+  });
+}
+
+/**
+ * The reviewer's view of a shared answer. Never kept in the cache (gcTime 0) and always refetched,
+ * so a revoked or expired link can't be shown again from memory.
+ */
+export function useSharedView(token: string) {
+  return useQuery({
+    queryKey: ["shared", token],
+    queryFn: () => api.openShared(token),
+    enabled: token.length >= 32,
+    staleTime: 0,
+    gcTime: 0,
+    retry: false,
+    refetchOnWindowFocus: true,
+  });
 }
 
 // --- branching scenarios -----------------------------------------------------------------------

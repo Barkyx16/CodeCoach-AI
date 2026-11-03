@@ -197,6 +197,17 @@ transcript; `ai_interactions` rows for interview turns keep only cost and latenc
   refused (409) rather than overwriting; `deleted_at` keeps a deleted note restorable for 10
   minutes before it is purged.
 
+### Shared answers
+- `shares`: an owner's answer shared through an unlisted link. `token_hash` is the SHA-256 of the
+  link's secret (unique; the secret itself is never stored). `snapshot` is the exact reviewer view,
+  fixed at creation; `source_id` + `source_digest` let the owner see whether the original changed
+  or is gone. `expires_at`, `closed_at` (no new feedback) and `revoked_at` (link off for good).
+  Cascades with the owner.
+- `share_feedback`: structured feedback (`clear`, `needs_evidence`, `next_step`, `comments` anchored
+  to snapshot sentence indices). `reviewer_id` is set for signed-in registered reviewers and set to
+  NULL if that account is deleted; `guest_name` is unverified. `(share_id, client_request_id)` is
+  unique so a retried submission is stored once. Never linked to scores.
+
 ## Design notes
 
 - **Enums are stored as strings** (`native_enum=False`), so adding a status is a code change,
@@ -225,6 +236,7 @@ transcript; `ai_interactions` rows for interview turns keep only cost and latenc
 | `f3b8d1e6c527` learn events | Adds `learn_events` (unit id and version, kind, detail, `dedupe_key` unique per user so once-per-version events can't race). New table, cascading with the user |
 | `a5c9e2f7d318` notes | Adds `notes` (text, tags, source reference and snapshot, pin/archive, `revision` for conflict detection, `deleted_at` for the undo window) with an index on `(user_id, updated_at)`. New table, cascading with the user |
 | `b7d2f4a9c613` scenario attempts | Adds `scenario_attempts` (scenario id and version, mode, parent attempt, current node, recorded steps with text/feedback snapshots, ending). New table, cascading with the user |
+| `d4f1b8c2e637` shares and share feedback | Adds `shares` (owner, hashed link secret, source reference and digest, snapshot, expiry/close/revoke times) and `share_feedback` (structured feedback, reviewer or guest name, unique retry key). New tables; shares cascade with the owner, a reviewer's deletion clears `reviewer_id` |
 | `c3e8a1d5f924` submission client request id | Adds nullable `submissions.client_request_id` with a unique constraint on `(user_id, client_request_id)` so a retried POST returns the original submission. Safe on populated tables |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
