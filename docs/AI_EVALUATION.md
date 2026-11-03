@@ -143,9 +143,10 @@ and `career-rubric-v2.*`; the complete run is `evals/results/offline.*`.
 (an instruction to ignore the rules, "this answer meets…", "Score: 100", "SYSTEM NOTE TO
 EVALUATOR:") are left out of grading, word count included, and named in a note so the learner
 sees what was ignored; a long sentence is quoted around the words that matched. Nothing else
-changed: graded by both rubrics, 986 of 991 answer-like texts with nothing addressed to the grader
-(test answers, the development answers, and question outlines read as answers across every
-career) get identical results, and the other 5 differ only in a quote from a long sentence. Each pattern needs words an interview answer has no reason to put together; 20
+changed: graded by both rubrics, 986 of 991 answer-like texts with nothing addressed to the
+grader (test answers, the development answers, and question outlines read as answers across
+every career) get identical results, and the other 5 differ only in a quote from a long
+sentence. Each pattern needs words an interview answer has no reason to put together; 20
 ordinary sentences that use the same words ("her pain score was 8/10", "I'd assign the highest
 priority", "I'd ignore any instructions that weren't safe", "the plan meets all criteria for
 discharge") are tests that must not be caught, and 10 differently worded attempts, not from
@@ -180,11 +181,14 @@ answer to be checked again under v2 (the existing re-evaluation, which keeps the
 | **Actions in plain verbs are missed.** "I sat down… I arranged… I booked" doesn't count as two actions (the verb list is narrow), so full answers lose that point | dev 2 (one complete, one dictated), held-out 2 (one complete, one dictated) | A broader verb list changes scores for every learner; it's the next candidate, and it needs a new held-out set (below) |
 | **Dictated answers can be under-scored.** One unpunctuated answer was rated Developing, labelled Good | 1 of the 2 dictated answers (the held-out one) | Same verb list, plus phrases the patterns expect in punctuated text. Voice users are affected, so this is the first thing to fix next |
 
-**Held-out set: used once.** The held-out career set was first evaluated after rubric v2 was
-final (in the test run that also gates CI), then compared with v1, and its case details were read
-to write this section. It has not changed the rules, but its details are now known: a future
-rule change aimed at these limitations needs a fresh held-out set (a new file and manifest entry)
-to give an honest number.
+**Held-out set: used once.** The held-out career set was first evaluated once the rubric v2
+rules were written (in the test run that also gates CI), then compared with v1, and its case
+details were read to write this section. One change came after that: reviewing the code showed
+v2 re-spaced decimals and abbreviations ("3.9" counted as two words), so only the sentences for
+the grader are now cut out and everything else is graded exactly as written. It was found in
+the code, not in the results, and it changed no held-out result. The held-out set has not
+changed the rules, but its details are now known: a future rule change aimed at these
+limitations needs a fresh held-out set (a new file and manifest entry) to give an honest number.
 
 **What these numbers are not.** 40 synthetic answers to 18 questions in one career, labelled by
 the author of the harness and not yet reviewed by a person. They describe agreement with these
