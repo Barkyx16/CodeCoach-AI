@@ -65,7 +65,7 @@ test("a nurse turns a posting into a workspace, corrects it, practises, and star
     "In the ED I assess airway, breathing and circulation first, then vital signs and pain. I triage by acuity and escalate any patient whose oxygen is dropping to the charge nurse within minutes.",
   );
   await page.getByRole("button", { name: "Get feedback" }).click();
-  await expect(page.getByRole("region", { name: "Feedback" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Feedback", exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Back to this role" }).click();
   await expect(page).toHaveURL(/show=limited/);
   await page.goto(url);

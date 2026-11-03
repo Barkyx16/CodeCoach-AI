@@ -90,7 +90,7 @@ test("keyboard only: find a question with a filter, answer it, recover from an e
 
   // Try again from the same place.
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("region", { name: "Feedback" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Feedback", exact: true })).toBeVisible();
   await expect(error).toHaveCount(0);
 
   // Focus mode by keyboard: on, essentials still there, Escape returns focus to the toggle.

@@ -35,7 +35,7 @@ test("a nurse picks their job at sign-up, answers a question and gets feedback",
     "minutes. I learned to escalate early instead of waiting to be sure.",
   );
   await page.getByRole("button", { name: "Get feedback" }).click();
-  const feedback = page.getByRole("region", { name: "Feedback" });
+  const feedback = page.getByRole("region", { name: "Feedback", exact: true });
   await expect(feedback.getByLabel(/Score \d+ out of 100/)).toBeVisible();
   await expect(feedback.getByText("A strong answer includes")).toBeVisible();
   await page.screenshot({ path: "e2e/screenshots/careers-feedback.png", fullPage: true });

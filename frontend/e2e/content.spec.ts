@@ -54,7 +54,7 @@ test("report, triage, correct and retire: every party sees exactly what they sho
   const originalPrompt = await page.locator(".question-page__prompt p").innerText();
   await page.getByRole("textbox", { name: "Your answer" }).fill(ANSWER);
   await page.getByRole("button", { name: "Get feedback" }).click();
-  const feedback = page.getByRole("region", { name: "Feedback" });
+  const feedback = page.getByRole("region", { name: "Feedback", exact: true });
   await expect(feedback).toBeVisible();
   const score = await feedback.locator(".score-pill strong").innerText();
   await page.getByRole("button", { name: "Bookmark" }).click();

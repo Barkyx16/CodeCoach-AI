@@ -141,7 +141,7 @@ test("saved content and drafts work offline, uncached pages say so, and nothing 
   await expect(page.locator(".header__user .badge")).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Your answer" })).toHaveValue(ANSWER);
   await page.getByRole("button", { name: "Get feedback" }).click();
-  await expect(page.getByRole("region", { name: "Feedback" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Feedback", exact: true })).toBeVisible();
 });
 
 test("a note edited offline syncs on reconnect, and an edit made elsewhere becomes a choice", async ({ page, context, browser }) => {

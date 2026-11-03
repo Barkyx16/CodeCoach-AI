@@ -33,7 +33,7 @@ test("share a chosen part of an answer, review it in another browser, then revok
   await page.goto("/careers/registered-nurse/questions/m-walk-0");
   await page.getByRole("textbox", { name: "Your answer" }).fill(ANSWER);
   await page.getByRole("button", { name: "Get feedback" }).click();
-  await expect(page.getByRole("region", { name: "Feedback" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Feedback", exact: true })).toBeVisible();
 
   // Choose: leave out the private sentence, include the automated feedback, add a note.
   await page.getByRole("link", { name: "Ask someone for feedback" }).click();

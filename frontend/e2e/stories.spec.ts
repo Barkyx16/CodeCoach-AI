@@ -90,7 +90,7 @@ test("one story, from a job target to the story bank to practice, with every ver
   await page.getByRole("button", { name: "Link this question to the story" }).click();
   await expect(page.getByText("This question is linked to the story.")).toBeVisible();
   await page.getByRole("button", { name: "Get feedback" }).click();
-  await expect(page.getByRole("region", { name: "Feedback" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Feedback", exact: true })).toBeVisible();
   await page.goto(storyUrl);
   await expect(page.getByText(/STORY BANK · VERSION 5/)).toBeVisible(); // the link is the only change
   await expect(page.getByRole("heading", { name: "Practised with this story" })).toBeVisible();

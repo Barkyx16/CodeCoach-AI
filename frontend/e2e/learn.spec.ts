@@ -62,7 +62,7 @@ test("a nurse learns before practising: prerequisite, guided help, solution, che
   await page.getByRole("region", { name: "Practice" }).getByRole("link", { name: /Answer “Handle it/ }).click();
   await page.getByLabel("Your answer", { exact: true }).fill(ANSWER);
   await page.getByRole("button", { name: "Get feedback" }).click();
-  await expect(page.getByRole("region", { name: "Feedback" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Feedback", exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Back to Prioritizing when several patients need you" }).click();
   await expect(page.getByRole("region", { name: "Practice" })).toContainText(/Practised since you started this unit: answered, scored \d+\/100/);
 });

@@ -47,14 +47,14 @@ test("criteria first, a reflection before the feedback, quoted evidence, perspec
   const { id: answerId } = (await (await sent).json()) as { id: string };
   const gate = page.getByRole("form", { name: "Before you read the feedback" });
   await expect(gate).toBeVisible();
-  await expect(page.getByRole("region", { name: "Feedback" })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Feedback", exact: true })).toHaveCount(0);
   await gate.getByLabel("What went well?").fill("I explained the delay and followed up.");
   const firstGroup = gate.getByRole("radiogroup").first();
   await firstGroup.getByRole("radio", { name: "Yes" }).check();
   await axe(page, "self-review before feedback");
   await gate.getByRole("button", { name: "Save and show feedback" }).press("Enter");
 
-  const feedback = page.getByRole("region", { name: "Feedback" });
+  const feedback = page.getByRole("region", { name: "Feedback", exact: true });
   await expect(feedback).toBeVisible();
   await expect(feedback.locator(".feedback-card__evidence").first()).toContainText("From your answer:");
   const quoted = (await feedback.locator(".feedback-card__evidence").first().innerText()).replace(/^From your answer: “|”$/g, "");
@@ -86,7 +86,7 @@ test("an answer too short to evaluate shows no score; skipping the reflection co
   await page.getByRole("textbox", { name: "Your answer" }).fill("I listened to her and called the doctor.");
   await page.getByRole("button", { name: "Get feedback" }).click();
   await page.getByRole("button", { name: "Skip and show feedback" }).click();
-  const feedback = page.getByRole("region", { name: "Feedback" });
+  const feedback = page.getByRole("region", { name: "Feedback", exact: true });
   await expect(feedback.getByLabel("Not enough to score yet")).toBeVisible();
   await axe(page, "insufficient evidence, dark");
 

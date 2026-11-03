@@ -90,7 +90,7 @@ test("non-coding: answer, find it in History, inspect Analytics, switch careers 
   await expect(page.getByRole("region", { name: "Continue where you left off" })).toContainText("unsent answer");
   await page.getByRole("link", { name: "Finish your answer" }).click();
   await page.getByRole("button", { name: "Get feedback" }).click();
-  await expect(page.getByRole("region", { name: "Feedback" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Feedback", exact: true })).toBeVisible();
   const questionUrl = page.url();
 
   // The dashboard updates from the real answer.

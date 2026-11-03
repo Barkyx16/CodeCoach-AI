@@ -55,7 +55,7 @@ test("a new nurse is welcomed, tours a real nursing question, gets real feedback
   await tour(page).getByRole("button", { name: "Next" }).click();
   await expect(tour(page).getByRole("heading", { name: "Getting feedback" })).toBeVisible();
   await page.getByRole("button", { name: "Get feedback" }).click();
-  await expect(page.getByRole("region", { name: "Feedback" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Feedback", exact: true })).toBeVisible();
   await tour(page).getByRole("button", { name: "Next" }).click();
   await expect(tour(page).getByRole("heading", { name: "What to do next" })).toBeVisible();
   await expect(page.locator('[data-tour="next"]')).toHaveAttribute("data-tour-active", "");
