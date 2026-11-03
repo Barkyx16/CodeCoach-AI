@@ -1,15 +1,15 @@
 /* Prepare for this role: target list, workspace, requirements and coverage. */
 .target-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .target-archived { margin-top: 16px; }
-.target-archived summary { cursor: pointer; min-height: 36px; display: flex; align-items: center; font-size: 14px; }
+.target-archived summary { cursor: pointer; min-height: 36px; display: flex; align-items: center; font-size: 0.875rem; }
 .new-target { margin-bottom: 16px; }
-.target-jd { min-height: 220px; font-family: inherit; font-size: 14px; line-height: 1.55; resize: vertical; }
-.target-jd-view { white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; font-size: 13px; line-height: 1.55; max-height: 360px; overflow: auto; margin: 8px 0 0; padding: 10px; background: var(--color-surface-sunken); border-radius: 8px; }
+.target-jd { min-height: 220px; font-family: inherit; font-size: 0.875rem; line-height: 1.55; resize: vertical; }
+.target-jd-view { white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; font-size: 0.8125rem; line-height: 1.55; max-height: 360px; overflow: auto; margin: 8px 0 0; padding: 10px; background: var(--color-surface-sunken); border-radius: 8px; }
 .target-workspace__layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; margin-top: 16px; }
 .target-sessions { display: grid; gap: 8px; }
 .target-session { padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 10px; }
 .target-session summary { cursor: pointer; font-weight: 600; min-height: 32px; display: flex; align-items: center; }
-.target-session p { margin: 6px 0 10px; font-size: 13px; }
+.target-session p { margin: 6px 0 10px; font-size: 0.8125rem; }
 .requirement { display: grid; gap: 6px; padding: 14px 16px; border: 1px solid var(--color-border); border-left-width: 3px; border-radius: 10px; background: var(--color-surface); }
 .requirement--practised { border-left-color: var(--color-success); }
 .requirement--some { border-left-color: var(--color-info); }
@@ -17,20 +17,20 @@
 .requirement--gap { border-left-color: var(--color-border-strong); border-left-style: dashed; }
 .requirement--removed { opacity: .75; }
 .requirement__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; }
-.requirement__text { margin: 0; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
-.requirement__meta { margin: 0; font-size: 12px; }
-.coverage { font-size: 12px; font-weight: 600; }
+.requirement__text { margin: 0; font-size: 0.9375rem; font-weight: 600; overflow-wrap: anywhere; }
+.requirement__meta { margin: 0; font-size: 0.75rem; }
+.coverage { font-size: 0.75rem; font-weight: 600; }
 .coverage--practised { color: var(--color-success); }
 .coverage--some { color: var(--color-info); }
 .coverage--limited { color: var(--color-warning); }
 .coverage--gap { color: var(--color-text-muted); }
-.requirement__source summary { cursor: pointer; font-size: 12px; min-height: 28px; display: flex; align-items: center; }
-.requirement__source blockquote { margin: 4px 0 0; padding: 8px 10px; border-left: 3px solid var(--color-border-strong); background: var(--color-surface-sunken); font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
-.requirement__practice { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; }
+.requirement__source summary { cursor: pointer; font-size: 0.75rem; min-height: 28px; display: flex; align-items: center; }
+.requirement__source blockquote { margin: 4px 0 0; padding: 8px 10px; border-left: 3px solid var(--color-border-strong); background: var(--color-surface-sunken); font-size: 0.8125rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.requirement__practice { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 0.8125rem; }
 .requirement__practice a { text-decoration: underline; text-underline-offset: 2px; }
 .requirement__actions { gap: 4px; }
 .add-requirement { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; gap: 8px; align-items: end; padding: 12px; border: 1px dashed var(--color-border-strong); border-radius: 10px; }
-.experience { display: grid; gap: 4px; padding: 10px 0; border-bottom: 1px solid var(--color-border); font-size: 14px; }
+.experience { display: grid; gap: 4px; padding: 10px 0; border-bottom: 1px solid var(--color-border); font-size: 0.875rem; }
 .experience p { margin: 0; }
 @media (max-width: 960px) { .target-workspace__layout { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { .add-requirement { grid-template-columns: 1fr; } }

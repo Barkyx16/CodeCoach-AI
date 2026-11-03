@@ -11,6 +11,8 @@ export function useMicTest() {
   const [permission, setPermission] = useState<MicPermission>("unknown");
   const [level, setLevel] = useState<number | null>(null); // 0-100 while testing
   const [error, setError] = useState<string | null>(null);
+  // Set once per test when speech-level input arrives: the one thing worth announcing (the level itself changes every frame).
+  const [heard, setHeard] = useState(false);
   const stream = useRef<MediaStream | null>(null);
   const context = useRef<AudioContext | null>(null);
   const frame = useRef<number | null>(null);
@@ -27,6 +29,7 @@ export function useMicTest() {
     void context.current?.close().catch(() => undefined);
     context.current = null;
     setLevel(null);
+    setHeard(false);
   }, []);
 
   const enable = useCallback(async () => {
@@ -51,7 +54,9 @@ export function useMicTest() {
         analyser.getByteTimeDomainData(data);
         let peak = 0;
         for (const v of data) peak = Math.max(peak, Math.abs(v - 128));
-        setLevel(Math.min(100, Math.round((peak / 128) * 160)));
+        const value = Math.min(100, Math.round((peak / 128) * 160));
+        setLevel(value);
+        if (value >= 35) setHeard(true);
         frame.current = requestAnimationFrame(tick);
       };
       tick();
@@ -70,5 +75,5 @@ export function useMicTest() {
 
   useEffect(() => stopTest, [stopTest]);
 
-  return { supported, permission, level, testing: level !== null, error, enable, stopTest };
+  return { supported, permission, level, heard, testing: level !== null, error, enable, stopTest };
 }

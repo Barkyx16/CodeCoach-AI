@@ -29,8 +29,17 @@ export function CollectionPage() {
   // After a move, keep keyboard focus on the same button of the moved item.
   const focusAfter = useRef<{ itemId: string; dir: "up" | "down" } | null>(null);
   const buttons = useRef(new Map<string, HTMLButtonElement>());
+  // After a removal the row (and its focused button) is gone: focus the next item's Remove, or the title.
+  const focusRemoveAt = useRef<number | null>(null);
+  const title = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
+    const at = focusRemoveAt.current;
+    if (at !== null) {
+      focusRemoveAt.current = null;
+      const removes = document.querySelectorAll<HTMLButtonElement>(".collection-items [data-remove]");
+      (removes[Math.min(at, removes.length - 1)] ?? title.current)?.focus();
+    }
     const f = focusAfter.current;
     if (!f) return;
     const el = buttons.current.get(`${f.itemId}:${f.dir}`);
@@ -52,6 +61,12 @@ export function CollectionPage() {
     [ids[from], ids[to]] = [ids[to]!, ids[from]!];
     focusAfter.current = { itemId: item.id, dir };
     reorder.mutate(ids, { onSuccess: () => setAnnounce(`Moved “${item.title}” to position ${to + 1} of ${ids.length}.`) });
+  }
+
+  function cancelDelete() {
+    setConfirming(false);
+    // The confirmation closes: put focus back on the button that opened it.
+    window.requestAnimationFrame(() => document.getElementById("delete-collection")?.focus());
   }
 
   async function onRename(e: FormEvent) {
@@ -82,7 +97,7 @@ export function CollectionPage() {
               <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
             </form>
           ) : (
-            <h1 className="page__title">{c.name}</h1>
+            <h1 className="page__title" ref={title} tabIndex={-1}>{c.name}</h1>
           )}
           <p className="page__subtitle">
             {c.items} {c.items === 1 ? "item" : "items"} · Queue: {c.queue_done} of {c.items} marked done
@@ -92,7 +107,7 @@ export function CollectionPage() {
         </div>
         <div className="row">
           {!editing && <Button size="sm" variant="ghost" onClick={() => { setName(c.name); setEditing(true); }}>Rename</Button>}
-          <Button size="sm" variant="ghost" onClick={() => setConfirming(true)}>Delete</Button>
+          <Button size="sm" variant="ghost" id="delete-collection" aria-expanded={confirming} onClick={() => setConfirming(true)}>Delete</Button>
           {items.length > 0 && (
             <Button variant="primary" loading={start.isPending} onClick={() => void onStart()}>
               {c.queue_started ? "Continue practice" : "Start this collection"}
@@ -103,13 +118,14 @@ export function CollectionPage() {
       <InlineError error={start.error} />
 
       {confirming && (
-        <div className="banner banner--warning stack-sm" role="alertdialog" aria-labelledby="delete-title" aria-describedby="delete-desc">
+        <div className="banner banner--warning stack-sm" role="alertdialog" aria-labelledby="delete-title" aria-describedby="delete-desc"
+          onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); cancelDelete(); } }}>
           <strong id="delete-title">Delete “{c.name}”?</strong>
           <p id="delete-desc">This removes the list and its queue progress. The questions, your answers and your bookmarks stay.</p>
           <span className="row">
             <Button variant="danger" size="sm" loading={destroy.isPending} autoFocus
               onClick={() => destroy.mutate(id, { onSuccess: () => navigate("/saved", { replace: true }) })}>Delete collection</Button>
-            <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>Cancel</Button>
+            <Button size="sm" variant="ghost" onClick={cancelDelete}>Cancel</Button>
           </span>
           <InlineError error={destroy.error} />
         </div>
@@ -146,7 +162,14 @@ export function CollectionPage() {
                   ref={(el) => { if (el) buttons.current.set(`${item.id}:down`, el); }}
                   onClick={() => move(item, "down")}>↓</button>
                 <Button size="sm" variant="ghost" aria-label={`Remove “${item.title}” from this collection`}
-                  loading={remove.isPending && remove.variables === item.id} onClick={() => remove.mutate(item.id)}>Remove</Button>
+                  data-remove={item.id} loading={remove.isPending && remove.variables === item.id}
+                  onClick={() => {
+                    focusRemoveAt.current = index;
+                    remove.mutate(item.id, {
+                      onSuccess: () => setAnnounce(`Removed “${item.title}” from this collection.`),
+                      onError: () => { focusRemoveAt.current = null; }, // the row stays; so does focus
+                    });
+                  }}>Remove</Button>
               </div>
             </li>
           ))}

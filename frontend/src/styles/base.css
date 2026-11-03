@@ -79,7 +79,10 @@ kbd {
 }
 
 :focus-visible {
-  outline: none;
+  /* The ring is a box-shadow; the transparent outline is what shows in Windows High Contrast
+     (forced colors), where shadows are removed and transparent outlines get a system colour. */
+  outline: 2px solid transparent;
+  outline-offset: 1px;
   box-shadow: var(--focus-ring);
   border-radius: var(--radius-sm);
 }

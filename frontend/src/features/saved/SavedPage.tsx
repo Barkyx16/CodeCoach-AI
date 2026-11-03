@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
@@ -17,6 +17,17 @@ export function SavedPage() {
   const collections = useCollections();
   const bookmarks = useBookmarks();
   const create = useCollectionMutation((name: string) => api.createCollection(name));
+  const removeMark = useToggleBookmark();
+  const marksHeading = useRef<HTMLHeadingElement>(null);
+  const [marksNote, setMarksNote] = useState("");
+
+  function removeBookmark(mark: Bookmark) {
+    setMarksNote("");
+    removeMark.mutate({ ref: { item_type: mark.item_type, track: mark.track, ref_id: mark.ref_id }, on: false }, {
+      onSuccess: () => setMarksNote(`Removed bookmark: ${mark.title}.`),
+    });
+    marksHeading.current?.focus(); // the row disappears at once
+  }
   const [name, setName] = useState("");
 
   async function onCreate(e: FormEvent) {
@@ -69,7 +80,7 @@ export function SavedPage() {
       </section>
 
       <section className="stack" aria-labelledby="bookmarks-title">
-        <h2 className="section-title" id="bookmarks-title"><Icon name="bookmark" size={16} />Bookmarks</h2>
+        <h2 className="section-title" id="bookmarks-title" ref={marksHeading} tabIndex={-1}><Icon name="bookmark" size={16} />Bookmarks</h2>
         {bookmarks.isPending ? <LoadingState label="Loading bookmarks…" />
           : bookmarks.isError ? <ErrorState error={bookmarks.error} onRetry={() => void bookmarks.refetch()} />
           : bookmarks.data.length === 0 ? (
@@ -77,17 +88,18 @@ export function SavedPage() {
               Use the bookmark button on a question in the list, or “Bookmark” on its page.
             </EmptyState>
           ) : (
-            <ul className="saved-list">{bookmarks.data.map((b) => <BookmarkRow key={`${b.item_type}:${b.track}:${b.ref_id}`} mark={b} />)}</ul>
+            <ul className="saved-list">{bookmarks.data.map((b) => <BookmarkRow key={`${b.item_type}:${b.track}:${b.ref_id}`} mark={b} onRemove={() => removeBookmark(b)} />)}</ul>
           )}
+        <p className="visually-hidden" role="status">{marksNote}</p>
+        {/* Shown here, not in the row: a removal is optimistic, so the row is gone if it fails and comes back. */}
+        <InlineError error={removeMark.error} />
       </section>
     </div>
   );
 }
 
-function BookmarkRow({ mark }: { mark: Bookmark }) {
-  const remove = useToggleBookmark();
+function BookmarkRow({ mark, onRemove }: { mark: Bookmark; onRemove: () => void }) {
   const itemKind = useItemKind();
-  const ref = { item_type: mark.item_type, track: mark.track, ref_id: mark.ref_id };
   return (
     <li className="card saved-list__item">
       {mark.available && mark.href
@@ -96,10 +108,8 @@ function BookmarkRow({ mark }: { mark: Bookmark }) {
       <span className="subtle">{itemKind(mark.item_type, mark.track)} · saved {timeAgo(mark.created_at)}</span>
       {!mark.available && <p className="banner banner--warning">This item left the library. Nothing replaced it; remove the bookmark when you're ready.</p>}
       <span className="row">
-        <Button size="sm" variant="ghost" loading={remove.isPending} aria-label={`Remove bookmark: ${mark.title}`}
-          onClick={() => remove.mutate({ ref, on: false })}>Remove</Button>
+        <Button size="sm" variant="ghost" aria-label={`Remove bookmark: ${mark.title}`} onClick={onRemove}>Remove</Button>
       </span>
-      <InlineError error={remove.error} />
     </li>
   );
 }

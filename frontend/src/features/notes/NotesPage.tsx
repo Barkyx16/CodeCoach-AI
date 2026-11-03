@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 
 import { api, type NoteFilters } from "@/api/endpoints";
@@ -40,6 +40,8 @@ export function NotesPage() {
   useScrollMemory(Boolean(notes.data) && !notes.isPlaceholderData);
   const undo = (location.state as { deleted?: { id: string; title: string } } | null)?.deleted ?? null;
   const [undoOpen, setUndoOpen] = useState(Boolean(undo));
+  const [restored, setRestored] = useState("");
+  const heading = useRef<HTMLHeadingElement>(null);
   const [undoError, setUndoError] = useState<unknown>(null);
 
   useEffect(() => {
@@ -64,11 +66,12 @@ export function NotesPage() {
       <div className="page__header">
         <div>
           <p className="eyebrow">NOTEBOOK</p>
-          <h1 className="page__title">Your notes</h1>
+          <h1 className="page__title" ref={heading} tabIndex={-1}>Your notes</h1>
           <p className="page__subtitle">Private to you. Capture notes from any question, problem, lesson or interview review.</p>
         </div>
         <Link className="btn btn--primary btn--md" to="/notes/new" state={{ from: `${location.pathname}${location.search}`, fromLabel: "Back to your notebook" }}>New note</Link>
       </div>
+      <p className="visually-hidden" role="status">{restored}</p>
       {undo && undoOpen && (
         <div className="banner banner--info row notes-undo" role="status">
           <span>Deleted “{undo.title}”. You can undo this for 10 minutes; after that it's gone for good.</span>
@@ -76,6 +79,8 @@ export function NotesPage() {
             try {
               await api.restoreNote(undo.id);
               setUndoOpen(false);
+              setRestored(`Restored “${undo.title}”.`);
+              heading.current?.focus(); // the Undo button is gone
               void qc.invalidateQueries({ queryKey: ["me", "notes"] });
             } catch (e) { setUndoError(e); }
           }}>Undo</Button>

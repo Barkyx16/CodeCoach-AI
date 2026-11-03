@@ -16,9 +16,10 @@ describe("Notebook", () => {
     const panel = await screen.findByRole("region", { name: "Notes" });
     await user.click(within(panel).getByRole("button", { name: "Add a note" }));
     expect(within(panel).getByLabelText(/Include a snapshot of the question/)).toBeChecked();
-    expect(within(panel).getByRole("status")).toHaveTextContent("Not saved yet: start typing");
+    expect(within(panel).getByText("Not saved yet: start typing")).toBeInTheDocument();
+    expect(within(panel).queryByRole("status")).toBeNull(); // the save state changes as you type: not a live region
     await user.type(within(panel).getByLabelText("Title"), "Escalate early");
-    await waitFor(() => expect(within(panel).getByRole("status")).toHaveTextContent("Saved"), { timeout: 3000 });
+    await waitFor(() => expect(within(panel).getByText("Saved", { exact: true })).toBeInTheDocument(), { timeout: 3000 });
     await user.type(within(panel).getByLabelText("Tags (comma-separated)"), "sbar, escalation");
     await waitFor(() => expect(noteStore.notes[0]!.tags).toEqual(["sbar", "escalation"]), { timeout: 3000 });
     expect(noteStore.requests.filter((r) => r === "POST")).toHaveLength(1); // created once, then updated

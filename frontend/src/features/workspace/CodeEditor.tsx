@@ -1,11 +1,10 @@
 import Editor, { type OnMount } from "@monaco-editor/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { LoadingState } from "@/components/States";
 import { useEditorPreferences } from "@/features/settings/editorPreferences";
 
-import "./monacoSetup";
-import type { monaco } from "./monacoSetup";
+import { TabFocus, type monaco } from "./monacoSetup";
 
 interface CodeEditorProps {
   value: string;
@@ -23,6 +22,8 @@ export function CodeEditor({ value, onChange, onSubmit, onRun, highlightLine }: 
   const decorations = useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
   const submitRef = useRef(onSubmit);
   const runRef = useRef(onRun);
+  const [focused, setFocused] = useState(false);
+  const [tabMovesFocus, setTabMovesFocus] = useState(false);
   useEffect(() => {
     submitRef.current = onSubmit;
     runRef.current = onRun;
@@ -34,6 +35,14 @@ export function CodeEditor({ value, onChange, onSubmit, onRun, highlightLine }: 
     // Ctrl/Cmd + Enter submits, matching most online judges.
     editor.addCommand(monacoApi.KeyMod.CtrlCmd | monacoApi.KeyCode.Enter, () => submitRef.current?.());
     editor.addCommand(monacoApi.KeyMod.CtrlCmd | monacoApi.KeyCode.Quote, () => runRef.current?.());
+    // Tab indents inside the editor. Monaco's own "tab moves focus" toggle is the way out; say so while it has focus.
+    editor.onDidFocusEditorWidget(() => {
+      setFocused(true);
+      setTabMovesFocus(TabFocus.getTabFocusMode());
+    });
+    editor.onDidBlurEditorWidget(() => setFocused(false));
+    const tabFocus = TabFocus.onDidChangeTabFocus(setTabMovesFocus);
+    editor.onDidDispose(() => tabFocus.dispose());
   };
 
   useEffect(() => {
@@ -68,10 +77,16 @@ export function CodeEditor({ value, onChange, onSubmit, onRun, highlightLine }: 
           wordWrap: preferences.wordWrap,
           automaticLayout: true,
           glyphMargin: true,
-          ariaLabel: "Java code editor. Press Control or Command plus Enter to submit.",
+          ariaLabel: "Java code editor. Press Control or Command plus Enter to submit. Tab indents; to move focus out of the editor with Tab, first press Control plus M (on a Mac, Control plus Shift plus M).",
           padding: { top: 12 },
         }}
       />
+      {focused && (
+        <p className="code-editor__hint" aria-hidden="true">
+          {tabMovesFocus ? "Tab moves focus out of the editor. To indent with Tab again, press " : "Tab indents. To leave with Tab, press "}
+          <kbd>Ctrl</kbd>+<kbd>M</kbd> (Mac: <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>){tabMovesFocus ? "." : " first."}
+        </p>
+      )}
     </div>
   );
 }

@@ -590,6 +590,16 @@ These are moments where the obvious path was wrong and a deliberate decision was
     the review, retries, History and the plan keep working unchanged. Panel roles are generic
     titles authored for two careers; every other career is told plainly there's no panel yet.
 
+46. **Fix what the audit finds, then claim only what was checked.** The prompt asked for an
+    accessibility upgrade, which invites a settings page and a high score. The useful work was
+    the defects a scripted keyboard user hit: every spinner button dropped focus to the top of
+    the page, the code editor had no Tab exit because the slimmed Monaco bundle left out the
+    toggle, save states were announced on every keystroke, removals lost focus. Preferences are
+    presentation only (browser storage, validated, applied before paint), higher contrast is a
+    second set of colours whose ratios a test computes, not a filter, and focus mode hides only
+    what's optional. The doc lists the manual checks actually done and says plainly that no
+    screen reader was available here.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -1280,4 +1290,26 @@ slows the refresh call to reproduce it (1 of 12 before the fix, 12 of 12 after).
   completing a behavioral round's follow-up) with a WCAG scan of the live panel.
 - **Limits:** panels for two careers only; follow-up detection is keyword-based and says so; no
   model writes follow-ups.
+
+**U07 Accessible, comfortable practice (built and verified):**
+- **Display & reading** settings (theme incl. Match device, higher contrast, three text sizes,
+  spacious layout, reduced motion): browser-only presentation preferences, validated field by
+  field, applied before the first paint, reset to defaults, honest when storage is blocked. All
+  font sizes moved to `rem` and hard-coded colours to tokens so they actually apply.
+- **Focus mode** on question, interview and coding pages: hides navigation and extras, never the
+  question, answer, timer, recording status, errors, help or exit; Esc exits, focus returns to
+  the toggle, drafts untouched, ends when the page stops offering it.
+- **Audit fixes:** busy buttons kept focus (they used to drop it), a real Tab exit from the code
+  editor (Ctrl+M, bundled and shown on screen), no keystroke-by-keystroke announcements, focus
+  kept after removals and dialog cancel, a silent bookmark-removal failure now shown, errors
+  linked to answer boxes, page titles for every route, overflow at 320px with large text, focus
+  rings in forced-colours mode, validated voice settings.
+- Tests: contrast (172 ratios in four themes), 9 frontend (preferences, blocked storage, focus
+  mode, focus after removals), 36 route-title checks, 8 Playwright tests (keyboard-only written
+  answer with error recovery and Back to the filtered list; keyboard-only interview; editor exit;
+  Settings by keyboard + axe in three more themes; reflow at 320/640px with the largest text;
+  reduced motion; blocked storage; forced colours).
+- **Not verified:** no screen reader exists in this environment (checked through Chromium's
+  accessibility tree instead); Chromium only; browser zoom approximated by viewport width; no
+  testing with disabled users. See docs/ACCESSIBILITY.md.
 

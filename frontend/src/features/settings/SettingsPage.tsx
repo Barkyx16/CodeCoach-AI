@@ -14,6 +14,8 @@ import { InlineError } from "@/components/States";
 import { fieldErrorsFrom } from "@/features/auth/fieldErrors";
 import { EditorAppearancePreview } from "./EditorAppearancePreview";
 import { CareerSelect } from "@/features/careers/CareerSelect";
+import { DisplayControls } from "@/features/display/DisplayControls";
+
 import { EditorPreferencesControls } from "./EditorPreferencesControls";
 
 /**
@@ -25,6 +27,7 @@ import { EditorPreferencesControls } from "./EditorPreferencesControls";
 const SECTIONS: { id: string; label: string; icon: IconName }[] = [
   { id: "account", label: "Account", icon: "user" },
   { id: "security", label: "Sign-in & security", icon: "lock" },
+  { id: "display", label: "Display & reading", icon: "book" },
   { id: "editor", label: "Editor", icon: "code" },
   { id: "privacy", label: "Privacy & data", icon: "shield" },
   { id: "danger", label: "Danger zone", icon: "alert" },
@@ -62,6 +65,16 @@ export function SettingsPage() {
           <Section id="security" title="Sign-in & security" description="Your password and where you're signed in.">
             {!user.is_guest && <PasswordRow />}
             <SessionsRow />
+          </Section>
+          <Section id="display" title="Display & reading" description="How the app looks and reads on this device. These stay in this browser and aren't part of your account.">
+            <div className="setting" role="group" aria-labelledby="display-title">
+              <RowIntro icon="book" id="display-title" title="Theme and reading">
+                Light or dark, contrast, text size, spacing and motion.
+              </RowIntro>
+              <div className="setting__body setting__body--wide">
+                <DisplayControls />
+              </div>
+            </div>
           </Section>
           <Section id="editor" title="Editor" description="Applies to the practice workspace and to interviews.">
             <div className="setting" role="group" aria-labelledby="editor-preferences-title">

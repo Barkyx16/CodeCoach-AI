@@ -42,7 +42,8 @@ export function EmptyState({ title, children, action, pageTitle = false }: {
   );
 }
 
-export function InlineError({ error }: { error: unknown }) {
+/** An error under a form. Give it an `id` and point the field's aria-describedby at it so the field says what's wrong. */
+export function InlineError({ error, id }: { error: unknown; id?: string }) {
   if (!error) return null;
-  return <p className="inline-error" role="alert">{describeError(error).message}</p>;
+  return <p className="inline-error" role="alert" id={id}>{describeError(error).message}</p>;
 }

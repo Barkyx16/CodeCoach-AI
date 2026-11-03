@@ -12,6 +12,7 @@ import { InlineError } from "@/components/States";
 import { clearStoredDraft, useStoredDraft } from "@/hooks/useStoredDraft";
 import { titleCase } from "@/lib/format";
 import { KIND_LABEL } from "@/features/careers/kinds";
+import { FocusToggle } from "@/features/display/FocusToggle";
 import { EngagementMeter } from "@/features/voice/EngagementMeter";
 import { useInterviewerVoice } from "@/features/voice/useInterviewerVoice";
 import { VoiceComposer } from "@/features/voice/VoiceComposer";
@@ -88,6 +89,7 @@ export function LiveRound({ iv }: { iv: Interview }) {
           <span className={`clock${lowTime ? " clock--low" : ""}`} role="timer" aria-label={`${formatClock(seconds)} remaining`}>
             <Icon name="clock" size={17} />{formatClock(seconds)}
           </span>
+          <FocusToggle />
           <Button size="sm" variant="ghost" disabled={busy}
             onClick={() => { if (window.confirm("End the interview now? Unanswered questions stay unanswered.")) abandon.mutate(); }}>
             End early
@@ -126,16 +128,16 @@ export function LiveRound({ iv }: { iv: Interview }) {
             submitting={answer.isPending} disabled={busy && !answer.isPending} maxLength={6000}
             submitLabel={index + 1 === iv.questions.length ? "Finish interview" : "Next question"}
             placeholder="Answer the way you'd say it in the interview…" voice={voice}
-            hint={`${words(draft)} words · aim for 120-350`}
+            hint={`${words(draft)} words · aim for 120-350`} errorId={error ? "round-answer-error" : undefined}
             extraActions={
               <Button type="button" variant="ghost" disabled={busy} loading={skip.isPending}
                 onClick={() => skip.mutate(index)}>Skip</Button>
             }
           />
-          <InlineError error={error} />
+          <InlineError id="round-answer-error" error={error} />
         </div>
         )}
-        <aside className="stack">
+        <aside className="stack focus-hide">
           {roles.length > 0 && (
             <Card className="stack-sm" role="region" aria-label="Panel">
               <h2 className="section-title">Simulated panel</h2>

@@ -29,7 +29,7 @@ const STATE_TEXT: Record<DictationState, string> = {
  */
 export function VoiceComposer({
   id, label, value, onChange, onSubmit, submitting, disabled = false, submitLabel, placeholder,
-  voice, extraActions, maxLength, hint, rows = 8,
+  voice, extraActions, maxLength, hint, rows = 8, errorId,
 }: {
   id: string;
   label: string;
@@ -45,6 +45,8 @@ export function VoiceComposer({
   maxLength: number;
   hint?: ReactNode;
   rows?: number;
+  /** Id of the error shown under the composer (when there is one), so the answer box describes it. */
+  errorId?: string;
 }) {
   const valueRef = useRef(value);
   useLayoutEffect(() => {
@@ -102,7 +104,7 @@ export function VoiceComposer({
           {status}
         </p>
       </div>
-      <textarea id={id} aria-labelledby={`${id}-label`} aria-describedby={`${id}-help`} className="input answer-input" rows={rows}
+      <textarea id={id} aria-labelledby={`${id}-label`} aria-describedby={errorId ? `${id}-help ${errorId}` : `${id}-help`} className="input answer-input" rows={rows}
         maxLength={maxLength} value={value} disabled={disabled} readOnly={submitting} aria-busy={submitting || undefined} placeholder={placeholder}
         onChange={(e) => { used.current.typed = true; onChange(e.target.value); }}
         onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submit(); } }} />

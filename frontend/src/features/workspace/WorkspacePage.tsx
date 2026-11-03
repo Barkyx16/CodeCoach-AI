@@ -116,7 +116,9 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
   const toolbar = (
     <div className="editor-toolbar">
       <span className="editor-toolbar__lang"><Icon name="code" size={15} />Solution.java</span>
-      <span className={`save-state save-state--${draft.saveState}`} aria-live="polite">{SAVE_LABEL[draft.saveState]}</span>
+      {/* Not a live region: it changes with every keystroke. A failure is announced once. */}
+      <span className={`save-state save-state--${draft.saveState}`}>{SAVE_LABEL[draft.saveState]}</span>
+      {draft.saveState === "error" && <span className="visually-hidden" role="alert">Your draft isn't being saved: this browser's storage is unavailable.</span>}
       <div className="editor-toolbar__actions">
         <Button size="sm" variant="ghost" aria-expanded={showSettings} aria-controls={settingsId}
           onClick={() => setShowSettings((value) => !value)}>Editor settings</Button>
@@ -145,12 +147,12 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
   const statement = (
     <section className="panel-scroll" aria-label="Problem description" tabIndex={0}>
       <ProblemStatement problem={problem}
-        before={isAuthenticated ? <QueueBar item={savedRef} /> : undefined}
-        after={<>
+        before={isAuthenticated ? <div className="focus-hide display-contents"><QueueBar item={savedRef} /></div> : undefined}
+        after={<div className="focus-hide display-contents">
           <LearnLinks query={{ problem_slug: problem.slug }} from={{ from: `/problems/${problem.slug}`, fromLabel: "Back to the problem" }} />
           {isAuthenticated && <SaveControls item={savedRef} title={problem.title} />}
           {isAuthenticated && <NoteCapture source={{ type: "problem", id: problem.slug }} excerpt={draft.code} excerptKind="code" excerptLabel="your current code" />}
-        </>} />
+        </div>} />
     </section>
   );
   const editor = (

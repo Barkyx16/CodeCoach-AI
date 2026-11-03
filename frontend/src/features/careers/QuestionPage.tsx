@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 
+import { ApiError } from "@/api/client";
 import { useAnswerQuestion, useMyAnswers, useQuestion } from "@/api/queries";
 import type { Difficulty, InterviewAnswer } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
@@ -11,6 +12,7 @@ import { Card } from "@/components/Card";
 import { Icon } from "@/components/Icon";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { answerDraftKey } from "@/features/dashboard/savedWork";
+import { FocusToggle } from "@/features/display/FocusToggle";
 import { useStoredDraft } from "@/hooks/useStoredDraft";
 import { timeAgo } from "@/lib/format";
 
@@ -69,11 +71,13 @@ export function QuestionPage() {
 
   return (
     <div className="page question-page">
-      <BackLink />
-      {isAuthenticated && <QueueBar item={{ item_type: "question", track, ref_id: id }} />}
-      <nav className="question-page__crumbs" aria-label="Breadcrumb">
-        <Link to={backTo}><Icon name="book" size={15} />{q.career_title} questions</Link>
-      </nav>
+      <div className="focus-hide display-contents">
+        <BackLink />
+        {isAuthenticated && <QueueBar item={{ item_type: "question", track, ref_id: id }} />}
+        <nav className="question-page__crumbs" aria-label="Breadcrumb">
+          <Link to={backTo}><Icon name="book" size={15} />{q.career_title} questions</Link>
+        </nav>
+      </div>
       <div className="page__header">
         <div>
           <p className="eyebrow">{(KIND_LABEL[q.kind] ?? q.kind).toUpperCase()} QUESTION</p>
@@ -81,9 +85,10 @@ export function QuestionPage() {
           <p className="row question-page__meta">
             <DifficultyBadge difficulty={q.difficulty as Difficulty} />
             <Badge>{KIND_LABEL[q.kind] ?? q.kind}</Badge>
-            {q.best_score !== null && q.best_score !== undefined && <Badge tone="success">Best score {q.best_score}</Badge>}
+            {q.best_score !== null && q.best_score !== undefined && <span className="focus-hide"><Badge tone="success">Best score {q.best_score}</Badge></span>}
           </p>
         </div>
+        <FocusToggle />
       </div>
 
       <div className="question-page__layout">
@@ -98,7 +103,9 @@ export function QuestionPage() {
             <label className="visually-hidden" htmlFor="answer-text">Your answer</label>
             <textarea id="answer-text" className="input answer-input" rows={10} maxLength={MAX_CHARS} value={draft}
               placeholder="Write it the way you'd say it in the interview…"
-              aria-describedby="answer-count" onChange={(e) => setDraft(e.target.value)} />
+              aria-describedby={submit.error ? "answer-count answer-error" : "answer-count"}
+              aria-invalid={submit.error instanceof ApiError && submit.error.status === 422 ? true : undefined}
+              onChange={(e) => setDraft(e.target.value)} />
             <div className="answer-actions">
               <span id="answer-count" className="subtle">{words} {words === 1 ? "word" : "words"} · aim for 120-350</span>
               {isAuthenticated ? (
@@ -115,7 +122,7 @@ export function QuestionPage() {
               )}
             </div>
             {!isAuthenticated && <p className="subtle">Feedback needs an account so your answers are saved. A guest session takes one click.</p>}
-            <InlineError error={submit.error ?? guestError} />
+            <InlineError id="answer-error" error={submit.error ?? guestError} />
           </form>
 
           {shown && <FeedbackCard answer={shown} title={shown === latest ? "Feedback" : `Feedback on your answer from ${timeAgo(shown.created_at)}`} />}
@@ -123,15 +130,17 @@ export function QuestionPage() {
         </div>
 
         <aside className="stack">
-          <LearnLinks query={{ track, question_id: id }} from={{ from: `/careers/${track}/questions/${id}`, fromLabel: "Back to the question" }} />
-          {isAuthenticated && <SaveControls item={{ item_type: "question", track, ref_id: id }} title={q.title} />}
-          {isAuthenticated && <NoteCapture source={{ type: "question", id, track }} excerpt={q.prompt} excerptLabel="the question" />}
+          <div className="focus-hide display-contents">
+            <LearnLinks query={{ track, question_id: id }} from={{ from: `/careers/${track}/questions/${id}`, fromLabel: "Back to the question" }} />
+            {isAuthenticated && <SaveControls item={{ item_type: "question", track, ref_id: id }} title={q.title} />}
+            {isAuthenticated && <NoteCapture source={{ type: "question", id, track }} excerpt={q.prompt} excerptLabel="the question" />}
+          </div>
           <Card className="stack">
             <h2 className="section-title"><Icon name="spark" size={16} />Tips</h2>
             <ul className="mini-list">{q.tips.map((t) => <li key={t}>{t}</li>)}</ul>
           </Card>
           {isAuthenticated && answers.data && answers.data.length > 0 && (
-            <Card className="stack">
+            <Card className="stack focus-hide">
               <h2 className="section-title">Your past answers</h2>
               <ul className="past-answers">
                 {answers.data.map((a) => (

@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, ScrollRestoration, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/Button";
 import { BrandMark } from "@/components/BrandMark";
+import { FocusModeContext } from "@/features/display/focusContext";
 import { RouteAccessibility } from "./RouteAccessibility";
 
 export function Layout() {
@@ -14,6 +15,34 @@ export function Layout() {
   const menuOpen = openPath === pathname;
   const headerRef = useRef<HTMLElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
+  // Focus mode belongs to the page it was turned on for: navigating elsewhere ends it.
+  const [focusPath, setFocusPath] = useState<string | null>(null);
+  const focusOn = focusPath === pathname;
+  const release = useCallback(() => setFocusPath(null), []);
+  const focusMode = useMemo(() => ({
+    on: focusOn,
+    enter: () => setFocusPath(pathname),
+    exit: () => {
+      setFocusPath(null);
+      // Put keyboard focus back where the learner turned it on.
+      window.requestAnimationFrame(() => document.getElementById("focus-toggle")?.focus());
+    },
+    release,
+  }), [focusOn, pathname, release]);
+
+  useEffect(() => {
+    document.documentElement.toggleAttribute("data-focus", focusOn);
+    if (!focusOn) return;
+    const onKey = (event: KeyboardEvent) => {
+      const inEditor = (event.target as HTMLElement | null)?.closest?.(".monaco-editor");
+      if (event.key === "Escape" && !inEditor && !event.defaultPrevented) focusMode.exit();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.documentElement.removeAttribute("data-focus");
+    };
+  }, [focusOn, focusMode]);
   const navClass = ({ isActive }: { isActive: boolean }) => `nav__link${isActive ? " nav__link--active" : ""}`;
 
   useEffect(() => {
@@ -40,6 +69,13 @@ export function Layout() {
       <RouteAccessibility />
       <ScrollRestoration />
       <a className="skip-link" href="#main">Skip to content</a>
+      {focusOn ? (
+        <header className="header header--focus">
+          <span className="brand" aria-hidden="true"><BrandMark /></span>
+          <p className="header__focus-note"><strong>Focus mode</strong><span className="header__focus-detail">: navigation and side panels are hidden. Press Esc or the button to exit.</span></p>
+          <Button variant="secondary" size="sm" onClick={focusMode.exit}>Exit focus mode</Button>
+        </header>
+      ) : (
       <header className="header" ref={headerRef}>
         <NavLink to="/" className="brand" aria-label="CodeCoach AI home">
           <BrandMark />
@@ -86,11 +122,14 @@ export function Layout() {
         </div>
         </div>
       </header>
+      )}
       {signedOutReason && !isAuthenticated && (
         <div className="banner banner--warning app__banner" role="status">{signedOutReason}</div>
       )}
       <main id="main" className="app__main" tabIndex={-1}>
-        <Outlet />
+        <FocusModeContext.Provider value={focusMode}>
+          <Outlet />
+        </FocusModeContext.Provider>
       </main>
     </div>
   );

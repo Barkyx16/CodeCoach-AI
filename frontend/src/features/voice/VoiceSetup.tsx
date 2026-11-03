@@ -49,10 +49,12 @@ export function VoiceSetup({ prefs, onChange }: { prefs: VoicePrefs; onChange: (
             <div className="voice-level">
               <label htmlFor="mic-level">Input level</label>
               <meter id="mic-level" min={0} max={100} low={8} high={85} optimum={50} value={mic.level} />
-              <span aria-live="polite">{mic.level}% · {levelWord(mic.level)}</span>
+              <span>{mic.level}% · {levelWord(mic.level)}</span>
               <span className="subtle">Say a sentence: the bar should move. This test is never recorded.</span>
             </div>
           )}
+          {/* Announce the outcome once, not every level change. */}
+          <p className="visually-hidden" role="status">{mic.testing ? (mic.heard ? "Microphone test: we can hear you." : "Microphone test running. Say a sentence.") : ""}</p>
           {mic.error && <p className="banner banner--warning" role="alert">{mic.error}</p>}
         </div>
       )}

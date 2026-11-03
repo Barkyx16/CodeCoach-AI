@@ -66,10 +66,10 @@ export function FollowupTurn({ iv, followup, voice, readAloud }: {
         id="followup-answer" label="Your reply" value={draft} onChange={setDraft} onSubmit={(s) => void send(s)}
         submitting={reply.isPending} disabled={busy && !reply.isPending} maxLength={3000}
         submitLabel="Send reply" placeholder="A sentence or two is enough…" voice={voice}
-        hint="Typing works too. The next question comes after you reply or skip."
+        hint="Typing works too. The next question comes after you reply or skip." errorId={reply.error ?? skip.error ? "followup-error" : undefined}
         extraActions={<Button type="button" variant="ghost" disabled={busy} loading={skip.isPending} onClick={() => skip.mutate()}>Skip follow-up</Button>}
       />
-      <InlineError error={reply.error ?? skip.error} />
+      <InlineError id="followup-error" error={reply.error ?? skip.error} />
     </div>
   );
 }

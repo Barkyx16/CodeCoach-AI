@@ -96,13 +96,159 @@
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 
   /* Layout */
-  --header-height: 60px;
+  --header-height: 3.75rem; /* 60px at default text size; grows with the text-size preference */
   --content-max-width: 1240px;
+
+  /* Tints: decorative washes and hairlines, themed like everything else */
+  --color-header-bg: rgba(8, 13, 24, 0.96);
+  --tint-panel: #17243a99;
+  --tint-hover: #17243a90;
+  --tint-link-border: #8cb8ff40;
+  --tint-link-faint: #8cb8ff0d;
+  --tint-success-border: #34d39940;
+  --tint-warning-border: #fbbf2440;
+  --tint-info-border: #60a5fa40;
+  --tint-danger-border: rgba(240, 128, 134, 0.4);
+  --tint-hairline: #ffffff0a;
+  color-scheme: dark;
+}
+
+/*
+ * Light theme. Every text/background pair used in the app was checked (WCAG 2.x relative
+ * luminance): text, muted, subtle, link and semantic colors are >= 4.5:1 on bg, surface and
+ * raised; white on primary is >= 4.5:1. src/test/contrast.test.ts re-checks these values.
+ */
+:root[data-theme="light"] {
+  --color-bg: #f4f6fa;
+  --color-surface: #ffffff;
+  --color-surface-raised: #eef2f8;
+  --color-surface-sunken: #f1f4f9;
+  --color-border: #d3dbe6;
+  --color-border-strong: #9fadc2;
+  --color-text: #0f1a2b;
+  --color-text-muted: #3f4f66;
+  --color-text-subtle: #4a5a70;
+  --color-text-inverse: #ffffff;
+  --color-primary: #1f5fd6;
+  --color-primary-hover: #1a52b8;
+  --color-primary-soft: rgba(31, 95, 214, 0.1);
+  --color-link: #1a52b8;
+  --color-accent: #1a52b8;
+  --color-success: #0b6b44;
+  --color-success-soft: rgba(11, 107, 68, 0.1);
+  --color-warning: #7a4f00;
+  --color-warning-soft: rgba(176, 116, 0, 0.12);
+  --color-danger: #a8202d;
+  --color-danger-soft: rgba(168, 32, 45, 0.08);
+  --color-info: #1a56a8;
+  --color-info-soft: rgba(26, 86, 168, 0.1);
+  --viz-solved: #1a52b8;
+  --viz-attempted: #8fb3e8;
+  --viz-track: #e3e9f2;
+  --viz-heat-0: #e3e9f2;
+  --viz-heat-1: #b9cdee;
+  --viz-heat-2: #7fa6e0;
+  --viz-heat-3: #3f74c9;
+  --viz-heat-4: #1a4596;
+  --shadow-sm: 0 1px 2px rgba(15, 26, 43, 0.12);
+  --shadow-md: 0 8px 24px rgba(15, 26, 43, 0.12);
+  --focus-ring: 0 0 0 3px #1a52b8;
+  --color-header-bg: rgba(255, 255, 255, 0.96);
+  --tint-panel: #eef2f8;
+  --tint-hover: #e7edf6;
+  --tint-link-border: #1a52b840;
+  --tint-link-faint: #1a52b80d;
+  --tint-success-border: #0b6b4440;
+  --tint-warning-border: #7a4f0040;
+  --tint-info-border: #1a56a840;
+  --tint-danger-border: rgba(168, 32, 45, 0.35);
+  --tint-hairline: #0f1a2b14;
+  color-scheme: light;
+}
+
+/* Higher contrast (dark): text >= 7:1 on every surface, stronger borders, no faint washes. */
+:root[data-contrast="high"] {
+  --color-bg: #000000;
+  --color-surface: #0a0d14;
+  --color-surface-raised: #141a26;
+  --color-surface-sunken: #05070b;
+  --color-border: #7d8ca3;
+  --color-border-strong: #c3cede;
+  --color-text: #ffffff;
+  --color-text-muted: #e2e8f0;
+  --color-text-subtle: #d5dde8;
+  --color-primary: #1a4aa8;
+  --color-primary-hover: #1745a0;
+  --color-link: #b8d4ff;
+  --color-accent: #b8d4ff;
+  --color-success: #5ef0b4;
+  --color-warning: #ffd34d;
+  --color-danger: #ffa3a8;
+  --color-info: #9cc8ff;
+  --focus-ring: 0 0 0 3px #ffffff;
+  --tint-panel: transparent;
+  --tint-hover: #141a26;
+  --tint-link-border: #b8d4ff;
+  --tint-hairline: #ffffff33;
+}
+
+/* Higher contrast (light) */
+:root[data-theme="light"][data-contrast="high"] {
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f2f4f8;
+  --color-surface-sunken: #f7f8fa;
+  --color-border: #4b5563;
+  --color-border-strong: #1f2937;
+  --color-text: #000000;
+  --color-text-muted: #1f2937;
+  --color-text-subtle: #27303d;
+  --color-primary: #0b3fae;
+  --color-primary-hover: #0a3899;
+  --color-link: #0a3a99;
+  --color-accent: #0a3a99;
+  --color-success: #064d31;
+  --color-warning: #5c3b00;
+  --color-danger: #7f1520;
+  --color-info: #0b3f88;
+  --focus-ring: 0 0 0 3px #000000;
+  --tint-panel: transparent;
+  --tint-hover: #f2f4f8;
+  --tint-link-border: #0a3a99;
+  --tint-hairline: #00000033;
+}
+
+/* Reading preferences: bounded text size (the code editor keeps its own font size). */
+:root[data-text="large"] { font-size: 112.5%; }
+:root[data-text="larger"] { font-size: 125%; }
+
+/* A more spacious reading layout: more line height and room between paragraphs and list items. */
+:root[data-spacing="spacious"] { --leading-normal: 1.8; }
+:root[data-spacing="spacious"] #main p,
+:root[data-spacing="spacious"] #main li { line-height: 1.8; letter-spacing: 0.01em; }
+:root[data-spacing="spacious"] #main p + p { margin-top: var(--space-4); }
+:root[data-spacing="spacious"] #main li + li { margin-top: var(--space-2); }
+
+/* Reduced motion, chosen in Settings (the device setting is honored below either way). */
+:root[data-motion="reduce"] { --duration-fast: 0ms; --duration-normal: 0ms; }
+:root[data-motion="reduce"] *,
+:root[data-motion="reduce"] *::before,
+:root[data-motion="reduce"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
   :root {
     --duration-fast: 0ms;
     --duration-normal: 0ms;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

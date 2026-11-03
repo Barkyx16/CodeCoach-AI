@@ -15,6 +15,7 @@ import { useAuth } from "@/auth/useAuth";
 import { DifficultyBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { FocusToggle } from "@/features/display/FocusToggle";
 import { CodeEditor } from "@/features/workspace/CodeEditor";
 import { useDraft } from "@/features/workspace/useDraft";
 import { clearStoredDraft, useStoredDraft } from "@/hooks/useStoredDraft";
@@ -108,6 +109,7 @@ function LiveInterview({ iv, problemSlug }: { iv: Interview; problemSlug: string
             <Icon name="clock" size={17} />
             {formatClock(seconds)}
           </span>
+          <FocusToggle />
           <Button size="sm" variant="ghost" loading={abandon.isPending} disabled={busy}
             onClick={() => { if (window.confirm("End the interview now? You'll still get feedback.")) abandon.mutate(); }}>
             End early
@@ -126,20 +128,22 @@ function LiveInterview({ iv, problemSlug }: { iv: Interview; problemSlug: string
           {prefs.captions && voice.speaking && voice.caption && (
             <p className="voice-caption"><span className="voice-caption__who">Interviewer:</span> {voice.caption}</p>
           )}
-          <EngagementMeter engagement={lastEngagement} visible={prefs.showEngagement}
-            onToggle={() => setPrefs({ showEngagement: !prefs.showEngagement })} />
+          <div className="focus-hide display-contents">
+            <EngagementMeter engagement={lastEngagement} visible={prefs.showEngagement}
+              onToggle={() => setPrefs({ showEngagement: !prefs.showEngagement })} />
+          </div>
           <VoiceComposer
             id="iv-message" label="Your answer" value={message} onChange={setMessage} onSubmit={(source) => void onSend(source)}
             submitting={send.isPending} rows={3} maxLength={4000} submitLabel="Send" voice={voice}
             disabled={ready || seconds === 0 || iv.candidate_turns_remaining === 0 || finish.isPending || abandon.isPending}
             placeholder={ready ? "The interviewer has wrapped up. Click Finish to see your feedback." : "Think out loud… (Ctrl/⌘ + Enter to send)"}
-            hint={`${iv.candidate_turns_remaining} messages left`}
+            hint={`${iv.candidate_turns_remaining} messages left`} errorId={send.error ?? finish.error ?? abandon.error ? "iv-error" : undefined}
             extraActions={voice.supported ? (
               <Button type="button" variant="ghost" disabled={!lastInterviewer || voice.speaking}
                 onClick={() => lastInterviewer && voice.speak(lastInterviewer.content)}>Replay interviewer</Button>
             ) : undefined}
           />
-          <InlineError error={send.error ?? finish.error ?? abandon.error} />
+          <InlineError id="iv-error" error={send.error ?? finish.error ?? abandon.error} />
         </section>
         <section className="interview__code" aria-label="Your code">
           <div className="editor-toolbar">

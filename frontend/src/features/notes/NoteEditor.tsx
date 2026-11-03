@@ -76,7 +76,9 @@ export function NoteEditor({ editor, compact = false, autoFocus = false }: {
           placeholder="What would you do differently next time?" onChange={(e) => change({ reflection: e.target.value })} />
       </label>
       <div className="row note-editor__status">
-        <span role="status" className={`note-status note-status--${state}`}>{STATUS[state]}</span>
+        {/* Not a live region (it changes as you type); failures and conflicts are announced by their own alerts. */}
+        <span className={`note-status note-status--${state}`}>{STATUS[state]}</span>
+        {state === "conflict" && <span className="visually-hidden" role="alert">Not saved: this note changed somewhere else. Choose which version to keep.</span>}
         {state === "error" && <Button size="sm" onClick={() => void editor.save()}>Try again</Button>}
         {state === "unsaved" && <Button size="sm" variant="ghost" onClick={() => void editor.save()}>Save now</Button>}
       </div>

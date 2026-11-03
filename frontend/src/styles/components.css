@@ -12,12 +12,16 @@
   font-weight: var(--weight-medium);
   cursor: pointer;
   transition: background var(--duration-fast) var(--ease-standard), border-color var(--duration-fast);
-  white-space: nowrap;
+  /* Wraps only when there's no room (narrow screens, large text, zoom) instead of overflowing. */
+  white-space: normal;
+  text-align: center;
+  max-width: 100%;
 }
 .btn--md { padding: var(--space-2) var(--space-4); font-size: var(--text-sm); min-height: 42px; }
 .btn--sm { padding: var(--space-1) var(--space-3); font-size: var(--text-xs); min-height: 34px; }
 .btn:hover:not(:disabled) { border-color: var(--color-link); }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn[aria-busy="true"] { cursor: progress; }
 .btn--primary { background: var(--color-primary); border-color: var(--color-link); color: var(--color-text-inverse); }
 .btn--primary:hover:not(:disabled) { background: var(--color-primary-hover); }
 .btn--ghost { background: transparent; border-color: transparent; color: var(--color-text-muted); }
@@ -137,7 +141,7 @@
   width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: var(--radius-sm);
   background: transparent; color: var(--color-text-muted); cursor: pointer; }
 .password-input__toggle:hover { color: var(--color-text); }
-.password-input__toggle:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.password-input__toggle:focus-visible { outline: 2px solid transparent; box-shadow: var(--focus-ring); }
 .password-input__toggle[aria-pressed="true"] { color: var(--color-primary); }
 
 /* Live password checklist */

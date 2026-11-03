@@ -21,7 +21,10 @@ vi.mock("@monaco-editor/react", async () => {
     loader: { config: () => undefined },
   };
 });
-vi.mock("@/features/workspace/monacoSetup", () => ({ monaco: {} }));
+vi.mock("@/features/workspace/monacoSetup", () => ({
+  monaco: {},
+  TabFocus: { getTabFocusMode: () => false, setTabFocusMode: () => undefined, onDidChangeTabFocus: () => ({ dispose: () => undefined }) },
+}));
 
 // jsdom lacks layout APIs that the resizable panel library relies on.
 class ResizeObserverStub {
@@ -36,6 +39,8 @@ afterEach(() => {
   server.resetHandlers();
   cleanup();
   window.localStorage.clear();
+  // Display preferences and focus mode live on <html>, which outlives each test's render.
+  for (const name of ["data-theme", "data-text", "data-spacing", "data-motion", "data-contrast", "data-focus"]) document.documentElement.removeAttribute(name);
   cookieJar.hasSession = false;
   resetExploreStore();
   resetLearnStore();
