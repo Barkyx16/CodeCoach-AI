@@ -2,6 +2,8 @@ import { createContext } from "react";
 
 import type { LoginRequest, RegisterRequest, TokenResponse, User } from "@/api/types";
 
+import type { DeviceUser } from "./deviceUser";
+
 export interface AuthContextValue {
   user: User | null;
   isAuthenticated: boolean;
@@ -24,6 +26,10 @@ export interface AuthContextValue {
   adoptToken(response: TokenResponse): void;
   /** Sign out locally without calling the server (e.g. after the account was deleted). */
   forget(): void;
+  /** Offline and the session couldn't be checked: the account last used on this device. */
+  offlineUser: DeviceUser | null;
+  /** Whose drafts to show on this device: the signed-in user, else the offline user, else "anon". */
+  draftScope: string;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

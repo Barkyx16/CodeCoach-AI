@@ -31,7 +31,7 @@ describe("Problem workspace", () => {
     editor.focus();
     await user.type(editor, "class Solution {{}", { skipClick: true });
     expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
-    expect(await screen.findByText("Draft saved", {}, { timeout: 2000 })).toBeInTheDocument();
+    expect(await screen.findByText("Saved on device", {}, { timeout: 2000 })).toBeInTheDocument();
     unmount();
     renderApp("/problems/two-sum", { signedIn: true });
     expect(((await screen.findByLabelText(/java code editor/i)) as HTMLTextAreaElement).value).toBe("class Solution {}");

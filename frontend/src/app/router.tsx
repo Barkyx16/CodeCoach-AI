@@ -30,6 +30,7 @@ import { ShareComposerPage } from "@/features/sharing/ShareComposerPage";
 import { ShareDetailPage } from "@/features/sharing/ShareDetailPage";
 import { SharedPage } from "@/features/sharing/SharedPage";
 import { SharesPage } from "@/features/sharing/SharesPage";
+import { OfflinePage } from "@/features/offline/OfflinePage";
 import { CollectionPage } from "@/features/saved/CollectionPage";
 import { AttemptPage } from "@/features/scenarios/AttemptPage";
 import { ScenarioBriefing, ScenariosPage } from "@/features/scenarios/ScenariosPage";
@@ -97,6 +98,7 @@ export const routes: RouteObject[] = [
       { path: "/shares/:id", element: <RequireAuth><ShareDetailPage /></RequireAuth> },
       // Public: anyone holding a share link (its secret is in the #fragment).
       { path: "/shared", element: <SharedPage /> },
+      { path: "/offline", element: <OfflinePage /> },
       { path: "/saved", element: <RequireAuth><SavedPage /></RequireAuth> },
       { path: "/saved/collections/:id", element: <RequireAuth><CollectionPage /></RequireAuth> },
       { path: "/saved/collections/:id/practice", element: <RequireAuth><QueuePage /></RequireAuth> },

@@ -9,6 +9,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Icon } from "@/components/Icon";
 import { InlineError } from "@/components/States";
+import { useOnline } from "@/hooks/useOnline";
 import { clearStoredDraft, useStoredDraft } from "@/hooks/useStoredDraft";
 import { titleCase } from "@/lib/format";
 import { KIND_LABEL } from "@/features/careers/kinds";
@@ -30,6 +31,7 @@ function words(text: string): number {
 /** A question round in progress: one question at a time, spoken or typed, with simulated engagement. */
 export function LiveRound({ iv }: { iv: Interview }) {
   const queryClient = useQueryClient();
+  const online = useOnline();
   const [prefs, setPrefs] = useVoicePrefs();
   const voice = useInterviewerVoice(prefs);
   const current = iv.questions.find((q) => q.status === "current") ?? null;
@@ -134,6 +136,12 @@ export function LiveRound({ iv }: { iv: Interview }) {
                 onClick={() => skip.mutate(index)}>Skip</Button>
             }
           />
+          {!online && (
+            <p className="banner banner--warning" role="status">
+              You're offline. Your answer is saved on this device. Send it when you're back online: the interview
+              timer keeps running on the server, and nothing is sent automatically.
+            </p>
+          )}
           <InlineError id="round-answer-error" error={error} />
         </div>
         )}

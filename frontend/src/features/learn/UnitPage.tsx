@@ -17,6 +17,8 @@ import { timeAgo } from "@/lib/format";
 
 import { statusLabel, useReadingProgress } from "./progress";
 import { CheckSection, CodeBlock, ExerciseSection } from "./UnitParts";
+import { SaveOffline } from "@/features/offline/SaveOffline";
+import { useOnline } from "@/hooks/useOnline";
 
 const SECTIONS = [
   ["objective", "Objective"],
@@ -41,7 +43,8 @@ const EVENT_LABEL: Record<UnitProgress["events"][number]["kind"], string> = {
 /** One learning unit: read, try the exercise with as much help as you want, check, then practise. */
 export function UnitPage() {
   const { unitId = "" } = useParams();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, offlineUser } = useAuth();
+  const online = useOnline();
   const unit = useLearnUnit(unitId);
   const progress = useUnitProgress(unitId, isAuthenticated);
   const prereqStatus = useMyLearn(unit.data?.track ?? "", isAuthenticated && Boolean(unit.data));
@@ -118,6 +121,7 @@ export function UnitPage() {
         </Card>
       )}
 
+      <SaveOffline kind="lesson" itemKey={u.id} label="lesson" />
       <div className="unit-page__layout">
         <nav className="unit-outline" aria-label="Sections of this unit">
           <p className="unit-outline__progress" aria-live="off">
@@ -183,7 +187,7 @@ export function UnitPage() {
 
           <ExerciseSection unit={u} draftKey={`learn-draft:${user?.id ?? "anon"}:${u.id}`} />
 
-          <CheckSection unit={u} signedIn={isAuthenticated} onSubmit={(a) => check.mutate(a)} pending={check.isPending}
+          <CheckSection unit={u} signedIn={isAuthenticated || Boolean(offlineUser)} offline={!online} onSubmit={(a) => check.mutate(a)} pending={check.isPending}
             error={changed?.code === "unit_changed" ? null : check.error} result={check.data ?? null} />
 
           <section className="learn-section stack-sm" id="practice" aria-labelledby="practice-title">

@@ -16,6 +16,7 @@ import { EditorAppearancePreview } from "./EditorAppearancePreview";
 import { CareerSelect } from "@/features/careers/CareerSelect";
 import { DisplayControls } from "@/features/display/DisplayControls";
 
+import { DeviceRows } from "./DeviceSection";
 import { EditorPreferencesControls } from "./EditorPreferencesControls";
 
 /**
@@ -29,6 +30,7 @@ const SECTIONS: { id: string; label: string; icon: IconName }[] = [
   { id: "security", label: "Sign-in & security", icon: "lock" },
   { id: "display", label: "Display & reading", icon: "book" },
   { id: "editor", label: "Editor", icon: "code" },
+  { id: "device", label: "Offline & app", icon: "download" },
   { id: "privacy", label: "Privacy & data", icon: "shield" },
   { id: "danger", label: "Danger zone", icon: "alert" },
 ];
@@ -86,6 +88,9 @@ export function SettingsPage() {
                 <EditorPreferencesControls />
               </div>
             </div>
+          </Section>
+          <Section id="device" title="Offline & app" description="Installing CodeCoach and using it without a connection on this device.">
+            <DeviceRows />
           </Section>
           <Section id="privacy" title="Privacy & data" description="What the AI coach sees, and a copy of everything we store.">
             <AIPrivacyRow />

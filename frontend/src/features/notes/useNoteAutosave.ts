@@ -4,7 +4,13 @@ import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
 import type { Note, NoteInput } from "@/api/types";
 
-export type SaveState = "idle" | "unsaved" | "saving" | "saved" | "error" | "conflict";
+/**
+ * pending: an edit to a saved note couldn't reach the server; it's on this device and is sent
+ * once when the connection returns (the revision check turns a clash into a conflict).
+ * offline: a new note couldn't be created; it's on this device and waits for "Save now", since
+ * a create can't safely be replayed automatically.
+ */
+export type SaveState = "idle" | "unsaved" | "saving" | "saved" | "error" | "conflict" | "pending" | "offline";
 export interface NoteFields { title: string; body: string; reflection: string; tags: string[] }
 interface StoredDraft { fields: NoteFields; base: number | null; at: string }
 
@@ -79,6 +85,11 @@ export function useNoteAutosave({ initial, createWith, draftKey, onSaved, delayM
           clearDraft(draftKey);
           return;
         }
+        if (typeof navigator !== "undefined" && navigator.onLine === false) {
+          // Offline: keep it on this device and say so; don't send a request that can't arrive.
+          setState(s ? "pending" : "offline");
+          return;
+        }
         setState("saving");
         try {
           const result = s
@@ -99,6 +110,9 @@ export function useNoteAutosave({ initial, createWith, draftKey, onSaved, delayM
             conflictRef.current = current;
             setConflict(current);
             setState("conflict");
+          } else if (e instanceof ApiError && e.code === "network_error") {
+            setError(null);
+            setState(serverRef.current ? "pending" : "offline");
           } else {
             setError(e);
             setState("error");
@@ -121,6 +135,14 @@ export function useNoteAutosave({ initial, createWith, draftKey, onSaved, delayM
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => void save(), delayMs);
   }, [delayMs, draftKey, save]);
+
+  // Back online: send a pending edit once. A new note waits for the learner (see SaveState).
+  useEffect(() => {
+    if (state !== "pending") return;
+    const retry = () => void save();
+    window.addEventListener("online", retry);
+    return () => window.removeEventListener("online", retry);
+  }, [state, save]);
 
   // Leaving the page (in-app navigation or closing the tab): send what's pending with keepalive.
   useEffect(() => {

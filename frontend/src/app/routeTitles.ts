@@ -5,7 +5,7 @@ const TITLES: Record<string, string> = {
   "/problems": "Practice library", "/dashboard": "Dashboard", "/analytics": "Analytics",
   "/history": "History", "/settings": "Settings", "/interviews": "Mock interviews", "/interviews/questions": "Interview question round", "/plan": "Your plan", "/plan/goals": "Your goals", "/targets": "Target roles", "/reviews": "Review queue",
   "/learn": "Lessons", "/scenarios": "Scenarios", "/notes": "Notes", "/notes/new": "New note", "/saved": "Saved",
-  "/share/new": "Ask for feedback", "/shares": "Shared for feedback", "/shared": "Shared answer",
+  "/offline": "Saved for offline", "/share/new": "Ask for feedback", "/shares": "Shared for feedback", "/shared": "Shared answer",
 };
 
 /** Dynamic routes, most specific first; each must match a route in router.tsx. */

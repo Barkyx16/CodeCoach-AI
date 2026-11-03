@@ -17,6 +17,8 @@ const STATUS: Record<SaveState, string> = {
   saved: "Saved",
   error: "Could not save. Your text is kept in this browser.",
   conflict: "Not saved: this note changed somewhere else",
+  pending: "Offline: saved on this device. Sync pending: it's sent when you're back online.",
+  offline: "Not saved yet: you're offline. Kept on this device; press Save now when you're back online.",
 };
 
 /** The editing surface shared by the capture panel and the note page. */
@@ -80,7 +82,8 @@ export function NoteEditor({ editor, compact = false, autoFocus = false }: {
         <span className={`note-status note-status--${state}`}>{STATUS[state]}</span>
         {state === "conflict" && <span className="visually-hidden" role="alert">Not saved: this note changed somewhere else. Choose which version to keep.</span>}
         {state === "error" && <Button size="sm" onClick={() => void editor.save()}>Try again</Button>}
-        {state === "unsaved" && <Button size="sm" variant="ghost" onClick={() => void editor.save()}>Save now</Button>}
+        {(state === "unsaved" || state === "offline") && <Button size="sm" variant="ghost" onClick={() => void editor.save()}>Save now</Button>}
+        {state === "pending" && <Button size="sm" variant="ghost" onClick={() => void editor.save()}>Try now</Button>}
       </div>
       {state === "error" && <InlineError error={editor.error} />}
     </div>

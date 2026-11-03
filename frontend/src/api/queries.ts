@@ -7,6 +7,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { ApiError } from "./client";
 import { api, type ActivityFilters, type ExploreFilters, type NoteFilters, type ProblemFilters, type QuestionFilters } from "./endpoints";
 import type { AIHistoryAction, AnswerSource, Difficulty, Bookmark, Collection, GoalsInput, MyExploreResult, ReviewQueue, SavedItemRef, ShareDetail, Target, UnitProgress, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
+import { withOfflineCopy } from "@/features/offline/offlineStore";
 
 export const queryKeys = {
   problems: (filters: ProblemFilters) => ["problems", filters] as const,
@@ -33,6 +34,8 @@ export const queryKeys = {
 /** Don't retry client errors (4xx): they won't fix themselves. Retry network/5xx twice. */
 export function shouldRetry(failureCount: number, error: unknown): boolean {
   if (error instanceof ApiError && error.status >= 400 && error.status < 500) return false;
+  // Known to be offline: say so now rather than after a series of retries.
+  if (error instanceof ApiError && error.code === "network_error" && typeof navigator !== "undefined" && !navigator.onLine) return false;
   return failureCount < 2;
 }
 
@@ -78,7 +81,11 @@ export function useQuestionCounts(track: string, q: string) {
 }
 
 export function useQuestion(track: string, id: string, enabled = true) {
-  return useQuery({ queryKey: queryKeys.question(track, id), queryFn: ({ signal }) => api.question(track, id, signal), enabled });
+  return useQuery({
+    queryKey: queryKeys.question(track, id),
+    queryFn: ({ signal }) => withOfflineCopy("question", `${track}/${id}`, () => api.question(track, id, signal)),
+    enabled,
+  });
 }
 
 export function useMyAnswers(track: string, id: string, enabled: boolean) {
@@ -112,7 +119,7 @@ export function useCapabilities() {
 export function useProblem(slug: string, enabled = true) {
   return useQuery({
     queryKey: queryKeys.problem(slug),
-    queryFn: ({ signal }) => api.problem(slug, signal),
+    queryFn: ({ signal }) => withOfflineCopy("problem", slug, () => api.problem(slug, signal)),
     enabled,
     staleTime: 5 * 60_000,
   });
@@ -469,7 +476,7 @@ export function useLearnCatalog(track: string) {
 }
 
 export function useLearnUnit(id: string) {
-  return useQuery({ queryKey: ["learn", "unit", id], queryFn: () => api.learnUnit(id), staleTime: 10 * 60_000 });
+  return useQuery({ queryKey: ["learn", "unit", id], queryFn: () => withOfflineCopy("lesson", id, () => api.learnUnit(id)), staleTime: 10 * 60_000 });
 }
 
 export function useRelatedUnits(query: { track?: string; question_id?: string; problem_slug?: string }, enabled = true) {

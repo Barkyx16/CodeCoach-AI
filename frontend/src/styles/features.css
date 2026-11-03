@@ -42,7 +42,7 @@
 .workspace { flex: 1; min-height: 0; height: calc(100vh - var(--header-height)); display: flex; }
 .workspace__group { flex: 1; }
 .workspace__panel { background: var(--color-surface); }
-.panel-scroll { height: 100%; overflow: auto; padding: var(--space-5); background: var(--color-surface); }
+.panel-scroll { position: relative; height: 100%; overflow: auto; padding: var(--space-5); background: var(--color-surface); }
 .resize-handle { width: 6px; background: var(--color-bg); transition: background var(--duration-fast); }
 .resize-handle--horizontal { width: auto; height: 6px; }
 .resize-handle:hover, .resize-handle[data-separator="active"] { background: var(--color-primary-soft); }

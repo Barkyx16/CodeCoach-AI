@@ -25,9 +25,12 @@ import "./styles/notes.css";
 import "./styles/scenarios.css";
 import "./styles/sharing.css";
 import "./styles/formats.css";
+import { startAppShell } from "./pwa/appShell";
 
 const queryClient = makeQueryClient();
 const router = createRouter();
+
+startAppShell();
 
 createRoot(document.getElementById("root") as HTMLElement).render(
   <StrictMode>

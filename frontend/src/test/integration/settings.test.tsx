@@ -157,7 +157,7 @@ describe("Settings", () => {
   it("groups settings into sections you can jump to, moving focus to the section", async () => {
     const { user } = renderApp("/settings", { signedIn: true });
     const nav = within(await screen.findByRole("navigation", { name: "Settings sections" }));
-    const sections = ["Account", "Sign-in & security", "Display & reading", "Editor", "Privacy & data", "Danger zone"];
+    const sections = ["Account", "Sign-in & security", "Display & reading", "Editor", "Offline & app", "Privacy & data", "Danger zone"];
     expect(nav.getAllByRole("link").map((a) => a.textContent)).toEqual(sections);
     for (const name of sections) expect(screen.getByRole("region", { name })).toBeInTheDocument();
     // Each form sits in the section you'd look for it in.

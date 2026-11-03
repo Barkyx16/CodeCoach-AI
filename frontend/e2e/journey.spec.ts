@@ -44,7 +44,7 @@ test("guest journey: try it, code, hints, review, submit, progress", async ({ pa
 
   // Real typing in the real Monaco editor.
   await replaceEditorContent(page, SOLUTION);
-  await expect(page.getByText("Draft saved")).toBeVisible();
+  await expect(page.getByText("Saved on device")).toBeVisible();
 
   // Hints unlock one level at a time.
   await page.getByRole("button", { name: "Get a hint" }).click();

@@ -84,9 +84,11 @@ export function ExerciseSection({ unit, draftKey }: { unit: LearnUnit; draftKey:
 }
 
 /** The comprehension check: graded on the server; shows each answer's explanation afterwards. */
-export function CheckSection({ unit, signedIn, onSubmit, pending, error, result }: {
+export function CheckSection({ unit, signedIn, onSubmit, pending, error, result, offline = false }: {
   unit: LearnUnit;
   signedIn: boolean;
+  /** Grading happens on the server: offline, the check can be answered but not submitted. */
+  offline?: boolean;
   onSubmit(answers: Record<string, number>): void;
   pending: boolean;
   error: unknown;
@@ -127,7 +129,9 @@ export function CheckSection({ unit, signedIn, onSubmit, pending, error, result 
             </fieldset>
           );
         })}
-        {signedIn ? (
+        {signedIn && offline ? (
+          <p className="subtle">You're offline. Checking your answers needs a connection; your choices stay on this page.</p>
+        ) : signedIn ? (
           <Button type="submit" variant="primary" loading={pending}>{result ? "Check again" : "Check my answers"}</Button>
         ) : (
           <p className="subtle">Sign in or start a guest session to have your answers checked and saved.</p>

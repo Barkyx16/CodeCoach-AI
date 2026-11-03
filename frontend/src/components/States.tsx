@@ -17,11 +17,13 @@ export function LoadingState({ label = "Loading…" }: { label?: string }) {
 
 export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   const { title, message, requestId } = describeError(error);
+  const offline = typeof navigator !== "undefined" && !navigator.onLine && (error as { code?: string } | null)?.code === "network_error";
   return (
     <div className="state state--error" role="alert">
       <strong>{title}</strong>
       <p className="muted">{message}</p>
       {requestId && <p className="subtle">Reference: <code>{requestId}</code></p>}
+      {offline && <p className="muted">You're offline. This page isn't saved on this device; <a href="/offline">see what is</a>.</p>}
       {onRetry && <Button onClick={onRetry}>Try again</Button>}
     </div>
   );

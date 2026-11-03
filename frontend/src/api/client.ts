@@ -77,6 +77,24 @@ function isErrorEnvelope(value: unknown): value is ErrorEnvelope {
     typeof (value as { error: unknown }).error === "object";
 }
 
+/**
+ * Is the API answering? A cheap GET with no credentials. Used after the network comes back,
+ * before spending the one-use refresh cookie: a first request on a connection that died while
+ * offline can be resent by the browser, and a resent refresh looks like a stolen cookie.
+ */
+export async function serverReachable(timeoutMs = 5000): Promise<boolean> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(`${API_BASE_URL}/health`, { cache: "no-store", credentials: "omit", signal: controller.signal });
+    return response.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   return send<T>(path, options, false);
 }

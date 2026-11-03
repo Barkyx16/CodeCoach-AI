@@ -44,3 +44,13 @@
 .share-comments { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
 .share-comments p { margin: var(--space-1) 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .share-entry { flex-wrap: wrap; }
+
+/* Visually hidden status lines are absolutely positioned: keep them inside their card, or their
+   static position inside a scrolled panel stretches the whole page. */
+.save-offline { position: relative; }
+.offline-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.offline-list__item { display: grid; gap: var(--space-1); }
+.offline-list__title { font-weight: var(--weight-bold); }
+.offline-page { display: grid; gap: var(--space-4); align-content: start; }
+.offline-page__summary { flex-wrap: wrap; justify-content: space-between; }
+.app-status { align-items: center; flex-wrap: wrap; justify-content: space-between; }

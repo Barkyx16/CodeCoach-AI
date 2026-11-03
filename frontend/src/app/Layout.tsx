@@ -5,10 +5,13 @@ import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/Button";
 import { BrandMark } from "@/components/BrandMark";
 import { FocusModeContext } from "@/features/display/focusContext";
+import { countLocalWork } from "@/auth/localWork";
+
+import { AppStatus } from "./AppStatus";
 import { RouteAccessibility } from "./RouteAccessibility";
 
 export function Layout() {
-  const { user, isAuthenticated, isRestoring, logout, signedOutReason } = useAuth();
+  const { user, isAuthenticated, isRestoring, logout, signedOutReason, offlineUser } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [openPath, setOpenPath] = useState<string | null>(null);
@@ -109,11 +112,19 @@ export function Layout() {
                 aria-label={`${user?.is_guest ? "Guest" : (user?.display_name ?? user?.email ?? "")}, account settings`}>
                 {user?.is_guest ? <span className="badge">Guest</span> : (user?.display_name ?? user?.email)}
               </NavLink>
-              <Button variant="ghost" size="sm" onClick={async () => { setOpenPath(null); await logout(); navigate("/"); }}>
+              <Button variant="ghost" size="sm" onClick={async () => {
+                const unsent = user ? countLocalWork(user.id) : 0;
+                if (unsent > 0 && !window.confirm(`You have ${unsent} unsent ${unsent === 1 ? "draft" : "drafts"} on this device. Signing out deletes ${unsent === 1 ? "it" : "them"} from this device. Sign out anyway?`)) return;
+                setOpenPath(null); await logout(); navigate("/");
+              }}>
                 Sign out
               </Button>
             </>
-          ) : isRestoring ? null /* checking the session cookie: don't flash "Sign in" */ : (
+          ) : isRestoring ? null /* checking the session cookie: don't flash "Sign in" */ : offlineUser ? (
+            <span className="header__user" title="Offline: your sign-in will be checked when you're back online">
+              <span className="badge">Offline</span> {offlineUser.display_name ?? (offlineUser.is_guest ? "Guest" : "")}
+            </span>
+          ) : (
             <>
               <NavLink to="/login" className="nav__link">Sign in</NavLink>
               <Button variant="primary" size="sm" onClick={() => { setOpenPath(null); navigate("/register"); }}>Create account</Button>
@@ -123,6 +134,7 @@ export function Layout() {
         </div>
       </header>
       )}
+      <AppStatus />
       {signedOutReason && !isAuthenticated && (
         <div className="banner banner--warning app__banner" role="status">{signedOutReason}</div>
       )}

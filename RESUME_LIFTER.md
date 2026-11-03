@@ -609,6 +609,20 @@ These are moments where the obvious path was wrong and a deliberate decision was
     the automated scores and never feeding them. No emails, no moderation queue pretending to
     exist: the owner controls the link and can delete feedback.
 
+48. **Offline means "kept and labelled", never "pretend it worked".** The tempting PWA is a
+    cache-everything worker and a queue that replays requests on reconnect. That would put
+    account data in shared caches and could resend an expired interview answer. Here the worker
+    only knows the public shell and this build's files and never touches the API; public copies
+    are saved on request, without credentials; drafts say "on this device, not sent yet"; and
+    React Query never pauses a mutation to replay it later. The one sync that runs by itself is
+    a note edit, because its revision check turns a clash into a visible choice. Testing found
+    three real problems: an expired-token refresh while offline signed people out; a refresh
+    sent while the browser said "offline" could still reach the server; and the first refresh
+    after reconnecting could be resent by the browser on a dead connection, which the server
+    rightly treats as a stolen cookie. The app now sends nothing while offline and checks that
+    the API answers before spending the one-use refresh cookie. Root-caused by comparing the
+    server's access log with what the browser reported, not by adding retries to the test.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -1346,4 +1360,27 @@ slows the refresh call to reproduce it (1 of 12 before the fix, 12 of 12 after).
   both refuse; light theme at 320px) with WCAG scans.
 - **Limits:** one written answer per share (no code or whole transcripts yet); a link can be
   forwarded while it works; no notifications by design. See docs/SHARING.md.
+
+**U09 Installable app and offline (built and verified):**
+- Manifest, PNG and maskable icons rendered from the SVG mark, install button only when the
+  browser offers it, honest instructions otherwise (iOS Safari, desktop Firefox).
+- Service worker with no catch-all: precached public shell (version from a build plugin),
+  build-only asset caching carried over on update, network-first navigation with an offline
+  shell, never API requests. Updates wait for "Update now"; drafts survive; unretained work asks.
+- Save for offline for lessons, questions and problems (public copies, no credentials, 50 max),
+  a Saved for offline page with sizes, storage estimate, removal and revalidation that drops
+  retired content, and network-first fallbacks in the queries.
+- Honest states: offline banner, "Draft saved on this device, not sent yet", "Could not save"
+  with a leave warning, feedback/Run/Submit/lesson check disabled offline with reasons, interview
+  answers never auto-sent, notes "Sync pending" with one resync and conflict choice, new notes
+  waiting for "Save now". Fail-fast queries, no paused mutations.
+- Auth: offline never signs out; the last account on the device keeps its drafts; account pages
+  explain they need a connection; no refresh requests while offline. Sign-out deletes this
+  account's drafts (warning first); other accounts never see them.
+- Also: CI's Playwright run now includes a production-build project (`pwa`, `pwa-mobile`).
+- Tests: 10 frontend, 7 Playwright (cold offline launch and saved content, uncached pages, no API
+  in caches, reconnect, note sync and cross-device conflict, sign-out clearing, storage failure,
+  update with a draft, manifest/icons and a phone-sized offline launch).
+- **Not verified:** real devices and installation (iOS, Android, desktop), Safari and Firefox,
+  the install prompt itself (headless Chromium doesn't offer it). See docs/OFFLINE.md.
 

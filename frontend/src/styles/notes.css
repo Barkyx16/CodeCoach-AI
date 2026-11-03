@@ -10,6 +10,7 @@
 .note-status { font-size: var(--text-sm); color: var(--color-text-muted); }
 .note-status--saved { color: var(--color-success); }
 .note-status--error, .note-status--conflict { color: var(--color-warning); font-weight: 600; }
+.note-status--pending, .note-status--offline { color: var(--color-warning); }
 .note-preview { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-3); min-height: 120px; background: var(--color-surface-sunken); }
 .note-markdown { overflow-wrap: anywhere; }
 .note-markdown pre { overflow-x: auto; }

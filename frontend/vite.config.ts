@@ -1,10 +1,48 @@
 /// <reference types="vitest/config" />
 import react from "@vitejs/plugin-react";
+import { createHash } from "node:crypto";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath, URL } from "node:url";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
+
+/**
+ * Fills in the service worker's file lists after a production build: the app shell (index.html,
+ * the files it loads, fonts, icons) to precache, and every built asset that may be cached when
+ * first used. The version changes whenever any of them does, which is what triggers an update.
+ */
+function offlineShell(): Plugin {
+  let outDir = "dist";
+  return {
+    name: "codecoach-offline-shell",
+    apply: "build",
+    configResolved(config) {
+      outDir = config.build.outDir;
+    },
+    closeBundle() {
+      const html = readFileSync(join(outDir, "index.html"), "utf8");
+      const list = (dir: string, prefix: string) =>
+        existsSync(join(outDir, dir)) ? readdirSync(join(outDir, dir)).filter((f) => !f.endsWith(".map")).map((f) => `${prefix}${f}`) : [];
+      const entry = [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)].map((m) => m[1]!);
+      const shell = [...new Set(["/index.html", "/display-init.js", "/favicon.svg", "/manifest.webmanifest",
+        ...list("icons", "/icons/"), ...list("fonts", "/fonts/").filter((f) => f.endsWith(".woff2")), ...entry])].sort();
+      const assets = list("assets", "/assets/").sort();
+      const hash = createHash("sha256").update(html);
+      for (const file of assets) hash.update(file);
+      const version = hash.digest("hex").slice(0, 12);
+      const swPath = join(outDir, "sw.js");
+      const sw = readFileSync(swPath, "utf8")
+        .replace('/*__SHELL_VERSION__*/ "dev"', JSON.stringify(version))
+        .replace("/*__SHELL_FILES__*/ []", JSON.stringify(shell))
+        .replace("/*__BUILD_ASSETS__*/ []", JSON.stringify(assets));
+      if (sw.includes("__SHELL_")) throw new Error("sw.js placeholders were not filled in");
+      writeFileSync(swPath, sw);
+    },
+  };
+}
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), offlineShell()],
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },

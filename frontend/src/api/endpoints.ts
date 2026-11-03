@@ -207,6 +207,10 @@ export const api = {
     apiRequest<TrackProgress>(`/api/v1/careers/${encodeURIComponent(track)}/progress`),
   problem: (slug: string, signal?: AbortSignal) =>
     apiRequest<ProblemDetail>(`/api/v1/problems/${encodeURIComponent(slug)}`, { signal }),
+  // Public copies (no credentials), for "Save for offline": nothing personal can be included.
+  publicQuestion: (track: string, id: string) =>
+    apiRequest<QuestionDetail>(`/api/v1/careers/${encodeURIComponent(track)}/questions/${encodeURIComponent(id)}`, { auth: false }),
+  publicProblem: (slug: string) => apiRequest<ProblemDetail>(`/api/v1/problems/${encodeURIComponent(slug)}`, { auth: false }),
 
   capabilities: () => apiRequest<Capabilities>("/api/v1/capabilities"),
 

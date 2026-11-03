@@ -10,7 +10,10 @@ import { Button } from "@/components/Button";
 import { ErrorState, LoadingState } from "@/components/States";
 import { Tabs } from "@/components/Tabs";
 import { EditorPreferencesControls } from "@/features/settings/EditorPreferencesControls";
+import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useOnline } from "@/hooks/useOnline";
+import { SaveOffline } from "@/features/offline/SaveOffline";
 
 import { CoachPanel } from "./CoachPanel";
 import { CodeEditor } from "./CodeEditor";
@@ -32,7 +35,9 @@ function newRequestId(): string {
   }
 }
 
-const SAVE_LABEL: Record<SaveState, string> = { saved: "Draft saved", saving: "Saving…", unsaved: "Unsaved changes", error: "Draft not saved — browser storage unavailable" };
+// Drafts live on this device until submitted: the labels say so (a draft is never "submitted").
+// Kept short: the toolbar must fit on one line beside the buttons.
+const SAVE_LABEL: Record<SaveState, string> = { saved: "Saved on device", saving: "Saving…", unsaved: "Unsaved changes", error: "Not saved: storage unavailable" };
 
 export default function WorkspacePage() {
   const { slug = "" } = useParams();
@@ -54,10 +59,12 @@ export default function WorkspacePage() {
 }
 
 function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProblem>["data"]> }) {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated, draftScope } = useAuth();
+  const online = useOnline();
   const navigate = useNavigate();
   const isNarrow = useMediaQuery("(max-width: 900px)");
-  const draft = useDraft(problem.slug, problem.starter_code, user?.id ?? "anon");
+  const draft = useDraft(problem.slug, problem.starter_code, draftScope);
+  useLeaveWarning(draft.saveState === "error");
   const submit = useSubmit();
   const execution = useCapabilities().data?.execution;
   const canRun = execution?.run_available === true;
@@ -103,6 +110,7 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
   }
 
   async function handleSubmit(mode: SubmissionMode = "submit") {
+    if (!online) return; // the judge is on the server: nothing is "run" or "graded" offline
     if (!isAuthenticated) return goSignIn();
     if (submit.isPending || judging) return;
     await send({ problem_slug: problem.slug, language: "java", source_code: draft.code, mode, client_request_id: newRequestId() });
@@ -117,7 +125,10 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
     <div className="editor-toolbar">
       <span className="editor-toolbar__lang"><Icon name="code" size={15} />Solution.java</span>
       {/* Not a live region: it changes with every keystroke. A failure is announced once. */}
-      <span className={`save-state save-state--${draft.saveState}`}>{SAVE_LABEL[draft.saveState]}</span>
+      <span className={`save-state save-state--${draft.saveState}`}
+        title={draft.saveState === "saved" ? "Your draft is kept in this browser. It isn't submitted until you submit it." : undefined}>
+        {SAVE_LABEL[draft.saveState]}
+      </span>
       {draft.saveState === "error" && <span className="visually-hidden" role="alert">Your draft isn't being saved: this browser's storage is unavailable.</span>}
       <div className="editor-toolbar__actions">
         <Button size="sm" variant="ghost" aria-expanded={showSettings} aria-controls={settingsId}
@@ -128,13 +139,13 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
         </Button>
         {canRun && (
           <Button size="sm" variant="secondary" loading={submit.isPending && pendingMode === "run"}
-            disabled={judging || (submit.isPending && pendingMode !== "run")} onClick={() => void handleSubmit("run")}
+            disabled={!online || judging || (submit.isPending && pendingMode !== "run")} onClick={() => void handleSubmit("run")}
             title="Run the public tests only (Ctrl/⌘ + ')">
             Run
           </Button>
         )}
         <Button size="sm" variant="primary" loading={submit.isPending && pendingMode === "submit"}
-          disabled={judging || (submit.isPending && pendingMode !== "submit")} onClick={() => void handleSubmit()}
+          disabled={!online || judging || (submit.isPending && pendingMode !== "submit")} onClick={() => void handleSubmit()}
           title={savedOnly ? "Save this attempt without a verdict (Ctrl/⌘ + Enter)" : "Submit (Ctrl/⌘ + Enter)"}
           aria-label={savedOnly ? "Save attempt" : undefined}>
           {savedOnly ? "Save attempt" : "Submit"} <Icon name="arrow" size={14} />
@@ -152,6 +163,7 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
           <LearnLinks query={{ problem_slug: problem.slug }} from={{ from: `/problems/${problem.slug}`, fromLabel: "Back to the problem" }} />
           {isAuthenticated && <SaveControls item={savedRef} title={problem.title} />}
           {isAuthenticated && <NoteCapture source={{ type: "problem", id: problem.slug }} excerpt={draft.code} excerptKind="code" excerptLabel="your current code" />}
+          <SaveOffline kind="problem" itemKey={problem.slug} label="problem" />
         </div>} />
     </section>
   );
@@ -174,6 +186,12 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
           {execution.setup_help && (
             <details className="judge-status__help"><summary>Developer setup</summary><p>{execution.setup_help}</p></details>
           )}
+        </div>
+      )}
+      {!online && (
+        <div className="banner banner--warning" role="status">
+          <strong>Offline.</strong> You can read the problem and edit your code; it's saved on this device.
+          Running and judging need the server, so they're paused until you're back online.
         </div>
       )}
       {unconfirmed && (

@@ -13,7 +13,10 @@ import { Icon } from "@/components/Icon";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { answerDraftKey } from "@/features/dashboard/savedWork";
 import { FocusToggle } from "@/features/display/FocusToggle";
+import { useLeaveWarning } from "@/hooks/useLeaveWarning";
+import { useOnline } from "@/hooks/useOnline";
 import { useStoredDraft } from "@/hooks/useStoredDraft";
+import { SaveOffline } from "@/features/offline/SaveOffline";
 import { timeAgo } from "@/lib/format";
 
 import { LearnLinks } from "@/features/learn/LearnLinks";
@@ -34,14 +37,16 @@ function countWords(text: string): number {
 /** One interview question: read it, write an answer, get rubric feedback, compare with past tries. */
 export function QuestionPage() {
   const { track = "", id = "" } = useParams();
-  const { isAuthenticated, isRestoring, user, continueAsGuest } = useAuth();
+  const { isAuthenticated, isRestoring, user, continueAsGuest, draftScope, offlineUser } = useAuth();
+  const online = useOnline();
   const question = useQuestion(track, id, !isRestoring); // its best score depends on who's asking
   const answers = useMyAnswers(track, id, isAuthenticated);
   const submit = useAnswerQuestion(track, id);
   // Unsent drafts are kept in this browser; a draft carried over from an interview that ended
   // before this question was answered fills an empty box (never overwrites one).
   const carried = (useLocation().state as { draft?: string } | null)?.draft ?? "";
-  const [draft, setDraft] = useStoredDraft(answerDraftKey(user?.id ?? "anon", track, id));
+  const [draft, setDraft, kept] = useStoredDraft(answerDraftKey(draftScope, track, id));
+  useLeaveWarning(!kept && draft.trim().length > 0);
   useEffect(() => {
     if (carried && !draft) setDraft(carried);
   }, [carried]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -109,8 +114,9 @@ export function QuestionPage() {
               onChange={(e) => setDraft(e.target.value)} />
             <div className="answer-actions">
               <span id="answer-count" className="subtle">{words} {words === 1 ? "word" : "words"} · aim for 120-350</span>
-              {isAuthenticated ? (
-                <Button type="submit" variant="primary" loading={submit.isPending} disabled={!draft.trim()}>
+              {isAuthenticated || offlineUser ? (
+                <Button type="submit" variant="primary" loading={submit.isPending} disabled={!draft.trim() || !online}
+                  aria-describedby={!online ? "answer-offline" : undefined}>
                   Get feedback
                 </Button>
               ) : (
@@ -122,7 +128,11 @@ export function QuestionPage() {
                 </span>
               )}
             </div>
-            {!isAuthenticated && <p className="subtle">Feedback needs an account so your answers are saved. A guest session takes one click.</p>}
+            {draft.trim() && (kept
+              ? <p className="subtle draft-state">Draft saved on this device, not sent yet.</p>
+              : <p className="banner banner--warning" role="alert">Your draft couldn't be saved on this device (browser storage is blocked or full). Copy it somewhere safe before leaving this page.</p>)}
+            {!online && <p className="subtle" id="answer-offline">You're offline. Feedback needs a connection; your draft stays on this device until you send it.</p>}
+            {!isAuthenticated && !offlineUser && <p className="subtle">Feedback needs an account so your answers are saved. A guest session takes one click.</p>}
             <InlineError id="answer-error" error={submit.error ?? guestError} />
           </form>
 
@@ -137,6 +147,7 @@ export function QuestionPage() {
             {isAuthenticated && <SaveControls item={{ item_type: "question", track, ref_id: id }} title={q.title} />}
             {isAuthenticated && <NoteCapture source={{ type: "question", id, track }} excerpt={q.prompt} excerptLabel="the question" />}
           </div>
+          <div className="focus-hide display-contents"><SaveOffline kind="question" itemKey={`${track}/${id}`} label="question" /></div>
           <Card className="stack">
             <h2 className="section-title"><Icon name="spark" size={16} />Tips</h2>
             <ul className="mini-list">{q.tips.map((t) => <li key={t}>{t}</li>)}</ul>
