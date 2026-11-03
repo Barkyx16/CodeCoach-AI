@@ -200,6 +200,8 @@ test("display settings: chosen by keyboard, applied before the page renders, rea
 });
 
 test("largest text at 320px and at 200% zoom: content reflows without sideways scrolling", async ({ page }) => {
+  // A sweep of 20+ page loads plus a live round: well over a minute on a slow CI runner.
+  test.setTimeout(150_000);
   page.on("dialog", (d) => void d.accept());
   await page.addInitScript(([key]) => {
     if (!sessionStorage.getItem("seeded")) {

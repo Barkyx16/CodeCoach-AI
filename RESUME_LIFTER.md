@@ -1725,3 +1725,7 @@ waits for the dashboard like the other journeys. CI also showed a `SyntaxWarning
 calendar file writer: escaping `;` used a backslash sequence Python doesn't define (it happened
 to produce the right text). It's now written explicitly; the output is unchanged, and the whole
 backend compiles with syntax warnings treated as errors.
+The next CI run passed that journey but timed out the existing "largest text at 320px and 200%
+zoom" sweep (20+ page loads and a live round) on its last step: it takes about 44 seconds here and
+over a minute on the CI runner, against a 60-second budget. It now has its own 150-second budget,
+as the judge journey does; no assertion changed.
