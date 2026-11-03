@@ -60,6 +60,35 @@ describe("the board", () => {
     await waitFor(() => expect(sent[1]).toMatchObject({ body: { stage: "applied" } }));
   });
 
+  it("keeps a correction ticked while the previous stage change is still saving", async () => {
+    asUser();
+    const { sent, store } = fakeApps([app()]);
+    let release: () => void = () => undefined;
+    let held = true;
+    server.use(http.post(`${API}/api/v1/me/applications/:id/stage`, async ({ params, request }) => {
+      const body = (await request.json()) as { stage: Application["stage"]; correction: boolean };
+      sent.push({ url: request.url, body });
+      if (held) {
+        held = false;
+        await new Promise<void>((resolve) => { release = resolve; });
+      }
+      const a = store.get(String(params.id))!;
+      const next = { ...a, stage: body.stage };
+      store.set(a.id, next);
+      return HttpResponse.json(next);
+    }));
+    const { user } = renderApp("/applications/a1", { signedIn: true });
+    const form = await screen.findByRole("form", { name: "Change the stage" });
+    await user.selectOptions(within(form).getByLabelText("Move to"), "offer");
+    await user.click(within(form).getByRole("button", { name: "Save stage" }));
+    await waitFor(() => expect(sent).toHaveLength(1));
+    const tick = within(form).getByRole("checkbox", { name: /This corrects a mistake/ });
+    await user.click(tick); // ticked while the first save is still on its way
+    release();
+    await waitFor(() => expect(within(form).getByRole("button", { name: "Save stage" })).toBeEnabled());
+    expect(tick).toBeChecked();
+  });
+
   it("puts a card back and says so when a move can't be saved", async () => {
     asUser();
     fakeApps([app()]);

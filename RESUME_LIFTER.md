@@ -1729,3 +1729,17 @@ The next CI run passed that journey but timed out the existing "largest text at 
 zoom" sweep (20+ page loads and a live round) on its last step: it takes about 44 seconds here and
 over a minute on the CI runner, against a 60-second budget. It now has its own 150-second budget,
 as the judge journey does; no assertion changed.
+The run after that failed two other journeys, and both pointed at real races:
+- **Application stage form (V2-03 bug, fixed).** After a stage save, the form cleared the
+  "corrects a mistake" box even if it was ticked while the save was still in flight, so a quick
+  correction was recorded as a normal change. It now clears only what it sent; a regression test
+  fails without the fix.
+- **A refresh cut off by a page load signs the user out (existing session design, not fixed
+  here).** A probe that lets the server rotate the refresh cookie but keeps the old one in the
+  browser (what happens when a reload aborts the refresh) ends on the sign-in page: the old
+  cookie gets `refresh_race` twice and the client gives up; after 30 seconds the same cookie
+  would revoke the whole session family. The learn journey reloaded right after a public lesson
+  page, while its refresh could still be in flight. The test now waits for the session first,
+  and the real fix (for example, letting a used token be exchanged again within the grace
+  window only while its replacement has never been used) is a security trade-off in token
+  rotation, so it's left as a separate, explicit decision rather than changed in a CI fix.

@@ -83,10 +83,12 @@ function StageCard({ a, onDone }: { a: Application; onDone: (a: Application) => 
     e.preventDefault();
     setBusy(true);
     setError(null);
+    const sent = { stage: to, note, correction };
     try {
-      onDone(await api.setApplicationStage(a.id, { stage: to, note, correction }));
-      setNote("");
-      setCorrection(false);
+      onDone(await api.setApplicationStage(a.id, sent));
+      // Clear only what was sent: anything typed or ticked while it was saving stays.
+      setNote((n) => (n === sent.note ? "" : n));
+      setCorrection((c) => (c === sent.correction ? false : c));
     } catch (err) {
       setError(err);
     } finally {
