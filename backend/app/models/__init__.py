@@ -1301,3 +1301,64 @@ class AnswerEvaluation(Base):
     feedback: Mapped[dict] = mapped_column(JSONType)
     reason: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class InterviewReflection(Base):
+    """The learner's private debrief of a real interview they recorded: their own observations,
+    kept apart from simulated practice and from any generated feedback. Nothing here is inferred,
+    and nothing is sent anywhere. The role, employer, stage and date are copied when it's first
+    saved, so it still reads correctly after the application is edited or archived."""
+
+    __tablename__ = "interview_reflections"
+
+    event_id: Mapped[str] = mapped_column(
+        ForeignKey("application_events.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    application_id: Mapped[str] = mapped_column(ForeignKey("applications.id", ondelete="CASCADE"), index=True)
+    role_title: Mapped[str] = mapped_column(String(120))
+    employer: Mapped[str] = mapped_column(String(120))
+    stage: Mapped[str] = mapped_column(String(16))
+    event_title: Mapped[str] = mapped_column(String(120))
+    event_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    questions: Mapped[list] = mapped_column(JSONType, default=list)  # what they were asked, paraphrased
+    topics: Mapped[list] = mapped_column(JSONType, default=list)
+    clear: Mapped[str] = mapped_column(Text, default="")
+    difficult: Mapped[str] = mapped_column(Text, default="")
+    observations: Mapped[list] = mapped_column(
+        JSONType, default=list
+    )  # [{text, kind: observed|interpretation}]
+    follow_ups: Mapped[str] = mapped_column(Text, default="")  # commitments the learner made
+    practice: Mapped[list] = mapped_column(JSONType, default=list)  # what they want to practise
+    story_ids: Mapped[list] = mapped_column(JSONType, default=list)  # preparation they used
+    outcome: Mapped[str] = mapped_column(String(16), default="unknown")
+    outcome_history: Mapped[list] = mapped_column(
+        JSONType, default=list
+    )  # [{outcome, at, applied_to_application}]
+    revision: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class ReflectionAction(Base):
+    """A next step suggested from a reflection. Nothing happens until the learner accepts it;
+    accepting twice never creates a second note, entry or bookmark."""
+
+    __tablename__ = "reflection_actions"
+    __table_args__ = (UniqueConstraint("event_id", "key", name="uq_reflection_action_key"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    event_id: Mapped[str] = mapped_column(
+        ForeignKey("interview_reflections.event_id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    key: Mapped[str] = mapped_column(String(200))  # what it was suggested from, stable across regenerations
+    kind: Mapped[str] = mapped_column(String(12))  # practice | note | gap
+    title: Mapped[str] = mapped_column(String(300))
+    detail: Mapped[str] = mapped_column(Text, default="")
+    ref: Mapped[str | None] = mapped_column(String(160), nullable=True)  # "track/question_id" for practice
+    status: Mapped[str] = mapped_column(String(12), default="suggested")  # suggested | accepted | dismissed
+    target: Mapped[str | None] = mapped_column(String(12), nullable=True)  # notebook | schedule | saved
+    applied_ref: Mapped[str | None] = mapped_column(String(64), nullable=True)  # the note / entry it created
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)

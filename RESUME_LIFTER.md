@@ -715,6 +715,15 @@ These are moments where the obvious path was wrong and a deliberate decision was
     question version means the same result, so the button only appears when one of those
     changed, and the new evaluation sits beside the original. The panel is a disclosure that
     loads only when opened, which kept the existing pages and their tests unchanged.
+58. **The learner's account of a real interview, and nothing more.** It would be easy to
+    "analyse" a debrief or guess at an outcome. Instead the form separates what happened from
+    what the learner thinks it meant (and never acts on the latter), suggestions are a
+    deterministic match against content that exists, with honest gaps, and each one goes to the
+    notebook, schedule or Saved only when chosen, once. Outcomes are the learner's words; the
+    application moves only when they tick the box, and "waiting to hear" never moves it. The
+    copy of role, employer and date on first save keeps old reflections readable after edits or
+    archiving. Text is kept out of logs (the access log records paths only) and nothing goes to
+    an AI provider.
 
 ## 6. Python concepts used here (for a Java developer)
 
@@ -1650,3 +1659,26 @@ They're built in order, each as a complete, tested slice committed on its own.
   3 skipped, 0 failed. Migration round-tripped on PostgreSQL.
 - **Limits:** the built-in coach is the only evaluator for written answers, so a "second
   evaluation" was exercised by changing the rubric version in a test, not by a real provider.
+
+**V2-09 Real-interview reflection (built and verified):**
+- An optional, private debrief per application event with confidentiality guidance and
+  non-blocking identifier warnings; revision-checked saves with device recovery; deterministic,
+  never-applied suggestions (practice, gap, note) that can be edited, dismissed or added to the
+  notebook, schedule or Saved exactly once; outcomes with history that update the application
+  only on request; private search with an outcome filter and archived switch.
+- Tests: 7 backend (incomplete and stale saves; suggestions not applied, interpretations ignored,
+  regeneration without duplicates; accept once, edit, dismiss and never resurrect; outcomes;
+  archived and search; identifier warnings with nothing logged; owner-only, export and cascade),
+  4 frontend integration, 2 Playwright journeys (from an application through a failed save and
+  recovery, suggestions, one accepted step, an outcome, archiving, search and Back; 320px dark
+  and light) with axe scans.
+- Full runs: backend 1830 passed, 1 skipped (PostgreSQL-only concurrency test on SQLite);
+  reflection tests also on PostgreSQL (7 passed); frontend 520 tests: one run had a single
+  failure in an unrelated focus-mode test (Escape handling), which passed 9 of 9 alone and the
+  whole suite then passed 520 of 520; Playwright 73 passed, 3 skipped, 0 failed. Migration
+  round-tripped on PostgreSQL.
+- CI note: the V2-08 commit failed CI's backend lint (one import left unsorted by a rename); the
+  fix is in this commit. Lint is now run exactly as CI runs it (`ruff check .` over the whole
+  backend) before each commit.
+- **Limits:** no AI help for reflections; "add to plan" isn't offered because the adaptive plan
+  has no hand-added steps (the schedule covers it).

@@ -718,3 +718,11 @@ export function useCriteria(track: string, id: string) {
 export function useAnswerReview(answerId: string) {
   return useQuery({ queryKey: ["me", "answer-review", answerId], queryFn: () => api.answerReview(answerId), staleTime: 0 });
 }
+
+export function useReflection(appId: string, eventId: string) {
+  return useQuery({ queryKey: ["me", "reflection", appId, eventId], queryFn: () => api.reflection(appId, eventId), staleTime: 0, gcTime: 0 });
+}
+
+export function useReflections(f: { q?: string; outcome?: string; include_archived?: boolean }) {
+  return useQuery({ queryKey: ["me", "reflections", f], queryFn: () => api.reflections(f), staleTime: 0, placeholderData: (prev) => prev });
+}

@@ -85,6 +85,7 @@ export function ApplicationsPage() {
           <p className="eyebrow">APPLICATIONS</p>
           <h1 className="page__title">Your applications</h1>
           <p className="page__subtitle">What you've applied for and where each one stands, as you record it. Private to you; CodeCoach never contacts employers or submits anything.</p>
+          <p className="subtle"><Link to="/reflections">Your interview reflections</Link></p>
         </div>
         <Button variant="primary" aria-expanded={adding} onClick={() => setAdding((v) => !v)}>{adding ? "Close" : "Add an application"}</Button>
       </div>

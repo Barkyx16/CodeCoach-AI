@@ -211,6 +211,12 @@ export type SelfReviewIn = S["SelfReviewIn"];
 export type SelfRating = NonNullable<S["AnswerPerspective"]["yours"]>;
 export type AnswerFlagIn = S["FlagIn"];
 
+export type Reflection = S["ReflectionOut"];
+export type ReflectionIn = S["ReflectionIn"];
+export type ReflectionAction = S["ReflectionActionOut"];
+export type ReflectionSummary = S["ReflectionSummary"];
+export type ReflectionOutcome = S["ReflectionOutcomeIn"]["outcome"];
+
 export type Drill = S["DrillOut"];
 export type DrillAttempt = S["DrillAttemptOut"];
 export type DrillAttemptIn = S["DrillAttemptIn"];

@@ -33,6 +33,7 @@ import "./styles/kit.css";
 import "./styles/whiteboard.css";
 import "./styles/drills.css";
 import "./styles/answer-review.css";
+import "./styles/reflections.css";
 import { startAppShell } from "./pwa/appShell";
 
 const queryClient = makeQueryClient();

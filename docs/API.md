@@ -873,6 +873,31 @@ Owner-only.
 - `GET …/{prompt_id}/attempts` → summaries (`addressed`, `total`, versions); `GET
   /api/v1/me/whiteboard/attempts/{id}` → one frozen attempt.
 
+### Interview reflections
+
+A private debrief of a real interview event ([REFLECTIONS.md](REFLECTIONS.md)). Owner-only,
+`Cache-Control: no-store`, never sent to an AI provider, never logged.
+
+- `GET /api/v1/me/applications/{id}/events/{event_id}/reflection` 🔒 → `{event and application
+  details (copied on first save), questions, topics, clear, difficult, observations: [{text, kind:
+  observed|interpretation}], follow_ups, practice, story_ids, outcome, outcome_history, revision,
+  saved, warnings, actions}`. Before the first save, `saved` is false and everything is empty.
+- `PUT …/reflection {…, expected_revision}` → the reflection (every part optional); `409
+  stale_revision` with `details.current_revision`; `404` for someone else's story id. `warnings`
+  point out what looks like an email address, phone number or ID number; nothing is blocked.
+- `POST …/reflection/suggestions` → suggestions built deterministically from what was written:
+  `practice` (a matching question, with `href`), `gap` (no matching content; notebook only) and
+  `note` (follow-up commitments). Nothing is applied; accepted and dismissed ones are left alone.
+- `PATCH …/reflection/actions/{action_id} {status?: suggested|dismissed, title?, detail?}`;
+  `409 already_accepted` once added.
+- `POST …/reflection/actions/{action_id}/accept {target: notebook|schedule|saved, on_date?,
+  timezone?}` → adds a note, a schedule entry (a date is required) or a bookmark. Accepting again
+  returns the same result and creates nothing new.
+- `PUT …/reflection/outcome {outcome: unknown|awaiting|another_round|offer|not_selected|withdrawn,
+  update_application}` → the outcome is recorded with its time; the application's stage changes
+  only when `update_application` is true and the outcome maps to a stage (waiting never does).
+- `GET /api/v1/me/reflections?q=&outcome=&include_archived=` 🔒 → summaries, newest first.
+
 ### Schedule
 
 Existing activities on dates and times you choose ([SCHEDULE.md](SCHEDULE.md)). Owner-only.

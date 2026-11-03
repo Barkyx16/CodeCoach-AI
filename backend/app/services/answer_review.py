@@ -18,6 +18,7 @@ from app.careers.questions import Question, get_question, is_retired
 from app.errors import AppError, ConflictError, NotFoundError
 from app.models import AnswerEvaluation, AnswerFlag, AnswerSelfReview, PracticeAnswer, User
 from app.schemas.answer_review import (
+    AnswerPerspective,
     AnswerReviewOut,
     Check,
     CriteriaOut,
@@ -26,7 +27,6 @@ from app.schemas.answer_review import (
     EvaluationOut,
     FlagIn,
     FlagOut,
-    AnswerPerspective,
     RepeatedArea,
     SelfReviewIn,
     SelfReviewOut,

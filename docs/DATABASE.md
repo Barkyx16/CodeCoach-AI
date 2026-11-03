@@ -263,6 +263,17 @@ or `problem` + slug), not a foreign key, so a report outlives a renamed or retir
   `prompt_id`, `prompt_version`, `rubric_version`, `diagram` (JSON as sent), `digest` (a
   fingerprint of it), `explanation`, `feedback` (JSON), `created_at`.
 
+### Interview reflections
+- `interview_reflections`: one per application event (primary key `event_id`, cascading with the
+  event, the application and the account): copies of `role_title`, `employer`, `stage`,
+  `event_title` and `event_on` as they were, `questions`, `topics`, `observations`
+  (`[{text, kind}]`), `practice`, `story_ids` and `outcome_history` (JSON), `clear`, `difficult`,
+  `follow_ups`, `outcome`, `revision`.
+- `reflection_actions`: suggested next steps (cascade with the reflection), unique per reflection
+  and `key` (what they were suggested from): `kind` (practice|note|gap), `title`, `detail`, `ref`,
+  `status` (suggested|accepted|dismissed), `target` and `applied_ref` (the note, entry or bookmark
+  it created).
+
 ### Interview-day kits
 - `interview_kits`: one row per interview event (primary key `event_id`, cascading with the event
   and so with its application; `user_id` cascades with the account), created on the first save:
@@ -350,6 +361,7 @@ or `problem` + slug), not a foreign key, so a report outlives a renamed or retir
 | `1bbae318ce1d` whiteboard practice | Adds `whiteboard_drafts` (one per user and prompt) and `whiteboard_attempts`. New tables, cascading with the user; round-tripped on PostgreSQL |
 | `99be925bf8d1` drill attempts | Adds `drill_attempts`. New table, cascading with the user; round-tripped on PostgreSQL |
 | `c2cc8ed140c2` answer reviews | Adds `answer_self_reviews`, `answer_flags` and `answer_evaluations`. New tables, cascading with the answer and the user; round-tripped on PostgreSQL |
+| `76e9a3e567dc` interview reflections | Adds `interview_reflections` (one per event) and `reflection_actions`. New tables, cascading with the event, application and user; round-tripped on PostgreSQL |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

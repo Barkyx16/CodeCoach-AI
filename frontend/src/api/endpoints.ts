@@ -103,6 +103,9 @@ import type {
   AnswerReview,
   Criteria,
   Drill,
+  Reflection,
+  ReflectionIn,
+  ReflectionSummary,
   SelfReviewIn,
   DrillAttempt,
   DrillAttemptIn,
@@ -181,6 +184,9 @@ export interface ActivityFilters {
   page?: number;
   page_size?: number;
 }
+
+const reflectionUrl = (appId: string, eventId: string) =>
+  `/api/v1/me/applications/${encodeURIComponent(appId)}/events/${encodeURIComponent(eventId)}/reflection`;
 
 export const api = {
   // auth
@@ -471,6 +477,19 @@ export const api = {
     apiRequest<AnswerReview>(`/api/v1/me/answers/${encodeURIComponent(id)}/flags/${flagId}`, { method: "DELETE" }),
   reevaluateAnswer: (id: string, reason: string) =>
     apiRequest<AnswerReview>(`/api/v1/me/answers/${encodeURIComponent(id)}/evaluations`, { method: "POST", body: { reason } }),
+
+  // reflections on real interviews
+  reflections: (f: { q?: string; outcome?: string; include_archived?: boolean } = {}) =>
+    apiRequest<ReflectionSummary[]>("/api/v1/me/reflections", { query: f }),
+  reflection: (appId: string, eventId: string) => apiRequest<Reflection>(reflectionUrl(appId, eventId)),
+  saveReflection: (appId: string, eventId: string, body: ReflectionIn) => apiRequest<Reflection>(reflectionUrl(appId, eventId), { method: "PUT", body }),
+  suggestReflectionSteps: (appId: string, eventId: string) => apiRequest<Reflection>(`${reflectionUrl(appId, eventId)}/suggestions`, { method: "POST" }),
+  editReflectionStep: (appId: string, eventId: string, actionId: string, body: { status?: "suggested" | "dismissed"; title?: string; detail?: string }) =>
+    apiRequest<Reflection>(`${reflectionUrl(appId, eventId)}/actions/${encodeURIComponent(actionId)}`, { method: "PATCH", body }),
+  acceptReflectionStep: (appId: string, eventId: string, actionId: string, body: { target: "notebook" | "schedule" | "saved"; on_date?: string; timezone?: string }) =>
+    apiRequest<Reflection>(`${reflectionUrl(appId, eventId)}/actions/${encodeURIComponent(actionId)}/accept`, { method: "POST", body }),
+  setReflectionOutcome: (appId: string, eventId: string, body: { outcome: string; update_application: boolean }) =>
+    apiRequest<Reflection>(`${reflectionUrl(appId, eventId)}/outcome`, { method: "PUT", body }),
 
   // communication drills
   drills: () => apiRequest<Drill[]>("/api/v1/me/drills"),

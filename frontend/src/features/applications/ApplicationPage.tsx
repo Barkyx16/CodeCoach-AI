@@ -151,6 +151,7 @@ function EventsCard({ a, onDone }: { a: Application; onDone: (a: Application) =>
             <span className="row">
               <Button size="sm" variant="ghost" onClick={() => setEditing(e)}>Edit</Button>
               <Link to={`/applications/${a.id}/events/${e.id}/kit`}>Interview-day kit</Link>
+              <Link to={`/applications/${a.id}/events/${e.id}/reflection`}>Reflect on this interview</Link>
               <ScheduleLink kind="application_event" refId={e.id} title={`Prepare: ${e.title} (${a.employer})`} label="Schedule preparation time" />
               <Button size="sm" variant="ghost" onClick={async () => { if (window.confirm(`Remove “${e.title}”?`)) onDone(await api.deleteApplicationEvent(a.id, e.id)); }}>Remove</Button>
             </span>

@@ -8584,6 +8584,665 @@
         }
       }
     },
+    "/api/v1/me/reflections": {
+      "get": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Search your reflections",
+        "operationId": "search_api_v1_me_reflections_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "default": "",
+              "title": "Q"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "unknown",
+                    "awaiting",
+                    "another_round",
+                    "offer",
+                    "not_selected",
+                    "withdrawn"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Outcome"
+            }
+          },
+          {
+            "name": "include_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true,
+              "title": "Include Archived"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReflectionSummary"
+                  },
+                  "title": "Response Search Api V1 Me Reflections Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/applications/{app_id}/events/{event_id}/reflection": {
+      "get": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Your reflection on this interview",
+        "operationId": "get_reflection_api_v1_me_applications__app_id__events__event_id__reflection_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "App Id"
+            }
+          },
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReflectionOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Save it (every part is optional)",
+        "operationId": "put_reflection_api_v1_me_applications__app_id__events__event_id__reflection_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "App Id"
+            }
+          },
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReflectionIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReflectionOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/applications/{app_id}/events/{event_id}/reflection/suggestions": {
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Suggest next steps from what you wrote (nothing is applied)",
+        "operationId": "suggest_api_v1_me_applications__app_id__events__event_id__reflection_suggestions_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "App Id"
+            }
+          },
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReflectionOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/applications/{app_id}/events/{event_id}/reflection/actions/{action_id}": {
+      "patch": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Edit or dismiss a suggestion",
+        "operationId": "edit_action_api_v1_me_applications__app_id__events__event_id__reflection_actions__action_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "App Id"
+            }
+          },
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          },
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Action Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReflectionActionEdit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReflectionOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/applications/{app_id}/events/{event_id}/reflection/actions/{action_id}/accept": {
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Add a step to your notebook, schedule or Saved (again: no duplicate)",
+        "operationId": "accept_action_api_v1_me_applications__app_id__events__event_id__reflection_actions__action_id__accept_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "App Id"
+            }
+          },
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          },
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Action Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReflectionActionAccept"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReflectionOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/applications/{app_id}/events/{event_id}/reflection/outcome": {
+      "put": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Record what happened; the application changes only if you ask",
+        "operationId": "set_outcome_api_v1_me_applications__app_id__events__event_id__reflection_outcome_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "App Id"
+            }
+          },
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReflectionOutcomeIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReflectionOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/careers/{slug}/questions/{question_id}/criteria": {
       "get": {
         "tags": [
@@ -24841,6 +25500,622 @@
           "note"
         ],
         "title": "ReferenceOut"
+      },
+      "ReflectionActionAccept": {
+        "properties": {
+          "target": {
+            "type": "string",
+            "enum": [
+              "notebook",
+              "schedule",
+              "saved"
+            ],
+            "title": "Target"
+          },
+          "on_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On Date",
+            "description": "For the schedule"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone"
+          }
+        },
+        "type": "object",
+        "required": [
+          "target"
+        ],
+        "title": "ReflectionActionAccept"
+      },
+      "ReflectionActionEdit": {
+        "properties": {
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "suggested",
+                  "dismissed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "ReflectionActionEdit"
+      },
+      "ReflectionActionOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "practice",
+              "note",
+              "gap"
+            ],
+            "title": "Kind"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          },
+          "ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ref"
+          },
+          "href": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Href"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "suggested",
+              "accepted",
+              "dismissed"
+            ],
+            "title": "Status"
+          },
+          "targets": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "notebook",
+                "schedule",
+                "saved"
+              ]
+            },
+            "type": "array",
+            "title": "Targets",
+            "description": "Where this can go"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "notebook",
+                  "schedule",
+                  "saved"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          },
+          "applied_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applied Ref"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "detail",
+          "ref",
+          "href",
+          "status",
+          "targets",
+          "target",
+          "applied_ref"
+        ],
+        "title": "ReflectionActionOut"
+      },
+      "ReflectionIn": {
+        "properties": {
+          "questions": {
+            "items": {
+              "type": "string",
+              "maxLength": 300
+            },
+            "type": "array",
+            "maxItems": 30,
+            "title": "Questions",
+            "description": "Paraphrased, not copied"
+          },
+          "topics": {
+            "items": {
+              "type": "string",
+              "maxLength": 80
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Topics"
+          },
+          "clear": {
+            "type": "string",
+            "maxLength": 3000,
+            "title": "Clear",
+            "default": ""
+          },
+          "difficult": {
+            "type": "string",
+            "maxLength": 3000,
+            "title": "Difficult",
+            "default": ""
+          },
+          "observations": {
+            "items": {
+              "$ref": "#/components/schemas/ReflectionObservation"
+            },
+            "type": "array",
+            "maxItems": 30,
+            "title": "Observations"
+          },
+          "follow_ups": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Follow Ups",
+            "default": ""
+          },
+          "practice": {
+            "items": {
+              "type": "string",
+              "maxLength": 300
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Practice"
+          },
+          "story_ids": {
+            "items": {
+              "type": "string",
+              "maxLength": 36
+            },
+            "type": "array",
+            "maxItems": 10,
+            "title": "Story Ids"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "description": "0 for the first save"
+          }
+        },
+        "type": "object",
+        "required": [
+          "expected_revision"
+        ],
+        "title": "ReflectionIn"
+      },
+      "ReflectionObservation": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Text"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "observed",
+              "interpretation"
+            ],
+            "title": "Kind",
+            "description": "observed: what happened (\"they asked for another example\"); interpretation: what you think it meant"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "kind"
+        ],
+        "title": "ReflectionObservation"
+      },
+      "ReflectionOut": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "application_id": {
+            "type": "string",
+            "title": "Application Id"
+          },
+          "application_archived": {
+            "type": "boolean",
+            "title": "Application Archived"
+          },
+          "role_title": {
+            "type": "string",
+            "title": "Role Title"
+          },
+          "employer": {
+            "type": "string",
+            "title": "Employer"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "event_title": {
+            "type": "string",
+            "title": "Event Title"
+          },
+          "event_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event On"
+          },
+          "questions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Questions"
+          },
+          "topics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Topics"
+          },
+          "clear": {
+            "type": "string",
+            "title": "Clear"
+          },
+          "difficult": {
+            "type": "string",
+            "title": "Difficult"
+          },
+          "observations": {
+            "items": {
+              "$ref": "#/components/schemas/ReflectionObservation"
+            },
+            "type": "array",
+            "title": "Observations"
+          },
+          "follow_ups": {
+            "type": "string",
+            "title": "Follow Ups"
+          },
+          "practice": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Practice"
+          },
+          "story_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Story Ids"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "awaiting",
+              "another_round",
+              "offer",
+              "not_selected",
+              "withdrawn"
+            ],
+            "title": "Outcome"
+          },
+          "outcome_history": {
+            "items": {
+              "$ref": "#/components/schemas/ReflectionOutcomeChange"
+            },
+            "type": "array",
+            "title": "Outcome History"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "saved": {
+            "type": "boolean",
+            "title": "Saved"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings",
+            "description": "Things that look like contact details or identifiers; nothing is blocked"
+          },
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/ReflectionActionOut"
+            },
+            "type": "array",
+            "title": "Actions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event_id",
+          "application_id",
+          "application_archived",
+          "role_title",
+          "employer",
+          "stage",
+          "event_title",
+          "event_on",
+          "questions",
+          "topics",
+          "clear",
+          "difficult",
+          "observations",
+          "follow_ups",
+          "practice",
+          "story_ids",
+          "outcome",
+          "outcome_history",
+          "revision",
+          "saved",
+          "updated_at",
+          "warnings",
+          "actions"
+        ],
+        "title": "ReflectionOut"
+      },
+      "ReflectionOutcomeChange": {
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "awaiting",
+              "another_round",
+              "offer",
+              "not_selected",
+              "withdrawn"
+            ],
+            "title": "Outcome"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          },
+          "applied_to_application": {
+            "type": "boolean",
+            "title": "Applied To Application"
+          }
+        },
+        "type": "object",
+        "required": [
+          "outcome",
+          "at",
+          "applied_to_application"
+        ],
+        "title": "ReflectionOutcomeChange"
+      },
+      "ReflectionOutcomeIn": {
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "awaiting",
+              "another_round",
+              "offer",
+              "not_selected",
+              "withdrawn"
+            ],
+            "title": "Outcome"
+          },
+          "update_application": {
+            "type": "boolean",
+            "title": "Update Application",
+            "description": "Also move the application to the matching stage",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "outcome"
+        ],
+        "title": "ReflectionOutcomeIn"
+      },
+      "ReflectionSummary": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "application_id": {
+            "type": "string",
+            "title": "Application Id"
+          },
+          "application_archived": {
+            "type": "boolean",
+            "title": "Application Archived"
+          },
+          "role_title": {
+            "type": "string",
+            "title": "Role Title"
+          },
+          "employer": {
+            "type": "string",
+            "title": "Employer"
+          },
+          "event_title": {
+            "type": "string",
+            "title": "Event Title"
+          },
+          "event_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event On"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "awaiting",
+              "another_round",
+              "offer",
+              "not_selected",
+              "withdrawn"
+            ],
+            "title": "Outcome"
+          },
+          "topics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Topics"
+          },
+          "open_actions": {
+            "type": "integer",
+            "title": "Open Actions"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event_id",
+          "application_id",
+          "application_archived",
+          "role_title",
+          "employer",
+          "event_title",
+          "event_on",
+          "outcome",
+          "topics",
+          "open_actions",
+          "updated_at"
+        ],
+        "title": "ReflectionSummary"
       },
       "RegisterRequest": {
         "properties": {
