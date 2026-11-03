@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("signed-in navigation fits narrow screens and keeps account settings accessible", async ({ page }) => {
   const errors: string[] = [];

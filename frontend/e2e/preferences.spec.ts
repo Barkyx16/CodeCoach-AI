@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("editor preferences survive reload and navigating away saves the latest keystrokes", async ({ page }) => {
   await page.goto("/");

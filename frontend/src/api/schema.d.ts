@@ -9823,6 +9823,8 @@ export interface operations {
             query?: never;
             header?: {
                 "x-requested-with"?: string | null;
+                /** @description A random key (22-64 URL-safe characters) the app keeps for this refresh attempt until it learns the outcome. If the response is lost, presenting the same cookie with the same key shortly afterwards returns the same new session instead of ending it. */
+                "x-refresh-attempt"?: string | null;
             };
             path?: never;
             cookie?: {

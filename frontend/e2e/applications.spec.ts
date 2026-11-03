@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // The application tracker against the real API: recorded facts, pointer and keyboard moves,
 // history, DST-safe interview times, links, drafts that are never sent, privacy.

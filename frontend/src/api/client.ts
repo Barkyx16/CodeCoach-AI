@@ -6,6 +6,8 @@
  *   `error.code`, so UI code branches on codes, never on message text.
  * - Network failures become ApiError("network_error") so callers have one error type.
  */
+import { diag, diagPath } from "@/lib/diagnostics";
+
 import type { ErrorEnvelope } from "./types";
 
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000").replace(/\/$/, "");
@@ -32,7 +34,10 @@ export class ApiError extends Error {
 
 type TokenGetter = () => string | null;
 type UnauthorizedHandler = (error: ApiError) => void;
-/** Get a fresh access token from the refresh cookie; null when the session can't continue. */
+/**
+ * Get a fresh access token from the refresh cookie; null when the session can't continue. Throws
+ * an ApiError("network_error") when the server couldn't be reached: the session isn't over then.
+ */
 type Refresher = () => Promise<string | null>;
 
 let getToken: TokenGetter = () => null;
@@ -110,6 +115,8 @@ async function send<T>(path: string, options: RequestOptions, isRetry: boolean):
   const token = auth ? getToken() : null;
   if (token) headers.Authorization = `Bearer ${token}`;
 
+  const started = performance.now();
+  const where = { method, path: diagPath(path), retry: isRetry };
   let response: Response;
   try {
     response = await fetch(buildUrl(path, query), {
@@ -122,9 +129,14 @@ async function send<T>(path: string, options: RequestOptions, isRetry: boolean):
       credentials: path.startsWith(AUTH_PATH) ? "include" : "same-origin",
     });
   } catch (cause) {
-    if (cause instanceof DOMException && cause.name === "AbortError") throw cause;
+    const aborted = cause instanceof DOMException && cause.name === "AbortError";
+    diag("http", { ...where, status: 0, outcome: aborted ? "aborted" : "network_error", ms: Math.round(performance.now() - started) });
+    if (aborted) throw cause;
     throw new ApiError(0, "network_error", "Can't reach the CodeCoach server. Check your connection and try again.");
   }
+  diag("http", {
+    ...where, status: response.status, ms: Math.round(performance.now() - started), requestId: response.headers.get("X-Request-ID"),
+  });
 
   if (response.status === 204) return undefined as T;
 
@@ -146,7 +158,8 @@ async function send<T>(path: string, options: RequestOptions, isRetry: boolean):
           data.error.request_id ?? requestId)
       : new ApiError(response.status, "http_error", `Request failed with status ${response.status}`, null, requestId);
     if (error.status === 401 && token) {
-      // The access token expired or was revoked: try the refresh cookie once, then retry.
+      // The access token expired or was revoked: try the refresh cookie once, then retry. If the
+      // refresh couldn't reach the server, that network error is thrown instead (still signed in).
       if (!isRetry && !path.startsWith(AUTH_PATH) && (await refreshToken())) return send<T>(path, options, true);
       onUnauthorized(error);
     }

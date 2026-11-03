@@ -57,7 +57,33 @@ successful injection can at worst produce a misleading hint for the attacker's o
   SHA-256 hash is stored server-side.
 - **Rotation and reuse detection:** every refresh replaces the token. Presenting an already
   used one later means it was copied, so the whole token family is revoked. A 30-second grace
-  window turns two tabs refreshing at once into a retryable `refresh_race` instead.
+  window turns two tabs refreshing at once into a retryable `refresh_race` instead. Rotation is
+  atomic (a conditional `UPDATE` claims the token, so two requests can't both rotate it), and a
+  family is dead as soon as any of its tokens is revoked (a logout also locks the family's rows
+  first, so it revokes a successor a concurrent refresh was issuing).
+- **Lost refresh responses (bounded recovery):** a refresh can succeed on the server while its
+  response never reaches the browser (a reload, a closed tab, a dropped connection), leaving the
+  browser with the token the server just used. Each refresh therefore carries a random
+  per-attempt key (`X-Refresh-Attempt`, 22-64 URL-safe characters) that the app keeps until it
+  learns the outcome. The successor token is `HMAC(SECRET_KEY, presented token, key)`, so the
+  same cookie with the same key, presented again within **2 minutes** of the rotation, gets back
+  the *same* successor: never a new one, and only while that successor is unused, unrevoked and
+  unexpired and the account's `token_version` is unchanged. Nothing is extended: the successor
+  keeps the expiry it was issued with. Without the key, with a different key, after the window,
+  or once the successor has been used, the rules above apply unchanged (race, then reuse and
+  revocation). The CSRF checks below apply to every refresh, with or without a key.
+  - *Where the key lives:* in the tab's `sessionStorage` (so a reload can finish the attempt)
+    and, announced over a same-origin `BroadcastChannel`, in other open tabs' `sessionStorage`
+    (so one tab can finish a refresh a closed tab never heard back from). Never in
+    `localStorage`, never logged. The key is useless without the `HttpOnly` cookie.
+  - *Trade-off:* someone who has both a copy of the cookie and the matching key, within the
+    two-minute window and before the real holder uses the successor, gets that same successor
+    instead of triggering the reuse alarm. They don't get a second, independent session: the
+    real holder and they share one successor, and whichever uses it second triggers reuse
+    detection, which revokes the family. Script running in the page (XSS) could read the key,
+    but such script can already call `/auth/refresh` with the cookie directly, so the key adds
+    nothing for it. Outside the window, or if no tab kept the key (for example the only tab was
+    closed mid-refresh), a lost response still ends the session and the user signs in again.
 - **CSRF:** cookies are only used by `/auth/refresh`, which also requires a custom
   `X-Requested-With: codecoach` header (cross-site pages can't send it without a CORS preflight
   our allowlist rejects) and refuses unknown `Origin`s. Every other endpoint uses the bearer

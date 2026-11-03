@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 const STRONG =
   "Last winter, while I was working nights, a patient's oxygen dropped during my 2 a.m. assessment. I was " +

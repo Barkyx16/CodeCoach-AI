@@ -213,9 +213,13 @@ export const api = {
     apiRequest<{ status: string; message: string }>("/api/v1/auth/verify-email/resend", { method: "POST" }),
   changeEmail: (body: { new_email: string; password: string }) =>
     apiRequest<User>("/api/v1/auth/email", { method: "POST", body }),
-  /** Exchange the HttpOnly refresh cookie for a new access token (and a rotated cookie). */
-  refresh: () => apiRequest<TokenResponse>("/api/v1/auth/refresh", {
-    method: "POST", auth: false, headers: { "X-Requested-With": "codecoach" },
+  /**
+   * Exchange the HttpOnly refresh cookie for a new access token (and a rotated cookie). The
+   * attempt key lets a lost response be recovered (see auth/refreshAttempt.ts).
+   */
+  refresh: (attemptKey?: string) => apiRequest<TokenResponse>("/api/v1/auth/refresh", {
+    method: "POST", auth: false,
+    headers: { "X-Requested-With": "codecoach", ...(attemptKey ? { "X-Refresh-Attempt": attemptKey } : {}) },
   }),
   updateProfile: (body: { display_name?: string | null; career_track?: string }) =>
     apiRequest<User>("/api/v1/auth/me", { method: "PATCH", body }),

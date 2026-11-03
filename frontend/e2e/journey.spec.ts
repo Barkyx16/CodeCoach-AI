@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 const SOLUTION = `class Solution {
     public int[] twoSum(int[] nums, int target) {

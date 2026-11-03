@@ -91,11 +91,14 @@ Two tokens with different jobs:
 3. **Refresh** with `POST /api/v1/auth/refresh` and the header `X-Requested-With: codecoach`.
    The response is a normal `TokenResponse` plus a **rotated** cookie. The web app refreshes on
    page load (to restore the session), about a minute before expiry, and once after a `401`
-   before retrying the request.
+   before retrying the request. Optionally send `X-Refresh-Attempt: <random key>` (22-64 URL-safe
+   characters) and keep the key until you get an answer: if the response is lost, presenting the
+   same cookie with the same key within 2 minutes returns the same new session instead of
+   `refresh_race`/`refresh_reused` (see SECURITY.md §3).
 4. **Refresh errors** (`401`): `invalid_refresh` (missing, expired or revoked: sign in again);
    `refresh_reused` (an already-used token was presented later, so it was copied: the whole
-   family was revoked); `refresh_race` (two tabs refreshed with the same cookie within 30 s:
-   retry once and the browser will send the new cookie). `403 csrf_rejected` means the custom
+   family was revoked); `refresh_race` (another request used the same cookie within 30 s:
+   wait briefly and retry, a few times at most, and the browser will send the new cookie). `403 csrf_rejected` means the custom
    header was missing or the `Origin` isn't an allowed one.
 5. **Logout:** `POST /api/v1/auth/logout` ends *this device's* session (its refresh-token family)
    and clears the cookie; discard the in-memory access token. `POST /api/v1/auth/logout-all`
@@ -136,7 +139,7 @@ Every non-2xx response has this shape:
 | 400 | `guest_disabled` | Guest sessions turned off | Hide the guest button |
 | 401 | `unauthorized` | No token on a protected route | Redirect to login |
 | 401 | `invalid_token` | Token invalid, expired, or revoked | Clear token, redirect to login |
-| 401 | `invalid_refresh` / `refresh_reused` / `refresh_race` | Refresh cookie missing/expired/revoked, replayed (family revoked), or two tabs racing (retry once) | Sign in again / retry |
+| 401 | `invalid_refresh` / `refresh_reused` / `refresh_race` | Refresh cookie missing/expired/revoked, replayed (family revoked), or another request using it right now (retry a few times, with a short wait) | Sign in again / retry |
 | 403 | `csrf_rejected` | `/auth/refresh` without `X-Requested-With: codecoach` or from an unknown `Origin` | (client bug) |
 | 401 | `invalid_credentials` | Wrong email/password (deliberately identical for unknown emails) | Form error |
 | 404 | `not_found` | Unknown route, problem, or a resource owned by someone else | Not-found state |

@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // Automated WCAG 2.1 A/AA checks (axe-core) on every main screen, on desktop and on a phone.
 // They catch a useful class of problems (contrast, names, labels, landmarks, ARIA misuse) but

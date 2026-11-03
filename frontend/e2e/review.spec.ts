@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 const WEAK = "We handled it together as a team and it was fine in the end.";
 const STRONG =

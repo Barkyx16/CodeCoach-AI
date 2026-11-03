@@ -117,7 +117,9 @@ stay (they're not personal).
   at Playwright's routing layer while "offline". The offline journeys were run 5 times each in a
   row without a failure after the reachability fix (they failed about 1 run in 4 before it).
 - Reloading at the exact moment the app re-checks a session after reconnecting can lose the
-  rotated refresh cookie; the server's reuse protection then ends the session and you sign in
-  again. This is deliberate: an abandoned refresh is indistinguishable from a stolen cookie.
+  rotated refresh cookie. The next page load recovers it with the same attempt key if it comes
+  within two minutes (SECURITY.md §3); after that, the server's reuse protection ends the
+  session and you sign in again, because an abandoned refresh that old is indistinguishable from
+  a stolen cookie.
 - Storage estimates come from `navigator.storage.estimate()` and are approximate; some browsers
   don't provide them, and the page then doesn't show one.

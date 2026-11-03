@@ -202,7 +202,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # /api/v1/auth); everything else authenticates with the in-memory bearer token.
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type", "X-Request-ID", "X-Requested-With"],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "X-Request-ID",
+            "X-Requested-With",
+            "X-Refresh-Attempt",
+        ],
         expose_headers=["X-Request-ID"],
         max_age=600,
     )

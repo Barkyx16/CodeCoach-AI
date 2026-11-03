@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 const JD = `Registered Nurse - Emergency Department
 Mercy General is hiring an RN for our fast-paced ED team.

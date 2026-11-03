@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 // Real-browser checks of the cookie-backed session: the parts jsdom can't prove.
 test("the session survives reloads via an HttpOnly cookie that page scripts can't read", async ({ page, context }) => {

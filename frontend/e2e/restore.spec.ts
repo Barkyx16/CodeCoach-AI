@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // Restore against the real API with synthetic accounts only: download a real backup from one
 // account, preview and restore it into another, restore it again (nothing added), edit one

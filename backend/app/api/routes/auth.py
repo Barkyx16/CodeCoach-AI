@@ -251,6 +251,14 @@ def refresh(
     settings: Settings = Depends(get_settings_dep),
     cc_refresh: str | None = Cookie(default=None),
     x_requested_with: str | None = Header(default=None),
+    x_refresh_attempt: str | None = Header(
+        default=None,
+        description=(
+            "A random key (22-64 URL-safe characters) the app keeps for this refresh attempt until "
+            "it learns the outcome. If the response is lost, presenting the same cookie with the same "
+            "key shortly afterwards returns the same new session instead of ending it."
+        ),
+    ),
 ) -> TokenResponse:
     # CSRF defence in depth (the cookie is already SameSite=Strict): require a custom header,
     # which a cross-site page can't send without a CORS preflight that our allowlist rejects,
@@ -259,7 +267,8 @@ def refresh(
     if x_requested_with != "codecoach" or (origin and origin not in settings.cors_origins):
         raise ForbiddenError("Refresh must come from the CodeCoach app.", code="csrf_rejected")
     try:
-        user, raw = refresh_tokens.rotate(db, cc_refresh, settings)
+        attempt = refresh_tokens.valid_attempt_key(x_refresh_attempt)
+        user, raw = refresh_tokens.rotate(db, cc_refresh, settings, attempt=attempt)
     except UnauthorizedError as exc:
         failed = error_response(request, exc)
         if exc.code != "refresh_race":  # a racing tab still holds a valid cookie: keep it

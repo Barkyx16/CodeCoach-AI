@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 // The e2e backend writes emails to backend/e2e-outbox (EMAIL_BACKEND=file).
 const OUTBOX = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../backend/e2e-outbox");

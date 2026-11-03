@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // Audit: use every visible control on every page (fresh load each time) and check it does
 // something: navigation, a dialog, a request, a DOM change, a changed value, or a focus move.

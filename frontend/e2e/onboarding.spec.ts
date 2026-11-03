@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // The optional first session against the real API: a welcome with a real activity from the
 // learner's own job, a tour of the real page that can be left and resumed, and Help.

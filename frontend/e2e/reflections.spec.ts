@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // A private reflection on a real interview, against the real API: from an application's
 // interview to an incomplete reflection, recovery after a failed save, suggestions that wait for

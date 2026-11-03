@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // The story bank against the real API: an example written in a job target is the same story in
 // the bank; edits are versions; the writing check only proposes; practising never edits the

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 // A nurse signs up, practices nursing interview questions and gets rubric feedback: the whole
 // non-coding path against the real backend.

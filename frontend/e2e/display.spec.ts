@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "./fixtures";
 
 // Accessibility and comfort checks in a real browser: keyboard-only journeys, display preferences
 // (themes, higher contrast, text size, reduced motion), reflow at 320px, focus mode, the code

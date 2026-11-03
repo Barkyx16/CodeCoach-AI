@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 const ANSWER =
   "Situation: an oxygen alarm went off while another patient needed help to the bathroom. I asked a nursing " +
@@ -89,8 +89,9 @@ test("a coding unit shows accessible code and passing its check doesn't solve a 
   await page.setViewportSize({ width: 320, height: 720 });
   await page.goto("/learn/se-hash-map-lookup");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-  // A lesson is public, so it shows before the session is restored. Let that finish before the
-  // next full page load: a refresh cut off mid-way currently signs the user out (see RESUME_LIFTER).
+  // A lesson is public, so it shows before the session is restored: wait for the signed-in header
+  // before checking the layout. (A refresh cut off by the next page load is recovered on that
+  // load; e2e/refresh-recovery.spec.ts covers it.)
   await expect(page.getByRole("link", { name: /account settings$/, includeHidden: true })).toBeAttached(); // in the closed menu at 320px
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
   await page.screenshot({ path: "e2e/screenshots/learn-unit-320.png", fullPage: false });

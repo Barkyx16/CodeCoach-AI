@@ -36,7 +36,7 @@ Thumbs.db
 
 # E2E artifacts (screenshots used in docs are copied to docs/screenshots)
 frontend/e2e/screenshots/
-backend/e2e.db
+backend/e2e.db*
 runner/.pytest_cache/
 
 # Password-reset emails written by the e2e backend

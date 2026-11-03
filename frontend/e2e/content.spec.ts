@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // Content quality end to end with the real API: reports pinned to a version, duplicates grouped,
 // an admin (granted from the command line, the only way) triages, corrects and retires, and the

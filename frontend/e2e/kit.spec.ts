@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // The interview-day kit against the real API: built from a recorded interview, edited and kept,
 // printed with only what was chosen, and private to its owner.

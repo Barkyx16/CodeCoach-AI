@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // Whiteboard practice against the real API: a diagram built with the keyboard only, one with the
 // pointer, undo/redo, recovery after a reload, strict imports, feedback that names elements,

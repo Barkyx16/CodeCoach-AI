@@ -4,11 +4,32 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { ApiError, configureAuth, serverReachable } from "@/api/client";
 import { api } from "@/api/endpoints";
 import type { TokenResponse, User } from "@/api/types";
+import { diag } from "@/lib/diagnostics";
 
 import { AuthContext, type AuthContextValue } from "./context";
 import { forgetDeviceUser, readDeviceUser, rememberDeviceUser, type DeviceUser } from "./deviceUser";
 import { clearLocalWork } from "./localWork";
+import { beginAttempt, dropAttempt, forgetAttempts, RACE_RETRY_MS, settleAttempt, withRefreshLock } from "./refreshAttempt";
 import { forgetLegacySession, isExpired, refreshDelay, sessionFromToken, type Session } from "./session";
+
+/** One refresh request, with an attempt key that is kept until its outcome is known. */
+async function sendRefresh(): Promise<TokenResponse> {
+  const key = beginAttempt();
+  try {
+    const response = await api.refresh(key);
+    settleAttempt(key);
+    return response;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      // Someone else's attempt used the cookie: this key rotated nothing.
+      if (error.code === "refresh_race") dropAttempt(key);
+      // Refused for good (signed out, expired, revoked): nothing left to recover.
+      else if (error.status === 401 || error.status === 403) settleAttempt(key);
+      // A network error or a server error: the outcome is unknown, so the key is kept.
+    }
+    throw error;
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
@@ -22,7 +43,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // The server couldn't be reached to check the session (offline). Not "signed out": the last
   // account on this device, so its drafts stay visible; checked again when the network returns.
   const [offlineUser, setOfflineUser] = useState<DeviceUser | null>(null);
-  const lastFailure = useRef<"network" | "rejected" | null>(null);
+  const lastFailure = useRef<"network" | "rejected" | "superseded" | null>(null);
+  // Changes whenever the session is replaced or ended (sign-in, sign-out). A refresh that started
+  // before then must not bring its result back: a late response can't sign anyone back in.
+  const epoch = useRef(0);
+  // One refresh at a time in this tab: concurrent 401s and the timer share the same request.
+  const inFlight = useRef<Promise<string | null> | null>(null);
   // A ref lets the API client read the current token synchronously without re-wiring.
   const sessionRef = useRef(session);
   useLayoutEffect(() => {
@@ -30,6 +56,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session]);
 
   const clear = useCallback((reason: string | null) => {
+    epoch.current += 1;
+    inFlight.current = null;
+    forgetAttempts();
     sessionRef.current = null;
     setSession(null);
     setOfflineUser(null);
@@ -41,6 +70,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /** A new sign-in (login, register, guest, password change): start a fresh session. */
   const adopt = useCallback((response: TokenResponse): User => {
     const next = sessionFromToken(response);
+    epoch.current += 1;
+    inFlight.current = null;
+    forgetAttempts();
     sessionRef.current = next;
     setSession(next);
     setSignedOutReason(null);
@@ -51,46 +83,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return next.user;
   }, [queryClient]);
 
-  // One refresh at a time: concurrent 401s and the timer share the same request.
-  const inFlight = useRef<Promise<string | null> | null>(null);
   const refreshNow = useCallback((): Promise<string | null> => {
     if (inFlight.current) return inFlight.current;
+    const startedIn = epoch.current;
     const attempt = async (): Promise<string | null> => {
       // Known to be offline: don't send a refresh that can't succeed. (A refresh the server
-      // receives but whose answer is lost would use up the rotating cookie.)
+      // receives but whose answer is lost uses up the rotating cookie; see refreshAttempt.ts.)
       if (typeof navigator !== "undefined" && navigator.onLine === false) {
         lastFailure.current = "network";
         return null;
       }
-      try {
-        const response = await api.refresh();
-        const next = sessionFromToken(response);
-        sessionRef.current = next; // the API client reads this synchronously for its retry
-        setSession(next); // same user, so cached data stays valid
-        setOfflineUser(null);
-        rememberDeviceUser(next.user);
-        lastFailure.current = null;
-        return next.token;
-      } catch (error) {
-        lastFailure.current = error instanceof ApiError && error.code === "network_error" ? "network" : "rejected";
-        // Another tab rotated the cookie a moment ago; the browser now has the new one.
-        if (error instanceof ApiError && error.code === "refresh_race") {
-          await new Promise((resolve) => window.setTimeout(resolve, 400));
-          try {
-            const response = await api.refresh();
-            const next = sessionFromToken(response);
-            sessionRef.current = next;
-            setSession(next);
-            return next.token;
-          } catch {
+      for (let tries = 0; ; tries++) {
+        try {
+          const response = await withRefreshLock(sendRefresh);
+          if (epoch.current !== startedIn) {
+            // Signed out (or in as someone else) while this was on its way: drop it.
+            diag("auth", { event: "refresh", outcome: "discarded" });
+            lastFailure.current = "superseded";
             return null;
           }
+          const next = sessionFromToken(response);
+          sessionRef.current = next; // the API client reads this synchronously for its retry
+          setSession(next); // same user, so cached data stays valid
+          setOfflineUser(null);
+          rememberDeviceUser(next.user);
+          lastFailure.current = null;
+          diag("auth", { event: "refresh", outcome: "ok", tries });
+          return next.token;
+        } catch (error) {
+          const code = error instanceof ApiError ? error.code : "unknown";
+          if (epoch.current !== startedIn) {
+            lastFailure.current = "superseded";
+            return null;
+          }
+          // Another tab, or this page before a reload, is using the cookie right now: wait for
+          // it to finish (the browser then has the new cookie) and try again, a few times.
+          const wait = RACE_RETRY_MS[tries];
+          if (code === "refresh_race" && wait !== undefined) {
+            diag("auth", { event: "refresh", outcome: "race_retry", tries });
+            await new Promise((resolve) => window.setTimeout(resolve, wait));
+            continue;
+          }
+          diag("auth", { event: "refresh", outcome: code, tries });
+          lastFailure.current = code === "network_error" ? "network" : "rejected";
+          return null;
         }
-        return null;
       }
     };
-    inFlight.current = attempt().finally(() => { inFlight.current = null; });
-    return inFlight.current;
+    const promise = attempt().finally(() => {
+      if (inFlight.current === promise) inFlight.current = null;
+    });
+    inFlight.current = promise;
+    return promise;
   }, []);
 
   // Wire authentication before child query subscriptions issue their initial requests.
@@ -100,8 +144,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const current = sessionRef.current;
         return current && !isExpired(current) ? current.token : null;
       },
-      () => clear("Your session ended. Please sign in again."),
-      refreshNow,
+      // Only a session that was still on ends here: after a deliberate sign-out, a late 401
+      // from a request that was already on its way must not turn into "your session ended".
+      () => { if (sessionRef.current) clear("Your session ended. Please sign in again."); },
+      async () => {
+        const token = await refreshNow();
+        // Couldn't reach the server (or the answer was lost): not signed out. The request fails
+        // with a network error, and the next refresh recovers the session with the same key.
+        if (!token && lastFailure.current === "network") {
+          throw new ApiError(0, "network_error", "Can't reach the CodeCoach server. Check your connection and try again.");
+        }
+        return token;
+      },
     );
     return () => configureAuth(() => null, () => {});
   }, [clear, refreshNow]);
@@ -137,7 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const timer = window.setTimeout(() => {
       void refreshNow().then((token) => {
         // Offline isn't signed out: keep the session and try again when the network returns.
-        if (!token && lastFailure.current !== "network") clear("Your session ended. Please sign in again.");
+        if (!token && lastFailure.current === "rejected") clear("Your session ended. Please sign in again.");
       });
     }, refreshDelay(session));
     return () => window.clearTimeout(timer);

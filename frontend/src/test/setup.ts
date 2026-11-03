@@ -39,6 +39,7 @@ afterEach(() => {
   server.resetHandlers();
   cleanup();
   window.localStorage.clear();
+  window.sessionStorage.clear(); // e.g. an unfinished refresh attempt key
   // Display preferences and focus mode live on <html>, which outlives each test's render.
   for (const name of ["data-theme", "data-text", "data-spacing", "data-motion", "data-contrast", "data-focus"]) document.documentElement.removeAttribute(name);
   cookieJar.hasSession = false;

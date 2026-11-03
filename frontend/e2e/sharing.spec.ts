@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // Sharing an answer with a reviewer, end to end against the real backend. The "reviewer" is a
 // separate browser context on this machine: nobody real is contacted.

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // The schedule against the real API, in a browser set to Chicago time: scheduling from a real
 // activity, the daylight-saving choice, overlaps, .ics files, moving, cancelling, a time zone

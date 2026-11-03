@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // Communication drills against the real API: every drill type typed, the voice path with a
 // stand-in for the browser's speech recognition (Chromium's needs a network service), an

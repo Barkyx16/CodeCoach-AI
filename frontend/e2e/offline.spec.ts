@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type BrowserContext, type Page } from "@playwright/test";
+import { expect, test, type BrowserContext, type Page } from "./fixtures";
 
 // The installable app and offline mode, against the production build (`vite preview`, port 4173)
 // and the real backend. "Offline" is Playwright's network emulation for the whole browser context.

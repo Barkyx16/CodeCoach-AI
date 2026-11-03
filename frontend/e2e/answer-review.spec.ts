@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // Rubric transparency against the real API: criteria before answering, an optional reflection
 // that holds the feedback, quoted evidence, "different perspectives", a private flag, an honest
