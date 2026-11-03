@@ -90,6 +90,14 @@ successful injection can at worst produce a misleading hint for the attacker's o
   header, which browsers never attach automatically.
 - **Revocation:** logout, password change and account deletion bump `token_version` and revoke
   refresh tokens, ending every session.
+- **Requests belong to the session they were sent in** (browser). Every sign-in and sign-out
+  starts a new session generation in the API client. A 401 that comes back for a request sent
+  in an earlier generation is not about the current session: it neither refreshes nor ends the
+  session open now. Before this, a request that was on its way when the learner signed out could
+  come back 401, refresh, and sign them back in silently (when the logout call itself had failed,
+  so the cookie was still valid), and a request sent for one account could be resent with the
+  token of the account that signed in next. Found as an intermittent CI failure; reproduced and
+  covered by `frontend/src/test/integration/session.test.tsx`.
 - Older versions stored the access token in `localStorage`; the app deletes that key on startup.
 - Remaining defences against XSS: React's output escaping, no HTML rendered from the API, and
   a strict Content-Security-Policy on the deployed frontend.

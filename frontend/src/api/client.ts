@@ -43,6 +43,14 @@ type Refresher = () => Promise<string | null>;
 let getToken: TokenGetter = () => null;
 let onUnauthorized: UnauthorizedHandler = () => {};
 let refreshToken: Refresher = async () => null;
+/**
+ * Which session a request belongs to. It moves on whenever a session starts or ends (sign-in,
+ * sign-out, a session that expired) and whenever auth is wired up again. A 401 that comes back for
+ * a request of an earlier session isn't about the session open now: it must not refresh (that
+ * would sign a signed-out user back in, or resend one account's request as another's) and must
+ * not end the current session.
+ */
+let generation = 0;
 
 /** Wired up once by AuthProvider so the client never imports React state directly. */
 export function configureAuth(
@@ -53,6 +61,12 @@ export function configureAuth(
   getToken = tokenGetter;
   onUnauthorized = unauthorizedHandler;
   refreshToken = refresher;
+  generation += 1;
+}
+
+/** A session started or ended: requests already on their way belong to the previous one. */
+export function startAuthGeneration(): void {
+  generation += 1;
 }
 
 const AUTH_PATH = "/api/v1/auth/";
@@ -117,6 +131,7 @@ async function send<T>(path: string, options: RequestOptions, isRetry: boolean):
   const headers: Record<string, string> = { Accept: "application/json", ...options.headers };
   if (body !== undefined || options.rawBody !== undefined) headers["Content-Type"] = "application/json";
   const token = auth ? getToken() : null;
+  const sentIn = generation;
   if (token) headers.Authorization = `Bearer ${token}`;
   if (options.traceparent) headers.traceparent = options.traceparent;
 
@@ -164,10 +179,20 @@ async function send<T>(path: string, options: RequestOptions, isRetry: boolean):
           data.error.request_id ?? requestId)
       : new ApiError(response.status, "http_error", `Request failed with status ${response.status}`, null, requestId);
     if (error.status === 401 && token && !options.noRefresh) {
+      if (sentIn !== generation) {
+        // Sent in a session that has since ended or been replaced: not this session's 401.
+        diag("auth", { event: "stale_401", path: diagPath(path) });
+        throw error;
+      }
       // The access token expired or was revoked: try the refresh cookie once, then retry. If the
       // refresh couldn't reach the server, that network error is thrown instead (still signed in).
-      if (!isRetry && !path.startsWith(AUTH_PATH) && (await refreshToken())) return send<T>(path, options, true);
-      onUnauthorized(error);
+      if (!isRetry && !path.startsWith(AUTH_PATH) && (await refreshToken())) {
+        if (sentIn === generation) return send<T>(path, options, true);
+        diag("auth", { event: "stale_401", path: diagPath(path) });
+        throw error;
+      }
+      // Only the session this request was sent in can end because of it.
+      if (sentIn === generation) onUnauthorized(error);
     }
     throw error;
   }

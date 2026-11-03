@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
-import { ApiError, configureAuth, serverReachable } from "@/api/client";
+import { ApiError, configureAuth, serverReachable, startAuthGeneration } from "@/api/client";
 import { api } from "@/api/endpoints";
 import type { TokenResponse, User } from "@/api/types";
 import { diag } from "@/lib/diagnostics";
@@ -57,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clear = useCallback((reason: string | null) => {
     epoch.current += 1;
+    startAuthGeneration(); // a late 401 for this session's requests can't refresh or sign anyone in
     inFlight.current = null;
     forgetAttempts();
     sessionRef.current = null;
@@ -71,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const adopt = useCallback((response: TokenResponse): User => {
     const next = sessionFromToken(response);
     epoch.current += 1;
+    startAuthGeneration(); // requests of the previous session are never retried as this one
     inFlight.current = null;
     forgetAttempts();
     sessionRef.current = next;
