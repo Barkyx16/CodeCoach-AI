@@ -16,6 +16,9 @@ export function onboardingState(over: Partial<Onboarding> = {}): Onboarding {
 }
 
 export const onboardingHandlers = [
+  // Empty lists for pages that link to your targets and stories (tests override what they check).
+  http.get(`${API}/api/v1/targets`, () => HttpResponse.json([])),
+  http.get(`${API}/api/v1/me/stories`, () => HttpResponse.json([])),
   http.get(`${API}/api/v1/me/onboarding`, () => HttpResponse.json(onboardingState())),
   http.patch(`${API}/api/v1/me/onboarding`, () => HttpResponse.json(onboardingState())),
 ];

@@ -237,6 +237,17 @@ or `problem` + slug), not a foreign key, so a report outlives a renamed or retir
   (JSON), optional admin-only `internal_note`, `report_id` (no foreign key, so the trail stays even
   if a report is deleted with its reporter's account).
 
+### Applications
+- `applications`: one row per real application (owner cascade): `employer`, `role_title`, `link`
+  (http(s), never fetched), `applied_on` and `next_action_due` (plain dates, unknown allowed),
+  `stage`, `next_action`, `notes`, `target_id` (`fk_application_target`, SET NULL), `story_ids`
+  (JSON list of story ids), `archived`, `client_request_id` (unique per user, for safe retries).
+- `application_stage_changes`: append-only history (`from_stage`, `to_stage`, `correction`,
+  `note`, and `role_title`/`employer` as they were then), cascading with the application.
+- `application_events`: one row per interview or other event: `kind`, `title`, `on_date`,
+  `local_time` (HH:MM), `timezone` (IANA), `starts_at` (UTC, derived only when all three are
+  known), `notes`, `client_request_id` (unique per application).
+
 ### Story bank
 - `experience_entries` holds **stories** (also the examples written in a job target): `title`,
   `track`, `context`, `situation`, `task`, `action`, `result`, `reflection`, `notes`, `evidence`,
@@ -292,6 +303,7 @@ or `problem` + slug), not a foreign key, so a report outlives a renamed or retir
 | `e5a2c7f1b948` content quality | Adds `content_reports`, `content_versions`, `content_status`, `content_checks` and `content_audit`; nullable `content_version` on `practice_answers` and `bookmarks` (NULL means version 1, so existing rows need no backfill); `users.is_admin` with server default false. New tables and nullable/defaulted columns, so populated databases migrate safely; round-tripped (upgrade, downgrade, upgrade) on PostgreSQL |
 | `d52cf325b19a` onboarding state | Adds `user_onboarding` (one row per account, cascading with the user). New table, safe on populated databases; round-tripped on PostgreSQL |
 | `178db0129ee0` story bank | Adds story columns to `experience_entries` (text with server default `''`, JSON lists with `'[]'`, `revision` 1, `archived` false), `story_revisions`, and `practice_answers.story_id`; changes `experience_entries.target_id` to `ON DELETE SET NULL`. Existing examples keep every word, get their target's career and a first revision with their exact text. Verified on PostgreSQL with seeded data, and round-tripped |
+| `4e7000f6addb` applications | Adds `applications`, `application_stage_changes` and `application_events`. New tables, cascading with the user; round-tripped on PostgreSQL |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

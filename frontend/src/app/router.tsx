@@ -43,6 +43,8 @@ import { SavedPage } from "@/features/saved/SavedPage";
 import { HelpPage } from "@/features/onboarding/HelpPage";
 import { WelcomePage } from "@/features/onboarding/WelcomePage";
 import { StoriesPage } from "@/features/stories/StoriesPage";
+import { ApplicationPage } from "@/features/applications/ApplicationPage";
+import { ApplicationsPage } from "@/features/applications/ApplicationsPage";
 import { StoryEditorPage } from "@/features/stories/StoryEditorPage";
 
 import { Layout } from "./Layout";
@@ -109,6 +111,8 @@ export const routes: RouteObject[] = [
       { path: "/offline", element: <OfflinePage /> },
       { path: "/help", element: <HelpPage /> },
       { path: "/stories", element: <RequireAuth><StoriesPage /></RequireAuth> },
+      { path: "/applications", element: <RequireAuth><ApplicationsPage /></RequireAuth> },
+      { path: "/applications/:id", element: <RequireAuth><ApplicationPage /></RequireAuth> },
       { path: "/stories/new", element: <RequireAuth><StoryEditorPage /></RequireAuth> },
       { path: "/stories/:id", element: <RequireAuth><StoryEditorPage /></RequireAuth> },
       { path: "/welcome", element: <RequireAuth><WelcomePage /></RequireAuth> },

@@ -97,6 +97,12 @@ import type {
   InterviewFormat,
   Onboarding,
   OnboardingUpdate,
+  Application,
+  ApplicationCreate,
+  ApplicationEventIn,
+  ApplicationStage,
+  ApplicationSummary,
+  ApplicationUpdate,
   Story,
   StoryAssist,
   StoryAssistAction,
@@ -403,6 +409,22 @@ export const api = {
     apiRequest<Story>(`/api/v1/me/stories/${encodeURIComponent(id)}/revisions/${revision}/restore`, { method: "POST", body: { expected_revision: expected } }),
   assistStory: (id: string, body: { action: StoryAssistAction; situation?: string; task?: string; action_text?: string; result?: string; reflection?: string }) =>
     apiRequest<StoryAssist>(`/api/v1/me/stories/${encodeURIComponent(id)}/assist`, { method: "POST", body }),
+
+  // applications you've made (never sent or submitted anywhere)
+  applications: (archived = false) => apiRequest<ApplicationSummary[]>("/api/v1/me/applications", { query: { archived: archived ? "true" : undefined } }),
+  application: (id: string) => apiRequest<Application>(`/api/v1/me/applications/${encodeURIComponent(id)}`),
+  createApplication: (body: ApplicationCreate) => apiRequest<Application>("/api/v1/me/applications", { method: "POST", body }),
+  updateApplication: (id: string, body: ApplicationUpdate) => apiRequest<Application>(`/api/v1/me/applications/${encodeURIComponent(id)}`, { method: "PATCH", body }),
+  setApplicationStage: (id: string, body: { stage: ApplicationStage; note: string; correction: boolean }) =>
+    apiRequest<Application>(`/api/v1/me/applications/${encodeURIComponent(id)}/stage`, { method: "POST", body }),
+  archiveApplication: (id: string, archived: boolean) =>
+    apiRequest<Application>(`/api/v1/me/applications/${encodeURIComponent(id)}/${archived ? "archive" : "unarchive"}`, { method: "POST" }),
+  deleteApplication: (id: string) => apiRequest<void>(`/api/v1/me/applications/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  addApplicationEvent: (id: string, body: ApplicationEventIn) => apiRequest<Application>(`/api/v1/me/applications/${encodeURIComponent(id)}/events`, { method: "POST", body }),
+  updateApplicationEvent: (id: string, eventId: string, body: ApplicationEventIn) =>
+    apiRequest<Application>(`/api/v1/me/applications/${encodeURIComponent(id)}/events/${encodeURIComponent(eventId)}`, { method: "PUT", body }),
+  deleteApplicationEvent: (id: string, eventId: string) =>
+    apiRequest<Application>(`/api/v1/me/applications/${encodeURIComponent(id)}/events/${encodeURIComponent(eventId)}`, { method: "DELETE" }),
 
   // sharing an answer for feedback (owner)
   sharePreview: (body: ShareSelection) => apiRequest<SharePreview>("/api/v1/me/shares/preview", { method: "POST", body }),

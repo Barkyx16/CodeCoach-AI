@@ -655,3 +655,13 @@ export function useStory(id: string | undefined) {
 export function useStoryRevisions(id: string | undefined, enabled = true) {
   return useQuery({ queryKey: ["me", "story", id, "revisions"], queryFn: () => api.storyRevisions(id!), enabled: !!id && enabled, staleTime: 0 });
 }
+
+// --- applications -----------------------------------------------------------------------------
+
+export function useApplications(archived = false) {
+  return useQuery({ queryKey: ["me", "applications", { archived }], queryFn: () => api.applications(archived), staleTime: 0 });
+}
+
+export function useApplication(id: string) {
+  return useQuery({ queryKey: ["me", "application", id], queryFn: () => api.application(id), enabled: !!id, staleTime: 0 });
+}

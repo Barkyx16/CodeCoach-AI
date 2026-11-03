@@ -174,3 +174,12 @@ export type StoryAssistAction = S["StoryAssistIn"]["action"];
 export type Competency = S["StoryCreate"]["competencies"] extends (infer C)[] | null | undefined ? C : never;
 export type StoryContext = NonNullable<S["StoryCreate"]["context"]>;
 export type StorySection = S["StoryProposal"]["field"];
+
+export type ApplicationSummary = S["ApplicationSummary"];
+export type Application = S["ApplicationOut"];
+export type ApplicationEvent = S["ApplicationEventOut"];
+export type ApplicationStage = S["ApplicationOut"]["stage"];
+export type EventKind = S["ApplicationEventOut"]["kind"];
+export type ApplicationCreate = S["ApplicationCreate"];
+export type ApplicationUpdate = S["ApplicationUpdate"];
+export type ApplicationEventIn = S["ApplicationEventIn"];

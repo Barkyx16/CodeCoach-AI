@@ -1032,3 +1032,88 @@ class OnboardingState(Base):
     tour_started_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     tour_finished_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class Application(Base):
+    """A real job application as the learner describes it: facts they enter, never inferred.
+
+    It's separate from a job target (which describes preparation) and can link to one. Nothing
+    here is sent anywhere or submitted to anyone; "applied" is only ever what the learner records.
+    """
+
+    __tablename__ = "applications"
+    __table_args__ = (
+        UniqueConstraint("user_id", "client_request_id", name="uq_application_client_request"),
+        Index("ix_applications_user_stage", "user_id", "stage"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    employer: Mapped[str] = mapped_column(String(120))
+    role_title: Mapped[str] = mapped_column(String(120))
+    link: Mapped[str | None] = mapped_column(String(500), nullable=True)  # http(s) only, never fetched
+    applied_on: Mapped[date | None] = mapped_column(Date, nullable=True)  # as recorded; unknown is fine
+    # saved | applied | interviewing | offer | closed | withdrawn
+    stage: Mapped[str] = mapped_column(String(16), default="saved")
+    next_action: Mapped[str] = mapped_column(Text, default="")
+    next_action_due: Mapped[date | None] = mapped_column(Date, nullable=True)  # a calendar date, no time
+    notes: Mapped[str] = mapped_column(Text, default="")
+    target_id: Mapped[str | None] = mapped_column(
+        ForeignKey("role_targets.id", ondelete="SET NULL", name="fk_application_target"), nullable=True
+    )
+    story_ids: Mapped[list] = mapped_column(JSONType, default=list)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False)
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+    history: Mapped[list[ApplicationStageChange]] = relationship(
+        back_populates="application", cascade="all, delete-orphan", order_by="ApplicationStageChange.id"
+    )
+    events: Mapped[list[ApplicationEvent]] = relationship(
+        back_populates="application", cascade="all, delete-orphan", order_by="ApplicationEvent.id"
+    )
+
+
+class ApplicationStageChange(Base):
+    """Every stage change, append-only, with the title and employer as they were at the time, so
+    later edits never rewrite history. A correction is recorded as its own change."""
+
+    __tablename__ = "application_stage_changes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    application_id: Mapped[str] = mapped_column(ForeignKey("applications.id", ondelete="CASCADE"), index=True)
+    from_stage: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    to_stage: Mapped[str] = mapped_column(String(16))
+    correction: Mapped[bool] = mapped_column(Boolean, default=False)
+    note: Mapped[str] = mapped_column(Text, default="")
+    role_title: Mapped[str] = mapped_column(String(120))
+    employer: Mapped[str] = mapped_column(String(120))
+    changed_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+    application: Mapped[Application] = relationship(back_populates="history")
+
+
+class ApplicationEvent(Base):
+    """An interview (or other) event for an application, as the learner records it. Each
+    interview is its own event. Times are the learner's: a date, an optional local time and the
+    IANA time zone it's in; `starts_at` is derived (UTC) only when all three are known."""
+
+    __tablename__ = "application_events"
+    __table_args__ = (
+        UniqueConstraint("application_id", "client_request_id", name="uq_event_client_request"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    application_id: Mapped[str] = mapped_column(ForeignKey("applications.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(16))  # phone_screen | interview | assessment | other
+    title: Mapped[str] = mapped_column(String(120))
+    on_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    local_time: Mapped[str | None] = mapped_column(String(5), nullable=True)  # "HH:MM"
+    timezone: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    starts_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    notes: Mapped[str] = mapped_column(Text, default="")
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+    application: Mapped[Application] = relationship(back_populates="events")

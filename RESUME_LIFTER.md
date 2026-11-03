@@ -657,6 +657,17 @@ These are moments where the obvious path was wrong and a deliberate decision was
     the learner's text, and nothing leaves the server. A model-based rewrite can come later
     behind the AI coach's budget, redaction and an explicit warning.
 
+52. **Facts the learner records, and times that can't drift.** A job tracker is tempting to make
+    "smart": infer a rejection after two weeks of silence, mark something applied when a draft
+    is written. Every one of those is a claim about the learner's life that the app can't know,
+    so stages are only what the learner recorded, history is append-only (with the role title as
+    it was), and drafts are copied or downloaded, never sent. Interview times are stored as the
+    learner wrote them (date, wall-clock time, IANA zone) plus the exact instant, and the two
+    yearly daylight-saving traps are handled out loud: a time that doesn't exist is refused, and
+    a time that happens twice asks which one. Testing found two small but real accessibility
+    issues: the sort arrow was read as part of the column name, and a checkbox that only changed
+    after the server answered looked like it ignored the click.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -1489,3 +1500,19 @@ They're built in order, each as a complete, tested slice committed on its own.
   account, deletion; the editor at 320px in the light theme) with axe scans.
 - **Limits:** no model-based rewriting; practising on a question page is typed (voice is in mock
   interviews); one target per story.
+
+**V2-03 Application tracker (built and verified):**
+- Applications as recorded facts: employer, role, optional link, applied date (unknown is fine),
+  stage, next action with a due date, notes; archive or delete; safe retries.
+- Board by stage with drag and drop and an equivalent "Move to" menu on every card (optimistic,
+  put back on failure); sortable list; view, filters and sort in the address; scroll restored.
+- Append-only stage history with corrections, keeping the title and employer as they were.
+- Interview events, each separate, with exact instants from date + time + IANA zone, refusing
+  nonexistent times and asking about ambiguous ones (shared time module for the calendar next).
+- Links to a job target and stories (by id), "Prepare for this stage" actions, and thank-you or
+  follow-up drafts from typed facts, copied or downloaded, never sent, never changing the stage.
+- Tests: 8 backend (SQLite and PostgreSQL), 10 frontend, 2 Playwright journeys (pointer and
+  keyboard moves, history, DST interview time, links, clipboard and download, privacy, archive;
+  320px light) with axe scans.
+- **Limits:** no job-board or email integrations by design; touch dragging and Safari/Firefox
+  drag and drop weren't tested (the "Move to" menu works everywhere).

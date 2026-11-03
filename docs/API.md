@@ -791,6 +791,30 @@ the JSON body, never a URL:
   `400 empty_feedback | unknown_sentence` (comments only on shared sentences). Both endpoints
   are rate-limited per client IP (`429`).
 
+### Applications
+
+A private tracker of real applications ([APPLICATIONS.md](APPLICATIONS.md)). Owner-only (404 for
+anyone else). Nothing is sent or submitted anywhere.
+
+- `GET /api/v1/me/applications?archived=` 🔒 → summaries (`stage`, `applied_on`, `next_action`,
+  `next_action_due`, `target`, `next_event`).
+- `POST /api/v1/me/applications` 🔒 `{employer, role_title, stage?, link?, applied_on?,
+  next_action?, next_action_due?, notes?, target_id?, story_ids?, client_request_id?}` → `201`,
+  or `200` with the first one for a retry with the same `client_request_id`. Links must be
+  `http(s)` (`422`); someone else's target or story `404`; up to 300.
+- `GET …/{id}` → details with `events`, `history` (newest first, with the title and employer as
+  they were) and linked `stories`.
+- `PATCH …/{id} {fields…, clear: [link|applied_on|next_action_due|target_id]}` → details.
+- `POST …/{id}/stage {stage: saved|applied|interviewing|offer|closed|withdrawn, note, correction}`
+  → appended to the history; the same stage again is a no-op.
+- `POST …/{id}/archive`, `…/unarchive`; `DELETE …/{id}` (`204`).
+- `POST …/{id}/events {kind: phone_screen|interview|assessment|other, title, on_date?,
+  local_time? (HH:MM), timezone? (IANA), fold? (0|1), notes, client_request_id?}`, `PUT
+  …/events/{event_id}`, `DELETE …/events/{event_id}`. `starts_at` (UTC) is set only when date,
+  time and zone are known. `400 invalid_timezone | invalid_time | time_without_date |
+  nonexistent_time | ambiguous_time` (`details.first_offset`, `details.second_offset`: send
+  `fold` to choose).
+
 ### Story bank
 
 Your own STAR stories ([STORIES.md](STORIES.md)). Everything is owner-only (404 for anyone else).

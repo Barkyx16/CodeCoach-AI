@@ -32,6 +32,7 @@ from app.models import (
     Submission,
     User,
 )
+from app.services.applications import Applications
 from app.services.onboarding import Onboarding
 from app.services.shares import status_of
 from app.services.stories import snapshot
@@ -388,6 +389,8 @@ def export_user_data(db: Session, user: User) -> dict:
             }
             for e in experience
         ],
+        # Applications you recorded, with their interview events and stage history.
+        "applications": Applications(db, user).export(),
         # Your choices about the first-session introduction (no answer text is part of it).
         "onboarding": Onboarding(db, user).export(),
         # Problems you reported in questions or feedback, and what happened (no internal notes).

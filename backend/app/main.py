@@ -12,6 +12,7 @@ from fastapi.responses import Response
 
 from app.api.routes import (
     ai,
+    applications,
     auth,
     careers,
     content,
@@ -79,6 +80,11 @@ TAGS = [
         "name": "stories",
         "description": "The story bank: your own STAR stories, private to you, with every saved version kept. "
         "Writing help is built-in rules (never AI) and changes nothing until you accept it.",
+    },
+    {
+        "name": "applications",
+        "description": "A private tracker of real applications as you record them: stages with history, "
+        "interview events with exact times, links to targets and stories. Nothing is sent or submitted.",
     },
     {
         "name": "sharing",
@@ -189,6 +195,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         shares.me_router,
         shares.public_router,
         stories.router,
+        applications.router,
         submissions.router,
         ai.router,
         interviews.router,
