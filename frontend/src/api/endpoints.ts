@@ -99,6 +99,13 @@ import type {
   OnboardingUpdate,
   Kit,
   KitUpdate,
+  WhiteboardAttempt,
+  WhiteboardAttemptIn,
+  WhiteboardAttemptSummary,
+  WhiteboardDiagram,
+  WhiteboardDraft,
+  WhiteboardDraftIn,
+  WhiteboardPromptList,
   Schedulable,
   ScheduleEntry,
   ScheduleEntryIn,
@@ -444,6 +451,17 @@ export const api = {
   cancelScheduleEntry: (id: string) => apiRequest<ScheduleEntry>(`/api/v1/me/schedule/${encodeURIComponent(id)}/cancel`, { method: "POST" }),
   scheduleIcs: (query: { ids?: string; from?: string; to?: string }) =>
     apiRequest<string>("/api/v1/me/schedule/export.ics", { query, raw: true, headers: { Accept: "text/calendar" } }),
+
+  // whiteboard practice
+  whiteboardPrompts: () => apiRequest<WhiteboardPromptList>("/api/v1/me/whiteboard/prompts"),
+  whiteboardDraft: (promptId: string) => apiRequest<WhiteboardDraft>(`/api/v1/me/whiteboard/${encodeURIComponent(promptId)}/draft`),
+  saveWhiteboardDraft: (promptId: string, body: WhiteboardDraftIn) =>
+    apiRequest<WhiteboardDraft>(`/api/v1/me/whiteboard/${encodeURIComponent(promptId)}/draft`, { method: "PUT", body }),
+  whiteboardAttempt: (promptId: string, body: WhiteboardAttemptIn) =>
+    apiRequest<WhiteboardAttempt>(`/api/v1/me/whiteboard/${encodeURIComponent(promptId)}/attempts`, { method: "POST", body }),
+  whiteboardAttempts: (promptId: string) => apiRequest<WhiteboardAttemptSummary[]>(`/api/v1/me/whiteboard/${encodeURIComponent(promptId)}/attempts`),
+  whiteboardAttemptById: (id: string) => apiRequest<WhiteboardAttempt>(`/api/v1/me/whiteboard/attempts/${encodeURIComponent(id)}`),
+  validateWhiteboard: (body: unknown) => apiRequest<WhiteboardDiagram>("/api/v1/me/whiteboard/validate", { method: "POST", body }),
 
   // interview-day kits
   kit: (appId: string, eventId: string) => apiRequest<Kit>(`/api/v1/me/applications/${encodeURIComponent(appId)}/events/${encodeURIComponent(eventId)}/kit`),

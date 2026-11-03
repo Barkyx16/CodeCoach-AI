@@ -15,6 +15,7 @@ import { TodayCard } from "@/features/plan/TodayCard";
 import { OnboardingBanner } from "@/features/onboarding/OnboardingBanner";
 
 import { ContinueCard } from "./ContinueCard";
+import { MorePractice } from "./MorePractice";
 import { StatTile } from "./StatTile";
 
 const LEVELS: Difficulty[] = ["easy", "medium", "hard"];
@@ -67,6 +68,7 @@ export function CareerDashboard({ track, careerTitle }: { track: string; careerT
       <OnboardingBanner />
       <TodayCard />
       <ContinueCard />
+      <MorePractice coding={false} />
 
       <section className="stat-row" aria-label="Summary">
         <StatTile icon="target" label="Answered" value={`${p.answered}`} detail={`of ${p.total_questions} questions`}

@@ -1593,6 +1593,93 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/whiteboard/prompts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Prompts for your career */
+        get: operations["prompts_api_v1_me_whiteboard_prompts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/whiteboard/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check a diagram file before it's loaded (nothing is saved) */
+        post: operations["validate_api_v1_me_whiteboard_validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/whiteboard/{prompt_id}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your working diagram */
+        get: operations["get_draft_api_v1_me_whiteboard__prompt_id__draft_get"];
+        /** Save it (409 if it changed elsewhere) */
+        put: operations["put_draft_api_v1_me_whiteboard__prompt_id__draft_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/whiteboard/{prompt_id}/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your attempts */
+        get: operations["attempts_api_v1_me_whiteboard__prompt_id__attempts_get"];
+        put?: never;
+        /** Freeze this diagram and get feedback (needs your explanation first) */
+        post: operations["attempt_api_v1_me_whiteboard__prompt_id__attempts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/whiteboard/attempts/{attempt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One attempt */
+        get: operations["get_attempt_api_v1_me_whiteboard_attempts__attempt_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/schedule": {
         parameters: {
             query?: never;
@@ -8261,6 +8348,199 @@ export interface components {
             /** Token */
             token: string;
         };
+        /** WhiteboardAttemptIn */
+        WhiteboardAttemptIn: {
+            diagram: components["schemas"]["WhiteboardDiagram"];
+            /**
+             * Explanation
+             * @description Why you made at least one choice, in your words (needed first)
+             */
+            explanation: string;
+        };
+        /** WhiteboardAttemptOut */
+        WhiteboardAttemptOut: {
+            /** Id */
+            id: string;
+            /** Prompt Id */
+            prompt_id: string;
+            /** Prompt Version */
+            prompt_version: number;
+            /** Rubric Version */
+            rubric_version: number;
+            diagram: components["schemas"]["WhiteboardDiagram"];
+            /** Digest */
+            digest: string;
+            /** Explanation */
+            explanation: string;
+            /** Feedback */
+            feedback: {
+                [key: string]: unknown;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** WhiteboardAttemptSummary */
+        WhiteboardAttemptSummary: {
+            /** Id */
+            id: string;
+            /** Prompt Version */
+            prompt_version: number;
+            /** Rubric Version */
+            rubric_version: number;
+            /** Digest */
+            digest: string;
+            /** Addressed */
+            addressed: number;
+            /** Total */
+            total: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** WhiteboardDiagram */
+        WhiteboardDiagram: {
+            /**
+             * Format
+             * @default codecoach-whiteboard
+             * @constant
+             */
+            format: "codecoach-whiteboard";
+            /**
+             * Version
+             * @default 1
+             * @constant
+             */
+            version: 1;
+            /** Nodes */
+            nodes?: components["schemas"]["WhiteboardNode"][];
+            /** Edges */
+            edges?: components["schemas"]["WhiteboardEdge"][];
+            notes?: components["schemas"]["WhiteboardNotes"];
+        };
+        /** WhiteboardDraftIn */
+        WhiteboardDraftIn: {
+            diagram: components["schemas"]["WhiteboardDiagram"];
+            /**
+             * Explanation
+             * @default
+             */
+            explanation: string;
+            /**
+             * Expected Revision
+             * @description 0 for the first save
+             */
+            expected_revision: number;
+        };
+        /** WhiteboardDraftOut */
+        WhiteboardDraftOut: {
+            /** Prompt Id */
+            prompt_id: string;
+            diagram: components["schemas"]["WhiteboardDiagram"];
+            /** Explanation */
+            explanation: string;
+            /** Revision */
+            revision: number;
+            /** Updated At */
+            updated_at: string | null;
+            /**
+             * Differs From Last Attempt
+             * @description True if this draft has changed since your last evaluated attempt
+             */
+            differs_from_last_attempt: boolean;
+        };
+        /** WhiteboardEdge */
+        WhiteboardEdge: {
+            /** Id */
+            id: string;
+            /** Source */
+            source: string;
+            /** Target */
+            target: string;
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+        };
+        /** WhiteboardNode */
+        WhiteboardNode: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /**
+             * Kind
+             * @default service
+             * @enum {string}
+             */
+            kind: "client" | "service" | "database" | "cache" | "queue" | "external" | "other";
+            /** X */
+            x: number;
+            /** Y */
+            y: number;
+            /** Group */
+            group?: string | null;
+        };
+        /** WhiteboardNotes */
+        WhiteboardNotes: {
+            /**
+             * Assumptions
+             * @default
+             */
+            assumptions: string;
+            /**
+             * Requirements
+             * @default
+             */
+            requirements: string;
+            /**
+             * Capacity
+             * @default
+             */
+            capacity: string;
+            /**
+             * Tradeoffs
+             * @default
+             */
+            tradeoffs: string;
+        };
+        /** WhiteboardPrompt */
+        WhiteboardPrompt: {
+            /** Id */
+            id: string;
+            /** Version */
+            version: number;
+            /** Title */
+            title: string;
+            /** Objective */
+            objective: string;
+            /** Brief */
+            brief: string;
+            /** Requirements */
+            requirements: components["schemas"]["WhiteboardPromptRequirement"][];
+        };
+        /** WhiteboardPromptList */
+        WhiteboardPromptList: {
+            /** Prompts */
+            prompts: components["schemas"]["WhiteboardPrompt"][];
+            /**
+             * Note
+             * @description What's offered for this career, and what isn't yet
+             */
+            note: string;
+        };
+        /** WhiteboardPromptRequirement */
+        WhiteboardPromptRequirement: {
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+        };
         /** WrittenOut */
         WrittenOut: {
             /** Step Index */
@@ -14073,6 +14353,348 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    prompts_api_v1_me_whiteboard_prompts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhiteboardPromptList"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    validate_api_v1_me_whiteboard_validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhiteboardDiagram"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhiteboardDiagram"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_draft_api_v1_me_whiteboard__prompt_id__draft_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prompt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhiteboardDraftOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_draft_api_v1_me_whiteboard__prompt_id__draft_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prompt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhiteboardDraftIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhiteboardDraftOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    attempts_api_v1_me_whiteboard__prompt_id__attempts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prompt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhiteboardAttemptSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attempt_api_v1_me_whiteboard__prompt_id__attempts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prompt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhiteboardAttemptIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhiteboardAttemptOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_attempt_api_v1_me_whiteboard_attempts__attempt_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhiteboardAttemptOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

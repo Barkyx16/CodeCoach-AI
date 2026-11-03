@@ -14,6 +14,7 @@ import { TodayCard } from "@/features/plan/TodayCard";
 import { OnboardingBanner } from "@/features/onboarding/OnboardingBanner";
 
 import { ContinueCard } from "./ContinueCard";
+import { MorePractice } from "./MorePractice";
 import { ProgressBars } from "./ProgressBars";
 import { RecentActivity } from "./RecentActivity";
 import { StatTile } from "./StatTile";
@@ -58,6 +59,7 @@ function CodingDashboard() {
       <OnboardingBanner />
       <TodayCard />
       <ContinueCard />
+      <MorePractice coding />
 
       <section className="stat-row" aria-label="Summary">
         <StatTile icon="target" label="Solved" value={`${p.solved}`} detail={`of ${p.total_problems} problems`}

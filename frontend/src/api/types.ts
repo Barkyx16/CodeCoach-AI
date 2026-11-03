@@ -195,3 +195,12 @@ export type Kit = S["KitOut"];
 export type KitQuestion = S["AskQuestion"];
 export type KitChecklistItem = S["ChecklistItem"];
 export type KitUpdate = S["KitUpdate"];
+
+export type WhiteboardDiagram = S["WhiteboardDiagram"];
+export type WhiteboardPrompt = S["WhiteboardPrompt"];
+export type WhiteboardPromptList = S["WhiteboardPromptList"];
+export type WhiteboardDraft = S["WhiteboardDraftOut"];
+export type WhiteboardDraftIn = S["WhiteboardDraftIn"];
+export type WhiteboardAttemptIn = S["WhiteboardAttemptIn"];
+export type WhiteboardAttempt = S["WhiteboardAttemptOut"];
+export type WhiteboardAttemptSummary = S["WhiteboardAttemptSummary"];

@@ -684,6 +684,18 @@ These are moments where the obvious path was wrong and a deliberate decision was
     there's no score. The printed pack is the same component as the on-screen preview, so they
     can't differ, and private details stay out until chosen. A browser test caught a real bug:
     saving a new format together with the page's checklist overwrote the new suggestions.
+55. **A small canvas with a keyboard twin, and feedback that points at things.** A drawing
+    library would have brought free-form shapes, embedded HTML and a pointer-first model. The
+    whiteboard is a bounded JSON format (40 components, 80 connections, plain text, unknown
+    fields refused) edited through one reducer, so the outline and the canvas can't disagree
+    and undo/redo is just history. Feedback is deterministic rules that list *where* each
+    point was found (component n3, the capacity note, the explanation), kept separate from
+    structural checks, and it says what it can't judge. Only system design is offered, and the
+    page says process maps for other careers aren't there yet rather than stretching the
+    rubric. An attempt freezes the diagram with prompt and rubric versions; a fingerprint marks
+    a later edit as different. A browser test briefly looked like a privacy hole (a signed-out
+    request got 200); it was the dev server's HTML fallback, and the test now calls the API
+    directly as a second account and gets 404.
 
 ## 6. Python concepts used here (for a Java developer)
 
@@ -1563,3 +1575,19 @@ They're built in order, each as a complete, tested slice committed on its own.
   History test (it clicked while the previous results were still shown after the URL changed);
   fixed in the test in a separate commit and then passed 6 of 6 runs.
 - **Limits:** printing checked through Chromium's print media, not paper or a PDF viewer.
+
+**V2-06 Whiteboard practice (built and verified):**
+- Three versioned system-design prompts for software careers; a plain-text diagram (components
+  with kinds and optional groups, labelled connections, four notes) edited from a keyboard
+  outline or by dragging, with undo/redo, zoom and fit, a text equivalent, revision-checked
+  drafts with device recovery, previewed JSON export, server-validated import, words-only
+  answers, and frozen attempts whose feedback cites element ids and says what it can't judge.
+- Tests: 10 backend, 7 frontend (4 unit: reducer bounds, undo/redo, fingerprint, groups; 3
+  integration: outline build, delete+undo, explanation gate, conflict, rejected import), 4 Playwright journeys (keyboard only from the dashboard; pointer drag,
+  zoom, failed save, reload recovery, strict import, failed feedback, export download; dark
+  theme with API checks as signed-out and as another account; 320px light) with axe scans.
+- Full runs: backend 1809 passed, 1 skipped (PostgreSQL-only concurrency test on SQLite);
+  whiteboard tests also on PostgreSQL (10 passed); frontend 502 passed; Playwright 66 passed,
+  3 skipped, 0 failed. Migration round-tripped on PostgreSQL with `alembic check` clean.
+- **Limits:** touch drag is implemented (only components capture touch) but was exercised only
+  with a mouse in Chromium; no image/PDF export; forced-colors styles not checked on Windows.

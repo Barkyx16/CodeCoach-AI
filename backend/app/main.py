@@ -33,6 +33,7 @@ from app.api.routes import (
     stories,
     submissions,
     targets,
+    whiteboard,
 )
 from app.config import Settings, get_settings
 from app.db.seed import seed_problems
@@ -92,6 +93,11 @@ TAGS = [
         "name": "schedule",
         "description": "Existing activities on dates and times you choose, in your time zone, with .ics files. "
         "Scheduling isn't doing; nothing is sent, and reminders exist only inside an open tab.",
+    },
+    {
+        "name": "whiteboard",
+        "description": "System-design practice with a small, plain-text diagram: drafts with conflict-safe saves, "
+        "attempts frozen with their prompt and rubric versions, and feedback that names the elements it found.",
     },
     {
         "name": "sharing",
@@ -204,6 +210,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         stories.router,
         applications.router,
         kits.router,
+        whiteboard.router,
         schedule.router,
         submissions.router,
         ai.router,

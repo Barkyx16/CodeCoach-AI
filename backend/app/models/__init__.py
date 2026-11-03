@@ -1191,3 +1191,36 @@ class InterviewKit(Base):
     questions: Mapped[list] = mapped_column(JSONType, default=list)  # [{id, text, group, origin, excluded}]
     story_ids: Mapped[list] = mapped_column(JSONType, default=list)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class WhiteboardDraft(Base):
+    """A learner's working diagram for one prompt. Saving checks the revision, so a stale tab
+    can't overwrite newer work."""
+
+    __tablename__ = "whiteboard_drafts"
+
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    prompt_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    diagram: Mapped[dict] = mapped_column(JSONType)
+    explanation: Mapped[str] = mapped_column(Text, default="")
+    revision: Mapped[int] = mapped_column(Integer, default=1)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class WhiteboardAttempt(Base):
+    """A diagram submitted for feedback: a frozen copy with the prompt and rubric versions and the
+    feedback it got. Later edits to the draft never change it."""
+
+    __tablename__ = "whiteboard_attempts"
+    __table_args__ = (Index("ix_whiteboard_user_prompt", "user_id", "prompt_id"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    prompt_id: Mapped[str] = mapped_column(String(64))
+    prompt_version: Mapped[int] = mapped_column(Integer)
+    rubric_version: Mapped[int] = mapped_column(Integer)
+    diagram: Mapped[dict] = mapped_column(JSONType)
+    digest: Mapped[str] = mapped_column(String(32))
+    explanation: Mapped[str] = mapped_column(Text)
+    feedback: Mapped[dict] = mapped_column(JSONType)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)

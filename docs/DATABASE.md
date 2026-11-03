@@ -237,6 +237,14 @@ or `problem` + slug), not a foreign key, so a report outlives a renamed or retir
   (JSON), optional admin-only `internal_note`, `report_id` (no foreign key, so the trail stays even
   if a report is deleted with its reporter's account).
 
+### Whiteboard practice
+- `whiteboard_drafts`: one row per user and prompt (primary key `user_id`, `prompt_id`; cascade
+  with the account): `diagram` (JSON), `explanation`, `revision` (checked on save),
+  `updated_at`.
+- `whiteboard_attempts`: frozen attempts (cascade with the account), indexed by user and prompt:
+  `prompt_id`, `prompt_version`, `rubric_version`, `diagram` (JSON as sent), `digest` (a
+  fingerprint of it), `explanation`, `feedback` (JSON), `created_at`.
+
 ### Interview-day kits
 - `interview_kits`: one row per interview event (primary key `event_id`, cascading with the event
   and so with its application; `user_id` cascades with the account), created on the first save:
@@ -321,6 +329,7 @@ or `problem` + slug), not a foreign key, so a report outlives a renamed or retir
 | `4e7000f6addb` applications | Adds `applications`, `application_stage_changes` and `application_events`. New tables, cascading with the user; round-tripped on PostgreSQL |
 | `f781df0f6728` schedule | Adds `schedule_settings` and `schedule_entries`. New tables, cascading with the user; round-tripped on PostgreSQL |
 | `5f47fa286244` interview kits | Adds `interview_kits` (one per interview event). New table, cascading with the event and the user; round-tripped on PostgreSQL |
+| `1bbae318ce1d` whiteboard practice | Adds `whiteboard_drafts` (one per user and prompt) and `whiteboard_attempts`. New tables, cascading with the user; round-tripped on PostgreSQL |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

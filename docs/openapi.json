@@ -8582,6 +8582,473 @@
         }
       }
     },
+    "/api/v1/me/whiteboard/prompts": {
+      "get": {
+        "tags": [
+          "whiteboard"
+        ],
+        "summary": "Prompts for your career",
+        "operationId": "prompts_api_v1_me_whiteboard_prompts_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhiteboardPromptList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/whiteboard/validate": {
+      "post": {
+        "tags": [
+          "whiteboard"
+        ],
+        "summary": "Check a diagram file before it's loaded (nothing is saved)",
+        "operationId": "validate_api_v1_me_whiteboard_validate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WhiteboardDiagram"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhiteboardDiagram"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/whiteboard/{prompt_id}/draft": {
+      "get": {
+        "tags": [
+          "whiteboard"
+        ],
+        "summary": "Your working diagram",
+        "operationId": "get_draft_api_v1_me_whiteboard__prompt_id__draft_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "prompt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Prompt Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhiteboardDraftOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "whiteboard"
+        ],
+        "summary": "Save it (409 if it changed elsewhere)",
+        "operationId": "put_draft_api_v1_me_whiteboard__prompt_id__draft_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "prompt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Prompt Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WhiteboardDraftIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhiteboardDraftOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/whiteboard/{prompt_id}/attempts": {
+      "post": {
+        "tags": [
+          "whiteboard"
+        ],
+        "summary": "Freeze this diagram and get feedback (needs your explanation first)",
+        "operationId": "attempt_api_v1_me_whiteboard__prompt_id__attempts_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "prompt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Prompt Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WhiteboardAttemptIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhiteboardAttemptOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "whiteboard"
+        ],
+        "summary": "Your attempts",
+        "operationId": "attempts_api_v1_me_whiteboard__prompt_id__attempts_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "prompt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Prompt Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WhiteboardAttemptSummary"
+                  },
+                  "title": "Response Attempts Api V1 Me Whiteboard  Prompt Id  Attempts Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/whiteboard/attempts/{attempt_id}": {
+      "get": {
+        "tags": [
+          "whiteboard"
+        ],
+        "summary": "One attempt",
+        "operationId": "get_attempt_api_v1_me_whiteboard_attempts__attempt_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Attempt Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhiteboardAttemptOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/schedule": {
       "get": {
         "tags": [
@@ -28979,6 +29446,438 @@
         ],
         "title": "VerifyEmailRequest"
       },
+      "WhiteboardAttemptIn": {
+        "properties": {
+          "diagram": {
+            "$ref": "#/components/schemas/WhiteboardDiagram"
+          },
+          "explanation": {
+            "type": "string",
+            "maxLength": 4000,
+            "title": "Explanation",
+            "description": "Why you made at least one choice, in your words (needed first)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "diagram",
+          "explanation"
+        ],
+        "title": "WhiteboardAttemptIn"
+      },
+      "WhiteboardAttemptOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "prompt_id": {
+            "type": "string",
+            "title": "Prompt Id"
+          },
+          "prompt_version": {
+            "type": "integer",
+            "title": "Prompt Version"
+          },
+          "rubric_version": {
+            "type": "integer",
+            "title": "Rubric Version"
+          },
+          "diagram": {
+            "$ref": "#/components/schemas/WhiteboardDiagram"
+          },
+          "digest": {
+            "type": "string",
+            "title": "Digest"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          },
+          "feedback": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Feedback"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "prompt_id",
+          "prompt_version",
+          "rubric_version",
+          "diagram",
+          "digest",
+          "explanation",
+          "feedback",
+          "created_at"
+        ],
+        "title": "WhiteboardAttemptOut"
+      },
+      "WhiteboardAttemptSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "prompt_version": {
+            "type": "integer",
+            "title": "Prompt Version"
+          },
+          "rubric_version": {
+            "type": "integer",
+            "title": "Rubric Version"
+          },
+          "digest": {
+            "type": "string",
+            "title": "Digest"
+          },
+          "addressed": {
+            "type": "integer",
+            "title": "Addressed"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "prompt_version",
+          "rubric_version",
+          "digest",
+          "addressed",
+          "total",
+          "created_at"
+        ],
+        "title": "WhiteboardAttemptSummary"
+      },
+      "WhiteboardDiagram": {
+        "properties": {
+          "format": {
+            "type": "string",
+            "const": "codecoach-whiteboard",
+            "title": "Format",
+            "default": "codecoach-whiteboard"
+          },
+          "version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Version",
+            "default": 1
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/WhiteboardNode"
+            },
+            "type": "array",
+            "maxItems": 40,
+            "title": "Nodes"
+          },
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/WhiteboardEdge"
+            },
+            "type": "array",
+            "maxItems": 80,
+            "title": "Edges"
+          },
+          "notes": {
+            "$ref": "#/components/schemas/WhiteboardNotes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "WhiteboardDiagram"
+      },
+      "WhiteboardDraftIn": {
+        "properties": {
+          "diagram": {
+            "$ref": "#/components/schemas/WhiteboardDiagram"
+          },
+          "explanation": {
+            "type": "string",
+            "maxLength": 4000,
+            "title": "Explanation",
+            "default": ""
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "description": "0 for the first save"
+          }
+        },
+        "type": "object",
+        "required": [
+          "diagram",
+          "expected_revision"
+        ],
+        "title": "WhiteboardDraftIn"
+      },
+      "WhiteboardDraftOut": {
+        "properties": {
+          "prompt_id": {
+            "type": "string",
+            "title": "Prompt Id"
+          },
+          "diagram": {
+            "$ref": "#/components/schemas/WhiteboardDiagram"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "differs_from_last_attempt": {
+            "type": "boolean",
+            "title": "Differs From Last Attempt",
+            "description": "True if this draft has changed since your last evaluated attempt"
+          }
+        },
+        "type": "object",
+        "required": [
+          "prompt_id",
+          "diagram",
+          "explanation",
+          "revision",
+          "updated_at",
+          "differs_from_last_attempt"
+        ],
+        "title": "WhiteboardDraftOut"
+      },
+      "WhiteboardEdge": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,15}$",
+            "title": "Id"
+          },
+          "source": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,15}$",
+            "title": "Source"
+          },
+          "target": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,15}$",
+            "title": "Target"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 60,
+            "title": "Label",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "source",
+          "target"
+        ],
+        "title": "WhiteboardEdge"
+      },
+      "WhiteboardNode": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,15}$",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 60,
+            "title": "Label"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "client",
+              "service",
+              "database",
+              "cache",
+              "queue",
+              "external",
+              "other"
+            ],
+            "title": "Kind",
+            "default": "service"
+          },
+          "x": {
+            "type": "integer",
+            "maximum": 4000.0,
+            "minimum": 0.0,
+            "title": "X"
+          },
+          "y": {
+            "type": "integer",
+            "maximum": 4000.0,
+            "minimum": 0.0,
+            "title": "Y"
+          },
+          "group": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "x",
+          "y"
+        ],
+        "title": "WhiteboardNode"
+      },
+      "WhiteboardNotes": {
+        "properties": {
+          "assumptions": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Assumptions",
+            "default": ""
+          },
+          "requirements": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Requirements",
+            "default": ""
+          },
+          "capacity": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Capacity",
+            "default": ""
+          },
+          "tradeoffs": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Tradeoffs",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "WhiteboardNotes"
+      },
+      "WhiteboardPrompt": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "objective": {
+            "type": "string",
+            "title": "Objective"
+          },
+          "brief": {
+            "type": "string",
+            "title": "Brief"
+          },
+          "requirements": {
+            "items": {
+              "$ref": "#/components/schemas/WhiteboardPromptRequirement"
+            },
+            "type": "array",
+            "title": "Requirements"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "version",
+          "title",
+          "objective",
+          "brief",
+          "requirements"
+        ],
+        "title": "WhiteboardPrompt"
+      },
+      "WhiteboardPromptList": {
+        "properties": {
+          "prompts": {
+            "items": {
+              "$ref": "#/components/schemas/WhiteboardPrompt"
+            },
+            "type": "array",
+            "title": "Prompts"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note",
+            "description": "What's offered for this career, and what isn't yet"
+          }
+        },
+        "type": "object",
+        "required": [
+          "prompts",
+          "note"
+        ],
+        "title": "WhiteboardPromptList"
+      },
+      "WhiteboardPromptRequirement": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "text"
+        ],
+        "title": "WhiteboardPromptRequirement"
+      },
       "WrittenOut": {
         "properties": {
           "step_index": {
@@ -29074,6 +29973,10 @@
     {
       "name": "schedule",
       "description": "Existing activities on dates and times you choose, in your time zone, with .ics files. Scheduling isn't doing; nothing is sent, and reminders exist only inside an open tab."
+    },
+    {
+      "name": "whiteboard",
+      "description": "System-design practice with a small, plain-text diagram: drafts with conflict-safe saves, attempts frozen with their prompt and rubric versions, and feedback that names the elements it found."
     },
     {
       "name": "sharing",

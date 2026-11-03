@@ -805,6 +805,31 @@ One kit per recorded interview event ([INTERVIEW_KIT.md](INTERVIEW_KIT.md)). Own
   A new format swaps untouched suggestions only. Links must be `http(s)` (`422`); someone else's
   story `404`.
 
+### Whiteboard practice
+
+System-design practice with a small, plain-text diagram ([WHITEBOARD.md](WHITEBOARD.md)).
+Owner-only.
+
+- `GET /api/v1/me/whiteboard/prompts` 🔒 → `{prompts: [{id, version, title, objective, brief,
+  requirements: [{id, text}]}], note}`. The note says what's offered for the learner's career
+  (system design only; no process maps yet).
+- `POST /api/v1/me/whiteboard/validate` 🔒 a diagram → the cleaned diagram, or `422`. Saves
+  nothing; used before an imported file is loaded.
+- Diagram: `{format: "codecoach-whiteboard", version: 1, nodes: [{id, label, kind, x, y,
+  group}], edges: [{id, source, target, label}], notes: {assumptions, requirements, capacity,
+  tradeoffs}}`. Ids match `^[a-z][a-z0-9-]{0,15}$`; up to 40 nodes and 80 edges; plain text with
+  length limits; unknown fields are refused (`422`).
+- `GET /api/v1/me/whiteboard/{prompt_id}/draft` 🔒 → `{diagram, explanation, revision,
+  updated_at, differs_from_last_attempt}` (revision `0` before the first save).
+- `PUT …/{prompt_id}/draft {diagram, explanation, expected_revision}` → the draft; `409
+  stale_revision` with `details.current_revision` if it was saved elsewhere.
+- `POST …/{prompt_id}/attempts {diagram, explanation}` → `201` `{id, prompt_version,
+  rubric_version, diagram, digest, explanation, feedback: {checks, rubric: [{requirement, text,
+  addressed, evidence: [{kind: component|connection|note|explanation, id, text}]}], reasoning,
+  limitations}}`. `400 explanation_required` under 15 words. An empty diagram is allowed.
+- `GET …/{prompt_id}/attempts` → summaries (`addressed`, `total`, versions); `GET
+  /api/v1/me/whiteboard/attempts/{id}` → one frozen attempt.
+
 ### Schedule
 
 Existing activities on dates and times you choose ([SCHEDULE.md](SCHEDULE.md)). Owner-only.

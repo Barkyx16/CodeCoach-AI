@@ -686,3 +686,15 @@ export function useSchedulable() {
 export function useKit(appId: string, eventId: string) {
   return useQuery({ queryKey: ["me", "kit", appId, eventId], queryFn: () => api.kit(appId, eventId), staleTime: 0 });
 }
+
+export function useWhiteboardPrompts() {
+  return useQuery({ queryKey: ["me", "whiteboard", "prompts"], queryFn: api.whiteboardPrompts, staleTime: 5 * 60_000 });
+}
+
+export function useWhiteboardDraft(promptId: string) {
+  return useQuery({ queryKey: ["me", "whiteboard", "draft", promptId], queryFn: () => api.whiteboardDraft(promptId), staleTime: 0, gcTime: 0 });
+}
+
+export function useWhiteboardAttempts(promptId: string) {
+  return useQuery({ queryKey: ["me", "whiteboard", "attempts", promptId], queryFn: () => api.whiteboardAttempts(promptId), staleTime: 0 });
+}

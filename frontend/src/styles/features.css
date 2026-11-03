@@ -298,3 +298,8 @@ fieldset.field { border: none; padding: 0; margin: 0; }
 .judge-status { margin: 0 0 var(--space-2); font-size: var(--text-sm); }
 .judge-status__help summary { cursor: pointer; margin-top: var(--space-1); }
 .judge-status__help p { margin: var(--space-1) 0 0; overflow-wrap: anywhere; }
+
+/* Dashboard: other practice formats, as a quiet row of links. */
+.more-practice { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2); margin: var(--space-3) 0; }
+.more-practice ul { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); list-style: none; padding: 0; margin: 0; }
+.more-practice a { text-decoration: underline; }
