@@ -42,6 +42,8 @@ test("coding: activity shows up honestly, and Back returns to the same filtered,
   await filters(page).getByLabel("Activity").selectOption("code_submission");
   await expect(page).toHaveURL(/career=coding/);
   await expect(page).toHaveURL(/type=code_submission/);
+  // The URL changes first; the previous results stay until the filtered list arrives.
+  await expect(page.getByRole("link", { name: /^Opened Two Sum/ })).toHaveCount(0);
   await page.getByRole("link", { name: /Two Sum/ }).click();
   await expect(page).toHaveURL(/\/history\/submissions\//);
   await expect(page.getByRole("heading", { name: "Two Sum" })).toBeVisible();

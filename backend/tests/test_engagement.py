@@ -115,3 +115,8 @@ def test_coding_messages(phase, message, state):
     r = for_coding_message(phase, message, "O(n)")
     assert r.state == state, r.reason
     assert r.reason.startswith(r.label) and r.evidence
+
+
+def test_a_repeated_complexity_is_one_piece_of_evidence():
+    r = for_coding_message(InterviewPhase.COMPLEXITY, "It runs in O(n) time and O(n) space, or O(1) space with sorting.", "O(n)")
+    assert r.evidence == ["Stated: O(n)", "Stated: O(1)"]

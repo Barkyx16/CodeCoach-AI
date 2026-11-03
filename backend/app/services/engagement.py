@@ -296,7 +296,7 @@ def for_coding_message(phase: InterviewPhase | None, message: str, expected_time
             return _result(
                 "explore_further",
                 f"you stated O({stated[0]}); explaining why it holds would come next.",
-                [f"Stated: O({s})" for s in stated],
+                [f"Stated: O({s})" for s in dict.fromkeys(stated)],  # "O(n) time and O(n) space" is one claim
             )
         return _result(
             "more_detail",
