@@ -224,6 +224,7 @@ transcript; `ai_interactions` rows for interview turns keep only cost and latenc
 | `e1a7c5b9d204` bookmarks and collections | Adds `bookmarks` (unique per user, type, career and item), `practice_collections` (name, queue position, queue start) and `collection_items` (position, `queue_done_at`, unique per collection and item). New tables, cascading with the user |
 | `f3b8d1e6c527` learn events | Adds `learn_events` (unit id and version, kind, detail, `dedupe_key` unique per user so once-per-version events can't race). New table, cascading with the user |
 | `a5c9e2f7d318` notes | Adds `notes` (text, tags, source reference and snapshot, pin/archive, `revision` for conflict detection, `deleted_at` for the undo window) with an index on `(user_id, updated_at)`. New table, cascading with the user |
+| `b7d2f4a9c613` scenario attempts | Adds `scenario_attempts` (scenario id and version, mode, parent attempt, current node, recorded steps with text/feedback snapshots, ending). New table, cascading with the user |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

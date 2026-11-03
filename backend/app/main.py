@@ -23,6 +23,7 @@ from app.api.routes import (
     notes,
     plan,
     problems,
+    scenarios,
     submissions,
     targets,
 )
@@ -145,6 +146,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         explore.router,
         learn.router,
         notes.router,
+        scenarios.router,
         submissions.router,
         ai.router,
         interviews.router,

@@ -502,3 +502,21 @@ export function useNotes(filters: NoteFilters, enabled = true) {
 export function useNote(id: string) {
   return useQuery({ queryKey: ["me", "note", id], queryFn: () => api.note(id), staleTime: 0 });
 }
+
+// --- branching scenarios -----------------------------------------------------------------------
+
+export function useScenarios(track: string) {
+  return useQuery({ queryKey: ["scenarios", track], queryFn: () => api.scenarios(track), staleTime: 10 * 60_000 });
+}
+
+export function useScenario(id: string) {
+  return useQuery({ queryKey: ["scenario", id], queryFn: () => api.scenario(id), staleTime: 10 * 60_000 });
+}
+
+export function useScenarioAttempts(scenarioId: string | undefined, enabled: boolean) {
+  return useQuery({ queryKey: ["me", "scenario-attempts", scenarioId ?? "all"], queryFn: () => api.scenarioAttempts(scenarioId), enabled });
+}
+
+export function useScenarioAttempt(id: string) {
+  return useQuery({ queryKey: ["me", "scenario-attempt", id], queryFn: () => api.scenarioAttempt(id) });
+}

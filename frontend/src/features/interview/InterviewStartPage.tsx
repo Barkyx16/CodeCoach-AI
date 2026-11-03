@@ -42,6 +42,7 @@ export function InterviewStartPage() {
           <p className="eyebrow">THINK CLEARLY. EXPLAIN CONFIDENTLY.</p>
           <h1 className="page__title">Mock interview</h1>
           <p className="page__subtitle">A timed, realistic coding interview with an AI interviewer, then rubric feedback.</p>
+          <p className="subtle">Or practise decisions in a <Link to="/scenarios">branching scenario</Link>.</p>
         </div>
       </div>
       <div className="interview-overview"><span><Icon name="clock" size={18} />15–45 minutes</span><span><Icon name="code" size={18} />Java workspace</span><span><Icon name="chart" size={18} />Feedback on {Object.keys(DIMENSION_LABELS).length} skills</span></div>

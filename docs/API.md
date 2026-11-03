@@ -753,6 +753,27 @@ All under `/api/v1/me/notes` 🔒; a note is only ever visible to its owner (any
 - Bodies are stored as untrusted text and never logged; the web app renders Markdown without HTML
   or images. Notes are in the data export and deleted with the account.
 
+### Branching scenarios
+
+Authored graphs ([docs/SCENARIOS.md](SCENARIOS.md)); no model is used.
+
+- `GET /api/v1/scenarios?track=` and `GET /api/v1/scenarios/{id}` (public): role, objective,
+  `minutes` (author's estimate), scope, version, `decisions`, `endings`, review, `validated:
+  false`, references.
+- `POST /api/v1/me/scenarios/{id}/attempts {mode: assessed|exploration, parent_id?}` 🔒: starts
+  an attempt, or returns your in-progress assessed attempt (resume). `exploration` needs a
+  finished `parent_id` and creates a separate attempt; the original is never changed.
+- `GET /api/v1/me/scenario-attempts[?scenario_id=]` and `GET …/{attempt_id}` 🔒: the current node
+  (choice options without their quality or feedback), recorded steps (with the authored rule for
+  each decision and covered/missing points for written responses), and the `debrief` once
+  finished (outcome, path, decisions with alternatives, strengths, references, disclaimer).
+- `POST /api/v1/me/scenario-attempts/{attempt_id}/steps {node_id, choice_id?, text?}` 🔒: answers
+  the current node; the server picks the next one from the graph. Repeating the last recorded
+  step returns the attempt unchanged; any other node is `409 stale_step`; an unknown option is
+  `400 invalid_choice`; finished attempts are `409 attempt_finished`; an attempt on an older
+  scenario version is `409 scenario_updated` (kept, readable, not continuable). Attempts are
+  owner-only, in the data export and deleted with the account.
+
 ### Practice plan
 
 Deterministic rules over recorded evidence (`app/services/roadmap.py` documents them); no AI.

@@ -834,6 +834,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/scenarios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Scenarios for a career */
+        get: operations["list_scenarios_api_v1_scenarios_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scenarios/{scenario_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What a scenario is about before you start (role, objective, time, scope, review) */
+        get: operations["get_scenario_api_v1_scenarios__scenario_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/scenarios/{scenario_id}/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start (or resume) an attempt; mode=exploration with parent_id tries another approach */
+        post: operations["start_attempt_api_v1_me_scenarios__scenario_id__attempts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/scenario-attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your scenario attempts, newest first */
+        get: operations["list_attempts_api_v1_me_scenario_attempts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/scenario-attempts/{attempt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An attempt: where you are, what you've decided, and the debrief once finished */
+        get: operations["get_attempt_api_v1_me_scenario_attempts__attempt_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/scenario-attempts/{attempt_id}/steps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Answer the current node (continue, a choice or a written response); the server picks the next node */
+        post: operations["take_step_api_v1_me_scenario_attempts__attempt_id__steps_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/submissions": {
         parameters: {
             query?: never;
@@ -1707,6 +1809,18 @@ export interface components {
             /** Ai Interaction Id */
             ai_interaction_id?: string | null;
         };
+        /** Alternative */
+        Alternative: {
+            /** Label */
+            label: string;
+            /**
+             * Quality
+             * @enum {string}
+             */
+            quality: "strong" | "acceptable" | "risky";
+            /** Rule */
+            rule: string;
+        };
         /** AnswerOut */
         AnswerOut: {
             /** Id */
@@ -1873,6 +1987,15 @@ export interface components {
             definitions: {
                 [key: string]: string;
             };
+        };
+        /** CareerCount */
+        CareerCount: {
+            /** Track */
+            track: string;
+            /** Title */
+            title: string;
+            /** Scenarios */
+            scenarios: number;
         };
         /** CareerCoverage */
         CareerCoverage: {
@@ -2194,6 +2317,52 @@ export interface components {
             answers: number;
             /** Interviews */
             interviews: number;
+        };
+        /** Debrief */
+        Debrief: {
+            /** Outcome */
+            outcome: string;
+            /** Ending Title */
+            ending_title: string;
+            /** Ending Text */
+            ending_text: string;
+            /** Summary */
+            summary: string;
+            /**
+             * Path
+             * @description Titles of the steps you went through, in order
+             */
+            path: string[];
+            /** Decisions */
+            decisions: components["schemas"]["DecisionOut"][];
+            /** Strengths */
+            strengths: string[];
+            /** Written */
+            written: components["schemas"]["WrittenOut"][];
+            /** References */
+            references: components["schemas"]["ReferenceOut"][];
+            /** Feedback Source */
+            feedback_source: string;
+            /** Disclaimer */
+            disclaimer: string;
+        };
+        /** DecisionOut */
+        DecisionOut: {
+            /** Step Index */
+            step_index: number;
+            /** Title */
+            title: string;
+            /** Chosen */
+            chosen: string;
+            /**
+             * Quality
+             * @enum {string}
+             */
+            quality: "strong" | "acceptable" | "risky";
+            /** Rule */
+            rule: string;
+            /** Alternatives */
+            alternatives: components["schemas"]["Alternative"][];
         };
         /** DeleteAccountRequest */
         DeleteAccountRequest: {
@@ -3184,6 +3353,25 @@ export interface components {
             /** Label */
             label: string;
         };
+        /**
+         * NodeView
+         * @description The node the learner is on. Choice quality and feedback are only revealed after choosing.
+         */
+        NodeView: {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "info" | "choice" | "written";
+            /** Title */
+            title: string;
+            /** Text */
+            text: string;
+            /** Options */
+            options: components["schemas"]["OptionOut"][];
+        };
         /** NoteIn */
         NoteIn: {
             /**
@@ -3323,6 +3511,13 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** OptionOut */
+        OptionOut: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
         };
         /** OrderIn */
         OrderIn: {
@@ -4261,6 +4456,174 @@ export interface components {
              */
             evidence: string;
         };
+        /** ScenarioAttemptOut */
+        ScenarioAttemptOut: {
+            /** Id */
+            id: string;
+            scenario: components["schemas"]["ScenarioSummary"];
+            /** Version */
+            version: number;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "assessed" | "exploration";
+            /** Parent Id */
+            parent_id: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "in_progress" | "completed";
+            /**
+             * Retired
+             * @description The scenario has a newer version; this attempt is kept but can't continue
+             */
+            retired: boolean;
+            current: components["schemas"]["NodeView"] | null;
+            /** Steps */
+            steps: components["schemas"]["StepOut"][];
+            debrief: components["schemas"]["Debrief"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Completed At */
+            completed_at: string | null;
+        };
+        /** ScenarioAttemptSummary */
+        ScenarioAttemptSummary: {
+            /** Id */
+            id: string;
+            /** Scenario Id */
+            scenario_id: string;
+            /** Title */
+            title: string;
+            /** Version */
+            version: number;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "assessed" | "exploration";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "in_progress" | "completed";
+            /** Outcome */
+            outcome: string | null;
+            /** Retired */
+            retired: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Completed At */
+            completed_at: string | null;
+        };
+        /** ScenarioCatalog */
+        ScenarioCatalog: {
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /** Scenarios */
+            scenarios: components["schemas"]["ScenarioSummary"][];
+            /** Coverage Note */
+            coverage_note: string;
+            /** Careers With Scenarios */
+            careers_with_scenarios: components["schemas"]["CareerCount"][];
+        };
+        /** ScenarioDetail */
+        ScenarioDetail: {
+            /** Id */
+            id: string;
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /** Title */
+            title: string;
+            /** Role */
+            role: string;
+            /** Objective */
+            objective: string;
+            /**
+             * Minutes
+             * @description Author's estimate of the time it takes
+             */
+            minutes: number;
+            /** Scope */
+            scope: string;
+            /** Version */
+            version: number;
+            /** Regulated */
+            regulated: boolean;
+            /**
+             * Validated
+             * @description Always false: no scenario has been validated by an outside professional body
+             */
+            validated: boolean;
+            /**
+             * Decisions
+             * @description How many choices the longest path asks for
+             */
+            decisions: number;
+            /** Endings */
+            endings: number;
+            review: components["schemas"]["ReviewOut"];
+            /** References */
+            references: components["schemas"]["ReferenceOut"][];
+            /** Changes */
+            changes: string[];
+        };
+        /** ScenarioSummary */
+        ScenarioSummary: {
+            /** Id */
+            id: string;
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /** Title */
+            title: string;
+            /** Role */
+            role: string;
+            /** Objective */
+            objective: string;
+            /**
+             * Minutes
+             * @description Author's estimate of the time it takes
+             */
+            minutes: number;
+            /** Scope */
+            scope: string;
+            /** Version */
+            version: number;
+            /** Regulated */
+            regulated: boolean;
+            /**
+             * Validated
+             * @description Always false: no scenario has been validated by an outside professional body
+             */
+            validated: boolean;
+            /**
+             * Decisions
+             * @description How many choices the longest path asks for
+             */
+            decisions: number;
+            /** Endings */
+            endings: number;
+            review: components["schemas"]["ReviewOut"];
+        };
         /** SelfRating */
         SelfRating: {
             /** Skill */
@@ -4363,6 +4726,68 @@ export interface components {
             available: boolean;
             /** Career Title */
             career_title: string | null;
+        };
+        /** StartIn */
+        StartIn: {
+            /**
+             * Mode
+             * @default assessed
+             * @enum {string}
+             */
+            mode: "assessed" | "exploration";
+            /**
+             * Parent Id
+             * @description Exploration: the completed attempt you're trying another approach to
+             */
+            parent_id?: string | null;
+        };
+        /** StepIn */
+        StepIn: {
+            /**
+             * Node Id
+             * @description The node you're answering (must be the current one)
+             */
+            node_id: string;
+            /** Choice Id */
+            choice_id?: string | null;
+            /** Text */
+            text?: string | null;
+        };
+        /** StepOut */
+        StepOut: {
+            /** Node Id */
+            node_id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "info" | "choice" | "written";
+            /** Title */
+            title: string;
+            /** Text */
+            text: string;
+            /** Choice Id */
+            choice_id?: string | null;
+            /** Choice Label */
+            choice_label?: string | null;
+            /** Quality */
+            quality?: ("strong" | "acceptable" | "risky") | null;
+            /**
+             * Feedback
+             * @description The authored decision rule for this choice
+             */
+            feedback?: string | null;
+            /** Response */
+            response?: string | null;
+            /** Covered */
+            covered?: string[];
+            /** Missing */
+            missing?: string[];
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
         };
         /** SubmissionCreate */
         SubmissionCreate: {
@@ -4926,6 +5351,19 @@ export interface components {
         VerifyEmailRequest: {
             /** Token */
             token: string;
+        };
+        /** WrittenOut */
+        WrittenOut: {
+            /** Step Index */
+            step_index: number;
+            /** Title */
+            title: string;
+            /** Response */
+            response: string;
+            /** Covered */
+            covered: string[];
+            /** Missing */
+            missing: string[];
         };
     };
     responses: never;
@@ -7843,6 +8281,317 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_scenarios_api_v1_scenarios_get: {
+        parameters: {
+            query?: {
+                track?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioCatalog"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_scenario_api_v1_scenarios__scenario_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scenario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioDetail"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_attempt_api_v1_me_scenarios__scenario_id__attempts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scenario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioAttemptOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_attempts_api_v1_me_scenario_attempts_get: {
+        parameters: {
+            query?: {
+                scenario_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioAttemptSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_attempt_api_v1_me_scenario_attempts__attempt_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioAttemptOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    take_step_api_v1_me_scenario_attempts__attempt_id__steps_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StepIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioAttemptOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

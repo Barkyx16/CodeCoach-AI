@@ -33,6 +33,8 @@ test("public pages have no WCAG 2.1 A/AA violations", async ({ page }) => {
     ["/careers/registered-nurse/questions/m-walk-0", /handle it/i],
     ["/learn?career=registered-nurse", /registered nurse lessons/i],
     ["/learn/se-sliding-window", /sliding windows/i],
+    ["/scenarios?career=registered-nurse", /registered nurse scenarios/i],
+    ["/scenarios/rn-two-patients", /two call lights/i],
     ["/no-such-page", /page not found/i],
   ] as const) {
     await page.goto(path);

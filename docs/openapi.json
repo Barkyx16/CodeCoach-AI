@@ -4482,6 +4482,442 @@
         }
       }
     },
+    "/api/v1/scenarios": {
+      "get": {
+        "tags": [
+          "scenarios"
+        ],
+        "summary": "Scenarios for a career",
+        "operationId": "list_scenarios_api_v1_scenarios_get",
+        "parameters": [
+          {
+            "name": "track",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "default": "software-engineer",
+              "title": "Track"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioCatalog"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/scenarios/{scenario_id}": {
+      "get": {
+        "tags": [
+          "scenarios"
+        ],
+        "summary": "What a scenario is about before you start (role, objective, time, scope, review)",
+        "operationId": "get_scenario_api_v1_scenarios__scenario_id__get",
+        "parameters": [
+          {
+            "name": "scenario_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Scenario Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/scenarios/{scenario_id}/attempts": {
+      "post": {
+        "tags": [
+          "scenarios"
+        ],
+        "summary": "Start (or resume) an attempt; mode=exploration with parent_id tries another approach",
+        "operationId": "start_attempt_api_v1_me_scenarios__scenario_id__attempts_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "scenario_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Scenario Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioAttemptOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/scenario-attempts": {
+      "get": {
+        "tags": [
+          "scenarios"
+        ],
+        "summary": "Your scenario attempts, newest first",
+        "operationId": "list_attempts_api_v1_me_scenario_attempts_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "scenario_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Scenario Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ScenarioAttemptSummary"
+                  },
+                  "title": "Response List Attempts Api V1 Me Scenario Attempts Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/scenario-attempts/{attempt_id}": {
+      "get": {
+        "tags": [
+          "scenarios"
+        ],
+        "summary": "An attempt: where you are, what you've decided, and the debrief once finished",
+        "operationId": "get_attempt_api_v1_me_scenario_attempts__attempt_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Attempt Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioAttemptOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/scenario-attempts/{attempt_id}/steps": {
+      "post": {
+        "tags": [
+          "scenarios"
+        ],
+        "summary": "Answer the current node (continue, a choice or a written response); the server picks the next node",
+        "operationId": "take_step_api_v1_me_scenario_attempts__attempt_id__steps_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Attempt Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StepIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioAttemptOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/submissions": {
       "post": {
         "tags": [
@@ -9136,6 +9572,34 @@
         "title": "ActivityTarget",
         "description": "Where the row opens: a page path plus the stable ids it refers to."
       },
+      "Alternative": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "quality": {
+            "type": "string",
+            "enum": [
+              "strong",
+              "acceptable",
+              "risky"
+            ],
+            "title": "Quality"
+          },
+          "rule": {
+            "type": "string",
+            "title": "Rule"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "quality",
+          "rule"
+        ],
+        "title": "Alternative"
+      },
       "AnswerOut": {
         "properties": {
           "id": {
@@ -9513,6 +9977,29 @@
           "definitions"
         ],
         "title": "CareerAnalytics"
+      },
+      "CareerCount": {
+        "properties": {
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "scenarios": {
+            "type": "integer",
+            "title": "Scenarios"
+          }
+        },
+        "type": "object",
+        "required": [
+          "track",
+          "title",
+          "scenarios"
+        ],
+        "title": "CareerCount"
       },
       "CareerCoverage": {
         "properties": {
@@ -10269,6 +10756,131 @@
           "interviews"
         ],
         "title": "DayCount"
+      },
+      "Debrief": {
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "title": "Outcome"
+          },
+          "ending_title": {
+            "type": "string",
+            "title": "Ending Title"
+          },
+          "ending_text": {
+            "type": "string",
+            "title": "Ending Text"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "path": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Path",
+            "description": "Titles of the steps you went through, in order"
+          },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/DecisionOut"
+            },
+            "type": "array",
+            "title": "Decisions"
+          },
+          "strengths": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Strengths"
+          },
+          "written": {
+            "items": {
+              "$ref": "#/components/schemas/WrittenOut"
+            },
+            "type": "array",
+            "title": "Written"
+          },
+          "references": {
+            "items": {
+              "$ref": "#/components/schemas/ReferenceOut"
+            },
+            "type": "array",
+            "title": "References"
+          },
+          "feedback_source": {
+            "type": "string",
+            "title": "Feedback Source"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "outcome",
+          "ending_title",
+          "ending_text",
+          "summary",
+          "path",
+          "decisions",
+          "strengths",
+          "written",
+          "references",
+          "feedback_source",
+          "disclaimer"
+        ],
+        "title": "Debrief"
+      },
+      "DecisionOut": {
+        "properties": {
+          "step_index": {
+            "type": "integer",
+            "title": "Step Index"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "chosen": {
+            "type": "string",
+            "title": "Chosen"
+          },
+          "quality": {
+            "type": "string",
+            "enum": [
+              "strong",
+              "acceptable",
+              "risky"
+            ],
+            "title": "Quality"
+          },
+          "rule": {
+            "type": "string",
+            "title": "Rule"
+          },
+          "alternatives": {
+            "items": {
+              "$ref": "#/components/schemas/Alternative"
+            },
+            "type": "array",
+            "title": "Alternatives"
+          }
+        },
+        "type": "object",
+        "required": [
+          "step_index",
+          "title",
+          "chosen",
+          "quality",
+          "rule",
+          "alternatives"
+        ],
+        "title": "DecisionOut"
       },
       "DeleteAccountRequest": {
         "properties": {
@@ -12744,6 +13356,48 @@
         ],
         "title": "NextAction"
       },
+      "NodeView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "info",
+              "choice",
+              "written"
+            ],
+            "title": "Kind"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/OptionOut"
+            },
+            "type": "array",
+            "title": "Options"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "text",
+          "options"
+        ],
+        "title": "NodeView",
+        "description": "The node the learner is on. Choice quality and feedback are only revealed after choosing."
+      },
       "NoteIn": {
         "properties": {
           "title": {
@@ -13166,6 +13820,24 @@
           "updated_at"
         ],
         "title": "NoteSummary"
+      },
+      "OptionOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "OptionOut"
       },
       "OrderIn": {
         "properties": {
@@ -15603,6 +16275,416 @@
         ],
         "title": "RubricScore"
       },
+      "ScenarioAttemptOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "scenario": {
+            "$ref": "#/components/schemas/ScenarioSummary"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "assessed",
+              "exploration"
+            ],
+            "title": "Mode"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "in_progress",
+              "completed"
+            ],
+            "title": "Status"
+          },
+          "retired": {
+            "type": "boolean",
+            "title": "Retired",
+            "description": "The scenario has a newer version; this attempt is kept but can't continue"
+          },
+          "current": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NodeView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/StepOut"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "debrief": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Debrief"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "scenario",
+          "version",
+          "mode",
+          "parent_id",
+          "status",
+          "retired",
+          "current",
+          "steps",
+          "debrief",
+          "created_at",
+          "updated_at",
+          "completed_at"
+        ],
+        "title": "ScenarioAttemptOut"
+      },
+      "ScenarioAttemptSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "scenario_id": {
+            "type": "string",
+            "title": "Scenario Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "assessed",
+              "exploration"
+            ],
+            "title": "Mode"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "in_progress",
+              "completed"
+            ],
+            "title": "Status"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
+          },
+          "retired": {
+            "type": "boolean",
+            "title": "Retired"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "scenario_id",
+          "title",
+          "version",
+          "mode",
+          "status",
+          "outcome",
+          "retired",
+          "created_at",
+          "completed_at"
+        ],
+        "title": "ScenarioAttemptSummary"
+      },
+      "ScenarioCatalog": {
+        "properties": {
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "career_title": {
+            "type": "string",
+            "title": "Career Title"
+          },
+          "scenarios": {
+            "items": {
+              "$ref": "#/components/schemas/ScenarioSummary"
+            },
+            "type": "array",
+            "title": "Scenarios"
+          },
+          "coverage_note": {
+            "type": "string",
+            "title": "Coverage Note"
+          },
+          "careers_with_scenarios": {
+            "items": {
+              "$ref": "#/components/schemas/CareerCount"
+            },
+            "type": "array",
+            "title": "Careers With Scenarios"
+          }
+        },
+        "type": "object",
+        "required": [
+          "track",
+          "career_title",
+          "scenarios",
+          "coverage_note",
+          "careers_with_scenarios"
+        ],
+        "title": "ScenarioCatalog"
+      },
+      "ScenarioDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "career_title": {
+            "type": "string",
+            "title": "Career Title"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "objective": {
+            "type": "string",
+            "title": "Objective"
+          },
+          "minutes": {
+            "type": "integer",
+            "title": "Minutes",
+            "description": "Author's estimate of the time it takes"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "regulated": {
+            "type": "boolean",
+            "title": "Regulated"
+          },
+          "validated": {
+            "type": "boolean",
+            "title": "Validated",
+            "description": "Always false: no scenario has been validated by an outside professional body"
+          },
+          "decisions": {
+            "type": "integer",
+            "title": "Decisions",
+            "description": "How many choices the longest path asks for"
+          },
+          "endings": {
+            "type": "integer",
+            "title": "Endings"
+          },
+          "review": {
+            "$ref": "#/components/schemas/ReviewOut"
+          },
+          "references": {
+            "items": {
+              "$ref": "#/components/schemas/ReferenceOut"
+            },
+            "type": "array",
+            "title": "References"
+          },
+          "changes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Changes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "track",
+          "career_title",
+          "title",
+          "role",
+          "objective",
+          "minutes",
+          "scope",
+          "version",
+          "regulated",
+          "validated",
+          "decisions",
+          "endings",
+          "review",
+          "references",
+          "changes"
+        ],
+        "title": "ScenarioDetail"
+      },
+      "ScenarioSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "career_title": {
+            "type": "string",
+            "title": "Career Title"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "objective": {
+            "type": "string",
+            "title": "Objective"
+          },
+          "minutes": {
+            "type": "integer",
+            "title": "Minutes",
+            "description": "Author's estimate of the time it takes"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "regulated": {
+            "type": "boolean",
+            "title": "Regulated"
+          },
+          "validated": {
+            "type": "boolean",
+            "title": "Validated",
+            "description": "Always false: no scenario has been validated by an outside professional body"
+          },
+          "decisions": {
+            "type": "integer",
+            "title": "Decisions",
+            "description": "How many choices the longest path asks for"
+          },
+          "endings": {
+            "type": "integer",
+            "title": "Endings"
+          },
+          "review": {
+            "$ref": "#/components/schemas/ReviewOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "track",
+          "career_title",
+          "title",
+          "role",
+          "objective",
+          "minutes",
+          "scope",
+          "version",
+          "regulated",
+          "validated",
+          "decisions",
+          "endings",
+          "review"
+        ],
+        "title": "ScenarioSummary"
+      },
       "SelfRating": {
         "properties": {
           "skill": {
@@ -15881,6 +16963,186 @@
           "career_title"
         ],
         "title": "SourceOut"
+      },
+      "StartIn": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "assessed",
+              "exploration"
+            ],
+            "title": "Mode",
+            "default": "assessed"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id",
+            "description": "Exploration: the completed attempt you're trying another approach to"
+          }
+        },
+        "type": "object",
+        "title": "StartIn"
+      },
+      "StepIn": {
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "maxLength": 64,
+            "title": "Node Id",
+            "description": "The node you're answering (must be the current one)"
+          },
+          "choice_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Choice Id"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "node_id"
+        ],
+        "title": "StepIn"
+      },
+      "StepOut": {
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "title": "Node Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "info",
+              "choice",
+              "written"
+            ],
+            "title": "Kind"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "choice_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Choice Id"
+          },
+          "choice_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Choice Label"
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "strong",
+                  "acceptable",
+                  "risky"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality"
+          },
+          "feedback": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feedback",
+            "description": "The authored decision rule for this choice"
+          },
+          "response": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response"
+          },
+          "covered": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Covered"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "node_id",
+          "kind",
+          "title",
+          "text",
+          "at"
+        ],
+        "title": "StepOut"
       },
       "SubmissionCreate": {
         "properties": {
@@ -17384,6 +18646,45 @@
           "token"
         ],
         "title": "VerifyEmailRequest"
+      },
+      "WrittenOut": {
+        "properties": {
+          "step_index": {
+            "type": "integer",
+            "title": "Step Index"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "response": {
+            "type": "string",
+            "title": "Response"
+          },
+          "covered": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Covered"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing"
+          }
+        },
+        "type": "object",
+        "required": [
+          "step_index",
+          "title",
+          "response",
+          "covered",
+          "missing"
+        ],
+        "title": "WrittenOut"
       }
     },
     "securitySchemes": {

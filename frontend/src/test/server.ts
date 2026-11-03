@@ -6,6 +6,7 @@ import type { Interview } from "@/api/types";
 import { exploreHandlers } from "./explore";
 import { learnHandlers } from "./learn";
 import { noteHandlers } from "./notes";
+import { scenarioHandlers } from "./scenarios";
 import { reviewFor } from "./review";
 import { activityFacets, activityItems, careers, hint, makePlan, nurseAnalytics, nurseGoals, nurseAnswer, nurseQuestions, page, problems, progress, queuedSubmission, review, tokenResponse, twoSum, user } from "./fixtures";
 
@@ -28,6 +29,7 @@ export const handlers = [
   ...exploreHandlers,
   ...learnHandlers,
   ...noteHandlers,
+  ...scenarioHandlers,
   http.get(`${API}/api/v1/careers`, () => HttpResponse.json(careers)),
   http.get(`${API}/api/v1/careers/:track/questions/counts`, ({ request }) => {
     const items = filterProblems(nurseQuestions.map((x) => ({ ...x, summary: x.prompt, topics: [] })), new URL(request.url).searchParams);

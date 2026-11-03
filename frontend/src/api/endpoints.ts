@@ -72,6 +72,10 @@ import type {
   NoteInput,
   NotePage,
   NotePatch,
+  ScenarioAttempt,
+  ScenarioAttemptSummary,
+  ScenarioCatalog,
+  ScenarioDetail,
 } from "./types";
 
 export interface ProblemFilters {
@@ -322,6 +326,16 @@ export const api = {
   deleteNote: (id: string) => apiRequest<{ id: string; restorable_until: string }>(`/api/v1/me/notes/${encodeURIComponent(id)}`, { method: "DELETE" }),
   restoreNote: (id: string) => apiRequest<Note>(`/api/v1/me/notes/${encodeURIComponent(id)}/restore`, { method: "POST" }),
   keyPoints: (id: string) => apiRequest<KeyPoints>(`/api/v1/me/notes/${encodeURIComponent(id)}/key-points`, { method: "POST" }),
+
+  // branching scenarios
+  scenarios: (track: string) => apiRequest<ScenarioCatalog>("/api/v1/scenarios", { query: { track }, auth: false }),
+  scenario: (id: string) => apiRequest<ScenarioDetail>(`/api/v1/scenarios/${encodeURIComponent(id)}`, { auth: false }),
+  startScenario: (id: string, body: { mode: "assessed" | "exploration"; parent_id?: string }) =>
+    apiRequest<ScenarioAttempt>(`/api/v1/me/scenarios/${encodeURIComponent(id)}/attempts`, { method: "POST", body }),
+  scenarioAttempts: (scenarioId?: string) => apiRequest<ScenarioAttemptSummary[]>("/api/v1/me/scenario-attempts", { query: { scenario_id: scenarioId } }),
+  scenarioAttempt: (id: string) => apiRequest<ScenarioAttempt>(`/api/v1/me/scenario-attempts/${encodeURIComponent(id)}`),
+  scenarioStep: (id: string, body: { node_id: string; choice_id?: string; text?: string }) =>
+    apiRequest<ScenarioAttempt>(`/api/v1/me/scenario-attempts/${encodeURIComponent(id)}/steps`, { method: "POST", body }),
 
   // progress
   progress: () => apiRequest<Progress>("/api/v1/me/progress"),

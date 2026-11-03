@@ -761,3 +761,28 @@ class Note(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     deleted_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+
+
+class ScenarioAttempt(Base):
+    """One run through a branching scenario, on one scenario version.
+
+    `steps` records every node shown and every decision with the authored feedback as it was at
+    the time, so the debrief survives later edits or retirement of the scenario. Attempts are
+    append-only: a decision can't be changed; "try another approach" makes a new attempt
+    (`mode = exploration`, linked by `parent_id`)."""
+
+    __tablename__ = "scenario_attempts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    scenario_id: Mapped[str] = mapped_column(String(64), index=True)
+    version: Mapped[int] = mapped_column(Integer)
+    mode: Mapped[str] = mapped_column(String(12), default="assessed")  # assessed | exploration
+    parent_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    status: Mapped[str] = mapped_column(String(12), default="in_progress")  # in_progress | completed
+    current_node: Mapped[str] = mapped_column(String(64))
+    steps: Mapped[list[dict]] = mapped_column(JSONType, default=list)
+    ending: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    completed_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)

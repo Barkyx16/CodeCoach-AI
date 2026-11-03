@@ -24,6 +24,7 @@ from app.models import (
     ProgressEvent,
     ReviewItem,
     RoleTarget,
+    ScenarioAttempt,
     Submission,
     User,
 )
@@ -63,6 +64,9 @@ def export_user_data(db: Session, user: User) -> dict:
     experience = db.scalars(select(ExperienceEntry).where(ExperienceEntry.user_id == user.id)).all()
     retries = db.scalars(select(InterviewRetry).where(InterviewRetry.user_id == user.id)).all()
     queue = db.scalars(select(ReviewItem).where(ReviewItem.user_id == user.id)).all()
+    scenario_attempts = db.scalars(
+        select(ScenarioAttempt).where(ScenarioAttempt.user_id == user.id).order_by(ScenarioAttempt.created_at)
+    ).all()
     notes = db.scalars(
         select(Note).where(Note.user_id == user.id, Note.deleted_at.is_(None)).order_by(Note.created_at)
     ).all()
@@ -334,5 +338,17 @@ def export_user_data(db: Session, user: User) -> dict:
                 "updated_at": iso(n.updated_at),
             }
             for n in notes
+        ],
+        "scenario_attempts": [
+            {
+                "scenario": a.scenario_id,
+                "version": a.version,
+                "mode": a.mode,
+                "status": a.status,
+                "steps": a.steps,
+                "created_at": iso(a.created_at),
+                "completed_at": iso(a.completed_at),
+            }
+            for a in scenario_attempts
         ],
     }

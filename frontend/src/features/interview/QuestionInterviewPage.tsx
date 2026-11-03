@@ -48,6 +48,7 @@ export function QuestionInterviewPage() {
           <p className="eyebrow">MOCK INTERVIEW</p>
           <h1 className="page__title">{role} interview</h1>
           <p className="page__subtitle">Five questions from {role} interviews, one at a time, the way an interviewer would ask them.</p>
+          <p className="subtle">Or practise decisions in a <Link to="/scenarios">branching scenario</Link>.</p>
         </div>
       </div>
       <div className="interview-start__grid">

@@ -564,6 +564,14 @@ These are moments where the obvious path was wrong and a deliberate decision was
     accept. The browser test for problem opens also exposed a real race (pages fetched before the
     session restored), now fixed and reproduced deterministically in the test.
 
+43. **Scenarios where the server holds the pen.** A branching scenario is tempting to run in the
+    browser, but then a learner (or a bug) could jump to the good ending or rewrite a decision.
+    Here the graph is validated at startup (no dangling links, unreachable nodes or cycles), the
+    attempt's current node lives in the database, and each step must name the node it answers.
+    A repeated identical request is a no-op and anything else is refused, so double clicks and
+    two tabs are safe. Each step stores a snapshot of its text and authored feedback, so a
+    debrief still reads correctly after the scenario is revised. No model writes the feedback.
+
 ## 6. Python concepts used here (for a Java developer)
 
 | Python | Java equivalent | Where to look |
@@ -1206,4 +1214,18 @@ slows the refresh call to reproduce it (1 of 12 before the fix, 12 of 12 after).
   tabs, a second account in a separate browser context and WCAG scans.
 - **Limits:** no AI summary (see judgment call 42); local recovery copies stay in the browser for
   the account that wrote them until restored or discarded.
+
+**U04 Branching scenarios (built and verified):**
+- Authoring format with validation (missing/unknown nodes, unreachable nodes, required endings,
+  cycles, malformed choices/written nodes); two reviewed scenarios (Software Engineer incident
+  with 3 endings, Registered Nurse prioritization with 2) and an honest coverage note.
+- Briefing, step-by-step reveal, final choices, written responses checked against authored
+  points, server-side attempts with resume, idempotent steps and stale-step refusal, retired
+  versions kept readable, exploration attempts that preserve the original, and a debrief tied
+  to the actual path. Owner-only, export and deletion.
+- Tests: 18 backend (SQLite and PostgreSQL, incl. concurrent duplicate steps), 4 frontend, 2
+  Playwright journeys (imperfect path + reload + debrief + another approach to the other ending;
+  the coding incident at 320px) with a WCAG scan.
+- **Limits:** two scenarios; no AI character (none is needed for the authored graph); written
+  responses are keyword-checked, which the page says.
 

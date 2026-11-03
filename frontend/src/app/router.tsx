@@ -27,6 +27,8 @@ import { UnitPage } from "@/features/learn/UnitPage";
 import { NotePage } from "@/features/notes/NotePage";
 import { NotesPage } from "@/features/notes/NotesPage";
 import { CollectionPage } from "@/features/saved/CollectionPage";
+import { AttemptPage } from "@/features/scenarios/AttemptPage";
+import { ScenarioBriefing, ScenariosPage } from "@/features/scenarios/ScenariosPage";
 import { QueuePage } from "@/features/saved/QueuePage";
 import { SavedPage } from "@/features/saved/SavedPage";
 
@@ -81,6 +83,9 @@ export const routes: RouteObject[] = [
       { path: "/history", element: <RequireAuth><HistoryPage /></RequireAuth> },
       { path: "/learn", element: <LearnPage /> },
       { path: "/learn/:unitId", element: <UnitPage /> },
+      { path: "/scenarios", element: <ScenariosPage /> },
+      { path: "/scenarios/:id", element: <ScenarioBriefing /> },
+      { path: "/scenarios/attempts/:attemptId", element: <RequireAuth><AttemptPage /></RequireAuth> },
       { path: "/notes", element: <RequireAuth><NotesPage /></RequireAuth> },
       { path: "/notes/:id", element: <RequireAuth><NotePage /></RequireAuth> },
       { path: "/saved", element: <RequireAuth><SavedPage /></RequireAuth> },

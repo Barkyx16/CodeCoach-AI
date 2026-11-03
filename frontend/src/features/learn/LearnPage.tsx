@@ -30,6 +30,7 @@ export function LearnPage() {
           <p className="eyebrow">LEARN</p>
           <h1 className="page__title">{c.career_title} lessons</h1>
           <p className="page__subtitle">Short units that teach a skill before you're tested on it: an explanation, a worked example, common mistakes, a guided exercise and a quick check.</p>
+          <p className="subtle">Or practise decisions in a <Link to="/scenarios">branching scenario</Link>.</p>
         </div>
       </div>
       <p className="banner banner--info">{c.coverage_note}</p>

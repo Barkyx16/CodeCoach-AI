@@ -121,3 +121,10 @@ export type NoteInput = S["NoteIn"];
 export type NotePatch = S["NotePatch"];
 export type NoteSource = S["SourceIn"];
 export type KeyPoints = S["KeyPoints"];
+
+export type ScenarioCatalog = S["ScenarioCatalog"];
+export type ScenarioSummary = S["ScenarioSummary"];
+export type ScenarioDetail = S["ScenarioDetail"];
+export type ScenarioAttempt = S["ScenarioAttemptOut"];
+export type ScenarioAttemptSummary = S["ScenarioAttemptSummary"];
+export type ScenarioStep = S["StepOut"];
