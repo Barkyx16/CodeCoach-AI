@@ -30,8 +30,8 @@ function countWords(text: string): number {
 /** One interview question: read it, write an answer, get rubric feedback, compare with past tries. */
 export function QuestionPage() {
   const { track = "", id = "" } = useParams();
-  const { isAuthenticated, user, continueAsGuest } = useAuth();
-  const question = useQuestion(track, id);
+  const { isAuthenticated, isRestoring, user, continueAsGuest } = useAuth();
+  const question = useQuestion(track, id, !isRestoring); // its best score depends on who's asking
   const answers = useMyAnswers(track, id, isAuthenticated);
   const submit = useAnswerQuestion(track, id);
   // Unsent drafts are kept in this browser; a draft carried over from an interview that ended

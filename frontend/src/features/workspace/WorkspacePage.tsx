@@ -26,7 +26,10 @@ const SAVE_LABEL: Record<SaveState, string> = { saved: "Draft saved", saving: "S
 
 export default function WorkspacePage() {
   const { slug = "" } = useParams();
-  const problem = useProblem(slug);
+  // Wait for the session to be restored: fetched anonymously, the open isn't recorded and the
+  // cached anonymous copy would be reused once signed in.
+  const { isRestoring } = useAuth();
+  const problem = useProblem(slug, !isRestoring);
 
   if (problem.isPending) return <LoadingState label="Loading problem…" />;
   if (problem.isError) {

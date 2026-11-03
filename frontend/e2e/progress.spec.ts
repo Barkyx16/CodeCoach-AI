@@ -21,6 +21,12 @@ test("coding: activity shows up honestly, and Back returns to the same filtered,
   // Opening problems is recorded as activity (but never as an attempt).
   const slugs = ["valid-parentheses", "climbing-stairs", "coin-change", "binary-search", "maximum-subarray",
     "contains-duplicate", "reverse-string", "jump-game", "decode-ways", "product-except-self", "daily-temperatures"];
+  // Slow the session restore on every full page load, as on a busy CI machine: each open must
+  // still be recorded (the page waits for the session before fetching the problem).
+  await page.route("**/api/v1/auth/refresh", async (route) => {
+    await new Promise((r) => setTimeout(r, 1200));
+    await route.continue();
+  });
   for (const slug of slugs) {
     await page.goto(`/problems/${slug}`);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
