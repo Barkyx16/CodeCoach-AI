@@ -237,6 +237,13 @@ or `problem` + slug), not a foreign key, so a report outlives a renamed or retir
   (JSON), optional admin-only `internal_note`, `report_id` (no foreign key, so the trail stays even
   if a report is deleted with its reporter's account).
 
+### Communication drills
+- `drill_attempts`: one row per attempt (cascade with the account), indexed by user and drill:
+  `drill_id`, `track` and `prompt` as they were, `text` (typed, or a transcript the learner
+  checked), `source` (typed|voice), `spoken_seconds` (only when a recording was timed),
+  `rubric_version`, `feedback` (JSON), `client_request_id` (unique per user), `created_at`.
+  Audio is never stored.
+
 ### Whiteboard practice
 - `whiteboard_drafts`: one row per user and prompt (primary key `user_id`, `prompt_id`; cascade
   with the account): `diagram` (JSON), `explanation`, `revision` (checked on save),
@@ -330,6 +337,7 @@ or `problem` + slug), not a foreign key, so a report outlives a renamed or retir
 | `f781df0f6728` schedule | Adds `schedule_settings` and `schedule_entries`. New tables, cascading with the user; round-tripped on PostgreSQL |
 | `5f47fa286244` interview kits | Adds `interview_kits` (one per interview event). New table, cascading with the event and the user; round-tripped on PostgreSQL |
 | `1bbae318ce1d` whiteboard practice | Adds `whiteboard_drafts` (one per user and prompt) and `whiteboard_attempts`. New tables, cascading with the user; round-tripped on PostgreSQL |
+| `99be925bf8d1` drill attempts | Adds `drill_attempts`. New table, cascading with the user; round-tripped on PostgreSQL |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

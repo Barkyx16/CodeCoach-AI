@@ -805,6 +805,25 @@ One kit per recorded interview event ([INTERVIEW_KIT.md](INTERVIEW_KIT.md)). Own
   A new format swaps untouched suggestions only. Links must be `http(s)` (`422`); someone else's
   story `404`.
 
+### Communication drills
+
+Short drills with career-aware prompts ([DRILLS.md](DRILLS.md)). Owner-only.
+
+- `GET /api/v1/me/drills` 🔒 → `[{id, title, objective, looks_for, target_seconds, prompt,
+  attempts}]` (five drills; `target_seconds` only for the introduction; `prompt` is built from
+  the learner's career). `GET /api/v1/me/drills/{id}` → one; `404` for an unknown drill.
+- `POST /api/v1/me/drills/{id}/attempts` 🔒 `{text, source: typed|voice, spoken_seconds?,
+  client_request_id?}` → `201` `{id, drill_id, prompt, text, source, spoken_seconds,
+  rubric_version, feedback: {observations: [{point, present, detail}], generalities, measured:
+  {words, spoken_seconds?, reading_estimate_seconds}, notes, limitations},
+  compared_with_previous}`; a retry with the same `client_request_id` returns the first with
+  `200`. `400 too_little` under three words (nothing is saved); `400 invalid_measure` for spoken
+  time on a typed answer; `429` from the practice limiter; at most 200 attempts per drill.
+- `GET /api/v1/me/drills/{id}/attempts` → newest first, each compared with the one before it
+  (only under the same rubric version).
+- Drills can also be bookmarked and added to collections (`item_type: "drill"`, empty `track`)
+  and scheduled (`kind: "drill"`, `ref` = the drill id).
+
 ### Whiteboard practice
 
 System-design practice with a small, plain-text diagram ([WHITEBOARD.md](WHITEBOARD.md)).

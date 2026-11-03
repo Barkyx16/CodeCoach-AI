@@ -696,6 +696,15 @@ These are moments where the obvious path was wrong and a deliberate decision was
     a later edit as different. A browser test briefly looked like a privacy hole (a signed-out
     request got 200); it was the dev server's HTML fallback, and the test now calls the API
     directly as a second account and gets 404.
+56. **Measure only what was measured.** A speaking drill invites invented numbers: words per
+    minute from typed text, "confidence" from speed, a duration guessed from length. Here
+    spoken time exists only when the browser timed a recording; the reading-time figure is
+    called an estimate everywhere; filler sounds that speech recognition writes down are
+    removed from the counts and the feedback says they aren't marked down; and nothing rewards
+    a shorter or faster answer. Fewer than three words is not an attempt, so a silent or failed
+    recording can't become a "low score". Repeats are compared only under the same rubric
+    version. Drills reuse bookmarks, collections and the schedule by adding one item kind to
+    each rather than a new saving system, and they stay out of analytics and readiness.
 
 ## 6. Python concepts used here (for a Java developer)
 
@@ -1591,3 +1600,25 @@ They're built in order, each as a complete, tested slice committed on its own.
   3 skipped, 0 failed. Migration round-tripped on PostgreSQL with `alembic check` clean.
 - **Limits:** touch drag is implemented (only components capture touch) but was exercised only
   with a mouse in Chromium; no image/PDF export; forced-colors styles not checked on Windows.
+
+**V2-07 Communication drills (built and verified):**
+- Five drills with career-aware prompts, the objective and what feedback looks for shown first,
+  a target length only for the introduction; typed or spoken through the existing dictation
+  hook with an editable transcript; unsent words kept on the device and retries saved once;
+  grounded observations, broad-claim notes, measured vs estimated figures, filler sounds set
+  aside without penalty, a toggle that hides delivery measurements, repeats compared under the
+  same rubric, linkable attempts, bookmarks, collections and scheduling.
+- Tests: 7 backend, 4 frontend integration (typed path, dictation into an editable box with a
+  failed send that keeps the words and retries as one attempt, a blocked microphone, comparison
+  and hiding delivery measurements), 3 Playwright journeys (every drill typed plus a repeat and
+  a reload of a linked attempt; voice with a stand-in recognizer; bookmark, collection and
+  schedule in dark, then 320px light) with axe scans.
+- A browser test caught that the feedback didn't show the words it described; it now quotes
+  what was sent.
+- Full runs: backend 1816 passed, 1 skipped (PostgreSQL-only concurrency test on SQLite);
+  drills, schedule and explore tests also on PostgreSQL (36 passed); frontend 508 tests, of
+  which 3 timing-sensitive ones in unrelated files (judge polling, session refresh, execution
+  states) failed while both full suites ran in parallel and passed 19 of 19 when re-run alone;
+  Playwright 69 passed, 3 skipped, 0 failed. Migration round-tripped on PostgreSQL.
+- **Limits:** real speech recognition wasn't exercised (Chromium's needs a network service; the
+  browser test injects a stand-in); spoken time is microphone-on time, pauses included.

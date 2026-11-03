@@ -7,7 +7,7 @@ from pydantic import Field
 
 from app.schemas.common import APIModel
 
-ItemType = Literal["question", "problem"]
+ItemType = Literal["question", "problem", "drill"]
 ExploreSort = Literal["relevance", "library", "last_practiced", "lowest_score"]
 ExploreStatus = Literal["attempted", "unattempted", "bookmarked"]
 

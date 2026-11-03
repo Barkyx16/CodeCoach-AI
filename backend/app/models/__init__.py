@@ -1224,3 +1224,27 @@ class WhiteboardAttempt(Base):
     explanation: Mapped[str] = mapped_column(Text)
     feedback: Mapped[dict] = mapped_column(JSONType)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class DrillAttempt(Base):
+    """One go at a communication drill: the words sent (typed, or a transcript the learner checked
+    and edited), how they were given, and the feedback. Attempts are never changed afterwards."""
+
+    __tablename__ = "drill_attempts"
+    __table_args__ = (
+        Index("ix_drill_user_drill", "user_id", "drill_id"),
+        UniqueConstraint("user_id", "client_request_id", name="uq_drill_client_request"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    drill_id: Mapped[str] = mapped_column(String(32))
+    track: Mapped[str] = mapped_column(String(64))
+    prompt: Mapped[str] = mapped_column(Text)
+    text: Mapped[str] = mapped_column(Text)
+    source: Mapped[str] = mapped_column(String(8))  # typed | voice
+    spoken_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)  # measured while recording
+    rubric_version: Mapped[int] = mapped_column(Integer)
+    feedback: Mapped[dict] = mapped_column(JSONType)
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)

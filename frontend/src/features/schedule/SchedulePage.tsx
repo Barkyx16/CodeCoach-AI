@@ -218,7 +218,7 @@ function TimeForm({ tz, initial, submitLabel, onSubmit, onCancel, children, disa
 }
 
 const KIND_LABEL: Record<ScheduleKind, string> = {
-  plan_item: "Plan step", review_item: "Review", question: "Question", problem: "Coding problem", application_event: "Interview preparation",
+  plan_item: "Plan step", review_item: "Review", question: "Question", problem: "Coding problem", application_event: "Interview preparation", drill: "Communication drill",
 };
 
 function AddEntry({ tz, defaultDate }: { tz: string; defaultDate: string }) {

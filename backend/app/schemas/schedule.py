@@ -7,7 +7,7 @@ from pydantic import Field
 
 from app.schemas.common import APIModel
 
-ScheduleKind = Literal["plan_item", "review_item", "question", "problem", "application_event"]
+ScheduleKind = Literal["plan_item", "review_item", "question", "problem", "application_event", "drill"]
 
 
 class ScheduleSettingsOut(APIModel):

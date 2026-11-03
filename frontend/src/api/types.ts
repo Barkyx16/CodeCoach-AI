@@ -204,3 +204,7 @@ export type WhiteboardDraftIn = S["WhiteboardDraftIn"];
 export type WhiteboardAttemptIn = S["WhiteboardAttemptIn"];
 export type WhiteboardAttempt = S["WhiteboardAttemptOut"];
 export type WhiteboardAttemptSummary = S["WhiteboardAttemptSummary"];
+
+export type Drill = S["DrillOut"];
+export type DrillAttempt = S["DrillAttemptOut"];
+export type DrillAttemptIn = S["DrillAttemptIn"];

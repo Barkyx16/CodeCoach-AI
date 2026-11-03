@@ -99,6 +99,9 @@ import type {
   OnboardingUpdate,
   Kit,
   KitUpdate,
+  Drill,
+  DrillAttempt,
+  DrillAttemptIn,
   WhiteboardAttempt,
   WhiteboardAttemptIn,
   WhiteboardAttemptSummary,
@@ -451,6 +454,13 @@ export const api = {
   cancelScheduleEntry: (id: string) => apiRequest<ScheduleEntry>(`/api/v1/me/schedule/${encodeURIComponent(id)}/cancel`, { method: "POST" }),
   scheduleIcs: (query: { ids?: string; from?: string; to?: string }) =>
     apiRequest<string>("/api/v1/me/schedule/export.ics", { query, raw: true, headers: { Accept: "text/calendar" } }),
+
+  // communication drills
+  drills: () => apiRequest<Drill[]>("/api/v1/me/drills"),
+  drill: (id: string) => apiRequest<Drill>(`/api/v1/me/drills/${encodeURIComponent(id)}`),
+  drillAttempts: (id: string) => apiRequest<DrillAttempt[]>(`/api/v1/me/drills/${encodeURIComponent(id)}/attempts`),
+  submitDrill: (id: string, body: DrillAttemptIn) =>
+    apiRequest<DrillAttempt>(`/api/v1/me/drills/${encodeURIComponent(id)}/attempts`, { method: "POST", body }),
 
   // whiteboard practice
   whiteboardPrompts: () => apiRequest<WhiteboardPromptList>("/api/v1/me/whiteboard/prompts"),

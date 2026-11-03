@@ -3308,7 +3308,8 @@
             "schema": {
               "enum": [
                 "question",
-                "problem"
+                "problem",
+                "drill"
               ],
               "type": "string",
               "title": "Item Type"
@@ -3397,7 +3398,8 @@
                 {
                   "enum": [
                     "question",
-                    "problem"
+                    "problem",
+                    "drill"
                   ],
                   "type": "string"
                 },
@@ -8571,6 +8573,279 @@
           },
           "422": {
             "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/drills": {
+      "get": {
+        "tags": [
+          "drills"
+        ],
+        "summary": "The drills, with prompts for your career",
+        "operationId": "list_drills_api_v1_me_drills_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DrillOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Drills Api V1 Me Drills Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/drills/{drill_id}": {
+      "get": {
+        "tags": [
+          "drills"
+        ],
+        "summary": "One drill",
+        "operationId": "get_drill_api_v1_me_drills__drill_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "drill_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Drill Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DrillOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/drills/{drill_id}/attempts": {
+      "get": {
+        "tags": [
+          "drills"
+        ],
+        "summary": "Your attempts, newest first",
+        "operationId": "attempts_api_v1_me_drills__drill_id__attempts_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "drill_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Drill Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DrillAttemptOut"
+                  },
+                  "title": "Response Attempts Api V1 Me Drills  Drill Id  Attempts Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "drills"
+        ],
+        "summary": "Send an attempt (typed, or a transcript you checked); a retry with the same id returns the first",
+        "operationId": "submit_api_v1_me_drills__drill_id__attempts_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "drill_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Drill Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DrillAttemptIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DrillAttemptOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
             "content": {
               "application/json": {
                 "schema": {
@@ -16172,7 +16447,8 @@
             "type": "string",
             "enum": [
               "question",
-              "problem"
+              "problem",
+              "drill"
             ],
             "title": "Item Type"
           },
@@ -16809,7 +17085,8 @@
             "type": "string",
             "enum": [
               "question",
-              "problem"
+              "problem",
+              "drill"
             ],
             "title": "Item Type"
           },
@@ -16843,7 +17120,8 @@
             "type": "string",
             "enum": [
               "question",
-              "problem"
+              "problem",
+              "drill"
             ],
             "title": "Item Type"
           },
@@ -17749,6 +18027,193 @@
         ],
         "title": "DoneIn"
       },
+      "DrillAttemptIn": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Text",
+            "description": "What you said (a transcript you checked) or typed"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "typed",
+              "voice"
+            ],
+            "title": "Source",
+            "default": "typed"
+          },
+          "spoken_seconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 900.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spoken Seconds",
+            "description": "Only when the browser timed a recording"
+          },
+          "client_request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Request Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "DrillAttemptIn"
+      },
+      "DrillAttemptOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "drill_id": {
+            "type": "string",
+            "title": "Drill Id"
+          },
+          "prompt": {
+            "type": "string",
+            "title": "Prompt"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "typed",
+              "voice"
+            ],
+            "title": "Source"
+          },
+          "spoken_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spoken Seconds"
+          },
+          "rubric_version": {
+            "type": "integer",
+            "title": "Rubric Version"
+          },
+          "feedback": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Feedback"
+          },
+          "compared_with_previous": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compared With Previous",
+            "description": "What changed since your previous attempt at this drill"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "drill_id",
+          "prompt",
+          "text",
+          "source",
+          "spoken_seconds",
+          "rubric_version",
+          "feedback",
+          "compared_with_previous",
+          "created_at"
+        ],
+        "title": "DrillAttemptOut"
+      },
+      "DrillOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "objective": {
+            "type": "string",
+            "title": "Objective"
+          },
+          "looks_for": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Looks For"
+          },
+          "target_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Seconds"
+          },
+          "prompt": {
+            "type": "string",
+            "title": "Prompt",
+            "description": "For your career"
+          },
+          "attempts": {
+            "type": "integer",
+            "title": "Attempts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "objective",
+          "looks_for",
+          "target_seconds",
+          "prompt",
+          "attempts"
+        ],
+        "title": "DrillOut"
+      },
       "DuplicateIn": {
         "properties": {
           "duplicate_of": {
@@ -17832,7 +18297,8 @@
               "review_item",
               "question",
               "problem",
-              "application_event"
+              "application_event",
+              "drill"
             ],
             "title": "Kind"
           },
@@ -18022,7 +18488,8 @@
               "review_item",
               "question",
               "problem",
-              "application_event"
+              "application_event",
+              "drill"
             ],
             "title": "Kind"
           },
@@ -25376,7 +25843,8 @@
               "review_item",
               "question",
               "problem",
-              "application_event"
+              "application_event",
+              "drill"
             ],
             "title": "Kind"
           },
@@ -29973,6 +30441,10 @@
     {
       "name": "schedule",
       "description": "Existing activities on dates and times you choose, in your time zone, with .ics files. Scheduling isn't doing; nothing is sent, and reminders exist only inside an open tab."
+    },
+    {
+      "name": "drills",
+      "description": "Short communication drills with career-aware prompts. Feedback describes what's in the learner's words; measurements are only what was measured; nothing rewards speed."
     },
     {
       "name": "whiteboard",

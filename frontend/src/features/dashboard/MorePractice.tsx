@@ -6,6 +6,7 @@ export function MorePractice({ coding }: { coding: boolean }) {
     <nav className="more-practice" aria-label="More ways to practice">
       <span className="subtle">More ways to practice:</span>
       <ul>
+        <li><Link to="/drills">Communication drills</Link></li>
         {coding && <li><Link to="/whiteboard">Explain a design on a whiteboard</Link></li>}
         <li><Link to="/scenarios">Branching scenarios</Link></li>
         <li><Link to="/learn">Short lessons</Link></li>

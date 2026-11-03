@@ -31,6 +31,7 @@ import "./styles/applications.css";
 import "./styles/schedule.css";
 import "./styles/kit.css";
 import "./styles/whiteboard.css";
+import "./styles/drills.css";
 import { startAppShell } from "./pwa/appShell";
 
 const queryClient = makeQueryClient();

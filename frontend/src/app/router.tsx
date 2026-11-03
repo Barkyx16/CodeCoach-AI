@@ -46,6 +46,8 @@ import { StoriesPage } from "@/features/stories/StoriesPage";
 import { ApplicationPage } from "@/features/applications/ApplicationPage";
 import { ApplicationsPage } from "@/features/applications/ApplicationsPage";
 import { SchedulePage } from "@/features/schedule/SchedulePage";
+import { DrillPage } from "@/features/drills/DrillPage";
+import { DrillsPage } from "@/features/drills/DrillsPage";
 import { WhiteboardEditorPage } from "@/features/whiteboard/WhiteboardEditor";
 import { WhiteboardPage } from "@/features/whiteboard/WhiteboardPage";
 import { KitPage } from "@/features/kit/KitPage";
@@ -118,6 +120,8 @@ export const routes: RouteObject[] = [
       { path: "/applications", element: <RequireAuth><ApplicationsPage /></RequireAuth> },
       { path: "/schedule", element: <RequireAuth><SchedulePage /></RequireAuth> },
       { path: "/whiteboard", element: <RequireAuth><WhiteboardPage /></RequireAuth> },
+      { path: "/drills", element: <RequireAuth><DrillsPage /></RequireAuth> },
+      { path: "/drills/:id", element: <RequireAuth><DrillPage /></RequireAuth> },
       { path: "/whiteboard/:promptId", element: <RequireAuth><WhiteboardEditorPage /></RequireAuth> },
       { path: "/applications/:id", element: <RequireAuth><ApplicationPage /></RequireAuth> },
       { path: "/applications/:id/events/:eventId/kit", element: <RequireAuth><KitPage /></RequireAuth> },

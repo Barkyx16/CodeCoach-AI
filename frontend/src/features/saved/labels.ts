@@ -5,6 +5,7 @@ import type { Collection, CollectionItem } from "@/api/types";
 export function useItemKind(): (type: string, track: string) => string {
   const careers = useCareers();
   return (type, track) => {
+    if (type === "drill") return "Communication drill";
     if (type !== "question") return "Coding problem";
     const title = careers.data?.find((c) => c.slug === track)?.title;
     return title ? `Interview question · ${title}` : "Interview question";

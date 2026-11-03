@@ -16,6 +16,7 @@ from app.api.routes import (
     auth,
     careers,
     content,
+    drills,
     explore,
     health,
     interviews,
@@ -93,6 +94,11 @@ TAGS = [
         "name": "schedule",
         "description": "Existing activities on dates and times you choose, in your time zone, with .ics files. "
         "Scheduling isn't doing; nothing is sent, and reminders exist only inside an open tab.",
+    },
+    {
+        "name": "drills",
+        "description": "Short communication drills with career-aware prompts. Feedback describes what's in the "
+        "learner's words; measurements are only what was measured; nothing rewards speed.",
     },
     {
         "name": "whiteboard",
@@ -210,6 +216,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         stories.router,
         applications.router,
         kits.router,
+        drills.router,
         whiteboard.router,
         schedule.router,
         submissions.router,

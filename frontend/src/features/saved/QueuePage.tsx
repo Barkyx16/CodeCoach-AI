@@ -84,7 +84,7 @@ export function QueuePage() {
         <div className="row">
           {href && (
             <Link className="btn btn--primary btn--md" to={href} state={{ from: `/saved/collections/${id}/practice`, fromLabel: "Back to the queue" }}>
-              {current.item_type === "question" ? "Answer this question" : "Solve this problem"}
+              {current.item_type === "question" ? "Answer this question" : current.item_type === "drill" ? "Do this drill" : "Solve this problem"}
             </Link>
           )}
           <Button loading={mark.isPending} aria-pressed={current.queue_done}

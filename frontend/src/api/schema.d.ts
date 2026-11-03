@@ -1593,6 +1593,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/drills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The drills, with prompts for your career */
+        get: operations["list_drills_api_v1_me_drills_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/drills/{drill_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One drill */
+        get: operations["get_drill_api_v1_me_drills__drill_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/drills/{drill_id}/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your attempts, newest first */
+        get: operations["attempts_api_v1_me_drills__drill_id__attempts_get"];
+        put?: never;
+        /** Send an attempt (typed, or a transcript you checked); a retry with the same id returns the first */
+        post: operations["submit_api_v1_me_drills__drill_id__attempts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/whiteboard/prompts": {
         parameters: {
             query?: never;
@@ -3256,7 +3308,7 @@ export interface components {
              * Item Type
              * @enum {string}
              */
-            item_type: "question" | "problem";
+            item_type: "question" | "problem" | "drill";
             /** Track */
             track: string;
             /** Ref Id */
@@ -3534,7 +3586,7 @@ export interface components {
              * Item Type
              * @enum {string}
              */
-            item_type: "question" | "problem";
+            item_type: "question" | "problem" | "drill";
             /**
              * Track
              * @default
@@ -3551,7 +3603,7 @@ export interface components {
              * Item Type
              * @enum {string}
              */
-            item_type: "question" | "problem";
+            item_type: "question" | "problem" | "drill";
             /** Track */
             track: string;
             /** Ref Id */
@@ -3910,6 +3962,81 @@ export interface components {
             /** Done */
             done: boolean;
         };
+        /** DrillAttemptIn */
+        DrillAttemptIn: {
+            /**
+             * Text
+             * @description What you said (a transcript you checked) or typed
+             */
+            text: string;
+            /**
+             * Source
+             * @default typed
+             * @enum {string}
+             */
+            source: "typed" | "voice";
+            /**
+             * Spoken Seconds
+             * @description Only when the browser timed a recording
+             */
+            spoken_seconds?: number | null;
+            /** Client Request Id */
+            client_request_id?: string | null;
+        };
+        /** DrillAttemptOut */
+        DrillAttemptOut: {
+            /** Id */
+            id: string;
+            /** Drill Id */
+            drill_id: string;
+            /** Prompt */
+            prompt: string;
+            /** Text */
+            text: string;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "typed" | "voice";
+            /** Spoken Seconds */
+            spoken_seconds: number | null;
+            /** Rubric Version */
+            rubric_version: number;
+            /** Feedback */
+            feedback: {
+                [key: string]: unknown;
+            };
+            /**
+             * Compared With Previous
+             * @description What changed since your previous attempt at this drill
+             */
+            compared_with_previous: string[] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** DrillOut */
+        DrillOut: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Objective */
+            objective: string;
+            /** Looks For */
+            looks_for: string[];
+            /** Target Seconds */
+            target_seconds: number | null;
+            /**
+             * Prompt
+             * @description For your career
+             */
+            prompt: string;
+            /** Attempts */
+            attempts: number;
+        };
         /** DuplicateIn */
         DuplicateIn: {
             /**
@@ -3952,7 +4079,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "plan_item" | "review_item" | "question" | "problem" | "application_event";
+            kind: "plan_item" | "review_item" | "question" | "problem" | "application_event" | "drill";
             /**
              * Ref
              * @description The activity's id (question: 'track/question_id')
@@ -4026,7 +4153,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "plan_item" | "review_item" | "question" | "problem" | "application_event";
+            kind: "plan_item" | "review_item" | "question" | "problem" | "application_event" | "drill";
             /** Ref */
             ref: string;
             /** Title */
@@ -6853,7 +6980,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "plan_item" | "review_item" | "question" | "problem" | "application_event";
+            kind: "plan_item" | "review_item" | "question" | "problem" | "application_event" | "drill";
             /** Ref */
             ref: string;
             /** Title */
@@ -10710,7 +10837,7 @@ export interface operations {
     remove_bookmark_api_v1_me_bookmarks_delete: {
         parameters: {
             query: {
-                item_type: "question" | "problem";
+                item_type: "question" | "problem" | "drill";
                 ref_id: string;
                 track?: string;
             };
@@ -10753,7 +10880,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description With ref_id: report which collections hold it */
-                item_type?: ("question" | "problem") | null;
+                item_type?: ("question" | "problem" | "drill") | null;
                 track?: string;
                 ref_id?: string | null;
             };
@@ -14348,6 +14475,204 @@ export interface operations {
             };
             /** @description Request validation failed */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_drills_api_v1_me_drills_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DrillOut"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_drill_api_v1_me_drills__drill_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                drill_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DrillOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attempts_api_v1_me_drills__drill_id__attempts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                drill_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DrillAttemptOut"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_api_v1_me_drills__drill_id__attempts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                drill_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DrillAttemptIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DrillAttemptOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

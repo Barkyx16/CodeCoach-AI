@@ -33,6 +33,7 @@ from app.models import (
     User,
 )
 from app.services.applications import Applications
+from app.services.drills import Drills
 from app.services.kits import Kits
 from app.services.onboarding import Onboarding
 from app.services.schedule import Schedule
@@ -394,6 +395,8 @@ def export_user_data(db: Session, user: User) -> dict:
         ],
         # Your schedule: entries and time zone / reminder settings.
         "schedule": Schedule(db, user).export(),
+        # Communication drills: each attempt's words, how they were given and the feedback.
+        "drill_attempts": Drills(db, user).export(),
         # Whiteboard practice: working drafts, and attempts frozen with their feedback.
         "whiteboard": Whiteboard(db, user).export(),
         # Interview-day kits: logistics, checklists, questions and chosen stories.

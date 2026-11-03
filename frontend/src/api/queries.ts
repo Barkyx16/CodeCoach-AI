@@ -698,3 +698,15 @@ export function useWhiteboardDraft(promptId: string) {
 export function useWhiteboardAttempts(promptId: string) {
   return useQuery({ queryKey: ["me", "whiteboard", "attempts", promptId], queryFn: () => api.whiteboardAttempts(promptId), staleTime: 0 });
 }
+
+export function useDrills() {
+  return useQuery({ queryKey: ["me", "drills"], queryFn: api.drills, staleTime: 0 });
+}
+
+export function useDrill(id: string) {
+  return useQuery({ queryKey: ["me", "drills", id], queryFn: () => api.drill(id), staleTime: 0 });
+}
+
+export function useDrillAttempts(id: string) {
+  return useQuery({ queryKey: ["me", "drills", id, "attempts"], queryFn: () => api.drillAttempts(id), staleTime: 0 });
+}

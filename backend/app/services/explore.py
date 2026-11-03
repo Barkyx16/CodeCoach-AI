@@ -25,10 +25,12 @@ from app.careers import CATALOG
 from app.careers.questions import Question, content_key, get_question, questions_for
 from app.careers.skills import question_skills
 from app.content import state as content_state
+from app.drills import BY_ID as DRILLS_BY_ID
 from app.errors import AppError, ConflictError, NotFoundError, UnauthorizedError
 from app.models import (
     Bookmark,
     CollectionItem,
+    DrillAttempt,
     PracticeAnswer,
     PracticeCollection,
     Problem,
@@ -285,6 +287,16 @@ class Explorer:
     # --- saved items -----------------------------------------------------------------------
 
     def _describe(self, item_type: str, track: str, ref_id: str) -> tuple[str, str | None, bool, str | None]:
+        if item_type == "drill":
+            drill = DRILLS_BY_ID.get(ref_id)
+            if drill is None:
+                return (
+                    "A drill that's no longer offered",
+                    None,
+                    False,
+                    "This drill was removed. Your saved spot is kept until you remove it.",
+                )
+            return f"Drill: {drill.title}", f"/drills/{ref_id}", True, None
         if item_type == "question":
             q = get_question(track, ref_id) if track in CATALOG else None
             if q is None:
@@ -522,6 +534,18 @@ class Explorer:
                             PracticeAnswer.track == i.track,
                             PracticeAnswer.question_id == i.ref_id,
                             PracticeAnswer.created_at >= i.added_at,
+                        )
+                        .limit(1)
+                    )
+                )
+            elif i.item_type == "drill":
+                practiced = bool(
+                    self.db.scalar(
+                        select(DrillAttempt.id)
+                        .where(
+                            DrillAttempt.user_id == user.id,
+                            DrillAttempt.drill_id == i.ref_id,
+                            DrillAttempt.created_at >= i.added_at,
                         )
                         .limit(1)
                     )

@@ -17,10 +17,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.careers.questions import get_question, is_retired
+from app.drills import BY_ID as DRILLS_BY_ID
 from app.errors import AppError, ConflictError, NotFoundError
 from app.models import (
     Application,
     ApplicationEvent,
+    DrillAttempt,
     PlanItem,
     PracticeAnswer,
     PracticePlan,
@@ -132,6 +134,11 @@ class Schedule:
             if p is None:
                 raise NotFoundError("Problem not found")
             return p.title, f"/problems/{p.slug}", not is_problem_retired(p.slug)
+        if kind == "drill":
+            drill = DRILLS_BY_ID.get(ref)
+            if drill is None:
+                raise NotFoundError("Drill not found")
+            return f"Drill: {drill.title}", f"/drills/{ref}", True
         if kind == "application_event":
             row = self.db.execute(
                 select(ApplicationEvent, Application)
@@ -163,6 +170,14 @@ class Schedule:
                     PracticeAnswer.track == track,
                     PracticeAnswer.question_id == qid,
                     PracticeAnswer.created_at >= e.created_at,
+                )
+            )
+        if e.kind == "drill":
+            return self.db.scalar(
+                select(func.min(DrillAttempt.created_at)).where(
+                    DrillAttempt.user_id == self.user.id,
+                    DrillAttempt.drill_id == e.ref,
+                    DrillAttempt.created_at >= e.created_at,
                 )
             )
         if e.kind == "problem":
