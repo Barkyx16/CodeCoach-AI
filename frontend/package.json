@@ -13,7 +13,8 @@
     "test:watch": "vitest",
     "api:types": "openapi-typescript ../docs/openapi.json -o src/api/schema.d.ts",
     "api:check": "openapi-typescript ../docs/openapi.json -o /tmp/codecoach-schema.d.ts && diff -q /tmp/codecoach-schema.d.ts src/api/schema.d.ts",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "size:check": "node scripts/check-bundle-size.mjs"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",

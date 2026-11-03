@@ -148,7 +148,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(getattr(logging, settings.log_level.upper(), logging.INFO))
 
-    engine = make_engine(settings.database_url)
+    engine = make_engine(settings.database_url, pool_timeout=settings.db_pool_timeout_seconds)
     session_factory = make_session_factory(engine)
 
     @asynccontextmanager

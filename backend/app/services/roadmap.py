@@ -28,11 +28,13 @@ version is made, and its `changes` list explains what moved and why. AI is not u
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.careers import CATALOG
@@ -124,7 +126,7 @@ class Spec:
 @dataclass
 class Evidence:
     best: dict[str, int]  # question id -> best score
-    latest: dict[str, PracticeAnswer]  # question id -> most recent answer
+    latest: dict[str, str]  # question id -> id of the most recent answer
     answers: int
     baseline_done: bool
     last_mock: datetime | None
@@ -205,16 +207,19 @@ class Roadmap:
     # --- evidence ---------------------------------------------------------------------------
 
     def _evidence(self, user: User, track: str) -> Evidence:
-        rows = self.db.scalars(
-            select(PracticeAnswer)
+        # Ids and scores only: the plan needs one answer's feedback (at most two, for weak
+        # questions), loaded by id below. Loading every whole row decoded all their feedback JSON
+        # (docs/PERFORMANCE.md, "Real journeys").
+        rows = self.db.execute(
+            select(PracticeAnswer.id, PracticeAnswer.question_id, PracticeAnswer.score)
             .where(PracticeAnswer.user_id == user.id, PracticeAnswer.track == track)
             .order_by(PracticeAnswer.created_at)
         ).all()
         best: dict[str, int] = {}
-        latest: dict[str, PracticeAnswer] = {}
-        for a in rows:
-            best[a.question_id] = max(best.get(a.question_id, 0), a.score)
-            latest[a.question_id] = a
+        latest: dict[str, str] = {}
+        for answer_id, question_id, score in rows:
+            best[question_id] = max(best.get(question_id, 0), score)
+            latest[question_id] = answer_id
         sessions = self.db.scalars(
             select(PracticeSession).where(
                 PracticeSession.user_id == user.id,
@@ -304,7 +309,8 @@ class Roadmap:
         retries: list[Spec] = []
         for score, qid in weak:
             q = get_question(track, qid)
-            last = ev.latest.get(qid)
+            last_id = ev.latest.get(qid)
+            last = self.db.get(PracticeAnswer, last_id) if last_id else None
             if q is None or last is None:
                 continue
             missed = [
@@ -690,8 +696,7 @@ class Roadmap:
                 if goal and not goal.setup_skipped
                 else "A starter plan for your career. Add goals any time to tailor it."
             )
-            plan = self._new_version(user, t, None, [first])
-            self.db.commit()
+            plan = self._save_version(user, t, lambda: self._new_version(user, t, None, [first]))
         else:
             done = self._sync(user, plan)
             goal = self._goal(user, t)
@@ -704,10 +709,27 @@ class Roadmap:
                 if not open_items and not done:
                     why.append("Everything in the last plan was done or set aside, so here's what's next.")
                 self.db.flush()
-                plan = self._new_version(user, t, plan, why)
-            self.db.commit()
+                previous = plan
+                plan = self._save_version(user, t, lambda: self._new_version(user, t, previous, why))
+            else:
+                self.db.commit()
             plan = self._latest(user, t) or plan
         return self._out(user, t, plan, minutes)
+
+    def _save_version(self, user: User, track: str, build: Callable[[], PracticePlan]) -> PracticePlan:
+        """Build and save a new plan version, or use the one another request saved first. Two
+        tabs opening the plan at the same moment both build the same next version; the second
+        hits the unique (user, track, version) constraint. That isn't an error: the plan exists."""
+        try:
+            plan = build()
+            self.db.commit()
+        except IntegrityError:
+            self.db.rollback()
+            existing = self._latest(user, track)
+            if existing is None:
+                raise
+            return existing
+        return plan
 
     def _item(self, user: User, item_id: str) -> PlanItem:
         item = self.db.scalar(

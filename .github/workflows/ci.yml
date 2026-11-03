@@ -97,6 +97,8 @@ jobs:
         run: npm test
       - name: Production build
         run: npm run build
+      - name: Bundle size budgets (shell and largest lazy chunk, gzipped)
+        run: npm run size:check
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=moderate
 

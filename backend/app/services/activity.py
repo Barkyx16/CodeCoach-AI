@@ -603,11 +603,21 @@ class ActivityService:
     # --- career analytics -------------------------------------------------------------------
 
     def career_analytics(self, user: User, track: str, since: date | None, until: date) -> CareerAnalytics:
-        stmt = select(PracticeAnswer).where(PracticeAnswer.user_id == user.id, PracticeAnswer.track == track)
+        # Only the columns the statistics use. Loading whole rows decoded every answer's feedback
+        # JSON (and its text) just to read one field: about half the time at 2,000 answers
+        # (docs/PERFORMANCE.md, "Real journeys"). The evaluator is read with the database's JSON
+        # operator instead.
+        stmt = select(
+            PracticeAnswer.question_id,
+            PracticeAnswer.score,
+            PracticeAnswer.created_at,
+            PracticeAnswer.provider,
+            PracticeAnswer.feedback["evaluator"].as_string().label("evaluator"),
+        ).where(PracticeAnswer.user_id == user.id, PracticeAnswer.track == track)
         stmt = stmt.where(PracticeAnswer.created_at < _start(until + timedelta(days=1)))
         if since:
             stmt = stmt.where(PracticeAnswer.created_at >= _start(since))
-        answers = list(self.db.scalars(stmt.order_by(PracticeAnswer.created_at)).all())
+        answers = list(self.db.execute(stmt.order_by(PracticeAnswer.created_at)).all())
         best: dict[str, int] = {}
         for a in answers:
             best[a.question_id] = max(best.get(a.question_id, 0), a.score)
@@ -644,7 +654,7 @@ class ActivityService:
         series: dict[str, dict[date, list[int]]] = defaultdict(lambda: defaultdict(list))
         for a in answers:
             day = a.created_at.date()
-            series[evaluator_key(a.provider, a.feedback or {})][day - timedelta(days=day.weekday())].append(
+            series[a.evaluator or evaluator_key(a.provider, {})][day - timedelta(days=day.weekday())].append(
                 a.score
             )
         trends = [

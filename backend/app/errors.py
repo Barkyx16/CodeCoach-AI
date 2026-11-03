@@ -8,6 +8,7 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import TimeoutError as SQLAlchemyTimeoutError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 logger = logging.getLogger("codecoach.errors")
@@ -101,6 +102,19 @@ def install_error_handlers(app: FastAPI) -> None:
     async def _http_error(request: Request, exc: StarletteHTTPException):
         code = _HTTP_CODES.get(exc.status_code, "http_error")
         return _envelope(request, exc.status_code, code, str(exc.detail))
+
+    @app.exception_handler(SQLAlchemyTimeoutError)
+    async def _busy(request: Request, exc: SQLAlchemyTimeoutError):
+        # Every database connection stayed busy for DB_POOL_TIMEOUT_SECONDS: overloaded. Shed the
+        # request with a clear, retryable answer rather than a generic failure. Nothing was done.
+        logger.warning(
+            "database pool exhausted", extra={"request_id": getattr(request.state, "request_id", None)}
+        )
+        response = _envelope(
+            request, 503, "server_busy", "The server is very busy right now. Please try again in a moment."
+        )
+        response.headers["Retry-After"] = "2"
+        return response
 
     @app.exception_handler(Exception)
     async def _unhandled(request: Request, exc: Exception):

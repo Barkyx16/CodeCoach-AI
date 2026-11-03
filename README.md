@@ -197,9 +197,13 @@ docker-compose.yml, .env.example
 
 ## Measured performance
 
-On one 4-vCPU VM (API, PostgreSQL and the load generator together; details in
+On one 4-vCPU machine (API, PostgreSQL and the load generator together; details in
 [docs/PERFORMANCE.md](docs/PERFORMANCE.md)):
-- **API:** p50 9 ms / p95 18 ms with one client; ~254 req/s at p95 86 ms with 10 concurrent clients.
+- **Learner journeys (2026-11-03):** search, dashboard, history and answering over a synthetic
+  15,760-answer dataset: p95 **129 ms at 8 clients** (446 ms before two query optimizations,
+  same workload), 134 req/s, no errors; overload at 64 clients stays bounded with no errors.
+- **Problem-browsing mix (2026-11-01, older endpoint mix):** p50 9 ms / p95 18 ms with one client;
+  ~254 req/s at p95 86 ms with 10 concurrent clients.
 - **Judge:** ~4 s from submit to verdict for a single submission in a fresh gVisor sandbox;
   15.5 submissions/min with one worker, **29.3/min with two** (1.9×) with no double-judging.
 

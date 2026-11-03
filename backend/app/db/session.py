@@ -11,10 +11,13 @@ class Base(DeclarativeBase):
     pass
 
 
-def make_engine(database_url: str) -> Engine:
+def make_engine(database_url: str, pool_timeout: float | None = None) -> Engine:
+    """`pool_timeout`: how long a request may wait for a free database connection before it is
+    answered 503 "busy, retry" (app/errors.py) instead of queueing on (SQLAlchemy's default 30 s)."""
     is_sqlite = database_url.startswith("sqlite")
     connect_args = {"check_same_thread": False} if is_sqlite else {}
-    engine = create_engine(database_url, connect_args=connect_args, pool_pre_ping=True)
+    options = {} if pool_timeout is None or ":memory:" in database_url else {"pool_timeout": pool_timeout}
+    engine = create_engine(database_url, connect_args=connect_args, pool_pre_ping=True, **options)
     if is_sqlite:
         # SQLite ignores foreign keys (including ON DELETE CASCADE) unless asked, per connection.
         # Turning them on makes local runs and tests behave like PostgreSQL.

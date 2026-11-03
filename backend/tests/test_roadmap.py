@@ -240,3 +240,28 @@ def test_another_user_cannot_touch_your_plan_and_export_includes_it(client):
     assert export["practice_goals"][0]["focus_areas"] == ["triage"]
     assert export["practice_plans"][0]["activities"][0]["title"] == item["title"]
     assert client.get("/api/v1/me/plan").status_code == 401
+
+
+def test_two_tabs_opening_a_new_plan_at_once_both_get_the_same_plan(client, monkeypatch):
+    """Found under load (docs/PERFORMANCE.md): both first views built version 1, and the second
+    one's insert hit the unique (user, track, version) constraint and answered 500."""
+    from sqlalchemy import func, select
+
+    from app.models import PracticePlan
+    from app.services.roadmap import Roadmap
+
+    h = user(client)
+    real = Roadmap._new_version
+    other_tab: dict = {}
+
+    def the_other_tab_saves_first(self, *args, **kwargs):
+        monkeypatch.setattr(Roadmap, "_new_version", real)
+        other_tab["plan"] = plan(client, h)  # the other tab's request finishes first
+        return real(self, *args, **kwargs)
+
+    monkeypatch.setattr(Roadmap, "_new_version", the_other_tab_saves_first)
+    mine = plan(client, h)
+    assert other_tab["plan"]["version"] == mine["version"] == 1
+    assert [i["title"] for i in mine["items"]] == [i["title"] for i in other_tab["plan"]["items"]]
+    with client.app.state.session_factory() as db:
+        assert db.scalar(select(func.count()).select_from(PracticePlan)) == 1

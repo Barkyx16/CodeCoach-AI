@@ -128,6 +128,10 @@ class Settings(BaseSettings):
     # end-to-end tests; production runs `python -m app.worker` as its own process instead.
     embedded_worker: bool = False
 
+    # Overload: a request that can't get a database connection within this many seconds is
+    # answered 503 `server_busy` with Retry-After, instead of queueing (docs/PERFORMANCE.md).
+    db_pool_timeout_seconds: float = Field(default=10.0, gt=0, le=60)
+
     # --- Observability ----------------------------------------------------------------------
     metrics_enabled: bool = True
     # Recent traces kept in memory for the admin lookup (GET /api/v1/admin/traces/{id}). Spans are
