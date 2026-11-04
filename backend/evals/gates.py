@@ -61,27 +61,35 @@ def _career_dimension(name: str) -> Callable[[dict], list[str] | None]:
     return check
 
 
-def _gated_families(report: dict) -> list[str] | None:
-    """Development families a brief has fixed (protocol.json gated_career_sets.families): for
-    keyword_list, no point may be awarded."""
+# Variants whose answers must never be reported as contradicting themselves (rubric v5).
+NOT_CONTRADICTIONS = ("self_correction", "benign_control", "contradiction_control")
+
+
+def _gated_families(report: dict, which: tuple[str, ...]) -> list[str] | None:
+    """Development families a brief has fixed (protocol.json gated_career_sets.families): a
+    keyword_list answer is awarded no point; a self-correction or control is not reported as a
+    contradiction."""
     from evals.meta import EVAL_DIR
 
     families = json.loads((EVAL_DIR / "protocol.json").read_text(encoding="utf-8"))["gated_career_sets"].get(
         "families", {}
     )
+    families = {k: [v for v in vs if v in which] for k, vs in families.items()}
     sets = report.get("career") or {}
-    if not any(k in sets for k in families):
+    if not any(k in sets and families[k] for k in families):
         return None
     out = []
     for set_id, variants in families.items():
         for case in sets.get(set_id, {}).get("cases", []):
-            if (
-                "keyword_list" in variants
-                and "keyword_list" in case.get("tags", [])
-                and case.get("observed", {}).get("covered")
-            ):
+            tags, observed = case.get("tags", []), case.get("observed", {})
+            if "keyword_list" in variants and "keyword_list" in tags and observed.get("covered"):
                 out.append(
-                    f"{set_id} / {case['id']}: a keyword list was awarded {', '.join(case['observed']['covered'])}"
+                    f"{set_id} / {case['id']}: a keyword list was awarded {', '.join(observed['covered'])}"
+                )
+            gated = [v for v in variants if v in NOT_CONTRADICTIONS and v in tags]
+            if gated and any(c["status"] == "conflict" for c in observed.get("conflicts", [])):
+                out.append(
+                    f"{set_id} / {case['id']}: a {gated[0]} answer was reported as contradicting itself"
                 )
     return out
 
@@ -293,7 +301,13 @@ GATES: list[Gate] = [
     Gate(
         "career.keyword_lists",
         "A list of terms, headings or the question's guidance said back names a point without showing it (rubric v4).",
-        _gated_families,
+        lambda report: _gated_families(report, ("keyword_list",)),
+    ),
+    Gate(
+        "career.contradiction_controls",
+        "A self-correction, quoted speech, a hypothetical or an ordinary negation is not a contradiction; "
+        "reporting one takes credit away for nothing (rubric v5).",
+        lambda report: _gated_families(report, NOT_CONTRADICTIONS),
     ),
     Gate(
         "data.integrity",

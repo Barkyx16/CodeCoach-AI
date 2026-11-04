@@ -50,6 +50,7 @@ never compared as if it were the same.
 | `career_dev.json` | 23 | dev | Synthetic registered-nurse answers, written for this evaluation |
 | `career_holdout.json` | 17 | **exposed historical benchmark** (was held-out) | Same, on different questions; graded and its case details read on 2026-11-03 |
 | `career_families_dev.json` | 108 | dev (Volume 4) | Synthetic, written and labelled by a separate agent session from the rubric text only ([protocol](EVAL_PROTOCOL.md)) |
+| `career_contradiction_pairs.json` | 56 | dev (Volume 4 brief 04) | Synthetic minimal pairs written and labelled by the tuning session together with the contradiction rule; optimistic by construction ([protocol v2](EVAL_PROTOCOL.md#protocol-v2-2026-11-04-volume-4-brief-04)) |
 | `sealed/career_rn_sealed.json` | 108 | sealed final evaluation | Same method, another separate session; not opened by the tuning session ([access](EVAL_PROTOCOL.md#access-to-the-sealed-set)) |
 
 **Career cases.** One supported non-coding career, registered nurse. Questions are chosen by a
@@ -119,6 +120,8 @@ its reason in the report.
 | `career.complete` | every labelled answer was graded |
 | `career.schema`, `.evidence`, `.insufficient`, `.injection`, `.stable`, `.actionable` | no failing case, on both career sets |
 | `career.agreement` | development set: precision ≥ 0.75, recall ≥ 0.92 (the rubric v1 level) |
+| `career.keyword_lists` | no development keyword-list answer earns a point (rubric v4) |
+| `career.contradiction_controls` | no self-correction or control answer in the development families is reported as a contradiction (rubric v5) |
 | `contract.framing`, `.ladder`, `.hidden_tests`, `.secrets`, `.bounded` | no failing request |
 | `provider.fallback` | every failure scenario falls back |
 
@@ -352,6 +355,91 @@ against false rejections.
 - **Off-topic answers** are not detected as such: a good story about the wrong thing still earns
   the structural points it shows (and usually misses "Uses the specifics of the job").
 - Nothing here understands meaning beyond these named structural patterns.
+
+## Results: rubric v5, explicit contradictions (Volume 4 brief 04)
+
+Measured 2026-11-04 on development data and the exposed historical set, against provisional,
+model-written labels; v4 (`8db564c`) and v5 graded the same datasets (`evals/results/rubric-v5-career.*`,
+`rubric-v4-vs-v5.md`). The sealed set was not graded.
+
+**What was wrong.** Under v4 an answer that said both things ("I asked the healthcare assistant to
+take over the observations" … "I also did not ask anyone for help at all"), or took one back
+("Actually I have never been in a situation like that"), was graded as if both were true: 7 of the
+9 contradicted points in the families set were credited, and nothing told the learner.
+
+**The rule (deliberately narrow; `app/careers/contradictions.py`).** Two kinds, both in the
+learner's own voice:
+- **did and did not**: the same verb, affirmed and negated, in the same tense or mode (did / would
+  / do), with a sweeping negation ("anyone", "anything", "at all") or the same object ("asked the
+  surgeon" / "did not ask the surgeon anything");
+- **retraction**: "Actually", "To be honest", "In fact", "Or really" before a statement that takes
+  back an earlier one: the same verb negated, "never … like that" or "that placement" about the
+  statement just before, or "I'd skip the reports" about an earlier statement that mentions them.
+
+Left alone on purpose: quoted speech, hypotheticals ("if", "would have"), what someone else did,
+negated thoughts or feelings ("I wasn't worried"), a change over time ("at first … but when …",
+"until", "any more"), another occasion ("on another shift", "a year ago"), and a negation about
+something else ("I did not call the patients' families"). Punctuation is ignored (the answer is cut
+into units at conjunctions, before "I" and before "Actually"), so a dictated answer is read like
+the typed one.
+
+**What a contradiction does.** Each finding has a state:
+- *conflict*: the two statements are quoted with "Which is right?" and stop counting as evidence.
+  A point either statement (with its lead-in, such as "For example, last month") shows is what the
+  contradiction is about: nothing in the two accounts counts for that point until the learner
+  clarifies. **Every other point is graded exactly as before.** The answer isn't rated Strong while
+  it says two incompatible things (score capped at 84); there is no other penalty;
+- *unclear*: one statement is hedged ("I think", "I'm not sure"): both are quoted and the learner
+  is asked, and **nothing is taken off**;
+- *corrected*: a clear self-correction ("sorry, I mean …", "or rather"): the corrected words don't
+  count, the correction does, and there is no note.
+
+The note never judges the content ("Two parts of your answer don't agree: “…” and “…”. Which is
+right?"): it makes no clinical claim and invents no reconciliation.
+
+| Measure (v4 → v5) | Pairs set (56, tuning-session written) | Families set (108) | Old dev (23) | Historical (17, exposed) |
+|---|---|---|---|---|
+| Contradictions reported / labelled | 0/16 → **13/16** (95% CI 57–93%) | 0/9 → **3/9** (12–65%) | 0/1 → 1/1 | 0/1 → 1/1 |
+| Reports that are right (precision) | — → **13/13** (77–100%) | — → **3/3** (44–100%) | 1/1 | 1/1 |
+| Both statements quoted are the labelled ones | — → 12/13 | — | — | — |
+| Contradicted points still credited | 10/12 → **8/12** | 7/9 → **5/9** | — | — |
+| Unrelated points lost (collateral) | — → **0/51** (0–7%) | — → 0/10 | 0/2 | 0/2 |
+| Reported as unclear | — → 1/56 (the hedged control) | 0/108 | 0/23 | 0/17 |
+| Item precision | 234/247 → 234/244 | 308/333 → 308/331 | 60/74 (same) | 46/50 (same) |
+| Item recall | 234/254 (same) | 308/399 (same) | 60/62 (same) | 46/52 (same) |
+| Rating within bounds | 7/16 → 14/16 | 24/36 (same) | 17/20 (same) | 13/15 (same) |
+
+No control, self-correction or benign answer in any set was reported as a contradiction (the
+new gate `career.contradiction_controls` checks it). Keyword-list, grader-directed, benign,
+dictated-parity (83/84) and meaning-changed numbers are unchanged, and no case check that passed
+under v4 fails under v5. Every decision that changed is a contradicted point no longer credited or
+a rating moved from Strong to Good on a reported contradiction. **Across 783 answer-like texts**
+(v4 at `8db564c` against v5, the same corpus as before plus this change's tests): 2 points removed,
+0 gained, both on answers that retract their example (the families case `fd-9` and a test).
+
+**Not recognised (recorded as open in `evals/regression.json`).**
+- `contradictions-unnoticed` (9 cases): conflicts that need the meaning of words: two different
+  first steps; a different place or moment for the same act ("in the quiet room" / "in the
+  corridor", "at the start" / "at the end"); opposite actions with different verbs ("I never
+  interrupt" / "I cut across them"); a negation in other words ("count the plans" / "not track any
+  figures"); a replacement ("Or really I would only measure …"); a negation with no shared object
+  ("I would not listen to his reasons").
+- `contradicted-point-credited-elsewhere` (6 cases): after a reported contradiction the point can
+  still be credited by other words: cue words elsewhere ("peer check", "a patient's condition",
+  "tell the next shift"), a cue pattern that misses the contradicted statement ("watch her"), or
+  the rest of the conflicting account ("…; I did the observations myself"). The question is still
+  asked and the rating can't be Strong.
+- A retraction of an example whose statement isn't the one just before ("He was seen within ten
+  minutes. Actually, I have never had a patient like that") is reported, but against the last
+  statement rather than the whole example (1 of 13 quoted pairs differs from the labels).
+- Contradictions inside conditional framing ("If a patient disagreed … I would …") are not looked
+  for: hypotheticals are skipped as a whole.
+
+**What this does not show.** The pairs set was written by the same session as the rule, so 13/16
+there is what the rule does on the cases it was built from. The families set (written by a separate
+session, but read while building the rule) is the less optimistic development figure: 3 of 9. No
+independent measurement of contradiction handling exists yet; the sealed set will give one, once,
+for the frozen candidate. This is not general contradiction understanding.
 
 ## Results: requests to Claude and provider failures
 

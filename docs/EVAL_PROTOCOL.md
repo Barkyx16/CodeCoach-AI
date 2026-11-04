@@ -21,6 +21,7 @@ fresh, sealed set exists for the final measurement of the next candidate.
 | `career_dev.json` (23) | development | the harness author (the tuning session) | everything; used to develop rubric v2 |
 | `career_holdout.json` (17) | **exposed historical benchmark** | the harness author | graded, case details read 2026-11-03 |
 | `career_families_dev.json` | development (Volume 4 tuning) | a separate agent session | written without the grader code or output; open to the tuning session |
+| `career_contradiction_pairs.json` (56) | development (Volume 4 brief 04; protocol v2) | the tuning session, together with the rule it tests | everything; results on it are optimistic by construction |
 | `sealed/career_rn_sealed.json` | **sealed final evaluation** | another separate agent session | counts, ids and hashes only (see Access) |
 | `review_set.json` (38), `hint_terms.json` | development (coding) | earlier sessions | everything |
 | `holdout_set.json` (14), `medium_set.json` (14) | exposed historical benchmarks (coding) | earlier sessions | per-sample results printed in every report |
@@ -85,7 +86,12 @@ denominator and a Wilson 95% interval, and per-variant counts are always shown:
   or was quoted; **benign false exclusion**: ordinary answers with a sentence left out as if
   written to the grader;
 - **dictated parity**: criteria where a dictated answer gets the same decision as its typed pair;
-- **meaning-changed false award**: points a meaning change removed that the grader still awarded.
+- **meaning-changed false award**: points a meaning change removed that the grader still awarded;
+- **contradiction detection** (protocol v2): answers the coach reports as contradictory that the
+  labels say are, over those it reports (precision) and over those labelled contradictory
+  (recall); how many it reports as only *unclear*; whether the two statements it quotes are the
+  two labelled ones; and **collateral**: points the labels say are covered and not contradicted
+  that it stopped counting because of a contradiction.
 
 ## Release rule for the next candidate
 
@@ -101,6 +107,29 @@ on the sealed set after the candidate is frozen:
   meaning-changed false award, rating within bounds. An improvement is claimed only for these
   cases, with its interval, and small counts are called small. Nothing here claims clinical
   accuracy, fairness across groups of people, or general robustness.
+
+## Protocol v2 (2026-11-04, Volume 4 brief 04)
+
+`protocol.json` changed after cases were graded, so it has a new version and this note
+(`changes` in the file records both versions). What v2 adds:
+
+- the development set `career-rn-contradiction-pairs` and its **minimal-pairs** design: six base
+  answers on the development questions (the 1st by id, never a question the sealed set's rule
+  picks), and variants that each make exactly one edit to their base (checked word by word by
+  `python -m evals.validate_cases`) — a contradiction, a self-correction, a control that looks
+  like a contradiction (quoted speech, a hypothetical, an unrelated negation, a change over time,
+  someone else's action, another occasion, uncertainty), or a contradiction plus text addressed
+  to the grader. Every case says whether it is `contradiction`, and a contradiction quotes its
+  two statements (`conflict`) and the points they undermine;
+- the `contradiction_*` metrics above, reported and not gated (also on the sealed set at the
+  final grading);
+- the gate `career.contradiction_controls`: a self-correction or control in the development
+  families (and the families set's benign controls) is never reported as a contradiction.
+
+Unchanged: the sealed set, its selection rule and access rules, and the release rule's must-pass
+items and non-inferiority margins. The pairs set was written by the tuning session together with
+the rule it tests, and says so in its `labeler` field: it shows what the rule does on the cases it
+was built from, not that it generalises.
 
 ## Access to the sealed set
 

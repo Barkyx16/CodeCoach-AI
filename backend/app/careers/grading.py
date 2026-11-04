@@ -11,6 +11,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from app.careers import contradictions
+from app.careers.contradictions import Conflict
 from app.careers.questions import NUMBER, Question, irregular_actions
 
 MIN_WORDS, GOOD_MIN, GOOD_MAX, MAX_WORDS = 40, 120, 350, 600
@@ -24,7 +26,13 @@ MIN_WORDS, GOOD_MIN, GOOD_MAX, MAX_WORDS = 40, 120, 350, 600
 # v4 (2026-11-04): a point is shown only by statements: a list of terms, a fragment, or the
 # question's own guidance repeated back names a point without showing it (docs/AI_EVALUATION.md,
 # "Rubric v4").
-RUBRIC_VERSION = "v4"
+# v5 (2026-11-04): explicit contradictions: when the answer says it did an action and that it
+# didn't, or takes something back ("Actually, I never ..."), neither statement counts as evidence,
+# both are quoted with a request to say which is right, and the answer isn't rated Strong until it's
+# clear. A clear self-correction ("sorry, I mean ...") counts as corrected (docs/AI_EVALUATION.md,
+# "Rubric v5"; app/careers/contradictions.py).
+RUBRIC_VERSION = "v5"
+STRONG_SCORE = 85  # the lowest "Strong" score (_rating)
 
 
 @dataclass(frozen=True)
@@ -47,6 +55,11 @@ class Feedback:
     word_count: int
     # "insufficient" when the answer is too short to evaluate: the UI shows that state, not a score.
     evidence_level: str = "sufficient"
+    # Explicit contradictions found (rubric v5), with the spans of the answer they quote. Not stored
+    # with the grade: the notes carry what the learner sees.
+    conflicts: tuple[Conflict, ...] = ()
+    # Points that only statements contradicting each other showed, so they aren't credited.
+    not_counted: tuple[str, ...] = ()
 
 
 def _count(pattern: str, text: str) -> int:
@@ -263,15 +276,16 @@ def _shows(text: str, reference: set[tuple[str, ...]] | None) -> bool:
 
 def _split(
     answer: str, reference: set[tuple[str, ...]] | None = None
-) -> tuple[str, list[_Sentence], list[str], str]:
+) -> tuple[str, list[_Sentence], list[str], list[tuple[int, int]]]:
     """(the text the rubric reads, its sentences, the sentences addressed to the grader, and the
-    text with lists, fragments and copied guidance blanked as well). Only those are cut out of the
-    answer; the rest is read whole, so sentence boundaries never matter."""
+    spans of the answer that show nothing: those sentences, and lists, fragments and copied
+    guidance). Only those are cut out of the answer; the rest is read whole, so sentence boundaries
+    never matter."""
     kept: list[_Sentence] = []
     dropped: list[str] = []
     pieces: list[str] = []
-    shown: list[str] = []
-    last = last_shown = 0
+    blanks: list[tuple[int, int]] = []
+    last = 0
     for m in _SENTENCE.finditer(answer):
         norm = _normalize(m.group(0), m.start())
         if not norm.text:
@@ -280,8 +294,7 @@ def _split(
             dropped.append(re.sub(r"\s+", " ", m.group(0)).strip())
             pieces += [answer[last : m.start()], " "]
             last = m.end()
-            shown += [answer[last_shown : m.start()], " "]
-            last_shown = m.end()
+            blanks.append((m.start(), m.end()))
             continue
         raw = m.group(0)
         start = m.start() + (len(raw) - len(raw.lstrip()))
@@ -298,11 +311,22 @@ def _split(
             shows = _shows(norm.text, reference)
         kept.append(_Sentence(start, end, norm, shows))
         if not shows:
-            shown += [answer[last_shown : m.start()], " "]
-            last_shown = m.end()
+            blanks.append((m.start(), m.end()))
     pieces.append(answer[last:])
-    shown.append(answer[last_shown:])
-    return _normalize("".join(pieces)).text, kept, dropped, _normalize("".join(shown)).text
+    return _normalize("".join(pieces)).text, kept, dropped, blanks
+
+
+def _blanked(answer: str, spans: list[tuple[int, int]]) -> str:
+    """The text the rubric reads with these spans of the answer left out."""
+    out: list[str] = []
+    last = 0
+    for lo, hi in sorted(spans):
+        if hi <= last:
+            continue
+        out += [answer[last : max(last, lo)], " "]
+        last = hi
+    out.append(answer[last:])
+    return _normalize("".join(out)).text
 
 
 def _quote(answer: str, sentence: _Sentence, start: int, end: int) -> tuple[str, tuple[int, int]]:
@@ -329,21 +353,56 @@ def _quote(answer: str, sentence: _Sentence, start: int, end: int) -> tuple[str,
 
 
 def _excerpt(
-    answer: str, sentences: list[_Sentence], patterns: tuple[str, ...]
+    answer: str,
+    sentences: list[_Sentence],
+    patterns: tuple[str, ...],
+    void: tuple[tuple[int, int], ...] = (),
 ) -> tuple[str, tuple[int, int]] | None:
-    """Where the point was found: the first statement in which one of its patterns matches."""
+    """Where the point was found: the first statement in which one of its patterns matches, outside
+    the statements that contradict each other (`void`)."""
     for sentence in sentences:
         if not sentence.shows:
             continue
         padded = " " + sentence.norm.text + " "
+        n = len(sentence.norm.text)
         for p in patterns:
-            m = re.search(p, padded, flags=re.IGNORECASE)
-            if m:
-                n = len(sentence.norm.text)
+            for m in re.finditer(p, padded, flags=re.IGNORECASE):
                 a = min(max(0, m.start() - 1), n - 1)
                 b = min(max(a + 1, m.end() - 1), n)
-                return _quote(answer, sentence, sentence.norm.index[a], sentence.norm.index[b - 1] + 1)
+                lo, hi = sentence.norm.index[a], sentence.norm.index[b - 1] + 1
+                if any(lo < v_hi and v_lo < hi for v_lo, v_hi in void):
+                    continue
+                return _quote_outside(answer, sentence, lo, hi, void)
     return None
+
+
+def _quote_outside(
+    answer: str, sentence: _Sentence, lo: int, hi: int, void: tuple[tuple[int, int], ...]
+) -> tuple[str, tuple[int, int]]:
+    """The quote for a match, kept to the part of its sentence outside the statements that don't
+    count: a quote never shows words that contradict the rest of the answer."""
+    start = max([sentence.start, *(b for a, b in void if b <= lo and b > sentence.start)])
+    end = min([sentence.end, *(a for a, b in void if a >= hi and a < sentence.end)])
+    if (start, end) == (sentence.start, sentence.end):
+        return _quote(answer, sentence, lo, hi)
+    while start < lo and (answer[start].isspace() or answer[start] in ",;:—–("):
+        start += 1
+    while end > hi and (answer[end - 1].isspace() or answer[end - 1] in ",;:—–("):
+        end -= 1
+    text, span = _quote(answer, _Sentence(start, end, sentence.norm, sentence.shows), lo, hi)
+    text = text if text.startswith("…") or start == sentence.start else "…" + text
+    text = text if text.endswith("…") or end == sentence.end else text + "…"
+    return text, span
+
+
+def _shows_point(answer: str, span: tuple[int, int], patterns: tuple[str, ...]) -> bool:
+    padded = " " + _normalize(answer[span[0] : span[1]]).text + " "
+    return any(re.search(p, padded, flags=re.IGNORECASE) for p in patterns)
+
+
+def _clip(text: str, limit: int = 90) -> str:
+    text = re.sub(r"\s+", " ", text).strip()
+    return text if len(text) <= limit else text[: limit - 1].rstrip() + "…"
 
 
 def _not_counting(fillers: int) -> str:
@@ -351,7 +410,7 @@ def _not_counting(fillers: int) -> str:
 
 
 def _rating(score: int) -> str:
-    if score >= 85:
+    if score >= STRONG_SCORE:
         return "Strong"
     if score >= 65:
         return "Good"
@@ -361,17 +420,38 @@ def _rating(score: int) -> str:
 
 
 def grade(question: Question, answer: str) -> Feedback:
-    graded, sentences, to_grader, shown = _split(answer, _reference(question))
-    text, shown_text = " " + graded + " ", " " + shown + " "
+    graded, sentences, to_grader, blanks = _split(answer, _reference(question))
+    conflicts = contradictions.find(answer, sentences)
+    # Never counted or quoted: the statements that contradict each other, and words the learner corrected.
+    void = tuple(v for c in conflicts for v in c.void)
+    text = " " + graded + " "
+    shown_text = " " + _blanked(answer, blanks) + " "
     words = len(graded.split())  # filler sounds aren't words of the answer
     fillers = len(_FILLER.findall(answer))
     found = []
     named_only = []  # points the answer names (in a list, a fragment or copied guidance) but doesn't show
+    lost = []  # points shown only by statements that contradict each other (or were corrected)
     for rp in question.rubric:
-        covered = _covered(shown_text, rp.patterns, rp.min_hits)
-        if not covered and _covered(text, rp.patterns, rp.min_hits):
+        shown_here = _covered(shown_text, rp.patterns, rp.min_hits)
+        # A point the contradicting statements show (with their lead-ins) is what the contradiction is
+        # about: nothing in their accounts counts for it until the learner says which is right. Other
+        # points are graded as before.
+        excluded = list(void) + [
+            span
+            for c in conflicts
+            if c.status == "conflict" and any(_shows_point(answer, v, rp.patterns) for v in c.about)
+            for span in c.scope
+        ]
+        covered = (
+            _covered(" " + _blanked(answer, blanks + excluded) + " ", rp.patterns, rp.min_hits)
+            if excluded
+            else shown_here
+        )
+        if not shown_here and _covered(text, rp.patterns, rp.min_hits):
             named_only.append(rp.label)
-        quote = _excerpt(answer, sentences, rp.patterns) if covered else None
+        if shown_here and not covered:
+            lost.append(rp.label)
+        quote = _excerpt(answer, sentences, rp.patterns, tuple(excluded)) if covered else None
         found.append(
             PointResult(
                 rp.label, covered, rp.advice, quote[0] if quote else None, quote[1] if quote else None
@@ -381,6 +461,26 @@ def grade(question: Question, answer: str) -> Feedback:
     coverage = sum(p.covered for p in points) / len(points) if points else 0.0
 
     notes: list[str] = []
+    disputed: list[Conflict] = []
+    for c in conflicts:  # one note per statement that disagrees with what came before
+        if c.status != "corrected" and all(c.second != d.second for d in disputed):
+            disputed.append(c)
+    for c in disputed[:2]:
+        first, second = _clip(answer[c.first[0] : c.first[1]]), _clip(answer[c.second[0] : c.second[1]])
+        if c.status == "conflict":
+            counted = (
+                f" Until it's clear, neither counts towards: {', '.join(lost)}."
+                if lost and c is disputed[0]
+                else " Until it's clear, neither is counted as evidence."
+            )
+            notes.append(
+                f"Two parts of your answer don't agree: “{first}” and “{second}”. Which is right?{counted}"
+            )
+        else:
+            notes.append(
+                f"These two parts of your answer may not agree: “{first}” and “{second}”. If they don't, say "
+                "which is right. Nothing was taken off for this."
+            )
     if named_only:
         example = next((answer[x.start : x.end] for x in sentences if not x.shows), "")
         example = example if len(example) <= 60 else example[:59].rstrip() + "…"
@@ -435,12 +535,17 @@ def grade(question: Question, answer: str) -> Feedback:
     score = round(100 * (0.8 * coverage + 0.2 * length_score))
     if words < MIN_WORDS:
         score = min(score, 35)  # a few keywords shouldn't score well
+    contradicted = any(c.status == "conflict" for c in conflicts)
+    if contradicted:
+        score = min(score, STRONG_SCORE - 1)  # not Strong while it says two incompatible things
     missed = [p for p in points if not p.covered]
     if words < MIN_WORDS:
         # The score is capped above; the summary must say why rather than praise keyword hits.
         summary = (
             f"Too short to be convincing yet ({words} words). Say what happened, what you did and the result."
         )
+    elif not missed and contradicted:
+        summary = "Two parts of your answer don't agree. Say which is right: both are quoted in the notes."
     elif not missed:
         summary = "You covered everything interviewers listen for in this question."
     elif len(missed) == 1:
@@ -455,4 +560,6 @@ def grade(question: Question, answer: str) -> Feedback:
         notes=tuple(notes),
         word_count=words,
         evidence_level="insufficient" if words < MIN_WORDS else "sufficient",
+        conflicts=conflicts,
+        not_counted=tuple(lost),
     )

@@ -1,0 +1,49 @@
+# Overnight queue: checkpoints
+
+A recoverable record of the Volume 4 / overnight queue, updated after each task. It states what
+was done, on which commit, what was checked and what is left. Morning handoff at the end.
+
+## Execution limits (stated up front)
+
+- One cloud session (Claude Code on the web) on branch `claude/gallant-galileo-hapob6`. It runs
+  only while a turn is in progress; there is no background service, and nothing here is
+  "monitored overnight" unless a scheduling tool confirms a check-in, which this log will name.
+- Commits are pushed to that branch (session policy). No PR, merge, deploy, production
+  configuration, secrets change or paid provider call.
+- The local container can run the backend suites (SQLite and a local PostgreSQL), the frontend
+  suites and Playwright e2e. It can be restarted between turns, which kills background runs;
+  a check is reported only when its output was read.
+- CI conclusions are read with the GitHub tools for the exact commit; pending is reported as
+  pending.
+- Independent evaluation: the sealed set (`backend/evals/sealed/`) was written by a separate
+  session and has not been opened by this one. It is graded once, for the frozen candidate
+  (task 7). Everything else is development or exposed data.
+
+## Queue and status
+
+| # | Task (overnight plan; Volume 4 brief) | Status | Commit(s) |
+|---|---|---|---|
+| 1 | Baseline and evaluation protocol (brief 01) | done | `c07d3f8` and earlier; CI #114 success |
+| 2 | Dictated answers and paraphrases (brief 02, rubric v3) | done | `e973e50`, `30a6dbd`; CI #115 success on `30a6dbd` |
+| 3 | Unsupported keyword credit (brief 03, rubric v4) | done | `2e70d0b`, `8db564c`; CI #116 on `8db564c`: success, 7 of 7 jobs |
+| 4 | Bounded contradiction handling (brief 04, rubric v5) | done, see checkpoint | this change |
+| 5 | Provider failure boundary | next | |
+| 6 | Session isolation regressions | queued | |
+| 7 | Final verification and handoff | queued | |
+| B1–B5 | Bonus queue: accessible flow, safe rendering, backend ownership, concurrent submissions, diagnostics | queued after 7's checks | |
+
+## Checkpoint: task 4, contradictions (rubric v5)
+
+- Rule, policy and limits: docs/AI_EVALUATION.md, "Results: rubric v5"; code
+  `backend/app/careers/contradictions.py`; protocol v2 note in docs/EVAL_PROTOCOL.md.
+- New development set `career_contradiction_pairs.json` (56 minimal pairs, tuning-session
+  written, so optimistic) and gate `career.contradiction_controls`.
+- Measured, v4 → v5, development data: pairs 0/16 → 13/16 reported (13/13 right), families
+  0/9 → 3/9 (3/3 right), collateral 0/51 and 0/10; across 783 answer-like texts 2 points
+  removed (both retracted examples), 0 gained.
+- Open: 9 contradictions that need word meaning; 6 where the point is still credited by other
+  words (`evals/regression.json`).
+- Local checks run before the commit: ruff, ruff format, mypy; `tests/test_careers.py`,
+  `test_evals.py`, `test_eval_protocol.py`, `test_eval_harness.py` (one test, which loads the
+  rubric at `git:HEAD`, can only pass once the change is committed). Full suites: on the commit,
+  recorded in the next checkpoint.

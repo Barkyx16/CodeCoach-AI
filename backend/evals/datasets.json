@@ -117,6 +117,22 @@
       "sha256": "6bef6d4fce715f723880c22ad17dab3564dd885ee0583477a6674dde92e60b88"
     },
     {
+      "id": "career-rn-contradiction-pairs",
+      "file": "career_contradiction_pairs.json",
+      "version": 1,
+      "split": "dev",
+      "domain": "career-answer",
+      "protocol_version": 2,
+      "created": "2026-11-04",
+      "cases": 56,
+      "provenance": "Synthetic: written for this evaluation by the tuning session; no learner, transcript, patient or production data.",
+      "labels": "Written by the tuning session, which also wrote the rubric v5 contradiction rule from these cases; model-written and unreviewed (2 points marked uncertain).",
+      "used_for": "developing and checking the rubric v5 contradiction handling (Volume 4 brief 04)",
+      "role": "development",
+      "exposure": "written and read by the tuning session; the rule was developed on it, so its results are optimistic",
+      "sha256": "7dc0ed19898e61673c84b4c2387a46a56014a94de1d4968f63d9391b13b3d0b6"
+    },
+    {
       "id": "career-rn-sealed",
       "file": "sealed/career_rn_sealed.json",
       "version": 1,

@@ -91,14 +91,83 @@
     {
       "id": "contradictions-unnoticed",
       "found": "2026-11-03",
-      "summary": "An answer that takes back what it said keeps the credit for it.",
+      "summary": "An answer that contradicts itself in a way that needs the meaning of words is not reported: two different first steps, a different place or moment for the same act ('at the start' / 'at the end'), opposite actions told with different verbs ('I never interrupt' / 'I cut across them'), a negation in other words ('count the plans' / 'not track any figures'), a replacement ('Or really I would only measure ...'), a negation with no shared object ('I would not listen to his reasons'), or a retraction of an example that isn't in the sentence just before. Rubric v5 handles only explicit did-and-did-not statements and explicit retractions (explicit-contradictions-unreported). Until then such answers keep the credit.",
+      "history": "2026-11-04 (rubric v5): rn-dev-13 and rn-ho-10, the cases this defect was found on, are now reported (explicit-contradictions-unreported); the defect now groups the unsupported kinds.",
       "cases": [
-        "career-rn-dev/rn-dev-13",
-        "career-rn-holdout/rn-ho-10"
+        "career-rn-families-dev/fd-2-P-contradiction",
+        "career-rn-families-dev/fd-4-P-contradiction",
+        "career-rn-families-dev/fd-5-P-contradiction",
+        "career-rn-families-dev/fd-6-P-contradiction",
+        "career-rn-families-dev/fd-7-P-contradiction",
+        "career-rn-families-dev/fd-8-P-contradiction",
+        "career-rn-contradiction-pairs/cp-2-c2",
+        "career-rn-contradiction-pairs/cp-5-c1",
+        "career-rn-contradiction-pairs/cp-6-c2"
       ],
       "status": "open",
       "signal": {
-        "check": "rating"
+        "check": "contradiction_reported"
+      }
+    },
+    {
+      "id": "explicit-contradictions-unreported",
+      "found": "2026-11-04, development pairs (evals/career_contradiction_pairs.json)",
+      "summary": "An answer that says it did an action and that it didn't ('I asked the healthcare assistant ...' / 'I did not ask anyone for help at all'), or takes something back ('Actually, I never ...', 'To be honest, I wouldn't ...', 'I'd skip the reports'), was graded as if both were true. Rubric v5 reports it, quoting both statements, and asks which is right.",
+      "cases": [
+        "career-rn-dev/rn-dev-13",
+        "career-rn-holdout/rn-ho-10",
+        "career-rn-families-dev/fd-1-P-contradiction",
+        "career-rn-families-dev/fd-3-P-contradiction",
+        "career-rn-families-dev/fd-9-P-contradiction",
+        "career-rn-contradiction-pairs/cp-1-c1",
+        "career-rn-contradiction-pairs/cp-1-c2",
+        "career-rn-contradiction-pairs/cp-2-c1",
+        "career-rn-contradiction-pairs/cp-3-c1",
+        "career-rn-contradiction-pairs/cp-3-c2",
+        "career-rn-contradiction-pairs/cp-4-c1",
+        "career-rn-contradiction-pairs/cp-5-c2",
+        "career-rn-contradiction-pairs/cp-6-c1",
+        "career-rn-contradiction-pairs/cp-4-c2"
+      ],
+      "status": "fixed",
+      "fixed_in": "rubric v5 (Volume 4 brief 04)",
+      "signal": {
+        "check": "contradiction_reported"
+      }
+    },
+    {
+      "id": "contradicting-statements-credited",
+      "found": "2026-11-04, development pairs",
+      "summary": "The point a reported contradiction is about was credited from the contradicting statements themselves. Rubric v5 counts neither of their sentences for that point.",
+      "cases": [
+        "career-rn-families-dev/fd-1-P-contradiction",
+        "career-rn-families-dev/fd-3-P-contradiction",
+        "career-rn-families-dev/fd-9-P-contradiction",
+        "career-rn-contradiction-pairs/cp-1-c2",
+        "career-rn-contradiction-pairs/cp-2-c1",
+        "career-rn-contradiction-pairs/cp-3-c1"
+      ],
+      "status": "fixed",
+      "fixed_in": "rubric v5 (Volume 4 brief 04)",
+      "signal": {
+        "check": "contradiction"
+      }
+    },
+    {
+      "id": "contradicted-point-credited-elsewhere",
+      "found": "2026-11-04, rubric v5 on the development pairs",
+      "summary": "After a reported contradiction, the point it is about can still be credited by other words in the answer: a cue word ('peer check' for gathering information, 'a patient's condition' or 'tell the next shift' for communicating), a pattern that misses the contradicted statement ('watch her' isn't a checks cue, so 'give her feedback' after it still counts), or the rest of the conflicting account ('I did not ask anyone for help at all; I did the observations myself' still counts as an action). The same cue-word weakness as generic-answers-credited. The note quoting both statements is still shown and the rating can't be Strong.",
+      "cases": [
+        "career-rn-contradiction-pairs/cp-1-c1",
+        "career-rn-contradiction-pairs/cp-3-c2",
+        "career-rn-contradiction-pairs/cp-4-c1",
+        "career-rn-contradiction-pairs/cp-4-c2",
+        "career-rn-contradiction-pairs/cp-5-c2",
+        "career-rn-contradiction-pairs/cp-6-c1"
+      ],
+      "status": "open",
+      "signal": {
+        "check": "contradiction"
       }
     },
     {

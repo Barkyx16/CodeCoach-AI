@@ -42,6 +42,16 @@ derived from it. A reflection edited after reading the feedback is marked as suc
   ellipsis where it was cut, so the quote always shows why the point counted. Missing points show
   advice instead. Answers from before this change have no quotes recorded, and nothing is
   invented for them.
+- **Two parts that don't agree are asked about** (rubric v5). When an answer says it did an
+  action and that it didn't ("I asked the healthcare assistant to take over the observations" …
+  "I did not ask anyone for help at all"), or takes something back ("Actually, I never …", "To be
+  honest, I wouldn't …", "I'd skip the reports"), the feedback quotes both statements and asks
+  which is right. Until it's clear, neither statement counts as evidence for the point it is
+  about, and the answer isn't rated Strong; other points are graded as before. A hedged one ("I
+  think I didn't …") is asked about with nothing taken off, and a clear self-correction ("sorry,
+  I mean …") counts as corrected, with no note. Quotes, hypotheticals, other people's actions, a
+  change over time ("at first … but when …") and another occasion are not contradictions. Only
+  these explicit kinds are recognised; what isn't is listed in docs/AI_EVALUATION.md.
 - **A point is shown, not named** (rubric v4). A list of terms, a fragment, or the question's own
   guidance said back doesn't earn a point or get quoted; the feedback says when a point was named
   without being shown and asks for an example. Listed words still count towards length.

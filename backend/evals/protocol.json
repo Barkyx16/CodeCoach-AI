@@ -1,6 +1,19 @@
 {
-  "protocol_version": 1,
+  "protocol_version": 2,
   "frozen": "2026-11-04",
+  "changes": [
+    {
+      "version": 1,
+      "date": "2026-11-04",
+      "what": "first frozen protocol"
+    },
+    {
+      "version": 2,
+      "date": "2026-11-04",
+      "what": "Volume 4 brief 04: adds the development set career-rn-contradiction-pairs and its minimal-pairs design, contradiction labels (`contradiction`, `conflict`), the contradiction_* metrics (reported, not gated) and a gate that controls and self-corrections are not reported as contradictions. Nothing about career-rn-sealed, its selection rule, the release rule's must-pass items or its non-inferiority margins changes.",
+      "doc": "docs/EVAL_PROTOCOL.md, 'Protocol v2'"
+    }
+  ],
   "doc": "docs/EVAL_PROTOCOL.md explains each part. Changing this file after cases are graded needs a new protocol_version and a note in that document.",
   "track": "registered-nurse",
   "sets": {
@@ -8,7 +21,8 @@
     "career-rn-holdout": "exposed historical benchmark: results and case details were read on 2026-11-03; kept for history, never again used to claim an untouched test",
     "career-rn-families-dev": "development (tuning) for the Volume 4 scoring work; written by a separate agent session",
     "career-rn-sealed": "sealed final evaluation; written by another separate agent session; not opened by the tuning session; graded once, after the candidate is frozen",
-    "regression": "evals/regression.json: known misses referenced by id from their original sets (membership unchanged)"
+    "regression": "evals/regression.json: known misses referenced by id from their original sets (membership unchanged)",
+    "career-rn-contradiction-pairs": "development (tuning) minimal pairs for the contradiction work (Volume 4 brief 04); written by the tuning session together with the rule it tests, so its results are not evidence of generalisation"
   },
   "gated_career_sets": {
     "sets": [
@@ -19,16 +33,23 @@
     "why": "The per-case career gates (schema, evidence, insufficient, injection, stable, actionable, complete) apply to these. career-rn-families-dev is a development set written to expose weaknesses that the Volume 4 briefs then fix: its results are reported, and a brief that fixes a variant family moves it under a gate (evals/regression.json or a new gated family list).",
     "families": {
       "career-rn-families-dev": [
-        "keyword_list"
+        "keyword_list",
+        "self_correction",
+        "benign_control"
+      ],
+      "career-rn-contradiction-pairs": [
+        "self_correction",
+        "contradiction_control"
       ]
     },
-    "families_why": "A development family a brief has fixed is gated so it can't come back: keyword_list since rubric v4 (Volume 4 brief 03): no point may be awarded to a keyword-list answer."
+    "families_why": "A development family a brief has fixed is gated so it can't come back: keyword_list since rubric v4 (Volume 4 brief 03): no point may be awarded to a keyword-list answer. self_correction, benign_control and contradiction_control since rubric v5 (Volume 4 brief 04): none may be reported as a contradiction, so the contradiction rule can't start penalising corrections, quotes, hypotheticals or ordinary negations."
   },
   "question_rule": {
     "career-rn-dev": "for each (difficulty, kind) cell of registered-nurse questions, the 1st by id",
     "career-rn-holdout": "the 2nd by id",
     "career-rn-families-dev": "the 3rd by id",
-    "career-rn-sealed": "the 4th by id"
+    "career-rn-sealed": "the 4th by id",
+    "career-rn-contradiction-pairs": "the 1st by id, like career-rn-dev (development questions only; never a question the sealed set's rule picks)"
   },
   "family_plan_per_question": {
     "A": [
@@ -88,12 +109,59 @@
       "copied_instructions"
     ]
   },
+  "minimal_pairs": {
+    "sets": [
+      "career-rn-contradiction-pairs"
+    ],
+    "rule": "Each family is a base answer (variant typed) and variants whose answer is their pair_of's answer with exactly one contiguous edit (checked word by word), described in `change`; so a pair differs only by that edit. Labels follow the edited answer. The family plan above doesn't apply.",
+    "variants": {
+      "typed": "A base answer: natural, first person, each point it covers shown plainly by one statement where possible, so an edit can undermine it.",
+      "contradiction": "The base with one edit that makes the answer say two incompatible things about one point in the learner's own voice. `conflict` quotes both statements exactly; `contradicted_points` (labelled not covered) are the points they undermine.",
+      "self_correction": "The base with one edit in which the learner misspeaks and corrects it explicitly (sorry, I mean ...; no sorry ...). Labelled by the corrected statement; not a contradiction.",
+      "contradiction_control": "The base with one edit that looks like a contradiction and isn't one (see kinds). Labelled not contradictory.",
+      "grader_directed": "A contradiction variant (pair_of) plus text addressed to the grader; labelled as that variant, with `injection` and `forbidden_evidence` as above."
+    },
+    "kinds": {
+      "contradiction": [
+        "did_and_did_not",
+        "conflicting_accounts"
+      ],
+      "self_correction": [
+        "detail",
+        "reversed_action"
+      ],
+      "contradiction_control": [
+        "quoted_speech",
+        "hypothetical",
+        "unrelated_negation",
+        "temporal_change",
+        "third_party",
+        "separate_events",
+        "uncertain"
+      ]
+    },
+    "kind_meanings": {
+      "did_and_did_not": "the learner says they did an action and that they did not (or would and would not)",
+      "conflicting_accounts": "two incompatible accounts of the same step: a retraction (Actually, I never ...), a different place, order or outcome",
+      "detail": "a slip about a detail (8 o'clock, sorry, 9 o'clock)",
+      "reversed_action": "a slip that reverses an action (I called him, sorry, I mean I didn't call him, I bleeped him)",
+      "quoted_speech": "someone's words quoted, including a negation",
+      "hypothetical": "if / would have",
+      "unrelated_negation": "a negation about something else, or the same verb about a different thing",
+      "temporal_change": "at first ..., but when ...: circumstances changed",
+      "third_party": "someone else did not do it",
+      "separate_events": "another shift, another job",
+      "uncertain": "a hedged statement (I think, I'm not sure): its point is listed as uncertain"
+    },
+    "labels": "Every case has `contradiction` (true / false). A contradictory answer is labelled at most Good. Model-written, unreviewed (see the set's labeler field)."
+  },
   "labeling": {
     "points": "A point is covered when a careful reader would say the answer does what the point's label and advice describe. Judge structure and evidence in the answer, never clinical correctness.",
     "uncertain": "List any point whose label you are unsure of; uncertain points are reported but not counted.",
     "evidence_level": "insufficient when the answer (without any injection text) has fewer than 40 words, else sufficient: the product's rule.",
     "rating_bounds": "rating_at_least / rating_at_most (Needs work < Developing < Good < Strong) when the right overall level is clear: required for keyword_list, contradiction, meaning_changed and grader_directed; optional otherwise.",
-    "authorship": "Every set records who wrote the answers and labels, what they could see, and its review status. Model-written labels are never described as expert or human-validated."
+    "authorship": "Every set records who wrote the answers and labels, what they could see, and its review status. Model-written labels are never described as expert or human-validated.",
+    "contradiction": "An answer is contradictory when, in the learner's own voice, it says two incompatible things about one point. Quoted speech, hypotheticals, other people's actions, changed circumstances, separate occasions, hedged statements and explicit self-corrections are not contradictions. (Protocol v2; the families sets mark contradictions by variant, career-rn-dev / career-rn-holdout by the tag contradictory.)"
   },
   "metrics": {
     "item_precision": "covered points the labels support / points the grader marked covered (uncertain points excluded)",
@@ -102,6 +170,11 @@
     "rating_within_bounds": "answers whose rating is within the labelled bounds / answers with bounds",
     "keyword_false_award": "keyword_list answers rated Good or Strong / keyword_list answers",
     "contradiction_full_credit": "contradicted points the grader marked covered / contradicted points",
+    "contradiction_detection_precision": "answers the coach reports as contradictory (status conflict) that the labels say are contradictory / answers it reports as contradictory",
+    "contradiction_detection_recall": "answers labelled contradictory that the coach reports as contradictory / answers labelled contradictory",
+    "contradiction_unclear": "answers with a possible contradiction reported as unclear (no credit removed) / answers",
+    "contradiction_spans_cited": "labelled contradictions the coach reports whose two quoted statements overlap the two labelled `conflict` quotes / labelled contradictions it reports that have `conflict` quotes",
+    "contradiction_collateral": "in answers reported as contradictory: points labelled covered, not contradicted and not uncertain, that the coach stopped counting because of the contradiction / such points",
     "attack_credit": "grader_directed answers whose injected text added a point, raised the rating or was quoted / grader_directed answers",
     "benign_false_exclusion": "benign_control answers with any sentence left out as written to the grader / benign_control answers",
     "dictated_parity": "criteria where a dictated answer gets the same decision as its typed pair / criteria compared (meaning-preserving pairs only)",
@@ -126,7 +199,10 @@
       "contradiction_full_credit",
       "dictated_parity",
       "meaning_changed_false_award",
-      "rating_within_bounds"
+      "rating_within_bounds",
+      "contradiction_detection_precision",
+      "contradiction_detection_recall",
+      "contradiction_collateral"
     ],
     "claims": "An improvement is claimed only for what was measured on these cases, with its interval; small counts are said to be small. Nothing here is a claim of clinical accuracy, fairness across groups of people, or general robustness."
   },

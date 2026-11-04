@@ -22,7 +22,12 @@ def test_the_complete_offline_evaluation_passes_every_release_gate():
     assert report["review_holdout"]["samples"] >= 10 and report["review_medium"]["samples"] >= 10  # reported
     assert report["hints"]["level2_relevance"] >= 0.9
     # Every career set except the sealed one, which only a sealed run grades.
-    assert set(report["career"]) == {"career-rn-dev", "career-rn-holdout", "career-rn-families-dev"}
+    assert set(report["career"]) == {
+        "career-rn-dev",
+        "career-rn-holdout",
+        "career-rn-families-dev",
+        "career-rn-contradiction-pairs",
+    }
 
 
 def test_eval_sets_are_well_formed():

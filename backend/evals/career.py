@@ -88,6 +88,32 @@ def _evidence_problems(fb: Feedback, q: Question, answer: str, forbidden: list[s
         for bad in forbidden:
             if bad.lower() in quote.lower():
                 problems.append(f"{p.label}: quotes forbidden text {bad!r}")
+    problems += _conflict_problems(fb, answer, forbidden)
+    return problems
+
+
+def _overlaps(a: tuple[int, int], b: tuple[int, int]) -> bool:
+    return a[0] < b[1] and b[0] < a[1]
+
+
+def _conflict_problems(fb: Feedback, answer: str, forbidden: list[str]) -> list[str]:
+    """A contradiction the coach reports (rubric v5) quotes two real, different parts of the answer,
+    neither of them text written to the grader, and what it stops counting is never quoted as
+    evidence. Older rubrics report none."""
+    problems = []
+    void = [v for c in getattr(fb, "conflicts", ()) for v in c.void]
+    for c in getattr(fb, "conflicts", ()):
+        for lo, hi in (c.first, c.second):
+            if not (0 <= lo < hi <= len(answer)) or not answer[lo:hi].strip():
+                problems.append(f"contradiction: quotes a span that isn't in the answer ({lo}, {hi})")
+            elif any(bad.lower() in answer[lo:hi].lower() for bad in forbidden):
+                problems.append("contradiction: quotes text written to the grader")
+        if c.status != "corrected" and _overlaps(c.first, c.second):
+            problems.append("contradiction: the two statements quoted overlap")
+    for p in fb.points:
+        span = getattr(p, "span", None)
+        if p.covered and span is not None and any(_overlaps(span, v) for v in void):
+            problems.append(f"{p.label}: quotes as evidence a statement that doesn't count (a contradiction)")
     return problems
 
 
@@ -115,6 +141,13 @@ def evaluate_case(case: dict, track: str, grader: Grader) -> dict:
         "evidence_level": fb.evidence_level,
         "covered": sorted(p.label for p in fb.points if p.covered),
         "left_out_text": any(n.startswith("Left out") for n in fb.notes),
+        # Contradictions the coach reports (rubric v5; none from older rubrics) and the points it
+        # didn't count because only contradicting statements showed them.
+        "conflicts": [
+            {"kind": c.kind, "status": c.status, "first": list(c.first), "second": list(c.second)}
+            for c in getattr(fb, "conflicts", ())
+        ],
+        "not_counted": sorted(getattr(fb, "not_counted", ())),
     }
 
     # schema
@@ -335,6 +368,7 @@ def protocol_metrics(dataset: dict, result: dict) -> dict:
     out["contradiction_full_credit"] = rate(
         sum(label in g["observed"]["covered"] for _, g, label in contradicted), len(contradicted)
     )
+    out |= _contradiction_metrics(cases, graded)
     att = of("grader_directed")
     out["attack_credit"] = rate(
         sum(
@@ -385,6 +419,60 @@ def protocol_metrics(dataset: dict, result: dict) -> dict:
     return out
 
 
+def labelled_contradictory(case: dict) -> bool:
+    """The labels say the answer contradicts itself (protocol v2: `contradiction`, the
+    contradiction variant, or the older sets' tag)."""
+    return bool(
+        case.get("contradiction")
+        or case.get("variant") == "contradiction"
+        or "contradictory" in case.get("tags", [])
+    )
+
+
+def _reported(g: dict, status: str = "conflict") -> list[dict]:
+    return [c for c in g["observed"].get("conflicts", []) if c["status"] == status]
+
+
+def _contradiction_metrics(cases: dict, graded: dict) -> dict:
+    """protocol.json metrics.contradiction_*: answer-level detection against the labels, whether the
+    two statements quoted are the labelled ones, and credit lost on points the contradiction isn't
+    about."""
+    tp = fp = fn = unclear = cited = with_quotes = lost = kept = 0
+    for i, g in graded.items():
+        c = cases[i]
+        positive, flagged = labelled_contradictory(c), bool(_reported(g))
+        tp += positive and flagged
+        fp += flagged and not positive
+        fn += positive and not flagged
+        unclear += bool(_reported(g, "unclear"))
+        if positive and flagged and c.get("conflict"):
+            with_quotes += 1
+            spans = []
+            for quote in c["conflict"]:
+                at = c["answer"].find(quote)
+                spans.append((at, at + len(quote)))
+            a, b = spans
+            cited += any(
+                (_overlaps(tuple(x["first"]), a) and _overlaps(tuple(x["second"]), b))
+                or (_overlaps(tuple(x["first"]), b) and _overlaps(tuple(x["second"]), a))
+                for x in _reported(g)
+            )
+        if flagged:
+            labels, about = c["labels"]["points"], set(c.get("contradicted_points", []))
+            unrelated = [
+                p for p, v in labels.items() if v and p not in about and p not in c["labels"]["uncertain"]
+            ]
+            kept += len(unrelated)
+            lost += sum(p in g["observed"]["not_counted"] for p in unrelated)
+    return {
+        "contradiction_detection_precision": rate(tp, tp + fp),
+        "contradiction_detection_recall": rate(tp, tp + fn),
+        "contradiction_unclear": rate(unclear, len(graded)),
+        "contradiction_spans_cited": rate(cited, with_quotes),
+        "contradiction_collateral": rate(lost, kept),
+    }
+
+
 def evaluate_regression(grader: Grader) -> list[dict]:
     """Each known defect (evals/regression.json) against the cases that show it, in their own sets."""
     spec = json.loads((EVAL_DIR / "regression.json").read_text(encoding="utf-8"))
@@ -392,6 +480,7 @@ def evaluate_regression(grader: Grader) -> list[dict]:
         "career-rn-dev": "career_dev.json",
         "career-rn-holdout": "career_holdout.json",
         "career-rn-families-dev": "career_families_dev.json",
+        "career-rn-contradiction-pairs": "career_contradiction_pairs.json",
     }
     sets = {k: load(v) for k, v in names.items()}
     out = []
@@ -424,6 +513,14 @@ def evaluate_regression(grader: Grader) -> list[dict]:
                 shows = [p.covered for p in grader(q, case["answer"]).points] != [
                     p.covered for p in grader(q, transformed).points
                 ]
+            elif sig["check"] == "contradiction_reported":
+                shows = not any(c["status"] == "conflict" for c in r["observed"]["conflicts"])
+            elif sig["check"] == "contradiction":
+                # Reported as a contradiction, and none of the points it undermines credited.
+                about = sig.get("points") or case.get("contradicted_points", [])
+                shows = not any(c["status"] == "conflict" for c in r["observed"]["conflicts"]) or any(
+                    label in r["observed"]["covered"] for label in about
+                )
             elif "point" in sig:
                 row = next(x for x in r["points"] if x["label"] == sig["point"])
                 shows = row["predicted"] != row["expected"]

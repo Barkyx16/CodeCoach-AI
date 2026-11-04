@@ -9,6 +9,7 @@ sealed set. Exit status 1 when anything is wrong.
 from __future__ import annotations
 
 import argparse
+import difflib
 import json
 import sys
 from collections import Counter, defaultdict
@@ -46,11 +47,61 @@ def rule_questions(track: str, index: int) -> set[str]:
     return {sorted(ids)[index] for ids in by_cell.values() if len(ids) > index}
 
 
-RULE_INDEX = {"career-rn-dev": 0, "career-rn-holdout": 1, "career-rn-families-dev": 2, "career-rn-sealed": 3}
+RULE_INDEX = {
+    "career-rn-dev": 0,
+    "career-rn-holdout": 1,
+    "career-rn-families-dev": 2,
+    "career-rn-sealed": 3,
+    "career-rn-contradiction-pairs": 0,
+}
+
+
+def edits(a: str, b: str) -> int:
+    """How many separate places two answers differ in, word by word (a minimal pair has one)."""
+    ops = difflib.SequenceMatcher(a=a.split(), b=b.split(), autojunk=False).get_opcodes()
+    return sum(tag != "equal" for tag, *_ in ops)
+
+
+def _pair_problems(c: dict, by_id: dict, plan: dict) -> list[str]:
+    """protocol.json minimal_pairs: one edit from its pair, and contradiction labels that say which
+    two statements disagree and which points they undermine."""
+    cid, v = c.get("id", "?"), c.get("variant")
+    errors = []
+    if v != "typed":
+        pair = by_id.get(c.get("pair_of"))
+        if pair is None or pair.get("family") != c.get("family"):
+            errors.append(f"{cid}: pair_of must name a case of the same family")
+        elif not c.get("change") or edits(pair.get("answer", ""), c.get("answer", "")) != 1:
+            errors.append(f"{cid}: must differ from {pair['id']} by exactly one edit, described in `change`")
+        elif v == "grader_directed" and pair.get("variant") != "contradiction":
+            errors.append(f"{cid}: grader_directed is paired with a contradiction variant")
+    if not isinstance(c.get("contradiction"), bool):
+        errors.append(f"{cid}: needs `contradiction` (true or false)")
+        return errors
+    should = {"contradiction": True, "self_correction": False, "contradiction_control": False, "typed": False}
+    if v in should and c["contradiction"] != should[v]:
+        errors.append(f"{cid}: a {v} case is labelled contradiction={should[v]}")
+    points = c.get("labels", {}).get("points", {})
+    if c["contradiction"]:
+        cp = c.get("contradicted_points") or []
+        if not cp or not set(cp) <= set(points) or any(points.get(x) for x in cp):
+            errors.append(f"{cid}: a contradiction needs contradicted_points, each labelled not covered")
+        quotes = c.get("conflict") or []
+        if len(quotes) != 2 or any(not q or q not in c.get("answer", "") for q in quotes):
+            errors.append(f"{cid}: `conflict` must quote the two statements, exactly as in the answer")
+        if not ({"rating_at_least", "rating_at_most"} & set(c.get("expected", {}))):
+            errors.append(f"{cid}: a contradiction needs a rating bound")
+    elif c.get("contradicted_points") or c.get("conflict"):
+        errors.append(f"{cid}: contradicted_points / conflict on an answer labelled not contradictory")
+    return errors
 
 
 def validate(data: dict) -> tuple[list[str], dict]:
     p = protocol()
+    pairs = data.get("design") == "minimal_pairs"
+    plan_spec = p["minimal_pairs"] if pairs else None
+    variant_names = plan_spec["variants"] if plan_spec else p["variants"]
+    kinds_of = {**p["kinds"], **plan_spec["kinds"]} if plan_spec else p["kinds"]
     errors: list[str] = []
     for f in DATASET_FIELDS:
         if f not in data:
@@ -73,10 +124,12 @@ def validate(data: dict) -> tuple[list[str], dict]:
         v = c.get("variant")
         variants[v] += 1
         families[c.get("family", "?")].append(c)
-        if v not in p["variants"]:
+        if v not in variant_names:
             errors.append(f"{cid}: unknown variant {v!r}")
             continue
-        kinds = p["kinds"].get(v)
+        if pairs:
+            errors += _pair_problems(c, by_id, plan_spec)
+        kinds = kinds_of.get(v)
         if kinds and c.get("kind") not in kinds:
             errors.append(f"{cid}: {v} needs a kind from {kinds}")
         if allowed_q is not None and c.get("question_id") not in allowed_q:
@@ -114,7 +167,7 @@ def validate(data: dict) -> tuple[list[str], dict]:
             cp = c.get("contradicted_points") or []
             if not cp or not set(cp) <= set(points) or any(points.get(x) for x in cp):
                 errors.append(f"{cid}: contradiction needs contradicted_points, each labelled not covered")
-        if v in PAIRED:
+        if v in PAIRED and not pairs:
             pair = by_id.get(c.get("pair_of"))
             if pair is None or pair.get("variant") != "typed" or pair.get("family") != c.get("family"):
                 errors.append(f"{cid}: {v} needs pair_of = the typed answer of the same family")
@@ -122,15 +175,17 @@ def validate(data: dict) -> tuple[list[str], dict]:
                 errors.append(f"{cid}: a meaning-preserving {v} must have its typed pair's point labels")
         if v == "keyword_list" and words < 40:
             errors.append(f"{cid}: keyword_list must have at least 40 words")
-    # The family plan, per question.
+    # The family plan, per question (a minimal-pairs set has its own design instead).
     plan = p["family_plan_per_question"]
     per_question: dict[str, list[list[str]]] = defaultdict(list)
     for fam in families.values():
         per_question[fam[0].get("question_id", "?")].append(sorted(x.get("variant") for x in fam))
     for qid, fams in per_question.items():
-        for name, wanted in plan.items():
+        for name, wanted in plan.items() if not pairs else ():
             if sorted(wanted) not in fams:
                 errors.append(f"question {qid}: no family with exactly the variants of plan {name} {wanted}")
+        if pairs and not any([x for x in f if x == "typed"] == ["typed"] for f in fams):
+            errors.append(f"question {qid}: every family needs exactly one base answer (variant typed)")
     summary = {
         "cases": len(cases),
         "questions": len(per_question),
