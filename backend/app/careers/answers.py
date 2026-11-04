@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.careers import grading
+from app.careers import evidence, grading
 from app.careers.grading import MIN_WORDS, Feedback, grade
 from app.careers.questions import Question
 from app.models import PracticeAnswer
@@ -33,7 +33,14 @@ def feedback_dict(fb: Feedback, question: Question) -> dict:
         "rating": fb.rating,
         "summary": fb.summary,
         "points": [
-            {"label": p.label, "covered": p.covered, "advice": p.advice, "evidence": p.evidence}
+            {
+                "label": p.label,
+                "covered": p.covered,
+                "advice": p.advice,
+                "evidence": p.evidence,
+                # where the quote is in `answer`, in code points (app/careers/evidence.py)
+                "span": list(p.span) if p.span else None,
+            }
             for p in fb.points
         ],
         "notes": list(fb.notes),
@@ -53,6 +60,25 @@ def rubric_version_of(feedback: dict) -> str:
     return tail or "v1"
 
 
+def feedback_points(answer: str, stored: list[dict]) -> list[FeedbackPoint]:
+    """The stored points with their evidence checked against the answer they were given for
+    (app/careers/evidence.py): a quote that doesn't check out isn't shown, and none is invented."""
+    out = []
+    for p in stored:
+        e = evidence.check(answer, bool(p["covered"]), p.get("evidence"), p.get("span"))
+        out.append(
+            FeedbackPoint(
+                label=p["label"],
+                covered=p["covered"],
+                advice=p["advice"],
+                evidence=e.quote,
+                span=list(e.span) if e.span else None,
+                evidence_status=e.status,
+            )
+        )
+    return out
+
+
 def answer_out(row: PracticeAnswer) -> AnswerOut:
     fb = row.feedback
     return AnswerOut(
@@ -62,7 +88,7 @@ def answer_out(row: PracticeAnswer) -> AnswerOut:
         score=row.score,
         rating=fb["rating"],
         summary=fb["summary"],
-        points=[FeedbackPoint(**p) for p in fb["points"]],
+        points=feedback_points(row.answer, fb["points"]),
         rubric_version=rubric_version_of(fb),
         # Older answers didn't store this; their word count says it.
         evidence_level=fb.get("evidence_level")

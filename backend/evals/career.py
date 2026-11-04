@@ -31,6 +31,7 @@ from collections import Counter
 from collections.abc import Callable
 from pathlib import Path
 
+from app.careers import evidence as contract
 from app.careers.grading import Feedback, _normalize
 from app.careers.questions import Question, get_question
 
@@ -187,7 +188,28 @@ def evaluate_case(case: dict, track: str, grader: Grader) -> dict:
     checks["points"] = _check(wrong)
 
     # evidence
-    checks["evidence"] = _check(_evidence_problems(fb, q, case["answer"], case.get("forbidden_evidence", [])))
+    evidence_problems = _evidence_problems(fb, q, case["answer"], case.get("forbidden_evidence", []))
+    checks["evidence"] = _check(evidence_problems)
+    # the evidence contract (Volume 4 prompt 06): every quote checks out against the answer as it
+    # would be shown. Validity (the quote is at its place) and relevance (it shows its point) are
+    # counted separately.
+    statuses = [
+        contract.check(case["answer"], p.covered, p.evidence, getattr(p, "span", None)).status
+        for p in fb.points
+    ]
+    checks["evidence_contract"] = _check(
+        [
+            f"{p.label}: quote {st}"
+            for p, st in zip(fb.points, statuses, strict=True)
+            if st not in (None, "verified")
+        ]
+    )
+    quotes = sum(st is not None for st in statuses)
+    out["observed"]["quotes"] = {
+        "total": quotes,
+        "verified": statuses.count("verified"),
+        "relevant": quotes - sum("doesn't show the point" in pr for pr in evidence_problems),
+    }
 
     # insufficient evidence
     exp_level = case["expected"]["evidence_level"]
@@ -277,6 +299,7 @@ def evaluate_set(dataset: dict, grader: Grader) -> dict:
         "schema",
         "points",
         "evidence",
+        "evidence_contract",
         "insufficient",
         "actionable",
         "rating",
@@ -436,6 +459,10 @@ def protocol_metrics(dataset: dict, result: dict) -> dict:
     out["benign_false_exclusion"] = rate(sum(g["observed"]["left_out_text"] for _, g in benign), len(benign))
     out["benign_false_exclusion_by_kind"] = _by_kind(benign, lambda g: g["observed"]["left_out_text"])
     out |= _action_metrics(cases, graded, of)
+    quoted = [g["observed"].get("quotes", {}) for g in graded.values()]
+    total = sum(x.get("total", 0) for x in quoted)
+    out["quote_validity"] = rate(sum(x.get("verified", 0) for x in quoted), total)
+    out["quote_relevance"] = rate(sum(x.get("relevant", 0) for x in quoted), total)
     same = changed = removed = awarded = 0
     for c, g in [*of("dictated"), *of("paraphrase"), *of("meaning_changed")]:
         pair = graded.get(c.get("pair_of"))

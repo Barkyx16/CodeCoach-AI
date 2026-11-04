@@ -16,6 +16,7 @@ import { FeedbackView } from "./FeedbackView";
 import { LinkPanel } from "./LinkPanel";
 import { SharedSnapshot } from "./SharedSnapshot";
 import { feedbackCount, STATUS_LABEL, STATUS_TONE } from "./shareStatus";
+import { FeedbackKind } from "@/components/FeedbackKind";
 
 /** One shared answer: link controls, the feedback people left (kept apart from AI feedback), and the snapshot. */
 export function ShareDetailPage() {
@@ -126,6 +127,7 @@ export function ShareDetailPage() {
 
       <section className="stack" aria-labelledby="people-feedback">
         <h2 className="section-title" id="people-feedback">Feedback from people ({feedbackCount(s.feedback_count).toLowerCase()})</h2>
+        <FeedbackKind kind="opinion" />
         <p className="subtle">
           Written by the people you shared with. It's their opinion: CodeCoach doesn't check it, it doesn't change your
           scores or plan, and it isn't a hiring decision or professional validation. Names are as given, not verified,

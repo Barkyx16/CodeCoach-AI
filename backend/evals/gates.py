@@ -319,6 +319,12 @@ GATES: list[Gate] = [
         _career_dimension("evidence"),
     ),
     Gate(
+        "career.evidence_contract",
+        "Every quote checks out as it would be shown: at its recorded place in the answer, not text written "
+        "to the grader, and keeping a negation the cut would drop (app/careers/evidence.py).",
+        _career_dimension("evidence_contract"),
+    ),
+    Gate(
         "career.insufficient",
         "Answers too short to judge get no score and no praise (the product rule since rubric v1).",
         _career_dimension("insufficient"),

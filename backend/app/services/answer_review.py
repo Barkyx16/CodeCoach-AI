@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.careers import grading
-from app.careers.answers import OFFLINE_COACH, answer_out, feedback_dict, rubric_version_of
+from app.careers.answers import OFFLINE_COACH, answer_out, feedback_dict, feedback_points, rubric_version_of
 from app.careers.grading import GOOD_MAX, GOOD_MIN, MIN_WORDS, grade
 from app.careers.questions import Question, get_question, is_retired
 from app.errors import AppError, ConflictError, NotFoundError
@@ -159,7 +159,7 @@ class AnswerReview:
             ],
             repeated=self._repeated(a),
             flags=[self._flag_out(f) for f in flags],
-            evaluations=[self._evaluation_out(e) for e in evals],
+            evaluations=[self._evaluation_out(e, a.answer) for e in evals],
             can_reevaluate=q is not None,
             reevaluate_note=why_not
             or "The question or the rubric changed since this answer was checked. Checking again records a new evaluation beside the original.",
@@ -200,7 +200,7 @@ class AnswerReview:
         return FlagOut(id=f.id, criterion=f.criterion, kind=f.kind, note=f.note, created_at=f.created_at)
 
     @staticmethod
-    def _evaluation_out(e: AnswerEvaluation) -> EvaluationOut:
+    def _evaluation_out(e: AnswerEvaluation, answer: str) -> EvaluationOut:
         fb = e.feedback
         return EvaluationOut(
             id=e.id,
@@ -210,7 +210,8 @@ class AnswerReview:
             rating=fb["rating"],
             summary=fb["summary"],
             evidence_level=fb.get("evidence_level", "sufficient"),
-            points=fb["points"],
+            # checked against the answer like the original feedback's (app/careers/evidence.py)
+            points=[p.model_dump() for p in feedback_points(answer, fb["points"])],
             reason=e.reason,
             created_at=e.created_at,
         )

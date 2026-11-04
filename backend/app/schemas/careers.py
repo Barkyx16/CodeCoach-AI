@@ -47,7 +47,20 @@ class FeedbackPoint(APIModel):
     covered: bool
     advice: str
     evidence: str | None = Field(
-        default=None, description="Your own sentence where it was found (older answers: none recorded)"
+        default=None,
+        description="Your own words where it was found, as checked against your answer (none when it "
+        "couldn't be checked)",
+    )
+    span: list[int] | None = Field(
+        default=None,
+        description="Where the quote is in `answer`: [start, end) in UTF-16 code units (what JavaScript "
+        "strings index by). None for older feedback, which stored no position.",
+    )
+    evidence_status: Literal["verified", "legacy", "omitted"] | None = Field(
+        default=None,
+        description="verified: the quote is at `span` in your answer; legacy: older feedback, still your "
+        "words, position not recorded; omitted: a quote was stored but couldn't be checked, so it isn't "
+        "shown. None when the point has no quote.",
     )
 
 

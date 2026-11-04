@@ -186,6 +186,13 @@ Unchanged: the sealed set, its selection rule and access rules, and the release 
 first grading (rubric v6) is recorded as its baseline; after that the tuning session read it, so
 its later numbers are development figures.
 
+## Protocol v5 (2026-11-04, Volume 4 prompt 06)
+
+Adds the per-case check `evidence_contract` (every quote checks out as it would be shown:
+`app/careers/evidence.py`), gated on the gated career sets as `career.evidence_contract`, and two
+metrics reported apart: `quote_validity` (quotes at their recorded place) and `quote_relevance`
+(quotes that show their point). No set, label, selection rule or release rule changes.
+
 ## Access to the sealed set
 
 - The tuning session never opens `sealed/career_rn_sealed.json` or case-level results from it.

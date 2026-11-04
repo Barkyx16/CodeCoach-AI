@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 from collections.abc import Callable
 from dataclasses import replace
@@ -48,7 +49,7 @@ MIN_ATTEMPT_S = 5.0  # no point starting a request with less time than this left
 _RETRY_STATUS = frozenset({408, 409})
 # Change with any prompt, prompt builder, token limit, effort or output schema; evaluation reports
 # record it, and evals/prompt_versions.json holds the fingerprint each version was recorded with.
-PROMPT_VERSION = "coach-2026-11-04"
+PROMPT_VERSION = "coach-2026-11-04b"
 T = TypeVar("T", bound=BaseModel)
 Effort = Literal["low", "medium", "high"]
 
@@ -139,6 +140,18 @@ def _analysis_block(a: Analysis) -> str:
         f"Static findings (heuristic, may contain false positives): {json.dumps(findings)}\n"
         "</analysis>"
     )
+
+
+# Double quotes and backticks: a single quote is too often an apostrophe ("the loop's bound").
+_QUOTED = re.compile(r"[\"“`]([^\"“”`]{3,300})[\"”`]")
+
+
+def _quotes_found(cited: str, given: str) -> bool:
+    """Every passage `cited` quotes (in double quotes or backticks) is in `given`, ignoring spaces
+    ("[0, 1]" for "[0,1]") and case. Evidence told in the model's own words can't be checked this
+    way and is left as it is."""
+    flat = "".join(given.split()).lower()
+    return all("".join(m.group(1).split()).lower() in flat for m in _QUOTED.finditer(cited))
 
 
 def _line_count(code: str) -> int:
@@ -267,6 +280,11 @@ class AnthropicCoach:
         if line is not None and not 1 <= line <= _line_count(ctx.code):
             logger.info("dropped line references outside the code", extra={"attrs": {"count": 1}})
             result = replace(result, content=result.content.model_copy(update={"line_hint": None}))
+        if not _quotes_found(result.content.evidence, "\n".join(evidence) + "\n" + ctx.code):
+            # A quote of a test, message or line that isn't in what the model was given: invented.
+            # It isn't shown (the page says so) rather than replaced with something that looks right.
+            logger.info("dropped evidence quoting text it wasn't given", extra={"attrs": {"count": 1}})
+            result = replace(result, content=result.content.model_copy(update={"evidence": ""}))
         return result
 
     def interview_turn(self, ctx: InterviewContext) -> ProviderResult[InterviewerReply]:

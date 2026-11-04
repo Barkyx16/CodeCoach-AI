@@ -14,10 +14,11 @@ python -m evals.run --check-report evals/results/offline.json
 
 ## Status (2026-11-04, end of the Volume 4 / overnight queue)
 
-- **Versions:** rubric `v7`, coach prompt `coach-2026-11-04` (request settings only; prompt text
-  unchanged since `coach-2026-11-03`), evaluation protocol v4 (frozen 2026-11-04; v2 added the
-  contradiction pairs and metrics, v3 the injection challenge set and the by-kind injection
-  metrics, v4 the action criterion and its set; see [EVAL_PROTOCOL.md](EVAL_PROTOCOL.md)).
+- **Versions:** rubric `v7`, coach prompt `coach-2026-11-04b` (request settings and reply handling
+  only; prompt text unchanged since `coach-2026-11-03`), evaluation protocol v5 (frozen
+  2026-11-04; v2 added the contradiction pairs and metrics, v3 the injection challenge set and the
+  by-kind injection metrics, v4 the action criterion and its set, v5 the evidence contract check;
+  see [EVAL_PROTOCOL.md](EVAL_PROTOCOL.md)).
 - **Career sets** (`backend/evals/datasets.json`, sha256 prefix): `career-rn-dev` v2, 23 cases,
   `c1619da3a4ac` (development); `career-rn-holdout` v2, 17, `d43b284d6a71` (**exposed historical
   benchmark**, not an untouched test); `career-rn-families-dev` v1, 108, `6bef6d4fce71`
@@ -143,7 +144,7 @@ failures, tokens, latency, cost).
 > (the known-defect register in `evals/regression.json` matches what is measured) and
 > `contract.reference_leak` (no labelled sample's reference note reaches a prompt). Later briefs
 > added `career.keyword_lists`, `career.contradiction_controls`, `career.grader_boundary` and
-> `career.action_controls`: 29 gates in all.
+> `career.action_controls` and `career.evidence_contract`: 30 gates in all.
 
 `evals/gates.py`, evaluated in CI on the complete offline run (`tests/test_evals.py`). Each has
 its reason in the report.
@@ -156,6 +157,7 @@ its reason in the report.
 | `career.complete` | every labelled answer was graded |
 | `career.schema`, `.evidence`, `.insufficient`, `.injection`, `.stable`, `.actionable` | no failing case, on both career sets |
 | `career.agreement` | development set: precision ≥ 0.75, recall ≥ 0.92 (the rubric v1 level) |
+| `career.evidence_contract` | no failing case on the gated career sets: every quote checks out as it would be shown (at its recorded place, not text written to the grader, no negation cut off; `app/careers/evidence.py`) |
 | `career.keyword_lists` | no development keyword-list answer earns a point (rubric v4) |
 | `career.contradiction_controls` | no self-correction or control answer in the development families is reported as a contradiction (rubric v5) |
 | `career.action_controls` | no action control in `career-rn-action-wording` that is negated, intended, hypothetical, someone else's, a passive without the learner, a list or a thought earns "Describes specific actions you took" (rubric v7; irrelevant actions are an open defect and not gated) |
@@ -487,6 +489,53 @@ there is what the rule does on the cases it was built from. The families set (wr
 session, but read while building the rule) is the less optimistic development figure: 3 of 9. No
 independent measurement of contradiction handling exists yet; the sealed set will give one, once,
 for the frozen candidate. This is not general contradiction understanding.
+
+## Results: the evidence contract (Volume 4 prompt 06)
+
+Measured 2026-11-04 on rubric v7 (no grading change; the contract decides only what is shown).
+
+**The contract** (`app/careers/evidence.py`). A credited point may quote the learner's answer. The
+quote is the learner's words from the answer that was graded, never rubric text or the coach's
+commentary, and it is checked every time feedback is sent:
+- its span, stored with the feedback as code-point offsets into that answer, must hold the quoted
+  text (allowing for the "…" that marks a cut, and runs of whitespace);
+- it must not be text addressed to the grader;
+- a cut quote keeps its context: when only a few words (up to eight) were cut from the start of its
+  sentence, the quote starts at the sentence instead, and a negation within the four words before
+  a cut is brought back ("…not call the doctor straight away", never "…call the doctor").
+
+A quote that fails is **not shown**, and the point says a quote couldn't be checked; nothing is put
+in its place. Spans go to the browser as **UTF-16 code-unit offsets** (`span` in the API), what
+JavaScript strings index by, so an emoji or other character outside the Basic Multilingual Plane
+earlier in the answer doesn't shift them. **Older feedback** stored no spans: a quote that is still
+the learner's words is shown as legacy evidence with no position (none is invented); otherwise it
+is omitted. Reading old feedback never regrades it; an explicit re-evaluation stays a separate
+record (the answer-review flow), and its quotes are checked the same way.
+
+**Measured.** Every quote the grader gives on every career set checks out: quote validity
+79/79 (old dev), 53/53 (historical), 332/332 (families), 243/243 (pairs), 350/350 (injection),
+479/479 (actions), 1,536 in all. 16 were widened to the start of their sentence and none needed a
+negation restored. Quote relevance (the rubric, reading the quote alone, finds the point it's
+given for) is reported separately and is also 100% on every set. A valid, relevant quote shows
+that the learner's words contain what the rubric looks for; it doesn't show that the point is
+really made well, or that the grade is right.
+
+**On the page.** Each checked quote has "Show it in your answer", which opens the answer the
+feedback reviewed with the quote marked at its place and moves focus to it (a button and a
+disclosure, so it works by keyboard). Each kind of feedback says what it is, in one line: answer
+structure (the written-answer coach), a practice interviewer, a person's opinion, test results, or
+the coach's reading of them. When the answer box no longer holds the reviewed version, the card
+says the feedback is for the version that was sent. Not verified separately: the disclosure on a
+real phone (the layout is the card's existing responsive one).
+
+**The provider path.** Claude's failure explanations cite evidence. A passage the evidence quotes
+(in double quotes or backticks) that isn't in the verdict, results, compiler output or code the
+request contained is treated as invented: the evidence isn't shown, and the page says so. Evidence
+in the model's own words can't be checked this way and is shown as before. Its output is rendered as
+text, never HTML (`safeRendering.test.tsx`), and hidden test inputs are never in the request, so
+they can't be quoted. Recorded as coach prompt `coach-2026-11-04b` (reply handling only: the
+request fingerprint covers the method that builds the request). Line references outside the
+learner's code were already dropped.
 
 ## Results: rubric v7, the action criterion (Volume 4 prompt 05)
 

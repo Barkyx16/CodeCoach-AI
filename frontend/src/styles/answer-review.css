@@ -25,3 +25,13 @@
 .answer-review__flag-form fieldset { border: 0; padding: 0; margin: 0; flex-wrap: wrap; }
 .answer-review-disclosure > summary { cursor: pointer; font-weight: 600; }
 .answer-review-disclosure[open] > summary { margin-bottom: var(--space-3); }
+
+/* What a piece of feedback is (FeedbackKind) */
+.feedback-kind { margin: 0; font-size: 0.875rem; }
+.feedback-kind__label { margin-right: var(--space-1); }
+
+/* The answer a feedback card reviewed, with the quote being looked at marked */
+.feedback-card__evidence p { margin: 0; }
+.feedback-card__answer > summary { cursor: pointer; font-weight: 600; }
+.feedback-card__answer-text { white-space: pre-wrap; overflow-wrap: anywhere; margin: var(--space-2) 0; }
+.feedback-card__answer-text mark { padding: 0 0.1em; border-radius: 2px; }

@@ -1,5 +1,5 @@
 {
-  "protocol_version": 4,
+  "protocol_version": 5,
   "frozen": "2026-11-04",
   "changes": [
     {
@@ -24,6 +24,12 @@
       "date": "2026-11-04",
       "what": "Volume 4 prompt 05: adds the action criterion (`labeling.action_criterion`), the development set career-rn-action-wording (minimal pairs written by a separate agent session) with action_paraphrase and action_control variants and their kinds, and the action_* metrics by kind. Nothing about career-rn-sealed, its selection rule or the release rule changes.",
       "doc": "docs/EVAL_PROTOCOL.md, 'Protocol v4'"
+    },
+    {
+      "version": 5,
+      "date": "2026-11-04",
+      "what": "Volume 4 prompt 06: the per-case check evidence_contract (every quote checks out as it would be shown, app/careers/evidence.py), gated on the gated career sets as career.evidence_contract, and the metrics quote_validity and quote_relevance, reported separately. No set, label, selection rule or release rule changes.",
+      "doc": "docs/EVAL_PROTOCOL.md, 'Protocol v5'"
     }
   ],
   "doc": "docs/EVAL_PROTOCOL.md explains each part. Changing this file after cases are graded needs a new protocol_version and a note in that document.",
@@ -294,7 +300,9 @@
     "action_false_credit_by_kind": "per action_control kind: variants whose 'Describes specific actions you took' the grader credits / variants labelled not covered (uncertain excluded)",
     "action_paraphrase_parity": "action_paraphrase variants whose every point decision equals their pair's / action_paraphrase variants whose pair is in the set",
     "action_recall": "action_paraphrase variants whose 'Describes specific actions you took' the grader credits / action_paraphrase variants labelled covered (uncertain excluded)",
-    "action_false_credit": "action_control variants whose 'Describes specific actions you took' the grader credits / action_control variants labelled not covered (uncertain excluded)"
+    "action_false_credit": "action_control variants whose 'Describes specific actions you took' the grader credits / action_control variants labelled not covered (uncertain excluded)",
+    "quote_validity": "quotes that check out at their recorded place in the answer (the evidence contract) / quotes the grader gave",
+    "quote_relevance": "quotes that show the point they're given for (the rubric reads the quote alone and finds the point) / quotes the grader gave; a valid quote can still be irrelevant, so the two are reported apart"
   },
   "release": {
     "applies_to": "the frozen candidate against the baseline (rubric v2, commit 20bd00f), both graded once on career-rn-sealed after the candidate is frozen (Volume 4 prompt 09 / brief 08)",

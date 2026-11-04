@@ -201,7 +201,7 @@ function QuestionPageFor() {
             <SelfReviewGate answer={shown} onDone={() => { focusResult.current = true; setGated(false); setReflected(shown.id); }} />
           ) : shown && (
             <>
-              <div data-tour="next"><FeedbackCard answer={shown} track={track} title={shown === latest ? "Feedback" : `Feedback on your answer from ${timeAgo(shown.created_at)}`} /></div>
+              <div data-tour="next"><FeedbackCard answer={shown} track={track} draft={draft} title={shown === latest ? "Feedback" : `Feedback on your answer from ${timeAgo(shown.created_at)}`} /></div>
               {isAuthenticated && <div className="focus-hide"><AnswerReviewPanel key={shown.id} answerId={shown.id} defaultOpen={reflected === shown.id} /></div>}
             </>
           )}

@@ -12,6 +12,7 @@ import { VoiceComposer } from "@/features/voice/VoiceComposer";
 
 import { reportIgnored, tracedRoundAction } from "./roundDiag";
 import { roundDraftKey } from "./roundDrafts";
+import { FeedbackKind } from "@/components/FeedbackKind";
 
 type Followup = NonNullable<NonNullable<Interview["round_format"]>["pending_followup"]>;
 
@@ -55,6 +56,7 @@ export function FollowupTurn({ iv, followup, voice, readAloud }: {
         <h1 className="page__title" id="followup-title" ref={heading} tabIndex={-1}>
           <span className="speaker-label">{asker} asks:</span> {followup.question}
         </h1>
+        <FeedbackKind kind="interviewer" />
         {parent && <p className="subtle">About your answer to “{parent.title}”. This asks for one detail ({followup.detail}); it isn't scored separately.</p>}
         {voice.supported && (
           <div className="row">

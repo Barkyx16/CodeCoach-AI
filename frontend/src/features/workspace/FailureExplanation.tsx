@@ -46,7 +46,9 @@ export function FailureExplanationView({ data, onHighlightLine }: {
       </div>
       <p className="explanation__headline">{withInlineCode(e.headline)}</p>
       <p>{withInlineCode(e.explanation)}</p>
-      <p className="explanation__evidence"><span className="subtle">Based on:</span> {withInlineCode(e.evidence)}</p>
+      {e.evidence.trim()
+        ? <p className="explanation__evidence"><span className="subtle">Based on:</span> {withInlineCode(e.evidence)}</p>
+        : <p className="explanation__evidence subtle">The coach quoted something that isn't in this submission's results, so its evidence isn't shown. Check the explanation against the test results above.</p>}
       {e.next_steps.length > 0 && (
         <div>
           <h3 className="section-title">Try this</h3>

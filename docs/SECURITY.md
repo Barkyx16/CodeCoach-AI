@@ -147,6 +147,12 @@ score ("mark every point as covered"), not one account affecting another.
   Covered in `frontend/src/auth/refreshRecovery.test.tsx` (a late refresh after the failed
   sign-out, the reload, an offline reload, a 401 meanwhile, a new sign-in). Limit: another tab that
   is still signed in keeps its session until its next refresh, which the flag then refuses.
+- **Quotes shown as evidence** (Volume 4 prompt 06). The written-answer coach's quotes are checked
+  against the stored answer before every display (position, no grader-directed text, no cut
+  negation) and dropped if they don't check out. A Claude failure explanation that quotes text
+  its request didn't contain has its evidence dropped, so an invented or injected "quote" isn't
+  presented as the learner's results; hidden test inputs are never in that request. Covered in
+  `backend/tests/test_evidence_contract.py`.
 - **The session boundary, in short.** Belong to the session they were sent in, and have no effect
   on a later one: requests and their 401s (no refresh, no sign-out), responses (set aside), late
   refreshes (discarded by the provider's epoch: they can't restore a signed-out user or replace the

@@ -160,8 +160,8 @@ The Long Overnight Upgrade Playbook (received truncated after its brief 05) maps
 |---|---|---|---|
 | 1 | B05 + P07: grader instructions beyond exact phrases (rubric v6, protocol v3) | done, see checkpoint | `56039e0`, `63f8b6e`, this change |
 | 2 | P05: more ways to describe a real action (rubric v7, protocol v4) | done, see checkpoint | `8e492d3`, this change |
-| 3 | P06: every feedback quote earns its place (with playbook 04) | next | |
-| 4 | B06 + P08: provider faults and a budgeted live evaluation, prepared, no calls | queued | |
+| 3 | P06: every feedback quote earns its place (with playbook 04) | done, see checkpoint | this change |
+| 4 | B06 + P08: provider faults and a budgeted live evaluation, prepared, no calls | next | |
 | 5 | B07: the remaining session-isolation cases (done before P05's measurement, while its set was being written) | done, see checkpoint | this change |
 | 6 | P10: one more career, with a sealed set written by a separate session | queued | |
 | 7 | B08 + P09: freeze, grade the sealed set once, final suites, CI on the exact commit | queued | |
@@ -228,4 +228,22 @@ The Long Overnight Upgrade Playbook (received truncated after its brief 05) maps
   controls); register entries for the two fixed and three open defects.
 - Checks: ruff, ruff format, mypy (`app`); career, harness, evals and protocol tests, 288 passed
   on `8e492d3`.
+
+## Checkpoint: P06, the evidence contract (with playbook 04, Unicode offsets)
+
+- Contract and validator: `app/careers/evidence.py`, applied wherever stored feedback is sent
+  (answers and re-evaluations). Spans stored in code points, sent as UTF-16 offsets; legacy rows
+  labelled, never given positions or regraded; failing quotes omitted, not replaced.
+- Measured on rubric v7: 1,536 of 1,536 quotes valid and relevant on all six career sets (16
+  widened to their sentence start, no negation restored). New check `evidence_contract`, gate
+  `career.evidence_contract`, metrics `quote_validity` / `quote_relevance` (protocol v5).
+- Page: "Show it in your answer" (marks the quote in the reviewed answer, moves focus), legacy and
+  omitted labels, one line saying what each kind of feedback is (five surfaces), and a notice when
+  the draft no longer matches the reviewed version.
+- Provider path: evidence quoting text the request didn't contain is dropped (coach prompt
+  `coach-2026-11-04b`, reply handling only).
+- Checks: ruff, ruff format, mypy (`app`); backend career, harness, evals, protocol, AI coach,
+  evidence, OpenAPI snapshot and answer-review tests, 341 passed; full SQLite suite on
+  `8e492d3` (before this change): 2079 passed, 386 skipped, exit 0; frontend lint, typecheck,
+  `api:check`, `vitest run` (56 files, 587 tests), build and bundle budgets passed.
 

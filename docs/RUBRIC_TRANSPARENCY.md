@@ -52,6 +52,12 @@ derived from it. A reflection edited after reading the feedback is marked as suc
   I mean …") counts as corrected, with no note. Quotes, hypotheticals, other people's actions, a
   change over time ("at first … but when …") and another occasion are not contradictions. Only
   these explicit kinds are recognised; what isn't is listed in docs/AI_EVALUATION.md.
+- **Every quote can be found in your answer** (Volume 4 prompt 06). A quote under a point is
+  your own words from the answer that was graded, checked against it each time you open the
+  feedback; "Show it in your answer" opens that answer with the quote marked. A quote that can't
+  be checked isn't shown (the point says so). Feedback from before positions were recorded is
+  labelled as older feedback and keeps its grade. If you change your answer after sending it, the
+  feedback says it's for the version you sent.
 - **Actions count however they're told, and only real ones** (rubric v7). "Describes specific
   actions you took" looks for two things you did, or did with others, in the situation, told as
   done: "we turned him", "the HCA and I", "I'd already rung", "I, as nurse in charge, called",

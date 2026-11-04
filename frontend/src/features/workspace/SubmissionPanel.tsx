@@ -11,6 +11,7 @@ import { formatArgs, formatValue, timeAgo } from "@/lib/format";
 import { Icon } from "@/components/Icon";
 
 import { FailureExplanationView } from "./FailureExplanation";
+import { FeedbackKind } from "@/components/FeedbackKind";
 
 const STATUS_COPY: Partial<Record<Submission["status"], string>> = {
   PASSED: "All tests passed. Nice work.",
@@ -58,6 +59,7 @@ export function SubmissionPanel({ submission, error, onHighlightLine }: Submissi
   return (
     <div className="results" aria-live="polite">
       <h2 className="section-title results__label"><Icon name="terminal" size={15} />Execution results</h2>
+      <FeedbackKind kind="results" />
       <div className="results__header">
         <StatusBadge status={submission.status} />
         {running && <Spinner size="sm" label="Judging" />}
@@ -159,6 +161,7 @@ function ExplainFailure({ submissionId, onHighlightLine }: { submissionId: strin
     return (
       <section ref={cardRef} tabIndex={-1} className="explain card" aria-label="Why it failed">
         <h3 className="section-title">Why it failed</h3>
+        <FeedbackKind kind="explanation" />
         <FailureExplanationView data={explain.data} onHighlightLine={onHighlightLine} />
       </section>
     );
