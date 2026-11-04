@@ -264,9 +264,17 @@ export const api = {
     apiRequest<DifficultyCounts>(`/api/v1/careers/${encodeURIComponent(track)}/questions/counts`, { query: { q }, signal }),
   question: (track: string, id: string, signal?: AbortSignal) =>
     apiRequest<QuestionDetail>(`/api/v1/careers/${encodeURIComponent(track)}/questions/${encodeURIComponent(id)}`, { signal }),
-  answerQuestion: (track: string, id: string, answer: string, storyId: string | null = null) =>
+  /** `requestKey`: send only to a server whose capabilities say `answer_request_keys`. */
+  answerQuestion: (track: string, id: string, answer: string, storyId: string | null = null,
+    opts: { requestKey?: string | null; revisesAnswerId?: string | null } = {}) =>
     apiRequest<InterviewAnswer>(`/api/v1/careers/${encodeURIComponent(track)}/questions/${encodeURIComponent(id)}/answers`, {
-      method: "POST", body: storyId ? { answer, story_id: storyId } : { answer },
+      method: "POST",
+      body: {
+        answer,
+        ...(storyId ? { story_id: storyId } : {}),
+        ...(opts.requestKey ? { client_request_id: opts.requestKey } : {}),
+        ...(opts.revisesAnswerId ? { revises_answer_id: opts.revisesAnswerId } : {}),
+      },
     }),
   myAnswers: (track: string, id: string) =>
     apiRequest<InterviewAnswer[]>(`/api/v1/careers/${encodeURIComponent(track)}/questions/${encodeURIComponent(id)}/answers`),

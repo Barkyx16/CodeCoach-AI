@@ -27,11 +27,14 @@ function list(labels: string[]): string {
  * (structure, not whether the details are right), how it compares with the try before when the two
  * were graded the same way, and a revision aimed at one missing point or the next question.
  */
-export function AnswerRecap({ answer, tryNo, previous, previousNo, track, questionId, difficulty, backTo, canRevise, onRevise }: {
+export function AnswerRecap({ answer, tryNo, previous, previousNo, previousIsParent = false, track, questionId, difficulty, backTo, canRevise, onRevise }: {
   answer: InterviewAnswer;
   tryNo: number | null;
+  /** The try to compare with: the one this revises when it's listed, else the one before it. */
   previous: InterviewAnswer | null;
   previousNo: number | null;
+  /** `previous` is the answer this one explicitly revises (a stored link, not a guess). */
+  previousIsParent?: boolean;
   track: string;
   questionId: string;
   difficulty: Difficulty;
@@ -56,9 +59,17 @@ export function AnswerRecap({ answer, tryNo, previous, previousNo, track, questi
       ? `${which[0]!.toUpperCase()}${which.slice(1)} covered ${covered} of ${total} points the rubric looks for. To add: “${target.label}”.`
       : `${which[0]!.toUpperCase()}${which.slice(1)} covered all ${total} points the rubric looks for.`;
 
+  // Where this try came from, only from a stored link. A link doesn't make two scores comparable:
+  // the comparison below keeps its own rules.
+  const origin = !answer.revises_answer_id
+    ? null
+    : previousIsParent && previous
+      ? `${which[0]!.toUpperCase()}${which.slice(1)} revises ${previousNo ? `try ${previousNo}` : `your answer from ${timeAgo(previous.created_at)}`}.`
+      : `${which[0]!.toUpperCase()}${which.slice(1)} revises an earlier answer that isn't in this list.`;
+
   let comparison: string | null = null;
   if (previous) {
-    const before = previousNo ? `try ${previousNo}` : `your answer from ${timeAgo(previous.created_at)}`;
+    const before = (previousNo ? `try ${previousNo}` : `your answer from ${timeAgo(previous.created_at)}`) + (previousIsParent ? ", which it revises" : "");
     const c = compareTries(previous, answer);
     if (!c.comparable) {
       comparison = `Not directly comparable with ${before}: ${c.reasons.join("; ")}.`;
@@ -85,6 +96,7 @@ export function AnswerRecap({ answer, tryNo, previous, previousNo, track, questi
     <section className="card stack answer-recap" aria-labelledby="recap-title">
       <h2 className="section-title" id="recap-title">What next</h2>
       <p>{outcome}</p>
+      {origin && <p className="subtle">{origin}</p>}
       {comparison && <p className="subtle">{comparison}</p>}
       <div className="row answer-recap__actions">
         {canRevise && reviseFirst && revise}

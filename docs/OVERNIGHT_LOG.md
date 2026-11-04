@@ -723,3 +723,26 @@ fingerprint or link; nothing is rewritten.
   `alembic check` clean, downgrade base. The migration chain doesn't run on SQLite (a pre-existing
   migration alters constraints without batch mode); SQLite is test-only (`create_all`), as
   docs/DATABASE.md says; an existing SQLite dev database made by `create_all` must be recreated.
+
+## Checkpoint: NX05 + NX10 (client), send identity and revision links shown
+
+- Keys only where honoured: the question page sends `client_request_id` only when `/capabilities`
+  says `answer_request_keys: true`; an older server (absent or false) gets no key and the page
+  claims no protection (its lost-reply message keeps "look under Your past answers first").
+- Identity (`features/careers/sendKey.ts`, unit-tested): a key is reused only for the same send
+  (account, question, text, story, revised answer) resent after no reply or a failure; edited text,
+  another question or account, or a new try after a confirmed save gets a new key. Keys live in
+  memory: after a reload the old key is gone, the saved-answer lookup remains the recovery, and no
+  duplicate prevention is claimed for the lost key. Nothing is written to browser storage.
+- With keys, the lost-reply message says sending the unchanged answer again is safe (the server
+  returns the saved one). The existing saved-answer lookup still runs first.
+- Revision links: sent only from an explicit Revise/Add (not after "Hide this note", not for a new
+  try that merely follows a viewed answer). Shown from the stored link only: "Try 2 revises try 1."
+  in the recap, "revised from try 1" in the list, "revises an earlier answer that isn't in this
+  list" when the parent isn't listed; the comparison uses the revised try when it's listed, under
+  the same rules (version, rubric, coach, scoreable), and never claims improvement.
+- Checks: `sendKey.test.ts` (2), `keyedSends.test.tsx` (7; 5 failed on the previous page),
+  learnerJourney revision test now expects the link; e2e `answer-replay.spec.ts` (real backend:
+  the POST saved, its reply and the lookup dropped, the resend carried the same key and got 200
+  `Idempotent-Replayed: true`, one try listed) and `learner-journey.spec.ts` (revision link and
+  comparison wording); frontend suite 639 passed after the update, lint, types, API contract clean.

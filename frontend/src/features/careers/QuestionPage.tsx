@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
-import { useAnswerQuestion, useBookmarks, useCareers, useContentMeta, useMyAnswers, useQuestion } from "@/api/queries";
+import { useAnswerQuestion, useBookmarks, useCapabilities, useCareers, useContentMeta, useMyAnswers, useQuestion } from "@/api/queries";
 import type { Difficulty, InterviewAnswer } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { BackLink } from "@/components/BackLink";
@@ -37,6 +37,7 @@ import { CriteriaPanel } from "./CriteriaPanel";
 import { FeedbackCard } from "./FeedbackCard";
 import { SelfReviewGate } from "./SelfReviewGate";
 import { KIND_LABEL } from "./kinds";
+import { keyFor, sendSignature, type PendingSend } from "./sendKey";
 import { previousTry, tryNumbers } from "./tries";
 
 const MAX_CHARS = 6000;
@@ -81,6 +82,10 @@ function QuestionPageFor() {
   const question = useQuestion(track, id, !isRestoring); // its best score depends on who's asking
   const answers = useMyAnswers(track, id, isAuthenticated);
   const submit = useAnswerQuestion(track, id);
+  // This server keeps at most one saved answer per send key (an older one would ignore the key,
+  // so none is sent and no protection is claimed).
+  const keyed = useCapabilities().data?.answer_request_keys === true;
+  const pendingSend = useRef<PendingSend | null>(null);
   const content = useContentMeta("question", `${track}/${id}`);
   const bookmarks = useBookmarks(isAuthenticated);
   const retired = content.data?.status === "retired";
@@ -141,7 +146,9 @@ function QuestionPageFor() {
   const listTo = [navState?.listFrom, navState?.from].find((path): path is string => !!path && /^\/problems(\?|$)/.test(path)) ?? backTo;
   const numbers = answers.data ? tryNumbers(answers.data) : null;
   const tryOf = (a: InterviewAnswer | null) => (a && numbers?.get(a.id)) ?? null;
-  const previous = shown && answers.data ? previousTry(answers.data, shown) : null;
+  // Compare with the try this one explicitly revises when it's listed, else with the one before it.
+  const parent = shown?.revises_answer_id ? answers.data?.find((a) => a.id === shown.revises_answer_id) ?? null : null;
+  const previous = parent ?? (shown && answers.data ? previousTry(answers.data, shown) : null);
   const rubrics = new Set(answers.data?.map((a) => a.rubric_version));
   const revisingFrom = revising ? answers.data?.find((a) => a.id === revising.fromId) ?? (sent?.id === revising.fromId ? sent : null) : null;
   const fromLabel = revisingFrom && tryOf(revisingFrom) ? `try ${tryOf(revisingFrom)}` : "your earlier answer";
@@ -169,9 +176,17 @@ function QuestionPageFor() {
     e.preventDefault();
     const text = draft.trim();
     const known = new Set(answers.data?.map((a) => a.id));
+    // An explicit revision says which try it revises; anything else is a new try.
+    const revisesAnswerId = revising?.fromId ?? null;
+    // The same send resent (no reply, a failure) keeps its key; a changed or new send gets a new one.
+    const send = keyed
+      ? keyFor(pendingSend.current, sendSignature({ account: user?.id ?? "", track, questionId: id, answer: text, storyId, revisesAnswerId }))
+      : null;
+    pendingSend.current = send;
     setUnconfirmed(false);
     let failure: unknown = null;
-    let result = await submit.mutateAsync({ answer: text, storyId }).catch((err: unknown) => { failure = err; return null; });
+    let result = await submit.mutateAsync({ answer: text, storyId, requestKey: send?.key ?? null, revisesAnswerId })
+      .catch((err: unknown) => { failure = err; return null; });
     // No reply at all (a dropped connection): the server may still have saved it. Look at the saved
     // answers before suggesting a resend that would save it twice.
     if (!result && isAuthenticated && failure instanceof ApiError && failure.status === 0) {
@@ -185,6 +200,7 @@ function QuestionPageFor() {
       }
     }
     if (result) {
+      pendingSend.current = null; // saved: the next send is a new try with a new key
       focusResult.current = true;
       setSent(result);
       if (wanted) setParams((p) => { p.delete("answer"); return p; }, { replace: true, state: location.state });
@@ -303,7 +319,9 @@ function QuestionPageFor() {
             {unconfirmed && (
               <p className="banner banner--warning" role="status">
                 No reply came back, so it isn't certain whether this answer was saved, and it isn't among your saved answers
-                yet. Your text is still here. When you're connected, look under “Your past answers” before sending it again.
+                yet. Your text is still here. {keyed
+                  ? "Sending it again unchanged is safe: if the first one did arrive, you'll get that answer back instead of a second copy."
+                  : "When you're connected, look under “Your past answers” before sending it again."}
               </p>
             )}
           </form>
@@ -316,7 +334,7 @@ function QuestionPageFor() {
                 <FeedbackCard answer={shown} track={track} draft={draft}
                   title={isNew ? "Feedback" : `Feedback on ${tryOf(shown) ? `try ${tryOf(shown)}` : "your answer"} from ${timeAgo(shown.created_at)}`} />
               </div>
-              <AnswerRecap answer={shown} tryNo={tryOf(shown)} previous={previous} previousNo={tryOf(previous)}
+              <AnswerRecap answer={shown} tryNo={tryOf(shown)} previous={previous} previousNo={tryOf(previous)} previousIsParent={!!parent}
                 track={track} questionId={id} difficulty={q.difficulty as Difficulty} backTo={listTo}
                 canRevise={canRevise} onRevise={revise} />
               {isAuthenticated && <div className="focus-hide"><AnswerReviewPanel key={shown.id} answerId={shown.id} defaultOpen={reflected === shown.id} /></div>}
@@ -352,6 +370,7 @@ function QuestionPageFor() {
                         {a.evidence_level === "insufficient" ? "Too short to score" : `${a.score}/100 · ${a.rating}`}
                         {numbers ? ` · ${timeAgo(a.created_at)}` : ""}
                         {rubrics.size > 1 ? ` · rubric ${a.rubric_version}` : ""}
+                        {a.revises_answer_id ? ` · revised from ${numbers?.get(a.revises_answer_id) ? `try ${numbers.get(a.revises_answer_id)}` : "an earlier answer"}` : ""}
                       </span>
                     </button>
                   </li>

@@ -58,7 +58,9 @@ test("first use to a revised, compared answer, with a dropped send and a 320px s
   await page.getByRole("button", { name: "Get feedback" }).click();
   await expect(page.getByRole("region", { name: "Feedback", exact: true })).toBeVisible();
   // Same question version, rubric and coach: compared directly, by points, with both scores.
-  await expect(recap).toContainText(/Compared with try 1 \(same question version, rubric and coach\):.*score (\d+, now \d+|\d+ both times)\./);
+  // Try 2 explicitly revises try 1 (a stored link), compared under the same rules.
+  await expect(recap).toContainText("Try 2 revises try 1.");
+  await expect(recap).toContainText(/Compared with try 1, which it revises \(same question version, rubric and coach\):.*score (\d+, now \d+|\d+ both times)\./);
   await expect(page.getByRole("button", { name: /^Try 2/ })).toBeVisible();
 
   // Try 1 opens under its own title, from the URL, unchanged.

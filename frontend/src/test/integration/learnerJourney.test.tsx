@@ -174,7 +174,8 @@ describe("A revision aimed at one missing point", () => {
 
     await user.type(box, " Her oxygen was back to 96% within the hour.");
     await user.click(screen.getByRole("button", { name: "Get feedback" }));
-    await waitFor(() => expect(posted).toEqual({ answer: `${FIRST_TEXT} Her oxygen was back to 96% within the hour.` }));
+    // An explicit revision says which try it revises (a stored link, not a guess).
+    await waitFor(() => expect(posted).toEqual({ answer: `${FIRST_TEXT} Her oxygen was back to 96% within the hour.`, revises_answer_id: "t1" }));
     // The new try is shown as new; the first stays listed as it was.
     expect(await screen.findByRole("region", { name: "Feedback" })).toBeInTheDocument();
     expect(screen.queryByText(/Revising try 1/)).not.toBeInTheDocument();
