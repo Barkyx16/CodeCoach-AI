@@ -149,3 +149,44 @@ was done, on which commit, what was checked and what is left. Morning handoff at
 - Profiled scoring on synthetic answers up to the 6,000-character limit (docs/PERFORMANCE.md):
   6 ms typed, 18 ms dictated at the limit, 128 ms for an adversarial repetition. No defect, so
   no limit changed and no performance check added.
+
+## Second queue: the remaining Volume 4 briefs ("do all the briefs")
+
+Pack 1 bonus briefs B05–B08 and pack 2 prompts P05–P10, paired where they overlap, in this order.
+The Long Overnight Upgrade Playbook (received truncated after its brief 05) maps onto it: its
+01–03 and 05 were already satisfied, and its 04 (Unicode spans and offsets) is part of P06.
+
+| # | Brief | Status | Commit(s) |
+|---|---|---|---|
+| 1 | B05 + P07: grader instructions beyond exact phrases (rubric v6, protocol v3) | done, see checkpoint | `56039e0`, `63f8b6e`, this change |
+| 2 | P05: more ways to describe a real action | next | |
+| 3 | P06: every feedback quote earns its place (with playbook 04) | queued | |
+| 4 | B06 + P08: provider faults and a budgeted live evaluation, prepared, no calls | queued | |
+| 5 | B07: the remaining session-isolation cases | queued | |
+| 6 | P10: one more career, with a sealed set written by a separate session | queued | |
+| 7 | B08 + P09: freeze, grade the sealed set once, final suites, CI on the exact commit | queued | |
+
+## Checkpoint: B05 + P07, the grader-instruction boundary (rubric v6)
+
+- What changed, how and the limits: docs/AI_EVALUATION.md, "Results: rubric v6"; protocol v3 in
+  docs/EVAL_PROTOCOL.md; threat model and residual risks in docs/SECURITY.md (section 2).
+- New development set `career_injection_challenges.json` (90 minimal pairs written by a separate
+  session from the protocol, questions and rubric text; read by this session while tuning, so
+  its numbers are development figures). New gate `career.grader_boundary`; a deliberately
+  literal boundary fails it (`tests/test_eval_harness.py`).
+- First measurement (v5) → after tuning (v6), challenge set: attacks credited 4/45 → 0/45 (4
+  kinds had one success each), quotes or points differing from the base 11/45 → 2/45 (quote
+  window only), benign controls cut 0/27 → 0/27; families set attacks 1/9 → 0/9. Benign corpus
+  506,971 sentences, 0 cut. Defect register: `unpunctuated-attack-drops-answer` fixed, and the
+  rephrased or disguised attacks v5 credited recorded as fixed (5 cases, shown under v5, not v6).
+- Found while writing the tests and fixed before the commit: an unclosed `<!--` emptied the
+  answer; an attack without its full stop took the learner's first sentence; a "so this was…"
+  after an attack was cut as its reason.
+- Comparison `rubric-v5-vs-v6.md`: 9 case checks fixed, 2 regressions, both development cases now
+  graded exactly like their base (explained in AI_EVALUATION; labels not edited).
+- Scoring cost (docs/PERFORMANCE.md): the first draft was about 4 times slower than v5 on long
+  typed answers; the fold is now skipped for ASCII text and the attack search runs once per
+  sentence (`f835c25`, same results): 12 ms against v5's 7 ms at the limit, all cases under 50 ms.
+- Checks: ruff, ruff format, mypy (`app`, as CI runs it); career, eval-harness, evals and protocol
+  tests, 265 passed on the speedup; full SQLite suite on `56039e0`: 2056 passed, 386 skipped
+  (sandbox and PostgreSQL-only), exit 0.

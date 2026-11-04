@@ -164,6 +164,34 @@ run (about 130 ms in `_covered`; the contradiction rule adds about 12 ms). It is
 6,000-character limit and well inside the request budget, so no limit was changed and no
 regression check was added; a realistic dictated answer at the limit takes under 20 ms.
 
+## The written-answer coach with the grader-instruction boundary (2026-11-04, rubric v6)
+
+Rubric v6 reads each sentence through a folded copy of the text and cuts attack passages out of
+run-on sentences. Measured on `f835c25`: rubric v5 (`a3fada4`'s grading.py, loaded from git) and
+v6 graded the same synthetic answers in one process, median of 5 runs each, on an idle
+development container (Python 3.13, 4 CPUs; not production hardware). The inputs were rebuilt for
+this comparison, so compare the two columns with each other, not with the table above.
+
+| Answer | Characters | Words | Rubric v5 | Rubric v6 |
+|---|---|---|---|---|
+| short | 187 | 33 | 0.8 ms | 1.0 ms |
+| typical | 1,086 | 196 | 2.9 ms | 4.0 ms |
+| at the limit, typed | 5,487 | 984 | 7.4 ms | 12.1 ms |
+| at the limit, dictated (no punctuation) | 5,383 | 1,000 | 19.5 ms | 23.9 ms |
+| at the limit, with contradictions | 5,791 | 1,056 | 13.8 ms | 13.7 ms |
+| at the limit, an attack in every paragraph | 5,284 | 945 | 6.9 ms | 11.2 ms |
+| at the limit, attacks in a dictated answer | 5,179 | 959 | 1.7 ms | 37.2 ms |
+| at the limit, adversarial ("i asked and i called and …") | 5,999 | 1,440 | 43.1 ms | 49.3 ms |
+| at the limit, spaced-out letters | 5,979 | 2,990 | 18.5 ms | 5.3 ms |
+| at the limit, no spaces | 6,000 | 1 | 6.0 ms | 7.7 ms (max 8.1) |
+
+The first v6 draft took about 30 ms for a typed answer at the limit: it searched every sentence
+twice and folded plain ASCII character by character. Searching once per sentence and skipping the
+fold for ASCII text (which it leaves unchanged) brought that to about 12 ms with the same results
+on every career set. The dictated answer full of attacks is the slowest new case because v5
+dropped it whole without grading it, while v6 cuts each attack and grades the rest. Every case is
+bounded by the 6,000-character limit and stays under 50 ms, so no limit was changed.
+
 ## Earlier measurements: the problem-browsing mix (2026-11-01)
 
 The sections below are from before most current features existed, with a different endpoint

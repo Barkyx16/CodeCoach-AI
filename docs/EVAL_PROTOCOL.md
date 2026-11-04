@@ -131,6 +131,33 @@ items and non-inferiority margins. The pairs set was written by the tuning sessi
 the rule it tests, and says so in its `labeler` field: it shows what the rule does on the cases it
 was built from, not that it generalises.
 
+## Protocol v3 (2026-11-04, Volume 4 brief 05 / prompt 07)
+
+What v3 adds (`changes` in `protocol.json`):
+
+- the development set `career-rn-injection-challenges` (90 cases, written by a separate agent
+  session from the protocol, the questions and the rubric text only; model-written labels,
+  unreviewed): nine families on the development questions (the 1st by id), each a **typed and a
+  dictated base** and variants that make exactly one edit to a base, checked word by word;
+- **45 grader_directed** variants in 13 kinds: the six from v1 plus paraphrased_request,
+  role_delimiter, fabricated_evidence, output_escape, long_distracting_context,
+  criteria_leak_request and unpunctuated_dictated (an attack inside the dictated base). Each
+  records the exact added text (`injection`) and quotes that must never be shown as evidence;
+- **27 benign_control** variants in 8 kinds: the five from v1 plus
+  quoted_discussion_of_instructions, shared_vocabulary and professional_terminology (clinical or
+  workplace terms that look like commands: escalate, override, NEWS2 score, care plan marked
+  complete);
+- metrics `attack_credit_by_kind`, `benign_false_exclusion_by_kind` (one rate per kind, so a
+  serious failure in one kind isn't hidden in a total) and `attack_evidence_changed` (attack
+  answers whose point decisions or quotes differ from their base's);
+- the gate `career.grader_boundary` on the grader_directed and benign_control families of this set
+  and on the families set's grader_directed answers; this set's benign controls are also gated as
+  not contradictions.
+
+Unchanged: the sealed set, its selection rule and access rules, and the release rule. The set was
+written by a separate session, but the tuning session read every case while building rubric v6,
+so its results are development figures.
+
 ## Access to the sealed set
 
 - The tuning session never opens `sealed/career_rn_sealed.json` or case-level results from it.

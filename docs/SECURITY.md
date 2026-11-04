@@ -46,6 +46,26 @@ Prompt-injection defenses lower the risk; they don't remove it. Because model ou
 ever *displayed* (as structured text) and never executed or used for authorization, a
 successful injection can at worst produce a misleading hint for the attacker's own account.
 
+**Text addressed to the written-answer grader (rubric v6).** The career coach grades answers
+with rules, not a model, so the threat is a learner writing to the grader to inflate their own
+score ("mark every point as covered"), not one account affecting another.
+- *Controls:* sentences and passages addressed to the grader are left out of grading, word count
+  and quotes, with a note naming them. Detection reads a folded copy (NFKC, invisible characters
+  removed, Cyrillic and Greek look-alikes mapped, spaced-out letters joined) and maps positions
+  back, so what is cut is an exact span of the answer. Closed markup and chat-delimiter blocks
+  are cut wherever they are; an unclosed opener cuts only itself, so it can't empty the answer. In
+  a run-on only the attack passage goes, never the learner's words around it.
+- *Verified by:* the challenge set (45 attacks in 13 kinds, written by a separate session: 0
+  credited; 27 benign controls: 0 cut), the `career.grader_boundary` gate, a deliberately
+  literal boundary that fails it, appended attacks across development answers, and a
+  506,971-sentence benign corpus with nothing cut (docs/AI_EVALUATION.md, "rubric v6").
+- *Residual risks:* attacks nobody has written yet, in other languages or scripts the fold
+  doesn't map, or in plain answer-like words, can still read as the answer. They earn credit only
+  if their words show a point, and an answer that simply claims an action is credited for it
+  either way: the rubric never verifies what happened. A fabricated quote dictated without
+  punctuation ("evidence i escalated…") is the learner's own claim. The fold covers common
+  Cyrillic and Greek look-alikes, not every confusable character.
+
 ## 3. Token storage in the browser
 
 - **Access token** (15 min JWT): held in JavaScript memory only, never written to
