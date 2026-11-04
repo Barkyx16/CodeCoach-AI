@@ -18,6 +18,7 @@ import { ScheduleLink } from "@/features/schedule/ScheduleLink";
 
 import { DraftComposer } from "./DraftComposer";
 import { EVENT_KIND_LABEL, STAGE_HINT, STAGE_LABEL, STAGES } from "./labels";
+import { externalHref } from "@/lib/links";
 
 export function ApplicationPage() {
   const { id = "" } = useParams();
@@ -260,7 +261,9 @@ function DetailsCard({ a, onDone }: { a: Application; onDone: (a: Application) =
         <label className="field"><span className="field__label">Next action</span><input className="input" maxLength={300} value={form.next_action} onChange={(e) => set("next_action", e.target.value)} /></label>
         <label className="field"><span className="field__label">Next action due</span><input className="input" type="date" value={form.next_action_due} onChange={(e) => set("next_action_due", e.target.value)} /></label>
       </div>
-      {a.link && <p className="subtle">Posting: <a href={a.link} target="_blank" rel="noopener noreferrer nofollow">{a.link}<span className="visually-hidden"> (opens in a new tab)</span></a></p>}
+      {a.link && <p className="subtle">Posting: {externalHref(a.link)
+        ? <a href={externalHref(a.link)} target="_blank" rel="noopener noreferrer nofollow">{a.link}<span className="visually-hidden"> (opens in a new tab)</span></a>
+        : <span>{a.link}</span>}</p>}
       <label className="field"><span className="field__label">Notes <span className="subtle">(private)</span></span><textarea className="input" rows={3} maxLength={4000} value={form.notes} onChange={(e) => set("notes", e.target.value)} /></label>
       <InlineError error={error} />
       <span className="row"><Button type="submit" size="sm" variant="primary" loading={busy}>Save details</Button>{saved && <span className="subtle" role="status">Saved.</span>}</span>

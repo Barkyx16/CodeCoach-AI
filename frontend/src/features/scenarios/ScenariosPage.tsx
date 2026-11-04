@@ -13,6 +13,7 @@ import { Icon } from "@/components/Icon";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
 import { DEFAULT_TRACK } from "@/features/careers/practiceTrack";
 import { timeAgo } from "@/lib/format";
+import { externalHref } from "@/lib/links";
 
 function Facts({ s }: { s: ScenarioSummary }) {
   return (
@@ -134,7 +135,7 @@ export function ScenarioBriefing() {
             <ul className="learn-refs">
               {s.references.map((r) => (
                 <li key={r.title}>
-                  {r.url ? <a href={r.url} target="_blank" rel="noreferrer">{r.title}</a> : <span>{r.title}</span>}
+                  {externalHref(r.url) ? <a href={externalHref(r.url)} target="_blank" rel="noopener noreferrer">{r.title}</a> : <span>{r.title}</span>}
                   <span className="subtle"> · {r.publisher}</span>
                   {r.note && <span className="subtle learn-refs__note">{r.note}</span>}
                 </li>

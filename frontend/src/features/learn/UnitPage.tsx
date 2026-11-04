@@ -19,6 +19,7 @@ import { statusLabel, useReadingProgress } from "./progress";
 import { CheckSection, CodeBlock, ExerciseSection } from "./UnitParts";
 import { SaveOffline } from "@/features/offline/SaveOffline";
 import { useOnline } from "@/hooks/useOnline";
+import { externalHref } from "@/lib/links";
 
 const SECTIONS = [
   ["objective", "Objective"],
@@ -208,7 +209,7 @@ export function UnitPage() {
               <ul className="learn-refs">
                 {u.references.map((r) => (
                   <li key={r.title}>
-                    {r.url ? <a href={r.url} target="_blank" rel="noreferrer">{r.title}</a> : <span>{r.title}</span>}
+                    {externalHref(r.url) ? <a href={externalHref(r.url)} target="_blank" rel="noopener noreferrer">{r.title}</a> : <span>{r.title}</span>}
                     <span className="subtle"> · {r.publisher}{r.published ? ` · ${r.published}` : ""}</span>
                     {r.kind === "repository" && <Badge>In this repository</Badge>}
                     {r.note && <span className="subtle learn-refs__note">{r.note}</span>}

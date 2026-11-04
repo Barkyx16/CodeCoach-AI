@@ -30,8 +30,9 @@ was done, on which commit, what was checked and what is left. Morning handoff at
 | 5 | Provider failure boundary | done | `d211eba` |
 | 6 | Session isolation regressions | done, see checkpoint | this change |
 | 7 | Final verification and handoff | after the bonus queue (one final verification) | |
-| B1 | Accessible answer and feedback flow | done, see checkpoint | this change |
-| B2–B5 | Bonus queue: safe rendering, backend ownership, concurrent submissions, diagnostics | next | |
+| B1 | Accessible answer and feedback flow | done | `fe39f2f` |
+| B2 | Safe rendering of learner and provider text | done, see checkpoint | this change |
+| B3–B5 | Bonus queue: backend ownership, concurrent submissions, diagnostics | next | |
 
 ## Checkpoint: task 4, contradictions (rubric v5)
 
@@ -93,3 +94,16 @@ was done, on which commit, what was checked and what is left. Morning handoff at
   and focus, reflection-first focus; an axe scan of the page with feedback (runs with e2e).
 - Not checked: no screen reader is available here; behaviour was checked through roles, focus
   and the accessibility tree, not by listening.
+
+## Checkpoint: bonus 2, safe rendering
+
+- Traced: learner answers, evidence quotes, coach feedback and hints, notes Markdown, problem
+  Markdown, error messages, and every `href` built from data. No raw-HTML API anywhere.
+- Already satisfied (tests added): markup in feedback, quotes and a hint renders as text and runs
+  nothing; notes Markdown (existing test) drops HTML, images and `javascript:` links.
+- Demonstrated gap (test failed first): a `javascript:` meeting link from the API became a live
+  link (React 18 doesn't block it). Fixed: links from data follow the server's http(s) rule at
+  render time (kit, application posting, scenario and lesson references); back links built from
+  navigation state stay inside the app.
+- Checks: lint, typecheck, `npm test` 55 files / 573 tests. Unverified surfaces listed in
+  docs/SECURITY.md.

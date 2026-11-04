@@ -108,6 +108,24 @@ successful injection can at worst produce a misleading hint for the attacker's o
   `frontend/src/test/integration/sessionIsolation.test.tsx` (deferred responses, no sleeps), which
   also covers a query still retrying when the learner signs out (it sends nothing more; this
   already held). Limit: setting a response aside doesn't undo what the server did with it.
+- **Untrusted text at the render boundary** (browser, 2026-11-04). Learner answers, the coach's
+  text (built-in or Claude: feedback, quotes, notes, hints, reviews, explanations, interviewer
+  messages) and API data are rendered as React text; no raw-HTML API is used anywhere
+  (`dangerouslySetInnerHTML`, `innerHTML` and the like: none). Notes are Markdown through
+  react-markdown with raw HTML skipped, no images and its default URL filter; problem statements
+  are our own seed Markdown, also without raw HTML. **Links that come from data** (an interview
+  kit's meeting link, an application's posting, content references in scenarios and lessons)
+  follow the server's rule at render time too: only an absolute http(s) URL becomes a link
+  (`frontend/src/lib/links.ts`), anything else is shown as text. Before this a `javascript:` link
+  that reached the page (the server rejects it on save, so: an older row or a path that skipped
+  the check) was rendered as a live link, and React 18 doesn't block those. Back links built
+  from navigation state only point inside the app. Tests at the real pages:
+  `frontend/src/test/integration/safeRendering.test.tsx` (markup in feedback, quotes and a hint
+  renders literally and runs nothing; the link rule, including mixed case, `data:`,
+  protocol-relative and spaced URLs). Not verified one by one: every other provider text path
+  (inspected, rendered as text), admin pages, the shared-answer page, the code editor's own
+  rendering, and the Content Security Policy; grader-instruction detection (the rubric) is a
+  separate check and not relied on here.
 - Older versions stored the access token in `localStorage`; the app deletes that key on startup.
 - Remaining defences against XSS: React's output escaping, no HTML rendered from the API, and
   a strict Content-Security-Policy on the deployed frontend.

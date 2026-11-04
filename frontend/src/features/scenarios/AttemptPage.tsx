@@ -11,6 +11,7 @@ import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { externalHref } from "@/lib/links";
 
 const QUALITY: Record<NonNullable<ScenarioStep["quality"]>, { label: string; tone: string }> = {
   strong: { label: "Strong decision", tone: "success" },
@@ -201,7 +202,7 @@ function Player({ attempt: a }: { attempt: ScenarioAttempt }) {
             <h3 className="section-title">References</h3>
             <ul className="learn-refs">
               {a.debrief.references.map((r) => (
-                <li key={r.title}>{r.url ? <a href={r.url} target="_blank" rel="noreferrer">{r.title}</a> : <span>{r.title}</span>}<span className="subtle"> · {r.publisher}</span>{r.note && <span className="subtle learn-refs__note">{r.note}</span>}</li>
+                <li key={r.title}>{externalHref(r.url) ? <a href={externalHref(r.url)} target="_blank" rel="noopener noreferrer">{r.title}</a> : <span>{r.title}</span>}<span className="subtle"> · {r.publisher}</span>{r.note && <span className="subtle learn-refs__note">{r.note}</span>}</li>
               ))}
             </ul>
             <p className="subtle">{a.debrief.feedback_source}</p>

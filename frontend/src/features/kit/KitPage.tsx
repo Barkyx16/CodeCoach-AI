@@ -16,6 +16,7 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 import { DEFAULT_PRINT, FORMAT_LABEL, GROUP_LABEL, PRINT_LABEL, type KitFormat, type PrintChoice, type QuestionGroup } from "./labels";
 import { PrintPack } from "./PrintPack";
+import { externalHref } from "@/lib/links";
 
 const newId = () => `u-${crypto.randomUUID().slice(0, 8)}`;
 
@@ -90,7 +91,9 @@ function KitEditor({ initial }: { initial: Kit }) {
         {kit.meeting_link && (
           <details open={!narrow}>
             <summary>Meeting link</summary>
-            <p><a href={kit.meeting_link} target="_blank" rel="noopener noreferrer nofollow">{kit.meeting_link}<span className="visually-hidden"> (opens in a new tab)</span></a></p>
+            <p>{externalHref(kit.meeting_link)
+              ? <a href={externalHref(kit.meeting_link)} target="_blank" rel="noopener noreferrer nofollow">{kit.meeting_link}<span className="visually-hidden"> (opens in a new tab)</span></a>
+              : <span>{kit.meeting_link}</span>}</p>
           </details>
         )}
         <div className="before-view__grid">
