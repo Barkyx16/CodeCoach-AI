@@ -8,6 +8,7 @@ import { ApiError, isSameSession, sessionMark } from "./client";
 import { api, type ActivityFilters, type ExploreFilters, type NoteFilters, type ProblemFilters, type QuestionFilters } from "./endpoints";
 import type { AIHistoryAction, AnswerSource, Difficulty, Bookmark, Collection, GoalsInput, MyExploreResult, ReviewQueue, SavedItemRef, ShareDetail, Target, ContentKind, Onboarding, OnboardingUpdate, UnitProgress, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
 import { withOfflineCopy } from "@/features/offline/offlineStore";
+import { clearFinishPending } from "@/features/onboarding/finishIntent";
 
 export const queryKeys = {
   problems: (filters: ProblemFilters) => ["problems", filters] as const,
@@ -622,11 +623,24 @@ export function useOnboarding(enabled = true) {
   return useQuery({ queryKey: ["me", "onboarding"], queryFn: api.onboarding, enabled, staleTime: 30_000 });
 }
 
-/** Introduction choices are written straight into the cache, so the tour moves without waiting. */
-export function useUpdateOnboarding() {
+/**
+ * Introduction choices are written straight into the cache, so the tour moves without waiting.
+ * `accountId`: whose "finished the introduction" note to settle when a "complete" is answered
+ * (features/onboarding/finishIntent.ts): any reply from the server settles it, and so does a
+ * definite refusal; a network failure or server error leaves it for the next load.
+ */
+export function useUpdateOnboarding(accountId?: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: OnboardingUpdate) => api.updateOnboarding(body),
+    onError: (error, body) => {
+      if (body.tour !== "complete") return;
+      const definite = error instanceof ApiError && error.status >= 400 && error.status < 500 && error.status !== 408 && error.status !== 429;
+      if (definite) {
+        clearFinishPending(accountId);
+        void qc.invalidateQueries({ queryKey: ["me", "onboarding"] }); // show what the server has
+      }
+    },
     // Optimistic, and never rolled back: if saving fails (offline, say), the tour still moves on
     // this page and can always be left. The server's answer replaces it when it arrives.
     onMutate: (body) => {
@@ -642,7 +656,10 @@ export function useUpdateOnboarding() {
       }
       if (next) qc.setQueryData<Onboarding>(["me", "onboarding"], next);
     },
-    onSuccess: (state) => qc.setQueryData(["me", "onboarding"], state),
+    onSuccess: (state, body) => {
+      qc.setQueryData(["me", "onboarding"], state);
+      if (body.tour === "complete") clearFinishPending(accountId);
+    },
   });
 }
 

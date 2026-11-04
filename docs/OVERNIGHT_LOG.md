@@ -657,3 +657,27 @@ closes the remaining duplicate-answer gap), then proposal 1.
   proven: that the failed run lacked the config. Procedure: run e2e as `npm run e2e` (or
   `npx playwright test`) from `frontend/`, as CI does; if the signature reappears, record the
   working directory and `npx playwright test --list | head`.
+
+## Checkpoint: NX03, tour completion survives an immediate reload
+
+- Origin and transport: the API is cross-origin (5173 → 8000) with a bearer header and JSON, so a
+  `keepalive` PATCH needs a CORS preflight that not every browser allows for keepalive requests;
+  not used. Instead a small recoverable intent: Finish writes "finish pending" for the signed-in
+  account before sending (`features/onboarding/finishIntent.ts`: account id and time only, in
+  localStorage, never treated as confirmation). Any reply from the server settles it; a definite
+  4xx refusal settles it and refetches the server's state; a network failure or 5xx keeps it.
+- On the next load `TourFinishReconciler` (mounted once in the layout for the signed-in account)
+  asks the server, not the cache: a tour still running or paused there gets "complete" sent again
+  (the server applies it only to a running or paused tour, so a repeat or a duplicate Finish is
+  harmless); anything else drops the note. Meanwhile the tour panel and the resume banner treat
+  the tour as finished. Another account's note is never read.
+- Found by the browser regression: React's development double effects discarded the only request
+  (a cleanup flag marked it stale and the once-per-load guard skipped the second run); fixed with
+  a current-account ref, and a strict-mode case added.
+- Checks: `tourFinish.test.tsx` (9: re-send on load, panel hidden meanwhile, strict mode, already
+  completed, another account, lost reply kept, refusal dropped, Finish settles, Finish without a
+  reply keeps; 6 failed on the previous code), onboarding and session-isolation tests;
+  `e2e/tour-finish.spec.ts` (real backend: the Finish PATCH aborted, immediate navigation, the
+  next load's "complete" answered `completed`, no resume banner, still finished after a reload).
+- Limits: a browser with storage blocked can't keep the note (the finish still saves normally;
+  only the after-reload repeat is lost); the note is retried once per load, not in the background.

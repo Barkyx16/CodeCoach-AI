@@ -9,6 +9,7 @@ import { countLocalWork } from "@/auth/localWork";
 
 import { AppStatus } from "./AppStatus";
 import { Reminders } from "@/features/schedule/Reminders";
+import { TourFinishReconciler } from "@/features/onboarding/TourFinishReconciler";
 import { RouteAccessibility } from "./RouteAccessibility";
 
 export function Layout() {
@@ -142,6 +143,7 @@ export function Layout() {
       )}
       <AppStatus />
       <Reminders />
+      {isAuthenticated && <TourFinishReconciler />}
       {signedOutReason && !isAuthenticated && (
         <div className="banner banner--warning app__banner" role="status">{signedOutReason}</div>
       )}

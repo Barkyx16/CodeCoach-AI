@@ -6,6 +6,8 @@ import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/Button";
 import { InlineError } from "@/components/States";
 
+import { isFinishPending } from "./finishIntent";
+
 const FORMAT_TEXT = {
   written: "Practice for this job is written answers to interview questions, with feedback from the built-in rubric coach.",
   coding: "Practice for this job includes coding problems checked by the server's judge, plus written interview questions.",
@@ -17,9 +19,9 @@ const FORMAT_TEXT = {
  * introduction after switching to a career with a different kind of practice.
  */
 export function OnboardingBanner() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const state = useOnboarding(isAuthenticated);
-  const update = useUpdateOnboarding();
+  const update = useUpdateOnboarding(user?.id);
   const navigate = useNavigate();
   const o = state.data;
   if (!o) return null;
@@ -45,7 +47,7 @@ export function OnboardingBanner() {
         </span>
       </>
     );
-  } else if (o.resume_due) {
+  } else if (o.resume_due && !isFinishPending(user?.id)) {
     content = (
       <>
         <div><strong>You left the introduction at step {o.tour_step + 1} of {o.tour_steps}.</strong> <span>Pick it up where you left off, or dismiss this; Help can restart it.</span></div>

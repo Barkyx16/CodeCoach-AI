@@ -5,6 +5,7 @@ import type { TourKind } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/Button";
 
+import { isFinishPending, markFinishPending } from "./finishIntent";
 import { TOUR_STEPS } from "./tourSteps";
 
 const ACTIVE = "data-tour-active";
@@ -36,16 +37,18 @@ function findTarget(name: string): HTMLElement | null {
  * it, so no control ends up behind it. It never touches the learner's answer or progress.
  */
 export function GuidedTour({ kind }: { kind: TourKind }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const state = useOnboarding(isAuthenticated);
-  const active = state.data?.tour_status === "in_progress" && state.data.tour_kind === kind;
+  // A finish the server may not have heard yet (a reload cut it off) is being re-sent: don't
+  // bring the finished tour back meanwhile.
+  const active = state.data?.tour_status === "in_progress" && state.data.tour_kind === kind && !isFinishPending(user?.id);
   if (!active || !state.data) return null;
   return <TourPanel kind={kind} step={Math.min(state.data.tour_step, TOUR_STEPS[kind].length - 1)} />;
 }
 
 function TourPanel({ kind, step }: { kind: TourKind; step: number }) {
-  const { isAuthenticated } = useAuth();
-  const update = useUpdateOnboarding();
+  const { isAuthenticated, user } = useAuth();
+  const update = useUpdateOnboarding(user?.id);
   const execution = useCapabilities().data?.execution;
   const steps = TOUR_STEPS[kind];
   const current = steps[step]!;
@@ -113,6 +116,8 @@ function TourPanel({ kind, step }: { kind: TourKind; step: number }) {
     update.mutate({ tour: "step", tour_step: to });
   }
   function end(action: "pause" | "complete") {
+    // Noted before sending, so a reload that cancels the save can't lose the finish.
+    if (action === "complete") markFinishPending(user?.id);
     update.mutate({ tour: action });
     restoreFocus();
   }
