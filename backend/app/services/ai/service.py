@@ -13,6 +13,7 @@ from typing import TypeVar
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app import tracing
 from app.config import Settings
 from app.errors import ConflictError, NotFoundError, RateLimitedError
 from app.models import (
@@ -342,14 +343,23 @@ class CoachService:
             )
 
     def call_with_fallback(self, call: Callable[[CoachProvider], ProviderResult[T]]) -> ProviderResult[T]:
-        """Run `call` on the configured provider; on ProviderError, answer with the offline coach."""
+        """Run `call` on the configured provider; on ProviderError, answer with the offline coach.
+
+        Measured as the span `coach.provider`, whose outcome says what happened without any learner
+        text: `ok`, or `fallback_<reason>` (timeout, connection, rate_limited, http_5xx, http_4xx,
+        refusal, cut_off, invalid_output, invalid_body). The metrics endpoint counts spans by name
+        and outcome, so fallbacks are counted by reason."""
         start = time.perf_counter()
-        try:
-            result = call(self.provider)
-        except ProviderError:
-            if self.fallback is None or self.fallback is self.provider:
-                raise
-            result = replace(call(self.fallback), provider=f"{self.fallback.name} (fallback)")
+        with tracing.span("coach.provider", provider=self.provider.name) as step:
+            try:
+                result = call(self.provider)
+                step.set(attempt=result.attempts)  # requests sent, retries included
+            except ProviderError as exc:
+                step.set(attempt=getattr(exc, "attempts", 1))
+                if self.fallback is None or self.fallback is self.provider:
+                    raise
+                step.outcome = f"fallback_{getattr(exc, 'reason', 'error')}"
+                result = replace(call(self.fallback), provider=f"{self.fallback.name} (fallback)")
         return replace(result, latency_ms=int((time.perf_counter() - start) * 1000))
 
     def record_interaction(

@@ -33,8 +33,8 @@ was done, on which commit, what was checked and what is left. Morning handoff at
 | B1 | Accessible answer and feedback flow | done | `fe39f2f` |
 | B2 | Safe rendering of learner and provider text | done | `1ca34a4` |
 | B3 | Backend ownership and account isolation | already satisfied; tests added | `1e077c5` |
-| B4 | Concurrent submissions and stale feedback | done, see checkpoint | this change |
-| B5 | Diagnostics and bounded performance | next | |
+| B4 | Concurrent submissions and stale feedback | done | `2d1a0e3` |
+| B5 | Diagnostics and bounded performance | done, see checkpoint | this change |
 
 ## Checkpoint: task 4, contradictions (rubric v5)
 
@@ -136,3 +136,16 @@ was done, on which commit, what was checked and what is left. Morning handoff at
   send keeps the text; mutations are never retried automatically, and a 401 resend happens only
   before the server handled the request (no duplicate answer).
 - Checks: lint, typecheck, `npm test` 55 files / 576 tests.
+
+## Checkpoint: bonus 5, diagnostics and bounded performance
+
+- Inspected: request and trace ids are random or a validated client id (no learner text);
+  span attributes pass an allowlist; the access log never carries share secrets (existing
+  test); provider failures were already logged with a reason code (task 5).
+- Added through existing instrumentation: the span `coach.provider` with outcome `ok` or
+  `fallback_<reason>` and attributes `provider` and `attempt` (allowlisted), so fallbacks are
+  counted by reason in `codecoach_span_duration_seconds`; a test checks the span, the metric line
+  and that no learner text reaches either.
+- Profiled scoring on synthetic answers up to the 6,000-character limit (docs/PERFORMANCE.md):
+  6 ms typed, 18 ms dictated at the limit, 128 ms for an adversarial repetition. No defect, so
+  no limit changed and no performance check added.

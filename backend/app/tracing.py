@@ -59,6 +59,7 @@ ALLOWED_ATTRS = frozenset(
         "verdict",
         "error_code",
         "attempt",
+        "provider",  # "anthropic" or "offline": which coach answered
         "queue_wait_ms",
         "duplicate",
     }

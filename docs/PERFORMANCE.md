@@ -142,6 +142,28 @@ version, worker count and nothing else running. The load generator shares the CP
 numbers are pessimistic, and none of this says anything about production scale or real users.
 Each run's machine, commit and dataset are recorded in its JSON.
 
+## The written-answer coach on long and dictated answers (2026-11-04, rubric v5)
+
+Local scoring and evidence extraction (`app.careers.grading.grade`, rubric v5 with the
+contradiction rule), one question, synthetic answers, median of 5 runs in one process:
+Python 3.13, x86_64, 4 CPUs, the development container (not production hardware). The answer
+limit is 6,000 characters (API schema and the answer box), unchanged.
+
+| Answer | Characters | Words | Median |
+|---|---|---|---|
+| short | 187 | 33 | 0.7 ms |
+| typical | 1,128 | 198 | 1.5 ms |
+| at the limit, typed | 6,000 | 1,054 | 6.2 ms |
+| at the limit, dictated (no punctuation) | 5,937 | 1,054 | 17.8 ms |
+| at the limit, with contradictions | 6,000 | 1,115 | 16.4 ms |
+| at the limit, adversarial ("i asked and i called and …" repeated) | 6,000 | 1,435 | 128 ms (max 152) |
+| at the limit, no spaces | 6,000 | 1 | 4.4 ms |
+
+The adversarial case spends its time in the rubric's action patterns over one long unpunctuated
+run (about 130 ms in `_covered`; the contradiction rule adds about 12 ms). It is bounded by the
+6,000-character limit and well inside the request budget, so no limit was changed and no
+regression check was added; a realistic dictated answer at the limit takes under 20 ms.
+
 ## Earlier measurements: the problem-browsing mix (2026-11-01)
 
 The sections below are from before most current features existed, with a different endpoint

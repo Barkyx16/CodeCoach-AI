@@ -42,6 +42,17 @@ kept in a bounded in-memory store for the admin lookup (500 traces, 200 spans ea
 one API process. With several replicas, an admin looks up the replica that served the request,
 or searches the logs (below).
 
+### Coaching requests and fallbacks (2026-11-04)
+
+Every hint, review and failure explanation runs inside the span `coach.provider` (attributes
+`provider`: anthropic or offline; `attempt`: requests sent, retries included). Its outcome is `ok`,
+or `fallback_<reason>` when the offline coach answered instead: `timeout`, `connection`,
+`rate_limited`, `http_5xx`, `http_4xx`, `refusal`, `cut_off`, `invalid_output`, `invalid_body`.
+So `codecoach_span_duration_seconds_count{span="coach.provider"}` counts fallbacks by reason, a
+fixed set of label values, with no learner text, ids or model output. The same reason code is in
+the `anthropic request failed` warning (under `attrs`). Example:
+`sum by (outcome) (increase(codecoach_span_duration_seconds_count{span="coach.provider"}[1h]))`.
+
 ### What the browser reports
 
 For each round action, the page reports how it ended **on screen**, which the server can't see:

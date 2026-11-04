@@ -503,3 +503,33 @@ def test_provider_failures_are_logged_with_a_reason_code_and_no_learner_text_or_
     for r in keep.records:
         text = r.getMessage() + " " + " ".join(str(v) for v in r.__dict__.values())
         assert marker not in text and key not in text
+
+
+def test_a_fallback_is_measured_by_reason_without_any_learner_text():
+    from app import tracing
+    from app.config import Settings
+    from app.metrics import Metrics
+    from app.services.ai.service import CoachService
+
+    store, metrics = tracing.TraceStore(), Metrics()
+    marker = "LEARNER-ANSWER-MARKER-7731"
+    ctx = _ctx()
+    ctx = type(ctx)(problem=ctx.problem, code=f"// {marker}", level=1, analysis=ctx.analysis)
+    timeout = anthropic.APITimeoutError(request=_REQ)
+    coach = AnthropicCoach(
+        api_key=None, model="m", client=Scripted(timeout, timeout, timeout), sleep=lambda s: None
+    )
+    service = CoachService(db=None, settings=Settings(), provider=coach)  # type: ignore[arg-type]
+    with tracing.start_trace(store=store, metrics=metrics) as trace:
+        result = service.call_with_fallback(lambda p: p.hint(ctx))
+    assert result.provider == "offline (fallback)"
+    spans = [s for s in store.get(trace.trace_id)["spans"] if s["name"] == "coach.provider"]
+    assert [(s["outcome"], s["attrs"]["attempt"], s["attrs"]["provider"]) for s in spans] == [
+        ("fallback_timeout", 3, "anthropic")
+    ]
+    exposition = metrics.render().decode()
+    assert (
+        'codecoach_span_duration_seconds_count{outcome="fallback_timeout",span="coach.provider"} 1.0'
+        in exposition
+    )
+    assert marker not in exposition and marker not in str(store.get(trace.trace_id))
