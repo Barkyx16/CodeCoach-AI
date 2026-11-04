@@ -39,13 +39,41 @@ NUMBER_WORDS = (
 # A number as digits or as speech-to-text writes it ("nine", "two hours", "one week").
 NUMBER = rf"(?:\d|\b(?:{NUMBER_WORDS})\b|\bone (?:minute|hour|day|week|month|year|shift|night|percent)s?\b)"
 PERCENT = rf"(?:\d+ ?%|\b(?:\d+|(?:{NUMBER_WORDS}|one)(?:[ -](?:{NUMBER_WORDS}|one))?) percent\b)"
-# Something the speaker did, told in the first person past tense: "I called", "I sat down with",
-# "I then booked". Verbs of thinking, feeling, wanting or trying don't count ("I wanted to call",
-# "I realised"), nor do negated, planned or hypothetical ones ("I didn't call", "I'd call"), because
-# the verb must follow "I" directly (an adverb such as "then" may come between).
+# The action criterion (rubric v7; evals/protocol.json labeling.action_criterion): something the
+# learner did, or took part in doing, told as done. The grader matches these against the answer
+# with apostrophes and filler sounds taken out, so "I'd already called" reads "id already called".
+#
+# Who: "I", "we", "me" in a pair ("our physio and me"), "the two of us". A team action counts, so
+# nobody has to claim team work as their own ("Makes your own responsibility clear" asks for their
+# part separately). Someone else's action has no such subject and doesn't count.
+# Done: a past form (any verb ending in -ed, or an irregular past form below), after "had" too
+# ("I had already called"; not "if I had"). Present tense isn't read as done: "so I go in and
+# check" can't be told apart from a habit ("I check every patient") by its words, and a habit
+# stated in general isn't what happened. "Would", "didn't", "never", "was going to" and "planned
+# to" put no past form straight after the subject, so they don't count.
+# An act: thinking, feeling, wanting, trying and meeting a situation don't count (_NOT_ACTIONS), nor
+# does "what I took from it" (the lesson).
+# The words between the subject and the verb: an aside in commas ("I, as nurse in charge, ...") and
+# up to two adverbs, except those of habit, frequency or a near miss (usually, nearly, barely).
+# A passive counts when it says the learner did it ("was measured by me"); one that doesn't say
+# who ("the team was called") doesn't.
+#
+# The irregular forms are the closed class of English irregular verbs that name an act, as past
+# forms and past participles; verbs of perceiving, knowing or feeling (saw, knew, felt, thought)
+# are left out on purpose.
 _IRREGULAR_ACTIONS = (
-    "went|told|gave|took|made|brought|sent|wrote|spoke|met|ran|rang|sat|stood|put|set|led|kept|found|held|"
-    r"drove|taught|began|paid|left|said|sought|caught|fed|built|spent|chose|broke|split|cut|shut|did(?!\s*(?:not|nt)\b)"
+    "went|told|gave|took(?!\\s+(?:away|from)\\b)|made|brought|sent|wrote|spoke|met|ran|rang|sat|stood|put|set|led|"
+    "kept|found|held|drove|taught|began|paid|left|said|sought|caught|fed|built|spent|chose|broke|split|cut|shut|"
+    "got|drew|hung|threw|wore|dealt|swept|struck|bought|sold|lent|let|lit|laid|rode|shook|sang|slid|sprang|stuck|"
+    "swung|tore|woke|wound|bent|bound|blew|dug|fled|flew|fought|forgave|froze|hid|hit|knelt|quit|spread|withdrew|"
+    "withheld|upheld|undertook|oversaw|rewrote|retook|rebuilt|reset|redid|came|read|"
+    r"did(?!\s*(?:not|nt)\b)"
+)
+# Past participles that differ from the past form, for "had ..." and passives
+_IRREGULAR_PARTICIPLES = (
+    "taken|given|done|gone|written|spoken|drawn|driven|chosen|broken|begun|shown|hidden|ridden|shaken|torn|"
+    "thrown|woken|worn|withdrawn|undertaken|overseen|rewritten|retaken|flown|forgiven|frozen|sung|rung|sprung|"
+    "blown|redone|come"
 )
 
 
@@ -58,18 +86,44 @@ _NOT_ACTIONS = (
     "wanted|needed|hoped|worried|wondered|liked|loved|hated|seemed|appeared|realised|realized|learned|"
     "noticed|assumed|believed|expected|preferred|enjoyed|panicked|struggled|tried|considered|imagined|"
     "guessed|cared|feared|doubted|trusted|remembered|happened|mattered|belonged|wished|planned|intended|"
+    "faced|experienced|encountered|witnessed|"
     r"failed|owed|deserved|lacked|depended|existed|used(?= to\b)"
 )
-_ACTION_VERB = rf"(?:(?:{_IRREGULAR_ACTIONS})\b|(?!(?:{_NOT_ACTIONS})\b)[a-z]+ed\b)"
-ACTION = (
-    r"\bi (?:(?:then|also|first|finally|quickly|immediately|personally|just|instead|actually|later|eventually|"
-    r"calmly|gently|carefully|straight away)\s+)?(?:(?:have|ve)\s+)?" + _ACTION_VERB
+_ACTION_VERB = rf"(?:(?:{_IRREGULAR_ACTIONS}|{_IRREGULAR_PARTICIPLES})\b|(?!(?:{_NOT_ACTIONS})\b)[a-z]+ed\b)"
+_SUBJECT_ = r"(?<!if )\b(?:i|we|(?:and|&) me|the (?:two|three|four) of us|both of us)"
+_ASIDE = r"(?:,\s[^,.!?]{1,40},)?\s"
+_ADVERBS = (
+    r"(?:(?:then|also|first|finally|immediately|personally|just|instead|actually|later|eventually|straight away|"
+    r"right away|already|both|all|together|next|soon|then also|"
+    r"(?!(?:usually|normally|generally|typically|nearly|hardly|barely|scarcely|rarely|really|only)\b)[a-z]+ly)\s+)"
+    r"{0,2}"
 )
-# A second action sharing that "I" in the same sentence: "I listed the tasks, gave the insulin first
-# and booked the teaching". Matches once per such sentence, so together with ACTION it shows two
-# actions; a verb counts only after an "I" action in its own sentence ("her pressure dropped, and
-# stabilized" doesn't).
-JOINED_ACTION = ACTION + r"[^.!?]*?(?:[,;] (?:and |then |and then )?| and (?:then )?)" + _ACTION_VERB
+# "I had already ...", "we'd ..." (after the apostrophe is removed: "wed", "id") + a past participle
+_HAD = r"(?:(?:had|d)\s+" + _ADVERBS + ")?"
+ACTION = (
+    _SUBJECT_
+    + _ASIDE
+    + _ADVERBS
+    + _HAD
+    + _ACTION_VERB
+    + r"|(?<!if )\b(?:id|wed)\s+"
+    + _ADVERBS
+    + _ACTION_VERB
+)
+# A second action sharing that subject in the same sentence: "I listed the tasks, gave the insulin
+# first and booked the teaching", "... plus practised it". Matches once per such sentence, so
+# together with ACTION it shows two actions; a verb counts only after an action of the learner's in
+# its own sentence ("her pressure dropped, and stabilized" doesn't).
+_JOIN = r"(?:[,;] (?:and |then |and then |plus |as well as )?| and (?:then |also )?| plus | then )"
+JOINED_ACTION = rf"(?:{ACTION})[^.!?]*?{_JOIN}{_ADVERBS}{_ACTION_VERB}"
+# "I made sure to count her breaths, listen to her chest and record it": the acts after "made sure
+# to" are base forms, so a comma list of them counts as the second action (once per sentence).
+LISTED_ACTIONS = (
+    rf"(?:{_SUBJECT_}){_ASIDE}{_ADVERBS}(?:made sure|took care|went on|set about|proceeded)\s+to\s+[a-z]+"
+    r"[^.!?]*?, (?:and |plus |then )?[a-z]+"
+)
+# A passive that says the learner did it: "the bloods were taken by me", "an alert was stuck by me".
+BY_ME = rf"\b(?:was|were)\s+{_ADVERBS}{_ACTION_VERB}[^.!?,;]{{0,60}}?\bby (?:me|myself|us|the two of us)\b"
 LEVELS = ("easy", "medium", "hard")
 
 
@@ -169,7 +223,7 @@ STAR = (
     ),
     RubricPoint(
         "Describes specific actions you took",
-        (ACTION, JOINED_ACTION),
+        (ACTION, JOINED_ACTION, LISTED_ACTIONS, BY_ME),
         "Walk through two or three concrete things you did, using “I did …” sentences.",
         min_hits=2,
     ),

@@ -835,3 +835,97 @@ def test_the_benign_corpus_sample_has_nothing_taken_for_text_to_the_grader():
 
     r = scan(every=20)
     assert r["sentences"] > 30_000 and r["flagged"] == []
+
+
+# --- rubric v7: the action criterion --------------------------------------------------------------
+# A learner's actions told in other words count; actions that didn't happen, weren't theirs or are
+# only listed don't (evals/protocol.json labeling.action_criterion). Written for these tests by the
+# tuning session, not taken from the evaluation sets. Each passage is put into the same answer, so
+# only the wording of the actions changes.
+
+ACTIONS = "Describes specific actions you took"
+FRAME = (
+    "It was a night shift on a surgical ward and a man's blood pressure was falling after his operation. "
+    "I was the nurse responsible for his care that night. {} He was back in theatre within the hour and "
+    "recovered. What stays with me is that a falling trend matters more than one reading."
+)
+DONE = [
+    "We rechecked his observations, raised his legs and bleeped the surgical registrar.",  # with others
+    "The healthcare assistant and I rechecked his observations and raised his legs.",
+    "Our outreach nurse and me rechecked his observations, plus we bleeped the registrar.",
+    "I had already rechecked his observations and raised his legs when the registrar arrived.",
+    "I, as the nurse in charge, quickly rechecked his observations and bleeped the registrar.",
+    "His observations were rechecked by me and the registrar was bleeped by me straight away.",
+    "I made sure to recheck his observations, raise his legs and bleep the registrar.",
+    "I rechecked his observations, plus bleeped the surgical registrar.",
+    "I drew bloods, hung a new bag of fluid and rang the surgical registrar.",
+    "I think I rechecked his observations first and then I bleeped the registrar.",
+]
+NOT_DONE = [
+    "I didn't recheck his observations and I never bleeped the registrar.",  # negated
+    "I was going to recheck his observations and planned to bleep the registrar.",  # intended
+    "I would have rechecked his observations and bleeped the registrar.",  # hypothetical
+    "If I had rechecked his observations, I'd have bleeped the registrar sooner.",
+    "The charge nurse rechecked his observations and bleeped the registrar.",  # someone else
+    "His observations were rechecked and the registrar was bleeped.",  # a passive without the learner
+    "I thought about rechecking his observations and considered bleeping the registrar.",
+    "Actions: rechecked observations, raised legs, bleeped registrar.",  # a list
+]
+
+
+def _actions_credited(passage: str) -> bool:
+    fb = grade(get_question("registered-nurse", "h-hardest-0"), FRAME.format(passage))
+    return next(p for p in fb.points if p.label == ACTIONS).covered
+
+
+@pytest.mark.parametrize("passage", DONE)
+def test_real_actions_count_however_they_are_worded(passage):
+    assert _actions_credited(passage)
+
+
+@pytest.mark.parametrize("passage", NOT_DONE)
+def test_actions_that_didnt_happen_or_werent_the_learners_dont_count(passage):
+    assert not _actions_credited(passage)
+
+
+def test_an_experience_and_a_lesson_are_not_actions():
+    # "The hardest situation I have faced" and "What I took from it" are the frame of the story.
+    answer = (
+        "The hardest situation I have faced was a night shift on a busy surgical ward. I was the nurse "
+        "responsible for six patients. I didn't escalate soon enough. What I took from it is to trust a "
+        "falling trend over a single reading."
+    )
+    fb = grade(get_question("registered-nurse", "h-hardest-0"), answer)
+    assert not next(p for p in fb.points if p.label == ACTIONS).covered
+
+
+def test_team_actions_are_credited_but_the_learners_own_part_is_still_asked_for():
+    fb = grade(
+        get_question("registered-nurse", "h-hardest-0"),
+        "It was a busy night on a surgical ward and a man's pressure was falling. We rechecked his "
+        "observations, raised his legs and bleeped the registrar. He was back in theatre within the hour.",
+    )
+    covered = {p.label: p.covered for p in fb.points}
+    assert covered[ACTIONS] and not covered["Makes your own responsibility clear"]
+
+
+def test_reworded_actions_are_quoted_from_the_answer_with_their_negation_and_owner():
+    q = get_question("registered-nurse", "h-hardest-0")
+    for passage in DONE:
+        answer = FRAME.format(passage)
+        p = next(p for p in grade(q, answer).points if p.label == ACTIONS)
+        assert p.evidence and p.span and answer[p.span[0] : p.span[1]].strip("…") in answer
+    # A quote never drops the "not" that makes the action not happen.
+    answer = FRAME.format("I rechecked his observations and raised his legs, but I did not bleep anyone.")
+    p = next(p for p in grade(q, answer).points if p.label == ACTIONS)
+    assert p.covered and p.evidence
+    assert "bleep" not in p.evidence or "did not bleep" in p.evidence
+
+
+def test_dictated_team_actions_are_read_like_typed_ones():
+    from evals.dictation import no_punctuation, with_fillers
+
+    q = get_question("registered-nurse", "h-hardest-0")
+    typed = FRAME.format("We rechecked his observations, raised his legs and bleeped the registrar.")
+    for spoken in (no_punctuation(typed), with_fillers(no_punctuation(typed))):
+        assert next(p for p in grade(q, spoken).points if p.label == ACTIONS).covered

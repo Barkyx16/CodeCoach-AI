@@ -124,6 +124,36 @@ def _grader_boundary(report: dict) -> list[str] | None:
     return out
 
 
+# Action controls a rule can tell apart (rubric v7). irrelevant_action needs the meaning of the words
+# and is an open defect in evals/regression.json, so it isn't gated.
+UNGATED_ACTION_CONTROLS = ("irrelevant_action",)
+
+
+def _action_controls(report: dict) -> list[str] | None:
+    """Gated action_control families: an action that didn't happen, wasn't the learner's or is only
+    listed (negated, intended, hypothetical, someone else's, a passive without the learner, a list,
+    a thought) never earns 'Describes specific actions you took'."""
+    from evals.career import ACTIONS_POINT
+    from evals.meta import EVAL_DIR
+
+    families = json.loads((EVAL_DIR / "protocol.json").read_text(encoding="utf-8"))["gated_career_sets"].get(
+        "families", {}
+    )
+    sets = report.get("career") or {}
+    gated = {k for k, v in families.items() if "action_control" in v and k in sets}
+    if not gated:
+        return None
+    out = []
+    for set_id in sorted(gated):
+        for case in sets[set_id]["cases"]:
+            tags = case.get("tags", [])
+            if "action_control" not in tags or any(k in tags for k in UNGATED_ACTION_CONTROLS):
+                continue
+            if "error" in case or ACTIONS_POINT in case.get("observed", {}).get("covered", []):
+                out.append(f"{set_id} / {case['id']}: an action that doesn't meet the criterion was credited")
+    return out
+
+
 def _career_complete(report: dict) -> list[str] | None:
     sets = _career_sets(report)
     if not sets:
@@ -344,6 +374,12 @@ GATES: list[Gate] = [
         "Text addressed to the grader, however it is written, adds no point, raises no rating and is never "
         "quoted; ordinary answer text that only uses the same words is kept (rubric v6).",
         _grader_boundary,
+    ),
+    Gate(
+        "career.action_controls",
+        "An action that didn't happen, wasn't the learner's or is only listed earns no action credit "
+        "(rubric v7; irrelevant actions are an open defect and not gated).",
+        _action_controls,
     ),
     Gate(
         "data.integrity",

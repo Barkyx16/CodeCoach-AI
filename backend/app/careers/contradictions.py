@@ -571,6 +571,16 @@ class _Reading:
             hi += 1
         return lo, hi
 
+    def told(self, k: int) -> tuple[int, int]:
+        """The account of unit k and, when the next unit is another "I" statement that follows it
+        directly ("I did not ask anyone for help at all, I did every observation myself"), that one's
+        account too: what the learner goes on to say in support of the statement (rubric v7). Only
+        the points the contradiction is about use it."""
+        lo, hi = self.account(k)
+        if hi + 1 < len(self.units) and self.units[hi + 1].subject and not self.joined(hi + 1):
+            hi = self.account(hi + 1)[1]
+        return lo, hi
+
     def span(self, lo: int, hi: int) -> tuple[int, int]:
         """A span of the working text as a span of the answer."""
         return self.index[lo], self.index[max(lo, hi - 1)] + 1
@@ -729,7 +739,7 @@ def find(answer: str, sentences: Sequence[_Sentence]) -> tuple[Conflict, ...]:
                 quote_b,
                 tuple(void) if status != "unclear" else (),
                 tuple(r.units_span(r.account(k)[0], k) for k in (a, b)) if conflict else (),
-                tuple(r.units_span(*r.account(k)) for k in (a, b)) if conflict else (),
+                tuple(r.units_span(*r.told(k)) for k in (a, b)) if conflict else (),
             )
         )
 

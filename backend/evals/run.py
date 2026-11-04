@@ -643,7 +643,12 @@ def _metrics_markdown(m: dict | None) -> list[str]:
     names = [k for k in m if "k" in m[k] and m[k]["n"]]
     lines = ["", "| Protocol metric | Value |", "|---|---|"]
     lines += [f"| {k} | {_rate(m[k])} |" for k in names]
-    for table in ("attack_credit_by_kind", "benign_false_exclusion_by_kind"):
+    for table in (
+        "attack_credit_by_kind",
+        "benign_false_exclusion_by_kind",
+        "action_recall_by_kind",
+        "action_false_credit_by_kind",
+    ):
         if m.get(table):
             lines += ["", f"| {table} | Value |", "|---|---|"]
             lines += [f"| {kind} | {_rate(v)} |" for kind, v in m[table].items()]

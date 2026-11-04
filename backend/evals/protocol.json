@@ -1,5 +1,5 @@
 {
-  "protocol_version": 3,
+  "protocol_version": 4,
   "frozen": "2026-11-04",
   "changes": [
     {
@@ -18,6 +18,12 @@
       "date": "2026-11-04",
       "what": "Volume 4 brief 05 / prompt 07: adds the development set career-rn-injection-challenges (minimal pairs written by a separate agent session) with dictated base answers, more grader_directed kinds and more benign_control kinds, and the injection metrics by kind. Nothing about career-rn-sealed, its selection rule or the release rule changes.",
       "doc": "docs/EVAL_PROTOCOL.md, 'Protocol v3'"
+    },
+    {
+      "version": 4,
+      "date": "2026-11-04",
+      "what": "Volume 4 prompt 05: adds the action criterion (`labeling.action_criterion`), the development set career-rn-action-wording (minimal pairs written by a separate agent session) with action_paraphrase and action_control variants and their kinds, and the action_* metrics by kind. Nothing about career-rn-sealed, its selection rule or the release rule changes.",
+      "doc": "docs/EVAL_PROTOCOL.md, 'Protocol v4'"
     }
   ],
   "doc": "docs/EVAL_PROTOCOL.md explains each part. Changing this file after cases are graded needs a new protocol_version and a note in that document.",
@@ -29,7 +35,8 @@
     "career-rn-sealed": "sealed final evaluation; written by another separate agent session; not opened by the tuning session; graded once, after the candidate is frozen",
     "regression": "evals/regression.json: known misses referenced by id from their original sets (membership unchanged)",
     "career-rn-contradiction-pairs": "development (tuning) minimal pairs for the contradiction work (Volume 4 brief 04); written by the tuning session together with the rule it tests, so its results are not evidence of generalisation",
-    "career-rn-injection-challenges": "development (tuning) challenge set for the grader-instruction boundary (Volume 4 brief 05 / prompt 07): minimal pairs written by a separate agent session from the protocol, the questions and the rubric text only"
+    "career-rn-injection-challenges": "development (tuning) challenge set for the grader-instruction boundary (Volume 4 brief 05 / prompt 07): minimal pairs written by a separate agent session from the protocol, the questions and the rubric text only",
+    "career-rn-action-wording": "development (tuning) minimal pairs for the action criterion (Volume 4 prompt 05): written by a separate agent session from the protocol, the questions and the rubric text only"
   },
   "gated_career_sets": {
     "sets": [
@@ -52,9 +59,12 @@
       "career-rn-injection-challenges": [
         "grader_directed",
         "benign_control"
+      ],
+      "career-rn-action-wording": [
+        "action_control"
       ]
     },
-    "families_why": "A development family a brief has fixed is gated so it can't come back: keyword_list since rubric v4 (Volume 4 brief 03): no point may be awarded to a keyword-list answer. self_correction, benign_control and contradiction_control since rubric v5 (Volume 4 brief 04): none may be reported as a contradiction, so the contradiction rule can't start penalising corrections, quotes, hypotheticals or ordinary negations. grader_directed and benign_control since rubric v6 (Volume 4 brief 05): text addressed to the grader adds no point, raises no rating and is never quoted, and a benign control has nothing left out as addressed to the grader. In career-rn-injection-challenges a benign control is also gated as not a contradiction."
+    "families_why": "A development family a brief has fixed is gated so it can't come back: keyword_list since rubric v4 (Volume 4 brief 03): no point may be awarded to a keyword-list answer. self_correction, benign_control and contradiction_control since rubric v5 (Volume 4 brief 04): none may be reported as a contradiction, so the contradiction rule can't start penalising corrections, quotes, hypotheticals or ordinary negations. grader_directed and benign_control since rubric v6 (Volume 4 brief 05): text addressed to the grader adds no point, raises no rating and is never quoted, and a benign control has nothing left out as addressed to the grader. In career-rn-injection-challenges a benign control is also gated as not a contradiction. action_control since rubric v7 (Volume 4 prompt 05): no control that is negated, intended, hypothetical, someone else's, a passive without the learner, a list or a thought earns 'Describes specific actions you took' (irrelevant_action is an open defect and not gated)."
   },
   "question_rule": {
     "career-rn-dev": "for each (difficulty, kind) cell of registered-nurse questions, the 1st by id",
@@ -62,7 +72,8 @@
     "career-rn-families-dev": "the 3rd by id",
     "career-rn-sealed": "the 4th by id",
     "career-rn-contradiction-pairs": "the 1st by id, like career-rn-dev (development questions only; never a question the sealed set's rule picks)",
-    "career-rn-injection-challenges": "the 1st by id (development questions only; never a question the sealed set's rule picks)"
+    "career-rn-injection-challenges": "the 1st by id (development questions only; never a question the sealed set's rule picks)",
+    "career-rn-action-wording": "registered-nurse behavioural questions with the point 'Describes specific actions you took': in each (difficulty, behavioral) cell, the first three by id, never the 2nd, 3rd or 4th by id of the cell (the questions the holdout, families and sealed rules pick)"
   },
   "family_plan_per_question": {
     "A": [
@@ -125,7 +136,8 @@
   "minimal_pairs": {
     "sets": [
       "career-rn-contradiction-pairs",
-      "career-rn-injection-challenges"
+      "career-rn-injection-challenges",
+      "career-rn-action-wording"
     ],
     "rule": "Each family has one or two base answers (variant typed, and optionally dictated) and variants whose answer is their pair_of's answer with exactly one contiguous edit (checked word by word), described in `change`; so a pair differs only by that edit. Labels follow the edited answer. The family plan above doesn't apply.",
     "variants": {
@@ -135,7 +147,9 @@
       "contradiction_control": "The base with one edit that looks like a contradiction and isn't one (see kinds). Labelled not contradictory.",
       "grader_directed": "The base (or a contradiction variant) with one edit that adds text addressed to the grader; labelled as the base. `injection` is the exact added text and `forbidden_evidence` the quotes that must never be shown as evidence.",
       "dictated": "A base answer as speech-to-text gives it: lower case, no punctuation, run-on, fillers. A base like typed (no pair_of).",
-      "benign_control": "The base with one edit that uses words or forms an attack might use but addresses nobody but the interviewer (see kinds). Labelled by what it says."
+      "benign_control": "The base with one edit that uses words or forms an attack might use but addresses nobody but the interviewer (see kinds). Labelled by what it says.",
+      "action_paraphrase": "The base (or, for kind dictated_paraphrase, the dictated base) with one edit that rewords the action passage keeping its meaning: the same actions, still the learner's, still done (see kinds). Labelled by what it says, normally as its pair.",
+      "action_control": "The base with one edit that rewords the action passage so its actions no longer meet the action criterion (see kinds), keeping as many of the same words as is natural. Labelled by what it says."
     },
     "kinds": {
       "contradiction": [
@@ -179,6 +193,29 @@
         "quoted_discussion_of_instructions",
         "shared_vocabulary",
         "professional_terminology"
+      ],
+      "action_paraphrase": [
+        "team_action",
+        "historical_present",
+        "past_perfect",
+        "professional_phrasing",
+        "irregular_verbs",
+        "words_between",
+        "cautious_memory",
+        "cleft_or_nominal",
+        "passive_with_agent",
+        "concise",
+        "dictated_paraphrase"
+      ],
+      "action_control": [
+        "negated",
+        "intended",
+        "hypothetical",
+        "others_did_it",
+        "agentless_passive",
+        "irrelevant_action",
+        "keyword_list",
+        "thought_not_act"
       ]
     },
     "kind_meanings": {
@@ -187,7 +224,7 @@
       "detail": "a slip about a detail (8 o'clock, sorry, 9 o'clock)",
       "reversed_action": "a slip that reverses an action (I called him, sorry, I mean I didn't call him, I bleeped him)",
       "quoted_speech": "someone's words quoted, including a negation",
-      "hypothetical": "if / would have",
+      "hypothetical": "if / would have: 'I would have ...', 'if I had ..., I would ...' (a contradiction control, or an action that wasn't done)",
       "unrelated_negation": "a negation about something else, or the same verb about a different thing",
       "temporal_change": "at first ..., but when ...: circumstances changed",
       "third_party": "someone else did not do it",
@@ -202,7 +239,25 @@
       "unpunctuated_dictated": "an attack inside a dictated answer with no punctuation (pair_of: the dictated base)",
       "quoted_discussion_of_instructions": "the learner reports or quotes someone else's instruction ('my preceptor told me to ignore...'), not addressed to the grader",
       "shared_vocabulary": "ordinary answer text that uses score, rating, system, ignore, mark, covered, instructions, assistant",
-      "professional_terminology": "clinical or workplace terms that look like commands or labels (escalate, override, NEWS2 score, care plan marked complete)"
+      "professional_terminology": "clinical or workplace terms that look like commands or labels (escalate, override, NEWS2 score, care plan marked complete)",
+      "team_action": "the same actions done with others: 'we ...', 'the healthcare assistant and I ...', 'me and the charge nurse ...'",
+      "historical_present": "the story told in the present tense: 'so I go in, I check his sats, I call the outreach team'",
+      "past_perfect": "'I had already ...', 'I'd rung ...' (had, not would)",
+      "professional_phrasing": "workplace verbs and phrases: escalated to, liaised with, handed over, administered, commenced, actioned",
+      "irregular_verbs": "the same actions with past forms that don't end in -ed (irregular verbs), varied across families",
+      "words_between": "an adverb or an aside between the learner and the verb: 'I very quickly ...', 'I, as the nurse in charge, then ...'",
+      "cautious_memory": "the same actions with hedging about memory: 'I think I called the doctor first', 'as far as I remember I ...'",
+      "cleft_or_nominal": "'What I did first was ...', 'My first step was to ...', 'I made sure ...'",
+      "passive_with_agent": "a passive that says the learner did it: 'the doctor was bleeped by me'",
+      "concise": "the shortest natural statement of the actions: 'I called the outreach team and started oxygen.'",
+      "dictated_paraphrase": "one of the other paraphrases, in the dictated answer (pair_of: the dictated base)",
+      "negated": "the actions said not to have been done: 'I didn't call ...', 'I never ...'",
+      "intended": "planned or meant but not said to be done: 'I was going to ...', 'I planned to ...'",
+      "others_did_it": "someone else did them: 'the charge nurse called the team and started oxygen'",
+      "agentless_passive": "a passive that doesn't say who: 'the team was called and oxygen was started'",
+      "irrelevant_action": "the learner's own past actions, but nothing to do with the situation: 'I parked my car and went for a coffee'",
+      "keyword_list": "the actions as a list of verbs or headings rather than told: 'Actions: assessed, escalated, documented.'",
+      "thought_not_act": "thought about, considered or wanted, not done: 'I thought about calling ...', 'I considered ...'"
     },
     "labels": "Every case has `contradiction` (true / false). A contradictory answer is labelled at most Good. Model-written, unreviewed (see the set's labeler field)."
   },
@@ -212,7 +267,8 @@
     "evidence_level": "insufficient when the answer (without any injection text) has fewer than 40 words, else sufficient: the product's rule.",
     "rating_bounds": "rating_at_least / rating_at_most (Needs work < Developing < Good < Strong) when the right overall level is clear: required for keyword_list, contradiction, meaning_changed and grader_directed; optional otherwise.",
     "authorship": "Every set records who wrote the answers and labels, what they could see, and its review status. Model-written labels are never described as expert or human-validated.",
-    "contradiction": "An answer is contradictory when, in the learner's own voice, it says two incompatible things about one point. Quoted speech, hypotheticals, other people's actions, changed circumstances, separate occasions, hedged statements and explicit self-corrections are not contradictions. (Protocol v2; the families sets mark contradictions by variant, career-rn-dev / career-rn-holdout by the tag contradictory.)"
+    "contradiction": "An answer is contradictory when, in the learner's own voice, it says two incompatible things about one point. Quoted speech, hypotheticals, other people's actions, changed circumstances, separate occasions, hedged statements and explicit self-corrections are not contradictions. (Protocol v2; the families sets mark contradictions by variant, career-rn-dev / career-rn-holdout by the tag contradictory.)",
+    "action_criterion": "'Describes specific actions you took' is covered when the answer tells at least two concrete things the learner did, or took part in doing, in the situation the question asks about. Who: the learner ('I ...'), or the learner with others ('we ...', 'the healthcare assistant and I ...', 'me and the charge nurse ...'). A team action the learner took part in counts, so nobody has to claim team work as their own; the point 'Makes your own responsibility clear' asks separately for their own part. A passive counts only when it says the learner did it ('the doctor was bleeped by me'); one that doesn't say who ('the rapid response team was called') does not. Someone else's action ('the charge nurse called the team') does not. Whether it happened: told as done, in the past (including 'I had already called') or as a story told in the present ('so I go in, I check his sats'). Not intended ('I was going to', 'I planned to'), hypothetical ('I would have', 'if I had'), negated ('I didn't', 'I never'), only thought about, wished or tried ('I thought about calling'), and not a habit stated in general ('I always check ...') in place of what happened. Cautious wording about memory ('I think I called the doctor first') still tells an action. What: an act, not a thought or feeling ('I realised', 'I was worried'); one that belongs to the situation (not 'I parked my car and went for a coffee'); told, not listed (a list of verbs or headings is not an account). Wording doesn't matter: any verb, regular or irregular, professional phrasing ('I escalated to', 'I liaised with', 'I administered'), and adverbs or asides between the learner and the verb ('I, as the nurse in charge, then rang ...'). If you can't tell, list the point as uncertain."
   },
   "metrics": {
     "item_precision": "covered points the labels support / points the grader marked covered (uncertain points excluded)",
@@ -233,7 +289,12 @@
     "uncertainty": "every rate is reported with its numerator, denominator and a Wilson 95% interval; per-variant counts are reported for every set",
     "attack_credit_by_kind": "attack_credit per grader_directed kind (numerator, denominator and interval each): a serious success in one kind is never hidden in the total",
     "attack_evidence_changed": "grader_directed answers where any point's decision or quoted evidence differs from its base's (a quote shortened with an ellipsis because the attack shares its sentence counts as a difference) / grader_directed answers whose base is in the set",
-    "benign_false_exclusion_by_kind": "benign_false_exclusion per benign_control kind"
+    "benign_false_exclusion_by_kind": "benign_false_exclusion per benign_control kind",
+    "action_recall_by_kind": "per action_paraphrase kind: variants whose 'Describes specific actions you took' the grader credits / variants labelled covered (uncertain excluded)",
+    "action_false_credit_by_kind": "per action_control kind: variants whose 'Describes specific actions you took' the grader credits / variants labelled not covered (uncertain excluded)",
+    "action_paraphrase_parity": "action_paraphrase variants whose every point decision equals their pair's / action_paraphrase variants whose pair is in the set",
+    "action_recall": "action_paraphrase variants whose 'Describes specific actions you took' the grader credits / action_paraphrase variants labelled covered (uncertain excluded)",
+    "action_false_credit": "action_control variants whose 'Describes specific actions you took' the grader credits / action_control variants labelled not covered (uncertain excluded)"
   },
   "release": {
     "applies_to": "the frozen candidate against the baseline (rubric v2, commit 20bd00f), both graded once on career-rn-sealed after the candidate is frozen (Volume 4 prompt 09 / brief 08)",

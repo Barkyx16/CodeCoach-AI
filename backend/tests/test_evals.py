@@ -28,6 +28,7 @@ def test_the_complete_offline_evaluation_passes_every_release_gate():
         "career-rn-families-dev",
         "career-rn-contradiction-pairs",
         "career-rn-injection-challenges",
+        "career-rn-action-wording",
     }
 
 

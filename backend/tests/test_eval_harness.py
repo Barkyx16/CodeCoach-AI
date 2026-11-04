@@ -265,6 +265,15 @@ def test_a_boundary_that_reads_only_the_literal_text_fails_the_grader_boundary_g
     )
 
 
+def test_a_grader_that_credits_any_past_verb_fails_the_action_controls_gate():
+    data = career.load("career_action_wording.json")
+    weak = career.evaluate_set(data, variants.any_past_verb_is_an_action)
+    failures = _gate({"career": {data["id"]: weak}}, "career.action_controls")["failures"]
+    assert len(failures) == 32  # every gated control: negated, intended, someone else's, ...
+    real = career.evaluate_set(data, grade)
+    assert _gate({"career": {data["id"]: real}}, "career.action_controls")["failures"] == []
+
+
 def test_held_out_gate_failures_name_the_case_but_not_the_answer():
     held = career.load("career_holdout.json")
     s = career.evaluate_set(held, variants.fabricated_evidence)

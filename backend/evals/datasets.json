@@ -164,6 +164,22 @@
       "role": "sealed final evaluation",
       "exposure": "not opened by the tuning session: it has seen counts, case ids, hashes and the question ids only. Four keyword_list answers were rewritten by the authoring session on 2026-11-04 after the duplicate check found them near-identical (one exact) to development answers, before any grading.",
       "sha256": "afedc25a6247d6a64c9ba57032da82c0e87f519c47cb465611f26dd7ca810f03"
+    },
+    {
+      "id": "career-rn-action-wording",
+      "file": "career_action_wording.json",
+      "version": 1,
+      "split": "dev",
+      "domain": "career-answer",
+      "protocol_version": 4,
+      "created": "2026-11-04",
+      "cases": 126,
+      "provenance": "Synthetic: written for this evaluation by a separate AI agent session; no learner, transcript, patient or production data.",
+      "labels": "Written by that session from the protocol (including the action criterion), the questions and the rubric points' label and advice text only, without the coach's code or output; model-written and unreviewed (1 point marked uncertain).",
+      "used_for": "measuring and developing the action criterion (Volume 4 prompt 05)",
+      "role": "development",
+      "exposure": "first graded under rubric v6, before any change to the action criterion (that first result is recorded as the baseline); open to the tuning session from then on",
+      "sha256": "8216e3efdcca896ec28d6b8256412d04b3779a0111501bbb0c4fed01d9f8cb9f"
     }
   ]
 }

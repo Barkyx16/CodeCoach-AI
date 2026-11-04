@@ -257,6 +257,98 @@
         "check": "points",
         "point": "Shares a result, ideally with a number"
       }
+    },
+    {
+      "id": "reworded-actions-missed",
+      "found": "2026-11-04, rubric v6 on career-rn-action-wording (Volume 4 prompt 05)",
+      "summary": "Real actions told in other words got no credit: with others ('we ...', 'our physio and me ...'), after 'had', with an aside or adverb after 'I', as a passive that says the learner did it, after 'made sure to', joined by 'plus', or with irregular past forms outside the old list (got, drew). Rubric v6 found 34 of 72 reworded action passages.",
+      "cases": [
+        "career-rn-action-wording/aw-1-p1",
+        "career-rn-action-wording/aw-3-p7",
+        "career-rn-action-wording/aw-6-p5",
+        "career-rn-action-wording/aw-1-p3",
+        "career-rn-action-wording/aw-2-p6",
+        "career-rn-action-wording/aw-1-p6",
+        "career-rn-action-wording/aw-7-p2",
+        "career-rn-action-wording/aw-2-p1",
+        "career-rn-action-wording/aw-4-p7",
+        "career-rn-action-wording/aw-3-p3",
+        "career-rn-action-wording/aw-7-p4",
+        "career-rn-action-wording/aw-2-p7",
+        "career-rn-action-wording/aw-2-p3",
+        "career-rn-action-wording/aw-7-p1",
+        "career-rn-action-wording/aw-5-p6"
+      ],
+      "status": "fixed",
+      "signal": {
+        "check": "points",
+        "point": "Describes specific actions you took"
+      },
+      "fixed_in": "rubric v7 (Volume 4 prompt 05): the action criterion in app/careers/questions.py"
+    },
+    {
+      "id": "experience-and-lesson-read-as-actions",
+      "found": "2026-11-04, rubric v6 on career-rn-action-wording (Volume 4 prompt 05)",
+      "summary": "'The hardest situation I have faced' and 'What I took from it' were read as two actions, so an answer whose actions were negated, only thought about or listed was still credited with them.",
+      "cases": [
+        "career-rn-action-wording/aw-8-c2",
+        "career-rn-action-wording/aw-8-c3",
+        "career-rn-action-wording/aw-8-c4"
+      ],
+      "status": "fixed",
+      "signal": {
+        "check": "points",
+        "point": "Describes specific actions you took"
+      },
+      "fixed_in": "rubric v7 (Volume 4 prompt 05): present perfect ('I have faced') and 'took from/away' no longer count; faced, experienced, encountered and witnessed are not acts"
+    },
+    {
+      "id": "present-tense-story-not-read-as-done",
+      "found": "2026-11-04, career-rn-action-wording (Volume 4 prompt 05)",
+      "summary": "A story told in the present ('so I take his vitals, prop him up, phone surgery') isn't read as done, by design: by its words it can't be told apart from a habit stated in general ('I check every patient'), which the action criterion doesn't count. aw-8-p1 was credited under v6 only through the experience and lesson sentences above.",
+      "cases": [
+        "career-rn-action-wording/aw-1-p2",
+        "career-rn-action-wording/aw-2-p5",
+        "career-rn-action-wording/aw-3-p8",
+        "career-rn-action-wording/aw-5-p3",
+        "career-rn-action-wording/aw-6-p6",
+        "career-rn-action-wording/aw-9-p4",
+        "career-rn-action-wording/aw-8-p1"
+      ],
+      "status": "open",
+      "signal": {
+        "check": "points",
+        "point": "Describes specific actions you took"
+      }
+    },
+    {
+      "id": "irrelevant-actions-credited",
+      "found": "2026-11-04, career-rn-action-wording (Volume 4 prompt 05)",
+      "summary": "The learner's own past actions that have nothing to do with the situation ('I painted a spare room', 'I scrolled my phone, ordered coffee') are credited as actions: telling relevant from irrelevant needs the meaning of the words. aw-5-c2 is credited since v7 ('plus' joins its second action).",
+      "cases": [
+        "career-rn-action-wording/aw-2-c3",
+        "career-rn-action-wording/aw-5-c2",
+        "career-rn-action-wording/aw-7-c4",
+        "career-rn-action-wording/aw-8-c1"
+      ],
+      "status": "open",
+      "signal": {
+        "check": "points",
+        "point": "Describes specific actions you took"
+      }
+    },
+    {
+      "id": "felt-as-examined-missed",
+      "found": "2026-11-04, career-rn-action-wording (Volume 4 prompt 05)",
+      "summary": "'I felt our patient's belly again' (palpated) isn't an action to the rubric: 'felt' is left out as a verb of feeling, and the actions joined to it need an action first. Credited under v6 only through the experience and lesson sentences.",
+      "cases": [
+        "career-rn-action-wording/aw-8-p4"
+      ],
+      "status": "open",
+      "signal": {
+        "check": "points",
+        "point": "Describes specific actions you took"
+      }
     }
   ]
 }

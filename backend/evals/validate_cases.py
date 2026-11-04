@@ -21,7 +21,7 @@ EVAL_DIR = Path(__file__).resolve().parent
 RATINGS = ["Needs work", "Developing", "Good", "Strong"]
 REVIEW_STATES = {"unreviewed", "reviewed", "partly reviewed"}
 PAIRED = {"dictated", "paraphrase", "meaning_changed"}
-NEEDS_BOUNDS = {"keyword_list", "contradiction", "meaning_changed", "grader_directed"}
+NEEDS_BOUNDS = {"keyword_list", "contradiction", "meaning_changed", "grader_directed", "action_control"}
 DATASET_FIELDS = (
     "id",
     "version",
@@ -45,6 +45,28 @@ def rule_questions(track: str, index: int) -> set[str]:
     for q in questions_for(track):
         by_cell[(q.difficulty, q.kind)].append(q.id)
     return {sorted(ids)[index] for ids in by_cell.values() if len(ids) > index}
+
+
+ACTIONS_POINT = "Describes specific actions you took"
+
+
+def action_rule_questions(track: str) -> set[str]:
+    """career-rn-action-wording: behavioural questions with the actions point, the first three by
+    id in each (difficulty, behavioral) cell, never the 2nd-4th by id of the cell (the questions
+    the holdout, families and sealed rules pick)."""
+    by_cell: dict[str, list] = defaultdict(list)
+    for q in questions_for(track):
+        if q.kind == "behavioral":
+            by_cell[q.difficulty].append(q)
+    out: set[str] = set()
+    for qs in by_cell.values():
+        qs = sorted(qs, key=lambda q: q.id)
+        reserved = {q.id for q in qs[1:4]}
+        eligible = [
+            q.id for q in qs if q.id not in reserved and any(r.label == ACTIONS_POINT for r in q.rubric)
+        ]
+        out |= set(eligible[:3])
+    return out
 
 
 RULE_INDEX = {
@@ -77,6 +99,10 @@ def _pair_problems(c: dict, by_id: dict, plan: dict) -> list[str]:
             errors.append(f"{cid}: must differ from {pair['id']} by exactly one edit, described in `change`")
         elif v == "grader_directed" and pair.get("variant") not in BASES | {"contradiction"}:
             errors.append(f"{cid}: grader_directed is paired with a base answer or a contradiction variant")
+        elif v in ("action_paraphrase", "action_control"):
+            base = "dictated" if c.get("kind") == "dictated_paraphrase" else "typed"
+            if pair.get("variant") != base:
+                errors.append(f"{cid}: a {v} of kind {c.get('kind')} is paired with the {base} base")
     if not isinstance(c.get("contradiction"), bool):
         errors.append(f"{cid}: needs `contradiction` (true or false)")
         return errors
@@ -85,6 +111,8 @@ def _pair_problems(c: dict, by_id: dict, plan: dict) -> list[str]:
         "self_correction": False,
         "contradiction_control": False,
         "benign_control": False,
+        "action_paraphrase": False,
+        "action_control": False,
         "typed": False,
         "dictated": False,
     }
@@ -122,7 +150,13 @@ def validate(data: dict) -> tuple[list[str], dict]:
         errors.append("dataset: claims validation or expert review without review records")
     cases = data.get("cases", [])
     track = data.get("track", "registered-nurse")
-    allowed_q = rule_questions(track, RULE_INDEX[data["id"]]) if data.get("id") in RULE_INDEX else None
+    allowed_q = (
+        action_rule_questions(track)
+        if data.get("id") == "career-rn-action-wording"
+        else rule_questions(track, RULE_INDEX[data["id"]])
+        if data.get("id") in RULE_INDEX
+        else None
+    )
     ids = Counter(c.get("id") for c in cases)
     errors += [f"{i}: duplicate id" for i, n in ids.items() if n > 1]
     by_id = {c.get("id"): c for c in cases}

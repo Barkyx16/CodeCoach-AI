@@ -6,6 +6,7 @@ matching gate fails and names the cases, so a gate that silently stopped checkin
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import replace
@@ -124,3 +125,18 @@ def literal_boundary(question: Question, answer: str) -> Feedback:
         mock.patch.object(grading, "_markup", lambda text: ([], [])),
     ):
         return grade(question, answer)
+
+
+def any_past_verb_is_an_action(question: Question, answer: str) -> Feedback:
+    """Credits 'Describes specific actions you took' for any two past forms, whoever's they are and
+    whether or not they happened (the action criterion without its subject and its 'done')."""
+    fb = grade(question, answer)
+    if len(re.findall(r"\b[a-z]{3,}ed\b", answer.lower())) < 2:
+        return fb
+    points = tuple(
+        replace(p, covered=True, evidence=p.evidence or answer.split(".")[0])
+        if p.label == "Describes specific actions you took"
+        else p
+        for p in fb.points
+    )
+    return replace(fb, points=points)

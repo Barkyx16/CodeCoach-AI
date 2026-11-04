@@ -38,7 +38,12 @@ MIN_WORDS, GOOD_MIN, GOOD_MAX, MAX_WORDS = 40, 120, 350, 600
 # words, criteria requests, evidence handed to the grader), and in a run-on sentence (a dictated
 # answer with no punctuation) only the attack is left out, not the answer with it
 # (docs/AI_EVALUATION.md, "Rubric v6").
-RUBRIC_VERSION = "v6"
+# v7 (2026-11-04): the action criterion (Volume 4 prompt 05; app/careers/questions.py): team actions
+# ("we", "our physio and me"), "had" + a past participle, an aside or adverbs between the learner
+# and the verb, the closed class of irregular past forms, "plus" between actions, a passive that
+# says the learner did it, and a list after "made sure to"; no longer "I have faced" or "what I
+# took from it" (docs/AI_EVALUATION.md, "Rubric v7").
+RUBRIC_VERSION = "v7"
 STRONG_SCORE = 85  # the lowest "Strong" score (_rating)
 
 
@@ -549,7 +554,9 @@ class _Sentence:
 # or tips). Both still count as words; neither earns a point or is quoted as evidence.
 _WORD = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*", re.IGNORECASE)
 _BULLET = re.compile(r"^\s*(?:[-*•–]|\d+[.)])\s+")
-_SUBJECT = re.compile(r"\b(?:i|we|he|she|they|you)\b\s+[a-z]", re.IGNORECASE)
+# A sentence that starts with its subject, maybe with an aside ("I, without delay, tested ..."), is
+# a statement even when commas cut it into short pieces.
+_SUBJECT = re.compile(r"\b(?:i|we|he|she|they|you)\b(?:,[^,.!?]{1,40},)?\s+[a-z]", re.IGNORECASE)
 _AUXILIARY = re.compile(
     r"\b(?:am|is|are|was|were|be|been|being|have|has|had|do|does|did|will|would|can|could|should|shall|may|"
     r"might|must|im|ive|id|youre|theyre|isnt|wasnt|dont|didnt|doesnt|cant|wont|couldnt|wouldnt|shouldnt|"

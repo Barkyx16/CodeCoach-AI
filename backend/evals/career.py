@@ -353,6 +353,39 @@ def _by_kind(rows: list[tuple[dict, dict]], hit: Callable[[dict], bool]) -> dict
     return {k: rate(a, n) for k, (a, n) in sorted(kinds.items())}
 
 
+ACTIONS_POINT = "Describes specific actions you took"
+
+
+def _action_metrics(
+    cases: dict, graded: dict, of: Callable[[str], list[tuple[dict, dict]]]
+) -> dict[str, dict]:
+    """Protocol v4: the action point on reworded actions (credited when labelled covered) and on
+    controls (credited although labelled not covered), by kind; and paraphrases graded like their pair."""
+
+    def labelled(variant: str, value: bool) -> list[tuple[dict, dict]]:
+        return [
+            (c, g)
+            for c, g in of(variant)
+            if c["labels"]["points"].get(ACTIONS_POINT) is value
+            and ACTIONS_POINT not in c["labels"]["uncertain"]
+        ]
+
+    def credited(g: dict) -> bool:
+        return ACTIONS_POINT in g["observed"]["covered"]
+
+    reworded, controls = labelled("action_paraphrase", True), labelled("action_control", False)
+    paired = [(g, graded[c["pair_of"]]) for c, g in of("action_paraphrase") if c.get("pair_of") in graded]
+    return {
+        "action_recall": rate(sum(credited(g) for _, g in reworded), len(reworded)),
+        "action_recall_by_kind": _by_kind(reworded, credited),
+        "action_false_credit": rate(sum(credited(g) for _, g in controls), len(controls)),
+        "action_false_credit_by_kind": _by_kind(controls, credited),
+        "action_paraphrase_parity": rate(
+            sum(g["observed"]["covered"] == b["observed"]["covered"] for g, b in paired), len(paired)
+        ),
+    }
+
+
 def protocol_metrics(dataset: dict, result: dict) -> dict:
     """The protocol's metrics for one graded set: each with numerator, denominator and interval."""
     cases = {c["id"]: c for c in dataset["cases"]}
@@ -402,6 +435,7 @@ def protocol_metrics(dataset: dict, result: dict) -> dict:
     benign = of("benign_control")
     out["benign_false_exclusion"] = rate(sum(g["observed"]["left_out_text"] for _, g in benign), len(benign))
     out["benign_false_exclusion_by_kind"] = _by_kind(benign, lambda g: g["observed"]["left_out_text"])
+    out |= _action_metrics(cases, graded, of)
     same = changed = removed = awarded = 0
     for c, g in [*of("dictated"), *of("paraphrase"), *of("meaning_changed")]:
         pair = graded.get(c.get("pair_of"))
@@ -505,6 +539,7 @@ def evaluate_regression(grader: Grader) -> list[dict]:
         "career-rn-families-dev": "career_families_dev.json",
         "career-rn-contradiction-pairs": "career_contradiction_pairs.json",
         "career-rn-injection-challenges": "career_injection_challenges.json",
+        "career-rn-action-wording": "career_action_wording.json",
     }
     sets = {k: load(v) for k, v in names.items()}
     out = []
