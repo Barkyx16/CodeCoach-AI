@@ -129,6 +129,32 @@ rejects a set that claims validation or expert review without them. A sealed set
 for a reviewer who isn't tuning the coach. **No reviewer has taken part yet**; every set is
 unreviewed and results are provisional.
 
+## Baseline: rubric v2 on the new development set
+
+Measured 2026-11-04 at commit `da96069` (`python -m evals.run --split dev --label baseline-v2-dev`;
+report in `backend/evals/results/baseline-v2-dev.*`). This is the starting point for the Volume 4
+scoring work. These are development numbers against model-written, unreviewed labels: they guide
+tuning and are not a final measurement.
+
+| Metric | Rubric v2 on career-rn-families-dev (108 answers) |
+|---|---|
+| Item precision | 281/331 = 85% (95% CI 81–88%) |
+| Item recall | 281/399 = 70% (95% CI 66–75%) |
+| Unsupported credit rate | 50/104 = 48% (95% CI 39–58%) |
+| Rating within the labelled bounds | 17/36 = 47% (95% CI 32–63%) |
+| Keyword lists rated Good or Strong | 4/9 (95% CI 19–73%) |
+| Contradicted points still awarded | 6/9 (95% CI 35–88%) |
+| Grader-directed answers whose text earned credit or was quoted | 1/9 (95% CI 2–44%) |
+| Ordinary answers with a sentence wrongly left out | 0/9 (95% CI 0–30%) |
+| Dictated answers' decisions matching their typed pair | 78/84 = 93% (95% CI 85–97%) |
+| Points removed by a meaning change but still awarded | 9/18 = 50% (95% CI 29–71%) |
+
+**What this says about the earlier numbers.** On answers written by a separate session, rubric v2's
+recall is 70%; on the sets the harness author wrote and labelled (2026-11-03) it was 94% on
+development and 85% on the then-held-out set. The author's own answers matched the grader's
+phrasing more often than independently written ones do, so the earlier recall was optimistic.
+Only 9 answers per probe variant: the intervals are wide, and single cases move the rates a lot.
+
 ## Commands
 
 ```bash
