@@ -164,7 +164,7 @@ The Long Overnight Upgrade Playbook (received truncated after its brief 05) maps
 | 4 | B06 + P08: provider faults and a budgeted live evaluation, prepared, no calls | done, see checkpoint (live run not done: not authorized) | this change |
 | 5 | B07: the remaining session-isolation cases (done before P05's measurement, while its set was being written) | done, see checkpoint | this change |
 | 6 | P10: one more career, with a sealed set written by a separate session | done, see checkpoint | this change |
-| 7 | B08 + P09: freeze, grade the sealed set once, final suites, CI on the exact commit | next | |
+| 7 | B08 + P09: freeze, grade the sealed set once, final suites, CI on the exact commit | done, see checkpoint and final handoff | `84dc1ee`, `0b78ebb`, `51c040f`, `a1ec679`, this change |
 
 ## Checkpoint: B05 + P07, the grader-instruction boundary (rubric v6)
 
@@ -281,3 +281,93 @@ The Long Overnight Upgrade Playbook (received truncated after its brief 05) maps
 - Also prepared for the final step: `python -m evals.run --sealed` and `python -m evals.release`
   (aggregates only).
 
+## Checkpoint: B08 + P09, freeze and the sealed measurement
+
+- Frozen: candidate `ffb116b` (recorded at `84dc1ee`): rubric v8, coach prompt
+  `coach-2026-11-04c`, protocol v6, every dataset hash, dependency files
+  (`backend/evals/results/freeze-2026-11-04.json`).
+- Graded once: both sealed sets with the candidate and with the rubric v2 baseline (`20bd00f`, in a
+  worktree with the frozen harness and datasets). Release rule on `career-rn-sealed`: passes every
+  item. Not better, and reported as such: contradiction detection 0/9 on the nursing sealed set,
+  contradicted points still credited 7/11 → 9/11, meaning-changed points still credited 7/12 → 8/12
+  (customer service 14/25 → 16/25). Results: docs/AI_EVALUATION.md, "The sealed measurement".
+- A scripting mistake graded the sealed sets a second time with the candidate (identical,
+  deterministic); its files were deleted unopened and `evals/sealed/ACCESS.md` says so. Case-level
+  results were not opened and are kept out of the repository.
+- Since the freeze, the code changed only in the learner-facing note for the two measured careers
+  (`app/careers/support.py`), the release tool's reading of aggregate-only reports,
+  `.gitignore` and one end-to-end test; scoring, rubric, prompts and datasets are as frozen.
+
+## Final handoff (second queue)
+
+**Branch** `claude/gallant-galileo-hapob6`. Not merged, not deployed, no PR.
+
+### Done
+
+| Brief | Outcome | Commits |
+|---|---|---|
+| B05 + P07 grader instructions | rubric v6: attacks found however written (folded text, markup, delimiters, paraphrases); only the attack cut from a run-on; 90-case challenge set by a separate session; gate `career.grader_boundary` | `56039e0`, `63f8b6e`, `f835c25`, `d43add8` |
+| B07 session boundary | stale rollbacks can't write one account's data into the next one's cache; a sign-out the server never heard is finished on the next load | `9b96189` |
+| P05 action criterion | rubric v7: written criterion; team actions, past perfect, asides, passives by the learner, irregular verbs; 126-case set by a separate session; gate `career.action_controls` | `8e492d3`, `1df64ea` |
+| P06 evidence contract | every quote checked against the answer before display, UTF-16 offsets, legacy labelled, "Show it in your answer", feedback kinds, changed-draft notice | `9418469`, `65c5d9b` |
+| B06 + P08 provider and live evaluation | unusable replies fall back; fault scenarios 38/38; visible fallback status; live evaluation ready (plan, credential check, budgets reserved before each request, concurrency 1–4), **not run** | `de718be` |
+| P10 second career | customer service representative: development and sealed sets by separate sessions, per-career measurement status, honest notes for the other 108 careers, boundary tests; rubric v8 | `ffb116b` |
+| B08 + P09 freeze and final measurement | freeze record, sealed sets graded once, release rule passes, results with what didn't improve | `84dc1ee`, `0b78ebb`, `51c040f`, `a1ec679`, this commit |
+
+### Checks on the final code
+
+- Backend SQLite: 2120 passed, 386 skipped (sandbox, PostgreSQL-only and other environment-bound
+  tests), exit 0, on `51c040f` (later commits change docs and one end-to-end test only)
+- Backend PostgreSQL: 2122 passed, 384 skipped, exit 0, on `a1ec679`
+- Frontend (app code unchanged since `ffb116b`; this commit changes one end-to-end test): `api:check`
+  and `vitest run` 58 files / 591 tests passed on `ffb116b`; lint and typecheck clean after the test
+  change; build passed; size check: shell 283.6 KB gzip (budget 300 KB), largest lazy chunk 674.5 KB
+  gzip (budget 700 KB)
+- E2E (Playwright, real backend, Chromium desktop and mobile, PWA), on `a1ec679`: 82 passed,
+  3 skipped, 1 failed. The failure was in the test: answer review read the whole evidence block,
+  which since P06 also holds the "Show it in your answer" button. Fixed in this commit (it reads the
+  quote's paragraph, and now also checks by keyboard that the button puts focus on the quote); that
+  spec then passed 2 of 2. The full suite was not re-run locally after the fix; CI runs it.
+- Not run here: the sandbox job (Docker and gVisor), Docker image builds, the dependency audit, a
+  real phone, real speech recognition, a screen reader, and any live Claude call.
+
+### CI
+
+Reported with the handoff message, job by job, as read from GitHub for the final SHA; nothing
+here claims it. Intermediate pushes' runs were cancelled by the next push.
+
+### Not done, and why
+
+- **No live Claude evaluation**: no paid calls are authorized and there is no key here. Everything
+  for it is ready and tested with fake clients (docs/AI_EVALUATION.md, "Measuring Claude").
+- **No human label review**: every label, sealed ones included, is model-written.
+- **The playbook's briefs 06–28** arrived truncated after brief 05; nothing was done for them.
+
+### Open defects (`backend/evals/regression.json`)
+
+Contradictions that need word meaning (and the sealed result: 0/9 on nursing answers);
+contradicted points credited by other words; vague and generic claims credited; scene and
+preparation cues missed; result credited by any number; a story told in the present not read as
+done; irrelevant actions credited; "felt" as an examination missed; advice paraphrased back
+credited.
+
+### Next recommended actions
+
+1. Have a person review a sample of the development and sealed labels; until then every number
+   rests on an AI's labels.
+2. Contradiction handling is the weakest measured area (0/9 on unseen nursing answers): any fix
+   needs new sealed sets to measure it, because the current ones are used.
+3. With authorization and a budget, run `python -m evals.run --plan …` and then the live
+   evaluation (docs/AI_EVALUATION.md, "Measuring Claude").
+
+### Review description (for a PR, if one is opened)
+
+Volume 4, second queue: the written-answer coach's grader-instruction boundary (v6), action
+criterion (v7) and two more attack forms (v8); an evidence contract for every quote shown; the
+provider boundary for unusable replies and a prepared, budgeted live evaluation; session-boundary
+fixes; a second measured career. Measured on development sets written by separate sessions, then
+once on sealed sets against the rubric v2 baseline: the protocol's release rule passes (precision
+87% → 91%, recall 79% → 84%, unsupported credit 57% → 37% on the nursing sealed set, small samples,
+model-written labels), and contradiction handling did not generalise (0/9). Risks: labels unreviewed;
+no live Claude data; heuristics in `app/careers/grading.py` and `questions.py` are tuned on
+development data. Checks: as above.

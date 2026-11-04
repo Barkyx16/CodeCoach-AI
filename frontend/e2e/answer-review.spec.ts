@@ -57,8 +57,16 @@ test("criteria first, a reflection before the feedback, quoted evidence, perspec
   const feedback = page.getByRole("region", { name: "Feedback", exact: true });
   await expect(feedback).toBeVisible();
   await expect(feedback.locator(".feedback-card__evidence").first()).toContainText("From your answer:");
-  const quoted = (await feedback.locator(".feedback-card__evidence").first().innerText()).replace(/^From your answer: “|”$/g, "");
+  // the quote's own paragraph (the block also holds "Show it in your answer")
+  const quoted = (await feedback.locator(".feedback-card__evidence p").first().innerText()).replace(/^From your answer: “|”$/g, "");
   expect(STRONG).toContain(quoted); // the excerpt is the learner's own words
+  // By keyboard: "Show it in your answer" opens the reviewed answer and puts focus on the quote.
+  const show = feedback.getByRole("button", { name: /^Show it in your answer/ }).first();
+  await show.focus();
+  await page.keyboard.press("Enter");
+  const mark = feedback.locator(".feedback-card__answer mark");
+  await expect(mark).toBeFocused();
+  expect(quoted).toContain((await mark.innerText()).trim().slice(0, 40));
   const table = page.getByRole("table", { name: "Your ratings beside what the coach found" });
   await expect(table).toBeVisible();
   await expect(page.getByText("Written before you read the feedback.")).toBeVisible();
