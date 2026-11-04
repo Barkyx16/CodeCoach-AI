@@ -45,3 +45,8 @@ backend/outbox/
 
 # Generated label-review packets (python -m evals.review_packet)
 backend/evals/reviews/out/
+
+# Case-level results of sealed runs: kept out of the repository (the reports in
+# backend/evals/results keep aggregates only). Regenerate from the frozen commit if needed;
+# opening them consumes the sealed sets (backend/evals/sealed/ACCESS.md).
+backend/evals/sealed/results/
