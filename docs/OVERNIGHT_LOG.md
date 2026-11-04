@@ -384,3 +384,60 @@ once on sealed sets against the rubric v2 baseline: the protocol's release rule 
 model-written labels), and contradiction handling did not generalise (0/9). Risks: labels unreviewed;
 no live Claude data; heuristics in `app/careers/grading.py` and `questions.py` are tuned on
 development data. Checks: as above.
+
+## Third queue: Learner Experience Upgrade Pack (14 briefs)
+
+Started from `2e88dc5` (all seven CI jobs green, run 137) on `claude/gallant-galileo-hapob6`, with
+PR [#10](https://github.com/Barkyx16/CodeCoach-AI/pull/10) open into `feature/premium-frontend` at
+the learner's request (the pack itself says not to open one; the learner's instruction wins).
+Same rules as before: no new service, dependency, migration, paid call or persistent draft
+storage; synthetic data only; structural coaching, never clinical correctness.
+
+## Checkpoint: LX01, the learner journey as it is
+
+The journey traced (career questions; coding shares the dashboard and History):
+
+| Step | Screen / route | Data it uses |
+|---|---|---|
+| Choose | `/dashboard` (CareerDashboard: Continue, Up next, stats), `/problems?view=questions` (library: level tabs, search, format, skill, status, sort in the URL) | `GET /me/resume`, `GET /careers/{t}/progress`, `GET /careers/{t}/questions`, `GET /explore/…` |
+| Answer | `/careers/{t}/questions/{id}` | draft in this browser (existing per-account key); `POST …/answers` |
+| Feedback | FeedbackCard on the same page (score or "not enough to score", points with checked quotes, rubric and question version) | the answer record: `score`, `evidence_level`, `rubric_version`, `content_version`, `coach`, `points` |
+| What next | nothing on the page after feedback; the box is emptied; "Your past answers" in the sidebar | `GET …/answers` (this account's answers to this question) |
+
+Obstacles found by reading the code; each is confirmed by a failing-first test in the brief that
+fixes it (or marked otherwise):
+
+1. **Dead end after feedback (06, 07).** No next action follows the feedback: no retry aimed at a
+   missing point, no next question; the answer box is emptied, so a revision starts from nothing.
+2. **Past answers lose their identity (05, 08, 09).** Choosing one in "Your past answers" reuses
+   the just-sent slot, so an old answer is titled "Feedback" as if it were new; the list doesn't
+   say which was the first try; the choice isn't in the URL (a reload drops it); scores from
+   different rubric versions sit side by side; an answer too short to score shows its capped
+   number (e.g. 35/100) beside a card that says "Not enough to score".
+3. **"Up next" overclaims (04).** It looks at the first 60 questions of one level and, when none
+   of those is unanswered, says "You've answered every {level} question" without checking the
+   level's real total; it never says why these questions were picked.
+4. **Progress numbers don't name their unit (03).** "Answered N of 300" counts distinct questions
+   (retries don't add, an answer too short to score does); "Strong answers" counts questions whose
+   best score is 85+; neither says so.
+5. **No route to the weakest answers (05).** The API already sorts answered questions by lowest
+   score; nothing links there.
+6. **A broken question link offers only "Try again" (02, 13).** A removed or mistyped question id
+   shows the generic error and a retry that can't help, with no way back to the questions.
+7. **The breadcrumb drops the list's filters (09).** "{Career} questions" goes to the unfiltered
+   library even when the learner came from a filtered one.
+8. **A lost response can duplicate an answer (10).** Career answers have no idempotency key; after
+   a network error the message says "try again", and if the server had saved it, a second copy is
+   saved.
+9. **"Reset" in the coding workspace doesn't say what it resets (11).** It replaces the code with
+   the starter; past submissions are kept, which the confirmation doesn't say.
+
+Not obstacles (already right, left alone): Continue lists only genuinely saved work, labels a
+finished question "Review feedback", and never changes saved work; the library keeps its filters
+in the URL and BackLink uses browser Back; the feedback card shows its rubric and question
+version and marks changed questions; drafts are per account; interviews confirm before ending.
+
+Queue scope: 02–13 as bounded changes to the career question journey and the dashboard on
+existing APIs, plus a backend status filter value if 05 needs one (no migration). Not in scope:
+a stored link between an answer and the one it revised (needs a column: proposal only), changing
+what `best_score` means across the five services that compute it (proposal only).

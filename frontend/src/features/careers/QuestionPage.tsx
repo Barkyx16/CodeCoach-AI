@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
-import { useAnswerQuestion, useBookmarks, useContentMeta, useMyAnswers, useQuestion } from "@/api/queries";
+import { useAnswerQuestion, useBookmarks, useCareers, useContentMeta, useMyAnswers, useQuestion } from "@/api/queries";
 import type { Difficulty, InterviewAnswer } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { BackLink } from "@/components/BackLink";
@@ -10,7 +10,7 @@ import { Badge, DifficultyBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Icon } from "@/components/Icon";
-import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
 import { answerDraftKey } from "@/features/dashboard/savedWork";
 import { FocusToggle } from "@/features/display/FocusToggle";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
@@ -42,6 +42,22 @@ const REFLECT_KEY = "codecoach.reflect-first";
 
 function countWords(text: string): number {
   return text.trim() ? text.trim().split(/\s+/).length : 0;
+}
+
+/** A question link that leads nowhere: say so, and lead back to that career's questions. */
+function QuestionUnavailable({ track }: { track: string }) {
+  const { user } = useAuth();
+  const careers = useCareers();
+  const career = careers.data?.find((c) => c.slug === track);
+  const to = career && user?.career_track !== track ? `/problems?career=${track}&view=questions` : "/problems?view=questions";
+  return (
+    <div className="page">
+      <EmptyState pageTitle title="This question isn't available"
+        action={<Link className="btn btn--primary btn--md" to={to}>{career ? `Browse ${career.title} questions` : "Browse interview questions"}</Link>}>
+        <p>The link may be mistyped, or the question may have been removed from the library.</p>
+      </EmptyState>
+    </div>
+  );
 }
 
 /** One interview question: read it, write an answer, get rubric feedback, compare with past tries. */
@@ -100,6 +116,8 @@ function QuestionPageFor() {
 
   if (question.isPending) return <LoadingState label="Loading question…" />;
   if (question.isError) {
+    // Not there (mistyped, or removed from the library): a retry can't help, a way back can.
+    if (question.error instanceof ApiError && question.error.status === 404) return <QuestionUnavailable track={track} />;
     return <div className="page"><ErrorState error={question.error} onRetry={() => question.refetch()} /></div>;
   }
   const q = question.data;

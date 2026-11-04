@@ -14,10 +14,10 @@ describe("Problem workspace", () => {
     expect((editor as HTMLTextAreaElement).value).toContain("public int[] twoSum");
   });
 
-  it("shows a friendly not-found state", async () => {
+  it("shows a friendly not-found state with a way back", async () => {
     renderApp("/problems/does-not-exist");
-    expect(await screen.findByText("Problem 'does-not-exist' not found")).toBeInTheDocument();
-    expect(screen.getByText("Reference:")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "This problem isn't available" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Browse coding problems" })).toHaveAttribute("href", "/problems");
   });
 
   it("autosaves the draft and restores it", async () => {

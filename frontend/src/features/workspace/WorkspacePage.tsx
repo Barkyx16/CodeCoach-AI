@@ -7,7 +7,7 @@ import { useCapabilities, useContentMeta, useMySubmissions, useProblem, useSubmi
 import type { SubmissionCreate, SubmissionMode } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/Button";
-import { ErrorState, LoadingState } from "@/components/States";
+import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { Tabs } from "@/components/Tabs";
 import { EditorPreferencesControls } from "@/features/settings/EditorPreferencesControls";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
@@ -52,6 +52,17 @@ export default function WorkspacePage() {
 
   if (problem.isPending) return <LoadingState label="Loading problem…" />;
   if (problem.isError) {
+    if (problem.error instanceof ApiError && problem.error.status === 404) {
+      // Not there (mistyped, or removed): a retry can't help, a way back can.
+      return (
+        <div className="page">
+          <EmptyState pageTitle title="This problem isn't available"
+            action={<Link className="btn btn--primary btn--md" to="/problems">Browse coding problems</Link>}>
+            <p>The link may be mistyped, or the problem may have been removed from the library.</p>
+          </EmptyState>
+        </div>
+      );
+    }
     return (
       <div className="page">
         <ErrorState error={problem.error} onRetry={() => problem.refetch()} />
