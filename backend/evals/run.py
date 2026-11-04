@@ -103,11 +103,22 @@ class Metered:
         self.name, self.model = inner.name, inner.model
         self.calls = self.failures = self.input_tokens = self.output_tokens = 0
         self.latencies: list[float] = []
+        # A provider that retries (AnthropicCoach) reports each request before sending it, so a
+        # retry counts against the budget and the limit holds per request, not per answer.
+        self.per_request = hasattr(inner, "on_attempt")
+        if self.per_request:
+            inner.on_attempt = self._request  # type: ignore[attr-defined]
 
-    def _call(self, fn: Callable[[], ProviderResult]) -> ProviderResult:
+    def _request(self) -> None:
         if self.max_calls is not None and self.calls >= self.max_calls:
             raise BudgetExhausted(f"stopped at the budget of {self.max_calls} calls")
         self.calls += 1
+
+    def _call(self, fn: Callable[[], ProviderResult]) -> ProviderResult:
+        if not self.per_request:
+            self._request()
+        elif self.max_calls is not None and self.calls >= self.max_calls:
+            raise BudgetExhausted(f"stopped at the budget of {self.max_calls} calls")
         start = time.perf_counter()
         try:
             result = fn()
@@ -548,8 +559,10 @@ def to_markdown(r: dict) -> str:
             "## Provider failures",
             "",
             f"{f['passed']} of {f['checks']} scenario × action checks fell back to the offline coach "
-            f"({f['scenarios']} failure kinds × hint, review, explain-failure). Real client limits: "
-            f"{lim['timeout_s']:.0f} s timeout, {lim['max_retries']} retries.",
+            f"({f['scenarios']} failure kinds × hint, review, explain-failure). Request limits: "
+            f"{lim.get('max_attempts', 1 + lim['max_retries'])} requests at most, "
+            f"{lim['timeout_s']:.0f} s each, {lim.get('deadline_s', '—')} s in all; "
+            f"the SDK's own retries: {lim['max_retries']}.",
             "",
         ]
         lines += [f"- {x['scenario']} during {x['action']}: {x['problem']}" for x in f["failed"]]
@@ -864,7 +877,9 @@ def main() -> None:
     parser.add_argument("--label", help="report name (default: the provider)")
     parser.add_argument("--allow-paid-calls", action="store_true", help="required for --provider anthropic")
     parser.add_argument(
-        "--max-calls", type=int, help="stop (and mark the run partial) after this many provider calls"
+        "--max-calls",
+        type=int,
+        help="stop (and mark the run partial) after this many requests to the provider, retries included",
     )
     parser.add_argument("--price-input-per-mtok", type=float)
     parser.add_argument("--price-output-per-mtok", type=float)

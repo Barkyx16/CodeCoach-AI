@@ -15,7 +15,10 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Literal, TypeVar
+import time
+from collections.abc import Callable
+from dataclasses import replace
+from typing import Any, Literal, TypeVar
 
 import anthropic
 from anthropic.types import OutputConfigParam
@@ -35,9 +38,17 @@ from app.services.ai.base import (
 from app.services.ai.static_analysis import Analysis
 
 logger = logging.getLogger("codecoach.ai.anthropic")
+# One coaching answer may send at most MAX_ATTEMPTS requests, all within DEADLINE_S seconds: a slow
+# or failing Claude delays the learner's (offline) answer by DEADLINE_S at worst, never by minutes.
+MAX_ATTEMPTS, ATTEMPT_TIMEOUT_S, DEADLINE_S = 3, 25.0, 45.0
+MIN_ATTEMPT_S = 5.0  # no point starting a request with less time than this left
+# Retried: a timeout, a lost connection, 408/409, 5xx and 529 (overloaded). Not retried: a 429 (the
+# learner gets the offline coach at once rather than waiting out a quota), other 4xx, a refusal,
+# a cut-off or invalid reply (sending the same request again gives the same kind of answer).
+_RETRY_STATUS = frozenset({408, 409})
 # Change with any prompt, prompt builder, token limit, effort or output schema; evaluation reports
 # record it, and evals/prompt_versions.json holds the fingerprint each version was recorded with.
-PROMPT_VERSION = "coach-2026-11-03"
+PROMPT_VERSION = "coach-2026-11-04"
 T = TypeVar("T", bound=BaseModel)
 Effort = Literal["low", "medium", "high"]
 
@@ -130,6 +141,10 @@ def _analysis_block(a: Analysis) -> str:
     )
 
 
+def _line_count(code: str) -> int:
+    return max(1, len(code.splitlines()))
+
+
 def _numbered(code: str) -> str:
     lines = code.splitlines() or [""]
     return "\n".join(f"{i:>3} | {line}" for i, line in enumerate(lines, start=1))
@@ -145,13 +160,28 @@ class AnthropicCoach:
         model: str,
         effort: Effort = "low",
         client: anthropic.Anthropic | None = None,
-        timeout_s: float = 60.0,
+        attempt_timeout_s: float = ATTEMPT_TIMEOUT_S,
+        deadline_s: float = DEADLINE_S,
+        max_attempts: int = MAX_ATTEMPTS,
+        sleep: Callable[[float], None] = time.sleep,
+        clock: Callable[[], float] = time.monotonic,
     ):
         self.model = model
         self.effort = effort
         self._output_config: OutputConfigParam = {"effort": effort}
-        # max_retries: the SDK retries 408/409/429/5xx and connection errors with backoff.
-        self._client = client or anthropic.Anthropic(api_key=api_key, timeout=timeout_s, max_retries=2)
+        # The SDK's own retries are off (max_retries=0): _call retries, so every request is counted
+        # (on_attempt) and the whole answer stays within the deadline.
+        self._client = client or anthropic.Anthropic(
+            api_key=api_key, timeout=attempt_timeout_s, max_retries=0
+        )
+        self.attempt_timeout_s, self.deadline_s, self.max_attempts = (
+            attempt_timeout_s,
+            deadline_s,
+            max_attempts,
+        )
+        self._sleep, self._clock = sleep, clock
+        # Called before every request; may raise to stop (the evaluation's hard call limit uses it).
+        self.on_attempt: Callable[[], None] | None = None
 
     def hint(self, ctx: HintContext) -> ProviderResult[HintContent]:
         reference = ctx.problem.curated_hints[min(ctx.level, len(ctx.problem.curated_hints)) - 1]
@@ -178,7 +208,23 @@ class AnthropicCoach:
             "not a rewritten solution. Confirm or discard each static finding: include it only if "
             "it is real. List genuine strengths. Use line numbers from the listing."
         )
-        return self._call(prompt, CodeReview, max_tokens=4_000)
+        result = self._call(prompt, CodeReview, max_tokens=4_000)
+        lines = _line_count(ctx.code)
+        dropped = sum(
+            1 for i in result.content.issues if i.line_hint is not None and not 1 <= i.line_hint <= lines
+        )
+        if dropped:
+            # A line the learner's code doesn't have would point them at nothing: keep the issue,
+            # drop the reference.
+            logger.info("dropped line references outside the code", extra={"attrs": {"count": dropped}})
+            issues = [
+                i
+                if i.line_hint is None or 1 <= i.line_hint <= lines
+                else i.model_copy(update={"line_hint": None})
+                for i in result.content.issues
+            ]
+            result = replace(result, content=result.content.model_copy(update={"issues": issues}))
+        return result
 
     def explain_failure(self, ctx: FailureContext) -> ProviderResult[FailureExplanation]:
         evidence = [f"Judge verdict: {ctx.status}"]
@@ -216,7 +262,12 @@ class AnthropicCoach:
             "solution. If only hidden tests failed, you don't know their inputs: suggest what kinds "
             "of edge cases to test instead of guessing a specific input, and set confidence low."
         )
-        return self._call(prompt, FailureExplanation, max_tokens=3_000)
+        result = self._call(prompt, FailureExplanation, max_tokens=3_000)
+        line = result.content.line_hint
+        if line is not None and not 1 <= line <= _line_count(ctx.code):
+            logger.info("dropped line references outside the code", extra={"attrs": {"count": 1}})
+            result = replace(result, content=result.content.model_copy(update={"line_hint": None}))
+        return result
 
     def interview_turn(self, ctx: InterviewContext) -> ProviderResult[InterviewerReply]:
         task = (
@@ -250,8 +301,43 @@ class AnthropicCoach:
     def _call(
         self, prompt: str, schema: type[T], *, max_tokens: int, system: str = SYSTEM_PROMPT
     ) -> ProviderResult[T]:
+        """Send the request, retrying only what a retry can fix, at most max_attempts times and
+        within deadline_s in all. Every failure becomes a ProviderError with a safe reason code;
+        nothing about the learner's text is logged."""
+        start = self._clock()
+        attempt = 0
+        while True:
+            attempt += 1
+            remaining = self.deadline_s - (self._clock() - start)
+            if self.on_attempt is not None:
+                self.on_attempt()
+            try:
+                response = self._send(
+                    prompt, schema, max_tokens, system, min(self.attempt_timeout_s, remaining)
+                )
+            except ProviderError as exc:
+                exc.attempts = attempt
+                retryable = exc.reason in ("timeout", "connection", "http_5xx")
+                pause = 0.5 * 2 ** (attempt - 1)
+                left = self.deadline_s - (self._clock() - start)
+                if not retryable or attempt >= self.max_attempts or left - pause < MIN_ATTEMPT_S:
+                    logger.warning(
+                        "anthropic request failed",
+                        extra={"attrs": {"reason": exc.reason, "attempts": attempt}},
+                    )
+                    raise
+                self._sleep(pause)
+                continue
+            return self._parsed(response, attempt)
+
+    def _send(self, prompt: str, schema: type[T], max_tokens: int, system: str, timeout: float) -> Any:
+        client = (
+            self._client.with_options(timeout=timeout)
+            if hasattr(self._client, "with_options")
+            else self._client
+        )
         try:
-            response = self._client.messages.parse(
+            return client.messages.parse(
                 model=self.model,
                 max_tokens=max_tokens,
                 system=system,
@@ -260,30 +346,39 @@ class AnthropicCoach:
                 output_format=schema,
             )
         except anthropic.RateLimitError as exc:
-            raise ProviderError("AI provider rate limit reached") from exc
+            raise ProviderError("AI provider rate limit reached", reason="rate_limited") from exc
         except anthropic.APIStatusError as exc:
-            logger.warning("anthropic api error", extra={"status": exc.status_code})
-            raise ProviderError(f"AI provider returned HTTP {exc.status_code}") from exc
+            retry = exc.status_code >= 500 or exc.status_code in _RETRY_STATUS
+            reason = "http_5xx" if retry else "http_4xx"
+            raise ProviderError(f"AI provider returned HTTP {exc.status_code}", reason=reason) from exc
+        except anthropic.APITimeoutError as exc:
+            raise ProviderError("The AI provider took too long to answer", reason="timeout") from exc
         except anthropic.APIConnectionError as exc:
-            raise ProviderError("Could not reach the AI provider") from exc
+            raise ProviderError("Could not reach the AI provider", reason="connection") from exc
         except ValidationError as exc:
             # The SDK validates the reply against the schema while parsing it, so a reply cut off
             # mid-JSON (or one that doesn't fit the schema) raises here, before stop_reason is seen.
-            raise ProviderError("AI response did not match the expected schema") from exc
+            raise ProviderError(
+                "AI response did not match the expected schema", reason="invalid_output"
+            ) from exc
         except anthropic.APIError as exc:  # anything else the SDK raises, e.g. an unexpected body
-            raise ProviderError("AI provider returned an unusable response") from exc
+            raise ProviderError("AI provider returned an unusable response", reason="invalid_body") from exc
 
+    def _parsed(self, response: Any, attempts: int) -> ProviderResult[Any]:
         if response.stop_reason == "refusal":
-            raise ProviderError("AI provider declined this request")
+            raise ProviderError("AI provider declined this request", reason="refusal", attempts=attempts)
         if response.stop_reason == "max_tokens":
-            raise ProviderError("AI response was cut off")
+            raise ProviderError("AI response was cut off", reason="cut_off", attempts=attempts)
         parsed = response.parsed_output
         if parsed is None:
-            raise ProviderError("AI response did not match the expected schema")
+            raise ProviderError(
+                "AI response did not match the expected schema", reason="invalid_output", attempts=attempts
+            )
         return ProviderResult(
             content=parsed,
             provider=self.name,
             model=response.model or self.model,
             input_tokens=response.usage.input_tokens,
             output_tokens=response.usage.output_tokens,
+            attempts=attempts,
         )

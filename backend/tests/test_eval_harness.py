@@ -160,14 +160,33 @@ def test_invalid_feedback_fails_the_schema_check_and_a_crash_is_a_failed_case():
 
 def test_every_provider_failure_falls_back_to_the_offline_coach():
     result = run_faults()
-    assert result["failed"] == [] and result["checks"] == 30
+    assert result["failed"] == [] and result["checks"] == 33
     assert {r["scenario"] for r in result["rows"]} >= {
         "timeout",
         "cut_off_json",
         "invalid_response_body",
         "refusal",
     }
-    assert result["client_limits"] == {"timeout_s": 60.0, "max_retries": 2}
+    # Bounded: the SDK doesn't retry on its own; the coach sends at most 3 requests within 45 s,
+    # and only for failures a retry can fix.
+    assert result["client_limits"] == {
+        "timeout_s": 25.0,
+        "max_retries": 0,
+        "max_attempts": 3,
+        "deadline_s": 45.0,
+    }
+    sent = {r["scenario"]: r["calls_to_provider"] for r in result["rows"]}
+    assert {s for s, n in sent.items() if n == 3} == {
+        "timeout",
+        "connection_lost",
+        "server_error_500",
+        "overloaded_529",
+    }
+    assert all(
+        n == 1
+        for s, n in sent.items()
+        if s not in {"timeout", "connection_lost", "server_error_500", "overloaded_529"}
+    )
 
 
 def test_a_coach_that_lets_errors_escape_fails_the_fallback_gate():

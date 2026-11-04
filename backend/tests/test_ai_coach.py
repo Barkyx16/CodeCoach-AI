@@ -245,9 +245,13 @@ def test_anthropic_bad_stop_reasons_raise(stop_reason):
 def test_anthropic_api_errors_become_provider_errors():
     req = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
     exc = anthropic.APIConnectionError(request=req)
-    coach = AnthropicCoach(api_key=None, model="m", client=SimpleNamespace(messages=FakeMessages(exc=exc)))
-    with pytest.raises(ProviderError):
+    fake = FakeMessages(exc=exc)
+    coach = AnthropicCoach(
+        api_key=None, model="m", client=SimpleNamespace(messages=fake), sleep=lambda s: None
+    )
+    with pytest.raises(ProviderError) as raised:
         coach.hint(_ctx())
+    assert raised.value.reason == "connection" and raised.value.attempts == 3 == len(fake.calls)
 
 
 def test_a_cut_off_structured_reply_is_a_provider_error():
@@ -299,3 +303,203 @@ def test_review_schema_round_trip():
         confidence="low",
     )
     assert CodeReview.model_validate_json(review.model_dump_json()) == review
+
+
+# --- the request boundary: bounded attempts, a total deadline, counted requests ------------------
+
+_REQ = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+_HINT = HintContent(hint="Think about lookups.", focus_area="lookups", encouragement="Nice.")
+
+
+class Scripted:
+    """messages.parse that fails or answers in the given order, and records the timeouts used."""
+
+    def __init__(self, *outcomes, clock=None, step=0.0):
+        self.outcomes, self.calls, self.timeouts = list(outcomes), 0, []
+        self.clock, self.step = clock, step
+
+    def with_options(self, timeout):
+        self.timeouts.append(timeout)
+        return SimpleNamespace(messages=self)
+
+    def parse(self, **kwargs):
+        self.calls += 1
+        if self.clock is not None:  # a request takes `step` seconds, or until its timeout
+            self.clock[0] += min(self.step, self.timeouts[-1]) if self.timeouts else self.step
+        outcome = self.outcomes.pop(0)
+        if isinstance(outcome, BaseException):
+            raise outcome
+        return SimpleNamespace(
+            parsed_output=outcome,
+            stop_reason="end_turn",
+            model="m",
+            usage=SimpleNamespace(input_tokens=1, output_tokens=1),
+        )
+
+
+def _coach(client, **kw):
+    sleeps = []
+    coach = AnthropicCoach(api_key=None, model="m", client=client, sleep=sleeps.append, **kw)
+    return coach, sleeps
+
+
+def test_a_timeout_is_retried_and_the_answer_says_how_many_requests_it_took():
+    client = Scripted(anthropic.APITimeoutError(request=_REQ), _HINT)
+    coach, sleeps = _coach(client)
+    result = coach.hint(_ctx())
+    assert result.provider == "anthropic" and result.attempts == 2 and client.calls == 2
+    assert sleeps == [0.5]  # a short pause, not the SDK's hidden backoff
+
+
+def test_a_rate_limit_falls_back_at_once_instead_of_waiting():
+    client = Scripted(
+        anthropic.RateLimitError("429", response=httpx.Response(429, request=_REQ), body=None), _HINT
+    )
+    coach, sleeps = _coach(client)
+    with pytest.raises(ProviderError) as raised:
+        coach.hint(_ctx())
+    assert raised.value.reason == "rate_limited" and client.calls == 1 and sleeps == []
+
+
+@pytest.mark.parametrize(
+    "error, reason",
+    [
+        (anthropic.BadRequestError("400", response=httpx.Response(400, request=_REQ), body=None), "http_4xx"),
+        (
+            anthropic.APIResponseValidationError(response=httpx.Response(200, request=_REQ), body=None),
+            "invalid_body",
+        ),
+    ],
+)
+def test_errors_a_retry_cannot_fix_are_not_retried(error, reason):
+    client = Scripted(error, _HINT)
+    coach, _ = _coach(client)
+    with pytest.raises(ProviderError) as raised:
+        coach.hint(_ctx())
+    assert raised.value.reason == reason and client.calls == 1
+
+
+def test_the_whole_answer_stays_within_the_deadline():
+    """Each request takes 20 s (the clock is simulated, pauses included): with a 45 s deadline
+    there is time for two requests, not a third with under 5 s left, and no request is given
+    longer than the time left."""
+    now = [0.0]
+    timeout = anthropic.APITimeoutError(request=_REQ)
+    client = Scripted(timeout, timeout, timeout, clock=now, step=20.0)
+
+    def pause(seconds):
+        now[0] += seconds
+
+    coach = AnthropicCoach(api_key=None, model="m", client=client, sleep=pause, clock=lambda: now[0])
+    with pytest.raises(ProviderError) as raised:
+        coach.hint(_ctx())
+    assert client.calls == 2 and raised.value.attempts == 2
+    assert client.timeouts[0] == 25.0 and client.timeouts[1] <= 45.0 - 20.0
+    assert now[0] <= 45.0
+
+
+def test_the_sdk_does_not_retry_behind_the_coachs_back():
+    coach = AnthropicCoach(api_key="sk-ant-not-a-real-key", model="m")  # constructs, never connects
+    assert coach._client.max_retries == 0 and coach.max_attempts == 3 and coach.deadline_s == 45.0
+
+
+def test_the_evaluation_call_limit_counts_every_request_including_retries():
+    from evals.run import BudgetExhausted, Metered
+
+    timeout = anthropic.APITimeoutError(request=_REQ)
+    client = Scripted(timeout, timeout, timeout)
+    coach, _ = _coach(client)
+    metered = Metered(coach, max_calls=2)
+    with pytest.raises(BudgetExhausted):
+        metered.hint(_ctx())
+    assert client.calls == 2 and metered.calls == 2  # the third request is never sent
+
+
+def test_a_line_reference_outside_the_learners_code_is_dropped_not_shown():
+    from app.schemas.ai import CodeReview, Complexity, FailureExplanation, ReviewIssue
+    from app.services.ai.base import FailureContext, ReviewContext
+
+    ctx = _ctx()
+    code = "int a = 1;\nint b = 2;\nreturn a + b;"
+    issue = {"severity": "low", "category": "readability", "detail": "d", "suggestion": "s"}
+    review = CodeReview(
+        summary="s",
+        complexity=Complexity(time="O(1)", space="O(1)"),
+        issues=[ReviewIssue(**issue, line_hint=2), ReviewIssue(**issue, line_hint=40)],
+        strengths=[],
+        next_step="n",
+        confidence="low",
+    )
+    coach, _ = _coach(Scripted(review))
+    out = coach.review(
+        ReviewContext(problem=ctx.problem, code=code, analysis=ctx.analysis, judge_status=None)
+    )
+    assert [i.line_hint for i in out.content.issues] == [2, None]  # the issue stays, the bad line goes
+    explanation = FailureExplanation(
+        cause="other",
+        headline="h",
+        explanation="e",
+        evidence="ev",
+        line_hint=99,
+        next_steps=["x"],
+        confidence="low",
+    )
+    coach, _ = _coach(Scripted(explanation))
+    failure = FailureContext(
+        problem=ctx.problem,
+        code=code,
+        analysis=ctx.analysis,
+        status="FAILED",
+        compile_output=None,
+        failing_case=None,
+        public_passed=0,
+        public_total=1,
+        hidden_passed=0,
+        hidden_total=1,
+    )
+    assert coach.explain_failure(failure).content.line_hint is None
+
+
+def test_provider_failures_are_logged_with_a_reason_code_and_no_learner_text_or_key():
+    import json
+    import logging
+
+    from app.observability import JsonFormatter
+
+    marker, key = "LEARNER-ANSWER-MARKER-7731", "sk-ant-api03-SECRETSECRET"
+    ctx = _ctx()
+    ctx = type(ctx)(problem=ctx.problem, code=f"// {marker}", level=1, analysis=ctx.analysis)
+
+    class Keep(logging.Handler):
+        def __init__(self):
+            super().__init__(logging.DEBUG)
+            self.records: list[logging.LogRecord] = []
+
+        def emit(self, record):
+            self.records.append(record)
+
+    keep, provider_log = Keep(), logging.getLogger("codecoach.ai.anthropic")
+    level = provider_log.level  # set here and restored, so other tests' logging setup doesn't matter
+    provider_log.addHandler(keep)
+    provider_log.setLevel(logging.DEBUG)
+    try:
+        for error in (
+            anthropic.APITimeoutError(request=_REQ),
+            anthropic.InternalServerError("500", response=httpx.Response(500, request=_REQ), body=None),
+            anthropic.RateLimitError("429", response=httpx.Response(429, request=_REQ), body=None),
+        ):
+            coach = AnthropicCoach(
+                api_key=key, model="m", client=Scripted(error, error, error), sleep=lambda s: None
+            )
+            with pytest.raises(ProviderError):
+                coach.hint(ctx)
+    finally:
+        provider_log.removeHandler(keep)
+        provider_log.setLevel(level)
+    failed = [r for r in keep.records if r.getMessage() == "anthropic request failed"]
+    lines = [JsonFormatter().format(r) for r in failed]  # what production logs print
+    assert [json.loads(line)["attrs"]["reason"] for line in lines] == ["timeout", "http_5xx", "rate_limited"]
+    assert [json.loads(line)["attrs"]["attempts"] for line in lines] == [3, 3, 1]
+    for r in keep.records:
+        text = r.getMessage() + " " + " ".join(str(v) for v in r.__dict__.values())
+        assert marker not in text and key not in text

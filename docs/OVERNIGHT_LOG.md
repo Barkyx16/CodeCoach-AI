@@ -26,9 +26,9 @@ was done, on which commit, what was checked and what is left. Morning handoff at
 | 1 | Baseline and evaluation protocol (brief 01) | done | `c07d3f8` and earlier; CI #114 success |
 | 2 | Dictated answers and paraphrases (brief 02, rubric v3) | done | `e973e50`, `30a6dbd`; CI #115 success on `30a6dbd` |
 | 3 | Unsupported keyword credit (brief 03, rubric v4) | done | `2e70d0b`, `8db564c`; CI #116 on `8db564c`: success, 7 of 7 jobs |
-| 4 | Bounded contradiction handling (brief 04, rubric v5) | done, see checkpoint | this change |
-| 5 | Provider failure boundary | next | |
-| 6 | Session isolation regressions | queued | |
+| 4 | Bounded contradiction handling (brief 04, rubric v5) | done | `cf028d9`, `e69ee77` |
+| 5 | Provider failure boundary | done, see checkpoint | this change |
+| 6 | Session isolation regressions | next | |
 | 7 | Final verification and handoff | queued | |
 | B1–B5 | Bonus queue: accessible flow, safe rendering, backend ownership, concurrent submissions, diagnostics | queued after 7's checks | |
 
@@ -45,5 +45,21 @@ was done, on which commit, what was checked and what is left. Morning handoff at
   words (`evals/regression.json`).
 - Local checks run before the commit: ruff, ruff format, mypy; `tests/test_careers.py`,
   `test_evals.py`, `test_eval_protocol.py`, `test_eval_harness.py` (one test, which loads the
-  rubric at `git:HEAD`, can only pass once the change is committed). Full suites: on the commit,
-  recorded in the next checkpoint.
+  rubric at `git:HEAD`, can only pass once the change is committed; it passed on `cf028d9`).
+- Full SQLite suite started on `cf028d9`: 2004 passed, 386 skipped (PostgreSQL-only and sandbox
+  tests), exit 0. Files were edited while it ran, so this is indicative; the final commit gets
+  its own full runs (task 7).
+
+## Checkpoint: task 5, provider failure boundary
+
+- Audit: timeouts, lost connections, 429, 5xx, 529, refusals, cut-off and invalid replies, missing
+  fields and invalid values already fell back (30 of 30); interview scores are bounded 1–4.
+- Fixed: no overall time limit (SDK retries, about 3 minutes worst case) → at most 3 requests,
+  25 s each, 45 s in all, retried only when a retry can help; 429 falls back at once. Retries
+  were invisible to `--max-calls` → every request counts. Line references outside the learner's
+  code are dropped. Failure reasons are logged as safe codes under `attrs` (the JSON formatter
+  dropped other extra fields).
+- Checks: 33 of 33 fault scenarios fall back; tests with a simulated clock and a fake client
+  (`tests/test_ai_coach.py`, request-boundary section); a log test checks no learner text or key
+  reaches a log record. Prompt version `coach-2026-11-04` recorded (request settings only).
+- Not shown: anything about Claude's coaching quality (no live call was made).

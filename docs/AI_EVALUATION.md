@@ -463,6 +463,34 @@ Without calling Claude (measured 2026-11-03):
   of the offline coach. **After** catching both as `ProviderError`: **30 of 30**. The client's
   own limits are recorded: 60 s timeout, 2 retries.
 
+**The request boundary, 2026-11-04 (overnight task 5; prompt version `coach-2026-11-04`, prompt
+text unchanged).** Audited against timeouts, rate limits, cut-off and invalid replies, missing
+fields, invalid values and references that don't exist in the learner's code. Found and fixed:
+- **No overall time limit.** The SDK retried up to twice at 60 s a request, so one coaching
+  answer could wait about three minutes before the offline coach answered. Now the SDK's own
+  retries are off and the coach retries only what a retry can fix (a timeout, a lost connection,
+  408/409, 5xx, 529): **at most 3 requests, 25 s each, 45 s in all**, never starting one with
+  under 5 s left. A 429 falls back at once; a refusal, a cut-off or invalid reply isn't retried.
+  Tested with a simulated clock (no sleeps): two 20 s timeouts end at 45 s or sooner, without a
+  third request.
+- **Retries were invisible to the paid-call limit.** `--max-calls` counted coaching answers, but
+  each could be three billed requests. It now counts every request before it is sent, so the
+  limit holds per request (tested: a limit of 2 stops the third request of a failing answer).
+- **Line references weren't checked.** A review issue or failure explanation pointing at a line
+  the learner's code doesn't have is kept, with the reference dropped (and counted in the log).
+  Schema checks already reject missing fields, wrong types and out-of-range values (interview
+  scores are 1–4, ratings and confidence are fixed sets) before anything is shown.
+- **Reasons weren't in the logs.** A failure is logged once, as `anthropic request failed` with a
+  reason code (timeout, connection, rate_limited, http_5xx, http_4xx, refusal, cut_off,
+  invalid_output, invalid_body) and the number of requests, under the JSON log's `attrs`; a test
+  checks that no learner text or API key reaches any log record.
+
+Provider failures: **33 of 33** fall back to the offline coach (a reply missing fields with an
+unknown confidence level added as a scenario). These are tests with a fake client: they show the
+boundary handles these failures, not how well Claude coaches; no live call was made. The career
+written-answer coach is offline only, so its evidence spans are checked by the career evidence
+gate, not here.
+
 ## Results: offline coach (curated hints + static analysis)
 
 Measured 2026-11-01. Full reports: `backend/evals/results/offline*.md`.

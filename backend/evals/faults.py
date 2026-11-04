@@ -41,6 +41,16 @@ def _cut_off(schema: type) -> ValidationError:
     raise AssertionError("expected a validation error")
 
 
+def _schema_violation(schema: type) -> ValidationError:
+    """What `messages.parse` raises for a reply that is valid JSON but misses required fields and
+    carries a value the schema doesn't allow (an unknown confidence level)."""
+    try:
+        TypeAdapter(schema).validate_python({"confidence": "certain", "level": 9})
+    except ValidationError as exc:
+        return exc
+    raise AssertionError("expected a validation error")
+
+
 def _reply(stop_reason: str, parsed: Any = None) -> Callable[[dict], SimpleNamespace]:
     return lambda kw: SimpleNamespace(
         parsed_output=parsed,
@@ -60,6 +70,7 @@ SCENARIOS: dict[str, Callable[[type], Any]] = {
     "cut_off_max_tokens": lambda schema: _reply("max_tokens"),
     "no_parsed_output": lambda schema: _reply("end_turn"),
     "cut_off_json": _cut_off,
+    "missing_fields_and_invalid_value": _schema_violation,
     "invalid_response_body": lambda schema: anthropic.APIResponseValidationError(
         response=httpx.Response(200, request=_REQ), body=None
     ),
@@ -114,7 +125,8 @@ def _contexts() -> dict[str, tuple[type, Callable[[Any], Any]]]:
 
 def run_faults(make_coach: Callable[[Any], Any] | None = None) -> dict:
     make_coach = make_coach or (
-        lambda client: AnthropicCoach(api_key=None, model="fault-check", client=client)
+        # No real waiting between retries here: the retry policy is what's checked, not the clock.
+        lambda client: AnthropicCoach(api_key=None, model="fault-check", client=client, sleep=lambda s: None)
     )
     rows = []
     for scenario, build in SCENARIOS.items():
@@ -141,12 +153,18 @@ def run_faults(make_coach: Callable[[Any], Any] | None = None) -> dict:
             row["calls_to_provider"] = messages.calls
             row["ms"] = round((time.perf_counter() - start) * 1000, 2)
             rows.append(row)
-    bounded = AnthropicCoach(api_key="sk-ant-not-a-real-key", model="m")._client  # constructs, never connects
+    coach = AnthropicCoach(api_key="sk-ant-not-a-real-key", model="m")  # constructs, never connects
+    bounded = coach._client
     return {
         "scenarios": len(SCENARIOS),
         "checks": len(rows),
         "passed": sum(r["passed"] for r in rows),
         "failed": [r for r in rows if not r["passed"]],
         "rows": rows,
-        "client_limits": {"timeout_s": float(bounded.timeout), "max_retries": bounded.max_retries},  # type: ignore[arg-type]
+        "client_limits": {
+            "timeout_s": float(bounded.timeout),  # type: ignore[arg-type]
+            "max_retries": bounded.max_retries,  # the SDK's own; 0: the coach retries, counted
+            "max_attempts": coach.max_attempts,
+            "deadline_s": coach.deadline_s,
+        },
     }
