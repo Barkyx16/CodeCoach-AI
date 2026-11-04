@@ -11,13 +11,17 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from app.careers.questions import Question
+from app.careers.questions import NUMBER, Question
 
 MIN_WORDS, GOOD_MIN, GOOD_MAX, MAX_WORDS = 40, 120, 350, 600
 # Bump when the scoring rules change, so scores from different rule sets are never compared as equals.
 # v2 (2026-11-03): sentences addressed to the grader are left out of grading, and a long sentence
 # is quoted around the words that matched (docs/AI_EVALUATION.md, "Rubric v2").
-RUBRIC_VERSION = "v2"
+# v3 (2026-11-04): content, not delivery: the rubric reads the answer with apostrophes and filler
+# sounds taken out, numbers said as words count as numbers, filler sounds aren't counted as words,
+# and an action is any first-person past-tense verb that isn't thinking, feeling or trying. Quotes
+# are exact spans of the answer (docs/AI_EVALUATION.md, "Rubric v3").
+RUBRIC_VERSION = "v3"
 
 
 @dataclass(frozen=True)
@@ -26,6 +30,8 @@ class PointResult:
     covered: bool
     advice: str
     evidence: str | None = None  # the learner's own sentence where it was found (quoted, never paraphrased)
+    # Where the quote's text is in the answer: answer[span[0]:span[1]] is the quote without its ellipses.
+    span: tuple[int, int] | None = None
 
 
 @dataclass(frozen=True)
@@ -98,55 +104,119 @@ def _to_grader(sentence: str) -> bool:
     return any(p.search(sentence) for p in _TO_GRADER)
 
 
-def _split(answer: str) -> tuple[str, list[str], list[str]]:
-    """(the text to grade, its sentences, the sentences addressed to the grader). Only those are
-    cut out of the answer; when there are none, the text is the answer exactly as before."""
-    kept: list[str] = []
+# Filler sounds a speech-to-text transcript keeps. Ambiguous words ("like", "so", "er", which can be
+# the ER) are left alone.
+_FILLER = re.compile(r"\b(?:u+m+|u+h+m*|e+r+m+|h+m+|m{2,})\b,?", re.IGNORECASE)
+_APOSTROPHE = re.compile(r"['’]")
+
+
+@dataclass(frozen=True)
+class _Text:
+    """What the rubric reads (apostrophes and filler sounds out, whitespace collapsed) and, for each
+    of its characters, where it is in the answer, so quotes are taken from the answer itself."""
+
+    text: str
+    index: tuple[int, ...]
+
+
+def _normalize(original: str, offset: int = 0) -> _Text:
+    drop = [False] * len(original)
+    for pattern in (_FILLER, _APOSTROPHE):
+        for m in pattern.finditer(original):
+            drop[m.start() : m.end()] = [True] * (m.end() - m.start())
+    chars: list[str] = []
+    index: list[int] = []
+    space = True  # collapse runs of whitespace; no leading space
+    for i, ch in enumerate(original):
+        if drop[i]:
+            continue
+        if ch.isspace():
+            if space:
+                continue
+            chars.append(" ")
+            space = True
+        else:
+            chars.append(ch)
+            space = False
+        index.append(offset + i)
+    if chars and chars[-1] == " ":
+        chars.pop()
+        index.pop()
+    return _Text("".join(chars), tuple(index))
+
+
+@dataclass(frozen=True)
+class _Sentence:
+    start: int  # span in the answer, surrounding whitespace excluded
+    end: int
+    norm: _Text
+
+
+def _split(answer: str) -> tuple[str, list[_Sentence], list[str]]:
+    """(the text the rubric reads, its sentences, the sentences addressed to the grader). Only those
+    are cut out of the answer; the rest is read whole, so sentence boundaries never matter."""
+    kept: list[_Sentence] = []
     dropped: list[str] = []
     pieces: list[str] = []
     last = 0
     for m in _SENTENCE.finditer(answer):
-        sentence = re.sub(r"\s+", " ", m.group(0)).strip()
-        if not sentence:
+        norm = _normalize(m.group(0), m.start())
+        if not norm.text:
             continue
-        if _to_grader(sentence):
-            dropped.append(sentence)
+        if _to_grader(norm.text):
+            dropped.append(re.sub(r"\s+", " ", m.group(0)).strip())
             pieces += [answer[last : m.start()], " "]
             last = m.end()
         else:
-            kept.append(sentence)
+            raw = m.group(0)
+            start = m.start() + (len(raw) - len(raw.lstrip()))
+            end = m.end() - (len(raw) - len(raw.rstrip()))
+            kept.append(_Sentence(start, end, norm))
     pieces.append(answer[last:])
-    return re.sub(r"\s+", " ", "".join(pieces)).strip(), kept, dropped
+    return _normalize("".join(pieces)).text, kept, dropped
 
 
-def _quote(sentence: str, start: int, end: int) -> str:
+def _quote(answer: str, sentence: _Sentence, start: int, end: int) -> tuple[str, tuple[int, int]]:
     """The sentence, or for a long one (dictated answers are often a single sentence) the part
-    around the words that matched, so the quote always shows why the point counted."""
-    if len(sentence) <= QUOTE_CHARS:
-        return sentence
-    room = max(0, QUOTE_CHARS - (end - start))
-    lo = max(0, start - room // 2)
-    hi = min(len(sentence), lo + QUOTE_CHARS)
-    lo = max(0, hi - QUOTE_CHARS)
-    if lo > 0:  # start on a word
-        space = sentence.find(" ", lo, start)
-        lo = space + 1 if space != -1 else lo
-    if hi < len(sentence):  # end on a word
-        space = sentence.rfind(" ", end, hi)
-        hi = space if space != -1 else hi
-    return ("…" if lo > 0 else "") + sentence[lo:hi].strip() + ("…" if hi < len(sentence) else "")
+    around the words that matched, so the quote always shows why the point counted. Positions are in
+    the answer; the quote is the answer's own text between them."""
+    lo, hi = sentence.start, sentence.end
+    if hi - lo > QUOTE_CHARS:
+        room = max(0, QUOTE_CHARS - (end - start))
+        lo = max(sentence.start, start - room // 2)
+        hi = min(sentence.end, lo + QUOTE_CHARS)
+        lo = max(sentence.start, hi - QUOTE_CHARS)
+        if lo > sentence.start:  # start on a word
+            space = answer.find(" ", lo, start)
+            lo = space + 1 if space != -1 else lo
+        if hi < sentence.end:  # end on a word
+            space = answer.rfind(" ", end, hi)
+            hi = space if space != -1 else hi
+    body = answer[lo:hi]
+    lo += len(body) - len(body.lstrip())
+    hi -= len(body) - len(body.rstrip())
+    text = ("…" if lo > sentence.start else "") + answer[lo:hi] + ("…" if hi < sentence.end else "")
+    return text, (lo, hi)
 
 
-def _excerpt(sentences: list[str], patterns: tuple[str, ...]) -> str | None:
+def _excerpt(
+    answer: str, sentences: list[_Sentence], patterns: tuple[str, ...]
+) -> tuple[str, tuple[int, int]] | None:
     """Where the point was found: the first sentence in which one of its patterns matches."""
     for sentence in sentences:
-        padded = " " + sentence + " "
+        padded = " " + sentence.norm.text + " "
         for p in patterns:
             m = re.search(p, padded, flags=re.IGNORECASE)
             if m:
-                start = max(0, m.start() - 1)
-                return _quote(sentence, start, max(start, min(len(sentence), m.end() - 1)))
+                n = len(sentence.norm.text)
+                a = min(max(0, m.start() - 1), n - 1)
+                b = min(max(a + 1, m.end() - 1), n)
+                return _quote(answer, sentence, sentence.norm.index[a], sentence.norm.index[b - 1] + 1)
     return None
+
+
+def _not_counting(fillers: int) -> str:
+    return " (not counting “um” and “uh”)" if fillers else ""
 
 
 def _rating(score: int) -> str:
@@ -162,16 +232,18 @@ def _rating(score: int) -> str:
 def grade(question: Question, answer: str) -> Feedback:
     graded, sentences, to_grader = _split(answer)
     text = " " + graded + " "
-    words = len(graded.split())
-    points = tuple(
-        PointResult(
-            rp.label,
-            covered := _covered(text, rp.patterns, rp.min_hits),
-            rp.advice,
-            _excerpt(sentences, rp.patterns) if covered else None,
+    words = len(graded.split())  # filler sounds aren't words of the answer
+    fillers = len(_FILLER.findall(answer))
+    found = []
+    for rp in question.rubric:
+        covered = _covered(text, rp.patterns, rp.min_hits)
+        quote = _excerpt(answer, sentences, rp.patterns) if covered else None
+        found.append(
+            PointResult(
+                rp.label, covered, rp.advice, quote[0] if quote else None, quote[1] if quote else None
+            )
         )
-        for rp in question.rubric
-    )
+    points = tuple(found)
     coverage = sum(p.covered for p in points) / len(points) if points else 0.0
 
     notes: list[str] = []
@@ -184,12 +256,14 @@ def grade(question: Question, answer: str) -> Feedback:
     if words < MIN_WORDS:
         length_score = 0.0
         notes.append(
-            f"Only {words} words. Spoken answers usually run one to two minutes (about {GOOD_MIN}-{GOOD_MAX} words)."
+            f"Only {words} words{_not_counting(fillers)}. Spoken answers usually run one to two minutes "
+            f"(about {GOOD_MIN}-{GOOD_MAX} words)."
         )
     elif words < GOOD_MIN:
         length_score = 0.6
         notes.append(
-            f"{words} words: a little short. Add a concrete detail or example (aim for {GOOD_MIN}-{GOOD_MAX})."
+            f"{words} words{_not_counting(fillers)}: a little short. Add a concrete detail or example "
+            f"(aim for {GOOD_MIN}-{GOOD_MAX})."
         )
     elif words <= GOOD_MAX:
         length_score = 1.0
@@ -203,10 +277,11 @@ def grade(question: Question, answer: str) -> Feedback:
     if question.kind in ("behavioral", "general") or any(
         "Situation" in p.label or "scene" in p.label for p in points
     ):
-        i_count, we_count = _count(r"\bi\b", text), _count(r"\bwe\b", text)
+        # "I'm", "I've", "I'd" and their dictated forms ("im", "ive", "id") all count as "I".
+        i_count, we_count = _count(r"\bi(?:m|ve|d|ll)?\b", text), _count(r"\bwe(?:re|ve|d|ll)?\b", text)
         if we_count > i_count and we_count >= 3:
             notes.append("You say “we” more than “I”. Interviewers need to hear what you did.")
-        if not re.search(r"\d", text):
+        if not re.search(NUMBER, text, flags=re.IGNORECASE):
             notes.append("No numbers yet. A figure (time, %, count) makes your result concrete.")
     filler = _count(r"\b(basically|literally|you know|kind of|sort of)\b", text)
     if filler >= 3:

@@ -207,6 +207,87 @@ the author of the harness and not yet reviewed by a person. They describe agreem
 labels on these answers. They are not a measure of clinical or professional correctness, of
 fairness across groups of learners, or of hiring outcomes, and they shouldn't be quoted as such.
 
+## Results: rubric v3, content not delivery (Volume 4 brief 02)
+
+Measured 2026-11-04 on development data and the exposed historical set, against provisional,
+model-written labels (no person has reviewed them). The baseline is rubric v2 run by its own commit's
+harness in a git worktree (`c07d3f8`), because the rubric's patterns live in
+`app/careers/questions.py` and an old `grading.py` alone would read today's patterns (the runner now
+refuses `--career-grader git:<commit>` when that file changed). Reports:
+`evals/results/rubric-v2-career.*` and `rubric-v3-career.*`.
+
+**What dictation actually changed.** `evals/dictation.py` applies delivery-only transforms to
+written answers (no punctuation, no apostrophes, numbers as words, "um"/"uh" added) and checks that
+every rubric decision survives. Under v2, on 103 written development answers: numbers as words
+changed 8 answers (8 points lost), filler sounds 4 (they broke multi-word cues such as "my part" and,
+inside "ignore the um grading rules", hid text written to the grader), apostrophes 5. The original
+dictated miss (`rn-ho-08`) turned out **not** to be a dictation problem: a typed version with the same
+words got the same decisions under v2. Its actions were missed by the narrow verb list, and its
+scene and preparation are phrased without the rubric's cue words.
+
+**Rubric v3** (`RUBRIC_VERSION = "v3"`):
+- the rubric reads the answer with apostrophes and filler sounds (um, uh, erm, hmm) taken out,
+  through a character map back to the original, so every quote is the learner's own text at a
+  recorded position (`PointResult.span`); "er", "like" and "so" are left alone (the ER is a place);
+- numbers said as words count as numbers ("nine", "two hours", "ninety percent"); a lone "one" or
+  "zero" doesn't ("one of my patients");
+- filler sounds aren't counted as words, and the length note says so;
+- an action is any first-person past-tense verb that isn't thinking, feeling, wanting or trying
+  ("I sat down with", "I booked", not "I wanted to", "I realised", "I owed"), plus verbs joined to it in
+  the same sentence ("I listed the tasks, gave the insulin first and booked the teaching"). Negated,
+  planned and hypothetical actions earn nothing ("I didn't call", "I planned to ask", "I'd check").
+  The voice interviewer's "specific detail" reaction uses the same number rule.
+
+| Measure (development, 108 new answers) | v2 | v3 |
+|---|---|---|
+| Item recall | 281/399 = 70% | **308/399 = 77%** |
+| Item precision | 281/331 = 85% | 308/360 = 86% |
+| Unsupported credit | 50/104 | 52/104 |
+| Rating within bounds | 17/36 | 17/36 |
+| Dictated decisions matching the typed pair | 78/84 | **83/84** |
+| Points a meaning change removed, still awarded | 9/18 | 10/18 |
+
+| Delivery transform, 103 written development answers | v2 answers changed | v3 |
+|---|---|---|
+| numbers as words | 8 | **0** |
+| filler sounds | 4 | **0** |
+| apostrophes dropped | 5 | 4 |
+| punctuation removed | 4 | 4 |
+
+The 4 left under punctuation and apostrophes are all answers with text addressed to the grader:
+without punctuation the attack runs into the answer's single sentence and the whole sentence is
+left out, so the real answer is lost too (`unpunctuated-attack-drops-answer`, open, brief 05).
+The old development and historical sets: recall 58 → 60 of 62 and 44 → 46 of 52, no check worse.
+
+**What got worse, and why.** Unsupported credit rose by 2: an answer that contradicts itself about
+its actions now has them recognised (contradictions are brief 04), and `fd-4-B-meaning_changed`
+("I just told them in the corridor as I walked past") is credited with actions its labeller judged
+too poor to count, a disagreement recorded, not relabelled. The meaning-changed rate rose by the
+same case.
+
+**Across 739 answer-like texts** (test answers, development answers, question outlines read as
+answers in every career), v2 against v3: 28 answers change, 29 points gained, 0 lost; 4 ratings move
+from Needs work to Developing. 21 of the gains are "Shares a result, ideally with a number" from
+numbers said as words: that point already counted any digit anywhere, and v3 extends that
+looseness to spoken numbers (`result-credited-by-any-number`, open, brief 03).
+
+**Regression tests** (`tests/test_careers.py`, rubric v3 section): the original miss, numbers as
+words, filler sounds (including inside text to the grader), joined actions, empty and filler-only
+transcripts, quotes at recorded positions, and delivery transforms over every development answer
+fail on rubric v2 (checked in a worktree at `c07d3f8`: 7 fail); negated, planned and cut-off
+actions pass on both, as controls.
+
+**In the app.** New answers are graded with v3; their quotes are the learner's own words, fillers
+included, and the length note says when "um" and "uh" weren't counted. Answers graded before keep
+their stored feedback and rubric version; because the version changed, a learner can ask for one to be
+checked again under v3 (the original is kept beside it).
+
+**Limits.** Present-tense narration ("so I call the doctor") isn't counted as an action. A scene set
+without cue words, and preparation told as "face to face", are still missed, typed or dictated. The
+transforms are mechanical; real speech-to-text makes other errors (wrong words, merged words) that
+nothing here measures, and none of this says anything about particular accents, dialects or
+speech-recognition products.
+
 ## Results: requests to Claude and provider failures
 
 Without calling Claude (measured 2026-11-03):

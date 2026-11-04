@@ -27,6 +27,42 @@ from app.careers.profiles import JobProfile
 from app.content import state as content_state
 
 PER_LEVEL = 100
+
+# Patterns shared by the rubric and the grader (app/careers/grading.py). The grader matches them
+# against the answer with apostrophes and filler sounds ("um", "uh") taken out, so a dictated
+# answer and a typed one with the same words are matched alike (rubric v3).
+NUMBER_WORDS = (
+    "two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|"
+    "seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|"
+    "million|dozen|half"
+)
+# A number as digits or as speech-to-text writes it ("nine", "two hours", "one week").
+NUMBER = rf"(?:\d|\b(?:{NUMBER_WORDS})\b|\bone (?:minute|hour|day|week|month|year|shift|night|percent)s?\b)"
+PERCENT = rf"(?:\d+ ?%|\b(?:\d+|(?:{NUMBER_WORDS}|one)(?:[ -](?:{NUMBER_WORDS}|one))?) percent\b)"
+# Something the speaker did, told in the first person past tense: "I called", "I sat down with",
+# "I then booked". Verbs of thinking, feeling, wanting or trying don't count ("I wanted to call",
+# "I realised"), nor do negated, planned or hypothetical ones ("I didn't call", "I'd call"), because
+# the verb must follow "I" directly (an adverb such as "then" may come between).
+_IRREGULAR_ACTIONS = (
+    "went|told|gave|took|made|brought|sent|wrote|spoke|met|ran|rang|sat|stood|put|set|led|kept|found|held|"
+    r"drove|taught|began|paid|left|said|sought|caught|fed|built|spent|chose|broke|split|cut|shut|did(?!\s*(?:not|nt)\b)"
+)
+_NOT_ACTIONS = (
+    "wanted|needed|hoped|worried|wondered|liked|loved|hated|seemed|appeared|realised|realized|learned|"
+    "noticed|assumed|believed|expected|preferred|enjoyed|panicked|struggled|tried|considered|imagined|"
+    "guessed|cared|feared|doubted|trusted|remembered|happened|mattered|belonged|wished|planned|intended|"
+    r"failed|owed|deserved|lacked|depended|existed|used(?= to\b)"
+)
+_ACTION_VERB = rf"(?:(?:{_IRREGULAR_ACTIONS})\b|(?!(?:{_NOT_ACTIONS})\b)[a-z]+ed\b)"
+ACTION = (
+    r"\bi (?:(?:then|also|first|finally|quickly|immediately|personally|just|instead|actually|later|eventually|"
+    r"calmly|gently|carefully|straight away)\s+)?(?:(?:have|ve)\s+)?" + _ACTION_VERB
+)
+# A second action sharing that "I" in the same sentence: "I listed the tasks, gave the insulin first
+# and booked the teaching". Matches once per such sentence, so together with ACTION it shows two
+# actions; a verb counts only after an "I" action in its own sentence ("her pressure dropped, and
+# stabilized" doesn't).
+JOINED_ACTION = ACTION + r"[^.!?]*?(?:[,;] (?:and |then |and then )?| and (?:then )?)" + _ACTION_VERB
 LEVELS = ("easy", "medium", "hard")
 
 
@@ -126,18 +162,14 @@ STAR = (
     ),
     RubricPoint(
         "Describes specific actions you took",
-        (
-            r"\bi (decided|started|asked|created|set up|spoke|talked|worked|made|built|called|organized|"
-            r"reached out|wrote|scheduled|explained|checked|met|proposed|offered|stayed|took|used|listened|"
-            r"focused|broke|split|trained|tested|reviewed|changed|suggested|followed|prioritized|escalated)\b",
-        ),
+        (ACTION, JOINED_ACTION),
         "Walk through two or three concrete things you did, using “I did …” sentences.",
         min_hits=2,
     ),
     RubricPoint(
         "Shares a result, ideally with a number",
         (
-            r"\d",
+            NUMBER,
             r"\bresult",
             r"\boutcome",
             r"\bimproved\b",
@@ -293,7 +325,7 @@ MEASURE = RubricPoint(
         r"\btarget\b",
         r"\bgoal\b",
         r"\bbaseline\b",
-        r"\d+ ?%",
+        PERCENT,
         r"\bweekly\b",
         r"\bdashboard\b",
         r"\bdata\b",

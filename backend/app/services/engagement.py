@@ -18,7 +18,7 @@ from __future__ import annotations
 import re
 
 from app.careers.grading import Feedback
-from app.careers.questions import Question
+from app.careers.questions import NUMBER, Question
 from app.models import InterviewPhase
 from app.schemas.interview import Engagement, EngagementState
 from app.services.ai.interviewer_offline import (
@@ -142,7 +142,8 @@ _STOP = set(
         "one",
     ]
 )
-_NUMBER = re.compile(r"[^.?!]{0,30}\b\d[\d,.%]*\b[^.?!]{0,20}")
+# A number typed or said as a word ("2 hours", "two hours"), with a little of what surrounds it.
+_NUMBER = re.compile(rf"[^.?!]{{0,30}}{NUMBER}[\w,.%]*[^.?!]{{0,20}}", re.IGNORECASE)
 _EXAMPLE = re.compile(
     r"\b(for example|for instance|one time|once,|last (?:year|month|week|winter|summer|spring|fall|autumn)|"
     r"at my (?:last|previous)|in my (?:last|previous|current) (?:job|role|position|placement)|when i was)\b",

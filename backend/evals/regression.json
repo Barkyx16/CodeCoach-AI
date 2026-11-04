@@ -4,16 +4,36 @@
     {
       "id": "dictated-under-rated",
       "found": "2026-11-03, measuring rubric v2 on the (now exposed) held-out set",
-      "summary": "An unpunctuated dictated answer is rated below its labels: scene, preparation and actions are missed.",
+      "summary": "An unpunctuated dictated answer (rn-ho-08) was rated below its labels. Measured cause, 2026-11-04: not the dictation. A typed version with the same words got the same decisions under rubric v2 as well. Its actions were missed by the narrow verb list (plain-action-verbs-missed, fixed in v3), and its scene and preparation are phrased without the rubric's cue words (scene-and-preparation-cues-missed, open). The signal checks that the dictated answer and its typed version still get identical decisions.",
       "cases": [
         "career-rn-holdout/rn-ho-08"
       ],
       "related": [
         "career-rn-dev/rn-dev-11"
       ],
-      "status": "open",
+      "status": "fixed",
       "signal": {
-        "check": "rating"
+        "check": "typed_parity",
+        "typed": "It was a day shift on the children's ward, and I had to tell the registrar that the blood sample for her patient had clotted and the lab would need a new one, which meant the discharge would be delayed by hours. I checked with the lab first, so I knew exactly what had happened. Then I went to find her rather than paging, so I could say it face to face. I told her straight away and said I had already arranged to take the new sample myself. She was frustrated, but the new result came back within 2 hours and the child went home that evening. Next time I would warn the family sooner too.",
+        "why": "the typed text was written by the tuning session from the dictated answer, adding only punctuation and capitals"
+      },
+      "fixed_in": "rubric v3 (actions); the rest is tracked as scene-and-preparation-cues-missed"
+    },
+    {
+      "id": "dictation-delivery-effects",
+      "found": "2026-11-04, development pairs and dictation transforms (evals/dictation.py)",
+      "summary": "Delivery changed content decisions: numbers said as words ('nine', 'thirty minutes') missed the result point and drew a false 'No numbers yet' note, filler sounds ('um') broke multi-word cues and counted as words, and could hide text addressed to the grader.",
+      "cases": [
+        "career-rn-families-dev/fd-1-A-dictated",
+        "career-rn-families-dev/fd-1-B-dictated"
+      ],
+      "status": "fixed",
+      "fixed_in": "rubric v3 (Volume 4 brief 02)",
+      "signal": {
+        "check": "pair_parity",
+        "points": [
+          "Shares a result, ideally with a number"
+        ]
       }
     },
     {
@@ -26,11 +46,12 @@
         "career-rn-holdout/rn-ho-07",
         "career-rn-holdout/rn-ho-08"
       ],
-      "status": "open",
+      "status": "fixed",
       "signal": {
         "check": "points",
         "point": "Describes specific actions you took"
-      }
+      },
+      "fixed_in": "rubric v3 (Volume 4 brief 02): any first-person past-tense action verb, and actions joined to it"
     },
     {
       "id": "keyword-lists-rewarded",
@@ -85,6 +106,48 @@
       "fixed_in": "rubric v2 (commit d2a2b51)",
       "signal": {
         "check": "injection"
+      }
+    },
+    {
+      "id": "scene-and-preparation-cues-missed",
+      "found": "2026-11-04, separating the dictation and phrasing causes of rn-ho-08",
+      "summary": "A scene set without the cue words the rubric looks for ('it was a day shift on the ward') and preparation told as 'face to face' or 'straight away' are missed, typed or dictated alike.",
+      "cases": [
+        "career-rn-holdout/rn-ho-08"
+      ],
+      "status": "open",
+      "signal": {
+        "check": "points",
+        "point": "Sets the scene: where you were and what was at stake"
+      }
+    },
+    {
+      "id": "unpunctuated-attack-drops-answer",
+      "found": "2026-11-04, dictation transforms (evals/dictation.py)",
+      "summary": "Without punctuation, text addressed to the grader runs into the answer's single sentence, and rubric v2/v3 leave out the whole sentence: the real answer is lost with the attack (Volume 4 brief 05).",
+      "cases": [
+        "career-rn-dev/rn-dev-23",
+        "career-rn-families-dev/fd-3-P-grader_directed"
+      ],
+      "status": "open",
+      "signal": {
+        "check": "transform_parity",
+        "transform": "no_punctuation"
+      }
+    },
+    {
+      "id": "result-credited-by-any-number",
+      "found": "2026-11-04, rubric v3 on the development set",
+      "summary": "'Shares a result, ideally with a number' is credited by any number in the answer, including ones in the scene ('four patients', '3 am'). Older than v3; v3 extends it to numbers said as words (Volume 4 brief 03).",
+      "cases": [
+        "career-rn-families-dev/fd-1-B-meaning_changed",
+        "career-rn-families-dev/fd-1-P-grader_directed",
+        "career-rn-families-dev/fd-4-B-meaning_changed"
+      ],
+      "status": "open",
+      "signal": {
+        "check": "points",
+        "point": "Shares a result, ideally with a number"
       }
     }
   ]

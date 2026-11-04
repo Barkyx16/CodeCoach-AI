@@ -31,7 +31,7 @@ from collections import Counter
 from collections.abc import Callable
 from pathlib import Path
 
-from app.careers.grading import Feedback
+from app.careers.grading import Feedback, _normalize
 from app.careers.questions import Question, get_question
 
 EVAL_DIR = Path(__file__).resolve().parent
@@ -74,7 +74,11 @@ def _evidence_problems(fb: Feedback, q: Question, answer: str, forbidden: list[s
         if body not in flat:
             problems.append(f"{p.label}: quote is not the learner's words: {p.evidence[:60]!r}")
             continue
-        padded = " " + body + " "
+        span = getattr(p, "span", None)  # rubric v3 records where the quote is; older rubrics don't
+        if span is not None and _norm(answer[span[0] : span[1]]) != body:
+            problems.append(f"{p.label}: the recorded position doesn't hold the quoted text")
+        # Read the quote the way the rubric reads the answer (apostrophes and filler sounds out).
+        padded = " " + _normalize(body).text + " "
         if not any(re.search(pat, padded, flags=re.IGNORECASE) for pat in patterns[p.label]):
             problems.append(
                 f"{p.label}: the quote doesn't show the point"
@@ -384,7 +388,11 @@ def protocol_metrics(dataset: dict, result: dict) -> dict:
 def evaluate_regression(grader: Grader) -> list[dict]:
     """Each known defect (evals/regression.json) against the cases that show it, in their own sets."""
     spec = json.loads((EVAL_DIR / "regression.json").read_text(encoding="utf-8"))
-    names = {"career-rn-dev": "career_dev.json", "career-rn-holdout": "career_holdout.json"}
+    names = {
+        "career-rn-dev": "career_dev.json",
+        "career-rn-holdout": "career_holdout.json",
+        "career-rn-families-dev": "career_families_dev.json",
+    }
     sets = {k: load(v) for k, v in names.items()}
     out = []
     for d in spec["defects"]:
@@ -397,6 +405,25 @@ def evaluate_regression(grader: Grader) -> list[dict]:
             sig = d["signal"]
             if "error" in r:
                 shows = True
+            elif sig["check"] == "typed_parity":
+                q = get_question(data["track"], case["question_id"], case["question_version"])
+                shows = [p.covered for p in grader(q, case["answer"]).points] != [
+                    p.covered for p in grader(q, sig["typed"]).points
+                ]
+            elif sig["check"] == "pair_parity":
+                q = get_question(data["track"], case["question_id"], case["question_version"])
+                typed = next(c for c in data["cases"] if c["id"] == case["pair_of"])
+                a = {p.label: p.covered for p in grader(q, case["answer"]).points}
+                b = {p.label: p.covered for p in grader(q, typed["answer"]).points}
+                shows = any(a[label] != b[label] for label in sig.get("points", a))
+            elif sig["check"] == "transform_parity":
+                from evals import dictation
+
+                q = get_question(data["track"], case["question_id"], case["question_version"])
+                transformed = getattr(dictation, sig["transform"])(case["answer"])
+                shows = [p.covered for p in grader(q, case["answer"]).points] != [
+                    p.covered for p in grader(q, transformed).points
+                ]
             elif "point" in sig:
                 row = next(x for x in r["points"] if x["label"] == sig["point"])
                 shows = row["predicted"] != row["expected"]

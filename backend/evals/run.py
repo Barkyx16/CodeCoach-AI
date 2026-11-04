@@ -299,6 +299,20 @@ def load_grader(source: str) -> tuple[career.Grader, str, str]:
     """The grade() of another rubric: `git:<commit>` (that commit's app/careers/grading.py) or a file."""
     if source.startswith("git:"):
         rev = source.removeprefix("git:")
+        # The rubric's patterns live in questions.py, and graders read them from the question they
+        # are given: an old grading.py with today's questions.py would not be the old rubric.
+        same = (
+            subprocess.run(
+                ["git", "diff", "--quiet", rev, "--", ":(top)backend/app/careers/questions.py"], cwd=EVAL_DIR
+            ).returncode
+            == 0
+        )
+        if not same:
+            raise SystemExit(
+                f"app/careers/questions.py changed since {rev}, so its grading.py alone isn't that rubric. "
+                f"Run the harness of that commit instead: git worktree add /tmp/at-{rev} {rev}, then "
+                "python -m evals.run there with the same datasets, and --compare the two reports."
+            )
         text = subprocess.check_output(["git", "show", f"{rev}:{GRADER_PATH}"], cwd=EVAL_DIR, text=True)
         tmp = Path(tempfile.mkdtemp(prefix="career-grader-")) / "grading.py"
         tmp.write_text(text, encoding="utf-8")
