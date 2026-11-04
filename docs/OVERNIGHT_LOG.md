@@ -31,8 +31,9 @@ was done, on which commit, what was checked and what is left. Morning handoff at
 | 6 | Session isolation regressions | done, see checkpoint | this change |
 | 7 | Final verification and handoff | after the bonus queue (one final verification) | |
 | B1 | Accessible answer and feedback flow | done | `fe39f2f` |
-| B2 | Safe rendering of learner and provider text | done, see checkpoint | this change |
-| B3–B5 | Bonus queue: backend ownership, concurrent submissions, diagnostics | next | |
+| B2 | Safe rendering of learner and provider text | done | `1ca34a4` |
+| B3 | Backend ownership and account isolation | already satisfied; tests added | this change |
+| B4–B5 | Bonus queue: concurrent submissions, diagnostics | next | |
 
 ## Checkpoint: task 4, contradictions (rubric v5)
 
@@ -107,3 +108,16 @@ was done, on which commit, what was checked and what is left. Morning handoff at
   navigation state stay inside the app.
 - Checks: lint, typecheck, `npm test` 55 files / 573 tests. Unverified surfaces listed in
   docs/SECURITY.md.
+
+## Checkpoint: bonus 3, backend ownership
+
+- Inspected the id-addressed endpoints for answers, interviews, coaching history and shares, and
+  the existing per-feature privacy tests (answer review, interviews, rounds, submissions,
+  scenarios, drills, shares).
+- No gap found. New tests (`backend/tests/test_ownership.py`, 5) pin what wasn't covered: a
+  question's answers listed only for their author (401 signed out); a `user_id` in the body is
+  ignored; another account can't remove a flag or share an answer by id; every action on a
+  question interview (read, answer, follow-up, skip, abandon, finish, review, comparison, retry)
+  is a 404 for another account and leaves it unchanged; an AI history item is a 404 for another
+  account. No refusal contains the owner's answer text. Story links were already checked
+  (`check_story_owner`).
