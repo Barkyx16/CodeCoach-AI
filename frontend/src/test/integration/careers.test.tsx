@@ -120,3 +120,68 @@ describe("Career practice", () => {
     await waitFor(() => expect(body.career_track).toBe("barista"));
   });
 });
+
+describe("Answering with the keyboard", () => {
+  const QUESTION = "/careers/registered-nurse/questions/m-pressure-0";
+
+  it("submits with the keyboard and moves focus to the feedback, so it isn't lost", async () => {
+    server.use(http.post(`${API}/api/v1/careers/:track/questions/:id/answers`, async () => {
+      const { nurseAnswer } = await import("../fixtures");
+      return HttpResponse.json(nurseAnswer, { status: 201 });
+    }));
+    const { user } = renderApp(QUESTION, { signedIn: true });
+    const box = await screen.findByLabelText("Your answer");
+    await user.click(box);
+    // Dictation inserts line breaks: Enter in the answer box is a new line, never a submission.
+    await user.keyboard("Last winter I handled a deteriorating patient.{Enter}I called the doctor.");
+    expect(screen.queryByRole("region", { name: "Feedback" })).not.toBeInTheDocument();
+    expect(box).toHaveValue("Last winter I handled a deteriorating patient.\nI called the doctor.");
+    await user.tab(); // to "Get feedback"
+    expect(screen.getByRole("button", { name: "Get feedback" })).toHaveFocus();
+    await user.keyboard("{Enter}");
+    const feedback = await screen.findByRole("region", { name: "Feedback" });
+    // The emptied box disables the button; focus goes to the feedback heading instead of the page.
+    await waitFor(() => expect(within(feedback).getByRole("heading", { name: "Feedback" })).toHaveFocus());
+  });
+
+  it("with reflection first, focus goes to the reflection step and then to the feedback", async () => {
+    window.localStorage.setItem("codecoach.reflect-first", "on");
+    server.use(
+      http.post(`${API}/api/v1/careers/:track/questions/:id/answers`, async () => {
+        const { nurseAnswer } = await import("../fixtures");
+        return HttpResponse.json(nurseAnswer, { status: 201 });
+      }),
+      http.put(`${API}/api/v1/me/answers/:id/self-review`, () => HttpResponse.json({})),
+    );
+    const { user } = renderApp(QUESTION, { signedIn: true });
+    await user.type(await screen.findByLabelText("Your answer"), "Last winter I handled a deteriorating patient.");
+    await user.click(screen.getByRole("button", { name: "Get feedback" }));
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Before you read the feedback" })).toHaveFocus());
+    await user.click(screen.getByRole("button", { name: "Skip and show feedback" }));
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Feedback" })).toHaveFocus());
+  });
+
+  it("keeps the answer and the focus when sending fails, and sends it again", async () => {
+    let tries = 0;
+    server.use(http.post(`${API}/api/v1/careers/:track/questions/:id/answers`, async () => {
+      tries += 1;
+      if (tries === 1) {
+        return HttpResponse.json({ error: { code: "unavailable", message: "The server is busy. Try again.", request_id: "r", details: null } }, { status: 503 });
+      }
+      const { nurseAnswer } = await import("../fixtures");
+      return HttpResponse.json(nurseAnswer, { status: 201 });
+    }));
+    const { user } = renderApp(QUESTION, { signedIn: true });
+    const box = await screen.findByLabelText("Your answer");
+    await user.type(box, "Last winter I handled a deteriorating patient.");
+    await user.tab();
+    await user.keyboard("{Enter}");
+    expect(await screen.findByRole("alert")).toHaveTextContent("The server is busy. Try again.");
+    expect(box).toHaveValue("Last winter I handled a deteriorating patient.");
+    expect(box).toHaveAccessibleDescription(/words.*The server is busy/);
+    const send = screen.getByRole("button", { name: "Get feedback" });
+    expect(send).toHaveFocus(); // still where the learner was
+    await user.keyboard("{Enter}");
+    expect(await screen.findByRole("region", { name: "Feedback" })).toBeInTheDocument();
+  });
+});

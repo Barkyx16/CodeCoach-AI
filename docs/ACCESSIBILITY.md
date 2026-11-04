@@ -75,6 +75,7 @@ problem, both interview kinds, reviews, notes, saved items and Settings with the
 | At 320px with large text: the header's Menu button, the difficulty tabs, long buttons and the History filters overflowed sideways | Brand name truncates, tabs and buttons wrap, filters stack |
 | Focus rings were box-shadows only, which Windows High Contrast (forced colours) removes | A transparent outline is drawn too; it takes a system colour in that mode |
 | Font sizes in `px` (209 declarations) didn't follow a text-size setting; some colours were hard-coded | Converted to `rem`; colours moved to theme tokens |
+| After an answer was sent, the emptied box disabled "Get feedback" and focus fell to the page; the feedback appeared with its summary already inside a `role="status"`, which screen readers often don't announce (2026-11-04) | Focus moves to the feedback heading (or to "Before you read the feedback" when reflecting first, then to the feedback); covered by `careers.test.tsx` ("Answering with the keyboard") and checked in `e2e/a11y.spec.ts`, which now scans a written answer with its feedback on screen |
 
 Already in place and re-checked: skip link (first Tab stop), landmarks and headings,
 labelled fields with hints/errors linked (`Field`), the mobile menu (Esc closes and returns
@@ -107,7 +108,11 @@ Automated, run in CI or locally:
   - storage blocked entirely: the app works, Settings says preferences won't be kept;
   - forced colours: the focus indicator is still drawn.
 - `e2e/a11y.spec.ts`: axe-core scans of every main screen in the default theme on desktop and a
-  phone, and the skip link. `e2e/mobile.spec.ts`: menu dismissal and focus return at 320–768px.
+  phone (since 2026-11-04 including a written answer with its feedback), and the skip link.
+- `src/test/integration/careers.test.tsx`, "Answering with the keyboard": Enter in the answer
+  box is a new line, never a submission (dictation inserts line breaks); keyboard submit moves
+  focus to the feedback; a failed send keeps the text, the focus and the linked error, and a
+  second Enter sends it. `e2e/mobile.spec.ts`: menu dismissal and focus return at 320–768px.
 
 ### Checks done by hand (this session, in this environment)
 

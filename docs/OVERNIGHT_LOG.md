@@ -30,7 +30,8 @@ was done, on which commit, what was checked and what is left. Morning handoff at
 | 5 | Provider failure boundary | done | `d211eba` |
 | 6 | Session isolation regressions | done, see checkpoint | this change |
 | 7 | Final verification and handoff | after the bonus queue (one final verification) | |
-| B1–B5 | Bonus queue: accessible flow, safe rendering, backend ownership, concurrent submissions, diagnostics | queued after 7's checks | |
+| B1 | Accessible answer and feedback flow | done, see checkpoint | this change |
+| B2–B5 | Bonus queue: safe rendering, backend ownership, concurrent submissions, diagnostics | next | |
 
 ## Checkpoint: task 4, contradictions (rubric v5)
 
@@ -79,3 +80,16 @@ was done, on which commit, what was checked and what is left. Morning handoff at
   more.
 - Checks: `npm run lint`, `npm run typecheck`, `npm test` (54 files, 553 tests) passed. E2E runs
   with the final verification.
+
+## Checkpoint: bonus 1, accessible answer and feedback flow
+
+- Inspected: label, description and error linking, `aria-invalid`, Enter in the answer box,
+  draft kept on errors, busy button staying focusable, live regions while typing. All held.
+- Demonstrated gap (test failed first): after a successful send, the emptied box disabled the
+  focused button and focus fell to the page; the feedback's `role="status"` arrived with its
+  content, which screen readers often don't announce. Fixed by moving focus to the feedback
+  heading (or the reflection step, then the feedback).
+- Tests: keyboard submit and focus, dictated line breaks don't submit, a failed send keeps text
+  and focus, reflection-first focus; an axe scan of the page with feedback (runs with e2e).
+- Not checked: no screen reader is available here; behaviour was checked through roles, focus
+  and the accessibility tree, not by listening.

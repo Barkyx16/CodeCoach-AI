@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
@@ -77,6 +77,15 @@ export function QuestionPage() {
   });
   const [gated, setGated] = useState(false);
   const [reflected, setReflected] = useState<string | null>(null);
+  // After sending, the emptied box disables "Get feedback", and browsers drop focus from a disabled
+  // button: move it to what just appeared (the feedback, or the reflection step before it), so
+  // keyboard and screen-reader users land on the result instead of the top of the page.
+  const focusResult = useRef(false);
+  useEffect(() => {
+    if (!focusResult.current || !latest) return;
+    focusResult.current = false;
+    document.getElementById(gated ? "self-review-title" : "feedback-title")?.focus();
+  }, [latest, gated]);
 
   if (question.isPending) return <LoadingState label="Loading question…" />;
   if (question.isError) {
@@ -91,6 +100,7 @@ export function QuestionPage() {
     e.preventDefault();
     const result = await submit.mutateAsync({ answer: draft.trim(), storyId }).catch(() => null);
     if (result) {
+      focusResult.current = true;
       setLatest(result);
       setGated(reflectFirst); // the answer is saved either way; only the reveal waits
       setDraft("");
@@ -177,7 +187,7 @@ export function QuestionPage() {
           </form>
 
           {shown && gated && shown === latest ? (
-            <SelfReviewGate answer={shown} onDone={() => { setGated(false); setReflected(shown.id); }} />
+            <SelfReviewGate answer={shown} onDone={() => { focusResult.current = true; setGated(false); setReflected(shown.id); }} />
           ) : shown && (
             <>
               <div data-tour="next"><FeedbackCard answer={shown} track={track} title={shown === latest ? "Feedback" : `Feedback on your answer from ${timeAgo(shown.created_at)}`} /></div>

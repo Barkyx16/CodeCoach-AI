@@ -67,6 +67,17 @@ test("signed-in screens have no WCAG 2.1 A/AA violations", async ({ page }) => {
     await expectNoViolations(page, "workspace with hint and review");
   }
 
+  // A written answer with its feedback on screen (the coach's result, quotes and advice).
+  await page.goto("/careers/registered-nurse/questions/m-walk-0");
+  await page.getByLabel("Your answer").fill(
+    "Last winter on a busy ward I was responsible for six patients. I checked the observations, called the doctor " +
+      "about the sickest patient and asked a colleague to cover my bay. All six had their medicines on time.",
+  );
+  await page.getByRole("button", { name: "Get feedback" }).click();
+  await expect(page.getByRole("region", { name: "Feedback" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Feedback" })).toBeFocused();
+  await expectNoViolations(page, "written answer with feedback");
+
   for (const path of ["/dashboard", "/analytics", "/analytics?career=registered-nurse", "/history", "/history?career=coding&type=coaching", "/interviews", "/interviews/questions", "/plan", "/plan/goals", "/settings", "/saved", "/notes", "/notes/new"]) {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();

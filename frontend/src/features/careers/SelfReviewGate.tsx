@@ -38,7 +38,7 @@ export function SelfReviewGate({ answer, onDone }: { answer: InterviewAnswer; on
 
   return (
     <form className="card stack self-review" aria-labelledby="self-review-title" onSubmit={(e) => void send(false, e)}>
-      <h2 className="section-title" id="self-review-title">Before you read the feedback</h2>
+      <h2 className="section-title" id="self-review-title" tabIndex={-1}>Before you read the feedback</h2>
       <p className="subtle">Your answer is saved. This is optional: your own reflection, kept apart from the answer and never changing its result.</p>
       <label className="field"><span className="field__label">What went well?</span>
         <textarea className="input" rows={2} maxLength={2000} value={wentWell} onChange={(e) => setWentWell(e.target.value)} />

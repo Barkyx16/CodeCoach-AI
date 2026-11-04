@@ -15,7 +15,7 @@ export function FeedbackCard({ answer, title = "Feedback", headingId = "feedback
     <section className="card stack feedback-card" aria-labelledby={headingId} role="region">
       <div className="feedback-card__head">
         <div>
-          <h2 className="section-title" id={headingId}>{title}</h2>
+          <h2 className="section-title" id={headingId} tabIndex={-1}>{title}</h2>
           <p className="feedback-card__summary" role="status">{answer.summary}</p>
         </div>
         {insufficient ? (
