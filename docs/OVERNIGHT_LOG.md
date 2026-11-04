@@ -609,3 +609,51 @@ label showed at the default panel width; a learner who narrows the panel may hit
 
 **Next concrete action:** decide proposal 3 (an idempotency key is the smallest of the three and
 closes the remaining duplicate-answer gap), then proposal 1.
+
+## Fourth queue: Durable Saves, Honest Scores & Reliable Revisions (18 briefs), then Release Readiness & Recovery (16 briefs)
+
+## Checkpoint: NX01, reconciled state
+
+- Verified (not taken from the report): branch `claude/gallant-galileo-hapob6`, HEAD = remote =
+  `eae8088`, clean working tree; PR #10 open, base `feature/premium-frontend` (`7ace293`), head
+  `eae8088`. Not touched: the PR's description, comments, base or reviewers.
+- Already satisfied, kept: What next, numbered tries, version-aware comparison, filtered
+  breadcrumbs, the lost-reply lookup (it stays as recovery support once keys exist).
+- Gaps confirmed in code: answers have no request key (code submissions do:
+  `Submission.client_request_id`, unique per owner, `_replay` compares problem, mode and code);
+  no stored revision link; `best_score` is a raw `max(score)` in five places (careers, explore,
+  activity, roles, roadmap) plus per-answer labels (activity feed, learn, stories); the coding
+  toolbar can hide its buttons; tour completion can be lost by a reload. API schemas ignore
+  unknown fields (`APIModel` has no `extra="forbid"`), so an older server would silently drop a
+  key: the client must not claim protection without a capability signal.
+- Practice answers are never restored from a backup (`services/restore.py`, `_RESULTS`), so keys
+  and revision links can't collide on restore. Interview rounds also write answers (unkeyed).
+- The older playbook's briefs 06–28 never arrived; nothing is assumed about them.
+
+## Checkpoint: NX02, the coding toolbar
+
+- Cause (reproduced): `.editor-toolbar` is a flex item in the editor pane's column with
+  `min-height: 44px`, which replaces the content-based minimum; in a short pane the column shrank
+  it to 44px and its wrapped second row was painted under the code editor.
+- Fix (`styles/features.css`): the toolbar doesn't shrink (`flex-shrink: 0`); its actions wrap
+  among themselves (right-aligned). Labels unchanged ("Reset", named "Reset code", confirmation
+  says submissions are kept).
+- Check: `e2e/workspace-toolbar.spec.ts` (Chromium, desktop layout): a 960×640 window, a
+  1440×900 window narrowed to 940×640 after the editor loaded, and 1280×720 with the app's larger
+  text; it asserts the toolbar really wrapped, hit-tests every toolbar button (the element under
+  its centre is the button), then clicks Save attempt without force. It failed before the fix
+  ("Editor settings" covered at 960×640) and passes after. Screenshots inspected at 960 and 1440.
+  Not checked: browser zoom itself (the app's text size stands in), a physical device.
+
+## Checkpoint: NX16, the e2e collection error ("reading 'DEV'")
+
+- The failing run kept only its last 25 lines (24 × `TypeError: Cannot read properties of
+  undefined (reading 'DEV')`, then `Error: No tests found`); its working directory wasn't recorded.
+- Reproduced the same signature: Playwright run without the frontend config (from the repository
+  root) collects the Vitest files under `frontend/src`; they import `src/lib/diagnostics.ts`, which
+  reads Vite's `import.meta.env.DEV` at load, giving 51 such errors and no tests. With the config
+  (`frontend/playwright.config.ts`, `testDir: ./e2e`) no app module is imported by any spec.
+- Not changed: no app code (guarding `import.meta.env` would only hide a wrong invocation). Not
+  proven: that the failed run lacked the config. Procedure: run e2e as `npm run e2e` (or
+  `npx playwright test`) from `frontend/`, as CI does; if the signature reappears, record the
+  working directory and `npx playwright test --list | head`.
