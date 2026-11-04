@@ -9,6 +9,7 @@ import { diag } from "@/lib/diagnostics";
 import { AuthContext, type AuthContextValue } from "./context";
 import { forgetDeviceUser, readDeviceUser, rememberDeviceUser, type DeviceUser } from "./deviceUser";
 import { clearLocalWork } from "./localWork";
+import { forgetPendingSignOut, rememberPendingSignOut, signOutPending } from "./pendingSignOut";
 import { beginAttempt, dropAttempt, forgetAttempts, RACE_RETRY_MS, settleAttempt, withRefreshLock } from "./refreshAttempt";
 import { forgetLegacySession, isExpired, refreshDelay, sessionFromToken, type Session } from "./session";
 
@@ -29,6 +30,29 @@ async function sendRefresh(): Promise<TokenResponse> {
     }
     throw error;
   }
+}
+
+/**
+ * Finish a sign-out the server never heard (pendingSignOut.ts): use the refresh cookie once, only
+ * to get a token the sign-out request can carry, and send it. The token is never kept. A cookie
+ * that no longer works means there's nothing left to end; a lost connection (or another tab using
+ * the cookie) leaves the flag for the next load.
+ */
+let finishing: Promise<void> | null = null;
+function finishPendingSignOut(): Promise<void> {
+  finishing ??= (async () => {
+    try {
+      const response = await withRefreshLock(sendRefresh);
+      await api.logoutWith(response.access_token);
+      forgetPendingSignOut();
+      diag("auth", { event: "pending_sign_out", outcome: "sent" });
+    } catch (error) {
+      const ended = error instanceof ApiError && (error.status === 401 || error.status === 403) && error.code !== "refresh_race";
+      if (ended) forgetPendingSignOut();
+      diag("auth", { event: "pending_sign_out", outcome: ended ? "already_ended" : "kept" });
+    }
+  })().finally(() => { finishing = null; });
+  return finishing;
 }
 
 /**
@@ -81,6 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /** A new sign-in (login, register, guest, password change): start a fresh session. */
   const adopt = useCallback((response: TokenResponse): User => {
     const next = sessionFromToken(response);
+    forgetPendingSignOut(); // signed in again on this device: the old sign-out no longer matters
     epoch.current += 1;
     startAuthGeneration(); // requests of the previous session are never retried as this one
     inFlight.current = null;
@@ -99,6 +124,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (inFlight.current) return inFlight.current;
     const startedIn = epoch.current;
     const attempt = async (): Promise<string | null> => {
+      // Signed out on this device, but the server never heard: the cookie mustn't sign anyone back in.
+      if (signOutPending()) {
+        lastFailure.current = "rejected";
+        return null;
+      }
       // Known to be offline: don't send a refresh that can't succeed. (A refresh the server
       // receives but whose answer is lost uses up the rotating cookie; see refreshAttempt.ts.)
       if (typeof navigator !== "undefined" && navigator.onLine === false) {
@@ -178,6 +208,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // and then report a race, which must not read as "signed out".
   useEffect(() => {
     forgetLegacySession();
+    if (signOutPending()) {
+      // Signed out here last time, but the server never heard: send that first, and stay signed out.
+      void finishPendingSignOut().finally(() => setIsRestoring(false));
+      return;
+    }
     void refreshNow().then((token) => {
       if (!token && lastFailure.current === "network") setOfflineUser(readDeviceUser());
     }).finally(() => setIsRestoring(false));
@@ -221,8 +256,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout: async () => {
       try {
         await api.logout(); // ends this device's refresh cookie server-side
+        forgetPendingSignOut();
       } catch {
-        /* still sign out locally even if the network call fails */
+        // Still signed out here; the server didn't hear it, so the next load sends it again.
+        rememberPendingSignOut();
       }
       const id = session?.user.id ?? offlineUser?.id;
       if (id) clearLocalWork(id); // drafts and pending sync for this account, on this device

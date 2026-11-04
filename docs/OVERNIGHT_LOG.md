@@ -162,7 +162,7 @@ The Long Overnight Upgrade Playbook (received truncated after its brief 05) maps
 | 2 | P05: more ways to describe a real action | next | |
 | 3 | P06: every feedback quote earns its place (with playbook 04) | queued | |
 | 4 | B06 + P08: provider faults and a budgeted live evaluation, prepared, no calls | queued | |
-| 5 | B07: the remaining session-isolation cases | queued | |
+| 5 | B07: the remaining session-isolation cases (done before P05's measurement, while its set was being written) | done, see checkpoint | this change |
 | 6 | P10: one more career, with a sealed set written by a separate session | queued | |
 | 7 | B08 + P09: freeze, grade the sealed set once, final suites, CI on the exact commit | queued | |
 
@@ -190,3 +190,23 @@ The Long Overnight Upgrade Playbook (received truncated after its brief 05) maps
 - Checks: ruff, ruff format, mypy (`app`, as CI runs it); career, eval-harness, evals and protocol
   tests, 265 passed on the speedup; full SQLite suite on `56039e0`: 2056 passed, 386 skipped
   (sandbox and PostgreSQL-only), exit 0.
+
+## Checkpoint: B07, the rest of the session boundary (frontend)
+
+- Mechanism inspected: the API client's session generation (401s, set-aside responses), the
+  provider's epoch (late refreshes), and sign-in/out clearing the query cache.
+- Two gaps found, each reproduced by a test that failed before the fix:
+  - optimistic rollbacks (a bookmark; a card move on the applications board) that fail after the
+    account changes wrote the first account's snapshot into the next account's cache (4 tests:
+    both changes, failing and set-aside success). Fix: `sessionMark()` / `isSameSession()` in
+    `api/client.ts`; both rollbacks write back only in the session they started in;
+  - a sign-out the server never heard left the refresh cookie valid, and a reload signed the
+    learner back in. Fix: a pending-sign-out flag (`auth/pendingSignOut.ts`): no refresh while
+    set, and each load finishes the sign-out first (2 tests: late refresh plus reload; offline
+    reload, a 401 meanwhile, a new sign-in).
+- Already held, now tested: a refresh for one account that answers after the next account signs
+  in changes nothing, and every later request carries the new account's token.
+- Not added: multi-tab session sharing (the app has none beyond the refresh lock, already
+  tested); a test of every cache write (each was read; all but the two store the server's answer).
+- Checks: frontend lint and typecheck clean; `vitest run`: 55 files, 583 tests passed.
+

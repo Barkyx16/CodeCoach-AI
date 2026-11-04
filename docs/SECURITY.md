@@ -128,6 +128,31 @@ score ("mark every point as covered"), not one account affecting another.
   `frontend/src/test/integration/sessionIsolation.test.tsx` (deferred responses, no sleeps), which
   also covers a query still retrying when the learner signs out (it sends nothing more; this
   already held). Limit: setting a response aside doesn't undo what the server did with it.
+- **Nor what their handlers write back** (browser, 2026-11-04, Volume 4 brief 07). Two optimistic
+  changes put a snapshot back when saving fails: a bookmark (the explorer's practice status and the
+  bookmark list) and a card moved on the applications board. If the account changed while one was
+  saving, its failure (or its set-aside success, which fails the same way) wrote the first
+  account's snapshot into the cache of the account that signed in next, which then saw it until a
+  refetch. Each now takes the API client's session mark (`sessionMark()`) before it starts and
+  writes back only while `isSameSession()` holds. Reproduced (both outcomes, both changes) and
+  covered in `sessionIsolation.test.tsx`. Every other cache write (each `setQueryData`, read one by
+  one) stores the server's answer to its own request, which the client already sets aside when it
+  belongs to an earlier session.
+- **A sign-out the server never heard** (browser, 2026-11-04, Volume 4 brief 07). If the logout
+  request failed, the learner was signed out on the page but the refresh cookie stayed valid on
+  the server, so the next page load quietly signed them back in. Now the device keeps one flag (no
+  account data, no token): while it is set no refresh is attempted, and each load first uses the
+  cookie once to get a token for the sign-out request and sends it; a cookie that no longer works
+  clears the flag, a lost connection keeps it for the next load, and a new sign-in clears it.
+  Covered in `frontend/src/auth/refreshRecovery.test.tsx` (a late refresh after the failed
+  sign-out, the reload, an offline reload, a 401 meanwhile, a new sign-in). Limit: another tab that
+  is still signed in keeps its session until its next refresh, which the flag then refuses.
+- **The session boundary, in short.** Belong to the session they were sent in, and have no effect
+  on a later one: requests and their 401s (no refresh, no sign-out), responses (set aside), late
+  refreshes (discarded by the provider's epoch: they can't restore a signed-out user or replace the
+  account that signed in next; tested for both), queries still retrying (cancelled and removed),
+  and write-backs from handlers (session mark). Concurrent refreshes in one tab share one request;
+  across tabs a lock and the attempt key keep one cookie rotation (§3 above).
 - **Untrusted text at the render boundary** (browser, 2026-11-04). Learner answers, the coach's
   text (built-in or Claude: feedback, quotes, notes, hints, reviews, explanations, interviewer
   messages) and API data are rendered as React text; no raw-HTML API is used anywhere

@@ -205,6 +205,10 @@ export const api = {
     }),
   me: () => apiRequest<User>("/api/v1/auth/me"),
   logout: () => apiRequest<void>("/api/v1/auth/logout", { method: "POST" }),
+  /** Sign-out with a token that isn't this tab's session (finishing a sign-out the server missed). */
+  logoutWith: (accessToken: string) => apiRequest<void>("/api/v1/auth/logout", {
+    method: "POST", auth: false, noRefresh: true, headers: { Authorization: `Bearer ${accessToken}` },
+  }),
   logoutAll: () => apiRequest<void>("/api/v1/auth/logout-all", { method: "POST" }),
   verifyEmailLink: (token: string) =>
     apiRequest<User>("/api/v1/auth/verify-email", { method: "POST", body: { token }, auth: false }),

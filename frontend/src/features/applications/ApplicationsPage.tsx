@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useId, useMemo, useState, type DragEvent, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
+import { isSameSession, sessionMark } from "@/api/client";
 import { api } from "@/api/endpoints";
 import { useApplications } from "@/api/queries";
 import type { ApplicationStage, ApplicationSummary } from "@/api/types";
@@ -62,12 +63,15 @@ export function ApplicationsPage() {
     setMoveError(null);
     // Show it in the new column at once; put it back if saving fails.
     const key = ["me", "applications", { archived }];
+    const session = sessionMark();
     const prev = qc.getQueryData<ApplicationSummary[]>(key);
     qc.setQueryData<ApplicationSummary[]>(key, (list) => list?.map((x) => (x.id === a.id ? { ...x, stage: to } : x)));
     try {
       await api.setApplicationStage(a.id, { stage: to, note: "", correction: false });
       void qc.invalidateQueries({ queryKey: ["me", "applications"] });
     } catch (e) {
+      // Signed out, or in as someone else, while this was saving: nothing of it is put back.
+      if (!isSameSession(session)) return;
       qc.setQueryData(key, prev);
       setMoveError(e);
     }

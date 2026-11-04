@@ -5,7 +5,7 @@
  * it returns the same successor (while it is unused); anything else is a race.
  */
 import { QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -15,6 +15,7 @@ import { API, server } from "@/test/server";
 import { tokenResponse } from "@/test/fixtures";
 
 import { AuthProvider } from "./AuthProvider";
+import { PENDING_SIGN_OUT_KEY } from "./pendingSignOut";
 import { beginAttempt, pendingAttemptKey, RACE_RETRY_MS, resetRefreshAttemptsForTests, settleAttempt, withRefreshLock } from "./refreshAttempt";
 import { useAuth } from "./useAuth";
 
@@ -57,13 +58,16 @@ class FakeSessionServer {
     return HttpResponse.json(tokenResponse({ access_token: `token-${successor}` }));
   });
 
-  logout = http.post(`${API}/api/v1/auth/logout`, () => {
+  /** What the server's sign-out does: every cookie of this session stops working. */
+  signOut() {
     for (const token of [this.jar, ...this.used.keys(), ...[...this.used.values()].map((r) => r.successor)]) {
       if (token) this.revoked.add(token);
     }
     this.jar = null;
     return new HttpResponse(null, { status: 204 });
-  });
+  }
+
+  logout = http.post(`${API}/api/v1/auth/logout`, () => this.signOut());
 }
 
 function Probe() {
@@ -74,6 +78,7 @@ function Probe() {
       <p>{auth.signedOutReason ?? "no reason"}</p>
       <p>{auth.signedOutDeliberately ? "deliberate" : "not deliberate"}</p>
       <button onClick={() => void auth.logout()}>Sign out</button>
+      <button onClick={() => void auth.login({ email: "ada@example.com", password: "CorrectHorse42" })}>Sign in</button>
     </div>
   );
 }
@@ -199,6 +204,75 @@ describe("signing out", () => {
     expect(screen.getByText("deliberate")).toBeInTheDocument(); // not "your session ended"
     expect(screen.getByText("no reason")).toBeInTheDocument();
     expect(window.sessionStorage.getItem("codecoach.refresh-attempt")).toBeNull();
+  });
+
+  it("a sign-out the server never heard, then a late refresh and a reload: still signed out", async () => {
+    mount();
+    await screen.findByText(/signed in as/);
+    let release!: () => void;
+    fake.hold = new Promise<void>((resolve) => { release = resolve; });
+    let logouts = 0;
+    let reachable = false;
+    server.use(
+      http.get(`${API}/api/v1/thing`, () =>
+        HttpResponse.json({ error: { code: "unauthorized", message: "expired", request_id: "r", details: null } }, { status: 401 })),
+      // The first sign-out never reaches the server, so the refresh cookie stays valid there.
+      http.post(`${API}/api/v1/auth/logout`, () => {
+        logouts += 1;
+        return reachable ? fake.signOut() : HttpResponse.error();
+      }),
+    );
+    const pending = apiRequest("/api/v1/thing").catch(() => undefined); // starts a refresh, which waits
+    await waitFor(() => expect(fake.calls).toHaveLength(2));
+    screen.getByRole("button", { name: "Sign out" }).click();
+    await screen.findByText("signed out");
+    await waitFor(() => expect(logouts).toBe(1));
+    fake.hold = null;
+    release(); // the refresh's answer arrives after the failed sign-out
+    await pending;
+    expect(screen.getByText("signed out")).toBeInTheDocument();
+    // A reload: the cookie would still restore the session, but the learner signed out here.
+    reachable = true;
+    cleanup();
+    mount();
+    await screen.findByText("signed out");
+    await waitFor(() => expect(logouts).toBe(2)); // the sign-out is sent again on load
+    expect([...fake.revoked]).toContain(fake.calls.at(-1)?.cookie ?? "C3");
+    cleanup();
+    mount(); // and once the server has it, nothing is left to repeat
+    await screen.findByText("signed out");
+    expect(logouts).toBe(2);
+  });
+
+  it("a pending sign-out survives an offline reload, and a new sign-in clears it", async () => {
+    mount();
+    await screen.findByText(/signed in as/);
+    server.use(http.post(`${API}/api/v1/auth/logout`, () => HttpResponse.error())); // never reaches the server
+    screen.getByRole("button", { name: "Sign out" }).click();
+    await screen.findByText("signed out");
+    expect(window.localStorage.getItem(PENDING_SIGN_OUT_KEY)).toBe("1");
+    const before = fake.calls.length;
+    server.use(http.post(`${API}/api/v1/auth/refresh`, () => HttpResponse.error())); // offline on the next load too
+    cleanup();
+    mount();
+    await screen.findByText("signed out");
+    expect(window.localStorage.getItem(PENDING_SIGN_OUT_KEY)).toBe("1"); // kept for the next load
+    // A request that comes back 401 meanwhile doesn't spend the cookie either.
+    server.use(http.get(`${API}/api/v1/thing`, () =>
+      HttpResponse.json({ error: { code: "unauthorized", message: "expired", request_id: "r", details: null } }, { status: 401 })));
+    await apiRequest("/api/v1/thing").catch(() => undefined);
+    expect(fake.calls.length).toBe(before); // no refresh reached the cookie's server
+    // Signing in again on this device: the old sign-out no longer applies.
+    server.use(fake.handler, http.post(`${API}/api/v1/auth/login`, () => {
+      fake.jar = "C9";
+      return HttpResponse.json(tokenResponse({ access_token: "token-C9" }));
+    }));
+    screen.getByRole("button", { name: "Sign in" }).click();
+    await screen.findByText(/signed in as/);
+    expect(window.localStorage.getItem(PENDING_SIGN_OUT_KEY)).toBeNull();
+    cleanup();
+    mount(); // and a reload restores that session as usual
+    await screen.findByText(/signed in as/);
   });
 
   it("a reload after signing out stays signed out", async () => {

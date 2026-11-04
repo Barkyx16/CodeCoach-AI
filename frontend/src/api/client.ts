@@ -71,6 +71,20 @@ export function startAuthGeneration(): void {
   generation += 1;
 }
 
+/**
+ * The session the cache belongs to right now. A change that writes back to the cache when it
+ * answers (putting an optimistic update back after a failure) takes this before it starts and
+ * writes back only while `isSameSession` says it's still on: otherwise the previous account's
+ * snapshot would land in the cache of the account that signed in next.
+ */
+export function sessionMark(): number {
+  return generation;
+}
+
+export function isSameSession(mark: number): boolean {
+  return mark === generation;
+}
+
 const AUTH_PATH = "/api/v1/auth/";
 
 export interface RequestOptions {

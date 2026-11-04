@@ -4,7 +4,7 @@
  */
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { ApiError } from "./client";
+import { ApiError, isSameSession, sessionMark } from "./client";
 import { api, type ActivityFilters, type ExploreFilters, type NoteFilters, type ProblemFilters, type QuestionFilters } from "./endpoints";
 import type { AIHistoryAction, AnswerSource, Difficulty, Bookmark, Collection, GoalsInput, MyExploreResult, ReviewQueue, SavedItemRef, ShareDetail, Target, ContentKind, Onboarding, OnboardingUpdate, UnitProgress, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
 import { withOfflineCopy } from "@/features/offline/offlineStore";
@@ -405,6 +405,7 @@ export function useToggleBookmark() {
   return useMutation({
     mutationFn: ({ ref, on }: { ref: SavedItemRef; on: boolean }) => (on ? api.addBookmark(ref) : api.removeBookmark(ref)),
     onMutate: async ({ ref, on }) => {
+      const session = sessionMark(); // before anything is read: the snapshot belongs to this session
       await qc.cancelQueries({ queryKey: ["me", "explore"] });
       await qc.cancelQueries({ queryKey: ["me", "bookmarks"] });
       const explore = qc.getQueriesData<MyExploreResult>({ queryKey: ["me", "explore"] });
@@ -419,9 +420,11 @@ export function useToggleBookmark() {
           ? [{ item_type: ref.item_type, track: ref.track ?? "", ref_id: ref.ref_id, title: "", href: null, available: true, created_at: new Date().toISOString() }, ...marks]
           : marks.filter((b) => !sameRef(ref, b)));
       }
-      return { explore, marks };
+      return { explore, marks, session };
     },
     onError: (_error, _vars, context) => {
+      // Signed out, or in as someone else, while this was saving: their cache isn't this one's.
+      if (!context || !isSameSession(context.session)) return;
       for (const [key, data] of context?.explore ?? []) qc.setQueryData(key, data);
       if (context?.marks) qc.setQueryData(["me", "bookmarks"], context.marks);
     },
