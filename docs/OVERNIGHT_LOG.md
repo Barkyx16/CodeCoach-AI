@@ -474,3 +474,62 @@ what `best_score` means across the five services that compute it (proposal only)
   question tried only with a few words shows "best score 35". Excluding them is a cross-cutting
   contract change (careers, explore, activity, roadmap); left as is and noted.
 - Checks: `upNext.test.ts` (4), `careerDashboard.test.tsx`, `progress`, `plan`; e2e text updated.
+
+## Checkpoint: LX05–LX08, past answers, the recap, targeted retry and comparison
+
+Data contract: `GET /careers/{t}/questions/{id}/answers` (this account's answers, newest first,
+at most 20) and each answer's own fields; no API, schema or storage change.
+
+- LX05 Review: the entry point is the dashboard link (LX04) to answered questions, lowest score
+  first. On the question page each past answer is "Try N" (1 = first) when the list is complete;
+  with 20 listed the first tries may be missing, so they're labelled by date and the list says
+  "your 20 most recent". Choosing one puts `?answer=<id>` in the URL (replace, keeping the
+  page's navigation state), so a reload or Back keeps it; it's titled "Feedback on try N from …",
+  never "Feedback" (which only the answer just sent gets; before, choosing an old answer reused
+  the just-sent slot and its title). An answer too short to score is listed as "Too short to
+  score", not by its capped number. A changed question keeps its existing note (answered
+  version N); a missing answer id keeps its existing warning.
+- LX06 Recap ("What next", under the feedback): what this try covered ("covered 2 of 3 points the
+  rubric looks for. To add: …", or "too short to score yet (N words)"), the comparison below,
+  and one primary action: revise when a point is missing or it was too short, otherwise the next
+  unanswered question at this level (library order, after this one, wrapping; "every other …
+  question here has an answer" only when the whole level was listed). Always "Back to {career}
+  questions". Structural wording only; nothing about whether details are right.
+- LX07 Targeted retry: "Revise this answer" (or "Add to this answer") fills the box with that try's
+  text only if the box is empty (unsent text is never replaced; the note says so), names the
+  first missing point and its advice, and asks for only what really happened. "Start from a blank
+  box" has an Undo; "Hide this note" only hides the note. Sending saves a new try through the
+  same `POST`; earlier tries are never changed. The draft uses the existing per-account,
+  per-question draft key; nothing new is stored. Not offered offline or for a retired question.
+  How tries stay distinguishable: separate answer ids and times; there is no stored link from a
+  revision to the try it revised (proposal: a nullable `revises_answer_id` column, which needs a
+  migration, so not done).
+- LX08 Comparison rule (`features/careers/tries.ts`, unit-tested): two tries are compared only
+  when they have the same question version, rubric version and coach, and both were long enough
+  to score; then the points gained and lost are named and the two scores given as numbers (no
+  arrow, no percentage, no claim that the learner improved). Otherwise: "Not directly comparable
+  with try N: …" with each reason. The past-answers list adds each answer's rubric when they
+  differ, and says their scores aren't directly comparable.
+- Checks: `tries.test.ts` (6), `learnerJourney.test.tsx` (9 for these briefs; all 9 failed on
+  the previous page), History back-navigation test and e2e title updated ("Feedback on try 1").
+
+## Checkpoint: LX09–LX11, list context, unknown saves, reset scope
+
+- LX09: the question page's breadcrumb went to the unfiltered library; it now returns to the list
+  the question was opened from (its URL, with level, search and filters), and "Next question"
+  carries that list along (`listFrom` in navigation state, accepted only for `/problems` paths).
+  BackLink (browser Back) is unchanged. Direct links with no list fall back to the career's
+  library. Private answers never go in URLs or state: only ids. Not restored: scroll position
+  after the breadcrumb (it's a new navigation; browser Back restores it).
+- LX10: career answers have no idempotency key, so a reply lost after the server saved would make
+  "try again" save a duplicate. Now, when no reply comes back (network error, status 0), the page
+  reloads this account's answers and, if a new one with the same text is there, shows it as saved;
+  otherwise it says the outcome is unknown, keeps the text, and asks the learner to look at their
+  past answers before resending. Definite refusals (the server answered) keep their error and
+  retry. Limit: if the server saves it after that check, a resend can still duplicate it
+  (proposal: an idempotency key on this endpoint, as code submissions have; needs a column).
+- LX11: the question page had no reset; the new "Start from a blank box" clears only the box (Undo).
+  The coding workspace's "Reset" now reads "Reset code" and its confirmation says the starter code
+  replaces the editor's unsent changes and past submissions are kept (it already only reset the
+  local draft). Interview "End the interview" already said what it ends. No retention change.
+- Checks: `learnerJourney.test.tsx` (5 more; the 3 behaviour tests failed on the previous page).

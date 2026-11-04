@@ -105,7 +105,7 @@ test("non-coding: answer, find it in History, inspect Analytics, switch careers 
   await expect(row).toContainText(/Scored \d+\/100/);
   await row.getByRole("link").click();
   await expect(page).toHaveURL(new RegExp(`${new URL(questionUrl).pathname}\\?answer=`));
-  await expect(page.getByRole("region", { name: /Feedback on your answer from/ })).toBeVisible();
+  await expect(page.getByRole("region", { name: /Feedback on try 1 from/ })).toBeVisible();
   await page.getByRole("link", { name: "Back to History" }).click();
   await expect(page).toHaveURL(/career=registered-nurse&type=written_answer/);
 

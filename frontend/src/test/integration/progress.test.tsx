@@ -40,7 +40,7 @@ describe("Unified History", () => {
     expect(router.state.location.pathname).toBe("/careers/registered-nurse/questions/e-good-0");
     expect(router.state.location.search).toBe("?answer=a-1");
     // The linked answer's feedback opens on arrival.
-    expect(await screen.findByRole("region", { name: /Feedback on your answer from/ })).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: /Feedback on try 1 from/ })).toBeInTheDocument();
     await user.click(screen.getByRole("link", { name: "Back to History" }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/history"));
     expect(router.state.location.search).toBe("?career=registered-nurse&type=written_answer");

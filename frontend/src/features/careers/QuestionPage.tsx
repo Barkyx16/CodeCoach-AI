@@ -31,11 +31,13 @@ import { GuidedTour } from "@/features/onboarding/GuidedTour";
 import { StoryPicker } from "@/features/stories/StoryPicker";
 import { ScheduleLink } from "@/features/schedule/ScheduleLink";
 
+import { AnswerRecap } from "./AnswerRecap";
 import { AnswerReviewPanel } from "./AnswerReviewPanel";
 import { CriteriaPanel } from "./CriteriaPanel";
 import { FeedbackCard } from "./FeedbackCard";
 import { SelfReviewGate } from "./SelfReviewGate";
 import { KIND_LABEL } from "./kinds";
+import { previousTry, tryNumbers } from "./tries";
 
 const MAX_CHARS = 6000;
 const REFLECT_KEY = "codecoach.reflect-first";
@@ -84,18 +86,27 @@ function QuestionPageFor() {
   const retired = content.data?.status === "retired";
   // Unsent drafts are kept in this browser; a draft carried over from an interview that ended
   // before this question was answered fills an empty box (never overwrites one).
-  const carried = (useLocation().state as { draft?: string } | null)?.draft ?? "";
+  const location = useLocation();
+  const carried = (location.state as { draft?: string } | null)?.draft ?? "";
   const [draft, setDraft, kept] = useStoredDraft(answerDraftKey(draftScope, track, id));
   useLeaveWarning(!kept && draft.trim().length > 0);
   useEffect(() => {
     if (carried && !draft) setDraft(carried);
   }, [carried]); // eslint-disable-line react-hooks/exhaustive-deps
-  // ?answer=<id> (from History) opens that past answer's feedback.
-  const [params] = useSearchParams();
+  // ?answer=<id> opens that past answer's feedback (from History, or chosen under "Your past
+  // answers"); without it, the answer sent from this page is shown. Each keeps its own identity.
+  const [params, setParams] = useSearchParams();
   const wanted = params.get("answer");
-  const [latest, setLatest] = useState<InterviewAnswer | null>(null);
-  const linked = wanted && answers.data ? answers.data.find((a) => a.id === wanted) ?? null : null;
-  const shown = latest ?? linked;
+  const [sent, setSent] = useState<InterviewAnswer | null>(null);
+  const selected = wanted ? answers.data?.find((a) => a.id === wanted) ?? (sent?.id === wanted ? sent : null) : null;
+  const shown = wanted ? selected : sent;
+  const isNew = !!shown && shown.id === sent?.id;
+  // A revision aimed at one missing point: the box starts from the earlier answer (only if it's
+  // empty), and sending saves a new try; the earlier one is never changed.
+  const [revising, setRevising] = useState<{ fromId: string; target: { label: string; advice: string } | null; keptText: boolean } | null>(null);
+  const [cleared, setCleared] = useState<string | null>(null);
+  // Sending failed without a reply, and the answer isn't among the saved ones (yet).
+  const [unconfirmed, setUnconfirmed] = useState(false);
   const [guestError, setGuestError] = useState<unknown>(null);
   const [storyId, setStoryId] = useState<string | null>(null);
   // Optional: reflect on the answer before the coach's feedback is shown (remembered on this device).
@@ -109,10 +120,10 @@ function QuestionPageFor() {
   // keyboard and screen-reader users land on the result instead of the top of the page.
   const focusResult = useRef(false);
   useEffect(() => {
-    if (!focusResult.current || !latest) return;
+    if (!focusResult.current || !sent) return;
     focusResult.current = false;
     document.getElementById(gated ? "self-review-title" : "feedback-title")?.focus();
-  }, [latest, gated]);
+  }, [sent, gated]);
 
   if (question.isPending) return <LoadingState label="Loading question…" />;
   if (question.isError) {
@@ -124,15 +135,63 @@ function QuestionPageFor() {
   const savedVersion = bookmarks.data?.find((b) => b.item_type === "question" && b.track === track && b.ref_id === id)?.content_version ?? null;
   const words = countWords(draft);
   const backTo = user?.career_track === track ? "/problems?view=questions" : `/problems?career=${track}&view=questions`;
+  // The list this question was opened from (its filters, level and search are in its URL), kept
+  // across "Next question"; only the library's own paths, never anything else from history state.
+  const navState = location.state as { from?: string; listFrom?: string } | null;
+  const listTo = [navState?.listFrom, navState?.from].find((path): path is string => !!path && /^\/problems(\?|$)/.test(path)) ?? backTo;
+  const numbers = answers.data ? tryNumbers(answers.data) : null;
+  const tryOf = (a: InterviewAnswer | null) => (a && numbers?.get(a.id)) ?? null;
+  const previous = shown && answers.data ? previousTry(answers.data, shown) : null;
+  const rubrics = new Set(answers.data?.map((a) => a.rubric_version));
+  const revisingFrom = revising ? answers.data?.find((a) => a.id === revising.fromId) ?? (sent?.id === revising.fromId ? sent : null) : null;
+  const fromLabel = revisingFrom && tryOf(revisingFrom) ? `try ${tryOf(revisingFrom)}` : "your earlier answer";
+  const canRevise = (isAuthenticated || !!offlineUser) && online && !retired;
+
+  /** Show one past answer: in the URL, so a reload or Back keeps it (the page's own state stays). */
+  function choose(answerId: string) {
+    setParams((p) => { p.set("answer", answerId); return p; }, { replace: true, state: location.state });
+  }
+
+  function revise(target: { label: string; advice: string } | null) {
+    if (!shown) return;
+    const keptText = !!draft.trim() && draft.trim() !== shown.answer.trim();
+    if (!draft.trim()) setDraft(shown.answer);
+    setCleared(null);
+    setRevising({ fromId: shown.id, target, keptText });
+    window.setTimeout(() => {
+      const box = document.getElementById("answer-text") as HTMLTextAreaElement | null;
+      box?.focus();
+      box?.setSelectionRange(box.value.length, box.value.length);
+    }, 0);
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    const result = await submit.mutateAsync({ answer: draft.trim(), storyId }).catch(() => null);
+    const text = draft.trim();
+    const known = new Set(answers.data?.map((a) => a.id));
+    setUnconfirmed(false);
+    let failure: unknown = null;
+    let result = await submit.mutateAsync({ answer: text, storyId }).catch((err: unknown) => { failure = err; return null; });
+    // No reply at all (a dropped connection): the server may still have saved it. Look at the saved
+    // answers before suggesting a resend that would save it twice.
+    if (!result && isAuthenticated && failure instanceof ApiError && failure.status === 0) {
+      const fresh = await answers.refetch().catch(() => null);
+      const saved = fresh?.data?.find((a) => !known.has(a.id) && a.answer.trim() === text) ?? null;
+      if (saved) {
+        submit.reset();
+        result = saved;
+      } else {
+        setUnconfirmed(true);
+      }
+    }
     if (result) {
       focusResult.current = true;
-      setLatest(result);
+      setSent(result);
+      if (wanted) setParams((p) => { p.delete("answer"); return p; }, { replace: true, state: location.state });
       setGated(reflectFirst); // the answer is saved either way; only the reveal waits
       setDraft("");
+      setRevising(null);
+      setCleared(null);
       setStoryId(null); // the next answer is only tied to a story if you choose one again
     }
   }
@@ -143,7 +202,7 @@ function QuestionPageFor() {
         <BackLink />
         {isAuthenticated && <QueueBar item={{ item_type: "question", track, ref_id: id }} />}
         <nav className="question-page__crumbs" aria-label="Breadcrumb">
-          <Link to={backTo}><Icon name="book" size={15} />{q.career_title} questions</Link>
+          <Link to={listTo}><Icon name="book" size={15} />{q.career_title} questions</Link>
         </nav>
       </div>
       <div className="page__header">
@@ -174,13 +233,41 @@ function QuestionPageFor() {
 
           <form className="card stack" onSubmit={onSubmit} aria-labelledby="answer-title">
             <h2 className="section-title" id="answer-title">Write your answer</h2>
+            {revising && (
+              <div className="banner banner--info revise-note">
+                <p>
+                  <strong>{revising.target ? `Revising ${fromLabel}: add “${revising.target.label}”.` : `Adding to ${fromLabel}.`}</strong>
+                  {revising.target && <> {revising.target.advice}</>}
+                </p>
+                <p className="subtle">
+                  {revising.keptText
+                    ? "Your unsent text is still in the box; it wasn't replaced with the earlier answer. "
+                    : "The box starts from your earlier answer. Sending saves a new try; the earlier one stays as it was. "}
+                  Describe only what really happened: if you don't remember a detail, leave it out rather than add one.
+                </p>
+                <span className="row">
+                  {draft.trim() && <Button size="sm" variant="ghost" onClick={() => {
+                    setCleared(draft);
+                    setDraft("");
+                    document.getElementById("answer-text")?.focus();
+                  }}>Start from a blank box</Button>}
+                  <Button size="sm" variant="ghost" onClick={() => setRevising(null)}>Hide this note</Button>
+                </span>
+              </div>
+            )}
+            {cleared !== null && (
+              <p className="row subtle" role="status">
+                The box is empty now.
+                <Button size="sm" variant="ghost" onClick={() => { setDraft(cleared); setCleared(null); }}>Undo</Button>
+              </p>
+            )}
             {isAuthenticated && <div className="focus-hide"><StoryPicker track={track} questionId={id} draft={draft} setDraft={setDraft} storyId={storyId} setStoryId={setStoryId} /></div>}
             <label className="visually-hidden" htmlFor="answer-text">Your answer</label>
             <textarea id="answer-text" data-tour="answer" className="input answer-input" rows={10} maxLength={MAX_CHARS} value={draft}
               placeholder="Write it the way you'd say it in the interview…"
               aria-describedby={submit.error ? "answer-count answer-error" : "answer-count"}
               aria-invalid={submit.error instanceof ApiError && submit.error.status === 422 ? true : undefined}
-              onChange={(e) => setDraft(e.target.value)} />
+              onChange={(e) => { setDraft(e.target.value); setCleared(null); }} />
             <div className="answer-actions">
               <span id="answer-count" className="subtle" data-tour="draft">{words} {words === 1 ? "word" : "words"} · aim for 120-350</span>
               {isAuthenticated || offlineUser ? (
@@ -213,18 +300,30 @@ function QuestionPageFor() {
             {!online && <p className="subtle" id="answer-offline">You're offline. Feedback needs a connection; your draft stays on this device until you send it.</p>}
             {!isAuthenticated && !offlineUser && <p className="subtle">Feedback needs an account so your answers are saved. A guest session takes one click.</p>}
             <InlineError id="answer-error" error={submit.error ?? guestError} />
+            {unconfirmed && (
+              <p className="banner banner--warning" role="status">
+                No reply came back, so it isn't certain whether this answer was saved, and it isn't among your saved answers
+                yet. Your text is still here. When you're connected, look under “Your past answers” before sending it again.
+              </p>
+            )}
           </form>
 
-          {shown && gated && shown === latest ? (
+          {shown && gated && isNew ? (
             <SelfReviewGate answer={shown} onDone={() => { focusResult.current = true; setGated(false); setReflected(shown.id); }} />
           ) : shown && (
             <>
-              <div data-tour="next"><FeedbackCard answer={shown} track={track} draft={draft} title={shown === latest ? "Feedback" : `Feedback on your answer from ${timeAgo(shown.created_at)}`} /></div>
+              <div data-tour="next">
+                <FeedbackCard answer={shown} track={track} draft={draft}
+                  title={isNew ? "Feedback" : `Feedback on ${tryOf(shown) ? `try ${tryOf(shown)}` : "your answer"} from ${timeAgo(shown.created_at)}`} />
+              </div>
+              <AnswerRecap answer={shown} tryNo={tryOf(shown)} previous={previous} previousNo={tryOf(previous)}
+                track={track} questionId={id} difficulty={q.difficulty as Difficulty} backTo={listTo} careerTitle={q.career_title}
+                canRevise={canRevise} onRevise={revise} />
               {isAuthenticated && <div className="focus-hide"><AnswerReviewPanel key={shown.id} answerId={shown.id} defaultOpen={reflected === shown.id} /></div>}
             </>
           )}
-          {shown && isAuthenticated && !(gated && shown === latest) && <div className="focus-hide"><ShareEntry answerId={shown.id} fromLabel="Back to the question" /></div>}
-          {wanted && answers.data && !linked && !latest && <p className="banner banner--warning">That answer couldn't be found. It may have been deleted.</p>}
+          {shown && isAuthenticated && !(gated && isNew) && <div className="focus-hide"><ShareEntry answerId={shown.id} fromLabel="Back to the question" /></div>}
+          {wanted && answers.data && !selected && <p className="banner banner--warning">That answer couldn't be found. It may have been deleted.</p>}
         </div>
 
         <aside className="stack">
@@ -242,17 +341,23 @@ function QuestionPageFor() {
           {isAuthenticated && answers.data && answers.data.length > 0 && (
             <Card className="stack focus-hide">
               <h2 className="section-title">Your past answers</h2>
+              {!numbers && <p className="subtle">Your {answers.data.length} most recent answers to this question.</p>}
               <ul className="past-answers">
                 {answers.data.map((a) => (
                   <li key={a.id}>
-                    <button type="button" className="past-answers__item" onClick={() => setLatest(a)}
+                    <button type="button" className="past-answers__item" onClick={() => choose(a.id)}
                       aria-pressed={shown?.id === a.id}>
-                      <span>{a.rating}</span>
-                      <span className="subtle">{a.score}/100 · {timeAgo(a.created_at)}</span>
+                      <span>{numbers?.get(a.id) ? `Try ${numbers.get(a.id)}${numbers.get(a.id) === 1 ? " (first)" : ""}` : timeAgo(a.created_at)}</span>
+                      <span className="subtle">
+                        {a.evidence_level === "insufficient" ? "Too short to score" : `${a.score}/100 · ${a.rating}`}
+                        {numbers ? ` · ${timeAgo(a.created_at)}` : ""}
+                        {rubrics.size > 1 ? ` · rubric ${a.rubric_version}` : ""}
+                      </span>
                     </button>
                   </li>
                 ))}
               </ul>
+              {rubrics.size > 1 && <p className="subtle">These were graded with different rubric versions, so their scores aren't directly comparable.</p>}
             </Card>
           )}
         </aside>
