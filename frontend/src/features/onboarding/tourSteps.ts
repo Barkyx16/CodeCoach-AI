@@ -47,7 +47,7 @@ export const TOUR_STEPS: Record<TourKind, TourStep[]> = {
     {
       target: "next",
       title: "What to do next",
-      body: "Your feedback lists what the answer covered and what to add. Try the question again, save it for later, or pick another from Practice. Every answer stays in History.",
+      body: "Your feedback lists what the answer covered and what to add. Under it, What next offers a revision aimed at one missing point, or the next question; you can also save this one for later. Every answer stays in History.",
       missing: "This part appears after you get feedback on an answer. You can finish the introduction now; nothing here depends on it.",
     },
   ],

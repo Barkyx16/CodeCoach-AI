@@ -110,6 +110,14 @@ describe("What next, after feedback", () => {
     expect(await screen.findByRole("region", { name: "What next" })).toHaveTextContent(`Try 1 covered 1 of 2 points the rubric looks for. To add: “${RESULT}”.`);
   });
 
+  it("says plainly when two comparable tries cover the same points with the same score", async () => {
+    asNurse();
+    listAnswers([{ ...try2, points: try1.points, score: 58 }, try1]);
+    renderApp("/careers/registered-nurse/questions/e-good-0?answer=t2", { signedIn: true });
+    expect(await screen.findByRole("region", { name: "What next" }))
+      .toHaveTextContent("Compared with try 1 (same question version, rubric and coach): covers the same points; score 58 both times.");
+  });
+
   it("doesn't compare tries graded with different rubrics, and says why", async () => {
     asNurse();
     listAnswers([{ ...try2, rubric_version: "v8" }, { ...try1, rubric_version: "v5" }]);

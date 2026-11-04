@@ -67,7 +67,8 @@ export function AnswerRecap({ answer, tryNo, previous, previousNo, track, questi
         c.gained.length ? `now covers ${list(c.gained)}` : null,
         c.lost.length ? `no longer covers ${list(c.lost)}` : null,
       ].filter(Boolean);
-      comparison = `Compared with ${before} (same question version, rubric and coach): ${parts.length ? parts.join("; ") : "the same points covered"}; score ${c.scoreFrom}, now ${c.scoreTo}.`;
+      const score = c.scoreFrom === c.scoreTo ? `score ${c.scoreTo} both times` : `score ${c.scoreFrom}, now ${c.scoreTo}`;
+      comparison = `Compared with ${before} (same question version, rubric and coach): ${parts.length ? parts.join("; ") : "covers the same points"}; ${score}.`;
     }
   }
 

@@ -99,7 +99,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     items: [
       {
         q: "Where are my past answers and submissions?",
-        a: "History lists everything you've done, with filters for career, activity, status, skill or topic, and dates. Each question page also shows your past answers, and finished interviews open a review with every answer and its feedback.",
+        a: "History lists everything you've done, with filters for career, activity, status, skill or topic, and dates. Each question page also shows your past answers as numbered tries (a revision is saved as a new try; earlier ones never change), and finished interviews open a review with every answer and its feedback.",
         links: [{ to: "/history", label: "History" }],
       },
       {
