@@ -110,6 +110,7 @@ def evaluate_case(case: dict, track: str, grader: Grader) -> dict:
         "rating": fb.rating,
         "evidence_level": fb.evidence_level,
         "covered": sorted(p.label for p in fb.points if p.covered),
+        "left_out_text": any(n.startswith("Left out") for n in fb.notes),
     }
 
     # schema
@@ -283,3 +284,131 @@ def evaluate_set(dataset: dict, grader: Grader) -> dict:
 
 def _r(x: float) -> float:
     return round(x, 3)
+
+
+# --- protocol metrics (evals/protocol.json "metrics") ------------------------------------------
+
+
+def wilson(k: int, n: int, z: float = 1.96) -> list[float] | None:
+    """95% Wilson score interval for k successes out of n (None when n is 0)."""
+    if n == 0:
+        return None
+    p = k / n
+    denom = 1 + z * z / n
+    centre = (p + z * z / (2 * n)) / denom
+    half = z * ((p * (1 - p) / n + z * z / (4 * n * n)) ** 0.5) / denom
+    return [round(max(0.0, centre - half), 3), round(min(1.0, centre + half), 3)]
+
+
+def rate(k: int, n: int) -> dict:
+    return {"k": k, "n": n, "rate": _r(k / n) if n else None, "ci95": wilson(k, n)}
+
+
+def protocol_metrics(dataset: dict, result: dict) -> dict:
+    """The protocol's metrics for one graded set: each with numerator, denominator and interval."""
+    cases = {c["id"]: c for c in dataset["cases"]}
+    graded = {c["id"]: c for c in result["cases"] if "error" not in c}
+    a = result["point_agreement"]
+    out: dict = {
+        "item_precision": rate(a["tp"], a["tp"] + a["fp"]),
+        "item_recall": rate(a["tp"], a["tp"] + a["fn"]),
+        "unsupported_credit_rate": rate(a["fp"], a["fp"] + a["tn"]),
+        "rating_within_bounds": rate(
+            result["dimensions"]["rating"]["passed"], result["dimensions"]["rating"]["cases"]
+        ),
+    }
+
+    def of(variant: str) -> list[tuple[dict, dict]]:
+        return [(cases[i], g) for i, g in graded.items() if cases[i].get("variant") == variant]
+
+    kw = of("keyword_list")
+    out["keyword_false_award"] = rate(
+        sum(g["observed"]["rating"] in ("Good", "Strong") for _, g in kw), len(kw)
+    )
+    contradicted = [
+        (c, g, label) for c, g in of("contradiction") for label in c.get("contradicted_points", [])
+    ]
+    out["contradiction_full_credit"] = rate(
+        sum(label in g["observed"]["covered"] for _, g, label in contradicted), len(contradicted)
+    )
+    att = of("grader_directed")
+    out["attack_credit"] = rate(
+        sum(
+            not (g["checks"].get("injection", {}).get("passed", True) and g["checks"]["evidence"]["passed"])
+            for _, g in att
+        ),
+        len(att),
+    )
+    benign = of("benign_control")
+    out["benign_false_exclusion"] = rate(sum(g["observed"]["left_out_text"] for _, g in benign), len(benign))
+    same = changed = removed = awarded = 0
+    for c, g in [*of("dictated"), *of("paraphrase"), *of("meaning_changed")]:
+        pair = graded.get(c.get("pair_of"))
+        if pair is None:
+            continue
+        if c["variant"] == "meaning_changed":
+            typed_labels = cases[c["pair_of"]]["labels"]["points"]
+            gone = [lab for lab, v in typed_labels.items() if v and not c["labels"]["points"].get(lab)]
+            removed += len(gone)
+            awarded += sum(lab in g["observed"]["covered"] for lab in gone)
+            continue
+        if c["variant"] != "dictated":
+            continue
+        for lab in c["labels"]["points"]:
+            same += (lab in g["observed"]["covered"]) == (lab in pair["observed"]["covered"])
+            changed += 1
+    out["dictated_parity"] = rate(same, changed)
+    out["meaning_changed_false_award"] = rate(awarded, removed)
+    per_variant: dict[str, dict] = {}
+    for c, g in ((cases[i], g) for i, g in graded.items()):
+        v = c.get("variant") or (c.get("tags") or ["?"])[0]
+        row = per_variant.setdefault(v, {"cases": 0, "tp": 0, "fp": 0, "fn": 0})
+        row["cases"] += 1
+        for r in g["points"]:
+            if r["uncertain"]:
+                continue
+            row["tp"] += r["expected"] and r["predicted"]
+            row["fp"] += (not r["expected"]) and r["predicted"]
+            row["fn"] += r["expected"] and not r["predicted"]
+    out["per_variant"] = {
+        v: {
+            "cases": r["cases"],
+            "precision": rate(r["tp"], r["tp"] + r["fp"]),
+            "recall": rate(r["tp"], r["tp"] + r["fn"]),
+        }
+        for v, r in sorted(per_variant.items())
+    }
+    return out
+
+
+def evaluate_regression(grader: Grader) -> list[dict]:
+    """Each known defect (evals/regression.json) against the cases that show it, in their own sets."""
+    spec = json.loads((EVAL_DIR / "regression.json").read_text(encoding="utf-8"))
+    names = {"career-rn-dev": "career_dev.json", "career-rn-holdout": "career_holdout.json"}
+    sets = {k: load(v) for k, v in names.items()}
+    out = []
+    for d in spec["defects"]:
+        rows = []
+        for ref in d["cases"]:
+            set_id, case_id = ref.split("/")
+            data = sets[set_id]
+            case = next(c for c in data["cases"] if c["id"] == case_id)
+            r = evaluate_case(case, data["track"], grader)
+            sig = d["signal"]
+            if "error" in r:
+                shows = True
+            elif "point" in sig:
+                row = next(x for x in r["points"] if x["label"] == sig["point"])
+                shows = row["predicted"] != row["expected"]
+            else:
+                shows = not r["checks"].get(sig["check"], {"passed": True})["passed"]
+            rows.append({"case": ref, "shows_defect": shows})
+        out.append(
+            {
+                "id": d["id"],
+                "status_recorded": d["status"],
+                "cases": rows,
+                "still_shows": any(r["shows_defect"] for r in rows),
+            }
+        )
+    return out

@@ -297,9 +297,44 @@ def check_hidden_tests_and_secrets(
     }
 
 
+def check_reference_leak(
+    make_coach: CoachFactory = default_coach, sample_sets: dict[str, list[dict]] | None = None
+) -> dict:
+    """The evaluation's reference text (each labelled review sample's note, which says what is
+    wrong with the code) must never be part of what the coach is asked: a model that saw the
+    label would be graded on reading it back."""
+    from pathlib import Path
+
+    from app.services.ai.base import ReviewContext
+
+    problems = {p.slug: p for p in _problems()}
+    leaks: list[str] = []
+    requests = 0
+    if sample_sets is None:
+        here = Path(__file__).resolve().parent
+        sample_sets = {
+            name: json.loads((here / name).read_text())["samples"]
+            for name in ("review_set.json", "holdout_set.json", "medium_set.json")
+        }
+    for name, samples in sample_sets.items():
+        for sample in samples:
+            p = problems[sample["problem"]]
+            messages = RecordingMessages()
+            code = sample["code"]
+            make_coach(SimpleNamespace(messages=messages)).review(
+                ReviewContext(problem=p, code=code, analysis=analyze(code), judge_status=None)
+            )
+            requests += 1
+            prompt = messages.calls[0]["messages"][0]["content"] + messages.calls[0]["system"]
+            if sample["note"] in prompt:
+                leaks.append(f"{name} / {sample['id']}: the sample's reference note is in the prompt")
+    return {"requests": requests, "reference_leak": leaks}
+
+
 def run_contracts(make_coach: CoachFactory = default_coach, **kwargs: Any) -> dict:
     a = check_framing_and_ladder(make_coach)
     b = check_hidden_tests_and_secrets(make_coach, **kwargs)
+    c = check_reference_leak(make_coach)
     checks = {
         name: {"passed": not failures, "failures": failures}
         for name, failures in (
@@ -308,11 +343,12 @@ def run_contracts(make_coach: CoachFactory = default_coach, **kwargs: Any) -> di
             ("bounded", a["bounded"]),
             ("hidden_tests", b["hidden_tests"]),
             ("secrets", b["secrets"]),
+            ("reference_leak", c["reference_leak"]),
         )
     }
     return {
         "prompt_version": ap.PROMPT_VERSION,
-        "requests_recorded": a["requests"] + b["requests"],
+        "requests_recorded": a["requests"] + b["requests"] + c["requests"],
         "problems_checked_for_hidden_data": b["problems_checked"],
         "problems_without_distinctive_hidden_data": b["problems_without_distinctive_hidden_data"],
         "checks": checks,

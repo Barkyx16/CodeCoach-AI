@@ -170,6 +170,7 @@ Docker builds: [.github/workflows/ci.yml](.github/workflows/ci.yml).
 | [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md) | One answer traced from the click through the API, evaluation, database and judge: spans, SLIs, alerts, privacy checklist, runbooks, incidents, measured overhead |
 | [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | Measured API latency/throughput and judge throughput, with the exact setup |
 | [docs/AI_EVALUATION.md](docs/AI_EVALUATION.md) | How the AI coach is measured: datasets and provenance, reproducible runs, release gates, results (rubric v1 → v2), limitations |
+| [docs/EVAL_PROTOCOL.md](docs/EVAL_PROTOCOL.md) | The frozen evaluation protocol: set roles and exposure, sealed final set, duplicate checks, metrics with intervals, release rule, label review |
 | [docs/SECURITY.md](docs/SECURITY.md) | Implemented controls, AI safeguards, sandbox threat model and design |
 | [docs/FRONTEND_HANDOFF.md](docs/FRONTEND_HANDOFF.md) | Original frontend engineering handoff |
 | [docs/FRONTEND_PROGRESS.md](docs/FRONTEND_PROGRESS.md) | Premium frontend changes, architecture decisions, validation and development workflow |

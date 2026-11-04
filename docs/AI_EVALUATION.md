@@ -31,6 +31,11 @@ fault checks are about safety and reliability.
 
 ## The data
 
+> **Since 2026-11-04 the [evaluation protocol](EVAL_PROTOCOL.md) governs every set**: each records its role
+> (development, exposed historical benchmark, or sealed final evaluation) and what has been seen of it.
+> The 2026-11-03 career held-out set and the two coding held-out sets are now **exposed historical
+> benchmarks**: their files and results are kept, but they no longer stand for an untouched test.
+
 Every dataset is listed in `backend/evals/datasets.json` with its version, split, provenance,
 how it was labelled, what it has been used for and its content hash. A file whose content no
 longer matches its recorded hash fails `tests/test_eval_harness.py`, so different content is
@@ -43,7 +48,9 @@ never compared as if it were the same.
 | `medium_set.json` | 14 | held-out | Same, for the 10 medium problems; written after the session-5 rules |
 | `hint_terms.json` | 22 problems | dev | Hand-picked give-away terms and key concepts |
 | `career_dev.json` | 23 | dev | Synthetic registered-nurse answers, written for this evaluation |
-| `career_holdout.json` | 17 | held-out | Same, on different questions |
+| `career_holdout.json` | 17 | **exposed historical benchmark** (was held-out) | Same, on different questions; graded and its case details read on 2026-11-03 |
+| `career_families_dev.json` | 108 | dev (Volume 4) | Synthetic, written and labelled by a separate agent session from the rubric text only ([protocol](EVAL_PROTOCOL.md)) |
+| `sealed/career_rn_sealed.json` | 108 | sealed final evaluation | Same method, another separate session; not opened by the tuning session ([access](EVAL_PROTOCOL.md#access-to-the-sealed-set)) |
 
 **Career cases.** One supported non-coding career, registered nurse. Questions are chosen by a
 fixed rule, tested: for each (difficulty, kind) the first question by id goes to development and
@@ -95,6 +102,11 @@ failures, tokens, latency, cost).
   case-level regressions and fixes; it exits non-zero on any regression.
 
 ## Release gates
+
+> Three gates were added with the protocol: `data.integrity` (every case file follows the protocol, and
+> no answer is close to one in another split without a recorded review), `data.regression_status`
+> (the known-defect register in `evals/regression.json` matches what is measured) and
+> `contract.reference_leak` (no labelled sample's reference note reaches a prompt). 25 gates in all.
 
 `evals/gates.py`, evaluated in CI on the complete offline run (`tests/test_evals.py`). Each has
 its reason in the report.
@@ -181,7 +193,7 @@ answer to be checked again under v2 (the existing re-evaluation, which keeps the
 | **Actions in plain verbs are missed.** "I sat down… I arranged… I booked" doesn't count as two actions (the verb list is narrow), so full answers lose that point | dev 2 (one complete, one dictated), held-out 2 (one complete, one dictated) | A broader verb list changes scores for every learner; it's the next candidate, and it needs a new held-out set (below) |
 | **Dictated answers can be under-scored.** One unpunctuated answer was rated Developing, labelled Good | 1 of the 2 dictated answers (the held-out one) | Same verb list, plus phrases the patterns expect in punctuated text. Voice users are affected, so this is the first thing to fix next |
 
-**Held-out set: used once.** The held-out career set was first evaluated once the rubric v2
+**Held-out set: used once, now an exposed historical benchmark.** The held-out career set was first evaluated once the rubric v2
 rules were written (in the test run that also gates CI), then compared with v1, and its case
 details were read to write this section. One change came after that: reviewing the code showed
 v2 re-spaced decimals and abbreviations ("3.9" counted as two words), so only the sentences for

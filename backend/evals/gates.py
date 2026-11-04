@@ -12,6 +12,7 @@ fails in the candidate is a regression, case by case.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -25,8 +26,18 @@ class Gate:
     check: Callable[[dict], list[str] | None]  # failures; None when the section wasn't run
 
 
+def _gated() -> set[str]:
+    from evals.meta import EVAL_DIR
+
+    protocol = json.loads((EVAL_DIR / "protocol.json").read_text(encoding="utf-8"))
+    return set(protocol["gated_career_sets"]["sets"])
+
+
 def _career_sets(report: dict) -> dict[str, dict]:
-    return report.get("career") or {}
+    """The career sets the per-case gates apply to (protocol.json: gated_career_sets). A
+    development set written to expose weaknesses is reported, not gated, until a fix covers it."""
+    gated = _gated()
+    return {k: v for k, v in (report.get("career") or {}).items() if k in gated}
 
 
 def _career_dimension(name: str) -> Callable[[dict], list[str] | None]:
@@ -98,6 +109,33 @@ def _contract(name: str) -> Callable[[dict], list[str] | None]:
         return None if c is None else list(c["checks"][name]["failures"])
 
     return check
+
+
+def _data_overlap(report: dict) -> list[str] | None:
+    d = report.get("data_checks")
+    if d is None:
+        return None
+    out = [f"no review recorded for {p}" for p in d["unreviewed_pairs"]]
+    out += [f"{set_id}: {e}" for set_id, errors in d["validation"].items() for e in errors]
+    return out
+
+
+def _regression(report: dict) -> list[str] | None:
+    rows = report.get("regression")
+    if rows is None:
+        return None
+    out = []
+    for d in rows:
+        if d["status_recorded"] == "fixed" and d["still_shows"]:
+            out.append(
+                f"{d['id']}: recorded fixed but shows again on "
+                + ", ".join(c["case"] for c in d["cases"] if c["shows_defect"])
+            )
+        if d["status_recorded"] == "open" and not d["still_shows"]:
+            out.append(
+                f"{d['id']}: no longer shows; record it as fixed (with the commit) in evals/regression.json"
+            )
+    return out
 
 
 def _faults(report: dict) -> list[str] | None:
@@ -226,6 +264,21 @@ GATES: list[Gate] = [
     ),
     Gate(
         "contract.bounded", "Every request asks for a known schema with a token limit.", _contract("bounded")
+    ),
+    Gate(
+        "data.integrity",
+        "Every case file follows the protocol, and no answer is close to one in another split without a recorded review.",
+        _data_overlap,
+    ),
+    Gate(
+        "data.regression_status",
+        "A fixed defect must not come back, and a defect that no longer shows must be recorded as fixed.",
+        _regression,
+    ),
+    Gate(
+        "contract.reference_leak",
+        "The evaluation's reference text never reaches the model it evaluates.",
+        _contract("reference_leak"),
     ),
     Gate(
         "provider.fallback",

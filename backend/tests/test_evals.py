@@ -21,7 +21,8 @@ def test_the_complete_offline_evaluation_passes_every_release_gate():
     assert failed == {}, json.dumps(failed, indent=2)
     assert report["review_holdout"]["samples"] >= 10 and report["review_medium"]["samples"] >= 10  # reported
     assert report["hints"]["level2_relevance"] >= 0.9
-    assert set(report["career"]) == {"career-rn-dev", "career-rn-holdout"}
+    # Every career set except the sealed one, which only a sealed run grades.
+    assert set(report["career"]) == {"career-rn-dev", "career-rn-holdout", "career-rn-families-dev"}
 
 
 def test_eval_sets_are_well_formed():

@@ -317,6 +317,25 @@ def load_grader(source: str) -> tuple[career.Grader, str, str]:
     )
 
 
+def data_checks() -> dict:
+    """Dataset integrity, by id only (safe to run over sealed sets): every case file is valid
+    under the protocol, and every cross-split near-duplicate has a recorded review."""
+    from evals import overlap
+    from evals.validate_cases import validate
+
+    validation = {}
+    for d in meta.manifest()["datasets"]:
+        if d["domain"] == "career-answer" and d.get("protocol_version"):
+            errors, _ = validate(career.load(d["file"]))
+            validation[d["id"]] = errors
+    pairs = overlap.flagged_pairs(overlap.all_items())
+    return {
+        "validation": validation,
+        "flagged_pairs": len(pairs),
+        "unreviewed_pairs": [f"{p['a']} ~ {p['b']} ({p['kind']})" for p in overlap.unreviewed(pairs)],
+    }
+
+
 def run(
     provider_name: str = "offline",
     *,
@@ -326,9 +345,13 @@ def run(
     limit: int | None = None,
     max_calls: int | None = None,
     prices: dict | None = None,
+    sealed: bool = False,
 ) -> dict:
     """Run the evaluation. `limit` keeps only the first N cases of each set: a partial run, and
-    the report says so."""
+    the report says so. `sealed` grades only the sealed sets (career section only): the final,
+    once-only measurement of a frozen candidate (docs/EVAL_PROTOCOL.md)."""
+    if sealed:
+        sections, split = ("career",), "all"
     from app.careers import grading
 
     splits = {"dev"} if split == "dev" else {"holdout"} if split == "holdout" else {"dev", "holdout"}
@@ -391,11 +414,22 @@ def run(
                     report[key] = evaluate_reviews(metered, take(samples), problems)
         if "career" in sections:
             report["career"] = {}
-            for name in ("career_dev.json", "career_holdout.json"):
-                data = career.load(name)
-                if data["split"] in splits:
-                    data = {**data, "cases": take(data["cases"])}
-                    report["career"][data["id"]] = career.evaluate_set(data, grade)
+            for d in meta.manifest()["datasets"]:
+                # Sealed sets are graded only by a sealed run, and a sealed run grades nothing else.
+                if (
+                    d["domain"] != "career-answer"
+                    or bool(d.get("sealed")) != sealed
+                    or d["split"] not in splits
+                ):
+                    continue
+                data = career.load(d["file"])
+                data = {**data, "cases": take(data["cases"])}
+                result = career.evaluate_set(data, grade)
+                result["protocol_metrics"] = career.protocol_metrics(data, result)
+                result["exposure"] = d.get("exposure")
+                report["career"][data["id"]] = result
+            if not sealed:
+                report["regression"] = career.evaluate_regression(grade)
         if "contracts" in sections:
             from evals.contracts import run_contracts
 
@@ -407,7 +441,10 @@ def run(
             report["faults"] = run_faults()
     except BudgetExhausted as exc:
         incomplete.append(str(exc))
-    for missing in set(SECTIONS) - set(sections):
+    report["kind"] = "sealed" if sealed else "development"
+    if not sealed:
+        report["data_checks"] = data_checks()
+    for missing in set(SECTIONS) - set(sections) if not sealed else ():
         incomplete.append(f"section {missing!r} not run")
     if split != "all":
         incomplete.append(f"only the {split} split was run")
@@ -468,6 +505,7 @@ def to_markdown(r: dict) -> str:
                 lines.append(f"  - … {len(g['failures']) - 12} more in the JSON report")
     lines.append("")
     lines += _career_markdown(r)
+    lines += _regression_markdown(r)
     lines += _coding_markdown(r)
     if r.get("contracts"):
         c = r["contracts"]
@@ -532,7 +570,11 @@ def _career_markdown(r: dict) -> list[str]:
         ]
         for name, d in s["dimensions"].items():
             if d["cases"]:
-                lines.append(f"| {name} | {d['passed']} / {d['cases']} | {', '.join(d['failed']) or '—'} |")
+                failed = ", ".join(d.get("failed", [])) if s["split"] == "dev" else "(not listed)"
+                lines.append(f"| {name} | {d['passed']} / {d['cases']} | {failed or '—'} |")
+        if s.get("exposure"):
+            lines += ["", f"Exposure: {s['exposure']}"]
+        lines += _metrics_markdown(s.get("protocol_metrics"))
         lines += ["", "| Kind of answer | Cases | All checks passed |", "|---|---|---|"]
         lines += [f"| {t} | {v['cases']} | {v.get('all_checks_passed', 0)} |" for t, v in s["by_tag"].items()]
         if s["split"] == "dev":
@@ -556,6 +598,46 @@ def _career_markdown(r: dict) -> list[str]:
             ]
         lines.append("")
     return lines
+
+
+def _rate(m: dict) -> str:
+    if not m or not m["n"]:
+        return "n/a (0 cases)"
+    ci = m["ci95"]
+    return f"{m['k']}/{m['n']} = {m['rate']:.0%} (95% CI {ci[0]:.0%}–{ci[1]:.0%})"
+
+
+def _metrics_markdown(m: dict | None) -> list[str]:
+    if not m:
+        return []
+    names = [k for k in m if k != "per_variant" and m[k]["n"]]
+    lines = ["", "| Protocol metric | Value |", "|---|---|"]
+    lines += [f"| {k} | {_rate(m[k])} |" for k in names]
+    if m.get("per_variant") and len(m["per_variant"]) > 1:
+        lines += ["", "| Variant | Cases | Precision | Recall |", "|---|---|---|---|"]
+        lines += [
+            f"| {v} | {row['cases']} | {_rate(row['precision'])} | {_rate(row['recall'])} |"
+            for v, row in m["per_variant"].items()
+        ]
+    return lines
+
+
+def _regression_markdown(r: dict) -> list[str]:
+    rows = r.get("regression")
+    if not rows:
+        return []
+    lines = [
+        "## Known defects (evals/regression.json)",
+        "",
+        "| Defect | Recorded | Measured now | Cases showing it |",
+        "|---|---|---|---|",
+    ]
+    for d in rows:
+        showing = [c["case"] for c in d["cases"] if c["shows_defect"]]
+        lines.append(
+            f"| {d['id']} | {d['status_recorded']} | {'still shows' if d['still_shows'] else 'not shown'} | {', '.join(showing) or '—'} |"
+        )
+    return lines + [""]
 
 
 def _coding_markdown(r: dict) -> list[str]:
@@ -663,9 +745,38 @@ def compare_markdown(c: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+SEALED_DIR = EVAL_DIR / "sealed"
+
+
 def write_report(report: dict, label: str, out: Path = EVAL_DIR / "results") -> Path:
-    """Write <label>.json and .md together (each replaced atomically), with the same run id."""
+    """Write <label>.json and .md together (each replaced atomically), with the same run id.
+
+    A sealed run's case-level results go to evals/sealed/results/<label>.cases.json instead, and
+    the report and markdown keep aggregates only, so reading the report doesn't expose cases."""
     out.mkdir(exist_ok=True)
+    if report.get("kind") == "sealed":
+        cases_dir = SEALED_DIR / "results"
+        cases_dir.mkdir(parents=True, exist_ok=True)
+        detail = {"run_id": report["meta"]["run_id"], "career": report.get("career", {})}
+        (cases_dir / f"{label}.cases.json").write_text(
+            json.dumps(detail, indent=2, ensure_ascii=False) + "\n"
+        )
+        report = {**report, "career": {k: _aggregate_only(v) for k, v in report.get("career", {}).items()}}
+        report["gates"] = [
+            {
+                **g,
+                "failures": [f"{len(g['failures'])} failing (case-level detail sealed)"]
+                if g["failures"]
+                else [],
+            }
+            for g in report.get("gates", [])
+        ]
+        with (SEALED_DIR / "ACCESS.md").open("a", encoding="utf-8") as log:
+            log.write(
+                f"| {report['finished_at']} | graded | run `{report['meta']['run_id']}` at commit "
+                f"`{str(report['meta']['commit'])[:12]}`, rubric {report['meta']['rubric_version']}; case-level results "
+                f"written to sealed/results/{label}.cases.json, not opened |\n"
+            )
     for suffix, text in (
         (".json", json.dumps(report, indent=2, ensure_ascii=False) + "\n"),
         (".md", to_markdown(report)),
@@ -674,6 +785,28 @@ def write_report(report: dict, label: str, out: Path = EVAL_DIR / "results") -> 
         tmp.write_text(text, encoding="utf-8")
         os.replace(tmp, out / f"{label}{suffix}")
     return out / f"{label}.json"
+
+
+def _aggregate_only(result: dict) -> dict:
+    """A graded set without anything case-level: counts, dimensions, metrics."""
+    keep = (
+        "dataset",
+        "dataset_version",
+        "split",
+        "track",
+        "cases_planned",
+        "cases_scored",
+        "point_agreement",
+        "protocol_metrics",
+        "by_tag",
+    )
+    out = {k: result[k] for k in keep if k in result}
+    out["dimensions"] = {
+        k: {"cases": v["cases"], "passed": v["passed"]} for k, v in result["dimensions"].items()
+    }
+    out["case_errors"] = len(result.get("case_errors", []))
+    out["cases"] = []
+    return out
 
 
 def report_problems(path: Path) -> list[str]:

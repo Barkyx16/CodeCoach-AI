@@ -1,0 +1,91 @@
+{
+  "_doc": "Known defects of the written-answer coach, each pointing at the labelled cases that show it. Cases stay in their original sets (their membership and hashes don't change); this file only groups them so a fix can be checked against every case that showed the defect. status: open (the defect still shows on these cases) or fixed (with the commit and rubric version). docs/EVAL_PROTOCOL.md. signal: the check (and, for points, the rubric point) whose failure is this defect.",
+  "defects": [
+    {
+      "id": "dictated-under-rated",
+      "found": "2026-11-03, measuring rubric v2 on the (now exposed) held-out set",
+      "summary": "An unpunctuated dictated answer is rated below its labels: scene, preparation and actions are missed.",
+      "cases": [
+        "career-rn-holdout/rn-ho-08"
+      ],
+      "related": [
+        "career-rn-dev/rn-dev-11"
+      ],
+      "status": "open",
+      "signal": {
+        "check": "rating"
+      }
+    },
+    {
+      "id": "plain-action-verbs-missed",
+      "found": "2026-11-03",
+      "summary": "Actions told with ordinary verbs (I sat down, I arranged, I booked) don't count towards 'Describes specific actions you took'.",
+      "cases": [
+        "career-rn-dev/rn-dev-09",
+        "career-rn-dev/rn-dev-11",
+        "career-rn-holdout/rn-ho-07",
+        "career-rn-holdout/rn-ho-08"
+      ],
+      "status": "open",
+      "signal": {
+        "check": "points",
+        "point": "Describes specific actions you took"
+      }
+    },
+    {
+      "id": "keyword-lists-rewarded",
+      "found": "2026-11-03",
+      "summary": "Lists of rubric words with no account of anything done are rated Good or Strong.",
+      "cases": [
+        "career-rn-dev/rn-dev-06",
+        "career-rn-dev/rn-dev-21",
+        "career-rn-holdout/rn-ho-12"
+      ],
+      "status": "open",
+      "signal": {
+        "check": "rating"
+      }
+    },
+    {
+      "id": "contradictions-unnoticed",
+      "found": "2026-11-03",
+      "summary": "An answer that takes back what it said keeps the credit for it.",
+      "cases": [
+        "career-rn-dev/rn-dev-13",
+        "career-rn-holdout/rn-ho-10"
+      ],
+      "status": "open",
+      "signal": {
+        "check": "rating"
+      }
+    },
+    {
+      "id": "generic-answers-credited",
+      "found": "2026-11-03",
+      "summary": "Generic answers get credit for 'strengths' and 'role' points without a specific reason or example.",
+      "cases": [
+        "career-rn-dev/rn-dev-05",
+        "career-rn-holdout/rn-ho-04"
+      ],
+      "status": "open",
+      "signal": {
+        "check": "points"
+      }
+    },
+    {
+      "id": "grader-directed-text-credited",
+      "found": "2026-11-03",
+      "summary": "Text addressed to the grader earned points and was quoted as evidence.",
+      "cases": [
+        "career-rn-dev/rn-dev-10",
+        "career-rn-dev/rn-dev-23",
+        "career-rn-holdout/rn-ho-06"
+      ],
+      "status": "fixed",
+      "fixed_in": "rubric v2 (commit d2a2b51)",
+      "signal": {
+        "check": "injection"
+      }
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "_doc": "Every evaluation dataset, its version, split and content hash. Changing a file without giving it a new version and hash here fails tests/test_eval_harness.py, so results from different content are never compared as if they were the same. dev sets may be used to improve the coach; holdout sets are only measured (see docs/AI_EVALUATION.md, 'Held-out sets').",
+  "_doc": "Every evaluation dataset, its version, split and content hash. Changing a file without giving it a new version and hash here fails tests/test_eval_harness.py, so results from different content are never compared as if they were the same. dev sets may be used to improve the coach; holdout sets are only measured (see docs/AI_EVALUATION.md, 'Held-out sets'). role: development, exposed historical benchmark, or sealed final evaluation (docs/EVAL_PROTOCOL.md). exposure: what has been seen of the set and by whom. sealed: true means only `python -m evals.run --sealed` grades it.",
   "datasets": [
     {
       "id": "coding-review-tuning",
@@ -13,7 +13,9 @@
       "provenance": "Hand-written Java solutions to this repository's seeded problems, written for this project (no learner submissions). Each verdict label is verified by submitting the sample to the real judge (tests/test_judge_sandbox.py::test_eval_set_verdict_labels_match_the_real_judge, in CI).",
       "labels": "Issue categories and Big-O labels were assigned by hand from what a good interviewer would say about the code; they are not produced by the reviewer under test.",
       "used_for": "tuning the offline reviewer rules (2026-11-01, 2026-11-02)",
-      "sha256": "7abdd3f8a80643956bb0a8ef301d0c4dbb7f31a67fe79667cd3cc9fed83a5a11"
+      "sha256": "7abdd3f8a80643956bb0a8ef301d0c4dbb7f31a67fe79667cd3cc9fed83a5a11",
+      "role": "development",
+      "exposure": "read and used to tune the offline reviewer rules"
     },
     {
       "id": "coding-review-holdout",
@@ -26,7 +28,9 @@
       "provenance": "Hand-written Java solutions to this repository's seeded problems, written for this project (no learner submissions). Each verdict label is verified by submitting the sample to the real judge (tests/test_judge_sandbox.py::test_eval_set_verdict_labels_match_the_real_judge, in CI).",
       "labels": "Issue categories and Big-O labels were assigned by hand from what a good interviewer would say about the code; they are not produced by the reviewer under test.",
       "used_for": "measurement only; written after the first rules were tuned",
-      "sha256": "959b45746084b39f084b69815968a8a48f006fdaf47275f35ce6c97b81e1b700"
+      "sha256": "959b45746084b39f084b69815968a8a48f006fdaf47275f35ce6c97b81e1b700",
+      "role": "exposed historical benchmark",
+      "exposure": "its results and per-sample disagreements have been printed in every evaluation report since 2026-11-01; kept for history, not an untouched test"
     },
     {
       "id": "coding-review-medium-holdout",
@@ -47,7 +51,9 @@
           "found": "2026-11-03, by tests/test_eval_harness.py",
           "effect": "Different problems (search-rotated-array vs binary-search), so different cases, but the reviewer rule that flags a linear scan where O(log n) is required was tuned on this exact code. Treat this sample as not independent of tuning (1 of 14)."
         }
-      ]
+      ],
+      "role": "exposed historical benchmark",
+      "exposure": "its results and per-sample disagreements have been printed in every evaluation report since 2026-11-02; one sample shares its code with a tuning sample (known_overlap); kept for history, not an untouched test"
     },
     {
       "id": "coding-hint-terms",
@@ -60,7 +66,9 @@
       "provenance": "Hand-written per-problem term lists (give-away terms and key concepts) for this repository's problems.",
       "labels": "Terms chosen by hand from each problem's intended approach.",
       "used_for": "spoiler and relevance scoring of hints",
-      "sha256": "a6de5fb6fe2ccaca9fe57bc632d47e64c6bd071cf322dd97e655fab1a3d0553c"
+      "sha256": "a6de5fb6fe2ccaca9fe57bc632d47e64c6bd071cf322dd97e655fab1a3d0553c",
+      "role": "development",
+      "exposure": "used to score hints"
     },
     {
       "id": "career-rn-dev",
@@ -73,7 +81,9 @@
       "provenance": "See the file: synthetic answers written for this evaluation.",
       "labels": "See the file: written from the rubric text before any grader run (commit 7129ffa); unreviewed.",
       "used_for": "developing rubric v2 (2026-11-03): its failures were read and fixed",
-      "sha256": "c1619da3a4acbe50a90c26417671d0d6255b8d45ef821e8010140738e03220f7"
+      "sha256": "c1619da3a4acbe50a90c26417671d0d6255b8d45ef821e8010140738e03220f7",
+      "role": "development",
+      "exposure": "read and used to develop rubric v2"
     },
     {
       "id": "career-rn-holdout",
@@ -86,7 +96,42 @@
       "provenance": "See the file: synthetic answers written for this evaluation.",
       "labels": "See the file: written from the rubric text before any grader run (commit 7129ffa); unreviewed.",
       "used_for": "measurement only. First evaluated 2026-11-03 after rubric v2 was final, compared with v1, and its case details were then read for docs/AI_EVALUATION.md: a later rule change aimed at those failures needs a fresh held-out set",
-      "sha256": "d43b284d6a71105e428887d747d3aed1413ecb4ad59cedf7d1953e0e42a57bc4"
+      "sha256": "d43b284d6a71105e428887d747d3aed1413ecb4ad59cedf7d1953e0e42a57bc4",
+      "role": "exposed historical benchmark",
+      "exposure": "graded and its case details read on 2026-11-03 to write docs/AI_EVALUATION.md; Volume 4 changes aimed at its failures cannot be validated on it"
+    },
+    {
+      "id": "career-rn-families-dev",
+      "file": "career_families_dev.json",
+      "version": 1,
+      "split": "dev",
+      "domain": "career-answer",
+      "protocol_version": 1,
+      "created": "2026-11-04",
+      "cases": 108,
+      "provenance": "Synthetic: written for this evaluation by a separate AI agent session; no learner, transcript, patient or production data.",
+      "labels": "Written by that session from the rubric points' label and advice text only, without the grader code or output; model-written and unreviewed (1 point marked uncertain).",
+      "used_for": "developing the Volume 4 scoring changes",
+      "role": "development",
+      "exposure": "open to the tuning session (a development set)",
+      "sha256": "6bef6d4fce715f723880c22ad17dab3564dd885ee0583477a6674dde92e60b88"
+    },
+    {
+      "id": "career-rn-sealed",
+      "file": "sealed/career_rn_sealed.json",
+      "version": 1,
+      "split": "holdout",
+      "sealed": true,
+      "domain": "career-answer",
+      "protocol_version": 1,
+      "created": "2026-11-04",
+      "cases": 108,
+      "provenance": "Synthetic: written for this evaluation by a separate AI agent session; no learner, transcript, patient or production data.",
+      "labels": "Written by that session from the rubric points' label and advice text only, without the grader code, its output or any other set; model-written and unreviewed (30 points marked uncertain).",
+      "used_for": "the final, once-only measurement of the frozen Volume 4 candidate",
+      "role": "sealed final evaluation",
+      "exposure": "not opened by the tuning session: it has seen counts, case ids, hashes and the question ids only. Four keyword_list answers were rewritten by the authoring session on 2026-11-04 after the duplicate check found them near-identical (one exact) to development answers, before any grading.",
+      "sha256": "afedc25a6247d6a64c9ba57032da82c0e87f519c47cb465611f26dd7ca810f03"
     }
   ]
 }

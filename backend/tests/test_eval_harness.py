@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import shutil
 from collections import defaultdict
 from dataclasses import replace
 from pathlib import Path
@@ -81,6 +82,7 @@ def test_every_dataset_has_provenance_a_split_and_its_recorded_hash():
 def test_a_dataset_edited_without_a_new_version_is_reported(tmp_path, monkeypatch):
     for f in EVALS.glob("*.json"):
         (tmp_path / f.name).write_bytes(f.read_bytes())
+    shutil.copytree(EVALS / "sealed", tmp_path / "sealed")
     edited = json.loads((tmp_path / "career_holdout.json").read_text())
     edited["cases"][0]["labels"]["points"] = {k: False for k in edited["cases"][0]["labels"]["points"]}
     (tmp_path / "career_holdout.json").write_text(json.dumps(edited))

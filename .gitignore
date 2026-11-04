@@ -42,3 +42,6 @@ runner/.pytest_cache/
 # Password-reset emails written by the e2e backend
 backend/e2e-outbox/
 backend/outbox/
+
+# Generated label-review packets (python -m evals.review_packet)
+backend/evals/reviews/out/
