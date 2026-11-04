@@ -3034,7 +3034,7 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "opened" | "saved_not_judged" | "awaiting_judge" | "passed" | "failed" | "evaluation_unavailable" | "scored" | "completed" | "in_progress" | "expired" | "abandoned";
+            status: "opened" | "saved_not_judged" | "awaiting_judge" | "passed" | "failed" | "evaluation_unavailable" | "scored" | "too_short" | "completed" | "in_progress" | "expired" | "abandoned";
             /** Status Label */
             status_label: string;
             /**
@@ -5798,8 +5798,21 @@ export interface components {
          * @description Private practice status for one question (signed-in explorer only).
          */
         ItemStatus: {
-            /** Best Score */
+            /**
+             * Best Score
+             * @description Highest stored score, including answers too short to score
+             */
             best_score: number | null;
+            /**
+             * Best Scored
+             * @description Best score among answers long enough to score; None when there's none
+             */
+            best_scored?: number | null;
+            /**
+             * Score Status
+             * @description None: not answered. Otherwise as in QuestionSummary.score_status
+             */
+            score_status?: ("scored" | "too_short" | "unknown") | null;
             /** Attempts */
             attempts: number;
             /** Last Practiced At */
@@ -6713,9 +6726,19 @@ export interface components {
             kind: string;
             /**
              * Best Score
-             * @description Your best score on this question, when signed in
+             * @description Your highest stored score on this question, when signed in, including an answer too short to score (its stored score is capped). Kept for compatibility; see best_scored.
              */
             best_score?: number | null;
+            /**
+             * Best Scored
+             * @description Your best score among answers long enough to score (app/careers/eligibility.py); None when you haven't answered or none of your answers could be scored. Prefer this to best_score.
+             */
+            best_scored?: number | null;
+            /**
+             * Score Status
+             * @description None: not answered (or signed out). scored: at least one answer has a score. too_short: answered, but every answer was too short to score. unknown: answered, but how it was graded wasn't recorded.
+             */
+            score_status?: ("scored" | "too_short" | "unknown") | null;
             /** Track */
             track: string;
             /** Career Title */
@@ -6745,9 +6768,19 @@ export interface components {
             kind: string;
             /**
              * Best Score
-             * @description Your best score on this question, when signed in
+             * @description Your highest stored score on this question, when signed in, including an answer too short to score (its stored score is capped). Kept for compatibility; see best_scored.
              */
             best_score?: number | null;
+            /**
+             * Best Scored
+             * @description Your best score among answers long enough to score (app/careers/eligibility.py); None when you haven't answered or none of your answers could be scored. Prefer this to best_score.
+             */
+            best_scored?: number | null;
+            /**
+             * Score Status
+             * @description None: not answered (or signed out). scored: at least one answer has a score. too_short: answered, but every answer was too short to score. unknown: answered, but how it was graded wasn't recorded.
+             */
+            score_status?: ("scored" | "too_short" | "unknown") | null;
         };
         /** QuestionVersionOut */
         QuestionVersionOut: {
@@ -8305,8 +8338,17 @@ export interface components {
             questions_answered: number;
             /** Answers */
             answers: number;
-            /** Average Best Score */
+            /**
+             * Average Best Score
+             * @description Average of your best scoreable score on each answered question of this skill; None when none of them has an answer long enough to score
+             */
             average_best_score: number | null;
+            /**
+             * Questions Scored
+             * @description How many of those questions the average covers
+             * @default 0
+             */
+            questions_scored: number;
         };
         /** SnoozeIn */
         SnoozeIn: {
@@ -8661,8 +8703,17 @@ export interface components {
             question_title: string;
             /** Href */
             href: string;
-            /** Score */
+            /**
+             * Score
+             * @description The stored score (capped when the answer was too short to score)
+             */
             score: number;
+            /**
+             * Too Short
+             * @description The answer was too short to score: `score` isn't a measurement
+             * @default false
+             */
+            too_short: boolean;
             /**
              * Created At
              * Format: date-time
@@ -9173,7 +9224,10 @@ export interface components {
         TrackProgress: {
             /** Track */
             track: string;
-            /** Answered */
+            /**
+             * Answered
+             * @description Questions with at least one answer, each counted once
+             */
             answered: number;
             /**
              * Strong
@@ -9186,6 +9240,24 @@ export interface components {
             };
             /** Total Questions */
             total_questions: number;
+            /**
+             * Scored
+             * @description Answered questions with at least one answer long enough to score
+             * @default 0
+             */
+            scored: number;
+            /**
+             * Too Short
+             * @description Answered questions where every answer was too short to score (no score yet)
+             * @default 0
+             */
+            too_short: number;
+            /**
+             * Unknown
+             * @description Answered questions whose grading wasn't recorded (no score)
+             * @default 0
+             */
+            unknown: number;
         };
         /** TrendPoint */
         TrendPoint: {
@@ -19271,7 +19343,7 @@ export interface operations {
                 /** @description Inclusive (UTC) */
                 until?: string | null;
                 skill?: string | null;
-                status?: ("opened" | "saved_not_judged" | "awaiting_judge" | "passed" | "failed" | "evaluation_unavailable" | "scored" | "completed" | "in_progress" | "expired" | "abandoned") | null;
+                status?: ("opened" | "saved_not_judged" | "awaiting_judge" | "passed" | "failed" | "evaluation_unavailable" | "scored" | "too_short" | "completed" | "in_progress" | "expired" | "abandoned") | null;
                 q?: string | null;
                 page?: number;
                 page_size?: number;

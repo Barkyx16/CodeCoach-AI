@@ -746,3 +746,36 @@ fingerprint or link; nothing is rewritten.
   the POST saved, its reply and the lookup dropped, the resend carried the same key and got 200
   `Idempotent-Replayed: true`, one try listed) and `learner-journey.spec.ts` (revision link and
   comparison wording); frontend suite 639 passed after the update, lint, types, API contract clean.
+
+## Checkpoint: NX07 + NX08, score eligibility, defined and applied
+
+Policy (`backend/app/careers/eligibility.py`): an answer's stored score counts in summaries only if
+the answer was long enough to score: `evidence_level` recorded as `sufficient`; for answers saved
+before that field (legacy), the recorded `word_count` ≥ 40. Too short: `insufficient`, or a legacy
+count under 40 (stored score capped at 35, not a measurement). Unknown: neither field recorded
+(nothing in this code base writes such a row; reported as unknown, never zero or a score). The
+legacy rule is a documented contract: `word_count` stored and MIN_WORDS = 40 with the 35 cap since
+the first grader (`f3bb14d`). The rule never looks at the score: 0 and 35 can be real scores.
+Raw scores, answer rows and "answered" counts are unchanged; nothing is regraded or rewritten.
+
+| Consumer | Before | Now |
+|---|---|---|
+| `GET /careers/{t}/questions`, question detail | `best_score` = raw max | `best_score` kept (raw, documented); added `best_scored`, `score_status` |
+| `GET /careers/{t}/progress` | answered, strong | same; added `scored`, `too_short`, `unknown` counts |
+| explore status, "lowest score first" | raw max; unscored ranked lowest | `best_scored`, `score_status` added; sort by scoreable best, answered-without-score after, unanswered last |
+| activity feed, filter, facets | every answer "Scored N/100" | `too_short` status and label ("Too short to score (N words)"); filter and counts split; unknown labelled |
+| career analytics (skills, weekly trends) | raw best / raw average | scoreable best; `questions_scored`; trend averages from scoreable answers, `answers` counts all; `questions_practiced` still every answered question |
+| job targets (coverage, suggestions) | raw best | scoreable best; "none long enough to score yet"; "Retry: your answer was too short to score" |
+| practice plan (roadmap) | raw best = answered | `answered` set separate; scores from scoreable answers; too-short-only questions retried with "too short to score" wording |
+| learn link label, story rehearsals | "scored N/100" | "answered (too short to score)"; story list says "too short to score" (`too_short` flag added) |
+| frontend: library rows, question badge, Up next, analytics table | raw `best_score` | `best_scored`/`score_status`; Up next retries too-short-only questions with that reason |
+| Left on raw scores, deliberately | interview review workspace (`review.py`: worst answer, averages, retry score change), review queue scheduling thresholds, question-round average, shares' snapshot score | each is about one interview or one shared answer, shows the answer itself; recorded here as not migrated |
+
+- Compatibility: every change is an added field or a new status value; `best_score` keeps its
+  meaning (raw) for existing clients. Generated types and `docs/openapi.json` regenerated.
+- Checks: `tests/test_score_eligibility.py` (7: the rule incl. legacy and unknown; summaries with a
+  too-short answer whose capped score beats a real 12; progress counts; lowest-score order;
+  activity labels, filter and facets; analytics and trends; targets, suggestions and plan) on
+  SQLite and PostgreSQL 16 (JSON operators differ); affected suites 267+ passed (two existing tests
+  updated to the policy: progress counts, the baseline retry no longer quoting a capped score);
+  frontend 642 passed (Up next too-short case, library/explore mocks, `scoreEligibility.test.tsx`).

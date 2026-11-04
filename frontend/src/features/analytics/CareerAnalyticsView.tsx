@@ -82,7 +82,8 @@ export function CareerAnalyticsView({ track, since, rangeLabel }: { track: strin
                 <thead><tr><th scope="col">Skill</th><th scope="col">Questions answered</th><th scope="col">Answers</th><th scope="col">Average best score</th></tr></thead>
                 <tbody>{a.skills.map((s) => (
                   <tr key={s.skill}><td>{cap(s.skill)}</td><td>{s.questions_answered} of {s.total_questions}</td><td>{s.answers}</td>
-                    <td>{s.average_best_score === null ? "Not practised yet" : `${s.average_best_score}/100`}</td></tr>
+                    <td>{s.average_best_score !== null ? `${s.average_best_score}/100${s.questions_scored < s.questions_answered ? ` (${s.questions_scored} of ${s.questions_answered} questions have a score)` : ""}`
+                      : s.questions_answered ? "No answer long enough to score yet" : "Not practised yet"}</td></tr>
                 ))}</tbody>
               </table>
             </details>

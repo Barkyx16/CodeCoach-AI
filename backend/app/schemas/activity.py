@@ -16,6 +16,7 @@ ActivityStatus = Literal[
     "failed",
     "evaluation_unavailable",  # the judge had an internal error
     "scored",  # a written answer graded by the career rubric (a score, not "correct")
+    "too_short",  # a written answer too short to score: its stored score is capped and isn't counted
     "completed",  # coaching delivered, or an interview finished
     "in_progress",
     "expired",
@@ -71,7 +72,11 @@ class SkillStat(APIModel):
     total_questions: int = Field(description="Questions in this career that practise the skill")
     questions_answered: int
     answers: int
-    average_best_score: int | None
+    average_best_score: int | None = Field(
+        description="Average of your best scoreable score on each answered question of this skill; None when "
+        "none of them has an answer long enough to score"
+    )
+    questions_scored: int = Field(default=0, description="How many of those questions the average covers")
 
 
 class TrendPoint(APIModel):

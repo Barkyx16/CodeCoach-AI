@@ -38,6 +38,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.careers import CATALOG
+from app.careers.eligibility import eligibility, eligibility_columns
 from app.careers.questions import Question, get_question, questions_for
 from app.careers.skills import career_skills, question_skills, questions_by_skill
 from app.errors import AppError, ConflictError, NotFoundError
@@ -125,13 +126,16 @@ class Spec:
 
 @dataclass
 class Evidence:
-    best: dict[str, int]  # question id -> best score
+    best: dict[str, int]  # question id -> best score among answers long enough to score
     latest: dict[str, str]  # question id -> id of the most recent answer
     answers: int
     baseline_done: bool
     last_mock: datetime | None
     last_voice: datetime | None
     learn_passed: set[str] = field(default_factory=set)  # unit ids whose check was passed
+    # Every question with at least one answer (including answers too short to score, which have
+    # no entry in `best`: app/careers/eligibility.py).
+    answered: set[str] = field(default_factory=set)
 
 
 class Roadmap:
@@ -211,14 +215,19 @@ class Roadmap:
         # questions), loaded by id below. Loading every whole row decoded all their feedback JSON
         # (docs/PERFORMANCE.md, "Real journeys").
         rows = self.db.execute(
-            select(PracticeAnswer.id, PracticeAnswer.question_id, PracticeAnswer.score)
+            select(
+                PracticeAnswer.id, PracticeAnswer.question_id, PracticeAnswer.score, *eligibility_columns()
+            )
             .where(PracticeAnswer.user_id == user.id, PracticeAnswer.track == track)
             .order_by(PracticeAnswer.created_at)
         ).all()
         best: dict[str, int] = {}
         latest: dict[str, str] = {}
-        for answer_id, question_id, score in rows:
-            best[question_id] = max(best.get(question_id, 0), score)
+        answered: set[str] = set()
+        for answer_id, question_id, score, level, words in rows:
+            answered.add(question_id)
+            if eligibility(level, words) == "scored":
+                best[question_id] = max(best.get(question_id, 0), score)
             latest[question_id] = answer_id
         sessions = self.db.scalars(
             select(PracticeSession).where(
@@ -252,6 +261,7 @@ class Roadmap:
             last_mock=max(mocks) if mocks else None,
             last_voice=max(spoken) if spoken else None,
             learn_passed=Learn(self.db).passed_units(user),
+            answered=answered,
         )
 
     # --- generation -------------------------------------------------------------------------
@@ -271,7 +281,7 @@ class Roadmap:
             level = LEVELS[LEVELS.index(level) + 1]  # doing well here: go a level up
         for lv in (level, *LEVELS):
             for q in pool:
-                if q.difficulty == lv and q.id not in ev.best:
+                if q.difficulty == lv and q.id not in ev.answered:
                     return q
         return None
 
@@ -302,9 +312,12 @@ class Roadmap:
                 )
             )
 
-        weak = sorted(((s, q) for q, s in ev.best.items() if s < WEAK and q not in used), key=lambda x: x[0])[
-            :2
-        ]
+        # Low scores first; then questions answered only with answers too short to score (no score:
+        # they need a real try, but aren't ranked as the lowest).
+        weak: list[tuple[int | None, str]] = [
+            *sorted(((s, q) for q, s in ev.best.items() if s < WEAK and q not in used), key=lambda x: x[0]),
+            *((None, q) for q in sorted(ev.answered - set(ev.best) - used)),
+        ][:2]
         reviews: list[Spec] = []
         retries: list[Spec] = []
         for score, qid in weak:
@@ -323,7 +336,12 @@ class Roadmap:
                         "review",
                         skill,
                         f"Review feedback: {q.title}",
-                        f"Your best score here is {score}/100. Read what a strong answer includes before trying again.",
+                        (
+                            f"Your best score here is {score}/100."
+                            if score is not None
+                            else "Your answers here were too short to score."
+                        )
+                        + " Read what a strong answer includes before trying again.",
                         "Open your feedback and mark it reviewed. This one is self-reported.",
                         4,
                         {"question_id": qid, "answer_id": last.id},
@@ -334,7 +352,11 @@ class Roadmap:
                     "retry",
                     skill,
                     f"Retry: {q.title}",
-                    f"Your best score is {score}/100"
+                    (
+                        f"Your best score is {score}/100"
+                        if score is not None
+                        else "Your answers were too short to score"
+                    )
                     + (f"; it missed {', '.join(missed[:2])}." if missed else "."),
                     "Submit a new answer to this question. Your earlier answers stay saved.",
                     6,
@@ -932,7 +954,7 @@ class Roadmap:
         note = (
             f"Building your baseline: {ev.answers} of 3 answers so far. Until then the plan starts broad."
             if building
-            else f"Based on {ev.answers} answers across {len(ev.best)} questions. Self-ratings, rubric scores and "
+            else f"Based on {ev.answers} answers across {len(ev.answered)} questions. Self-ratings, rubric scores and "
             "code results are shown separately and never combined into one readiness number."
         )
         return AssessmentOut(

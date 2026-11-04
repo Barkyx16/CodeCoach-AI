@@ -7,7 +7,8 @@ import type { Difficulty, QuestionSummary } from "@/api/types";
  * - Level: the first of easy, medium, hard with fewer than LEVEL_UP_AFTER answered questions
  *   (each question counts once, however many tries); hard once all three have that many.
  * - Within that level, in library order: up to MAX_RETRY answered questions whose best score is
- *   below RETRY_BELOW, then up to MAX_NEW questions not answered yet.
+ *   below RETRY_BELOW (scores only from answers long enough to score), or whose answers were all
+ *   too short to score, then up to MAX_NEW questions not answered yet.
  */
 export const LEVELS: Difficulty[] = ["easy", "medium", "hard"];
 export const LEVEL_UP_AFTER = 10;
@@ -30,8 +31,8 @@ export interface UpNext {
 
 /** `items`: the level's questions as listed (library order); `levelTotal`: how many the level holds. */
 export function upNext(items: QuestionSummary[], levelTotal: number | undefined): UpNext {
-  const retry = items.filter((q) => q.best_score != null && q.best_score < RETRY_BELOW).slice(0, MAX_RETRY);
-  const fresh = items.filter((q) => q.best_score == null).slice(0, MAX_NEW);
+  const retry = items.filter((q) => (q.best_scored != null && q.best_scored < RETRY_BELOW) || q.score_status === "too_short").slice(0, MAX_RETRY);
+  const fresh = items.filter((q) => q.best_score == null && !q.score_status).slice(0, MAX_NEW);
   const partial = levelTotal === undefined || items.length < levelTotal;
   return { retry, fresh, levelDone: retry.length + fresh.length === 0 && !partial, partial };
 }

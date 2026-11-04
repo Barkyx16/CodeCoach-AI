@@ -22,6 +22,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.careers import CATALOG
+from app.careers.eligibility import question_scores
 from app.careers.questions import Question, content_key, get_question, questions_for
 from app.careers.skills import question_skills
 from app.content import state as content_state
@@ -103,16 +104,14 @@ class Explorer:
     # --- personal data ---------------------------------------------------------------------
 
     def _status(self, user: User, track: str) -> dict[str, ItemStatus]:
-        rows = self.db.execute(
-            select(
-                PracticeAnswer.question_id,
-                func.max(PracticeAnswer.score),
-                func.count(),
-                func.max(PracticeAnswer.created_at),
-            )
-            .where(PracticeAnswer.user_id == user.id, PracticeAnswer.track == track)
-            .group_by(PracticeAnswer.question_id)
-        ).all()
+        scores = question_scores(self.db, user.id, track)  # raw and scoreable best (eligibility.py)
+        last = dict(
+            self.db.execute(
+                select(PracticeAnswer.question_id, func.max(PracticeAnswer.created_at))
+                .where(PracticeAnswer.user_id == user.id, PracticeAnswer.track == track)
+                .group_by(PracticeAnswer.question_id)
+            ).all()
+        )
         marks = set(
             self.db.scalars(
                 select(Bookmark.ref_id).where(
@@ -133,13 +132,15 @@ class Explorer:
             member.setdefault(ref, []).append(cid)
         out = {
             qid: ItemStatus(
-                best_score=int(best),
-                attempts=int(n),
-                last_practiced_at=last,
+                best_score=s.raw_best,
+                best_scored=s.best_scored,
+                score_status=s.status,
+                attempts=s.attempts,
+                last_practiced_at=last.get(qid),
                 bookmarked=qid in marks,
                 collection_ids=member.get(qid, []),
             )
-            for qid, best, n, last in rows
+            for qid, s in scores.items()
         }
         for qid in (marks | set(member)) - set(out):
             out[qid] = ItemStatus(
@@ -207,10 +208,13 @@ class Explorer:
             rows.sort(key=recency)
         elif chosen == "lowest_score":
 
-            def weakest(x: Question) -> tuple[bool, int]:
+            def weakest(x: Question) -> tuple[int, int]:
+                # Scored answers by their best scoreable score; then questions answered only with
+                # answers too short to score (no score: not ranked as the lowest); then the rest.
                 st = personal.get(x.id)
-                best = st.best_score if st else None
-                return (best is None, best if best is not None else 0)
+                if st is not None and st.best_scored is not None:
+                    return (0, st.best_scored)
+                return (1 if st is not None and st.attempts > 0 else 2, 0)
 
             rows.sort(key=weakest)
         elif chosen == "library" and query:

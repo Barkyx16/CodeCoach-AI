@@ -103,10 +103,11 @@ export function CareerDashboard({ track, careerTitle }: { track: string; careerT
                           <span className="row">
                             <strong>{q.title}</strong>
                             <DifficultyBadge difficulty={q.difficulty as Difficulty} />
-                            <Badge>{q.best_score != null ? "Try again" : KIND_LABEL[q.kind] ?? titleCase(q.kind)}</Badge>
+                            <Badge>{q.score_status ? "Try again" : KIND_LABEL[q.kind] ?? titleCase(q.kind)}</Badge>
                           </span>
                           <span className="subtle">
-                            {q.best_score != null ? `Your best score here is ${q.best_score}, under ${RETRY_BELOW}.` : q.prompt}
+                            {q.best_scored != null ? `Your best score here is ${q.best_scored}, under ${RETRY_BELOW}.`
+                              : q.score_status === "too_short" ? "Your answers here were too short to score." : q.prompt}
                           </span>
                         </Link>
                       </li>

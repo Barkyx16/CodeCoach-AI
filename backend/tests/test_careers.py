@@ -120,6 +120,10 @@ def test_answering_needs_an_account_and_stores_feedback(client, user_headers):
         "strong": 1,
         "by_difficulty": {"easy": 0, "medium": 1, "hard": 0},
         "total_questions": 300,
+        # One question, answered twice ("Too short." then a strong answer): it has a score.
+        "scored": 1,
+        "too_short": 0,
+        "unknown": 0,
     }
     other = auth_headers(register(client, email="eve@example.com"))
     assert client.get(url, headers=other).json() == []  # answers are private

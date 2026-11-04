@@ -287,7 +287,7 @@ function Editor({ story }: { story: Story | null }) {
             <Card className="stack-sm">
               <h2 className="section-title">Practised with this story</h2>
               <ul className="mini-list">
-                {saved.practice.map((p) => <li key={p.answer_id}><Link to={p.href}>{p.question_title}</Link> <span className="subtle">· {p.score}/100 · {formatDateTime(p.created_at)}</span></li>)}
+                {saved.practice.map((p) => <li key={p.answer_id}><Link to={p.href}>{p.question_title}</Link> <span className="subtle">· {p.too_short ? "too short to score" : `${p.score}/100`} · {formatDateTime(p.created_at)}</span></li>)}
               </ul>
               <p className="subtle">Each practice is its own answer; the story isn't changed by it.</p>
             </Card>

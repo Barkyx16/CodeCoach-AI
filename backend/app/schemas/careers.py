@@ -27,7 +27,20 @@ class QuestionSummary(APIModel):
     difficulty: str
     kind: str = Field(description="knowledge, behavioral, situational, leadership or motivation")
     best_score: int | None = Field(
-        default=None, description="Your best score on this question, when signed in"
+        default=None,
+        description="Your highest stored score on this question, when signed in, including an answer too "
+        "short to score (its stored score is capped). Kept for compatibility; see best_scored.",
+    )
+    best_scored: int | None = Field(
+        default=None,
+        description="Your best score among answers long enough to score (app/careers/eligibility.py); None "
+        "when you haven't answered or none of your answers could be scored. Prefer this to best_score.",
+    )
+    score_status: Literal["scored", "too_short", "unknown"] | None = Field(
+        default=None,
+        description="None: not answered (or signed out). scored: at least one answer has a score. too_short: "
+        "answered, but every answer was too short to score. unknown: answered, but how it was graded wasn't "
+        "recorded.",
     )
 
 
@@ -127,7 +140,14 @@ class AnswerOut(APIModel):
 
 class TrackProgress(APIModel):
     track: str
-    answered: int
+    answered: int = Field(description="Questions with at least one answer, each counted once")
     strong: int = Field(description="Questions with a best score of 85 or more")
     by_difficulty: dict[str, int]
     total_questions: int
+    scored: int = Field(
+        default=0, description="Answered questions with at least one answer long enough to score"
+    )
+    too_short: int = Field(
+        default=0, description="Answered questions where every answer was too short to score (no score yet)"
+    )
+    unknown: int = Field(default=0, description="Answered questions whose grading wasn't recorded (no score)")

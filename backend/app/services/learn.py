@@ -19,6 +19,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.careers import CATALOG
+from app.careers.eligibility import feedback_eligibility
 from app.careers.questions import get_question
 from app.errors import ConflictError, NotFoundError
 from app.learn import PASS_RULE, UNIT_INDEX, Unit, get_unit, tracks_with_units, units_for
@@ -186,7 +187,13 @@ class Learn:
                 .order_by(PracticeAnswer.created_at)
                 .limit(1)
             )
-            return {"answer_id": a.id, "label": f"answered, scored {a.score}/100"} if a else None
+            if a is None:
+                return None
+            scored = feedback_eligibility(a.feedback) != "too_short"
+            return {
+                "answer_id": a.id,
+                "label": f"answered, scored {a.score}/100" if scored else "answered (too short to score)",
+            }
         row = self.db.execute(
             select(Submission.id)
             .join(Problem, Problem.id == Submission.problem_id)

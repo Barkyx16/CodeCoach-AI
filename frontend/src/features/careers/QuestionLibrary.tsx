@@ -45,9 +45,11 @@ function isStatus(v: string | null): v is Status {
   return v === "unattempted" || v === "attempted" || v === "bookmarked";
 }
 
+/** From answers long enough to score only (backend app/careers/eligibility.py). */
 function scoreLabel(st: ItemStatus | undefined): string {
-  if (!st || st.best_score === null || st.best_score === undefined) return "Not answered";
-  return `Best score ${st.best_score}`;
+  if (!st || !st.score_status) return "Not answered";
+  if (st.best_scored != null) return `Best score ${st.best_scored}`;
+  return st.score_status === "too_short" ? "Answered, too short to score" : "Answered (how it was graded wasn't recorded)";
 }
 
 /**
@@ -252,13 +254,14 @@ export function QuestionLibrary() {
                   {data!.items.map((item, index) => {
                     const st = data!.status?.[item.id];
                     const label = scoreLabel(st);
-                    const answered = st && st.best_score !== null && st.best_score !== undefined;
+                    const answered = !!st?.score_status;
+                    const best = st?.best_scored;
                     return (
                       <li key={item.id} className="explore-row">
                         <Link to={`/careers/${track}/questions/${item.id}`} state={back} className="problem-row">
-                          <span className={`problem-row__status problem-row__status--${!answered ? "not_started" : st.best_score! >= 85 ? "solved" : "attempted"}`}
+                          <span className={`problem-row__status problem-row__status--${!answered ? "not_started" : best != null && best >= 85 ? "solved" : "attempted"}`}
                             title={label} aria-label={label}>
-                            {!answered ? "" : st.best_score! >= 85 ? "✓" : "◐"}
+                            {!answered ? "" : best != null && best >= 85 ? "✓" : "◐"}
                           </span>
                           <span className="problem-row__main">
                             <span className="problem-row__title"><span className="problem-row__number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>{item.title}</span>

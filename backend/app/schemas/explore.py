@@ -30,7 +30,13 @@ class ExploreItem(APIModel):
 class ItemStatus(APIModel):
     """Private practice status for one question (signed-in explorer only)."""
 
-    best_score: int | None
+    best_score: int | None = Field(description="Highest stored score, including answers too short to score")
+    best_scored: int | None = Field(
+        default=None, description="Best score among answers long enough to score; None when there's none"
+    )
+    score_status: Literal["scored", "too_short", "unknown"] | None = Field(
+        default=None, description="None: not answered. Otherwise as in QuestionSummary.score_status"
+    )
     attempts: int
     last_practiced_at: datetime | None
     bookmarked: bool

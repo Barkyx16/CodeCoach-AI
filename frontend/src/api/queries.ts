@@ -415,7 +415,7 @@ export function useToggleBookmark() {
       const marks = qc.getQueryData<Bookmark[]>(["me", "bookmarks"]);
       for (const [key, data] of explore) {
         if (!data || ref.item_type !== "question" || data.track !== ref.track) continue;
-        const prev = data.status[ref.ref_id] ?? { best_score: null, attempts: 0, last_practiced_at: null, bookmarked: false, collection_ids: [] };
+        const prev = data.status[ref.ref_id] ?? { best_score: null, best_scored: null, score_status: null, attempts: 0, last_practiced_at: null, bookmarked: false, collection_ids: [] };
         qc.setQueryData<MyExploreResult>(key, { ...data, status: { ...data.status, [ref.ref_id]: { ...prev, bookmarked: on } } });
       }
       if (marks) {

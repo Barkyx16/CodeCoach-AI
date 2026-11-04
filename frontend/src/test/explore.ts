@@ -43,6 +43,9 @@ function status(): Record<string, ItemStatus> {
     const collection_ids = store.collections.filter((c) => c.item_list.some((i) => i.ref_id === q.id)).map((c) => c.id);
     out[q.id] = {
       best_score: q.best_score ?? null, attempts: q.best_score === null || q.best_score === undefined ? 0 : 1,
+      // Fixtures answered with a scoreable answer (the eligibility fields follow best_score).
+      best_scored: q.best_scored ?? q.best_score ?? null,
+      score_status: q.score_status ?? (q.best_score === null || q.best_score === undefined ? null : "scored"),
       last_practiced_at: q.best_score ? "2026-11-01T09:00:00Z" : null, bookmarked, collection_ids,
     };
   }

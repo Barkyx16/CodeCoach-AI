@@ -22,10 +22,16 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
 
-from sqlalchemy import Select, and_, false, func, or_, select
+from sqlalchemy import Select, and_, case, false, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.careers import CATALOG
+from app.careers.eligibility import (
+    eligibility,
+    eligibility_columns,
+    feedback_eligibility,
+    too_short_condition,
+)
 from app.careers.grading import RUBRIC_VERSION
 from app.careers.questions import get_question, questions_for
 from app.careers.skills import career_skills, question_skills, questions_by_skill
@@ -82,6 +88,7 @@ STATUS_LABELS: dict[str, str] = {
     "failed": "Didn't pass",
     "evaluation_unavailable": "Evaluation unavailable",
     "scored": "Scored by the rubric",
+    "too_short": "Too short to score",
     "completed": "Completed",
     "in_progress": "In progress",
     "expired": "Time ran out",
@@ -359,13 +366,18 @@ class ActivityService:
         return sorted({*a, *(t for t in s if t)})
 
     def _answers(self, user: User, f: ActivityFilters, limit: int) -> tuple[int, list[ActivityItem]]:
-        if not self._wants(f, "written_answer", {"scored"}, coding=False):
+        if not self._wants(f, "written_answer", {"scored", "too_short"}, coding=False):
             return 0, []
         stmt = (
             select(PracticeAnswer)
             .where(PracticeAnswer.user_id == user.id)
             .where(*self._date_filter(f, PracticeAnswer.created_at))
         )
+        # A too-short answer's stored score is capped, not a measurement (eligibility.py).
+        if f.status == "scored":
+            stmt = stmt.where(~too_short_condition())
+        elif f.status == "too_short":
+            stmt = stmt.where(too_short_condition())
         if f.career and f.career != CODING:
             stmt = stmt.where(PracticeAnswer.track == f.career)
         wanted = self._question_ids(user, f)
@@ -395,6 +407,16 @@ class ActivityService:
         for a in answers:
             q = get_question(a.track, a.question_id)
             rating = (a.feedback or {}).get("rating", "")
+            kind = feedback_eligibility(a.feedback)
+            words = (a.feedback or {}).get("word_count")
+            if kind == "too_short":
+                label = (
+                    f"Too short to score ({words} words)" if isinstance(words, int) else "Too short to score"
+                )
+            elif kind == "unknown":
+                label = f"Graded {a.score}/100 (how it was graded wasn't recorded)"
+            else:
+                label = f"Scored {a.score}/100 ({rating})" if rating else f"Scored {a.score}/100"
             out.append(
                 ActivityItem(
                     id=f"written_answer:{a.id}",
@@ -405,9 +427,9 @@ class ActivityService:
                     title=q.title if q else "A question that's no longer in the library",
                     detail="Part of a mock interview" if a.id in sessions else None,
                     skills=list(question_skills(q)) if q else [],
-                    status="scored",
-                    status_label=f"Scored {a.score}/100 ({rating})" if rating else f"Scored {a.score}/100",
-                    score=a.score,
+                    status="too_short" if kind == "too_short" else "scored",
+                    status_label=label,
+                    score=a.score,  # the stored score, as before; `status` says whether it counts
                     session_id=sessions.get(a.id),
                     target=ActivityTarget(
                         href=f"/careers/{a.track}/questions/{a.question_id}?answer={a.id}",
@@ -521,13 +543,17 @@ class ActivityService:
                 AIInteraction.user_id == user.id, AIInteraction.action.in_(COACHING_ACTIONS)
             )
         )
-        answers = dict(
-            self.db.execute(
-                select(PracticeAnswer.track, func.count())
-                .where(PracticeAnswer.user_id == user.id)
-                .group_by(PracticeAnswer.track)
-            ).all()
-        )
+        answer_rows = self.db.execute(
+            select(
+                PracticeAnswer.track,
+                func.count(),
+                func.sum(case((too_short_condition(), 1), else_=0)),
+            )
+            .where(PracticeAnswer.user_id == user.id)
+            .group_by(PracticeAnswer.track)
+        ).all()
+        answers = {track: int(n) for track, n, _ in answer_rows}
+        too_short = sum(int(s or 0) for _, _, s in answer_rows)
         sessions = self.db.execute(
             select(PracticeSession.mode, PracticeSession.track, PracticeSession.status, func.count())
             .where(
@@ -542,7 +568,12 @@ class ActivityService:
         for track, c in answers.items():
             careers[track] += c
         statuses: Counter[str] = Counter(
-            {"opened": opened, "scored": sum(answers.values()), "completed": coaching}
+            {
+                "opened": opened,
+                "scored": sum(answers.values()) - too_short,
+                "too_short": too_short,
+                "completed": coaching,
+            }
         )
         for sub_status, c in subs.items():
             statuses[self._submission_status(sub_status)] += c
@@ -613,26 +644,34 @@ class ActivityService:
             PracticeAnswer.created_at,
             PracticeAnswer.provider,
             PracticeAnswer.feedback["evaluator"].as_string().label("evaluator"),
+            *eligibility_columns(),
         ).where(PracticeAnswer.user_id == user.id, PracticeAnswer.track == track)
         stmt = stmt.where(PracticeAnswer.created_at < _start(until + timedelta(days=1)))
         if since:
             stmt = stmt.where(PracticeAnswer.created_at >= _start(since))
         answers = list(self.db.execute(stmt.order_by(PracticeAnswer.created_at)).all())
+        # Best scores only from answers long enough to score (eligibility.py); a question answered
+        # only with too-short answers counts as answered, with no score in the average.
+        answered_qs: set[str] = set()
         best: dict[str, int] = {}
         for a in answers:
-            best[a.question_id] = max(best.get(a.question_id, 0), a.score)
+            answered_qs.add(a.question_id)
+            if eligibility(a.evidence_level, a.word_count) == "scored":
+                best[a.question_id] = max(best.get(a.question_id, 0), a.score)
         by_skill = questions_by_skill(track)
         answers_per_q = Counter(a.question_id for a in answers)
         skills = []
         for s in career_skills(track):
-            qids = [q for q in best if q in by_skill.get(s, frozenset())]
+            qids = [q for q in answered_qs if q in by_skill.get(s, frozenset())]
+            scored = [best[q] for q in qids if q in best]
             skills.append(
                 SkillStat(
                     skill=s,
                     total_questions=len(by_skill.get(s, frozenset())),
                     questions_answered=len(qids),
                     answers=sum(answers_per_q[q] for q in qids),
-                    average_best_score=round(sum(best[q] for q in qids) / len(qids)) if qids else None,
+                    average_best_score=round(sum(scored) / len(scored)) if scored else None,
+                    questions_scored=len(scored),
                 )
             )
         kinds: Counter[str] = Counter()
@@ -651,17 +690,24 @@ class ActivityService:
         session_rows = self.db.execute(sstmt).all()
         istatus = Counter(INTERVIEW_STATUS[s] for s, _ in session_rows)
 
-        series: dict[str, dict[date, list[int]]] = defaultdict(lambda: defaultdict(list))
+        # Each week: every answer counts towards `answers`; the average uses only scoreable ones.
+        series: dict[str, dict[date, list[int | None]]] = defaultdict(lambda: defaultdict(list))
         for a in answers:
             day = a.created_at.date()
+            counted = eligibility(a.evidence_level, a.word_count) == "scored"
             series[a.evaluator or evaluator_key(a.provider, {})][day - timedelta(days=day.weekday())].append(
-                a.score
+                a.score if counted else None
             )
+
+        def average(v: list[int | None]) -> int | None:
+            scored = [x for x in v if x is not None]
+            return round(sum(scored) / len(scored)) if scored else None
+
         trends = [
             TrendSeries(
                 evaluator=key,
                 points=[
-                    TrendPoint(week_start=w, answers=len(v), average_score=round(sum(v) / len(v)))
+                    TrendPoint(week_start=w, answers=len(v), average_score=average(v))
                     for w, v in sorted(weeks.items())
                 ],
             )
@@ -684,7 +730,7 @@ class ActivityService:
             career_title=career_title(track),
             since=since,
             until=until,
-            questions_practiced=len(best),
+            questions_practiced=len(answered_qs),
             answers=len(answers),
             strong_questions=sum(1 for v in best.values() if v >= 85),
             total_questions=len(questions_for(track)),

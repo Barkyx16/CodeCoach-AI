@@ -13990,6 +13990,7 @@
                     "failed",
                     "evaluation_unavailable",
                     "scored",
+                    "too_short",
                     "completed",
                     "in_progress",
                     "expired",
@@ -16318,6 +16319,7 @@
               "failed",
               "evaluation_unavailable",
               "scored",
+              "too_short",
               "completed",
               "in_progress",
               "expired",
@@ -23258,7 +23260,37 @@
                 "type": "null"
               }
             ],
-            "title": "Best Score"
+            "title": "Best Score",
+            "description": "Highest stored score, including answers too short to score"
+          },
+          "best_scored": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Scored",
+            "description": "Best score among answers long enough to score; None when there's none"
+          },
+          "score_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "scored",
+                  "too_short",
+                  "unknown"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score Status",
+            "description": "None: not answered. Otherwise as in QuestionSummary.score_status"
           },
           "attempts": {
             "type": "integer",
@@ -25773,7 +25805,36 @@
               }
             ],
             "title": "Best Score",
-            "description": "Your best score on this question, when signed in"
+            "description": "Your highest stored score on this question, when signed in, including an answer too short to score (its stored score is capped). Kept for compatibility; see best_scored."
+          },
+          "best_scored": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Scored",
+            "description": "Your best score among answers long enough to score (app/careers/eligibility.py); None when you haven't answered or none of your answers could be scored. Prefer this to best_score."
+          },
+          "score_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "scored",
+                  "too_short",
+                  "unknown"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score Status",
+            "description": "None: not answered (or signed out). scored: at least one answer has a score. too_short: answered, but every answer was too short to score. unknown: answered, but how it was graded wasn't recorded."
           },
           "track": {
             "type": "string",
@@ -25846,7 +25907,36 @@
               }
             ],
             "title": "Best Score",
-            "description": "Your best score on this question, when signed in"
+            "description": "Your highest stored score on this question, when signed in, including an answer too short to score (its stored score is capped). Kept for compatibility; see best_scored."
+          },
+          "best_scored": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Scored",
+            "description": "Your best score among answers long enough to score (app/careers/eligibility.py); None when you haven't answered or none of your answers could be scored. Prefer this to best_score."
+          },
+          "score_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "scored",
+                  "too_short",
+                  "unknown"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score Status",
+            "description": "None: not answered (or signed out). scored: at least one answer has a score. too_short: answered, but every answer was too short to score. unknown: answered, but how it was graded wasn't recorded."
           }
         },
         "type": "object",
@@ -29794,7 +29884,14 @@
                 "type": "null"
               }
             ],
-            "title": "Average Best Score"
+            "title": "Average Best Score",
+            "description": "Average of your best scoreable score on each answered question of this skill; None when none of them has an answer long enough to score"
+          },
+          "questions_scored": {
+            "type": "integer",
+            "title": "Questions Scored",
+            "description": "How many of those questions the average covers",
+            "default": 0
           }
         },
         "type": "object",
@@ -30844,7 +30941,14 @@
           },
           "score": {
             "type": "integer",
-            "title": "Score"
+            "title": "Score",
+            "description": "The stored score (capped when the answer was too short to score)"
+          },
+          "too_short": {
+            "type": "boolean",
+            "title": "Too Short",
+            "description": "The answer was too short to score: `score` isn't a measurement",
+            "default": false
           },
           "created_at": {
             "type": "string",
@@ -32352,7 +32456,8 @@
           },
           "answered": {
             "type": "integer",
-            "title": "Answered"
+            "title": "Answered",
+            "description": "Questions with at least one answer, each counted once"
           },
           "strong": {
             "type": "integer",
@@ -32369,6 +32474,24 @@
           "total_questions": {
             "type": "integer",
             "title": "Total Questions"
+          },
+          "scored": {
+            "type": "integer",
+            "title": "Scored",
+            "description": "Answered questions with at least one answer long enough to score",
+            "default": 0
+          },
+          "too_short": {
+            "type": "integer",
+            "title": "Too Short",
+            "description": "Answered questions where every answer was too short to score (no score yet)",
+            "default": 0
+          },
+          "unknown": {
+            "type": "integer",
+            "title": "Unknown",
+            "description": "Answered questions whose grading wasn't recorded (no score)",
+            "default": 0
           }
         },
         "type": "object",

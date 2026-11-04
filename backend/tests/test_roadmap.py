@@ -86,9 +86,11 @@ def test_the_baseline_changes_the_plan_for_stated_reasons(client):
         for q in client.get(f"/api/v1/interviews/{iv['id']}", headers=h).json()["questions"]
         if q["index"] == 1
     )
-    retry = next(i for i in v2["items"] if i["kind"] == "retry")
-    assert retry["title"] == f"Retry: {weak['title']}"
-    assert f"{weak['answer']['score']}/100" in retry["reason"]
+    # The weak baseline answer was too short to score: it's retried, but its capped stored score
+    # isn't quoted as a result (app/careers/eligibility.py).
+    retry = next(i for i in v2["items"] if i["kind"] == "retry" and i["title"] == f"Retry: {weak['title']}")
+    assert "too short to score" in retry["reason"]
+    assert f"{weak['answer']['score']}/100" not in retry["reason"]
     assert any(c.startswith("Added “Retry:") for c in v2["changes"])
     review = next(i for i in v2["items"] if i["kind"] == "review")
     assert review["can_mark_reviewed"] and "self-reported" in review["completion"]

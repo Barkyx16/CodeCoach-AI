@@ -80,7 +80,10 @@ class StoryPractice(APIModel):
     answer_id: str
     question_title: str
     href: str
-    score: int
+    score: int = Field(description="The stored score (capped when the answer was too short to score)")
+    too_short: bool = Field(
+        default=False, description="The answer was too short to score: `score` isn't a measurement"
+    )
     created_at: datetime
 
 

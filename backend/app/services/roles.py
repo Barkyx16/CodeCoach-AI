@@ -21,6 +21,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.careers import CATALOG
+from app.careers.eligibility import feedback_eligibility
 from app.careers.questions import get_question, questions_for
 from app.careers.skills import career_skills, questions_by_skill
 from app.errors import AppError, NotFoundError
@@ -374,10 +375,13 @@ class RoleTargets:
             .where(PracticeAnswer.user_id == user.id, PracticeAnswer.track == track)
             .order_by(PracticeAnswer.created_at.desc())
         ).all()
+        # Best scores only from answers long enough to score (app/careers/eligibility.py); a question
+        # answered only with too-short answers is answered, with no score.
         best: dict[str, int] = {}
         counts: dict[str, int] = defaultdict(int)
         for a in answers:
-            best[a.question_id] = max(best.get(a.question_id, 0), a.score)
+            if feedback_eligibility(a.feedback) == "scored":
+                best[a.question_id] = max(best.get(a.question_id, 0), a.score)
             counts[a.question_id] += 1
         by_skill = questions_by_skill(track)
         bank = sorted(questions_for(track), key=lambda q: (DIFFICULTY_ORDER.get(q.difficulty, 3), q.id))
@@ -415,8 +419,9 @@ class RoleTargets:
             qids_by_req[r.id] = qids
             topics = coding_topics(r.text) if profile.has_coding else []
             probs = [p for p in problems if set(p.topics) & set(topics)]
-            answered = [q for q in qids if q in best]
-            avg = round(sum(best[q] for q in answered) / len(answered)) if answered else None
+            answered = [q for q in qids if q in counts]
+            scored = [q for q in answered if q in best]
+            avg = round(sum(best[q] for q in scored) / len(scored)) if scored else None
             j = sum(judged[p.id] for p in probs)
             ok = sum(1 for p in probs if p.id in passed)
             n_answers = sum(counts[q] for q in answered)
@@ -430,13 +435,18 @@ class RoleTargets:
                         else "No practice in the question bank covers this yet"
                     ),
                 )
-            elif (len(answered) >= 2 and (avg or 0) >= 70) or ok >= 2:
+            elif (len(scored) >= 2 and (avg or 0) >= 70) or ok >= 2:
                 level, label = (
                     "practised",
                     "Practised"
                     + (
                         f": {len(answered)} questions, average best {avg}/100"
-                        if answered
+                        + (
+                            f" (of the {len(scored)} long enough to score)"
+                            if len(scored) < len(answered)
+                            else ""
+                        )
+                        if scored
                         else f": {ok} problems passed"
                     ),
                 )
@@ -446,6 +456,14 @@ class RoleTargets:
                     "Some practice"
                     + (
                         f": {len(answered)} question{'s' if len(answered) != 1 else ''}, best average {avg}/100"
+                        + (
+                            f" (of the {len(scored)} long enough to score)"
+                            if len(scored) < len(answered)
+                            else ""
+                        )
+                        if scored
+                        else f": {len(answered)} question{'s' if len(answered) != 1 else ''} answered, none long enough "
+                        "to score yet"
                         if answered
                         else ""
                     ),
@@ -453,8 +471,10 @@ class RoleTargets:
             else:
                 level, label = "limited", "Limited evidence: not practised yet"
             practice: list[PracticeLink] = []
-            for q in [q for q in bank if q.id in qids and q.id not in best][:2] + sorted(
-                (q for q in bank if q.id in qids and q.id in best), key=lambda q: best[q.id]
+            # Unanswered first; then one to retry: an answer too short to score, else the lowest score.
+            for q in [q for q in bank if q.id in qids and q.id not in counts][:2] + sorted(
+                (q for q in bank if q.id in qids and q.id in counts),
+                key=lambda q: (q.id in best, best.get(q.id, 0)),
             )[:1]:
                 skill = next(
                     (s for s in r.skills if q.id in by_skill.get(s, frozenset())),
@@ -468,9 +488,11 @@ class RoleTargets:
                         why=(
                             f"Retry: your best is {best[q.id]}/100 ({skill})"
                             if q.id in best
+                            else f"Retry: your answer was too short to score ({skill})"
+                            if q.id in counts
                             else f"Practises {skill}"
                         ),
-                        answered=q.id in best,
+                        answered=q.id in counts,
                         best_score=best.get(q.id),
                     )
                 )

@@ -14,6 +14,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.careers import CATALOG
+from app.careers.eligibility import feedback_eligibility
 from app.careers.questions import get_question, is_retired
 from app.errors import AppError, ConflictError, NotFoundError
 from app.models import ExperienceEntry, PracticeAnswer, RoleTarget, StoryRevision, User
@@ -193,6 +194,7 @@ class Stories:
                     question_title=q.title if q else a.question_id,
                     href=f"/careers/{a.track}/questions/{a.question_id}?answer={a.id}",
                     score=a.score,
+                    too_short=feedback_eligibility(a.feedback) == "too_short",
                     created_at=a.created_at,
                 )
             )

@@ -228,7 +228,8 @@ function QuestionPageFor() {
           <p className="row question-page__meta">
             <DifficultyBadge difficulty={q.difficulty as Difficulty} />
             <Badge>{KIND_LABEL[q.kind] ?? q.kind}</Badge>
-            {q.best_score !== null && q.best_score !== undefined && <span className="focus-hide"><Badge tone="success">Best score {q.best_score}</Badge></span>}
+            {q.best_scored != null && <span className="focus-hide"><Badge tone="success">Best score {q.best_scored}</Badge></span>}
+            {q.best_scored == null && q.score_status === "too_short" && <span className="focus-hide"><Badge>Answered, too short to score</Badge></span>}
           </p>
         </div>
         <FocusToggle />

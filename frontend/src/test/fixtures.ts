@@ -149,8 +149,8 @@ export const nurseAnalytics: CareerAnalytics = {
   track: "registered-nurse", career_title: "Registered Nurse", since: null, until: today,
   questions_practiced: 1, answers: 2, strong_questions: 1, total_questions: 300,
   skills: [
-    { skill: "patient assessment", total_questions: 26, questions_answered: 1, answers: 2, average_best_score: 92 },
-    { skill: "triage", total_questions: 17, questions_answered: 0, answers: 0, average_best_score: null },
+    { skill: "patient assessment", total_questions: 26, questions_answered: 1, answers: 2, average_best_score: 92, questions_scored: 1 },
+    { skill: "triage", total_questions: 17, questions_answered: 0, answers: 0, average_best_score: null, questions_scored: 0 },
   ],
   kinds: [{ value: "knowledge", label: "Knowledge", count: 2 }],
   interviews: { completed: 1, in_progress: 0, expired: 0, abandoned: 1 },

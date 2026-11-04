@@ -5,7 +5,7 @@ problems table. Answers are stored per user with the feedback they received.
 """
 
 from fastapi import APIRouter, Depends, Query, Request, Response
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -13,6 +13,7 @@ from app import tracing
 from app.api.deps import get_current_user, get_db, get_optional_user
 from app.careers import CATALOG, CATEGORIES
 from app.careers.answers import answer_out, graded_answer, request_fingerprint, same_request
+from app.careers.eligibility import QuestionScores, question_scores
 from app.careers.questions import Question, get_question, is_retired, questions_for
 from app.careers.support import evaluation_for
 from app.errors import AppError, ConflictError, NotFoundError, RateLimitedError
@@ -55,25 +56,22 @@ def _matching(track: str, q: str | None) -> list[Question]:
     return questions
 
 
-def _best_scores(db: Session, user: User | None, track: str) -> dict[str, int]:
-    if user is None:
-        return {}
-    rows = db.execute(
-        select(PracticeAnswer.question_id, func.max(PracticeAnswer.score))
-        .where(PracticeAnswer.user_id == user.id, PracticeAnswer.track == track)
-        .group_by(PracticeAnswer.question_id)
-    ).all()
-    return {qid: int(score) for qid, score in rows}
+def _best_scores(db: Session, user: User | None, track: str) -> dict[str, QuestionScores]:
+    """This learner's answers per question: raw best, best scoreable score (eligibility.py)."""
+    return question_scores(db, user.id, track) if user is not None else {}
 
 
-def _summary(q: Question, best: dict[str, int]) -> QuestionSummary:
+def _summary(q: Question, best: dict[str, QuestionScores]) -> QuestionSummary:
+    s = best.get(q.id)
     return QuestionSummary(
         id=q.id,
         title=q.title,
         prompt=q.prompt,
         difficulty=q.difficulty,
         kind=q.kind,
-        best_score=best.get(q.id),
+        best_score=s.raw_best if s else None,
+        best_scored=s.best_scored if s else None,
+        score_status=s.status if s else None,
     )
 
 
@@ -328,10 +326,15 @@ def track_progress(
     for qid in best:
         if qid in by_id:
             by_difficulty[by_id[qid]] += 1
+    current = {qid: s for qid, s in best.items() if qid in by_id}
     return TrackProgress(
         track=track,
         answered=sum(by_difficulty.values()),
-        strong=sum(1 for qid, s in best.items() if s >= 85 and qid in by_id),
+        # A too-short answer's stored score is capped at 35, so "strong" counts the same either way.
+        strong=sum(1 for s in current.values() if s.best_scored is not None and s.best_scored >= 85),
         by_difficulty=by_difficulty,
         total_questions=len(by_id),
+        scored=sum(1 for s in current.values() if s.status == "scored"),
+        too_short=sum(1 for s in current.values() if s.status == "too_short"),
+        unknown=sum(1 for s in current.values() if s.status == "unknown"),
     )
