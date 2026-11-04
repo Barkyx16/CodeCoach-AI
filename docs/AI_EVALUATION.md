@@ -435,6 +435,12 @@ a rating moved from Strong to Good on a reported contradiction. **Across 783 ans
 - Contradictions inside conditional framing ("If a patient disagreed … I would …") are not looked
   for: hypotheticals are skipped as a whole.
 
+**Comparison files.** `python -m evals.run --compare` now covers every career set both reports
+graded, with each protocol metric as k/n (`rubric-v4-vs-v5.md`: 0 regressions, 11 case checks fixed,
+all on contradictions). Before this change it covered only the gated sets, so
+`rubric-v2-vs-v3.md` and `rubric-v3-vs-v4.md` show only the old development and historical sets;
+the families-set numbers in those sections are from the per-set results in the same reports.
+
 **What this does not show.** The pairs set was written by the same session as the rule, so 13/16
 there is what the rule does on the cases it was built from. The families set (written by a separate
 session, but read while building the rule) is the less optimistic development figure: 3 of 9. No

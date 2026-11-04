@@ -382,7 +382,9 @@ def compare(baseline: dict, candidate: dict) -> dict:
     }
     if changed_data:
         return result
-    for set_id in sorted(_career_sets(baseline).keys() & _career_sets(candidate).keys()):
+    # Every career set both reports graded, development sets included: a comparison that only showed
+    # the gated sets would hide what changed on the development data.
+    for set_id in sorted((baseline.get("career") or {}).keys() & (candidate.get("career") or {}).keys()):
         b_cases = {c["id"]: c for c in baseline["career"][set_id]["cases"]}
         for c in candidate["career"][set_id]["cases"]:
             b = b_cases.get(c["id"])
@@ -405,6 +407,13 @@ def compare(baseline: dict, candidate: dict) -> dict:
                 f"{d} passed": [bs["dimensions"][d]["passed"], cs["dimensions"][d]["passed"]]
                 for d in bs["dimensions"]
                 if bs["dimensions"][d]["cases"]
+            },
+            **{
+                k: [f"{bm['k']}/{bm['n']}", f"{cm['k']}/{cm['n']}"]
+                for k, bm in (bs.get("protocol_metrics") or {}).items()
+                if k != "per_variant"
+                and (cm := (cs.get("protocol_metrics") or {}).get(k))
+                and (bm["n"] or cm["n"])
             },
         }
     for section in ("review", "review_holdout", "review_medium"):
