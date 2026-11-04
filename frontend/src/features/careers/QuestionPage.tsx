@@ -45,7 +45,18 @@ function countWords(text: string): number {
 }
 
 /** One interview question: read it, write an answer, get rubric feedback, compare with past tries. */
+/**
+ * One page per question: moving to another question starts it afresh, so the previous one's
+ * feedback (shown, or still on its way) never appears there. The page that sent an answer owns its
+ * feedback; if the learner moves on first, the answer is still saved and listed under its own
+ * question and in History. (Leaving doesn't stop the server grading it.)
+ */
 export function QuestionPage() {
+  const { track = "", id = "" } = useParams();
+  return <QuestionPageFor key={`${track}/${id}`} />;
+}
+
+function QuestionPageFor() {
   const { track = "", id = "" } = useParams();
   const { isAuthenticated, isRestoring, user, continueAsGuest, draftScope, offlineUser } = useAuth();
   const online = useOnline();

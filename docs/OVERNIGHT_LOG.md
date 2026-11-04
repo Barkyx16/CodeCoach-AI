@@ -32,8 +32,9 @@ was done, on which commit, what was checked and what is left. Morning handoff at
 | 7 | Final verification and handoff | after the bonus queue (one final verification) | |
 | B1 | Accessible answer and feedback flow | done | `fe39f2f` |
 | B2 | Safe rendering of learner and provider text | done | `1ca34a4` |
-| B3 | Backend ownership and account isolation | already satisfied; tests added | this change |
-| B4–B5 | Bonus queue: concurrent submissions, diagnostics | next | |
+| B3 | Backend ownership and account isolation | already satisfied; tests added | `1e077c5` |
+| B4 | Concurrent submissions and stale feedback | done, see checkpoint | this change |
+| B5 | Diagnostics and bounded performance | next | |
 
 ## Checkpoint: task 4, contradictions (rubric v5)
 
@@ -121,3 +122,17 @@ was done, on which commit, what was checked and what is left. Morning handoff at
   is a 404 for another account and leaves it unchanged; an AI history item is a 404 for another
   account. No refusal contains the owner's answer text. Story links were already checked
   (`check_story_owner`).
+
+## Checkpoint: bonus 4, concurrent submissions and stale feedback
+
+- Semantics (now written down in `QuestionPage.tsx`): the page that sent an answer owns its
+  feedback. Moving to another question starts it afresh; an answer still on its way is saved and
+  listed under its own question and in History, but its feedback isn't shown elsewhere. Leaving
+  doesn't stop the server grading it.
+- Demonstrated gap (tests failed first): the question route reused one page instance across
+  questions, so question A's feedback (shown, or arriving late) appeared on question B. Fixed by
+  giving each question its own page instance (keyed by track and id).
+- Already satisfied, now tested: a second press while sending is ignored (one POST); a failed
+  send keeps the text; mutations are never retried automatically, and a 401 resend happens only
+  before the server handled the request (no duplicate answer).
+- Checks: lint, typecheck, `npm test` 55 files / 576 tests.

@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
 import { tokenResponse, user as baseUser } from "../fixtures";
@@ -183,5 +183,73 @@ describe("Answering with the keyboard", () => {
     expect(send).toHaveFocus(); // still where the learner was
     await user.keyboard("{Enter}");
     expect(await screen.findByRole("region", { name: "Feedback" })).toBeInTheDocument();
+  });
+});
+
+describe("Which answer owns the feedback on screen", () => {
+  // The page that sent an answer shows its feedback. Moving to another question starts that
+  // question afresh: an earlier question's feedback, even one still on its way, never appears
+  // there, and that question's own draft is left alone. (The earlier answer is still saved; it is
+  // listed under its own question and in History.)
+  const A = "/careers/registered-nurse/questions/m-pressure-0";
+  const B = "/careers/registered-nurse/questions/e-good-0";
+
+  it("an earlier question's feedback isn't shown on the next question", async () => {
+    server.use(http.post(`${API}/api/v1/careers/:track/questions/:id/answers`, async () => {
+      const { nurseAnswer } = await import("../fixtures");
+      return HttpResponse.json(nurseAnswer, { status: 201 });
+    }));
+    const { user, router } = renderApp(A, { signedIn: true });
+    await user.type(await screen.findByLabelText("Your answer"), "Last winter I handled a deteriorating patient.");
+    await user.click(screen.getByRole("button", { name: "Get feedback" }));
+    expect(await screen.findByRole("region", { name: "Feedback" })).toBeInTheDocument();
+    await act(() => router.navigate(B));
+    expect(await screen.findByLabelText("Your answer")).toHaveValue("");
+    expect(screen.queryByRole("region", { name: "Feedback" })).not.toBeInTheDocument();
+  });
+
+  it("a slow answer that finishes after moving on doesn't land on the next question or clear its draft", async () => {
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    let sent = false;
+    server.use(http.post(`${API}/api/v1/careers/:track/questions/:id/answers`, async () => {
+      sent = true;
+      await held;
+      const { nurseAnswer } = await import("../fixtures");
+      return HttpResponse.json(nurseAnswer, { status: 201 });
+    }));
+    const { user, router } = renderApp(A, { signedIn: true });
+    await user.type(await screen.findByLabelText("Your answer"), "Last winter I handled a deteriorating patient.");
+    await user.click(screen.getByRole("button", { name: "Get feedback" }));
+    await waitFor(() => expect(sent).toBe(true));
+    await act(() => router.navigate(B));
+    const box = await screen.findByLabelText("Your answer");
+    await user.type(box, "My answer to the second question.");
+    await act(async () => { release(); await held; });
+    await waitFor(() => expect(window.localStorage.length).toBeGreaterThan(0));
+    expect(screen.queryByRole("region", { name: "Feedback" })).not.toBeInTheDocument();
+    expect(box).toHaveValue("My answer to the second question.");
+  });
+
+  it("pressing twice quickly sends the answer once", async () => {
+    let posts = 0;
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    server.use(http.post(`${API}/api/v1/careers/:track/questions/:id/answers`, async () => {
+      posts += 1;
+      await held;
+      const { nurseAnswer } = await import("../fixtures");
+      return HttpResponse.json(nurseAnswer, { status: 201 });
+    }));
+    const { user } = renderApp(A, { signedIn: true });
+    await user.type(await screen.findByLabelText("Your answer"), "Last winter I handled a deteriorating patient.");
+    const send = screen.getByRole("button", { name: "Get feedback" });
+    await user.click(send);
+    await waitFor(() => expect(posts).toBe(1));
+    await user.click(send); // still busy: ignored
+    await user.keyboard("{Enter}");
+    release();
+    expect(await screen.findByRole("region", { name: "Feedback" })).toBeInTheDocument();
+    expect(posts).toBe(1);
   });
 });
