@@ -36,8 +36,9 @@ class CareerEvaluation:
 
 _KINDS = ("knowledge", "behavioral", "situational", "leadership", "motivation")
 _MEASURED_NOTE = (
-    "This career's feedback has been checked against example answers written for it (development "
-    "examples, labelled by an AI, not reviewed by a person); an independent measurement is pending."
+    "This career's feedback has been checked against example answers written for it, including once "
+    "on a separate set kept back for that purpose; the examples were labelled by an AI and not "
+    "reviewed by a person, so treat the feedback as a guide to structure."
 )
 
 MEASURED: dict[str, CareerEvaluation] = {
@@ -53,7 +54,7 @@ MEASURED: dict[str, CareerEvaluation] = {
             "career-rn-contradiction-pairs",
             "career-rn-injection-challenges",
             "career-rn-action-wording",
-            "career-rn-sealed (not yet graded)",
+            "career-rn-sealed (graded once, 2026-11-04)",
         ),
     ),
     "customer-service-representative": CareerEvaluation(
@@ -61,7 +62,7 @@ MEASURED: dict[str, CareerEvaluation] = {
         _MEASURED_NOTE,
         rubric_version="v8",
         formats=_KINDS,
-        sets=("career-csr-families-dev", "career-csr-sealed (not yet graded)"),
+        sets=("career-csr-families-dev", "career-csr-sealed (graded once, 2026-11-04)"),
     ),
 }
 

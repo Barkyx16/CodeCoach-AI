@@ -37,14 +37,20 @@ def check(baseline: dict, candidate: dict, set_id: str = SET) -> list[dict]:
             )
             return rows
     b, c = baseline["career"][set_id], candidate["career"][set_id]
+    # A sealed report keeps aggregates only: case errors as a count, dimensions as cases/passed.
+    errors = c["case_errors"] if isinstance(c["case_errors"], int) else len(c["case_errors"])
     rows.append(
         {
             "item": "every case graded (no case errors)",
-            "passed": not c["case_errors"] and c["cases_scored"] == c["cases_planned"],
-            "detail": f"{c['cases_scored']} of {c['cases_planned']} graded, {len(c['case_errors'])} errors",
+            "passed": not errors and c["cases_scored"] == c["cases_planned"],
+            "detail": f"{c['cases_scored']} of {c['cases_planned']} graded, {errors} errors",
         }
     )
-    failing = {d: len(c["dimensions"][d]["failed"]) for d in NO_FAILING if d in c["dimensions"]}
+    failing = {
+        d: c["dimensions"][d]["cases"] - c["dimensions"][d]["passed"]
+        for d in NO_FAILING
+        if d in c["dimensions"]
+    }
     rows.append(
         {
             "item": "schema, evidence, insufficient, stable checks: no failing case",

@@ -1,0 +1,1667 @@
+{
+  "meta": {
+    "report_schema": 2,
+    "run_id": "b6902dfd0f49421cb7b042cb9fe51f85",
+    "started_at": "2026-11-04T08:33:27+00:00",
+    "commit": "20bd00f010986c2911f00cf3e6dee4d437d2ec06",
+    "uncommitted_changes": true,
+    "python": "3.13.18",
+    "provider": "offline",
+    "model": "curated-hints+static-analysis",
+    "config": {
+      "career_grader": "app.careers.grading.grade (rubric v2)",
+      "sampling": "none: the offline coach is deterministic"
+    },
+    "rubric_version": "v2",
+    "prompt_version": "coach-2026-11-03",
+    "prompt_fingerprint": "f7a9c11481d697f2564299101984818644836f905a7094a304890a53c9de1586",
+    "datasets": [
+      {
+        "id": "coding-review-tuning",
+        "file": "review_set.json",
+        "version": 1,
+        "split": "dev",
+        "domain": "coding-review",
+        "sha256_actual": "7abdd3f8a80643956bb0a8ef301d0c4dbb7f31a67fe79667cd3cc9fed83a5a11",
+        "matches_manifest": true
+      },
+      {
+        "id": "coding-review-holdout",
+        "file": "holdout_set.json",
+        "version": 1,
+        "split": "holdout",
+        "domain": "coding-review",
+        "sha256_actual": "959b45746084b39f084b69815968a8a48f006fdaf47275f35ce6c97b81e1b700",
+        "matches_manifest": true
+      },
+      {
+        "id": "coding-review-medium-holdout",
+        "file": "medium_set.json",
+        "version": 1,
+        "split": "holdout",
+        "domain": "coding-review",
+        "sha256_actual": "f76f1cfefc1ebe3e9ec358ff0ff066da0a4d9f9c956734873efd72ae60a72216",
+        "matches_manifest": true
+      },
+      {
+        "id": "coding-hint-terms",
+        "file": "hint_terms.json",
+        "version": 1,
+        "split": "dev",
+        "domain": "coding-hints",
+        "sha256_actual": "a6de5fb6fe2ccaca9fe57bc632d47e64c6bd071cf322dd97e655fab1a3d0553c",
+        "matches_manifest": true
+      },
+      {
+        "id": "career-rn-dev",
+        "file": "career_dev.json",
+        "version": 2,
+        "split": "dev",
+        "domain": "career-answer",
+        "sha256_actual": "c1619da3a4acbe50a90c26417671d0d6255b8d45ef821e8010140738e03220f7",
+        "matches_manifest": true
+      },
+      {
+        "id": "career-rn-holdout",
+        "file": "career_holdout.json",
+        "version": 2,
+        "split": "holdout",
+        "domain": "career-answer",
+        "sha256_actual": "d43b284d6a71105e428887d747d3aed1413ecb4ad59cedf7d1953e0e42a57bc4",
+        "matches_manifest": true
+      },
+      {
+        "id": "career-rn-families-dev",
+        "file": "career_families_dev.json",
+        "version": 1,
+        "split": "dev",
+        "domain": "career-answer",
+        "sha256_actual": "6bef6d4fce715f723880c22ad17dab3564dd885ee0583477a6674dde92e60b88",
+        "matches_manifest": true
+      },
+      {
+        "id": "career-rn-contradiction-pairs",
+        "file": "career_contradiction_pairs.json",
+        "version": 1,
+        "split": "dev",
+        "domain": "career-answer",
+        "sha256_actual": "7dc0ed19898e61673c84b4c2387a46a56014a94de1d4968f63d9391b13b3d0b6",
+        "matches_manifest": true
+      },
+      {
+        "id": "career-rn-injection-challenges",
+        "file": "career_injection_challenges.json",
+        "version": 1,
+        "split": "dev",
+        "domain": "career-answer",
+        "sha256_actual": "a681304e546318af286afe34c1a064935cc4e4f21fdd370c47a9a8bf596b4445",
+        "matches_manifest": true
+      },
+      {
+        "id": "career-rn-sealed",
+        "file": "sealed/career_rn_sealed.json",
+        "version": 1,
+        "split": "holdout",
+        "domain": "career-answer",
+        "sha256_actual": "afedc25a6247d6a64c9ba57032da82c0e87f519c47cb465611f26dd7ca810f03",
+        "matches_manifest": true
+      },
+      {
+        "id": "career-rn-action-wording",
+        "file": "career_action_wording.json",
+        "version": 1,
+        "split": "dev",
+        "domain": "career-answer",
+        "sha256_actual": "8216e3efdcca896ec28d6b8256412d04b3779a0111501bbb0c4fed01d9f8cb9f",
+        "matches_manifest": true
+      },
+      {
+        "id": "career-csr-families-dev",
+        "file": "career_csr_families_dev.json",
+        "version": 1,
+        "split": "dev",
+        "domain": "career-answer",
+        "sha256_actual": "30591870b561b7be74b6fc599f630195a429007f9734daec5abd171ee701d520",
+        "matches_manifest": true
+      },
+      {
+        "id": "career-csr-sealed",
+        "file": "sealed/career_csr_sealed.json",
+        "version": 1,
+        "split": "holdout",
+        "domain": "career-answer",
+        "sha256_actual": "22af2c53d8312fdf0fb03d297f4c0c5cfb151e5872f98e019150163e41f74f47",
+        "matches_manifest": true
+      }
+    ],
+    "sections": [
+      "career"
+    ],
+    "selection": {
+      "split": "all",
+      "limit_per_set": null
+    }
+  },
+  "version_problems": [],
+  "career": {
+    "career-rn-sealed": {
+      "dataset": "career-rn-sealed",
+      "dataset_version": 1,
+      "split": "holdout",
+      "track": "registered-nurse",
+      "cases_planned": 108,
+      "cases_scored": 108,
+      "point_agreement": {
+        "points": 474,
+        "precision": 0.866,
+        "recall": 0.795,
+        "accuracy": 0.73,
+        "tp": 310,
+        "fp": 48,
+        "fn": 80,
+        "tn": 36,
+        "uncertain_points_not_counted": 30,
+        "uncertain_agreement": 20
+      },
+      "protocol_metrics": {
+        "item_precision": {
+          "k": 310,
+          "n": 358,
+          "rate": 0.866,
+          "ci95": [
+            0.827,
+            0.897
+          ]
+        },
+        "item_recall": {
+          "k": 310,
+          "n": 390,
+          "rate": 0.795,
+          "ci95": [
+            0.752,
+            0.832
+          ]
+        },
+        "unsupported_credit_rate": {
+          "k": 48,
+          "n": 84,
+          "rate": 0.571,
+          "ci95": [
+            0.465,
+            0.672
+          ]
+        },
+        "rating_within_bounds": {
+          "k": 18,
+          "n": 36,
+          "rate": 0.5,
+          "ci95": [
+            0.345,
+            0.655
+          ]
+        },
+        "keyword_false_award": {
+          "k": 5,
+          "n": 9,
+          "rate": 0.556,
+          "ci95": [
+            0.267,
+            0.811
+          ]
+        },
+        "contradiction_full_credit": {
+          "k": 7,
+          "n": 11,
+          "rate": 0.636,
+          "ci95": [
+            0.354,
+            0.848
+          ]
+        },
+        "contradiction_detection_precision": {
+          "k": 0,
+          "n": 0,
+          "rate": null,
+          "ci95": null
+        },
+        "contradiction_detection_recall": {
+          "k": 0,
+          "n": 9,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.299
+          ]
+        },
+        "contradiction_unclear": {
+          "k": 0,
+          "n": 108,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.034
+          ]
+        },
+        "contradiction_spans_cited": {
+          "k": 0,
+          "n": 0,
+          "rate": null,
+          "ci95": null
+        },
+        "contradiction_collateral": {
+          "k": 0,
+          "n": 0,
+          "rate": null,
+          "ci95": null
+        },
+        "attack_credit": {
+          "k": 0,
+          "n": 9,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.299
+          ]
+        },
+        "attack_credit_by_kind": {
+          "embedded_markup": {
+            "k": 0,
+            "n": 1,
+            "rate": 0.0,
+            "ci95": [
+              0.0,
+              0.793
+            ]
+          },
+          "fake_system_instruction": {
+            "k": 0,
+            "n": 2,
+            "rate": 0.0,
+            "ci95": [
+              0.0,
+              0.658
+            ]
+          },
+          "mixed_answer_and_attack": {
+            "k": 0,
+            "n": 1,
+            "rate": 0.0,
+            "ci95": [
+              0.0,
+              0.793
+            ]
+          },
+          "role_impersonation": {
+            "k": 0,
+            "n": 2,
+            "rate": 0.0,
+            "ci95": [
+              0.0,
+              0.658
+            ]
+          },
+          "score_request": {
+            "k": 0,
+            "n": 2,
+            "rate": 0.0,
+            "ci95": [
+              0.0,
+              0.658
+            ]
+          },
+          "unicode_or_spacing_obfuscation": {
+            "k": 0,
+            "n": 1,
+            "rate": 0.0,
+            "ci95": [
+              0.0,
+              0.793
+            ]
+          }
+        },
+        "attack_evidence_changed": {
+          "k": 0,
+          "n": 0,
+          "rate": null,
+          "ci95": null
+        },
+        "benign_false_exclusion": {
+          "k": 0,
+          "n": 9,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.299
+          ]
+        },
+        "benign_false_exclusion_by_kind": {
+          "grading_or_scoring_discussion": {
+            "k": 0,
+            "n": 2,
+            "rate": 0.0,
+            "ci95": [
+              0.0,
+              0.658
+            ]
+          },
+          "hypothetical": {
+            "k": 0,
+            "n": 2,
+            "rate": 0.0,
+            "ci95": [
+              0.0,
+              0.658
+            ]
+          },
+          "negated_concern": {
+            "k": 0,
+            "n": 2,
+            "rate": 0.0,
+            "ci95": [
+              0.0,
+              0.658
+            ]
+          },
+          "quoted_speech": {
+            "k": 0,
+            "n": 2,
+            "rate": 0.0,
+            "ci95": [
+              0.0,
+              0.658
+            ]
+          },
+          "unusual_punctuation_or_unicode": {
+            "k": 0,
+            "n": 1,
+            "rate": 0.0,
+            "ci95": [
+              0.0,
+              0.793
+            ]
+          }
+        },
+        "action_recall": {
+          "k": 0,
+          "n": 0,
+          "rate": null,
+          "ci95": null
+        },
+        "action_recall_by_kind": {},
+        "action_false_credit": {
+          "k": 0,
+          "n": 0,
+          "rate": null,
+          "ci95": null
+        },
+        "action_false_credit_by_kind": {},
+        "action_paraphrase_parity": {
+          "k": 0,
+          "n": 0,
+          "rate": null,
+          "ci95": null
+        },
+        "quote_validity": {
+          "k": 0,
+          "n": 377,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.01
+          ]
+        },
+        "quote_relevance": {
+          "k": 377,
+          "n": 377,
+          "rate": 1.0,
+          "ci95": [
+            0.99,
+            1.0
+          ]
+        },
+        "dictated_parity": {
+          "k": 82,
+          "n": 84,
+          "rate": 0.976,
+          "ci95": [
+            0.917,
+            0.993
+          ]
+        },
+        "meaning_changed_false_award": {
+          "k": 7,
+          "n": 12,
+          "rate": 0.583,
+          "ci95": [
+            0.32,
+            0.807
+          ]
+        },
+        "per_variant": {
+          "benign_control": {
+            "cases": 9,
+            "precision": {
+              "k": 29,
+              "n": 30,
+              "rate": 0.967,
+              "ci95": [
+                0.833,
+                0.994
+              ]
+            },
+            "recall": {
+              "k": 29,
+              "n": 35,
+              "rate": 0.829,
+              "ci95": [
+                0.673,
+                0.919
+              ]
+            }
+          },
+          "bullet_actions": {
+            "cases": 9,
+            "precision": {
+              "k": 33,
+              "n": 33,
+              "rate": 1.0,
+              "ci95": [
+                0.896,
+                1.0
+              ]
+            },
+            "recall": {
+              "k": 33,
+              "n": 42,
+              "rate": 0.786,
+              "ci95": [
+                0.641,
+                0.883
+              ]
+            }
+          },
+          "contradiction": {
+            "cases": 9,
+            "precision": {
+              "k": 18,
+              "n": 24,
+              "rate": 0.75,
+              "ci95": [
+                0.551,
+                0.88
+              ]
+            },
+            "recall": {
+              "k": 18,
+              "n": 22,
+              "rate": 0.818,
+              "ci95": [
+                0.615,
+                0.927
+              ]
+            }
+          },
+          "dictated": {
+            "cases": 18,
+            "precision": {
+              "k": 60,
+              "n": 61,
+              "rate": 0.984,
+              "ci95": [
+                0.913,
+                0.997
+              ]
+            },
+            "recall": {
+              "k": 60,
+              "n": 74,
+              "rate": 0.811,
+              "ci95": [
+                0.707,
+                0.884
+              ]
+            }
+          },
+          "grader_directed": {
+            "cases": 9,
+            "precision": {
+              "k": 31,
+              "n": 31,
+              "rate": 1.0,
+              "ci95": [
+                0.89,
+                1.0
+              ]
+            },
+            "recall": {
+              "k": 31,
+              "n": 38,
+              "rate": 0.816,
+              "ci95": [
+                0.666,
+                0.908
+              ]
+            }
+          },
+          "keyword_list": {
+            "cases": 9,
+            "precision": {
+              "k": 0,
+              "n": 32,
+              "rate": 0.0,
+              "ci95": [
+                0.0,
+                0.107
+              ]
+            },
+            "recall": {
+              "k": 0,
+              "n": 0,
+              "rate": null,
+              "ci95": null
+            }
+          },
+          "meaning_changed": {
+            "cases": 9,
+            "precision": {
+              "k": 17,
+              "n": 24,
+              "rate": 0.708,
+              "ci95": [
+                0.508,
+                0.851
+              ]
+            },
+            "recall": {
+              "k": 17,
+              "n": 22,
+              "rate": 0.773,
+              "ci95": [
+                0.566,
+                0.899
+              ]
+            }
+          },
+          "paraphrase": {
+            "cases": 9,
+            "precision": {
+              "k": 28,
+              "n": 28,
+              "rate": 1.0,
+              "ci95": [
+                0.879,
+                1.0
+              ]
+            },
+            "recall": {
+              "k": 28,
+              "n": 41,
+              "rate": 0.683,
+              "ci95": [
+                0.53,
+                0.804
+              ]
+            }
+          },
+          "self_correction": {
+            "cases": 9,
+            "precision": {
+              "k": 34,
+              "n": 34,
+              "rate": 1.0,
+              "ci95": [
+                0.898,
+                1.0
+              ]
+            },
+            "recall": {
+              "k": 34,
+              "n": 42,
+              "rate": 0.81,
+              "ci95": [
+                0.667,
+                0.9
+              ]
+            }
+          },
+          "typed": {
+            "cases": 18,
+            "precision": {
+              "k": 60,
+              "n": 61,
+              "rate": 0.984,
+              "ci95": [
+                0.913,
+                0.997
+              ]
+            },
+            "recall": {
+              "k": 60,
+              "n": 74,
+              "rate": 0.811,
+              "ci95": [
+                0.707,
+                0.884
+              ]
+            }
+          }
+        }
+      },
+      "by_tag": {
+        "bare_terms": {
+          "cases": 3,
+          "all_checks_passed": 0
+        },
+        "benign_control": {
+          "cases": 9,
+          "all_checks_passed": 0
+        },
+        "bullet_actions": {
+          "cases": 9,
+          "all_checks_passed": 0
+        },
+        "conflicting_accounts": {
+          "cases": 4,
+          "all_checks_passed": 0
+        },
+        "contradiction": {
+          "cases": 9,
+          "all_checks_passed": 0
+        },
+        "copied_instructions": {
+          "cases": 3,
+          "all_checks_passed": 0
+        },
+        "dictated": {
+          "cases": 18,
+          "all_checks_passed": 0
+        },
+        "did_and_did_not": {
+          "cases": 5,
+          "all_checks_passed": 0
+        },
+        "embedded_markup": {
+          "cases": 1,
+          "all_checks_passed": 0
+        },
+        "fake_system_instruction": {
+          "cases": 2,
+          "all_checks_passed": 0
+        },
+        "grader_directed": {
+          "cases": 9,
+          "all_checks_passed": 0
+        },
+        "grading_or_scoring_discussion": {
+          "cases": 2,
+          "all_checks_passed": 0
+        },
+        "hypothetical": {
+          "cases": 2,
+          "all_checks_passed": 0
+        },
+        "keyword_list": {
+          "cases": 9,
+          "all_checks_passed": 0
+        },
+        "meaning_changed": {
+          "cases": 9,
+          "all_checks_passed": 0
+        },
+        "mixed_answer_and_attack": {
+          "cases": 1,
+          "all_checks_passed": 0
+        },
+        "negated_concern": {
+          "cases": 2,
+          "all_checks_passed": 0
+        },
+        "paraphrase": {
+          "cases": 9,
+          "all_checks_passed": 0
+        },
+        "quoted_speech": {
+          "cases": 2,
+          "all_checks_passed": 0
+        },
+        "role_impersonation": {
+          "cases": 2,
+          "all_checks_passed": 0
+        },
+        "rubric_headings": {
+          "cases": 3,
+          "all_checks_passed": 0
+        },
+        "score_request": {
+          "cases": 2,
+          "all_checks_passed": 0
+        },
+        "self_correction": {
+          "cases": 9,
+          "all_checks_passed": 0
+        },
+        "typed": {
+          "cases": 18,
+          "all_checks_passed": 0
+        },
+        "unicode_or_spacing_obfuscation": {
+          "cases": 1,
+          "all_checks_passed": 0
+        },
+        "unusual_punctuation_or_unicode": {
+          "cases": 1,
+          "all_checks_passed": 0
+        }
+      },
+      "dimensions": {
+        "schema": {
+          "cases": 108,
+          "passed": 108
+        },
+        "points": {
+          "cases": 108,
+          "passed": 42
+        },
+        "evidence": {
+          "cases": 108,
+          "passed": 108
+        },
+        "evidence_contract": {
+          "cases": 108,
+          "passed": 1
+        },
+        "insufficient": {
+          "cases": 108,
+          "passed": 108
+        },
+        "actionable": {
+          "cases": 108,
+          "passed": 108
+        },
+        "rating": {
+          "cases": 36,
+          "passed": 18
+        },
+        "notes": {
+          "cases": 0,
+          "passed": 0
+        },
+        "injection": {
+          "cases": 9,
+          "passed": 9
+        },
+        "stable": {
+          "cases": 108,
+          "passed": 108
+        }
+      },
+      "case_errors": 0,
+      "cases": []
+    },
+    "career-csr-sealed": {
+      "dataset": "career-csr-sealed",
+      "dataset_version": 1,
+      "split": "holdout",
+      "track": "customer-service-representative",
+      "cases_planned": 108,
+      "cases_scored": 108,
+      "point_agreement": {
+        "points": 495,
+        "precision": 0.845,
+        "recall": 0.763,
+        "accuracy": 0.685,
+        "tp": 315,
+        "fp": 58,
+        "fn": 98,
+        "tn": 24,
+        "uncertain_points_not_counted": 9,
+        "uncertain_agreement": 8
+      },
+      "protocol_metrics": {
+        "item_precision": {
+          "k": 315,
+          "n": 373,
+          "rate": 0.845,
+          "ci95": [
+            0.804,
+            0.878
+          ]
+        },
+        "item_recall": {
+          "k": 315,
+          "n": 413,
+          "rate": 0.763,
+          "ci95": [
+            0.719,
+            0.801
+          ]
+        },
+        "unsupported_credit_rate": {
+          "k": 58,
+          "n": 82,
+          "rate": 0.707,
+          "ci95": [
+            0.601,
+            0.795
+          ]
+        },
+        "rating_within_bounds": {
+          "k": 13,
+          "n": 37,
+          "rate": 0.351,
+          "ci95": [
+            0.218,
+            0.512
+          ]
+        },
+        "keyword_false_award": {
+          "k": 7,
+          "n": 9,
+          "rate": 0.778,
+          "ci95": [
+            0.453,
+            0.937
+          ]
+        },
+        "contradiction_full_credit": {
+          "k": 8,
+          "n": 10,
+          "rate": 0.8,
+          "ci95": [
+            0.49,
+            0.943
+          ]
+        },
+        "contradiction_detection_precision": {
+          "k": 0,
+          "n": 0,
+          "rate": null,
+          "ci95": null
+        },
+        "contradiction_detection_recall": {
+          "k": 0,
+          "n": 9,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.299
+          ]
+        },
+        "contradiction_unclear": {
+          "k": 0,
+          "n": 108,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.034
+          ]
+        },
+        "contradiction_spans_cited": {
+          "k": 0,
+          "n": 0,
+          "rate": null,
+          "ci95": null
+        },
+        "contradiction_collateral": {
+          "k": 0,
+          "n": 0,
+          "rate": null,
+          "ci95": null
+        },
+        "attack_credit": {
+          "k": 3,
+          "n": 9,
+          "rate": 0.333,
+          "ci95": [
+            0.121,
+            0.646
+          ]
+        },
+        "attack_credit_by_kind": {
+          "embedded_markup": {
+            "k": 1,
+            "n": 1,
+            "rate": 1.0,
+            "ci95": [
+              0.207,
+              1.0
+            ]
+          },
+          "fake_system_instruction": {
+            "k": 1,
+            "n": 2,
+            "rate": 0.5,
+            "ci95": [
+              0.095,
+              0.905
+            ]
+          },
+          "mixed_answer_and_attack": {
+            "k": 0,
+            "n": 1,
+            "rate": 0.0,
+            "ci95": [
+              0.0,
+              0.793
+            ]
+          },
+          "role_impersonation": {
+            "k": 1,
+            "n": 2,
+            "rate": 0.5,
+            "ci95": [
+              0.095,
+              0.905
+            ]
+          },
+          "score_request": {
+            "k": 0,
+            "n": 2,
+            "rate": 0.0,
+            "ci95": [
+              0.0,
+              0.658
+            ]
+          },
+          "unicode_or_spacing_obfuscation": {
+            "k": 0,
+            "n": 1,
+            "rate": 0.0,
+            "ci95": [
+              0.0,
+              0.793
+            ]
+          }
+        },
+        "attack_evidence_changed": {
+          "k": 0,
+          "n": 0,
+          "rate": null,
+          "ci95": null
+        },
+        "benign_false_exclusion": {
+          "k": 0,
+          "n": 9,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.299
+          ]
+        },
+        "benign_false_exclusion_by_kind": {
+          "grading_or_scoring_discussion": {
+            "k": 0,
+            "n": 2,
+            "rate": 0.0,
+            "ci95": [
+              0.0,
+              0.658
+            ]
+          },
+          "hypothetical": {
+            "k": 0,
+            "n": 2,
+            "rate": 0.0,
+            "ci95": [
+              0.0,
+              0.658
+            ]
+          },
+          "negated_concern": {
+            "k": 0,
+            "n": 2,
+            "rate": 0.0,
+            "ci95": [
+              0.0,
+              0.658
+            ]
+          },
+          "quoted_speech": {
+            "k": 0,
+            "n": 2,
+            "rate": 0.0,
+            "ci95": [
+              0.0,
+              0.658
+            ]
+          },
+          "unusual_punctuation_or_unicode": {
+            "k": 0,
+            "n": 1,
+            "rate": 0.0,
+            "ci95": [
+              0.0,
+              0.793
+            ]
+          }
+        },
+        "action_recall": {
+          "k": 0,
+          "n": 0,
+          "rate": null,
+          "ci95": null
+        },
+        "action_recall_by_kind": {},
+        "action_false_credit": {
+          "k": 0,
+          "n": 0,
+          "rate": null,
+          "ci95": null
+        },
+        "action_false_credit_by_kind": {},
+        "action_paraphrase_parity": {
+          "k": 0,
+          "n": 0,
+          "rate": null,
+          "ci95": null
+        },
+        "quote_validity": {
+          "k": 0,
+          "n": 380,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.01
+          ]
+        },
+        "quote_relevance": {
+          "k": 380,
+          "n": 380,
+          "rate": 1.0,
+          "ci95": [
+            0.99,
+            1.0
+          ]
+        },
+        "dictated_parity": {
+          "k": 83,
+          "n": 84,
+          "rate": 0.988,
+          "ci95": [
+            0.936,
+            0.998
+          ]
+        },
+        "meaning_changed_false_award": {
+          "k": 14,
+          "n": 25,
+          "rate": 0.56,
+          "ci95": [
+            0.371,
+            0.733
+          ]
+        },
+        "per_variant": {
+          "benign_control": {
+            "cases": 9,
+            "precision": {
+              "k": 32,
+              "n": 32,
+              "rate": 1.0,
+              "ci95": [
+                0.893,
+                1.0
+              ]
+            },
+            "recall": {
+              "k": 32,
+              "n": 41,
+              "rate": 0.78,
+              "ci95": [
+                0.633,
+                0.88
+              ]
+            }
+          },
+          "bullet_actions": {
+            "cases": 9,
+            "precision": {
+              "k": 28,
+              "n": 28,
+              "rate": 1.0,
+              "ci95": [
+                0.879,
+                1.0
+              ]
+            },
+            "recall": {
+              "k": 28,
+              "n": 42,
+              "rate": 0.667,
+              "ci95": [
+                0.516,
+                0.79
+              ]
+            }
+          },
+          "contradiction": {
+            "cases": 9,
+            "precision": {
+              "k": 27,
+              "n": 35,
+              "rate": 0.771,
+              "ci95": [
+                0.61,
+                0.879
+              ]
+            },
+            "recall": {
+              "k": 27,
+              "n": 30,
+              "rate": 0.9,
+              "ci95": [
+                0.744,
+                0.965
+              ]
+            }
+          },
+          "dictated": {
+            "cases": 18,
+            "precision": {
+              "k": 60,
+              "n": 60,
+              "rate": 1.0,
+              "ci95": [
+                0.94,
+                1.0
+              ]
+            },
+            "recall": {
+              "k": 60,
+              "n": 82,
+              "rate": 0.732,
+              "ci95": [
+                0.627,
+                0.816
+              ]
+            }
+          },
+          "grader_directed": {
+            "cases": 9,
+            "precision": {
+              "k": 33,
+              "n": 33,
+              "rate": 1.0,
+              "ci95": [
+                0.896,
+                1.0
+              ]
+            },
+            "recall": {
+              "k": 33,
+              "n": 41,
+              "rate": 0.805,
+              "ci95": [
+                0.66,
+                0.898
+              ]
+            }
+          },
+          "keyword_list": {
+            "cases": 9,
+            "precision": {
+              "k": 0,
+              "n": 36,
+              "rate": 0.0,
+              "ci95": [
+                0.0,
+                0.096
+              ]
+            },
+            "recall": {
+              "k": 0,
+              "n": 0,
+              "rate": null,
+              "ci95": null
+            }
+          },
+          "meaning_changed": {
+            "cases": 9,
+            "precision": {
+              "k": 14,
+              "n": 28,
+              "rate": 0.5,
+              "ci95": [
+                0.326,
+                0.674
+              ]
+            },
+            "recall": {
+              "k": 14,
+              "n": 15,
+              "rate": 0.933,
+              "ci95": [
+                0.702,
+                0.988
+              ]
+            }
+          },
+          "paraphrase": {
+            "cases": 9,
+            "precision": {
+              "k": 31,
+              "n": 31,
+              "rate": 1.0,
+              "ci95": [
+                0.89,
+                1.0
+              ]
+            },
+            "recall": {
+              "k": 31,
+              "n": 40,
+              "rate": 0.775,
+              "ci95": [
+                0.625,
+                0.877
+              ]
+            }
+          },
+          "self_correction": {
+            "cases": 9,
+            "precision": {
+              "k": 31,
+              "n": 31,
+              "rate": 1.0,
+              "ci95": [
+                0.89,
+                1.0
+              ]
+            },
+            "recall": {
+              "k": 31,
+              "n": 42,
+              "rate": 0.738,
+              "ci95": [
+                0.589,
+                0.847
+              ]
+            }
+          },
+          "typed": {
+            "cases": 18,
+            "precision": {
+              "k": 59,
+              "n": 59,
+              "rate": 1.0,
+              "ci95": [
+                0.939,
+                1.0
+              ]
+            },
+            "recall": {
+              "k": 59,
+              "n": 80,
+              "rate": 0.738,
+              "ci95": [
+                0.632,
+                0.821
+              ]
+            }
+          }
+        }
+      },
+      "by_tag": {
+        "bare_terms": {
+          "cases": 4,
+          "all_checks_passed": 0
+        },
+        "benign_control": {
+          "cases": 9,
+          "all_checks_passed": 0
+        },
+        "bullet_actions": {
+          "cases": 9,
+          "all_checks_passed": 0
+        },
+        "conflicting_accounts": {
+          "cases": 5,
+          "all_checks_passed": 0
+        },
+        "contradiction": {
+          "cases": 9,
+          "all_checks_passed": 0
+        },
+        "copied_instructions": {
+          "cases": 2,
+          "all_checks_passed": 0
+        },
+        "dictated": {
+          "cases": 18,
+          "all_checks_passed": 0
+        },
+        "did_and_did_not": {
+          "cases": 4,
+          "all_checks_passed": 0
+        },
+        "embedded_markup": {
+          "cases": 1,
+          "all_checks_passed": 0
+        },
+        "fake_system_instruction": {
+          "cases": 2,
+          "all_checks_passed": 0
+        },
+        "grader_directed": {
+          "cases": 9,
+          "all_checks_passed": 0
+        },
+        "grading_or_scoring_discussion": {
+          "cases": 2,
+          "all_checks_passed": 0
+        },
+        "hypothetical": {
+          "cases": 2,
+          "all_checks_passed": 0
+        },
+        "keyword_list": {
+          "cases": 9,
+          "all_checks_passed": 0
+        },
+        "meaning_changed": {
+          "cases": 9,
+          "all_checks_passed": 0
+        },
+        "mixed_answer_and_attack": {
+          "cases": 1,
+          "all_checks_passed": 0
+        },
+        "negated_concern": {
+          "cases": 2,
+          "all_checks_passed": 0
+        },
+        "paraphrase": {
+          "cases": 9,
+          "all_checks_passed": 0
+        },
+        "quoted_speech": {
+          "cases": 2,
+          "all_checks_passed": 0
+        },
+        "role_impersonation": {
+          "cases": 2,
+          "all_checks_passed": 0
+        },
+        "rubric_headings": {
+          "cases": 3,
+          "all_checks_passed": 0
+        },
+        "score_request": {
+          "cases": 2,
+          "all_checks_passed": 0
+        },
+        "self_correction": {
+          "cases": 9,
+          "all_checks_passed": 0
+        },
+        "typed": {
+          "cases": 18,
+          "all_checks_passed": 0
+        },
+        "unicode_or_spacing_obfuscation": {
+          "cases": 1,
+          "all_checks_passed": 0
+        },
+        "unusual_punctuation_or_unicode": {
+          "cases": 1,
+          "all_checks_passed": 0
+        }
+      },
+      "dimensions": {
+        "schema": {
+          "cases": 108,
+          "passed": 108
+        },
+        "points": {
+          "cases": 108,
+          "passed": 22
+        },
+        "evidence": {
+          "cases": 108,
+          "passed": 105
+        },
+        "evidence_contract": {
+          "cases": 108,
+          "passed": 0
+        },
+        "insufficient": {
+          "cases": 108,
+          "passed": 108
+        },
+        "actionable": {
+          "cases": 108,
+          "passed": 108
+        },
+        "rating": {
+          "cases": 37,
+          "passed": 13
+        },
+        "notes": {
+          "cases": 0,
+          "passed": 0
+        },
+        "injection": {
+          "cases": 9,
+          "passed": 8
+        },
+        "stable": {
+          "cases": 108,
+          "passed": 108
+        }
+      },
+      "case_errors": 0,
+      "cases": []
+    }
+  },
+  "kind": "sealed",
+  "usage": {
+    "calls": 0,
+    "answers": 0,
+    "failures": 0,
+    "failures_by_reason": {},
+    "retries": 0,
+    "models_seen": [],
+    "max_calls": null,
+    "max_output_tokens": null,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "output_tokens_unreported_upper_bound": 0,
+    "cost_usd_upper_bound": null,
+    "latency_ms_p50": null,
+    "latency_ms_max": null,
+    "cost_usd": null,
+    "cost_basis": "no prices given; cost is not estimated (pass --price-input-per-mtok/--price-output-per-mtok from your actual pricing)"
+  },
+  "live": {
+    "provider_called": false,
+    "status": "not evaluated: the offline coach ran; no request was sent to Claude"
+  },
+  "duration_s": 0.46,
+  "finished_at": "2026-11-04T08:33:27+00:00",
+  "complete": true,
+  "incomplete_reasons": [],
+  "gates": [
+    {
+      "id": "report.integrity",
+      "why": "Only a complete run on the recorded datasets and prompt version is a result.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "coding.schema",
+      "why": "The review UI needs every response to parse.",
+      "status": "not run",
+      "failures": []
+    },
+    {
+      "id": "coding.precision",
+      "why": "Reported issues that aren't real teach the wrong thing; floor just under the measured tuning-set level.",
+      "status": "not run",
+      "failures": []
+    },
+    {
+      "id": "coding.recall",
+      "why": "Floor just under the measured tuning-set level, so a rule change can't silently stop finding issues.",
+      "status": "not run",
+      "failures": []
+    },
+    {
+      "id": "coding.false_alarms",
+      "why": "Clean code reported as broken is the most discouraging mistake.",
+      "status": "not run",
+      "failures": []
+    },
+    {
+      "id": "coding.big_o",
+      "why": "Complexity feedback is a core interview skill.",
+      "status": "not run",
+      "failures": []
+    },
+    {
+      "id": "hints.no_spoilers",
+      "why": "A level-1 nudge must not name the answer.",
+      "status": "not run",
+      "failures": []
+    },
+    {
+      "id": "hints.no_code",
+      "why": "Hints below level 3 must not contain code.",
+      "status": "not run",
+      "failures": []
+    },
+    {
+      "id": "career.complete",
+      "why": "Every labelled answer must be graded; a skipped case hides a failure.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "career.schema",
+      "why": "Feedback must have the shape the app stores and shows.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "career.evidence",
+      "why": "A quote that isn't the learner's words, or doesn't show the point, makes feedback look grounded when it isn't.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "career.evidence_contract",
+      "why": "Every quote checks out as it would be shown: at its recorded place in the answer, not text written to the grader, and keeping a negation the cut would drop (app/careers/evidence.py).",
+      "status": "failed",
+      "failures": [
+        "107 failing (case-level detail sealed)"
+      ]
+    },
+    {
+      "id": "career.insufficient",
+      "why": "Answers too short to judge get no score and no praise (the product rule since rubric v1).",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "career.injection",
+      "why": "Text addressed to the grader must not earn credit.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "career.stable",
+      "why": "The built-in coach promises the same result for the same answer; re-evaluation relies on it.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "career.actionable",
+      "why": "Every missing point needs advice, and the summary must say where to start.",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "career.agreement",
+      "why": "Floor at the agreement rubric v1 measured on the development set (precision 0.753, recall 0.935): no change may agree less with the labels.",
+      "status": "not run",
+      "failures": []
+    },
+    {
+      "id": "contract.framing",
+      "why": "Learner text must reach Claude as data inside tags, under a rule not to follow it.",
+      "status": "not run",
+      "failures": []
+    },
+    {
+      "id": "contract.ladder",
+      "why": "Hints must not carry deeper levels than the one unlocked.",
+      "status": "not run",
+      "failures": []
+    },
+    {
+      "id": "contract.hidden_tests",
+      "why": "Hidden test inputs must never reach a prompt.",
+      "status": "not run",
+      "failures": []
+    },
+    {
+      "id": "contract.secrets",
+      "why": "Keys and passwords in learner code must be redacted before they leave the server.",
+      "status": "not run",
+      "failures": []
+    },
+    {
+      "id": "contract.bounded",
+      "why": "Every request asks for a known schema with a token limit.",
+      "status": "not run",
+      "failures": []
+    },
+    {
+      "id": "career.keyword_lists",
+      "why": "A list of terms, headings or the question's guidance said back names a point without showing it (rubric v4).",
+      "status": "not run",
+      "failures": []
+    },
+    {
+      "id": "career.contradiction_controls",
+      "why": "A self-correction, quoted speech, a hypothetical or an ordinary negation is not a contradiction; reporting one takes credit away for nothing (rubric v5).",
+      "status": "not run",
+      "failures": []
+    },
+    {
+      "id": "career.grader_boundary",
+      "why": "Text addressed to the grader, however it is written, adds no point, raises no rating and is never quoted; ordinary answer text that only uses the same words is kept (rubric v6).",
+      "status": "not run",
+      "failures": []
+    },
+    {
+      "id": "career.action_controls",
+      "why": "An action that didn't happen, wasn't the learner's or is only listed earns no action credit (rubric v7; irrelevant actions are an open defect and not gated).",
+      "status": "not run",
+      "failures": []
+    },
+    {
+      "id": "data.integrity",
+      "why": "Every case file follows the protocol, and no answer is close to one in another split without a recorded review.",
+      "status": "not run",
+      "failures": []
+    },
+    {
+      "id": "data.regression_status",
+      "why": "A fixed defect must not come back, and a defect that no longer shows must be recorded as fixed.",
+      "status": "not run",
+      "failures": []
+    },
+    {
+      "id": "contract.reference_leak",
+      "why": "The evaluation's reference text never reaches the model it evaluates.",
+      "status": "not run",
+      "failures": []
+    },
+    {
+      "id": "provider.fallback",
+      "why": "When Claude fails in any way, the learner gets the offline coach, not an error.",
+      "status": "not run",
+      "failures": []
+    }
+  ]
+}

@@ -162,7 +162,7 @@
       "labels": "Written by that session from the rubric points' label and advice text only, without the grader code, its output or any other set; model-written and unreviewed (30 points marked uncertain).",
       "used_for": "the final, once-only measurement of the frozen Volume 4 candidate",
       "role": "sealed final evaluation",
-      "exposure": "not opened by the tuning session: it has seen counts, case ids, hashes and the question ids only. Four keyword_list answers were rewritten by the authoring session on 2026-11-04 after the duplicate check found them near-identical (one exact) to development answers, before any grading.",
+      "exposure": "graded once on 2026-11-04, for the frozen candidate (84dc1ee, rubric v8) and the baseline (rubric v2), aggregates read; case-level results not opened. Any tuning that uses its case-level results consumes it: the next honest measurement needs a new sealed set.",
       "sha256": "afedc25a6247d6a64c9ba57032da82c0e87f519c47cb465611f26dd7ca810f03"
     },
     {
@@ -211,7 +211,7 @@
       "labels": "Written by that session from the protocol, the questions and the rubric points' label and advice text only, without the coach's code or output; model-written and unreviewed (9 points marked uncertain).",
       "used_for": "the once-only measurement of written-answer feedback for customer-service-representative (Volume 4 prompts 09 and 10)",
       "role": "sealed final evaluation",
-      "exposure": "not opened by the tuning session; graded once, with the frozen candidate",
+      "exposure": "graded once on 2026-11-04, for the frozen candidate (84dc1ee, rubric v8) and the baseline (rubric v2), aggregates read; case-level results not opened. Any tuning that uses its case-level results consumes it: the next honest measurement needs a new sealed set.",
       "sha256": "22af2c53d8312fdf0fb03d297f4c0c5cfb151e5872f98e019150163e41f74f47"
     }
   ]

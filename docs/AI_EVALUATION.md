@@ -34,14 +34,16 @@ python -m evals.run --check-report evals/results/offline.json
 - **Labels:** all model-written; **no human has reviewed any of them** (each file's
   `review_status`). Nothing here is expert- or clinician-validated, and the coach judges answer
   structure only, never clinical correctness.
-- **Independent evaluation: pending.** The sealed set was written by a separate agent session and
-  has not been opened or graded by the tuning session (`evals/sealed/ACCESS.md`); it is graded
-  once, for a frozen candidate. Every number in this document is development data or the exposed
-  historical set. The rubric changes since v2 (v3 dictation, v4 keyword lists, v5
-  contradictions, v6 the grader-instruction boundary, v7 the action criterion, v8 two more attack
-  forms) have **no independent measurement yet**. Of the catalog's 110 careers, two have measured
-  written-answer feedback (registered nurse, customer service representative); every other
-  career's feedback says it hasn't been measured for that career (`app/careers/support.py`).
+- **Independent evaluation: done once, 2026-11-04.** The frozen candidate (`84dc1ee`, rubric v8;
+  record `evals/results/freeze-2026-11-04.json`) and the baseline (rubric v2, `20bd00f`) were each
+  graded once on the two sealed sets, written by separate agent sessions and never opened by the
+  tuning session (`evals/sealed/ACCESS.md`). On `career-rn-sealed` the release rule passes on every
+  item (`python -m evals.release`); results below, under "The sealed measurement". The sealed
+  labels are model-written and unreviewed too, so this is independent of the tuning, not
+  expert-validated. Every other number in this document is development data or the exposed
+  historical set. Of the catalog's 110 careers, two have measured written-answer feedback
+  (registered nurse, customer service representative); every other career's feedback says it
+  hasn't been measured for that career (`app/careers/support.py`).
 - **Live Claude evaluation: not run** (no paid calls authorized). The provider tests use a fake
   client; they show how failures are handled, not how well Claude coaches.
 - **Open defects** (`evals/regression.json`): vague claims credited, contradictions that need word
@@ -493,6 +495,64 @@ there is what the rule does on the cases it was built from. The families set (wr
 session, but read while building the rule) is the less optimistic development figure: 3 of 9. No
 independent measurement of contradiction handling exists yet; the sealed set will give one, once,
 for the frozen candidate. This is not general contradiction understanding.
+
+## The sealed measurement (Volume 4 brief 08 / prompt 09)
+
+Graded once on 2026-11-04, after the freeze (`evals/results/freeze-2026-11-04.json`: candidate
+`ffb116b`, recorded at `84dc1ee`, rubric v8, coach prompt `coach-2026-11-04c`, protocol v6, every
+dataset hash and the dependency files). Candidate: `evals/results/sealed-candidate-rubric-v8.*`,
+graded on the frozen tree. Baseline: `evals/results/sealed-baseline-rubric-v2.*`, rubric v2 run in a
+worktree of `20bd00f` (its own `grading.py` and `questions.py`) with the frozen evaluation harness and
+datasets, and one shim (the harness reads quotes as written for a rubric without normalisation).
+Reports keep aggregates only; case-level results stay under `evals/sealed/results/` and have not
+been opened. A scripting mistake also graded the sealed sets a second time with the candidate (it
+ran the baseline command in the main tree); the coach is deterministic and the aggregates were
+identical. That run's files were deleted unopened, and the access log says so.
+
+**Release rule** (predeclared, `protocol.json` "release"; `python -m evals.release
+evals/results/sealed-baseline-rubric-v2.json evals/results/sealed-candidate-rubric-v8.json`), on
+`career-rn-sealed`: **passes every item**.
+
+| Must pass / non-inferiority | Rubric v2 | Rubric v8 |
+|---|---|---|
+| Cases graded | 108/108 | 108/108 |
+| Schema, evidence, insufficient, stable: failing cases | 0 | 0 |
+| Attacks credited | 0/9 | 0/9 |
+| Benign controls cut | 0/9 | 0/9 |
+| Item precision (≥ v2 − 0.02) | 310/358 (87%, 95% CI 83–90%) | 327/358 (91%, 88–94%) |
+| Item recall (≥ v2 − 0.02) | 310/390 (79%, 75–83%) | 327/390 (84%, 80–87%) |
+| Unsupported credit (≤ v2 + 0.02) | 48/84 (57%, 46–67%) | 31/84 (37%, 27–48%) |
+
+Reported, not gated, with both sealed sets (customer service has no release rule: no baseline was
+predeclared for it):
+
+| Measure | Nurse, v2 | Nurse, v8 | Customer service, v2 | Customer service, v8 |
+|---|---|---|---|---|
+| Ratings within the labelled bounds | 18/36 | 26/36 | 13/37 | 20/37 |
+| Keyword list awarded a point | 5/9 | 1/9 | 7/9 | 0/9 |
+| Attacks credited | 0/9 | 0/9 | 3/9 | 0/9 |
+| Dictated parity | 82/84 | 83/84 | 83/84 | 83/84 |
+| Contradictions reported / labelled | 0/9 | **0/9** | 0/9 | 3/9 (3/3 right) |
+| Contradicted points still credited | 7/11 | **9/11** | 8/10 | 6/10 |
+| Points a meaning change removed, still credited | 7/12 | **8/12** | 14/25 | **16/25** |
+| Unrelated points lost to a contradiction | — | — | — | 0/10 |
+| Quotes valid / relevant | 0/377 (no spans in v2) / 377 | 378/378 / 378 | 0/380 / 380 | 360/360 / 360 |
+| Item precision | 310/358 | 327/358 | 315/373 | 330/351 |
+| Item recall | 310/390 | 327/390 | 315/413 | 330/413 |
+
+**What this supports.** On answers neither rubric was tuned on, v8 credits fewer points the labels
+don't support and finds more of those they do, on both careers. It stops crediting keyword lists
+and attacks, keeps dictated answers in line with typed ones, and every quote it shows checks out.
+The intervals are wide (9 to 37 answers per measure), and the labels are an AI's, unreviewed.
+
+**What it doesn't, and what got worse.** Contradiction handling (rubric v5) **did not generalise
+to the nursing sealed answers**: none of 9 labelled contradictions was reported. On those answers
+v8 credits 2 more contradicted points than v2 (9/11 against 7/11), and 1 more point that a meaning
+change removed (8/12 against 7/12; customer service 16/25 against 14/25). Why isn't known: finding
+out means reading the case-level results, which would consume the sets. On customer-service answers, 3 of 9
+contradictions were reported, all correctly. These are recorded as they are; the sets are now used
+for this measurement, and fixing what they show would consume them. **The next honest measurement
+needs new sealed sets.**
 
 ## Results: a second career, customer service representative (Volume 4 prompt 10)
 
