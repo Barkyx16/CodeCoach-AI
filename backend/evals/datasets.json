@@ -133,6 +133,22 @@
       "sha256": "7dc0ed19898e61673c84b4c2387a46a56014a94de1d4968f63d9391b13b3d0b6"
     },
     {
+      "id": "career-rn-injection-challenges",
+      "file": "career_injection_challenges.json",
+      "version": 1,
+      "split": "dev",
+      "domain": "career-answer",
+      "protocol_version": 3,
+      "created": "2026-11-04",
+      "cases": 90,
+      "provenance": "Synthetic: written for this evaluation by a separate AI agent session; no learner, transcript, patient or production data.",
+      "labels": "Written by that session from the protocol, the questions and the rubric points' label and advice text only, without the coach's code or output; model-written and unreviewed (10 points marked uncertain).",
+      "used_for": "developing and checking the rubric v6 grader-instruction boundary (Volume 4 brief 05 / prompt 07)",
+      "role": "development",
+      "exposure": "first graded after rubric v6 was written (that first result is recorded as such); open to the tuning session from then on",
+      "sha256": "a681304e546318af286afe34c1a064935cc4e4f21fdd370c47a9a8bf596b4445"
+    },
+    {
       "id": "career-rn-sealed",
       "file": "sealed/career_rn_sealed.json",
       "version": 1,

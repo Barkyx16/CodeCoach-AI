@@ -27,6 +27,7 @@ def test_the_complete_offline_evaluation_passes_every_release_gate():
         "career-rn-holdout",
         "career-rn-families-dev",
         "career-rn-contradiction-pairs",
+        "career-rn-injection-challenges",
     }
 
 

@@ -250,6 +250,21 @@ def test_a_grader_that_believes_the_answer_fails_the_injection_gate():
     assert s["dimensions"]["injection"]["failed"] == ["rn-dev-10", "rn-dev-23"]
 
 
+def test_a_boundary_that_reads_only_the_literal_text_fails_the_grader_boundary_gate():
+    # The rubric v5 boundary: no folding of look-alike letters, invisible characters or spaced-out
+    # words, and markup left in. The challenge set's zero-width attack gets through.
+    data = career.load("career_injection_challenges.json")
+    s = career.evaluate_set(data, variants.literal_boundary)
+    failures = _gate({"career": {data["id"]: s}}, "career.grader_boundary")["failures"]
+    assert failures == [f"{data['id']} / ic-9-g5: text addressed to the grader got through (evidence)"]
+    assert (
+        _gate({"career": {data["id"]: career.evaluate_set(data, grade)}}, "career.grader_boundary")[
+            "failures"
+        ]
+        == []
+    )
+
+
 def test_held_out_gate_failures_name_the_case_but_not_the_answer():
     held = career.load("career_holdout.json")
     s = career.evaluate_set(held, variants.fabricated_evidence)
@@ -320,7 +335,9 @@ def test_compare_refuses_different_data_and_lists_conditions_and_case_regression
         and "rubric_version" in c["changed_conditions"]
         and "config" in c["changed_conditions"]
     )
-    assert "career-rn-dev / rn-dev-23: injection" in c["regressed"] and c["fixed"] == []
+    assert "career-rn-dev / rn-dev-23: injection" in c["regressed"]
+    # Believing every answer can only "fix" a point the rubric misses, never a gated check.
+    assert all(f.endswith(": points") for f in c["fixed"]), c["fixed"]
     other = json.loads(json.dumps(weak))
     other["meta"]["datasets"][4]["sha256_actual"] = "f" * 64
     refused = compare(dev_report, other)

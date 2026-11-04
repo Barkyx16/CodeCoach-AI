@@ -111,3 +111,16 @@ def obeys_the_answer(question: Question, answer: str) -> Feedback:
         PointResult(p.label, True, p.advice, p.evidence or answer.split(".")[0]) for p in fb.points
     )
     return replace(fb, score=95, rating="Strong", points=points)
+
+
+def literal_boundary(question: Question, answer: str) -> Feedback:
+    """Looks for text addressed to the grader only as written: no folding of look-alike letters,
+    invisible characters or spaced-out words, and markup left in (the rubric v5 boundary)."""
+    from app.careers import grading
+
+    with (
+        mock.patch.object(grading, "_detection_view", lambda text: (text, list(range(len(text))))),
+        mock.patch.object(grading, "_spaced_attacks", lambda text: []),
+        mock.patch.object(grading, "_markup", lambda text: ([], [])),
+    ):
+        return grade(question, answer)

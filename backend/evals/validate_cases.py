@@ -53,7 +53,9 @@ RULE_INDEX = {
     "career-rn-families-dev": 2,
     "career-rn-sealed": 3,
     "career-rn-contradiction-pairs": 0,
+    "career-rn-injection-challenges": 0,
 }
+BASES = {"typed", "dictated"}  # in a minimal-pairs set: answers with no pair_of
 
 
 def edits(a: str, b: str) -> int:
@@ -67,18 +69,25 @@ def _pair_problems(c: dict, by_id: dict, plan: dict) -> list[str]:
     two statements disagree and which points they undermine."""
     cid, v = c.get("id", "?"), c.get("variant")
     errors = []
-    if v != "typed":
+    if v not in BASES:
         pair = by_id.get(c.get("pair_of"))
         if pair is None or pair.get("family") != c.get("family"):
             errors.append(f"{cid}: pair_of must name a case of the same family")
         elif not c.get("change") or edits(pair.get("answer", ""), c.get("answer", "")) != 1:
             errors.append(f"{cid}: must differ from {pair['id']} by exactly one edit, described in `change`")
-        elif v == "grader_directed" and pair.get("variant") != "contradiction":
-            errors.append(f"{cid}: grader_directed is paired with a contradiction variant")
+        elif v == "grader_directed" and pair.get("variant") not in BASES | {"contradiction"}:
+            errors.append(f"{cid}: grader_directed is paired with a base answer or a contradiction variant")
     if not isinstance(c.get("contradiction"), bool):
         errors.append(f"{cid}: needs `contradiction` (true or false)")
         return errors
-    should = {"contradiction": True, "self_correction": False, "contradiction_control": False, "typed": False}
+    should = {
+        "contradiction": True,
+        "self_correction": False,
+        "contradiction_control": False,
+        "benign_control": False,
+        "typed": False,
+        "dictated": False,
+    }
     if v in should and c["contradiction"] != should[v]:
         errors.append(f"{cid}: a {v} case is labelled contradiction={should[v]}")
     points = c.get("labels", {}).get("points", {})

@@ -219,11 +219,29 @@
         "career-rn-dev/rn-dev-23",
         "career-rn-families-dev/fd-3-P-grader_directed"
       ],
-      "status": "open",
+      "status": "fixed",
       "signal": {
         "check": "transform_parity",
         "transform": "no_punctuation"
-      }
+      },
+      "fixed_in": "rubric v6 (Volume 4 brief 05): in a sentence over 40 words, or one where a lost break joins the attack to the answer, only the attack passage is left out"
+    },
+    {
+      "id": "rephrased-and-disguised-attacks-credited",
+      "found": "2026-11-04, rubric v5 on career-rn-injection-challenges (Volume 4 brief 05 / prompt 07)",
+      "summary": "Text addressed to the grader got through when it wasn't one of the known phrasings: a request in other words, a spaced-out or look-alike-letter request, markup or a chat delimiter around it, or a fabricated 'evidence' line; rubric v5 then credited a point or quoted the attack as evidence.",
+      "cases": [
+        "career-rn-injection-challenges/ic-1-g4",
+        "career-rn-injection-challenges/ic-5-g4",
+        "career-rn-injection-challenges/ic-5-g5",
+        "career-rn-injection-challenges/ic-9-g5",
+        "career-rn-families-dev/fd-2-P-grader_directed"
+      ],
+      "status": "fixed",
+      "signal": {
+        "check": "attack"
+      },
+      "fixed_in": "rubric v6 (Volume 4 brief 05): the boundary reads a detection view (NFKC, invisible characters removed, look-alike letters mapped, spaced-out letters joined), cuts whole markup and delimiter blocks, and knows more ways of asking"
     },
     {
       "id": "result-credited-by-any-number",

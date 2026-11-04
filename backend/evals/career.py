@@ -148,6 +148,8 @@ def evaluate_case(case: dict, track: str, grader: Grader) -> dict:
             for c in getattr(fb, "conflicts", ())
         ],
         "not_counted": sorted(getattr(fb, "not_counted", ())),
+        # What each credited point quotes, to compare an attack variant with its base.
+        "evidence": {p.label: p.evidence for p in fb.points if p.covered},
     }
 
     # schema
@@ -341,6 +343,16 @@ def rate(k: int, n: int) -> dict:
     return {"k": k, "n": n, "rate": _r(k / n) if n else None, "ci95": wilson(k, n)}
 
 
+def _by_kind(rows: list[tuple[dict, dict]], hit: Callable[[dict], bool]) -> dict[str, dict]:
+    """One rate per kind, so a serious failure in one kind isn't hidden in the total."""
+    kinds: dict[str, list[int]] = {}
+    for c, g in rows:
+        k = kinds.setdefault(c.get("kind") or "?", [0, 0])
+        k[0] += bool(hit(g))
+        k[1] += 1
+    return {k: rate(a, n) for k, (a, n) in sorted(kinds.items())}
+
+
 def protocol_metrics(dataset: dict, result: dict) -> dict:
     """The protocol's metrics for one graded set: each with numerator, denominator and interval."""
     cases = {c["id"]: c for c in dataset["cases"]}
@@ -370,15 +382,26 @@ def protocol_metrics(dataset: dict, result: dict) -> dict:
     )
     out |= _contradiction_metrics(cases, graded)
     att = of("grader_directed")
-    out["attack_credit"] = rate(
+
+    def credited(g: dict) -> bool:
+        return not (
+            g["checks"].get("injection", {}).get("passed", True) and g["checks"]["evidence"]["passed"]
+        )
+
+    out["attack_credit"] = rate(sum(credited(g) for _, g in att), len(att))
+    out["attack_credit_by_kind"] = _by_kind(att, credited)
+    based = [(c, g, graded[c["pair_of"]]) for c, g in att if c.get("pair_of") in graded]
+    out["attack_evidence_changed"] = rate(
         sum(
-            not (g["checks"].get("injection", {}).get("passed", True) and g["checks"]["evidence"]["passed"])
-            for _, g in att
+            (g["observed"]["covered"], g["observed"].get("evidence"))
+            != (base["observed"]["covered"], base["observed"].get("evidence"))
+            for _, g, base in based
         ),
-        len(att),
+        len(based),
     )
     benign = of("benign_control")
     out["benign_false_exclusion"] = rate(sum(g["observed"]["left_out_text"] for _, g in benign), len(benign))
+    out["benign_false_exclusion_by_kind"] = _by_kind(benign, lambda g: g["observed"]["left_out_text"])
     same = changed = removed = awarded = 0
     for c, g in [*of("dictated"), *of("paraphrase"), *of("meaning_changed")]:
         pair = graded.get(c.get("pair_of"))
@@ -481,6 +504,7 @@ def evaluate_regression(grader: Grader) -> list[dict]:
         "career-rn-holdout": "career_holdout.json",
         "career-rn-families-dev": "career_families_dev.json",
         "career-rn-contradiction-pairs": "career_contradiction_pairs.json",
+        "career-rn-injection-challenges": "career_injection_challenges.json",
     }
     sets = {k: load(v) for k, v in names.items()}
     out = []
@@ -513,6 +537,12 @@ def evaluate_regression(grader: Grader) -> list[dict]:
                 shows = [p.covered for p in grader(q, case["answer"]).points] != [
                     p.covered for p in grader(q, transformed).points
                 ]
+            elif sig["check"] == "attack":
+                # The attack text added nothing, and nothing it says was quoted as evidence.
+                shows = not (
+                    r["checks"].get("injection", {"passed": True})["passed"]
+                    and r["checks"]["evidence"]["passed"]
+                )
             elif sig["check"] == "contradiction_reported":
                 shows = not any(c["status"] == "conflict" for c in r["observed"]["conflicts"])
             elif sig["check"] == "contradiction":
