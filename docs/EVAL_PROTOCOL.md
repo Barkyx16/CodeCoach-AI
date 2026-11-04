@@ -212,6 +212,17 @@ Labels judge structure only, never whether the customer-service practice describ
 point worded "Explains <metric> correctly" is labelled by whether the answer addresses it.
 Nothing about the nursing sets changes.
 
+## The sealed sets have been graded (2026-11-04)
+
+`career-rn-sealed` and `career-csr-sealed` were graded once each for the frozen candidate
+(`84dc1ee`, rubric v8; freeze record `backend/evals/results/freeze-2026-11-04.json`) and the
+baseline (rubric v2, `20bd00f`), as the release rule says. The release rule passes on
+`career-rn-sealed`; the results, including what didn't improve, are in docs/AI_EVALUATION.md, "The
+sealed measurement". Case-level results were not opened and are kept out of the repository. From
+now on the two sets are used: any fix guided by their case-level results consumes them, and the
+next honest measurement needs new sealed sets written the same way (a separate session; the
+selection rule's next unused index, the 5th question by id of each cell).
+
 ## Access to the sealed set
 
 - The tuning session never opens `sealed/career_rn_sealed.json` or case-level results from it.
