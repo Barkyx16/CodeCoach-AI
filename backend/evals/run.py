@@ -1111,6 +1111,12 @@ def main() -> None:
         "--career-grader", help="grade career answers with another grade(): git:<commit> or a file"
     )
     parser.add_argument("--label", help="report name (default: the provider)")
+    parser.add_argument(
+        "--sealed",
+        action="store_true",
+        help="grade only the sealed sets: once, for the frozen candidate (docs/EVAL_PROTOCOL.md); "
+        "then python -m evals.release BASELINE CANDIDATE",
+    )
     parser.add_argument("--allow-paid-calls", action="store_true", help="required for --provider anthropic")
     parser.add_argument(
         "--max-calls",
@@ -1212,6 +1218,7 @@ def main() -> None:
         prices=prices,
         max_output_tokens=args.max_output_tokens,
         concurrency=args.concurrency,
+        sealed=args.sealed,
     )
     path = write_report(report, args.label or report["meta"]["provider"])
     print(to_markdown(report))

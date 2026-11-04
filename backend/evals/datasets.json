@@ -180,6 +180,39 @@
       "role": "development",
       "exposure": "first graded under rubric v6, before any change to the action criterion (that first result is recorded as the baseline); open to the tuning session from then on",
       "sha256": "8216e3efdcca896ec28d6b8256412d04b3779a0111501bbb0c4fed01d9f8cb9f"
+    },
+    {
+      "id": "career-csr-families-dev",
+      "file": "career_csr_families_dev.json",
+      "version": 1,
+      "split": "dev",
+      "domain": "career-answer",
+      "protocol_version": 6,
+      "created": "2026-11-04",
+      "cases": 108,
+      "provenance": "Synthetic: written for this evaluation by a separate AI agent session; no learner, customer, transcript or production data.",
+      "labels": "Written by that session from the protocol, the questions and the rubric points' label and advice text only, without the coach's code or output; model-written and unreviewed (16 points marked uncertain). Dictated answers were generated from the typed ones by the author's script (lower case, no punctuation, fillers). One keyword-list answer (cd-3) was rewritten by its author after the duplicate check found it close to a sealed answer (ids only were shared).",
+      "used_for": "developing and checking written-answer feedback for customer-service-representative (Volume 4 prompt 10)",
+      "role": "development",
+      "exposure": "first graded under rubric v7 (that first result is recorded as the baseline); open to the tuning session from then on",
+      "sha256": "30591870b561b7be74b6fc599f630195a429007f9734daec5abd171ee701d520"
+    },
+    {
+      "id": "career-csr-sealed",
+      "file": "sealed/career_csr_sealed.json",
+      "version": 1,
+      "split": "holdout",
+      "sealed": true,
+      "domain": "career-answer",
+      "protocol_version": 6,
+      "created": "2026-11-04",
+      "cases": 108,
+      "provenance": "Synthetic: written for this evaluation by a separate AI agent session; no learner, customer, transcript or production data.",
+      "labels": "Written by that session from the protocol, the questions and the rubric points' label and advice text only, without the coach's code or output; model-written and unreviewed (9 points marked uncertain).",
+      "used_for": "the once-only measurement of written-answer feedback for customer-service-representative (Volume 4 prompts 09 and 10)",
+      "role": "sealed final evaluation",
+      "exposure": "not opened by the tuning session; graded once, with the frozen candidate",
+      "sha256": "22af2c53d8312fdf0fb03d297f4c0c5cfb151e5872f98e019150163e41f74f47"
     }
   ]
 }

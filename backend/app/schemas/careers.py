@@ -13,6 +13,11 @@ class CareerSummary(APIModel):
     summary: str
     has_coding: bool = Field(description="Also has hands-on coding problems (the code judge)")
     question_count: int
+    answer_feedback: Literal["measured", "not_measured"] = Field(
+        default="not_measured",
+        description="measured: written-answer feedback has been checked against labelled example answers "
+        "for this career (app/careers/support.py); not_measured: general structure checks only",
+    )
 
 
 class QuestionSummary(APIModel):
@@ -62,6 +67,11 @@ class FeedbackPoint(APIModel):
         "words, position not recorded; omitted: a quote was stored but couldn't be checked, so it isn't "
         "shown. None when the point has no quote.",
     )
+    scope_note: str | None = Field(
+        default=None,
+        description="What the point checks when its wording suggests more (it checks that a subject is "
+        "discussed, not that what is said is right)",
+    )
 
 
 class AnswerOut(APIModel):
@@ -83,6 +93,12 @@ class AnswerOut(APIModel):
     evidence_level: Literal["sufficient", "insufficient"] = Field(
         default="sufficient", description="insufficient: too short to evaluate, so no score should be shown"
     )
+    track: str | None = Field(default=None, description="The career this answer was written for")
+    evaluation_status: Literal["measured", "not_measured"] = Field(
+        default="not_measured",
+        description="Whether this career's written-answer feedback has been measured (app/careers/support.py)",
+    )
+    evaluation_note: str = Field(default="", description="One line for the learner about what that means")
 
 
 class TrackProgress(APIModel):

@@ -16890,6 +16890,34 @@
             "title": "Evidence Level",
             "description": "insufficient: too short to evaluate, so no score should be shown",
             "default": "sufficient"
+          },
+          "track": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track",
+            "description": "The career this answer was written for"
+          },
+          "evaluation_status": {
+            "type": "string",
+            "enum": [
+              "measured",
+              "not_measured"
+            ],
+            "title": "Evaluation Status",
+            "description": "Whether this career's written-answer feedback has been measured (app/careers/support.py)",
+            "default": "not_measured"
+          },
+          "evaluation_note": {
+            "type": "string",
+            "title": "Evaluation Note",
+            "description": "One line for the learner about what that means",
+            "default": ""
           }
         },
         "type": "object",
@@ -18410,6 +18438,16 @@
           "question_count": {
             "type": "integer",
             "title": "Question Count"
+          },
+          "answer_feedback": {
+            "type": "string",
+            "enum": [
+              "measured",
+              "not_measured"
+            ],
+            "title": "Answer Feedback",
+            "description": "measured: written-answer feedback has been checked against labelled example answers for this career (app/careers/support.py); not_measured: general structure checks only",
+            "default": "not_measured"
           }
         },
         "type": "object",
@@ -21615,6 +21653,18 @@
             ],
             "title": "Evidence Status",
             "description": "verified: the quote is at `span` in your answer; legacy: older feedback, still your words, position not recorded; omitted: a quote was stored but couldn't be checked, so it isn't shown. None when the point has no quote."
+          },
+          "scope_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope Note",
+            "description": "What the point checks when its wording suggests more (it checks that a subject is discussed, not that what is said is right)"
           }
         },
         "type": "object",

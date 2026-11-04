@@ -5,6 +5,7 @@ from __future__ import annotations
 from app.careers import evidence, grading
 from app.careers.grading import MIN_WORDS, Feedback, grade
 from app.careers.questions import Question
+from app.careers.support import evaluation_for, scope_note
 from app.models import PracticeAnswer
 from app.schemas.careers import AnswerOut, FeedbackPoint
 
@@ -74,6 +75,7 @@ def feedback_points(answer: str, stored: list[dict]) -> list[FeedbackPoint]:
                 evidence=e.quote,
                 span=list(e.span) if e.span else None,
                 evidence_status=e.status,
+                scope_note=scope_note(p["label"]),
             )
         )
     return out
@@ -100,4 +102,7 @@ def answer_out(row: PracticeAnswer) -> AnswerOut:
         created_at=row.created_at,
         content_version=row.content_version or 1,
         story_id=row.story_id,
+        track=row.track,
+        evaluation_status=evaluation_for(row.track).status,
+        evaluation_note=evaluation_for(row.track).note,
     )

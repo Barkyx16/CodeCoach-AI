@@ -399,3 +399,38 @@ def test_another_rubric_can_be_loaded_from_git_for_a_comparison():
     )
     data = career.load("career_dev.json")
     assert career.evaluate_case(data["cases"][0], data["track"], grader)["checks"]["evidence"]["passed"]
+
+
+def test_the_release_rule_reads_only_aggregates_and_fails_each_item_it_names():
+    from evals.release import check
+
+    def report(**m):
+        base = {
+            "attack_credit": {"k": 0, "n": 9},
+            "benign_false_exclusion": {"k": 0, "n": 9},
+            "item_precision": {"k": 90, "n": 100},
+            "item_recall": {"k": 80, "n": 100},
+            "unsupported_credit_rate": {"k": 10, "n": 100},
+        }
+        dims = {
+            d: {"failed": [], "cases": 108, "passed": 108}
+            for d in ("schema", "evidence", "insufficient", "stable")
+        }
+        return {
+            "kind": "sealed",
+            "career": {
+                "career-rn-sealed": {
+                    "case_errors": [],
+                    "cases_scored": 108,
+                    "cases_planned": 108,
+                    "dimensions": dims,
+                    "protocol_metrics": base | m,
+                }
+            },
+        }
+
+    assert all(r["passed"] for r in check(report(), report()))
+    worse = check(report(), report(item_recall={"k": 77, "n": 100}, attack_credit={"k": 1, "n": 9}))
+    failed = {r["item"].split(":")[0] for r in worse if not r["passed"]}
+    assert failed == {"item_recall", "attack_credit = 0 (every grader_directed kind in the set)"}
+    assert not check({"kind": "development", "career": {}}, report())[0]["passed"]  # must be sealed runs

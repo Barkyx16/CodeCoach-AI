@@ -85,9 +85,9 @@ export const progress: Progress = {
 };
 
 export const careers: Career[] = [
-  { slug: "software-engineer", title: "Software Engineer", category: "Technology", summary: "Build software.", has_coding: true, question_count: 300 },
-  { slug: "registered-nurse", title: "Registered Nurse", category: "Healthcare", summary: "Care for patients.", has_coding: false, question_count: 300 },
-  { slug: "barista", title: "Barista", category: "Customer Service & Hospitality", summary: "Make coffee.", has_coding: false, question_count: 300 },
+  { slug: "software-engineer", title: "Software Engineer", category: "Technology", summary: "Build software.", has_coding: true, question_count: 300, answer_feedback: "not_measured" },
+  { slug: "registered-nurse", title: "Registered Nurse", category: "Healthcare", summary: "Care for patients.", has_coding: false, question_count: 300, answer_feedback: "measured" },
+  { slug: "barista", title: "Barista", category: "Customer Service & Hospitality", summary: "Make coffee.", has_coding: false, question_count: 300, answer_feedback: "not_measured" },
 ];
 
 export const nurseQuestions: QuestionSummary[] = [
@@ -106,7 +106,8 @@ export const nurseAnswer: InterviewAnswer = {
   notes: ["No numbers yet. A figure (time, %, count) makes your result concrete."],
   outline: ["Situation: what made it high-pressure.", "Result: the outcome."],
   word_count: 140, coach: "built-in (offline)", created_at: "2026-11-01T09:00:00Z", content_version: 1,
-  rubric_version: "v1", evidence_level: "sufficient",
+  rubric_version: "v1", evidence_level: "sufficient", track: "registered-nurse",
+  evaluation_status: "measured", evaluation_note: "This career's feedback has been checked against example answers written for it.",
 };
 
 const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000).toISOString();

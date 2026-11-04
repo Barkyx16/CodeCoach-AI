@@ -193,6 +193,25 @@ Adds the per-case check `evidence_contract` (every quote checks out as it would 
 metrics reported apart: `quote_validity` (quotes at their recorded place) and `quote_relevance`
 (quotes that show their point). No set, label, selection rule or release rule changes.
 
+## Protocol v6 (2026-11-04, Volume 4 prompt 10)
+
+A second career, `customer-service-representative`, chosen from the catalog because it is
+non-clinical, has its own people, skills and metrics, and needs no domain expertise to label
+answer structure. Two sets, each written by its own separate agent session to the same family plan
+as `career-rn-families-dev` (12 answers per question: two base families with dictated,
+paraphrased and meaning-changed versions, and a probe family with a keyword list, bullet actions,
+a contradiction, a self-correction, an attack on the grader and a benign control):
+
+- `career-csr-families-dev`: development, the 1st question by id of each (difficulty, kind) cell;
+- `career-csr-sealed`: sealed (`evals/sealed/career_csr_sealed.json`), the 4th by id; not opened by
+  the tuning session (its access log is `evals/sealed/ACCESS.md`); graded once with the frozen
+  candidate and reported. It has no baseline, so the release rule (written for `career-rn-sealed`)
+  doesn't apply to it.
+
+Labels judge structure only, never whether the customer-service practice described is right; a
+point worded "Explains <metric> correctly" is labelled by whether the answer addresses it.
+Nothing about the nursing sets changes.
+
 ## Access to the sealed set
 
 - The tuning session never opens `sealed/career_rn_sealed.json` or case-level results from it.

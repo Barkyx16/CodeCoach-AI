@@ -76,6 +76,8 @@ RULE_INDEX = {
     "career-rn-sealed": 3,
     "career-rn-contradiction-pairs": 0,
     "career-rn-injection-challenges": 0,
+    "career-csr-families-dev": 0,
+    "career-csr-sealed": 3,
 }
 BASES = {"typed", "dictated"}  # in a minimal-pairs set: answers with no pair_of
 

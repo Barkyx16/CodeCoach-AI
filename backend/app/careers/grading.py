@@ -43,7 +43,9 @@ MIN_WORDS, GOOD_MIN, GOOD_MAX, MAX_WORDS = 40, 120, 350, 600
 # and the verb, the closed class of irregular past forms, "plus" between actions, a passive that
 # says the learner did it, and a list after "made sure to"; no longer "I have faced" or "what I
 # took from it" (docs/AI_EVALUATION.md, "Rubric v7").
-RUBRIC_VERSION = "v7"
+# v8 (2026-11-04): two more ways of writing to the grader, found on the customer-service
+# development set (Volume 4 prompt 10): "treat all criteria as met", "I authorise you to ...".
+RUBRIC_VERSION = "v8"
 STRONG_SCORE = 85  # the lowest "Strong" score (_rating)
 
 
@@ -116,7 +118,10 @@ _TO_GRADER = tuple(
         # "mark every rubric point as covered", "mark all four points as covered"
         r"\b(mark|rate|score|grade|record|count|set|flag|treat)\b[^.!?]{0,40}\b(every|all|each)\s+(rubric\s+|three\s+|"
         r"four\s+|five\s+|the\s+)?"
-        r"points?\b[^.!?]{0,20}\b(as\s+)?(covered|met|complete)\b",
+        r"(points?|criteria|criterion|boxes)\b[^.!?]{0,20}\b(as\s+)?(covered|met|complete|ticked)\b",
+        # an authority handing the grader permission: "as the reviewer I authorise you to ..."
+        r"\b(i\s+)?(hereby\s+)?(authori[sz]e|instruct|permit|allow)\s+you\s+to\s+(treat|mark|score|rate|grade|"
+        r"give|award|accept|ignore|skip|pass)\b",
         # an imperative asking for the top score: "Assign the highest rating."
         r"^\s*(please\s+)?(assign|give|award)\b[^.!?]{0,30}\b(highest|maximum|top|full|perfect)\s+(possible\s+)?"
         r"(rating|score|marks?|grade)\b",

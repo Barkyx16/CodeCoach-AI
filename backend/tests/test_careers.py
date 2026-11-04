@@ -75,6 +75,7 @@ def test_careers_endpoint_lists_jobs_grouped_by_category(client):
         "summary": CATALOG["registered-nurse"].summary,
         "has_coding": False,
         "question_count": 300,
+        "answer_feedback": "measured",  # app/careers/support.py
     }
     categories = [c["category"] for c in careers]
     assert categories == sorted(categories, key=categories.index)  # grouped, not interleaved

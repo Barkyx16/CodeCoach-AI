@@ -567,6 +567,7 @@ def evaluate_regression(grader: Grader) -> list[dict]:
         "career-rn-contradiction-pairs": "career_contradiction_pairs.json",
         "career-rn-injection-challenges": "career_injection_challenges.json",
         "career-rn-action-wording": "career_action_wording.json",
+        "career-csr-families-dev": "career_csr_families_dev.json",
     }
     sets = {k: load(v) for k, v in names.items()}
     out = []

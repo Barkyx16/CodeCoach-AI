@@ -3262,6 +3262,24 @@ export interface components {
              * @enum {string}
              */
             evidence_level: "sufficient" | "insufficient";
+            /**
+             * Track
+             * @description The career this answer was written for
+             */
+            track?: string | null;
+            /**
+             * Evaluation Status
+             * @description Whether this career's written-answer feedback has been measured (app/careers/support.py)
+             * @default not_measured
+             * @enum {string}
+             */
+            evaluation_status: "measured" | "not_measured";
+            /**
+             * Evaluation Note
+             * @description One line for the learner about what that means
+             * @default
+             */
+            evaluation_note: string;
         };
         /** AnswerPerspective */
         AnswerPerspective: {
@@ -3810,6 +3828,13 @@ export interface components {
             has_coding: boolean;
             /** Question Count */
             question_count: number;
+            /**
+             * Answer Feedback
+             * @description measured: written-answer feedback has been checked against labelled example answers for this career (app/careers/support.py); not_measured: general structure checks only
+             * @default not_measured
+             * @enum {string}
+             */
+            answer_feedback: "measured" | "not_measured";
         };
         /** ChangeEmailRequest */
         ChangeEmailRequest: {
@@ -5157,6 +5182,11 @@ export interface components {
              * @description verified: the quote is at `span` in your answer; legacy: older feedback, still your words, position not recorded; omitted: a quote was stored but couldn't be checked, so it isn't shown. None when the point has no quote.
              */
             evidence_status?: ("verified" | "legacy" | "omitted") | null;
+            /**
+             * Scope Note
+             * @description What the point checks when its wording suggests more (it checks that a subject is discussed, not that what is said is right)
+             */
+            scope_note?: string | null;
         };
         /**
          * FeedbackReceipt

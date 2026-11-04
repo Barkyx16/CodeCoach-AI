@@ -12,6 +12,7 @@ from app.api.deps import get_current_user, get_db, get_optional_user
 from app.careers import CATALOG, CATEGORIES
 from app.careers.answers import answer_out, graded_answer
 from app.careers.questions import Question, get_question, is_retired, questions_for
+from app.careers.support import evaluation_for
 from app.errors import ConflictError, NotFoundError, RateLimitedError
 from app.models import PracticeAnswer, User
 from app.schemas.careers import (
@@ -86,6 +87,7 @@ def list_careers() -> list[CareerSummary]:
             summary=p.summary,
             has_coding=p.has_coding,
             question_count=len(questions_for(p.slug)),
+            answer_feedback=evaluation_for(p.slug).status,
         )
         for p in profiles
     ]

@@ -78,6 +78,9 @@ export function FeedbackCard({ answer, title = "Feedback", headingId = "feedback
         )}
       </div>
       <FeedbackKind kind="structure" />
+      {answer.evaluation_note && (
+        <p className={answer.evaluation_status === "measured" ? "subtle" : "banner banner--info"}>{answer.evaluation_note}</p>
+      )}
       {changed && (
         <p className="banner banner--info" role="note">
           You've changed your answer since. This feedback is for the version you sent; send the new one to get feedback on it.
@@ -91,6 +94,7 @@ export function FeedbackCard({ answer, title = "Feedback", headingId = "feedback
               <strong>{p.label}</strong>
               <span className="visually-hidden">{p.covered ? " (covered)" : " (missing)"}</span>
               {!p.covered && <p className="subtle">{p.advice}</p>}
+              {p.scope_note && <p className="subtle feedback-card__scope">{p.scope_note}</p>}
               {p.covered && <Evidence point={p} place={placeOf(answer.answer, p)} onShow={() => showIn(p.label)} controls={answerId} />}
             </div>
           </li>

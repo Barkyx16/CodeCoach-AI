@@ -163,8 +163,8 @@ The Long Overnight Upgrade Playbook (received truncated after its brief 05) maps
 | 3 | P06: every feedback quote earns its place (with playbook 04) | done, see checkpoint | this change |
 | 4 | B06 + P08: provider faults and a budgeted live evaluation, prepared, no calls | done, see checkpoint (live run not done: not authorized) | this change |
 | 5 | B07: the remaining session-isolation cases (done before P05's measurement, while its set was being written) | done, see checkpoint | this change |
-| 6 | P10: one more career, with a sealed set written by a separate session | queued | |
-| 7 | B08 + P09: freeze, grade the sealed set once, final suites, CI on the exact commit | queued | |
+| 6 | P10: one more career, with a sealed set written by a separate session | done, see checkpoint | this change |
+| 7 | B08 + P09: freeze, grade the sealed set once, final suites, CI on the exact commit | next | |
 
 ## Checkpoint: B05 + P07, the grader-instruction boundary (rubric v6)
 
@@ -260,4 +260,24 @@ The Long Overnight Upgrade Playbook (received truncated after its brief 05) maps
   `--max-output-tokens` reserved before each request, `--concurrency` 1–4, outcomes by reason,
   retries, models seen, cost only from given prices with an upper bound, `live.status` in every
   report. Tested with fake clients only (`tests/test_live_eval.py`, 16 tests); no live call made.
+
+## Checkpoint: P10, customer service representative (rubric v8, protocol v6)
+
+- `app/careers/support.py`: per-career evaluation status, owner, source, review status, version,
+  formats and sets. The catalog and every answer say whether the career's feedback is measured;
+  unmeasured careers get a plain note (never a refusal); "Explains … correctly" points say they
+  check discussion, not correctness.
+- Sets: `career-csr-families-dev` (separate session) and `career-csr-sealed` (another separate
+  session; not opened; graded with the frozen candidate). One development keyword list rewritten
+  by its author after the cross-split duplicate check (only ids shared).
+- The first measurement (v7) found an attack credited; fixed in rubric v8 (two general patterns,
+  no other decision changed anywhere, corpus clean). Open: advice paraphrased back is credited
+  (the rewritten keyword list); a contradiction withholds one more point than the labels expect
+  (by design, left). The CSR self-correction, benign and attack families are gated; keyword lists
+  not yet.
+- Boundaries tested (`tests/test_career_scope.py`): nursing, customer service, coding and an
+  unmeasured career; another career's question graded by its own rubric; a career change keeps
+  earlier answers and progress apart.
+- Also prepared for the final step: `python -m evals.run --sealed` and `python -m evals.release`
+  (aggregates only).
 

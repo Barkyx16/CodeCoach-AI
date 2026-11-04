@@ -52,6 +52,13 @@ derived from it. A reflection edited after reading the feedback is marked as suc
   I mean …") counts as corrected, with no note. Quotes, hypotheticals, other people's actions, a
   change over time ("at first … but when …") and another occasion are not contradictions. Only
   these explicit kinds are recognised; what isn't is listed in docs/AI_EVALUATION.md.
+- **Which careers' feedback has been measured** (Volume 4 prompt 10). Every career gets the same
+  structure checks with its own vocabulary. For registered nurse and customer service
+  representative they have also been checked against example answers written for that career
+  (development examples, labelled by an AI, not reviewed by a person); every other career's
+  feedback says plainly that it hasn't been measured for that career. Nothing is refused, and no
+  career is graded by another's rules. A point worded "Explains … correctly" checks that you
+  discuss it, not whether what you say is right, and says so.
 - **Every quote can be found in your answer** (Volume 4 prompt 06). A quote under a point is
   your own words from the answer that was graded, checked against it each time you open the
   feedback; "Show it in your answer" opens that answer with the quote marked. A quote that can't

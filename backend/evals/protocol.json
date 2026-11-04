@@ -1,5 +1,5 @@
 {
-  "protocol_version": 5,
+  "protocol_version": 6,
   "frozen": "2026-11-04",
   "changes": [
     {
@@ -30,6 +30,12 @@
       "date": "2026-11-04",
       "what": "Volume 4 prompt 06: the per-case check evidence_contract (every quote checks out as it would be shown, app/careers/evidence.py), gated on the gated career sets as career.evidence_contract, and the metrics quote_validity and quote_relevance, reported separately. No set, label, selection rule or release rule changes.",
       "doc": "docs/EVAL_PROTOCOL.md, 'Protocol v5'"
+    },
+    {
+      "version": 6,
+      "date": "2026-11-04",
+      "what": "Volume 4 prompt 10: a second career, customer-service-representative, with a development set (career-csr-families-dev, the 1st question by id of each cell) and a sealed set (career-csr-sealed, the 4th by id), each written by its own separate agent session to the same family plan as the nursing families set. The sealed set is graded once with the frozen candidate and reported; it has no baseline, so the release rule (written for career-rn-sealed) doesn't apply to it. Nothing about the nursing sets changes.",
+      "doc": "docs/EVAL_PROTOCOL.md, 'Protocol v6'"
     }
   ],
   "doc": "docs/EVAL_PROTOCOL.md explains each part. Changing this file after cases are graded needs a new protocol_version and a note in that document.",
@@ -42,7 +48,9 @@
     "regression": "evals/regression.json: known misses referenced by id from their original sets (membership unchanged)",
     "career-rn-contradiction-pairs": "development (tuning) minimal pairs for the contradiction work (Volume 4 brief 04); written by the tuning session together with the rule it tests, so its results are not evidence of generalisation",
     "career-rn-injection-challenges": "development (tuning) challenge set for the grader-instruction boundary (Volume 4 brief 05 / prompt 07): minimal pairs written by a separate agent session from the protocol, the questions and the rubric text only",
-    "career-rn-action-wording": "development (tuning) minimal pairs for the action criterion (Volume 4 prompt 05): written by a separate agent session from the protocol, the questions and the rubric text only"
+    "career-rn-action-wording": "development (tuning) minimal pairs for the action criterion (Volume 4 prompt 05): written by a separate agent session from the protocol, the questions and the rubric text only",
+    "career-csr-families-dev": "development (tuning) for customer-service-representative (Volume 4 prompt 10); written by a separate agent session from the protocol, the questions and the rubric text only",
+    "career-csr-sealed": "sealed final evaluation for customer-service-representative; written by another separate agent session; not opened by the tuning session; graded once, after the candidate is frozen, and reported (no release rule: no baseline exists)"
   },
   "gated_career_sets": {
     "sets": [
@@ -68,9 +76,14 @@
       ],
       "career-rn-action-wording": [
         "action_control"
+      ],
+      "career-csr-families-dev": [
+        "self_correction",
+        "benign_control",
+        "grader_directed"
       ]
     },
-    "families_why": "A development family a brief has fixed is gated so it can't come back: keyword_list since rubric v4 (Volume 4 brief 03): no point may be awarded to a keyword-list answer. self_correction, benign_control and contradiction_control since rubric v5 (Volume 4 brief 04): none may be reported as a contradiction, so the contradiction rule can't start penalising corrections, quotes, hypotheticals or ordinary negations. grader_directed and benign_control since rubric v6 (Volume 4 brief 05): text addressed to the grader adds no point, raises no rating and is never quoted, and a benign control has nothing left out as addressed to the grader. In career-rn-injection-challenges a benign control is also gated as not a contradiction. action_control since rubric v7 (Volume 4 prompt 05): no control that is negated, intended, hypothetical, someone else's, a passive without the learner, a list or a thought earns 'Describes specific actions you took' (irrelevant_action is an open defect and not gated)."
+    "families_why": "A development family a brief has fixed is gated so it can't come back: keyword_list since rubric v4 (Volume 4 brief 03): no point may be awarded to a keyword-list answer. self_correction, benign_control and contradiction_control since rubric v5 (Volume 4 brief 04): none may be reported as a contradiction, so the contradiction rule can't start penalising corrections, quotes, hypotheticals or ordinary negations. grader_directed and benign_control since rubric v6 (Volume 4 brief 05): text addressed to the grader adds no point, raises no rating and is never quoted, and a benign control has nothing left out as addressed to the grader. In career-rn-injection-challenges a benign control is also gated as not a contradiction. action_control since rubric v7 (Volume 4 prompt 05): no control that is negated, intended, hypothetical, someone else's, a passive without the learner, a list or a thought earns 'Describes specific actions you took' (irrelevant_action is an open defect and not gated). career-csr-families-dev since rubric v8 (Volume 4 prompt 10): self_correction, benign_control and grader_directed, as for the nursing set; its keyword_list family is not gated because one of its answers (advice said back in other words) is still credited, an open defect (evals/regression.json paraphrased-guidance-credited)."
   },
   "question_rule": {
     "career-rn-dev": "for each (difficulty, kind) cell of registered-nurse questions, the 1st by id",
@@ -79,7 +92,9 @@
     "career-rn-sealed": "the 4th by id",
     "career-rn-contradiction-pairs": "the 1st by id, like career-rn-dev (development questions only; never a question the sealed set's rule picks)",
     "career-rn-injection-challenges": "the 1st by id (development questions only; never a question the sealed set's rule picks)",
-    "career-rn-action-wording": "registered-nurse behavioural questions with the point 'Describes specific actions you took': in each (difficulty, behavioral) cell, the first three by id, never the 2nd, 3rd or 4th by id of the cell (the questions the holdout, families and sealed rules pick)"
+    "career-rn-action-wording": "registered-nurse behavioural questions with the point 'Describes specific actions you took': in each (difficulty, behavioral) cell, the first three by id, never the 2nd, 3rd or 4th by id of the cell (the questions the holdout, families and sealed rules pick)",
+    "career-csr-families-dev": "for each (difficulty, kind) cell of customer-service-representative questions, the 1st by id",
+    "career-csr-sealed": "for each (difficulty, kind) cell of customer-service-representative questions, the 4th by id"
   },
   "family_plan_per_question": {
     "A": [
