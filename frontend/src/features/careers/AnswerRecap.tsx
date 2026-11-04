@@ -27,7 +27,7 @@ function list(labels: string[]): string {
  * (structure, not whether the details are right), how it compares with the try before when the two
  * were graded the same way, and a revision aimed at one missing point or the next question.
  */
-export function AnswerRecap({ answer, tryNo, previous, previousNo, track, questionId, difficulty, backTo, careerTitle, canRevise, onRevise }: {
+export function AnswerRecap({ answer, tryNo, previous, previousNo, track, questionId, difficulty, backTo, canRevise, onRevise }: {
   answer: InterviewAnswer;
   tryNo: number | null;
   previous: InterviewAnswer | null;
@@ -35,8 +35,8 @@ export function AnswerRecap({ answer, tryNo, previous, previousNo, track, questi
   track: string;
   questionId: string;
   difficulty: Difficulty;
+  /** The list this question was opened from (the breadcrumb at the top already leads there). */
   backTo: string;
-  careerTitle: string;
   /** Signed in, online and the question still graded. */
   canRevise: boolean;
   onRevise: (target: { label: string; advice: string } | null) => void;
@@ -90,10 +90,9 @@ export function AnswerRecap({ answer, tryNo, previous, previousNo, track, questi
         {canRevise && reviseFirst && revise}
         {nextLink}
         {canRevise && !reviseFirst && revise}
-        <Link to={backTo} className="btn btn--ghost btn--md">Back to {careerTitle} questions</Link>
       </div>
       {!next && level.data && level.data.items.length >= level.data.total && (
-        <p className="subtle">Every other {difficulty} question here has an answer; the question library has the other levels.</p>
+        <p className="subtle">Every other {difficulty} question here has an answer; the <Link to={backTo}>question library</Link> has the other levels.</p>
       )}
     </section>
   );

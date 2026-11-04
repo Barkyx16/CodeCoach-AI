@@ -71,7 +71,7 @@ test("first use to a revised, compared answer, with a dropped send and a 320px s
   // 320px: nothing scrolls sideways and the recap's actions fit and can be reached.
   await page.setViewportSize({ width: 320, height: 720 });
   await expect.poll(() => fits(page)).toBe(true);
-  for (const control of [recap.getByRole("button", { name: "Revise this answer" }), recap.getByRole("link", { name: /^Back to Registered Nurse questions/ })]) {
+  for (const control of [recap.getByRole("button", { name: "Revise this answer" }), recap.getByRole("link", { name: /^Next question: / })]) {
     await control.scrollIntoViewIfNeeded();
     await expect(control).toBeVisible();
     const b = await control.boundingBox();

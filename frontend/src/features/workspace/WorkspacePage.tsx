@@ -150,11 +150,14 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
       <div className="editor-toolbar__actions" data-tour="submit">
         <Button size="sm" variant="ghost" aria-expanded={showSettings} aria-controls={settingsId}
           onClick={() => setShowSettings((value) => !value)}>Editor settings</Button>
-        <Button size="sm" variant="ghost" disabled={!draft.isModified}
+        {/* "Reset" on screen (the toolbar has no room for more in a narrow panel); its name and the
+            confirmation say what it resets and what it keeps. */}
+        <Button size="sm" variant="ghost" disabled={!draft.isModified} aria-label="Reset code"
+          title="Replace your code with the starter code (past submissions are kept)"
           onClick={() => {
             if (window.confirm("Replace your code with the starter code? Your unsent changes in the editor will be lost; your past submissions are kept.")) draft.reset();
           }}>
-          Reset code
+          Reset
         </Button>
         {canRun && (
           <Button size="sm" variant="secondary" loading={submit.isPending && pendingMode === "run"}

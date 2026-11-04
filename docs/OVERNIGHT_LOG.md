@@ -493,8 +493,10 @@ at most 20) and each answer's own fields; no API, schema or storage change.
   rubric looks for. To add: …", or "too short to score yet (N words)"), the comparison below,
   and one primary action: revise when a point is missing or it was too short, otherwise the next
   unanswered question at this level (library order, after this one, wrapping; "every other …
-  question here has an answer" only when the whole level was listed). Always "Back to {career}
-  questions". Structural wording only; nothing about whether details are right.
+  question here has an answer" only when the whole level was listed, with a link to the library).
+  The way back is the breadcrumb at the top; a second "Back to … questions" in the recap
+  duplicated it and the existing "Back to results" (the full e2e run caught it) and was removed.
+  Structural wording only; nothing about whether details are right.
 - LX07 Targeted retry: "Revise this answer" (or "Add to this answer") fills the box with that try's
   text only if the box is empty (unsent text is never replaced; the note says so), names the
   first missing point and its advice, and asks for only what really happened. "Start from a blank
@@ -529,7 +531,81 @@ at most 20) and each answer's own fields; no API, schema or storage change.
   retry. Limit: if the server saves it after that check, a resend can still duplicate it
   (proposal: an idempotency key on this endpoint, as code submissions have; needs a column).
 - LX11: the question page had no reset; the new "Start from a blank box" clears only the box (Undo).
-  The coding workspace's "Reset" now reads "Reset code" and its confirmation says the starter code
+  The coding workspace's "Reset" keeps its short visible label (a longer one pushed the toolbar's
+  buttons, Save among them, under the editor in a narrower panel; the full e2e run caught it), with
+  the accessible name "Reset code", a tooltip, and a confirmation that says the starter code
   replaces the editor's unsent changes and past submissions are kept (it already only reset the
   local draft). Interview "End the interview" already said what it ends. No retention change.
 - Checks: `learnerJourney.test.tsx` (5 more; the 3 behaviour tests failed on the previous page).
+
+## Checkpoint: LX12 + LX14, narrow screens and the whole journey
+
+- LX12: inspected at 1440, 375 and 320px (Chromium, emulated viewports): the dashboard (stat
+  tiles in two columns, Up next with its rule), the question page's recap and the revision note.
+  No sideways scroll; the recap's buttons wrap and stay touch-sized; long "Next question: …"
+  titles wrap. No layout fix was needed beyond the new styles. Not checked: a physical phone, an
+  on-screen keyboard over the answer box, a screen reader.
+- LX14: `e2e/learner-journey.spec.ts` against the real backend: sign-up, Up next's rule, a send
+  dropped before it reaches the server (nothing saved, outcome stated as unknown, text kept),
+  feedback and the recap, a revision for the missing point, the two tries compared, try 1
+  reopened from its URL after a reload, the recap at 320px, the dashboard counting the question
+  once. Review of the learner-facing diff: one comparison phrase reworded; the tour's last step
+  and Help updated to name What next and numbered tries; no duplicate confirmations added; no
+  answer text in URLs or navigation state. The full e2e run found a duplicated back link and a
+  label that broke the coding toolbar; both fixed (LX06, LX11).
+
+## Final handoff (third queue: Learner Experience pack)
+
+**Branch** `claude/gallant-galileo-hapob6`, PR #10 into `feature/premium-frontend` (open, not
+merged, not deployed). Started at `2e88dc5`.
+
+| Brief | State | Evidence |
+|---|---|---|
+| 01 Map the journey | done | checkpoint LX01 (nine obstacles, what's already right) |
+| 02 Start and continue | done (Continue already right; unavailable links fixed) | `3d3f5ab`; `learnerJourney` "A link to a question that isn't there" |
+| 03 Progress denominators | done (labels; definitions unchanged) | `9f84224`; `careerDashboard` test |
+| 04 Transparent next practice | done | `9f84224`; `upNext.test.ts` |
+| 05 Missed-item review | done | `9f84224` (lowest-score link), `e143483` (numbered tries, URL, titles) |
+| 06 Recap with a next action | done | `e143483`; "What next, after feedback" tests |
+| 07 Targeted retry | done (no stored link between tries: proposal) | `e143483`; "A revision aimed at one missing point" tests |
+| 08 Comparable attempts only | done | `e143483`; `tries.test.ts` |
+| 09 Navigation context | done | `e143483`; "The list a question was opened from" tests |
+| 10 Honest saving states | done (idempotency key: proposal) | `e143483`; "Sending an answer when no reply comes back" tests, e2e dropped send |
+| 11 Restart and reset | done | `e143483` (blank box with Undo; "Reset code" scope) |
+| 12 Narrow screens | done (inspection, e2e at 320px) | checkpoint LX12 |
+| 13 Empty and unavailable states | done for question/problem links; other states inspected, unchanged | `3d3f5ab` |
+| 14 Verify and hand off | done | this section |
+
+**Definitions now shown to learners** (computed as before): questions answered = distinct
+questions with at least one answer; strong answers = questions whose best score is 85+; skills
+practised = skills with at least one answered question; Up next = the stated fixed rule; tries =
+this account's answers to one question in time order (numbered only when all are listed);
+comparable = same question version, rubric version and coach, both scoreable.
+
+**Decisions still needed (proposals, not done):**
+1. `best_score` counts answers too short to score (capped at 35). Excluding them changes five
+   services' numbers; needs a product decision.
+2. A stored link from a revision to the try it revised (`revises_answer_id`, a migration).
+3. An idempotency key for `POST …/answers` (as code submissions have), so a resend after a lost
+   reply can never duplicate; the page's check covers most cases, not a save that lands later.
+
+**Checks on the final code:**
+- Frontend: lint, typecheck, `api:check` clean; `vitest run` 61 files / 621 tests passed; build
+  passed; size: shell 286.4 KB gzip (budget 300; was 283.6), largest lazy chunk 674.5 KB (700).
+- E2E (Playwright, real backend, Chromium desktop, mobile, PWA), full suite at `b537ad3`: 81 passed,
+  3 skipped, 3 failed, all from this queue: two from the recap's duplicate "Back to …" link, one
+  from the longer "Reset code" label hiding the coding toolbar's buttons under the editor. Both
+  fixed in the final commit; then the affected specs (careers, display, progress,
+  learner-journey, explore, answer-review, onboarding, controls-audit) passed 19, skipped 1. The
+  full suite was not re-run locally after the fix; CI runs it.
+- Backend: no backend code changed in this queue; not re-run locally (CI runs it).
+- Not run here: the sandbox job (Docker and gVisor), a physical phone, a screen reader.
+
+**CI:** reported with the handoff message for the final SHA, job by job.
+
+**Known issue found (not changed):** the coding workspace's editor toolbar hides its buttons
+(Save/Submit among them) under the editor when they don't fit on one line, as a slightly longer
+label showed at the default panel width; a learner who narrows the panel may hit it.
+
+**Next concrete action:** decide proposal 3 (an idempotency key is the smallest of the three and
+closes the remaining duplicate-answer gap), then proposal 1.

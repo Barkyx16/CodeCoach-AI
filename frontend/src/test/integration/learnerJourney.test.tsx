@@ -142,7 +142,9 @@ describe("What next, after feedback", () => {
     renderApp("/careers/registered-nurse/questions/e-good-0?answer=t2", { signedIn: true });
     const recap = await screen.findByRole("region", { name: "What next" });
     expect(await within(recap).findByText(/Every other easy question here has an answer/)).toBeInTheDocument();
-    expect(within(recap).getByRole("link", { name: "Back to Registered Nurse questions" })).toHaveAttribute("href", "/problems?view=questions");
+    expect(within(recap).getByRole("link", { name: "question library" })).toHaveAttribute("href", "/problems?view=questions");
+    // The breadcrumb at the top already leads back; the recap doesn't repeat it.
+    expect(within(recap).queryByRole("link", { name: /^Back to/ })).not.toBeInTheDocument();
   });
 });
 

@@ -317,7 +317,7 @@ function QuestionPageFor() {
                   title={isNew ? "Feedback" : `Feedback on ${tryOf(shown) ? `try ${tryOf(shown)}` : "your answer"} from ${timeAgo(shown.created_at)}`} />
               </div>
               <AnswerRecap answer={shown} tryNo={tryOf(shown)} previous={previous} previousNo={tryOf(previous)}
-                track={track} questionId={id} difficulty={q.difficulty as Difficulty} backTo={listTo} careerTitle={q.career_title}
+                track={track} questionId={id} difficulty={q.difficulty as Difficulty} backTo={listTo}
                 canRevise={canRevise} onRevise={revise} />
               {isAuthenticated && <div className="focus-hide"><AnswerReviewPanel key={shown.id} answerId={shown.id} defaultOpen={reflected === shown.id} /></div>}
             </>
