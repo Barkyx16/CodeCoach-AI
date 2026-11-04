@@ -52,6 +52,15 @@ derived from it. A reflection edited after reading the feedback is marked as suc
   I mean …") counts as corrected, with no note. Quotes, hypotheticals, other people's actions, a
   change over time ("at first … but when …") and another occasion are not contradictions. Only
   these explicit kinds are recognised; what isn't is listed in docs/AI_EVALUATION.md.
+- **Actions count however they're told, and only real ones** (rubric v7). "Describes specific
+  actions you took" looks for two things you did, or did with others, in the situation, told as
+  done: "we turned him", "the HCA and I", "I'd already rung", "I, as nurse in charge, called",
+  "the bloods were taken by me" all count. A team action counts, so you never need to claim team
+  work as yours alone; "Makes your own responsibility clear" asks separately what your part was.
+  What would, could or was going to happen, what you didn't do, what someone else did, and a
+  list of verbs don't count. A story told in the present ("so I go in and check his sats") isn't
+  read as done yet; telling it in the past is. The coach can't tell whether an action had to do
+  with the situation.
 - **A point is shown, not named** (rubric v4). A list of terms, a fragment, or the question's own
   guidance said back doesn't earn a point or get quoted; the feedback says when a point was named
   without being shown and asks for an example. Listed words still count towards length.

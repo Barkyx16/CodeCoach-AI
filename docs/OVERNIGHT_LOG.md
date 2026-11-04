@@ -159,8 +159,8 @@ The Long Overnight Upgrade Playbook (received truncated after its brief 05) maps
 | # | Brief | Status | Commit(s) |
 |---|---|---|---|
 | 1 | B05 + P07: grader instructions beyond exact phrases (rubric v6, protocol v3) | done, see checkpoint | `56039e0`, `63f8b6e`, this change |
-| 2 | P05: more ways to describe a real action | next | |
-| 3 | P06: every feedback quote earns its place (with playbook 04) | queued | |
+| 2 | P05: more ways to describe a real action (rubric v7, protocol v4) | done, see checkpoint | `8e492d3`, this change |
+| 3 | P06: every feedback quote earns its place (with playbook 04) | next | |
 | 4 | B06 + P08: provider faults and a budgeted live evaluation, prepared, no calls | queued | |
 | 5 | B07: the remaining session-isolation cases (done before P05's measurement, while its set was being written) | done, see checkpoint | this change |
 | 6 | P10: one more career, with a sealed set written by a separate session | queued | |
@@ -209,4 +209,23 @@ The Long Overnight Upgrade Playbook (received truncated after its brief 05) maps
 - Not added: multi-tab session sharing (the app has none beyond the refresh lock, already
   tested); a test of every cache write (each was read; all but the two store the server's answer).
 - Checks: frontend lint and typecheck clean; `vitest run`: 55 files, 583 tests passed.
+
+## Checkpoint: P05, the action criterion (rubric v7)
+
+- Criterion written first (protocol v4, `labeling.action_criterion`), then a development set
+  written against it by a separate session (`career_action_wording.json`, 126 minimal pairs),
+  graded once under rubric v6 as the baseline before any change.
+- Baseline → v7: reworded actions credited 34/72 → 64/72; controls wrongly credited 6/36 → 4/36
+  (all four irrelevant actions, open); paraphrases graded like their base 42/72 → 64/72. Other
+  sets: one changed decision in the old development set (`rn-dev-08`, a team answer whose label
+  predates the criterion; label not edited), two contradicted points no longer credited.
+- A first draft brought back the fixed defect `contradicting-statements-credited`; the defect
+  register's gate caught it, and a contradiction's scope now includes the statement that follows
+  in support of it.
+- By design not read as done: a story in the present (7 cases, open in the register, with the
+  reason). The action advice no longer asks for "I did …" sentences only.
+- New gate `career.action_controls` (and a weakened grader that fails it on all 32 gated
+  controls); register entries for the two fixed and three open defects.
+- Checks: ruff, ruff format, mypy (`app`); career, harness, evals and protocol tests, 288 passed
+  on `8e492d3`.
 

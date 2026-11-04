@@ -14,17 +14,19 @@ python -m evals.run --check-report evals/results/offline.json
 
 ## Status (2026-11-04, end of the Volume 4 / overnight queue)
 
-- **Versions:** rubric `v6`, coach prompt `coach-2026-11-04` (request settings only; prompt text
-  unchanged since `coach-2026-11-03`), evaluation protocol v3 (frozen 2026-11-04; v2 added the
+- **Versions:** rubric `v7`, coach prompt `coach-2026-11-04` (request settings only; prompt text
+  unchanged since `coach-2026-11-03`), evaluation protocol v4 (frozen 2026-11-04; v2 added the
   contradiction pairs and metrics, v3 the injection challenge set and the by-kind injection
-  metrics; see [EVAL_PROTOCOL.md](EVAL_PROTOCOL.md)).
+  metrics, v4 the action criterion and its set; see [EVAL_PROTOCOL.md](EVAL_PROTOCOL.md)).
 - **Career sets** (`backend/evals/datasets.json`, sha256 prefix): `career-rn-dev` v2, 23 cases,
   `c1619da3a4ac` (development); `career-rn-holdout` v2, 17, `d43b284d6a71` (**exposed historical
   benchmark**, not an untouched test); `career-rn-families-dev` v1, 108, `6bef6d4fce71`
   (development, written by a separate session); `career-rn-contradiction-pairs` v1, 56,
   `7dc0ed19898e` (development, written by the tuning session with the rule it tests);
   `career-rn-injection-challenges` v1, 90, `a681304e5463` (development, written by a separate
-  session from the protocol, questions and rubric text only); `career-rn-sealed` v1, 108,
+  session from the protocol, questions and rubric text only); `career-rn-action-wording` v1, 126,
+  `8216e3efdcca` (development, written by a separate session from the protocol, including the
+  action criterion, the questions and the rubric text); `career-rn-sealed` v1, 108,
   `afedc25a6247` (sealed final evaluation).
 - **Labels:** all model-written; **no human has reviewed any of them** (each file's
   `review_status`). Nothing here is expert- or clinician-validated, and the coach judges answer
@@ -33,13 +35,16 @@ python -m evals.run --check-report evals/results/offline.json
   has not been opened or graded by the tuning session (`evals/sealed/ACCESS.md`); it is graded
   once, for a frozen candidate. Every number in this document is development data or the exposed
   historical set. The rubric changes since v2 (v3 dictation, v4 keyword lists, v5
-  contradictions, v6 the grader-instruction boundary) have **no independent measurement yet**.
+  contradictions, v6 the grader-instruction boundary, v7 the action criterion) have **no
+  independent measurement yet**.
 - **Live Claude evaluation: not run** (no paid calls authorized). The provider tests use a fake
   client; they show how failures are handled, not how well Claude coaches.
 - **Open defects** (`evals/regression.json`): vague claims credited, contradictions that need word
   meaning, contradicted points credited by other words, generic answers credited, scene and
-  preparation cues missed, result credited by any number. (An unpunctuated attack dropping the
-  answer, and rephrased or disguised attacks, are fixed in rubric v6.)
+  preparation cues missed, result credited by any number, a story told in the present not read
+  as done, irrelevant actions credited, "felt" as an examination missed. (An unpunctuated attack
+  dropping the answer and rephrased or disguised attacks are fixed in rubric v6; reworded actions
+  missed and an experience or lesson read as an action in v7.)
 
 ## What's measured
 
@@ -137,8 +142,8 @@ failures, tokens, latency, cost).
 > no answer is close to one in another split without a recorded review), `data.regression_status`
 > (the known-defect register in `evals/regression.json` matches what is measured) and
 > `contract.reference_leak` (no labelled sample's reference note reaches a prompt). Later briefs
-> added `career.keyword_lists`, `career.contradiction_controls` and `career.grader_boundary`: 28
-> gates in all.
+> added `career.keyword_lists`, `career.contradiction_controls`, `career.grader_boundary` and
+> `career.action_controls`: 29 gates in all.
 
 `evals/gates.py`, evaluated in CI on the complete offline run (`tests/test_evals.py`). Each has
 its reason in the report.
@@ -153,6 +158,7 @@ its reason in the report.
 | `career.agreement` | development set: precision ≥ 0.75, recall ≥ 0.92 (the rubric v1 level) |
 | `career.keyword_lists` | no development keyword-list answer earns a point (rubric v4) |
 | `career.contradiction_controls` | no self-correction or control answer in the development families is reported as a contradiction (rubric v5) |
+| `career.action_controls` | no action control in `career-rn-action-wording` that is negated, intended, hypothetical, someone else's, a passive without the learner, a list or a thought earns "Describes specific actions you took" (rubric v7; irrelevant actions are an open defect and not gated) |
 | `career.grader_boundary` | in the gated development families (`career-rn-injection-challenges`, the families set's grader-directed answers): no text addressed to the grader adds a point, raises the rating or is quoted, and no benign control has text left out as addressed to the grader (rubric v6) |
 | `contract.framing`, `.ladder`, `.hidden_tests`, `.secrets`, `.bounded` | no failing request |
 | `provider.fallback` | every failure scenario falls back |
@@ -171,7 +177,8 @@ the question back as evidence (evidence fails on every case), one that scores to
 (insufficient fails on the 4 short cases), one that believes an answer claiming to cover
 everything (injection fails on both injection cases), and one that reads the answer only as
 written, the rubric v5 boundary (`career.grader_boundary` fails on the zero-width attack
-`ic-9-g5`).
+`ic-9-g5`), and one that credits any two past verbs as actions (`career.action_controls` fails on
+all 32 gated controls).
 
 ## Results: career answers (written-answer coach), rubric v1 → v2
 
@@ -480,6 +487,105 @@ there is what the rule does on the cases it was built from. The families set (wr
 session, but read while building the rule) is the less optimistic development figure: 3 of 9. No
 independent measurement of contradiction handling exists yet; the sealed set will give one, once,
 for the frozen candidate. This is not general contradiction understanding.
+
+## Results: rubric v7, the action criterion (Volume 4 prompt 05)
+
+Measured 2026-11-04 on development data and the exposed historical set, against provisional,
+model-written labels. v6 is `9b96189`'s app code run with this commit's evaluation harness and
+datasets (a worktree, because v7 changes `questions.py` and the git loader rightly refuses to mix
+them); v7 is `8e492d3` (`evals/results/rubric-v7-career.*`, `rubric-v6-protocol-v4-data.*`,
+`rubric-v6-vs-v7.md`). The sealed set was not graded.
+
+**What was wrong.** "Describes specific actions you took" needed "I" directly before a past verb
+from a short irregular list or ending in -ed. Real actions told in other words got no credit
+(with others, after "had", with an aside after "I", as a passive, after "made sure to", joined by
+"plus", or with irregular verbs outside the list), while "the hardest situation I have faced" and
+"what I took from it" counted as two actions.
+
+**The criterion** (`labeling.action_criterion` in the protocol; `app/careers/questions.py`):
+at least two concrete things the learner did, or took part in doing, in the situation, told as
+done.
+- *Who:* "I", "we", "me" in a pair ("our physio and me"), "the two of us". **A team action
+  counts**, so nobody has to claim team work as their own; "Makes your own responsibility clear"
+  still asks for their part. Someone else's action, and a passive that doesn't say who ("the
+  team was called"), don't count; a passive that says the learner did it ("was measured by me")
+  does.
+- *Done:* a past form, also after "had" ("I'd already rung"), not after "if". Not "would",
+  "didn't", "never", "was going to", "planned to", "thought about". **A story told in the present
+  is not read as done**, deliberately: "so I take his vitals and phone surgery" can't be told
+  apart from a habit stated in general ("I check every patient") by its words, and the criterion
+  doesn't count habits.
+- *An act:* not thinking, feeling, wanting, trying or meeting a situation (faced, experienced),
+  and not "what I took from it". Told, not listed (the rubric v4 list rule, which now also accepts
+  an aside after the subject: "I, without delay, tested ...").
+- *Wording:* any regular verb; the closed class of irregular past forms and participles that name
+  an act (verbs of perceiving, knowing or feeling such as saw, knew, felt are left out on
+  purpose); an aside in commas or up to two adverbs after the subject, except adverbs of habit or
+  a near miss (usually, nearly); "and", "then" or "plus" between actions; a comma list after
+  "made sure to".
+
+No word list was grown case by case: the subjects, the done-test and the irregular class are
+stated rules, and each change answers a miss seen in the development data.
+
+| Reworded actions credited (v6 → v7) | n | v6 | v7 |
+|---|---|---|---|
+| team_action | 7 | 0 | **7** |
+| past_perfect | 7 | 1 | **7** |
+| words_between | 7 | 2 | **7** |
+| professional_phrasing | 7 | 6 | 7 |
+| irregular_verbs | 7 | 5 | 6 |
+| historical_present | 7 | 1 | **0** (by design, see above) |
+| passive_with_agent | 6 | 1 | **6** |
+| cleft_or_nominal | 6 | 3 | **6** |
+| dictated_paraphrase | 6 | 3 | **6** |
+| cautious_memory | 6 | 6 | 6 |
+| concise | 6 | 6 | 6 |
+| **all** | 72 | **34 (47%, 95% CI 36–59%)** | **64 (89%, 80–94%)** |
+
+| Controls credited although the action didn't count (v6 → v7) | n | v6 | v7 |
+|---|---|---|---|
+| negated / intended / hypothetical / others_did_it | 5 each | 1 / 0 / 0 / 0 | 0 / 0 / 0 / 0 |
+| agentless_passive / keyword_list / thought_not_act | 4 each | 0 / 1 / 1 | 0 / 0 / 0 |
+| irrelevant_action | 4 | 3 | **4** |
+| **all** | 36 | **6 (17%)** | **4 (11%, 4–25%)** |
+
+Paraphrases graded exactly like their base on every point: 42/72 → 64/72. Item precision on the
+set 431/440 → 471/478, recall 431/618 → 471/618. No other point's decision changed; most of the
+set's remaining misses are "Reflects on what you learned" (56) and "Makes your own responsibility clear" (42), the same under v6. The v6 credits that
+v7 removed from the controls (all in one family) came from "I have faced" and "what I took from
+it"; the two paraphrases v7 no longer credits (`aw-8-p1`, `aw-8-p4`) were credited under v6 only
+by those same sentences.
+
+**The trade-off, checked on every other set.** Unchanged decisions everywhere except: one in the
+old development set, `rn-dev-08`, a team answer ("we put alarms on the beds, we did hourly
+rounding") whose label predates the criterion and says no; under the criterion it describes team
+actions, its responsibility point stays missed and the "we more than I" note stays. The label was
+not edited. In the contradiction pairs two contradicted action points are no longer credited
+(contradicted points still credited 8/12 → 7/12; collateral 0/51, unchanged). The families,
+injection and historical sets are unchanged, and every gate passes. A first v7 draft credited the
+action point on `fd-1-P-contradiction` again (the defect register's
+`contradicting-statements-credited` gate caught it): "we finished the round" gave the second hit
+next to "I did every observation myself", which goes straight on from "I did not ask anyone for
+help at all". A contradiction's scope now includes the statement the learner makes directly after
+one of the two, in support of it (only for the points the contradiction is about), which fixed
+that and the two pairs above.
+
+`rubric-v6-vs-v7.md` lists 27 case checks fixed and 2 regressions, both `aw-5-c2`: an irrelevant
+action ("I looked up bus times, ate lunch …, plus drafted birthday cards") now credited because
+"plus" joins its second action.
+
+**Supported scope, and what remains.** English as written or dictated in these sets: first-person
+and team subjects, past and past-perfect forms, the constructions above. Open, in
+`evals/regression.json`: a story in the present (7 cases, by design), irrelevant actions credited
+(4, needs the meaning of the words), "felt" as an examination (1). Not covered by these cases:
+other varieties of English, long subordinate clauses between the subject and the verb, actions
+told only as nouns ("my escalation was quick"). The set was written by a separate session but read
+by the tuning session while building v7, so its numbers are development figures, and its
+minimal-pair rule made the agent write each action passage as one sentence with one "I" and a
+comma list, often joined by "plus": real answers are less regular.
+
+**Cost.** The patterns are longer; scoring time stays in v6's range (12 ms for a typed answer at the
+6,000-character limit, every benchmark case under 50 ms; docs/PERFORMANCE.md has the v6 table).
 
 ## Results: rubric v6, the grader-instruction boundary (Volume 4 brief 05)
 

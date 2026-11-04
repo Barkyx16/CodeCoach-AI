@@ -224,7 +224,8 @@ STAR = (
     RubricPoint(
         "Describes specific actions you took",
         (ACTION, JOINED_ACTION, LISTED_ACTIONS, BY_ME),
-        "Walk through two or three concrete things you did, using “I did …” sentences.",
+        "Walk through two or three concrete things you did, alone or with the team, told as what happened "
+        "(“I checked …, then we …”).",
         min_hits=2,
     ),
     RubricPoint(

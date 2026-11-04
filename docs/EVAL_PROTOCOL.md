@@ -158,6 +158,34 @@ Unchanged: the sealed set, its selection rule and access rules, and the release 
 written by a separate session, but the tuning session read every case while building rubric v6,
 so its results are development figures.
 
+## Protocol v4 (2026-11-04, Volume 4 prompt 05)
+
+What v4 adds (`changes` in `protocol.json`):
+
+- `labeling.action_criterion`: what "Describes specific actions you took" means, written before
+  the set: at least two concrete things the learner did or took part in, told as done. Team
+  actions count; someone else's, a passive that doesn't say who, intended, hypothetical, negated,
+  only-thought-about and general habits don't; cautious wording about memory still tells an
+  action; the wording doesn't matter. Labellers mark the point uncertain when they can't tell;
+- the development set `career-rn-action-wording` (126 cases, written by a separate agent session
+  from the protocol, the questions and the rubric text only; model-written labels, unreviewed):
+  nine behavioural questions (the first three by id with the action point in each behavioural
+  cell, never the 2nd–4th by id of the cell, which the holdout, families and sealed rules pick),
+  each with a typed and a dictated base, 8 `action_paraphrase` variants (11 kinds: team action,
+  a story in the present, past perfect, professional phrasing, irregular verbs, words between,
+  cautious memory, cleft or nominal, a passive with the learner as agent, concise, a paraphrase in
+  the dictated answer) and 4 `action_control` variants (8 kinds: negated, intended, hypothetical,
+  someone else did it, a passive without the learner, an irrelevant action, a keyword list, a
+  thought rather than an act);
+- metrics `action_recall` and `action_false_credit` (with by-kind tables) and
+  `action_paraphrase_parity`;
+- the gate `career.action_controls` on that set's controls, except irrelevant actions (an open
+  defect).
+
+Unchanged: the sealed set, its selection rule and access rules, and the release rule. The set's
+first grading (rubric v6) is recorded as its baseline; after that the tuning session read it, so
+its later numbers are development figures.
+
 ## Access to the sealed set
 
 - The tuning session never opens `sealed/career_rn_sealed.json` or case-level results from it.
