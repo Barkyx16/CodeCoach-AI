@@ -327,9 +327,21 @@ def test_calls_to_claude_need_an_explicit_flag_and_a_budget(monkeypatch):
 
 
 def test_another_rubric_can_be_loaded_from_git_for_a_comparison():
+    import subprocess
+
     from app.careers.grading import RUBRIC_VERSION
     from evals.run import load_grader
 
+    unchanged = (
+        subprocess.run(
+            ["git", "diff", "--quiet", "HEAD", "--", ":(top)backend/app/careers/questions.py"], cwd=EVALS
+        ).returncode
+        == 0
+    )
+    if not unchanged:  # an uncommitted rubric: an old grading.py alone wouldn't be that rubric
+        with pytest.raises(SystemExit, match="questions.py changed since HEAD"):
+            load_grader("git:HEAD")
+        return
     grader, version, described = load_grader("git:HEAD")
     assert version == RUBRIC_VERSION and described.startswith(
         "git HEAD:backend/app/careers/grading.py (sha256 "

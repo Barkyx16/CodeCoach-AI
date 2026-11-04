@@ -288,6 +288,71 @@ transforms are mechanical; real speech-to-text makes other errors (wrong words, 
 nothing here measures, and none of this says anything about particular accents, dialects or
 speech-recognition products.
 
+## Results: rubric v4, a point is shown, not named (Volume 4 brief 03)
+
+Measured 2026-11-04 on development data and the exposed historical set, against provisional,
+model-written labels. Baseline: rubric v3 (`evals/results/rubric-v3-career.*`, commit `e973e50`).
+
+**What was wrong.** Under v3, 7 of the 12 keyword-list answers in the development and historical
+sets were rated Good or Strong: a comma list of 28 nursing terms, the rubric's own point names read
+back as sentences, headings followed by single words ("Steps: first, then, finally."), and the
+rubric's advice copied back. 27 points went to the 9 development keyword lists.
+
+**What a point needs now.** Each rubric point is still found by its cue words, but only in a
+*statement in the learner's own words*. Two kinds of text name a point without showing it, and
+neither earns a point or is quoted:
+- **lists and fragments**: three or more comma-separated items averaging three words or fewer
+  (a bracketed list inside a sentence doesn't count), or a piece of three words or fewer that
+  doesn't say who did what ("Patient care." but not "I escalated." or "Pressure improved.");
+- **the question's own guidance said back**: a sentence most of whose word triples come from the
+  question, its rubric points, advice, outline or tips (contractions spelled out, "and"/"the"
+  ignored). Shared single words don't count, so a concise answer that uses the rubric's everyday
+  words ("Show them how I do it, let them try, then check their notes.") keeps its credit.
+
+A heading and what follows it are judged apart, so "Situation: I was the only nurse…" counts and
+"Specifics: care planning, IV pumps." doesn't. A short lower-case piece left by an abbreviation
+("my 2 a.m. assessment") is judged with its sentence, and a sentence said again verbatim shows
+nothing new. Listed words still count towards length; nothing is deducted. When a point is named but
+not shown, the feedback says so, quotes the passage and asks for an example, without saying how
+the check works or that the content is wrong.
+
+| Measure | v3 | v4 |
+|---|---|---|
+| Development (108): precision | 308/360 = 86% | **308/333 = 92%** |
+| Development: recall | 308/399 | 308/399 (unchanged) |
+| Development: unsupported credit | 52/104 | **25/104** |
+| Development: rating within bounds | 17/36 | **24/36** |
+| Development: keyword lists rated Good or Strong | 4/9 | **0/9** (all 9: no point, Needs work) |
+| Historical (exposed): unsupported credit | 9/23 | **4/23** (rn-ho-12: 5 points removed) |
+| Old development set | unchanged | unchanged |
+
+Every decision that changed in the three sets is a keyword-list point no longer awarded, each
+labelled missing: no true point was lost. Bullet answers, typed, dictated, paraphrased and
+self-corrected answers kept exactly the credit they had, and dictated parity stayed 83/84.
+
+**Across 749 answer-like texts** (v3 at `e973e50` against v4): 115 points removed, 0 gained:
+97 from question outlines read back as answers (the guidance itself), 14 from development keyword
+lists, and 4 from test strings that aren't answers (module docstrings, a line of Java). No other
+answer lost a point.
+
+**Gate.** `career.keyword_lists` fails if any development keyword-list answer is awarded a point
+(the protocol now gates that fixed family). Tests in `tests/test_careers.py` (rubric v4 section):
+three kinds of keyword list and repeated sentences fail on v3; the paragraph-versus-bullets pair,
+mixed real-and-listed content, concise answers and the abbreviation case pass on both, as controls
+against false rejections.
+
+**Limits, measured or known.**
+- **Vague sentences still count** (`vague-claims-credited`, open): "Trade-off: I would prioritise
+  and decide what matters.", "I want to because I care." They are statements; telling a vague
+  claim from an explained one needs reading for meaning, which this grader doesn't do. The two
+  author-written keyword answers that use them still score Good and Strong.
+- **List detection uses commas.** A keyword list dictated without punctuation is one run of words
+  and isn't recognised as a list. A terse imperative line of very short items ("Check the chart,
+  the drip, the obs.") is read as a list.
+- **Off-topic answers** are not detected as such: a good story about the wrong thing still earns
+  the structural points it shows (and usually misses "Uses the specifics of the job").
+- Nothing here understands meaning beyond these named structural patterns.
+
 ## Results: requests to Claude and provider failures
 
 Without calling Claude (measured 2026-11-03):

@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from app.careers.questions import NUMBER, Question
+from app.careers.questions import NUMBER, Question, irregular_actions
 
 MIN_WORDS, GOOD_MIN, GOOD_MAX, MAX_WORDS = 40, 120, 350, 600
 # Bump when the scoring rules change, so scores from different rule sets are never compared as equals.
@@ -21,7 +21,10 @@ MIN_WORDS, GOOD_MIN, GOOD_MAX, MAX_WORDS = 40, 120, 350, 600
 # sounds taken out, numbers said as words count as numbers, filler sounds aren't counted as words,
 # and an action is any first-person past-tense verb that isn't thinking, feeling or trying. Quotes
 # are exact spans of the answer (docs/AI_EVALUATION.md, "Rubric v3").
-RUBRIC_VERSION = "v3"
+# v4 (2026-11-04): a point is shown only by statements: a list of terms, a fragment, or the
+# question's own guidance repeated back names a point without showing it (docs/AI_EVALUATION.md,
+# "Rubric v4").
+RUBRIC_VERSION = "v4"
 
 
 @dataclass(frozen=True)
@@ -150,15 +153,125 @@ class _Sentence:
     start: int  # span in the answer, surrounding whitespace excluded
     end: int
     norm: _Text
+    shows: bool = True  # a statement in the learner's own words, not a list, fragment or copied guidance
 
 
-def _split(answer: str) -> tuple[str, list[_Sentence], list[str]]:
-    """(the text the rubric reads, its sentences, the sentences addressed to the grader). Only those
-    are cut out of the answer; the rest is read whole, so sentence boundaries never matter."""
+# --- statements, lists and copied guidance (rubric v4) -------------------------------------------
+# A point is shown by something the answer says, not by naming it. Two kinds of text name without
+# saying: a list of terms or a fragment ("Strengths: communication, teamwork, empathy." "Patient
+# care."), and the question's own guidance repeated back (its prompt, rubric points, advice, outline
+# or tips). Both still count as words; neither earns a point or is quoted as evidence.
+_WORD = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*", re.IGNORECASE)
+_BULLET = re.compile(r"^\s*(?:[-*•–]|\d+[.)])\s+")
+_SUBJECT = re.compile(r"\b(?:i|we|he|she|they|you)\b\s+[a-z]", re.IGNORECASE)
+_AUXILIARY = re.compile(
+    r"\b(?:am|is|are|was|were|be|been|being|have|has|had|do|does|did|will|would|can|could|should|shall|may|"
+    r"might|must|im|ive|id|youre|theyre|isnt|wasnt|dont|didnt|doesnt|cant|wont|couldnt|wouldnt|shouldnt|"
+    r"hadnt|havent|hasnt|arent|werent)\b",
+    re.IGNORECASE,
+)
+_PAST = re.compile(rf"\b(?:[a-z]{{3,}}ed|{irregular_actions()})\b", re.IGNORECASE)
+
+
+def _is_list(text: str) -> bool:
+    """Three or more comma-separated items averaging three words or fewer: terms, not a sentence.
+    A list in brackets inside a sentence ("Find quick wins (training, tips, cheat sheets).") doesn't
+    make the sentence a list."""
+    text = re.sub(r"\([^)]*\)", " ", text)
+    items = [i for i in text.split(",") if i.strip()]
+    if len(items) < 3 or _SUBJECT.match(text.strip()):
+        return False
+    return sum(len(_WORD.findall(i)) for i in items) / len(items) <= 3
+
+
+def _is_statement(text: str) -> bool:
+    words = _WORD.findall(text)
+    if not words or _is_list(text):
+        return False
+    if len(words) <= 3:  # a fragment, unless it says who did what ("I escalated." "Pressure improved.")
+        return bool(_SUBJECT.search(text) or _AUXILIARY.search(text) or _PAST.search(text))
+    return True
+
+
+_CONTRACTIONS = {
+    "doesnt": "does not",
+    "dont": "do not",
+    "didnt": "did not",
+    "isnt": "is not",
+    "wasnt": "was not",
+    "arent": "are not",
+    "werent": "were not",
+    "cant": "can not",
+    "cannot": "can not",
+    "wont": "will not",
+    "wouldnt": "would not",
+    "couldnt": "could not",
+    "shouldnt": "should not",
+    "havent": "have not",
+    "hasnt": "has not",
+    "youd": "you would",
+    "youll": "you will",
+    "youre": "you are",
+    "theyre": "they are",
+}
+_GLUE = frozenset({"and", "the", "a", "an"})
+
+
+def _tokens(text: str) -> list[str]:
+    """Words for comparing with the question's guidance: contractions spelled out and the little
+    words a copy most often changes ("and", "the") left out."""
+    out: list[str] = []
+    for w in _WORD.findall(_APOSTROPHE.sub("", text).lower()):
+        out += [x for x in _CONTRACTIONS.get(w, w).split() if x not in _GLUE]
+    return out
+
+
+def _reference(question: Question) -> set[tuple[str, ...]]:
+    """The word triples of the question's own guidance."""
+    text = " ".join(
+        [
+            question.prompt,
+            *(r.label for r in question.rubric),
+            *(r.advice for r in question.rubric),
+            *question.outline,
+            *question.tips,
+        ]
+    )
+    words = _tokens(text)
+    return {tuple(words[i : i + 3]) for i in range(len(words) - 2)}
+
+
+def _is_copied(text: str, reference: set[tuple[str, ...]]) -> bool:
+    """Mostly the question's own guidance: most of its word triples come from the prompt, rubric,
+    advice, outline or tips. Shared single words don't count: a concise answer naturally uses the
+    rubric's everyday words ("let them try, then check their notes")."""
+    words = _tokens(text)
+    triples = [tuple(words[i : i + 3]) for i in range(len(words) - 2)]
+    return bool(triples) and sum(t in reference for t in triples) / len(triples) >= 0.6
+
+
+def _shows(text: str, reference: set[tuple[str, ...]] | None) -> bool:
+    """Does this sentence (or bullet) say something in the learner's own words? A heading and what
+    follows it are judged apart ("Steps: first, then, finally." "Uses the specifics of the job: care
+    planning."): the unit shows something if either part is a statement that isn't copied guidance."""
+    if reference is None:
+        return True
+    body = _BULLET.sub("", text)
+    parts = body.split(":", 1) if ":" in body else [body]
+    return any(_is_statement(part) and not _is_copied(part, reference) for part in parts)
+
+
+def _split(
+    answer: str, reference: set[tuple[str, ...]] | None = None
+) -> tuple[str, list[_Sentence], list[str], str]:
+    """(the text the rubric reads, its sentences, the sentences addressed to the grader, and the
+    text with lists, fragments and copied guidance blanked as well). Only those are cut out of the
+    answer; the rest is read whole, so sentence boundaries never matter."""
     kept: list[_Sentence] = []
     dropped: list[str] = []
     pieces: list[str] = []
-    last = 0
+    shown: list[str] = []
+    last = last_shown = 0
     for m in _SENTENCE.finditer(answer):
         norm = _normalize(m.group(0), m.start())
         if not norm.text:
@@ -167,13 +280,29 @@ def _split(answer: str) -> tuple[str, list[_Sentence], list[str]]:
             dropped.append(re.sub(r"\s+", " ", m.group(0)).strip())
             pieces += [answer[last : m.start()], " "]
             last = m.end()
+            shown += [answer[last_shown : m.start()], " "]
+            last_shown = m.end()
+            continue
+        raw = m.group(0)
+        start = m.start() + (len(raw) - len(raw.lstrip()))
+        end = m.end() - (len(raw) - len(raw.rstrip()))
+        first = next((ch for ch in norm.text if ch.isalpha()), "")
+        said = " ".join(_WORD.findall(norm.text.lower()))
+        if said and any(" ".join(_WORD.findall(k.norm.text.lower())) == said for k in kept):
+            shows = False  # the same sentence again ("I checked. I checked.") shows nothing new
+        elif kept and first.islower() and len(_WORD.findall(norm.text)) <= 3:
+            # "my 2 a.m. assessment" is split after "a.m.": a short piece that carries on in lower
+            # case belongs to the sentence before it, and is judged with it.
+            shows = kept[-1].shows
         else:
-            raw = m.group(0)
-            start = m.start() + (len(raw) - len(raw.lstrip()))
-            end = m.end() - (len(raw) - len(raw.rstrip()))
-            kept.append(_Sentence(start, end, norm))
+            shows = _shows(norm.text, reference)
+        kept.append(_Sentence(start, end, norm, shows))
+        if not shows:
+            shown += [answer[last_shown : m.start()], " "]
+            last_shown = m.end()
     pieces.append(answer[last:])
-    return _normalize("".join(pieces)).text, kept, dropped
+    shown.append(answer[last_shown:])
+    return _normalize("".join(pieces)).text, kept, dropped, _normalize("".join(shown)).text
 
 
 def _quote(answer: str, sentence: _Sentence, start: int, end: int) -> tuple[str, tuple[int, int]]:
@@ -202,8 +331,10 @@ def _quote(answer: str, sentence: _Sentence, start: int, end: int) -> tuple[str,
 def _excerpt(
     answer: str, sentences: list[_Sentence], patterns: tuple[str, ...]
 ) -> tuple[str, tuple[int, int]] | None:
-    """Where the point was found: the first sentence in which one of its patterns matches."""
+    """Where the point was found: the first statement in which one of its patterns matches."""
     for sentence in sentences:
+        if not sentence.shows:
+            continue
         padded = " " + sentence.norm.text + " "
         for p in patterns:
             m = re.search(p, padded, flags=re.IGNORECASE)
@@ -230,13 +361,16 @@ def _rating(score: int) -> str:
 
 
 def grade(question: Question, answer: str) -> Feedback:
-    graded, sentences, to_grader = _split(answer)
-    text = " " + graded + " "
+    graded, sentences, to_grader, shown = _split(answer, _reference(question))
+    text, shown_text = " " + graded + " ", " " + shown + " "
     words = len(graded.split())  # filler sounds aren't words of the answer
     fillers = len(_FILLER.findall(answer))
     found = []
+    named_only = []  # points the answer names (in a list, a fragment or copied guidance) but doesn't show
     for rp in question.rubric:
-        covered = _covered(text, rp.patterns, rp.min_hits)
+        covered = _covered(shown_text, rp.patterns, rp.min_hits)
+        if not covered and _covered(text, rp.patterns, rp.min_hits):
+            named_only.append(rp.label)
         quote = _excerpt(answer, sentences, rp.patterns) if covered else None
         found.append(
             PointResult(
@@ -247,6 +381,15 @@ def grade(question: Question, answer: str) -> Feedback:
     coverage = sum(p.covered for p in points) / len(points) if points else 0.0
 
     notes: list[str] = []
+    if named_only:
+        example = next((answer[x.start : x.end] for x in sentences if not x.shows), "")
+        example = example if len(example) <= 60 else example[:59].rstrip() + "…"
+        notes.append(
+            f"Some of your answer names {'a point' if len(named_only) == 1 else 'points'} without showing "
+            f"{'it' if len(named_only) == 1 else 'them'} (“{example}”). A list of terms, or the question's guidance "
+            "said back, doesn't show what you did: tell it as an example, with what happened, what you did and how "
+            "it turned out."
+        )
     if to_grader:
         first = to_grader[0] if len(to_grader[0]) <= 80 else to_grader[0][:79].rstrip() + "…"
         notes.append(

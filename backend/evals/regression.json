@@ -56,11 +56,32 @@
     {
       "id": "keyword-lists-rewarded",
       "found": "2026-11-03",
-      "summary": "Lists of rubric words with no account of anything done are rated Good or Strong.",
+      "summary": "Lists of terms, rubric headings and the question's own guidance copied back were rated Good or Strong. Under rubric v4 they earn no point: only statements in the learner's own words show a point. Short vague sentences are a separate, open defect (vague-claims-credited).",
+      "cases": [
+        "career-rn-holdout/rn-ho-12",
+        "career-rn-families-dev/fd-1-P-keyword_list",
+        "career-rn-families-dev/fd-2-P-keyword_list",
+        "career-rn-families-dev/fd-3-P-keyword_list",
+        "career-rn-families-dev/fd-4-P-keyword_list",
+        "career-rn-families-dev/fd-5-P-keyword_list",
+        "career-rn-families-dev/fd-6-P-keyword_list",
+        "career-rn-families-dev/fd-7-P-keyword_list",
+        "career-rn-families-dev/fd-8-P-keyword_list",
+        "career-rn-families-dev/fd-9-P-keyword_list"
+      ],
+      "status": "fixed",
+      "signal": {
+        "check": "rating"
+      },
+      "fixed_in": "rubric v4 (Volume 4 brief 03)"
+    },
+    {
+      "id": "vague-claims-credited",
+      "found": "2026-11-04, after rubric v4",
+      "summary": "Short, vague statements still earn points: 'Trade-off: I would prioritise and decide what matters.', 'I want to because I care.', 'Example: for example, an example from my experience.' They are sentences, and telling a vague claim from an explained one needs reading for meaning, which the pattern grader can't do reliably. Documented as a limitation rather than patched with exclusions.",
       "cases": [
         "career-rn-dev/rn-dev-06",
-        "career-rn-dev/rn-dev-21",
-        "career-rn-holdout/rn-ho-12"
+        "career-rn-dev/rn-dev-21"
       ],
       "status": "open",
       "signal": {

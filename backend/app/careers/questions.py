@@ -47,6 +47,13 @@ _IRREGULAR_ACTIONS = (
     "went|told|gave|took|made|brought|sent|wrote|spoke|met|ran|rang|sat|stood|put|set|led|kept|found|held|"
     r"drove|taught|began|paid|left|said|sought|caught|fed|built|spent|chose|broke|split|cut|shut|did(?!\s*(?:not|nt)\b)"
 )
+
+
+def irregular_actions() -> str:
+    """The irregular past-tense action verbs, as a regex alternation (the grader uses them too)."""
+    return _IRREGULAR_ACTIONS
+
+
 _NOT_ACTIONS = (
     "wanted|needed|hoped|worried|wondered|liked|loved|hated|seemed|appeared|realised|realized|learned|"
     "noticed|assumed|believed|expected|preferred|enjoyed|panicked|struggled|tried|considered|imagined|"

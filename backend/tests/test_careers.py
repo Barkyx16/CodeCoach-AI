@@ -411,3 +411,92 @@ def test_punctuation_numbers_and_fillers_never_change_a_decision_on_the_developm
     for name, transform in TRANSFORMS.items():
         changed = [uid for q, t, uid in answers if _covered(grade(q, t)) != _covered(grade(q, transform(t)))]
         assert changed == [], (name, changed)
+
+
+# --- rubric v4: a point is shown by what the answer says, not by naming it ----------------------
+
+
+def _q(qid):
+    q = get_question("registered-nurse", qid)
+    assert q is not None
+    return q
+
+
+KEYWORD_LISTS = {
+    "bare terms": "prioritise, triage, acuity, delegation, time management, checklist, handover, escalate, safety first, "
+    "medication round, patient assessment, care planning, electronic health records, IV pumps, documentation, "
+    "incident report, follow-up, teamwork, communication, empathy, situation, action, result, reflection, "
+    "patient safety, vital signs, early warning score, charge nurse, double check, second set, read back, "
+    "shift handover, patient outcomes",
+    "headings": "Steps: first, then, finally. Specifics: patient assessment, electronic health records, IV pumps. "
+    "Why it matters: patient safety, outcomes, harm. Follow up: documentation, incident report, change, prevention. "
+    "Reflection: learning, growth, improvement, next time. Habits: routine, consistency, accuracy, attention to "
+    "detail, double checks.",
+    "rubric copied back": "Lays out clear steps or habits. Uses the specifics of the job. Explains why it matters. "
+    "Follows up, documents and prevents a repeat. Give an order: first, then, finally. Add a sentence on why this "
+    "matters: who is affected and what goes wrong without it.",
+}
+
+
+@pytest.mark.parametrize("kind", sorted(KEYWORD_LISTS))
+def test_a_list_of_terms_earns_no_point_and_says_why(kind):
+    fb = grade(_q("e-accuracy-0"), KEYWORD_LISTS[kind])
+    assert fb.evidence_level == "sufficient" and not any(p.covered for p in fb.points), kind
+    assert fb.rating == "Needs work"
+    note = next(n for n in fb.notes if n.startswith("Some of your answer names"))
+    assert "tell it as an example" in note and "wrong" not in note.lower()  # missing substance, not a verdict
+
+
+PARAGRAPH = (
+    "I check my assessments in the same order every shift. First I compare my findings with the last set in the "
+    "electronic health record, then I recheck any abnormal vital sign myself before I act on it. This matters because "
+    "a missed change in breathing can become a deterioration nobody catches. Afterwards I document what I found and "
+    "tell the charge nurse if I missed something, so it doesn't happen again."
+)
+BULLETS = (
+    "- I check my assessments in the same order every shift.\n"
+    "- First I compare my findings with the last set in the electronic health record.\n"
+    "- Then I recheck any abnormal vital sign myself before I act on it.\n"
+    "- This matters because a missed change in breathing can become a deterioration nobody catches.\n"
+    "- Afterwards I document what I found and tell the charge nurse if I missed something, so it doesn't happen again."
+)
+
+
+def test_the_same_answer_as_a_paragraph_or_as_bullets_gets_the_same_credit():
+    q = _q("e-accuracy-0")
+    a, b = grade(q, PARAGRAPH), grade(q, BULLETS)
+    assert _covered(a) == _covered(b) and all(_covered(a).values())
+    assert not any(n.startswith("Some of your answer names") for n in b.notes)
+
+
+def test_real_content_keeps_its_points_when_a_list_is_added():
+    q = _q("e-accuracy-0")
+    mixed = grade(q, PARAGRAPH + " Keywords: patient safety, documentation, escalation, teamwork, empathy.")
+    assert _covered(mixed) == _covered(grade(q, PARAGRAPH))  # no penalty, only no extra credit
+
+
+def test_concise_answers_and_short_statements_keep_their_credit():
+    q = _q("m-train-0")
+    concise = grade(q, "Show them how I do it, let them try, then check their notes.")
+    assert _covered(concise)["Lays out clear steps or habits"]  # short and plain, but said, not listed
+    assert concise.evidence_level == "insufficient"  # still too short to score, as before
+    story = (
+        "On a night shift last winter a patient's oxygen dropped. I escalated. I called the outreach team, gave oxygen "
+        "per protocol and stayed with him. His saturation was back to normal within twenty minutes. I learned to trust "
+        "the early warning score."
+    )
+    assert _covered(grade(_q("e-general-3"), story))[ACTIONS]
+
+
+def test_saying_the_same_thing_again_shows_nothing_new():
+    q = _q("e-general-3")
+    pad = " On the ward last winter we were two nurses short and I was responsible for eight patients that night."
+    assert not _covered(grade(q, "I checked. I checked. I checked. I checked." + pad))[ACTIONS]
+    assert _covered(grade(q, "I checked the charts. I called the doctor." + pad))[ACTIONS]
+
+
+def test_an_abbreviation_does_not_cut_a_sentence_into_fragments_that_lose_their_point():
+    fb = grade(_q("m-walk-0"), STRONG)  # "during my 2 a.m. assessment" is split after "a.m."
+    assert sum(p.covered for p in fb.points) == sum(
+        p.covered for p in grade(_q("m-walk-0"), STRONG.replace("a.m.", "am")).points
+    )

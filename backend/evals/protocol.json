@@ -16,7 +16,13 @@
       "career-rn-holdout",
       "career-rn-sealed"
     ],
-    "why": "The per-case career gates (schema, evidence, insufficient, injection, stable, actionable, complete) apply to these. career-rn-families-dev is a development set written to expose weaknesses that the Volume 4 briefs then fix: its results are reported, and a brief that fixes a variant family moves it under a gate (evals/regression.json or a new gated family list)."
+    "why": "The per-case career gates (schema, evidence, insufficient, injection, stable, actionable, complete) apply to these. career-rn-families-dev is a development set written to expose weaknesses that the Volume 4 briefs then fix: its results are reported, and a brief that fixes a variant family moves it under a gate (evals/regression.json or a new gated family list).",
+    "families": {
+      "career-rn-families-dev": [
+        "keyword_list"
+      ]
+    },
+    "families_why": "A development family a brief has fixed is gated so it can't come back: keyword_list since rubric v4 (Volume 4 brief 03): no point may be awarded to a keyword-list answer."
   },
   "question_rule": {
     "career-rn-dev": "for each (difficulty, kind) cell of registered-nurse questions, the 1st by id",

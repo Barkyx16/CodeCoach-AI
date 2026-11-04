@@ -317,3 +317,30 @@ def test_reference_text_never_reaches_the_prompt_and_a_leak_is_caught():
     sample = json.loads((EVALS / "review_set.json").read_text())["samples"][0]
     leaky = {**sample, "code": f"// {sample['note']}\n{sample['code']}"}
     assert check_reference_leak(sample_sets={"planted": [leaky]})["reference_leak"]
+
+
+def test_a_keyword_list_awarded_a_point_fails_its_gate():
+    report = {
+        "career": {
+            "career-rn-families-dev": {
+                "cases": [
+                    {
+                        "id": "fd-1-P-keyword_list",
+                        "tags": ["keyword_list"],
+                        "observed": {"covered": ["Uses the specifics of the job"]},
+                    },
+                    {
+                        "id": "fd-1-A-typed",
+                        "tags": ["typed"],
+                        "observed": {"covered": ["Uses the specifics of the job"]},
+                    },
+                ]
+            }
+        }
+    }
+    gate = next(g for g in runner.evaluate_gates(report) if g["id"] == "career.keyword_lists")
+    assert (
+        gate["status"] == "failed"
+        and len(gate["failures"]) == 1
+        and "fd-1-P-keyword_list" in gate["failures"][0]
+    )

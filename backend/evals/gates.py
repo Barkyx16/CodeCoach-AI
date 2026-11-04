@@ -61,6 +61,31 @@ def _career_dimension(name: str) -> Callable[[dict], list[str] | None]:
     return check
 
 
+def _gated_families(report: dict) -> list[str] | None:
+    """Development families a brief has fixed (protocol.json gated_career_sets.families): for
+    keyword_list, no point may be awarded."""
+    from evals.meta import EVAL_DIR
+
+    families = json.loads((EVAL_DIR / "protocol.json").read_text(encoding="utf-8"))["gated_career_sets"].get(
+        "families", {}
+    )
+    sets = report.get("career") or {}
+    if not any(k in sets for k in families):
+        return None
+    out = []
+    for set_id, variants in families.items():
+        for case in sets.get(set_id, {}).get("cases", []):
+            if (
+                "keyword_list" in variants
+                and "keyword_list" in case.get("tags", [])
+                and case.get("observed", {}).get("covered")
+            ):
+                out.append(
+                    f"{set_id} / {case['id']}: a keyword list was awarded {', '.join(case['observed']['covered'])}"
+                )
+    return out
+
+
 def _career_complete(report: dict) -> list[str] | None:
     sets = _career_sets(report)
     if not sets:
@@ -264,6 +289,11 @@ GATES: list[Gate] = [
     ),
     Gate(
         "contract.bounded", "Every request asks for a known schema with a token limit.", _contract("bounded")
+    ),
+    Gate(
+        "career.keyword_lists",
+        "A list of terms, headings or the question's guidance said back names a point without showing it (rubric v4).",
+        _gated_families,
     ),
     Gate(
         "data.integrity",

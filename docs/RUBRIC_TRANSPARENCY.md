@@ -42,6 +42,9 @@ derived from it. A reflection edited after reading the feedback is marked as suc
   ellipsis where it was cut, so the quote always shows why the point counted. Missing points show
   advice instead. Answers from before this change have no quotes recorded, and nothing is
   invented for them.
+- **A point is shown, not named** (rubric v4). A list of terms, a fragment, or the question's own
+  guidance said back doesn't earn a point or get quoted; the feedback says when a point was named
+  without being shown and asks for an example. Listed words still count towards length.
 - **Delivery doesn't change the result** (rubric v3). Filler sounds (um, uh) and apostrophes are
   ignored when looking for each point, numbers said as words count as numbers, and filler sounds
   aren't counted as words. Quotes stay exactly as written, fillers included.
