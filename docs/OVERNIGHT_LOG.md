@@ -779,3 +779,26 @@ Raw scores, answer rows and "answered" counts are unchanged; nothing is regraded
   SQLite and PostgreSQL 16 (JSON operators differ); affected suites 267+ passed (two existing tests
   updated to the policy: progress counts, the baseline retry no longer quoting a capped score);
   frontend 642 passed (Up next too-short case, library/explore mocks, `scoreEligibility.test.tsx`).
+
+## Checkpoint: NX11 + NX12 + NX13, rubric v9 (development data only)
+
+- NX11, denials: an I/we refusal or denial, or "instead of", blanks the rest of its own clause
+  (at most ten words) for cue matching; inability, a missing opportunity, "without", "not only",
+  "didn't just" and someone else's negation aren't denials; a new I/we statement ends the clause,
+  so dictated run-ons keep their second half. New register entry `denied-actions-credited`
+  (fixed). A first, broader draft lost 11 valid points and was narrowed before commit.
+- NX12, contradictions: explicit contradictions are already reported in every written form
+  probed (full stop, comma splice, dictated run-on, never/did) and the controls (self-correction,
+  later action, quoted speech, unrelated negation) are clean: no bounded defect shown, so no rule
+  changed; the probe is now a test. Meaning-based contradictions stay open.
+- NX13, reported advice: "Advice I was given: …" and "I was told to …" are read as someone else's
+  advice, not the learner's account (fixes `paraphrased-guidance-credited`); the CSR
+  `keyword_list` family is now gated (protocol v7).
+- Measured (v8 from `59f267f` via `--career-grader git:HEAD` → v9 `27bdc8f`, comparison
+  `evals/results/rubric-v8-vs-v9.md`): 0 regressions, 7 fixed, recall unchanged on every set;
+  meaning-changed false awards 10/18 → 8/18 (nursing) and 8/11 → 6/11 (customer service);
+  unsupported credit 23 → 21 and 26 → 21; CSR keyword false awards 1/9 → 0/9. Exposed
+  development data, not an independent measurement; the sealed sets weren't graded.
+  `support.py` still records v8 as the measured rubric.
+- Checks: `tests/test_rubric_v9.py` (29), eval, careers, scope, harness (incl. loading v8 from
+  git) and eligibility suites passed; lint, format, types clean.

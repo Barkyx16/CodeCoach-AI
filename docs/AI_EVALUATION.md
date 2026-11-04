@@ -14,11 +14,13 @@ python -m evals.run --check-report evals/results/offline.json
 
 ## Status (2026-11-04, end of the Volume 4 / overnight queue)
 
-- **Versions:** rubric `v8`, coach prompt `coach-2026-11-04c` (request settings and reply handling
-  only; prompt text unchanged since `coach-2026-11-03`), evaluation protocol v6 (frozen
-  2026-11-04; v2 added the contradiction pairs and metrics, v3 the injection challenge set and the
-  by-kind injection metrics, v4 the action criterion and its set, v5 the evidence contract check,
-  v6 a second career; see [EVAL_PROTOCOL.md](EVAL_PROTOCOL.md)).
+- **Versions:** rubric `v9` (development-measured only: the sealed sets were graded with v8, and
+  `app/careers/support.py` still names v8 as the rubric each career was measured with), coach
+  prompt `coach-2026-11-04c` (request settings and reply handling only; prompt text unchanged
+  since `coach-2026-11-03`), evaluation protocol v7 (v2 added the contradiction pairs and metrics,
+  v3 the injection challenge set and the by-kind injection metrics, v4 the action criterion and
+  its set, v5 the evidence contract check, v6 a second career, v7 gates one more development
+  family; see [EVAL_PROTOCOL.md](EVAL_PROTOCOL.md)).
 - **Career sets** (`backend/evals/datasets.json`, sha256 prefix): `career-rn-dev` v2, 23 cases,
   `c1619da3a4ac` (development); `career-rn-holdout` v2, 17, `d43b284d6a71` (**exposed historical
   benchmark**, not an untouched test); `career-rn-families-dev` v1, 108, `6bef6d4fce71`
@@ -49,9 +51,10 @@ python -m evals.run --check-report evals/results/offline.json
 - **Open defects** (`evals/regression.json`): vague claims credited, contradictions that need word
   meaning, contradicted points credited by other words, generic answers credited, scene and
   preparation cues missed, result credited by any number, a story told in the present not read
-  as done, irrelevant actions credited, "felt" as an examination missed, the question's advice said back in other words credited. (An unpunctuated attack
+  as done, irrelevant actions credited, "felt" as an examination missed. (An unpunctuated attack
   dropping the answer and rephrased or disguised attacks are fixed in rubric v6; reworded actions
-  missed and an experience or lesson read as an action in v7.)
+  missed and an experience or lesson read as an action in v7; denied actions credited and the
+  question's advice, reported as someone else's, credited in v9.)
 
 ## What's measured
 
@@ -666,6 +669,70 @@ they can't be quoted. Recorded as coach prompt `coach-2026-11-04b` (reply handli
 request fingerprint covers the method that builds the request). Since `coach-2026-11-04c` (brief
 06) such an explanation isn't shown at all: the built-in explainer answers from the real results.
 Line references outside the learner's code were already dropped.
+
+## Results: rubric v9, denials and reported advice (Durable Saves briefs 11–13)
+
+Measured 2026-11-04 on development data and the exposed historical set only, against the same
+provisional, model-written labels. Baseline: rubric v8 graded from `59f267f` with
+`--career-grader git:HEAD` (`evals/results/rubric-v8-dev-durable.*`); candidate: `27bdc8f`
+(`evals/results/rubric-v9-dev.*`); comparison `evals/results/rubric-v8-vs-v9.md`. **The sealed
+sets were not graded** (they are used; see EVAL_PROTOCOL.md), so nothing here is an independent
+measurement: the tuning session read these sets' case-level results while building v9.
+
+**What was wrong.** Cue words were matched without reading a refusal in front of them: "I would
+not ring any customers or ask any agents anything" earned "Gathers information before acting"
+from "ask" (`denied-actions-credited`, new in the register, found on `cd-6-B-meaning_changed`).
+And advice the learner reported from someone else ("Advice I was given: 1) Specific beats generic
+… 2) Show the interviewer the real parts of the work …") was read as the learner's own account
+(`paraphrased-guidance-credited`, open since protocol v6's customer-service set).
+
+**The rule** (`_denied_spans` in `app/careers/grading.py`):
+- *A denial:* "I" or "we", optionally would/will/did/do/does/should, then "not"/"n't" (not
+  followed by only/just/simply/merely); "I/we never"; or "instead of". It blanks the rest of its
+  own clause for cue matching, never more than ten words.
+- *Not a denial:* inability ("I couldn't reach the doctor"), a missing opportunity ("I have not yet
+  had the chance"), "without" (it often describes good practice: "I listened without
+  interrupting"), "not only", "didn't just", and someone else's negation ("the doctor didn't
+  answer").
+- *The clause ends* at punctuation, a spaced dash, but/so/then/until/after, or a new I/we
+  statement (so a dictated run-on, "i would not lecture and i would explain …", keeps its second
+  half). Fillers are blanked before the scan, so "um" can't hide a clause end.
+- *Reported advice:* "advice/tips/guidance/pointers I was given / I got / from my …" with a colon
+  covers what follows up to the next sentence in the learner's own voice; without a colon, and for
+  "I was told / advised / taught to …", the frame covers its clause only ("I was told to escalate
+  early, so I called the doctor" keeps "I called the doctor").
+
+The rule reads the frame, not the vocabulary: no word list grew case by case, and the overlap
+threshold for the question's own guidance was not lowered.
+
+| Development measure (v8 → v9) | Nursing families | Customer-service families |
+|---|---|---|
+| meaning-changed false awards | 10/18 → **8/18** | 8/11 → **6/11** |
+| unsupported credit | 23/104 → 21/104 | 26/106 → 21/106 |
+| keyword false awards | 0/9 → 0/9 | 1/9 → **0/9** |
+| item recall | 308/399 → 308/399 | 313/382 → 313/382 |
+| dictated parity | 83/84 → 83/84 | 84/84 → 84/84 |
+| rating within bounds | 24/36 → 25/36 | 30/36 → 32/36 |
+
+No point the labels say is covered was lost on any set (recall unchanged everywhere); the other
+sets (`career-rn-dev`, the contradiction pairs, the injection challenges, the action wording) are
+unchanged on every metric. The comparison lists 0 regressions and 7 case checks fixed. While
+building the rule, a first draft that blanked every negated clause lost 11 valid points (dictated
+run-ons, "without", "couldn't"); it was narrowed to refusals before anything was committed, and
+the controls in `tests/test_rubric_v9.py` keep those cases.
+
+**Contradictions (brief 12).** A probe of explicit contradictions in every written form (full
+stop, comma splice, dictated run-on, "never" against "did") and their controls (self-correction,
+a later action, quoted speech, an unrelated negation) showed each form already reported and each
+control clean (`test_explicit_contradictions_in_every_written_form_and_their_controls`), so no
+contradiction rule changed. Contradictions that need the meaning of words remain open
+(`contradictions-unnoticed`; 0/9 on the sealed sets, a historical figure).
+
+**What remains open.** Imagined or unperformed accounts ("I thought about ringing", "I meant
+to"), a refusal told with different words ("I held off on any calls"), results credited by any
+number, and everything else listed under "Open defects" above. Of the meaning-changed false awards
+left (8/18 and 6/11), two are already in the register as results credited by any number
+(`fd-1-B`, `fd-4-B`); the rest weren't classified one by one.
 
 ## Results: rubric v7, the action criterion (Volume 4 prompt 05)
 

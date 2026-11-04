@@ -212,6 +212,15 @@ Labels judge structure only, never whether the customer-service practice describ
 point worded "Explains <metric> correctly" is labelled by whether the answer addresses it.
 Nothing about the nursing sets changes.
 
+## Protocol v7 (2026-11-04, Durable Saves brief 13)
+
+`career-csr-families-dev`'s `keyword_list` family is gated (`gated_families`), like the nursing
+set's: its one failing case, the question's advice reported as someone else's
+(`cd-3-P-keyword_list`, `paraphrased-guidance-credited`), is fixed by rubric v9, and no other case in the
+family fails under v9. No set, label, selection rule, release rule item or margin changes, and
+nothing about the sealed sets changes: they stay used, and rubric v9 has no independent
+measurement (docs/AI_EVALUATION.md, "Results: rubric v9").
+
 ## The sealed sets have been graded (2026-11-04)
 
 `career-rn-sealed` and `career-csr-sealed` were graded once each for the frozen candidate

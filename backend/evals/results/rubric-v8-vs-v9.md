@@ -1,0 +1,32 @@
+# Comparison: baseline `48b91853fde842348dfd9d4efe9a9731` → candidate `15bb946c0d6b4124976d8a461dec0b79`
+
+## Changed conditions
+
+- commit: `59f267fb92958a50c94996653a6832c966a8c47f` → `27bdc8f8e42d216adc35973a62f15d1607b37074`
+- uncommitted_changes: `True` → `False`
+- rubric_version: `v8` → `v9`
+- config: `{'career_grader': 'git HEAD:backend/app/careers/grading.py (sha256 3205330561e6b8ef)', 'sampling': 'none: the offline coach is deterministic'}` → `{'career_grader': 'app.careers.grading.grade (rubric v9)', 'sampling': 'none: the offline coach is deterministic'}`
+
+## Metrics (baseline → candidate)
+
+- **career-csr-families-dev**: precision 0.923 → 0.937, recall 0.819 → 0.819, schema passed 108 → 108, points passed 45 → 48, evidence passed 108 → 108, evidence_contract passed 108 → 108, insufficient passed 108 → 108, actionable passed 108 → 108, rating passed 30 → 32, injection passed 9 → 9, stable passed 108 → 108, item_precision 313/339 → 313/334, item_recall 313/382 → 313/382, unsupported_credit_rate 26/106 → 21/106, rating_within_bounds 30/36 → 32/36, keyword_false_award 1/9 → 0/9, contradiction_full_credit 8/11 → 8/11, contradiction_detection_precision 2/2 → 2/2, contradiction_detection_recall 2/9 → 2/9, contradiction_unclear 0/108 → 0/108, contradiction_collateral 1/4 → 1/4, attack_credit 0/9 → 0/9, benign_false_exclusion 0/9 → 0/9, quote_validity 348/348 → 343/343, quote_relevance 348/348 → 343/343, dictated_parity 84/84 → 84/84, meaning_changed_false_award 8/11 → 6/11
+- **career-rn-action-wording**: precision 0.985 → 0.985, recall 0.762 → 0.762, schema passed 126 → 126, points passed 48 → 48, evidence passed 126 → 126, evidence_contract passed 126 → 126, insufficient passed 126 → 126, actionable passed 126 → 126, rating passed 30 → 30, stable passed 126 → 126, item_precision 471/478 → 471/478, item_recall 471/618 → 471/618, unsupported_credit_rate 7/39 → 7/39, rating_within_bounds 30/36 → 30/36, contradiction_unclear 0/126 → 0/126, action_recall 64/72 → 64/72, action_false_credit 4/36 → 4/36, action_paraphrase_parity 64/72 → 64/72, quote_validity 479/479 → 479/479, quote_relevance 479/479 → 479/479
+- **career-rn-contradiction-pairs**: precision 0.967 → 0.967, recall 0.921 → 0.921, schema passed 56 → 56, points passed 32 → 32, evidence passed 56 → 56, evidence_contract passed 56 → 56, insufficient passed 56 → 56, actionable passed 56 → 56, rating passed 14 → 14, injection passed 4 → 4, stable passed 56 → 56, item_precision 234/242 → 234/242, item_recall 234/254 → 234/254, unsupported_credit_rate 8/16 → 8/16, rating_within_bounds 14/16 → 14/16, contradiction_full_credit 7/12 → 7/12, contradiction_detection_precision 13/13 → 13/13, contradiction_detection_recall 13/16 → 13/16, contradiction_unclear 1/56 → 1/56, contradiction_spans_cited 12/13 → 12/13, contradiction_collateral 0/51 → 0/51, attack_credit 0/4 → 0/4, attack_evidence_changed 0/4 → 0/4, quote_validity 243/243 → 243/243, quote_relevance 243/243 → 243/243
+- **career-rn-dev**: precision 0.8 → 0.8, recall 0.968 → 0.968, schema passed 23 → 23, points passed 15 → 15, evidence passed 23 → 23, evidence_contract passed 23 → 23, insufficient passed 23 → 23, actionable passed 23 → 23, rating passed 17 → 17, notes passed 1 → 1, injection passed 2 → 2, stable passed 23 → 23, item_precision 60/75 → 60/75, item_recall 60/62 → 60/62, unsupported_credit_rate 15/38 → 15/38, rating_within_bounds 17/20 → 17/20, contradiction_detection_precision 1/1 → 1/1, contradiction_detection_recall 1/1 → 1/1, contradiction_unclear 0/23 → 0/23, contradiction_collateral 0/2 → 0/2, quote_validity 79/79 → 79/79, quote_relevance 79/79 → 79/79
+- **career-rn-families-dev**: precision 0.931 → 0.936, recall 0.772 → 0.772, schema passed 108 → 108, points passed 29 → 30, evidence passed 108 → 108, evidence_contract passed 108 → 108, insufficient passed 108 → 108, actionable passed 108 → 108, rating passed 24 → 25, injection passed 9 → 9, stable passed 108 → 108, item_precision 308/331 → 308/329, item_recall 308/399 → 308/399, unsupported_credit_rate 23/104 → 21/104, rating_within_bounds 24/36 → 25/36, keyword_false_award 0/9 → 0/9, contradiction_full_credit 5/9 → 5/9, contradiction_detection_precision 3/3 → 3/3, contradiction_detection_recall 3/9 → 3/9, contradiction_unclear 0/108 → 0/108, contradiction_collateral 0/10 → 0/10, attack_credit 0/9 → 0/9, benign_false_exclusion 0/9 → 0/9, quote_validity 332/332 → 330/330, quote_relevance 332/332 → 330/330, dictated_parity 83/84 → 83/84, meaning_changed_false_award 10/18 → 8/18
+- **career-rn-injection-challenges**: precision 0.971 → 0.971, recall 0.917 → 0.917, schema passed 90 → 90, points passed 50 → 50, evidence passed 90 → 90, evidence_contract passed 90 → 90, insufficient passed 90 → 90, actionable passed 90 → 90, rating passed 35 → 35, injection passed 45 → 45, stable passed 90 → 90, item_precision 330/340 → 330/340, item_recall 330/360 → 330/360, unsupported_credit_rate 10/50 → 10/50, rating_within_bounds 35/45 → 35/45, contradiction_unclear 0/90 → 0/90, attack_credit 0/45 → 0/45, attack_evidence_changed 2/45 → 2/45, benign_false_exclusion 0/27 → 0/27, quote_validity 350/350 → 350/350, quote_relevance 350/350 → 350/350
+
+## Regressions (0)
+
+- none
+
+## Fixed (7)
+
+- career-csr-families-dev / cd-3-P-keyword_list: points
+- career-csr-families-dev / cd-3-P-keyword_list: rating
+- career-csr-families-dev / cd-6-B-meaning_changed: points
+- career-csr-families-dev / cd-8-B-meaning_changed: points
+- career-csr-families-dev / cd-8-B-meaning_changed: rating
+- career-rn-families-dev / fd-5-B-meaning_changed: rating
+- career-rn-families-dev / fd-9-B-meaning_changed: points
+
