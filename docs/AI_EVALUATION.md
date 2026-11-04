@@ -12,6 +12,32 @@ python -m evals.run --compare BASELINE.json CANDIDATE.json
 python -m evals.run --check-report evals/results/offline.json
 ```
 
+## Status (2026-11-04, end of the Volume 4 / overnight queue)
+
+- **Versions:** rubric `v5`, coach prompt `coach-2026-11-04` (request settings only; prompt text
+  unchanged since `coach-2026-11-03`), evaluation protocol v2 (frozen 2026-11-04; v2 adds the
+  contradiction pairs and metrics only, see [EVAL_PROTOCOL.md](EVAL_PROTOCOL.md)).
+- **Career sets** (`backend/evals/datasets.json`, sha256 prefix): `career-rn-dev` v2, 23 cases,
+  `c1619da3a4ac` (development); `career-rn-holdout` v2, 17, `d43b284d6a71` (**exposed historical
+  benchmark**, not an untouched test); `career-rn-families-dev` v1, 108, `6bef6d4fce71`
+  (development, written by a separate session); `career-rn-contradiction-pairs` v1, 56,
+  `7dc0ed19898e` (development, written by the tuning session with the rule it tests);
+  `career-rn-sealed` v1, 108, `afedc25a6247` (sealed final evaluation).
+- **Labels:** all model-written; **no human has reviewed any of them** (each file's
+  `review_status`). Nothing here is expert- or clinician-validated, and the coach judges answer
+  structure only, never clinical correctness.
+- **Independent evaluation: pending.** The sealed set was written by a separate agent session and
+  has not been opened or graded by the tuning session (`evals/sealed/ACCESS.md`); it is graded
+  once, for a frozen candidate. Every number in this document is development data or the exposed
+  historical set. The rubric changes since v2 (v3 dictation, v4 keyword lists, v5
+  contradictions) have **no independent measurement yet**.
+- **Live Claude evaluation: not run** (no paid calls authorized). The provider tests use a fake
+  client; they show how failures are handled, not how well Claude coaches.
+- **Open defects** (`evals/regression.json`): vague claims credited, contradictions that need word
+  meaning, contradicted points credited by other words, generic answers credited, scene and
+  preparation cues missed, an unpunctuated attack dropping the answer, result credited by any
+  number.
+
 ## What's measured
 
 `backend/evals/run.py` runs four sections. Each produces named checks, so a failure says which
