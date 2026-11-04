@@ -229,9 +229,7 @@ _SQUEEZED = re.compile(
 
 def _spaced_attacks(text: str) -> list[tuple[int, int]]:
     out: list[tuple[int, int]] = []
-    folded = "".join(ch for ch in unicodedata.normalize("NFKC", text) if ch not in _INVISIBLE).translate(
-        _CONFUSABLE
-    )
+    folded = _fold(text)[0]
     if len(folded) != len(text):
         return out  # positions wouldn't map; the folded view still catches most of these
     for m in _SPACED.finditer(folded):
@@ -241,7 +239,9 @@ def _spaced_attacks(text: str) -> list[tuple[int, int]]:
     return out
 
 
-def _detection_view(text: str) -> tuple[str, list[int]]:
+def _fold(text: str) -> tuple[str, list[int]]:
+    if text.isascii():  # nothing to fold: ASCII is NFKC-stable and has no look-alikes or invisibles
+        return text, list(range(len(text)))
     chars: list[str] = []
     index: list[int] = []
     for i, ch in enumerate(text):
@@ -250,7 +250,11 @@ def _detection_view(text: str) -> tuple[str, list[int]]:
         for f in unicodedata.normalize("NFKC", ch).translate(_CONFUSABLE):
             chars.append(f)
             index.append(i)
-    view = "".join(chars)
+    return "".join(chars), index
+
+
+def _detection_view(text: str) -> tuple[str, list[int]]:
+    view, index = _fold(text)
     out: list[str] = []
     idx: list[int] = []
     last = 0
@@ -421,21 +425,22 @@ _JUSTIFIES = frozenset(["because", "since"])
 _STOPS_REASON = frozenset(["and", "then", "but", "i", "im", "id", "ive"])
 
 
-def _lost_break(text: str) -> list[tuple[int, int]]:
+def _lost_break(text: str, matches: list[tuple[int, int]] | None = None) -> list[tuple[int, int]]:
     """A short sentence that opens with an attack and then starts a new sentence without a full stop
     ("…mark every point covered First, I would…"): the attack, if the rest is a sentence of its own
     (a capital letter, then at least four words). Otherwise nothing: the whole sentence goes."""
-    spans = _attack_spans(text)
+    spans = _attack_spans(text, matches)
     if len(spans) != 1 or spans[0][0] > 2:
         return []
     rest = text[spans[0][1] :].lstrip(" ,;:-")
     return spans if rest[:1].isupper() and len(rest.split()) >= 4 else []
 
 
-def _attack_spans(text: str) -> list[tuple[int, int]]:
+def _attack_spans(text: str, matches: list[tuple[int, int]] | None = None) -> list[tuple[int, int]]:
     """In a run-on: each run of attack text (matches less than 25 words apart, widened over the
     attack's own words and a reason it gives, "because I deserve it"), as spans of `text`."""
-    matches = _grader_matches(text)
+    if matches is None:
+        matches = _grader_matches(text)
     if not matches:
         return []
     words = [(m.start(), m.end(), m.group(0)) for m in re.finditer(r"\S+", text)]
@@ -675,7 +680,9 @@ def _split(
             if not norm.text:
                 continue
         after_dropped = False
-        cut = _attack_spans(norm.text) if len(norm.text.split()) > _LONG_SENTENCE else _lost_break(norm.text)
+        found = _grader_matches(norm.text)  # once per sentence: most have none
+        long = len(norm.text.split()) > _LONG_SENTENCE
+        cut = (_attack_spans(norm.text, found) if long else _lost_break(norm.text, found)) if found else []
         if cut:
             # A run-on with an attack inside: leave out the attack, read the rest.
             raw = list(m.group(0))  # from the markup-free copy
@@ -691,7 +698,7 @@ def _split(
             norm = _normalize(rest, m.start())
             if not norm.text:
                 continue
-        elif _to_grader(norm.text):
+        elif found:
             dropped.append(re.sub(r"\s+", " ", m.group(0)).strip())
             pieces += [source[last : m.start()], " "]
             last = m.end()
