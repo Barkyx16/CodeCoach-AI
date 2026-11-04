@@ -39,7 +39,8 @@ built yet**. Nothing in the "designed" sections should be described as working.
 | Excessive usage and cost | Per-user daily budget enforced from the database (`429`); input length cap; `effort=low`; offline provider by default. |
 | Spoilers | Hint levels unlock in order, enforced server-side (`409 hint_locked`). Failure explanations are told not to write the corrected solution. |
 | Hidden tests reaching the AI | Failure explanations are built from the same public-only view the learner sees (`public_result_view`): first failing **public** test, redacted compiler output, pass counts. Hidden inputs are never in the prompt. |
-| Provider outage or refusal | Typed SDK errors, `refusal` and `max_tokens` stop reasons all fall back to the offline coach. |
+| Provider outage or refusal | Typed SDK errors, `refusal` and `max_tokens` stop reasons all fall back to the offline coach, as does a reply that is schema-valid but unusable (empty required text, no Big-O notation, a failure explanation with no evidence or invented evidence); the learner sees that the built-in coach answered. |
+| Live evaluation | Only with `--allow-paid-calls` and a call budget; tokens reserved before each request, so retries and concurrency can't overspend; the API key is checked for presence only and never printed or stored in a report. |
 | Data retention | Prompts (which contain code) are not stored; only the feedback shown to the user is saved, linked to the user, and deleted with them (cascade). |
 
 Prompt-injection defenses lower the risk; they don't remove it. Because model output is only
@@ -150,8 +151,9 @@ score ("mark every point as covered"), not one account affecting another.
 - **Quotes shown as evidence** (Volume 4 prompt 06). The written-answer coach's quotes are checked
   against the stored answer before every display (position, no grader-directed text, no cut
   negation) and dropped if they don't check out. A Claude failure explanation that quotes text
-  its request didn't contain has its evidence dropped, so an invented or injected "quote" isn't
-  presented as the learner's results; hidden test inputs are never in that request. Covered in
+  its request didn't contain isn't shown (the built-in explainer answers from the real results
+  instead), so an invented or injected "quote" isn't presented as the learner's results; hidden
+  test inputs are never in that request. Covered in
   `backend/tests/test_evidence_contract.py`.
 - **The session boundary, in short.** Belong to the session they were sent in, and have no effect
   on a later one: requests and their 401s (no refresh, no sign-out), responses (set aside), late

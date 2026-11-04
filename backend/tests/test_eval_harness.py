@@ -160,13 +160,19 @@ def test_invalid_feedback_fails_the_schema_check_and_a_crash_is_a_failed_case():
 
 def test_every_provider_failure_falls_back_to_the_offline_coach():
     result = run_faults()
-    assert result["failed"] == [] and result["checks"] == 33
+    assert result["failed"] == [] and result["checks"] == 38
     assert {r["scenario"] for r in result["rows"]} >= {
         "timeout",
         "cut_off_json",
         "invalid_response_body",
         "refusal",
+        "schema_valid_nonsense",
+        "missing_required_evidence",
+        "invented_evidence",
     }
+    # A reply that is valid but unusable is not sent again: the same request gives the same kind.
+    unusable = [r for r in result["rows"] if r["scenario"] in ("schema_valid_nonsense", "invented_evidence")]
+    assert unusable and all(r["calls_to_provider"] == 1 for r in unusable)
     # Bounded: the SDK doesn't retry on its own; the coach sends at most 3 requests within 45 s,
     # and only for failures a retry can fix.
     assert result["client_limits"] == {

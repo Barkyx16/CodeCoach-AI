@@ -1,7 +1,9 @@
 """How the coach behaves when Claude fails, checked with a client that fails on purpose.
 
 Each scenario makes the real `AnthropicCoach` meet one failure the SDK can produce (a timeout, a
-lost connection, a 429 or 5xx, a refusal, a cut-off or invalid structured reply) inside the real
+lost connection, a 429 or 5xx, a refusal, a cut-off or invalid structured reply) or a reply that
+is valid but unusable (nonsense, a failure explanation with no evidence or invented evidence)
+inside the real
 `CoachService.call_with_fallback`. The learner must get a schema-valid answer from the offline
 coach, labelled as a fallback, and nothing may escape as an error.
 """
@@ -18,7 +20,7 @@ import httpx
 from pydantic import TypeAdapter, ValidationError
 
 from app.config import Settings
-from app.schemas.ai import CodeReview, FailureExplanation, HintContent
+from app.schemas.ai import CodeReview, Complexity, FailureExplanation, HintContent
 from app.services.ai.anthropic_provider import AnthropicCoach
 from app.services.ai.base import FailureContext, HintContext, ReviewContext
 from app.services.ai.service import CoachService
@@ -60,6 +62,37 @@ def _reply(stop_reason: str, parsed: Any = None) -> Callable[[dict], SimpleNames
     )
 
 
+def _nonsense(schema: type) -> Callable[[dict], SimpleNamespace]:
+    """A reply that matches the schema and says nothing usable: required text empty, a complexity
+    that isn't Big-O notation."""
+    parsed = {
+        HintContent: lambda: HintContent(hint="   ", focus_area="", encouragement=""),
+        CodeReview: lambda: CodeReview(
+            summary="",
+            complexity=Complexity(time="banana", space="?"),
+            issues=[],
+            strengths=[],
+            next_step="",
+            confidence="high",
+        ),
+        FailureExplanation: lambda: FailureExplanation(
+            cause="other", headline="", explanation="", evidence="", next_steps=[], confidence="high"
+        ),
+    }[schema]()
+    return _reply("end_turn", parsed)
+
+
+def _explanation(evidence: str) -> FailureExplanation:
+    return FailureExplanation(
+        cause="wrong-answer",
+        headline="The loop stops one element early.",
+        explanation="The bound skips the last index.",
+        evidence=evidence,
+        next_steps=["Check the loop bound against the array length."],
+        confidence="medium",
+    )
+
+
 SCENARIOS: dict[str, Callable[[type], Any]] = {
     "timeout": lambda schema: anthropic.APITimeoutError(request=_REQ),
     "connection_lost": lambda schema: anthropic.APIConnectionError(request=_REQ),
@@ -73,6 +106,16 @@ SCENARIOS: dict[str, Callable[[type], Any]] = {
     "missing_fields_and_invalid_value": _schema_violation,
     "invalid_response_body": lambda schema: anthropic.APIResponseValidationError(
         response=httpx.Response(200, request=_REQ), body=None
+    ),
+    "schema_valid_nonsense": _nonsense,
+    # Only failure explanations cite evidence; for the other actions these don't apply (None).
+    "missing_required_evidence": lambda schema: (
+        _reply("end_turn", _explanation("")) if schema is FailureExplanation else None
+    ),
+    "invented_evidence": lambda schema: (
+        _reply("end_turn", _explanation('The hidden test "[9, 9, 9]" returned "[0, 0]".'))
+        if schema is FailureExplanation
+        else None
     ),
 }
 
@@ -131,7 +174,10 @@ def run_faults(make_coach: Callable[[Any], Any] | None = None) -> dict:
     rows = []
     for scenario, build in SCENARIOS.items():
         for action, (schema, call) in _contexts().items():
-            messages = FailingMessages(build(schema))
+            outcome = build(schema)
+            if outcome is None:
+                continue  # the scenario doesn't apply to this action
+            messages = FailingMessages(outcome)
             service = CoachService(
                 db=None, settings=Settings(), provider=make_coach(SimpleNamespace(messages=messages))
             )  # type: ignore[arg-type]

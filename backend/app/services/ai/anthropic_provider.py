@@ -49,7 +49,7 @@ MIN_ATTEMPT_S = 5.0  # no point starting a request with less time than this left
 _RETRY_STATUS = frozenset({408, 409})
 # Change with any prompt, prompt builder, token limit, effort or output schema; evaluation reports
 # record it, and evals/prompt_versions.json holds the fingerprint each version was recorded with.
-PROMPT_VERSION = "coach-2026-11-04b"
+PROMPT_VERSION = "coach-2026-11-04c"
 T = TypeVar("T", bound=BaseModel)
 Effort = Literal["low", "medium", "high"]
 
@@ -142,6 +142,38 @@ def _analysis_block(a: Analysis) -> str:
     )
 
 
+# Big-O notation somewhere in the text ("O(n)", "O(n log n) time"); "banana" or "" is no answer.
+_BIG_O = re.compile(r"\b[OΘΩ]\s*\(\s*[^()\s][^()]{0,40}(\([^()]{0,20}\))?[^()]{0,20}\)")
+
+
+def unusable(content: Any) -> str | None:
+    """Why a schema-valid reply is still no use to show, or None: required text left empty, a
+    complexity that isn't Big-O notation, a failure explanation with no evidence or next step."""
+
+    def blank(*texts: str | None) -> bool:
+        return any(not (t or "").strip() for t in texts)
+
+    if isinstance(content, HintContent):
+        return "empty_text" if blank(content.hint, content.focus_area) else None
+    if isinstance(content, CodeReview):
+        if blank(content.summary, content.next_step) or any(
+            blank(i.detail, i.suggestion) for i in content.issues
+        ):
+            return "empty_text"
+        c = content.complexity
+        return None if _BIG_O.search(c.time) and _BIG_O.search(c.space) else "not_big_o"
+    if isinstance(content, FailureExplanation):
+        if blank(content.evidence):
+            return "missing_evidence"
+        if (
+            blank(content.headline, content.explanation)
+            or not content.next_steps
+            or any(blank(x) for x in content.next_steps)
+        ):
+            return "empty_text"
+    return None
+
+
 # Double quotes and backticks: a single quote is too often an apostrophe ("the loop's bound").
 _QUOTED = re.compile(r"[\"“`]([^\"“”`]{3,300})[\"”`]")
 
@@ -193,8 +225,9 @@ class AnthropicCoach:
             max_attempts,
         )
         self._sleep, self._clock = sleep, clock
-        # Called before every request; may raise to stop (the evaluation's hard call limit uses it).
-        self.on_attempt: Callable[[], None] | None = None
+        # Called before every request with its max_tokens; may raise to stop (the evaluation's hard
+        # call and token limits use it, reserving before anything is sent).
+        self.on_attempt: Callable[[int], None] | None = None
 
     def hint(self, ctx: HintContext) -> ProviderResult[HintContent]:
         reference = ctx.problem.curated_hints[min(ctx.level, len(ctx.problem.curated_hints)) - 1]
@@ -281,10 +314,14 @@ class AnthropicCoach:
             logger.info("dropped line references outside the code", extra={"attrs": {"count": 1}})
             result = replace(result, content=result.content.model_copy(update={"line_hint": None}))
         if not _quotes_found(result.content.evidence, "\n".join(evidence) + "\n" + ctx.code):
-            # A quote of a test, message or line that isn't in what the model was given: invented.
-            # It isn't shown (the page says so) rather than replaced with something that looks right.
-            logger.info("dropped evidence quoting text it wasn't given", extra={"attrs": {"count": 1}})
-            result = replace(result, content=result.content.model_copy(update={"evidence": ""}))
+            # A quote of a test, message or line that isn't in what the model was given: invented, so
+            # the explanation built on it isn't used either; the built-in explainer answers from the
+            # real results instead.
+            raise ProviderError(
+                "AI explanation quotes text it wasn't given",
+                reason="ungrounded_evidence",
+                attempts=result.attempts,
+            )
         return result
 
     def interview_turn(self, ctx: InterviewContext) -> ProviderResult[InterviewerReply]:
@@ -328,7 +365,7 @@ class AnthropicCoach:
             attempt += 1
             remaining = self.deadline_s - (self._clock() - start)
             if self.on_attempt is not None:
-                self.on_attempt()
+                self.on_attempt(max_tokens)
             try:
                 response = self._send(
                     prompt, schema, max_tokens, system, min(self.attempt_timeout_s, remaining)
@@ -392,6 +429,11 @@ class AnthropicCoach:
             raise ProviderError(
                 "AI response did not match the expected schema", reason="invalid_output", attempts=attempts
             )
+        problem = unusable(parsed)
+        if problem:
+            # Valid against the schema but no use to the learner: not retried (the same request gives
+            # the same kind of reply); the built-in coach answers.
+            raise ProviderError("AI response can't be used", reason=problem, attempts=attempts)
         return ProviderResult(
             content=parsed,
             provider=self.name,

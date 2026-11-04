@@ -2,6 +2,7 @@ import { Fragment, type ReactNode } from "react";
 
 import type { ExplainFailureResponse } from "@/api/types";
 import { Badge } from "@/components/Badge";
+import { FallbackNotice } from "@/components/FallbackNotice";
 
 const CAUSE_LABEL: Record<ExplainFailureResponse["explanation"]["cause"], string> = {
   "compile-error": "Compile error",
@@ -56,10 +57,10 @@ export function FailureExplanationView({ data, onHighlightLine }: {
         </div>
       )}
       {e.concept && <p className="subtle">Concept to review: <strong>{e.concept}</strong></p>}
+      <FallbackNotice provider={data.provider} />
       <p className="subtle">
         {data.disclaimer}
         {data.cached ? " Saved explanation (didn't use your AI budget)." : ""}
-        {data.provider.includes("fallback") ? " (Answered by the offline coach.)" : ""}
       </p>
     </div>
   );

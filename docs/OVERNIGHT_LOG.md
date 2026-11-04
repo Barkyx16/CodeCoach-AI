@@ -161,7 +161,7 @@ The Long Overnight Upgrade Playbook (received truncated after its brief 05) maps
 | 1 | B05 + P07: grader instructions beyond exact phrases (rubric v6, protocol v3) | done, see checkpoint | `56039e0`, `63f8b6e`, this change |
 | 2 | P05: more ways to describe a real action (rubric v7, protocol v4) | done, see checkpoint | `8e492d3`, this change |
 | 3 | P06: every feedback quote earns its place (with playbook 04) | done, see checkpoint | this change |
-| 4 | B06 + P08: provider faults and a budgeted live evaluation, prepared, no calls | next | |
+| 4 | B06 + P08: provider faults and a budgeted live evaluation, prepared, no calls | done, see checkpoint (live run not done: not authorized) | this change |
 | 5 | B07: the remaining session-isolation cases (done before P05's measurement, while its set was being written) | done, see checkpoint | this change |
 | 6 | P10: one more career, with a sealed set written by a separate session | queued | |
 | 7 | B08 + P09: freeze, grade the sealed set once, final suites, CI on the exact commit | queued | |
@@ -246,4 +246,18 @@ The Long Overnight Upgrade Playbook (received truncated after its brief 05) maps
   evidence, OpenAPI snapshot and answer-review tests, 341 passed; full SQLite suite on
   `8e492d3` (before this change): 2079 passed, 386 skipped, exit 0; frontend lint, typecheck,
   `api:check`, `vitest run` (56 files, 587 tests), build and bundle budgets passed.
+
+## Checkpoint: B06 + P08, provider faults and a budgeted live evaluation (prepared, not run)
+
+- Provider boundary: a reply valid against its schema but unusable (empty required text, a
+  complexity with no Big-O notation, a failure explanation with no evidence or with evidence it
+  wasn't given) now falls back like other failures, without a retry. Fault scenarios 33 → 38, all
+  fall back. Coach prompt `coach-2026-11-04c` (reply handling only).
+- The learner sees a plain status line when the built-in coach answered instead of Claude
+  (hints, reviews, failure explanations).
+- Live evaluation, ready but **not run** (no authorization or key): `--check-provider` (presence
+  only), `--plan` (dry run with the worst case and where the budgets stop it), `--max-calls` and
+  `--max-output-tokens` reserved before each request, `--concurrency` 1–4, outcomes by reason,
+  retries, models seen, cost only from given prices with an upper bound, `live.status` in every
+  report. Tested with fake clients only (`tests/test_live_eval.py`, 16 tests); no live call made.
 

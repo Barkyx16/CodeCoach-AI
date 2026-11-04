@@ -147,14 +147,16 @@ def test_reading_older_feedback_labels_it_and_changes_nothing_else(client):
     assert "never wrote" not in str(got["points"])
 
 
-def test_a_provider_explanation_that_quotes_text_it_wasnt_given_shows_no_evidence():
+def test_a_provider_explanation_that_quotes_text_it_wasnt_given_is_replaced_by_the_built_in_one():
+    from app.config import Settings
     from app.schemas.ai import FailureExplanation
     from app.services.ai.base import FailureContext
+    from app.services.ai.service import CoachService
     from tests.test_ai_coach import Scripted, _coach, _ctx
 
     ctx = _ctx()
 
-    def explain(cited: str) -> str:
+    def explain(cited: str) -> tuple[str, str]:
         coach, _ = _coach(
             Scripted(
                 FailureExplanation(
@@ -179,8 +181,14 @@ def test_a_provider_explanation_that_quotes_text_it_wasnt_given_shows_no_evidenc
             hidden_passed=0,
             hidden_total=1,
         )
-        return coach.explain_failure(failure).content.evidence
+        service = CoachService(db=None, settings=Settings(), provider=coach)  # type: ignore[arg-type]
+        result = service.call_with_fallback(lambda p: p.explain_failure(failure))
+        return result.provider, result.content.evidence
 
-    assert explain('The compiler said "missing return statement" on line 2') != ""
-    assert explain("The hidden test `[5, 5, 5]` failed with `IndexOutOfBounds`") == ""
-    assert explain("A path through the method returns nothing") != ""  # own words: left as they are
+    assert explain('The compiler said "missing return statement" on line 2')[0] == "anthropic"
+    # An invented quote: the explanation built on it isn't shown; the built-in explainer answers
+    # from the real results, labelled as a fallback.
+    provider, cited = explain("The hidden test `[5, 5, 5]` failed with `IndexOutOfBounds`")
+    assert provider == "offline (fallback)" and "[5, 5, 5]" not in cited
+    assert explain("A path through the method returns nothing")[0] == "anthropic"  # own words: kept
+    assert explain("")[0] == "offline (fallback)"  # no evidence at all

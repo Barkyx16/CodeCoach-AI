@@ -36,9 +36,11 @@ import statistics
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from collections import Counter
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -96,40 +98,85 @@ class BudgetExhausted(Exception):
 
 
 class Metered:
-    """Wraps a provider to count calls, tokens, latency and failures, and to stop at a budget."""
+    """Wraps a provider to count calls, tokens, latency and outcomes, and to stop at a budget.
 
-    def __init__(self, inner: CoachProvider, max_calls: int | None = None) -> None:
-        self.inner, self.max_calls = inner, max_calls
+    Every request reserves its share of the budget before it is sent: one call, and its max_tokens
+    of output when an output-token budget is set. A retry is a request like any other, so neither
+    retries nor several requests running at once (--concurrency) can go past the limits. Output
+    tokens of a failed request aren't reported by the provider; they count at their reserved
+    maximum (an upper bound) against the budget and in the report."""
+
+    def __init__(
+        self, inner: CoachProvider, max_calls: int | None = None, max_output_tokens: int | None = None
+    ) -> None:
+        self.inner, self.max_calls, self.max_output_tokens = inner, max_calls, max_output_tokens
         self.name, self.model = inner.name, inner.model
         self.calls = self.failures = self.input_tokens = self.output_tokens = 0
+        self.answers = self.retries = 0
+        self.unreported_output = 0  # reserved output of requests whose usage wasn't reported
+        self.reserved_output = 0  # output reserved by requests on their way
+        self.failures_by_reason: Counter = Counter()
+        self.models: set[str] = set()
         self.latencies: list[float] = []
+        self._lock = threading.Lock()
+        self._mine = threading.local()  # the reservations of the answer this thread is getting
         # A provider that retries (AnthropicCoach) reports each request before sending it, so a
         # retry counts against the budget and the limit holds per request, not per answer.
         self.per_request = hasattr(inner, "on_attempt")
         if self.per_request:
             inner.on_attempt = self._request  # type: ignore[attr-defined]
 
-    def _request(self) -> None:
-        if self.max_calls is not None and self.calls >= self.max_calls:
-            raise BudgetExhausted(f"stopped at the budget of {self.max_calls} calls")
-        self.calls += 1
+    def _request(self, max_tokens: int | None = None) -> None:
+        with self._lock:
+            if self.max_calls is not None and self.calls >= self.max_calls:
+                raise BudgetExhausted(f"stopped at the budget of {self.max_calls} calls")
+            if self.max_output_tokens is not None and max_tokens is not None:
+                committed = self.output_tokens + self.unreported_output + self.reserved_output
+                if committed + max_tokens > self.max_output_tokens:
+                    raise BudgetExhausted(f"stopped at the budget of {self.max_output_tokens} output tokens")
+            self.calls += 1
+            self.reserved_output += max_tokens or 0
+        pending = getattr(self._mine, "pending", None)
+        if pending is not None:
+            pending.append(max_tokens or 0)
 
     def _call(self, fn: Callable[[], ProviderResult]) -> ProviderResult:
         if not self.per_request:
             self._request()
         elif self.max_calls is not None and self.calls >= self.max_calls:
             raise BudgetExhausted(f"stopped at the budget of {self.max_calls} calls")
+        pending: list[int] = []
+        self._mine.pending = pending
         start = time.perf_counter()
         try:
             result = fn()
-        except ProviderError:
-            self.failures += 1
+        except ProviderError as exc:
+            with self._lock:
+                self.failures += 1
+                self.failures_by_reason[exc.reason] += 1
+                self.retries += max(0, exc.attempts - 1)
+                self.unreported_output += sum(pending)
             raise
+        except Exception:
+            # stopped mid-answer (the budget ran out before a retry) or a crash: what was sent counts
+            with self._lock:
+                self.unreported_output += sum(pending)
+            raise
+        else:
+            with self._lock:
+                self.answers += 1
+                self.retries += max(0, result.attempts - 1)
+                self.unreported_output += sum(pending[:-1])  # the attempts before the one that answered
+                self.input_tokens += result.input_tokens
+                self.output_tokens += result.output_tokens
+                if result.model:
+                    self.models.add(result.model)
+            return result
         finally:
-            self.latencies.append((time.perf_counter() - start) * 1000)
-        self.input_tokens += result.input_tokens
-        self.output_tokens += result.output_tokens
-        return result
+            with self._lock:
+                self.reserved_output -= sum(pending)
+                self.latencies.append((time.perf_counter() - start) * 1000)
+            self._mine.pending = None
 
     def hint(self, ctx: HintContext) -> ProviderResult[HintContent]:
         return self._call(lambda: self.inner.hint(ctx))
@@ -139,18 +186,28 @@ class Metered:
 
     def usage(self, prices: dict | None) -> dict:
         lat = sorted(self.latencies)
-        cost = None
+        cost = cost_upper = None
         if prices:
             cost = round(
                 self.input_tokens / 1e6 * prices["input_per_mtok"]
                 + self.output_tokens / 1e6 * prices["output_per_mtok"],
                 4,
             )
+            cost_upper = round(cost + self.unreported_output / 1e6 * prices["output_per_mtok"], 4)
         return {
             "calls": self.calls,
+            "answers": self.answers,
             "failures": self.failures,
+            "failures_by_reason": dict(sorted(self.failures_by_reason.items())),
+            "retries": self.retries,
+            "models_seen": sorted(self.models),
+            "max_calls": self.max_calls,
+            "max_output_tokens": self.max_output_tokens,
             "input_tokens": self.input_tokens,
             "output_tokens": self.output_tokens,
+            # requests that failed or were retried: the provider reports no usage for them
+            "output_tokens_unreported_upper_bound": self.unreported_output,
+            "cost_usd_upper_bound": cost_upper,
             "latency_ms_p50": round(statistics.median(lat), 2) if lat else None,
             "latency_ms_max": round(lat[-1], 2) if lat else None,
             "cost_usd": cost,
@@ -187,33 +244,64 @@ def _r(x: float | None) -> float | None:
     return round(x, 3) if x is not None else None
 
 
+MAX_CONCURRENCY = 4
+
+
+def dispatch(call: Callable[[Any], Any], items: list, concurrency: int = 1) -> list:
+    """`call` on each item, results in item order, at most `concurrency` at once. A provider error
+    or any other failure is returned in its item's place; running out of budget stops everything
+    (each request reserved its share before it was sent, so running several at once can't
+    overspend)."""
+    if not 1 <= concurrency <= MAX_CONCURRENCY:
+        raise ValueError(f"concurrency must be between 1 and {MAX_CONCURRENCY}")
+
+    def one(item: Any) -> Any:
+        try:
+            return call(item)
+        except BudgetExhausted:
+            raise
+        except Exception as exc:  # noqa: BLE001 - returned in the item's place and counted there
+            return exc
+
+    if concurrency == 1:
+        return [one(x) for x in items]
+    with ThreadPoolExecutor(max_workers=concurrency) as pool:
+        return list(pool.map(one, items))
+
+
 def evaluate_reviews(
-    provider: CoachProvider, samples: list[dict], problems: dict[str, ProblemContext]
+    provider: CoachProvider, samples: list[dict], problems: dict[str, ProblemContext], concurrency: int = 1
 ) -> dict:
     s = ReviewScores()
+    contexts = []
     for sample in samples:
         problem = problems[sample["problem"]]
         code = sanitize_code(sample["code"], 12_000)
-        ctx = ReviewContext(
-            problem=problem,
-            code=code,
-            judge_status=None,
-            analysis=analyze(
-                code,
-                signature=problem.signature,
-                starter_code=problem.starter_code,
-                expected_time=problem.expected_time,
-                constraints=problem.constraints,
-            ),
+        contexts.append(
+            ReviewContext(
+                problem=problem,
+                code=code,
+                judge_status=None,
+                analysis=analyze(
+                    code,
+                    signature=problem.signature,
+                    starter_code=problem.starter_code,
+                    expected_time=problem.expected_time,
+                    constraints=problem.constraints,
+                ),
+            )
         )
+    outcomes = dispatch(provider.review, contexts, concurrency)
+    for sample, result in zip(samples, outcomes, strict=True):
         s.total += 1
+        if isinstance(result, ProviderError):
+            s.provider_errors += 1  # counted against schema validity, never answered by anyone else
+            continue
         try:
-            result = provider.review(ctx)
+            if isinstance(result, Exception):
+                raise result
             review = CodeReview.model_validate(result.content.model_dump())
             s.schema_valid += 1
-        except ProviderError:
-            s.provider_errors += 1  # counted against schema validity
-            continue
         except Exception:  # noqa: BLE001 - counted as a schema failure
             continue
         predicted = {i.category for i in review.issues}
@@ -265,21 +353,37 @@ def _mentions(text: str, term: str) -> bool:
     return re.search(rf"(?<![\w]){re.escape(term)}(?![\w])", text) is not None
 
 
-def evaluate_hints(provider: CoachProvider, problems: dict[str, ProblemContext], terms: dict) -> dict:
+def evaluate_hints(
+    provider: CoachProvider, problems: dict[str, ProblemContext], terms: dict, concurrency: int = 1
+) -> dict:
     """Spoiler and relevance rates need hand-labeled terms, so they're measured on the labeled
     problems (hint_terms.json). The code-leak check needs no labels and runs on every problem."""
     spoilers, relevant, code_leaks, checked, labeled, errors = [], 0, [], 0, 0, 0
-    for slug, problem in problems.items():
+    asked = [
+        (
+            slug,
+            level,
+            HintContext(problem=p, code=p.starter_code, level=level, analysis=analyze(p.starter_code)),
+        )
+        for slug, p in problems.items()
+        for level in (1, 2)
+    ]
+    answers = dict(
+        zip(
+            [(slug, level) for slug, level, _ in asked],
+            dispatch(provider.hint, [ctx for *_, ctx in asked], concurrency),
+            strict=True,
+        )
+    )
+    for slug in problems:
         t = terms.get(slug)
         labeled += t is not None
-        starter = problem.starter_code
         for level in (1, 2):
-            ctx = HintContext(problem=problem, code=starter, level=level, analysis=analyze(starter))
-            try:
-                hint: HintContent = provider.hint(ctx).content
-            except ProviderError:
-                errors += 1
+            answer = answers[(slug, level)]
+            if isinstance(answer, Exception):
+                errors += 1  # a provider error (or a crash): counted, never answered by anyone else
                 continue
+            hint: HintContent = answer.content
             text = hint.hint.lower()
             checked += 1
             if t and level == 1 and any(_mentions(text, term) for term in t["level1_spoilers"]):
@@ -374,6 +478,8 @@ def run(
     max_calls: int | None = None,
     prices: dict | None = None,
     sealed: bool = False,
+    max_output_tokens: int | None = None,
+    concurrency: int = 1,
 ) -> dict:
     """Run the evaluation. `limit` keeps only the first N cases of each set: a partial run, and
     the report says so. `sealed` grades only the sealed sets (career section only): the final,
@@ -389,7 +495,7 @@ def run(
         provider = build_provider(Settings())  # reads AI_PROVIDER / ANTHROPIC_API_KEY from the environment
         if provider.name != provider_name:
             raise SystemExit(f"Provider {provider_name!r} is not configured (got {provider.name!r}).")
-    metered = Metered(provider, max_calls)
+    metered = Metered(provider, max_calls, max_output_tokens)
     grade, rubric_version, grader_desc = career_grader or (
         grading.grade,
         grading.RUBRIC_VERSION,
@@ -401,7 +507,7 @@ def run(
             "effort": getattr(provider, "effort", None),
             "sampling": "provider defaults (no temperature set)",
         }
-        config |= {"max_calls": max_calls}
+        config |= {"max_calls": max_calls, "max_output_tokens": max_output_tokens, "concurrency": concurrency}
     else:
         config |= {"sampling": "none: the offline coach is deterministic"}
     report: dict = {
@@ -429,17 +535,17 @@ def run(
             if "dev" in splits:
                 samples = json.loads((EVAL_DIR / "review_set.json").read_text())["samples"]
                 # review_set.json was used while improving the offline rules: optimistic.
-                report["review"] = evaluate_reviews(metered, take(samples), problems)
+                report["review"] = evaluate_reviews(metered, take(samples), problems, concurrency)
                 terms = json.loads((EVAL_DIR / "hint_terms.json").read_text())
                 hint_problems = dict(take(list(problems.items())))
-                report["hints"] = evaluate_hints(metered, hint_problems, terms)
+                report["hints"] = evaluate_hints(metered, hint_problems, terms, concurrency)
             if "holdout" in splits:
                 for key, name in (
                     ("review_holdout", "holdout_set.json"),
                     ("review_medium", "medium_set.json"),
                 ):
                     samples = json.loads((EVAL_DIR / name).read_text())["samples"]
-                    report[key] = evaluate_reviews(metered, take(samples), problems)
+                    report[key] = evaluate_reviews(metered, take(samples), problems, concurrency)
         if "career" in sections:
             report["career"] = {}
             for d in meta.manifest()["datasets"]:
@@ -477,12 +583,133 @@ def run(
     if split != "all":
         incomplete.append(f"only the {split} split was run")
     report["usage"] = metered.usage(prices)
+    # What this report says about Claude itself: nothing unless requests were sent and answered.
+    if provider.name == "offline":
+        report["live"] = {
+            "provider_called": False,
+            "status": "not evaluated: the offline coach ran; no request was sent to Claude",
+        }
+    else:
+        report["live"] = {
+            "provider_called": metered.calls > 0,
+            "status": ("partial" if incomplete else "complete")
+            + f": {metered.calls} requests, {metered.answers} answers, {metered.failures} failures",
+            "models_seen": sorted(metered.models),
+        }
     report["duration_s"] = round(time.perf_counter() - start, 2)
     report["finished_at"] = datetime.now(UTC).isoformat(timespec="seconds")
     report["complete"] = not incomplete
     report["incomplete_reasons"] = incomplete
     report["gates"] = evaluate_gates(report)
     return report
+
+
+# --- before a live run ------------------------------------------------------------------------
+
+# The max_tokens each coaching action asks for (AnthropicCoach.review / .hint; a test checks they
+# match the code).
+MAX_TOKENS = {"review": 4_000, "hint": 2_000}
+
+
+def check_provider() -> dict:
+    """Whether a live run could start: the configured provider, model and effort, and whether an
+    API key is set. Never the key itself."""
+    import os
+
+    try:
+        settings = Settings()
+    except ValueError as exc:  # AI_PROVIDER=anthropic without a key is refused by the settings
+        return {"ready": False, "problem": str(exc).splitlines()[0][:200], "api_key_set": False}
+    key_set = bool(settings.anthropic_api_key)
+    return {
+        "ready": settings.ai_provider == "anthropic" and key_set,
+        "ai_provider": settings.ai_provider,
+        "model": settings.anthropic_model,
+        "effort": settings.anthropic_effort,
+        "api_key_set": key_set,
+        "api_key_source": "ANTHROPIC_API_KEY"
+        if os.environ.get("ANTHROPIC_API_KEY")
+        else "settings or .env"
+        if key_set
+        else None,
+    }
+
+
+def plan(
+    *,
+    split: str = "all",
+    sections: tuple[str, ...] = SECTIONS,
+    limit: int | None = None,
+    max_calls: int | None = None,
+    max_output_tokens: int | None = None,
+    prices: dict | None = None,
+    concurrency: int = 1,
+) -> dict:
+    """What a live run would do, without building a client or sending anything: the answers it
+    would ask for, the worst case in requests and output tokens (every answer retried to the
+    limit), where the budgets would stop it, and the price of that worst case when prices are given."""
+    from app.services.ai.anthropic_provider import MAX_ATTEMPTS, PROMPT_VERSION
+
+    splits = {"dev"} if split == "dev" else {"holdout"} if split == "holdout" else {"dev", "holdout"}
+    answers: dict[str, int] = {}
+
+    def size(n: int) -> int:
+        return min(n, limit) if limit is not None else n
+
+    if "coding" in sections:
+        if "dev" in splits:
+            answers["review (review_set.json)"] = size(
+                len(json.loads((EVAL_DIR / "review_set.json").read_text())["samples"])
+            )
+            answers["hint (levels 1 and 2 per problem)"] = 2 * size(len(problem_contexts()))
+        if "holdout" in splits:
+            for name in ("holdout_set.json", "medium_set.json"):
+                answers[f"review ({name})"] = size(len(json.loads((EVAL_DIR / name).read_text())["samples"]))
+    total = sum(answers.values())
+    worst_requests = total * MAX_ATTEMPTS
+    worst_output = sum(
+        n * MAX_ATTEMPTS * MAX_TOKENS["hint" if k.startswith("hint") else "review"]
+        for k, n in answers.items()
+    )
+    stops = []
+    if max_calls is not None and max_calls < worst_requests:
+        stops.append(f"--max-calls {max_calls} stops it before the worst case of {worst_requests} requests")
+    if max_output_tokens is not None and max_output_tokens < worst_output:
+        stops.append(
+            f"--max-output-tokens {max_output_tokens} stops it before the worst case of {worst_output} output tokens"
+        )
+    return {
+        "sends_requests": False,
+        "answers_requested": answers,
+        "answers_total": total,
+        "max_attempts_per_answer": MAX_ATTEMPTS,
+        "worst_case_requests": worst_requests,
+        "worst_case_output_tokens": worst_output,
+        "input_tokens": "not estimated (depends on each prompt); counted from the provider's reports during the run",
+        "budgets": {
+            "max_calls": max_calls,
+            "max_output_tokens": max_output_tokens,
+            "concurrency": concurrency,
+        },
+        "budget_stops": stops or ["neither budget stops it before the worst case"],
+        # the most output the budgets allow, priced; input tokens aren't known before the run
+        "worst_case_output_cost_usd": round(
+            min(
+                worst_output,
+                max_output_tokens if max_output_tokens is not None else worst_output,
+                max_calls * max(MAX_TOKENS.values()) if max_calls is not None else worst_output,
+            )
+            / 1e6
+            * prices["output_per_mtok"],
+            4,
+        )
+        if prices
+        else "unknown: no prices given",
+        "no_provider_calls": [x for x in sections if x != "coding"],
+        "prompt_version": PROMPT_VERSION,
+        "datasets": {d["id"]: d["sha256"][:12] for d in meta.manifest()["datasets"] if not d.get("sealed")},
+        "provider": check_provider(),
+    }
 
 
 # --- reports ----------------------------------------------------------------------------------
@@ -890,6 +1117,24 @@ def main() -> None:
         type=int,
         help="stop (and mark the run partial) after this many requests to the provider, retries included",
     )
+    parser.add_argument(
+        "--max-output-tokens",
+        type=int,
+        help="stop (and mark the run partial) before a request whose max_tokens would go past this many output tokens",
+    )
+    parser.add_argument(
+        "--concurrency", type=int, default=1, help=f"requests at once, 1 to {MAX_CONCURRENCY} (default 1)"
+    )
+    parser.add_argument(
+        "--plan",
+        action="store_true",
+        help="print what a run would send, and the worst case, without sending anything",
+    )
+    parser.add_argument(
+        "--check-provider",
+        action="store_true",
+        help="say whether a live run could start (never prints the key)",
+    )
     parser.add_argument("--price-input-per-mtok", type=float)
     parser.add_argument("--price-output-per-mtok", type=float)
     parser.add_argument("--price-source", help="where the prices came from (recorded with the cost)")
@@ -918,18 +1163,45 @@ def main() -> None:
                 print(f"          - {f}")
         raise SystemExit(1 if any(g["status"] == "failed" for g in gates) else 0)
 
+    if args.check_provider:
+        status = check_provider()
+        print(json.dumps(status, indent=2))
+        raise SystemExit(0 if status["ready"] else 1)
+    if not 1 <= args.concurrency <= MAX_CONCURRENCY:
+        raise SystemExit(f"--concurrency must be between 1 and {MAX_CONCURRENCY}.")
     prices = None
+    if (args.price_input_per_mtok is None) != (args.price_output_per_mtok is None):
+        raise SystemExit("Give both prices or neither.")
+    if args.price_input_per_mtok is not None:
+        prices = {
+            "input_per_mtok": args.price_input_per_mtok,
+            "output_per_mtok": args.price_output_per_mtok,
+            "source": args.price_source or "not stated",
+        }
+    if args.plan:
+        print(
+            json.dumps(
+                plan(
+                    split=args.split,
+                    sections=tuple(args.sections),
+                    limit=args.limit,
+                    max_calls=args.max_calls,
+                    max_output_tokens=args.max_output_tokens,
+                    prices=prices,
+                    concurrency=args.concurrency,
+                ),
+                indent=2,
+            )
+        )
+        raise SystemExit(0)
     if args.provider == "anthropic":
         if not args.allow_paid_calls or args.max_calls is None:
             raise SystemExit("Calls to Claude cost money: pass --allow-paid-calls and a --max-calls budget.")
-        if (args.price_input_per_mtok is None) != (args.price_output_per_mtok is None):
-            raise SystemExit("Give both prices or neither.")
-        if args.price_input_per_mtok is not None:
-            prices = {
-                "input_per_mtok": args.price_input_per_mtok,
-                "output_per_mtok": args.price_output_per_mtok,
-                "source": args.price_source or "not stated",
-            }
+        if not check_provider()["ready"]:
+            raise SystemExit(
+                "Claude isn't configured here: set AI_PROVIDER=anthropic and ANTHROPIC_API_KEY in the environment "
+                "(python -m evals.run --check-provider says what's missing, never the key)."
+            )
     report = run(
         args.provider,
         split=args.split,
@@ -938,6 +1210,8 @@ def main() -> None:
         limit=args.limit,
         max_calls=args.max_calls,
         prices=prices,
+        max_output_tokens=args.max_output_tokens,
+        concurrency=args.concurrency,
     )
     path = write_report(report, args.label or report["meta"]["provider"])
     print(to_markdown(report))

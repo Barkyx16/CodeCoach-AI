@@ -14,7 +14,7 @@ python -m evals.run --check-report evals/results/offline.json
 
 ## Status (2026-11-04, end of the Volume 4 / overnight queue)
 
-- **Versions:** rubric `v7`, coach prompt `coach-2026-11-04b` (request settings and reply handling
+- **Versions:** rubric `v7`, coach prompt `coach-2026-11-04c` (request settings and reply handling
   only; prompt text unchanged since `coach-2026-11-03`), evaluation protocol v5 (frozen
   2026-11-04; v2 added the contradiction pairs and metrics, v3 the injection challenge set and the
   by-kind injection metrics, v4 the action criterion and its set, v5 the evidence contract check;
@@ -530,12 +530,15 @@ real phone (the layout is the card's existing responsive one).
 
 **The provider path.** Claude's failure explanations cite evidence. A passage the evidence quotes
 (in double quotes or backticks) that isn't in the verdict, results, compiler output or code the
-request contained is treated as invented: the evidence isn't shown, and the page says so. Evidence
+request contained is treated as invented: in `coach-2026-11-04b` the evidence wasn't shown (the
+page says so); since `coach-2026-11-04c` the whole explanation falls back (see "Measuring
+Claude"). Evidence
 in the model's own words can't be checked this way and is shown as before. Its output is rendered as
 text, never HTML (`safeRendering.test.tsx`), and hidden test inputs are never in the request, so
 they can't be quoted. Recorded as coach prompt `coach-2026-11-04b` (reply handling only: the
-request fingerprint covers the method that builds the request). Line references outside the
-learner's code were already dropped.
+request fingerprint covers the method that builds the request). Since `coach-2026-11-04c` (brief
+06) such an explanation isn't shown at all: the built-in explainer answers from the real results.
+Line references outside the learner's code were already dropped.
 
 ## Results: rubric v7, the action criterion (Volume 4 prompt 05)
 
@@ -751,8 +754,11 @@ fields, invalid values and references that don't exist in the learner's code. Fo
   invalid_output, invalid_body) and the number of requests, under the JSON log's `attrs`; a test
   checks that no learner text or API key reaches any log record.
 
-Provider failures: **33 of 33** fall back to the offline coach (a reply missing fields with an
-unknown confidence level added as a scenario). These are tests with a fake client: they show the
+Provider failures: **38 of 38** fall back to the offline coach (a reply missing fields with an
+unknown confidence level added as a scenario; and since brief 06, a reply that is valid but
+unusable: nonsense such as empty required text or a complexity with no Big-O notation, a failure
+explanation with no evidence, or one quoting evidence it wasn't given; each sent once, not
+retried). The learner sees a plain status line when the built-in coach answered instead of Claude. These are tests with a fake client: they show the
 boundary handles these failures, not how well Claude coaches; no live call was made. The career
 written-answer coach is offline only, so its evidence spans are checked by the career evidence
 gate, not here.
@@ -832,23 +838,47 @@ isn't flagged because its target, O(n log k), isn't linear.
 
 ## Measuring Claude
 
-Not run: there's no API key in this environment, so **no claim is made about Claude's review,
-hint or explanation quality**. A run is deliberate, budgeted and labelled as external:
+**Not run.** No paid calls are authorized and there's no API key in this environment, so **no
+claim is made about Claude's review, hint or explanation quality**: live quality is "not
+evaluated" (every offline report says so in `live.status`). Everything a live run needs is in place
+and tested with fake clients (`backend/tests/test_live_eval.py`); default CI makes zero live calls.
 
 ```bash
 cd backend
-AI_PROVIDER=anthropic ANTHROPIC_API_KEY=… python -m evals.run --provider anthropic \
-  --allow-paid-calls --max-calls 200 --label claude-<date> \
-  [--price-input-per-mtok X --price-output-per-mtok Y --price-source <where the prices came from>]
+python -m evals.run --check-provider            # ready or not; the key's presence only, never its value
+python -m evals.run --plan --split dev --sections coding --max-calls 200 --max-output-tokens 400000 \
+  [--price-input-per-mtok X --price-output-per-mtok Y]   # what it would send, the worst case; sends nothing
+AI_PROVIDER=anthropic ANTHROPIC_API_KEY=… python -m evals.run --provider anthropic --allow-paid-calls \
+  --split dev --sections coding --max-calls 200 --max-output-tokens 400000 --concurrency 2 \
+  --label claude-<date> [--price-input-per-mtok X --price-output-per-mtok Y --price-source <where from>]
 ```
 
-Without `--allow-paid-calls` and a `--max-calls` budget it refuses. The report records the
-model the API reported, effort, tokens, latency and failures from the actual responses; cost
-only from the prices you pass in (none are assumed); running out of budget marks the run
-partial. Compare it with the offline report using `--compare`. If an LLM is later used to judge
-career answers, it's an imperfect proxy: check a representative subset by hand, keep the
-disagreements, and don't treat agreement between models as proof of correctness or of the
-absence of bias.
+- **Opt-in and credentials.** Without `--allow-paid-calls` and a `--max-calls` budget it refuses;
+  without a configured key it stops before building a client. The key is read from the
+  environment or settings only and never printed or written to a report.
+- **Budgets that hold.** Each request reserves one call and its `max_tokens` of output before it is
+  sent, so retries and `--concurrency` (1–4 requests at once) can't go past `--max-calls` or
+  `--max-output-tokens`. A failed request's output isn't reported by the provider and counts at its
+  reserved maximum (an upper bound). Running out stops the run and marks it partial.
+- **Every outcome counted.** The report's `usage` has requests, answers, failures by reason
+  (timeout, rate limited, 5xx, refusal, cut off, invalid output, unusable output, missing or
+  invented evidence), retries, the exact model identifiers the API reported, tokens and latency.
+  In a live run a failed answer is an error in its section, never replaced by the offline coach,
+  so a fallback is never credited to Claude.
+- **Cost** only from prices you pass (none are assumed), with an upper bound for unreported
+  output; without prices it says the cost is not estimated.
+- **What to compare.** The live run grades Claude on the same coding sets as the offline coach
+  (`--compare` the two reports): review issue detection and false alarms, Big-O accuracy, hint
+  spoilers and relevance, schema validity, plus the provider's own failure rate. That is
+  provider-only quality; the product experience adds the fallback (`evals/faults.py`, below), which
+  is contract evidence, not quality evidence. The written-answer coach doesn't use Claude, so career
+  sets measure the rubric, not Claude. Run development sets first; the sealed career set is
+  graded once, for the frozen candidate, by the offline rubric only. A partial run is not a
+  benchmark. Where repeatability matters, predeclare a small repeat (for example the first 10
+  review samples, three times) inside the budget and report the spread. If an LLM is later used to
+  judge career answers, it's an imperfect proxy: check a representative subset by hand, keep the
+  disagreements, and don't treat agreement between models as proof of correctness or of the
+  absence of bias.
 
 ## Guarding against regressions
 `tests/test_evals.py` runs the complete offline evaluation in CI and fails if any release gate
