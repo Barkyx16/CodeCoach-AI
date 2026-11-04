@@ -98,6 +98,16 @@ successful injection can at worst produce a misleading hint for the attacker's o
   so the cookie was still valid), and a request sent for one account could be resent with the
   token of the account that signed in next. Found as an intermittent CI failure; reproduced and
   covered by `frontend/src/test/integration/session.test.tsx`.
+- **So does what they bring back** (browser, 2026-11-04). A successful response to a request sent
+  with an earlier session's token is set aside (`session_changed`, logged as `stale_response`)
+  instead of being returned, and every sign-in and sign-out cancels and removes all cached query
+  data, not only the `me` queries. Before this, a learner's past answers to a question (cached
+  under `careers/…/answers`, outside `me`) stayed in memory after they signed out and were shown
+  to the next account on the same tab while its own answers loaded, and a late response for the
+  first account could fill that cache after the second signed in. Reproduced and covered by
+  `frontend/src/test/integration/sessionIsolation.test.tsx` (deferred responses, no sleeps), which
+  also covers a query still retrying when the learner signs out (it sends nothing more; this
+  already held). Limit: setting a response aside doesn't undo what the server did with it.
 - Older versions stored the access token in `localStorage`; the app deletes that key on startup.
 - Remaining defences against XSS: React's output escaping, no HTML rendered from the API, and
   a strict Content-Security-Policy on the deployed frontend.

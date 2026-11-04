@@ -9,13 +9,17 @@ import { routes } from "@/app/router";
 import { cookieJar } from "./server";
 
 /** Render the real app (real routes, providers and API client) at a URL. */
-export function renderApp(path: string, { signedIn = false, strict = false }: { signedIn?: boolean; strict?: boolean } = {}) {
+export function renderApp(
+  path: string,
+  { signedIn = false, strict = false, queries }: { signedIn?: boolean; strict?: boolean; queries?: Record<string, unknown> } = {},
+) {
   // A signed-in visitor is one whose browser holds a refresh cookie: the app restores the
   // session from it on load, exactly as after a page reload.
   cookieJar.hasSession = signedIn;
   const router = createMemoryRouter(routes, { initialEntries: [path] });
   const queryClient = makeQueryClient();
-  queryClient.setDefaultOptions({ queries: { retry: false } });
+  // Tests don't retry failed queries unless they ask to (queries: { retry, retryDelay }).
+  queryClient.setDefaultOptions({ queries: { retry: false, ...queries } });
   const app = (
     <AppProviders queryClient={queryClient}>
       <RouterProvider router={router} />

@@ -1,4 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { ApiError, configureAuth, serverReachable, startAuthGeneration } from "@/api/client";
@@ -29,6 +29,16 @@ async function sendRefresh(): Promise<TokenResponse> {
     }
     throw error;
   }
+}
+
+/**
+ * A session started or ended: everything cached came from the previous one. Not only the "me"
+ * queries hold personal data (a question's past answers, track progress, a submission are cached
+ * under other keys), so all of it goes, and queries still retrying for that session stop.
+ */
+function forgetSessionData(queryClient: QueryClient): void {
+  void queryClient.cancelQueries();
+  queryClient.removeQueries();
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -65,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setOfflineUser(null);
     setSignedOutReason(reason);
     setSignedOutDeliberately(reason === null);
-    queryClient.removeQueries({ queryKey: ["me"] });
+    forgetSessionData(queryClient);
   }, [queryClient]);
 
   /** A new sign-in (login, register, guest, password change): start a fresh session. */
@@ -81,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSignedOutDeliberately(false);
     setOfflineUser(null);
     rememberDeviceUser(next.user);
-    queryClient.removeQueries({ queryKey: ["me"] });
+    forgetSessionData(queryClient);
     return next.user;
   }, [queryClient]);
 

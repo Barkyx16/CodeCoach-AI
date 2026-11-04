@@ -27,9 +27,9 @@ was done, on which commit, what was checked and what is left. Morning handoff at
 | 2 | Dictated answers and paraphrases (brief 02, rubric v3) | done | `e973e50`, `30a6dbd`; CI #115 success on `30a6dbd` |
 | 3 | Unsupported keyword credit (brief 03, rubric v4) | done | `2e70d0b`, `8db564c`; CI #116 on `8db564c`: success, 7 of 7 jobs |
 | 4 | Bounded contradiction handling (brief 04, rubric v5) | done | `cf028d9`, `e69ee77` |
-| 5 | Provider failure boundary | done, see checkpoint | this change |
-| 6 | Session isolation regressions | next | |
-| 7 | Final verification and handoff | queued | |
+| 5 | Provider failure boundary | done | `d211eba` |
+| 6 | Session isolation regressions | done, see checkpoint | this change |
+| 7 | Final verification and handoff | after the bonus queue (one final verification) | |
 | B1–B5 | Bonus queue: accessible flow, safe rendering, backend ownership, concurrent submissions, diagnostics | queued after 7's checks | |
 
 ## Checkpoint: task 4, contradictions (rubric v5)
@@ -63,3 +63,19 @@ was done, on which commit, what was checked and what is left. Morning handoff at
   (`tests/test_ai_coach.py`, request-boundary section); a log test checks no learner text or key
   reaches a log record. Prompt version `coach-2026-11-04` recorded (request settings only).
 - Not shown: anything about Claude's coaching quality (no live call was made).
+
+## Checkpoint: task 6, session isolation (frontend)
+
+- Inspected first: the session-generation fix (`20bd00f`) already covered a failed logout plus a
+  stale 401, and one account's 401 never being retried as the next account's
+  (`session.test.tsx`).
+- Demonstrated gaps (tests fail on the previous code): only `me` queries were cleared on
+  sign-in/sign-out, so one account's past answers to a question were shown to the next account
+  while its own loaded; and a successful late response for the first account was delivered and
+  cached after the second signed in.
+- Fixed: the API client sets aside a successful response sent with an earlier session's token;
+  sign-in and sign-out cancel and remove every cached query.
+- Already satisfied, now tested: a query still retrying when the learner signs out sends nothing
+  more.
+- Checks: `npm run lint`, `npm run typecheck`, `npm test` (54 files, 553 tests) passed. E2E runs
+  with the final verification.

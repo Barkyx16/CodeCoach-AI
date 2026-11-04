@@ -48,7 +48,9 @@ let refreshToken: Refresher = async () => null;
  * sign-out, a session that expired) and whenever auth is wired up again. A 401 that comes back for
  * a request of an earlier session isn't about the session open now: it must not refresh (that
  * would sign a signed-out user back in, or resend one account's request as another's) and must
- * not end the current session.
+ * not end the current session. Nor is its data: a successful response to a request sent with an
+ * earlier session's token is set aside (`session_changed`), so one account's answers or progress
+ * can't be shown to, or cached for, the account that signed in next.
  */
 let generation = 0;
 
@@ -159,6 +161,12 @@ async function send<T>(path: string, options: RequestOptions, isRetry: boolean):
     traceId: response.headers.get("X-Trace-ID"),
   });
 
+  if (response.ok && token && sentIn !== generation) {
+    // Sent with the token of a session that has since ended or been replaced: what it brings back
+    // belongs to that session. (The server may still have done the work; only delivery stops.)
+    diag("auth", { event: "stale_response", path: diagPath(path) });
+    throw new ApiError(0, "session_changed", "This was sent before you signed in or out, so it was set aside.");
+  }
   if (response.status === 204) return undefined as T;
 
   const text = await response.text();
