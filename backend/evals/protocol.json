@@ -1,5 +1,5 @@
 {
-  "protocol_version": 6,
+  "protocol_version": 7,
   "frozen": "2026-11-04",
   "changes": [
     {
@@ -36,6 +36,12 @@
       "date": "2026-11-04",
       "what": "Volume 4 prompt 10: a second career, customer-service-representative, with a development set (career-csr-families-dev, the 1st question by id of each cell) and a sealed set (career-csr-sealed, the 4th by id), each written by its own separate agent session to the same family plan as the nursing families set. The sealed set is graded once with the frozen candidate and reported; it has no baseline, so the release rule (written for career-rn-sealed) doesn't apply to it. Nothing about the nursing sets changes.",
       "doc": "docs/EVAL_PROTOCOL.md, 'Protocol v6'"
+    },
+    {
+      "version": 7,
+      "date": "2026-11-04",
+      "what": "Durable Saves brief 13: career-csr-families-dev's keyword_list family is gated (its one failing case, paraphrased guidance, is fixed by rubric v9). Nothing about the sealed sets, the selection rule, the release rule's must-pass items or its margins changes.",
+      "doc": "docs/EVAL_PROTOCOL.md, 'Protocol v7'"
     }
   ],
   "doc": "docs/EVAL_PROTOCOL.md explains each part. Changing this file after cases are graded needs a new protocol_version and a note in that document.",
@@ -78,6 +84,7 @@
         "action_control"
       ],
       "career-csr-families-dev": [
+        "keyword_list",
         "self_correction",
         "benign_control",
         "grader_directed"

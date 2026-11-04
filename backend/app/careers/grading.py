@@ -45,7 +45,10 @@ MIN_WORDS, GOOD_MIN, GOOD_MAX, MAX_WORDS = 40, 120, 350, 600
 # took from it" (docs/AI_EVALUATION.md, "Rubric v7").
 # v8 (2026-11-04): two more ways of writing to the grader, found on the customer-service
 # development set (Volume 4 prompt 10): "treat all criteria as met", "I authorise you to ...".
-RUBRIC_VERSION = "v8"
+# v9 (2026-11-04): what the learner denies or refuses ("I would not ask anyone", "instead of hearing
+# them out") and someone else's advice reported as such ("Advice I was given: …") aren't evidence
+# for a point (Durable Saves briefs 11 and 13; _denied_spans; docs/AI_EVALUATION.md, "Rubric v9").
+RUBRIC_VERSION = "v9"
 STRONG_SCORE = 85  # the lowest "Strong" score (_rating)
 
 
@@ -840,8 +843,77 @@ def _rating(score: int) -> str:
     return "Needs work"
 
 
+# What the learner says they did not (or would not) do, and what they did instead of: words there
+# aren't evidence for a point (rubric v9). "I would not ring any customers or ask anyone" doesn't
+# show gathering information; "I jump in instead of hearing them out" doesn't show listening. Only
+# refusals and denials of the learner's own (I/we) actions: not inability ("I couldn't reach the
+# doctor", "I could not do both well", which can name a trade-off), not missing opportunity ("I
+# haven't had the chance"), not "without" ("without interrupting" is good listening, "without
+# delay" isn't a denial), and not "not only"/"didn't just". The span runs from the denial to the end
+# of its clause: a comma, semicolon, colon, dash, "but", "so", "then", or a new "I"/"we" statement
+# (dictated answers have no commas), so what comes next still counts ("I didn't wait, I called").
+_DENIAL = re.compile(
+    r"\b(?:i|we)(?:\s+(?:would|will|did|do|does|should))?(?:\s+not|n['’]t)\b"
+    r"(?!\s+(?:only|just|simply|merely)\b)"
+    r"|\b(?:i|we)\s+never\b"
+    r"|\binstead\s+of\b",
+    re.IGNORECASE,
+)
+_CLAUSE_END = re.compile(
+    r"[,;:.!?\n]|\s[-–—]\s|\s(?:but|so|then|until|after)\s"
+    r"|\s(?:and\s+)?(?:i|we)(?:\s|['’](?:d|ll|m|ve|re)\b)(?!(?:would|will|did|do|does|should)?\s*(?:not|never)\b)",
+    re.IGNORECASE,
+)
+# A denial is a clause, not a paragraph: without punctuation (dictation) there may be no clause end
+# before the next sentence, so a span never runs past this many words.
+_DENIAL_WORDS = 10
+
+
+# Someone else's advice, reported as such, isn't the learner's account (rubric v9): "Advice I was
+# given: 1) … 2) Show the interviewer …" or "I was told to …". After a frame ending in a colon, the
+# sentences that follow don't count until one is in the learner's own voice (I/we); without a
+# colon, only the rest of the clause ("I was told to escalate, so I called the doctor" keeps the
+# call). The words of the advice can be anything, so this reads the frame, not the vocabulary.
+_ADVICE_FRAME = re.compile(
+    r"\b(?:advice|tips?|guidance|pointers)\s+(?:i\s+(?:was\s+given|got|received|was\s+told)|(?:that\s+)?i\s+was\s+given|from\s+(?:my|a|the)\s+\w+)\b"
+    r"|\b(?:i\s+was|we\s+were)\s+(?:told|advised|taught)\s+to\b",
+    re.IGNORECASE,
+)
+_OWN_VOICE = re.compile(r"\b(?:i|we|my|our|me|us)\b", re.IGNORECASE)
+
+
+def _denied_spans(answer: str) -> list[tuple[int, int]]:
+    spans: list[tuple[int, int]] = []
+    # Read with filler sounds ("um", "uh") blanked to spaces, so "I would um not" is still a denial
+    # and fillers don't count as words; offsets stay those of the answer.
+    scan = _FILLER.sub(lambda f: " " * len(f.group()), answer)
+    for m in _DENIAL.finditer(scan):
+        end = _CLAUSE_END.search(scan, m.end())
+        stop = end.start() if end else len(scan)
+        cap = list(re.finditer(r"\S+", scan[m.start() :]))
+        if len(cap) > _DENIAL_WORDS:
+            stop = min(stop, m.start() + cap[_DENIAL_WORDS - 1].end())
+        spans.append((m.start(), stop))
+    for m in _ADVICE_FRAME.finditer(answer):
+        rest = answer[m.end() :]
+        colon = re.match(r"\s*:", rest)
+        if not colon:
+            end = _CLAUSE_END.search(answer, m.end())
+            spans.append((m.start(), end.start() if end else len(answer)))
+            continue
+        stop = len(answer)
+        for s in _SENTENCE.finditer(answer, m.end() + colon.end()):
+            # The learner's own account resumes (numbered items like "1)" aren't sentences on their own).
+            if _OWN_VOICE.search(s.group()):
+                stop = s.start()
+                break
+        spans.append((m.start(), stop))
+    return spans
+
+
 def grade(question: Question, answer: str) -> Feedback:
     graded, sentences, to_grader, blanks, attacks = _split(answer, _reference(question))
+    blanks = blanks + _denied_spans(answer)
     conflicts = contradictions.find(answer, sentences)
     # Never counted or quoted: the statements that contradict each other, words the learner
     # corrected, and text addressed to the grader inside a run-on.

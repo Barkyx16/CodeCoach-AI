@@ -370,11 +370,26 @@
       "cases": [
         "career-csr-families-dev/cd-3-P-keyword_list"
       ],
-      "status": "open",
+      "status": "fixed",
       "signal": {
         "check": "points",
         "point": "Backs it up with a concrete example"
-      }
+      },
+      "fixed_in": "rubric v9 (Durable Saves brief 13): someone else's advice, reported as such ('Advice I was given: …', 'I was told to …'), isn't the learner's account; the frame is read, not the vocabulary, so a lower overlap threshold wasn't needed"
+    },
+    {
+      "id": "denied-actions-credited",
+      "found": "2026-11-04, rubric v8 on the development meaning-changed variants (Durable Saves brief 11)",
+      "summary": "A point was credited by words in a clause the learner denies or refuses ('I would not ring any customers or ask any agents anything', 'I wouldn't tell the customer or my team lead anything'): the cue words ('ask', 'tell') were matched without reading the negation in front of them.",
+      "cases": [
+        "career-csr-families-dev/cd-6-B-meaning_changed"
+      ],
+      "status": "fixed",
+      "signal": {
+        "check": "points",
+        "point": "Gathers information before acting"
+      },
+      "fixed_in": "rubric v9 (Durable Saves brief 11): an I/we refusal or denial, or 'instead of', blanks the rest of its clause for cue matching; inability, missing opportunity, 'without' and 'not only' aren't denials; a new I/we statement ends the clause (dictated answers). Residual (open in the meaning-changed metric): imagined and unperformed accounts ('I thought about …', 'I meant to …'), different verbs with the same meaning, results stated by any number."
     }
   ]
 }
