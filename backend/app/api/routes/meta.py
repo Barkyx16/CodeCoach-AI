@@ -44,6 +44,12 @@ class Capabilities(APIModel):
         description="The app may report how its round actions ended (outcome and timing only) to "
         "POST /api/v1/telemetry/ui",
     )
+    answer_request_keys: bool = Field(
+        default=False,
+        description="Career answers accept `client_request_id`, and this server keeps at most one saved "
+        "answer per account and key (a resend returns the saved answer). Absent or false (older "
+        "servers): a key is ignored, so it promises nothing.",
+    )
 
 
 @router.get("/capabilities", response_model=Capabilities, summary="Features available on this deployment")
@@ -70,4 +76,5 @@ def capabilities(request: Request, db: Session = Depends(get_db)) -> Capabilitie
         ),
         guest_retention_days=settings.guest_retention_days,
         ui_telemetry=settings.ui_telemetry_enabled,
+        answer_request_keys=True,
     )

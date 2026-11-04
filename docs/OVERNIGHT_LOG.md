@@ -681,3 +681,45 @@ closes the remaining duplicate-answer gap), then proposal 1.
   next load's "complete" answered `completed`, no resume banner, still finished after a reload).
 - Limits: a browser with storage blocked can't keep the note (the finish still saves normally;
   only the after-reload repeat is lost); the note is retried once per load, not in the background.
+
+## Checkpoint: NX04 + NX06 + NX09 (server), keyed answer saves and revision links
+
+Migration `c4d5e6f7a8b9` (additive, nullable): `practice_answers.client_request_id` (String 64),
+`request_fingerprint` (String 80), `revises_answer_id` (FK to `practice_answers.id`,
+`ON DELETE SET NULL`, indexed), unique `(user_id, client_request_id)`. Existing rows get no key,
+fingerprint or link; nothing is rewritten.
+
+- Contract (`POST /careers/{t}/questions/{q}/answers`, documented in the OpenAPI spec): optional
+  `client_request_id` (8–64 of `A-Za-z0-9_-`, the code-submission rule). Same owner + same key +
+  same request → the saved answer, 200, `Idempotent-Replayed: true`, exactly as graded then (never
+  regraded, answered before the rate limit and before a retirement check). Same key + different
+  request → 409 `idempotency_key_reused`. A stored fingerprint this code can't compute (another
+  version) → 409 `idempotency_key_unverifiable`, never a match. Another account's identical key is
+  a different key. `/capabilities` `answer_request_keys: true` says this server enforces it
+  (absent/false on older servers, which would ignore the field).
+- Request identity: `"v1:" + sha256` of track, question, answer text exactly as sent, story and
+  revised answer; stored with the row, so a resend is compared with the original request even if
+  the story or the revision link is cleared later.
+- Persistence boundary: the database's unique constraint, not process memory; a racing duplicate's
+  insert fails and is answered with the saved row (`replayed_concurrent`). Guarantee scope: at
+  most one saved answer per owner and key. Grading is the built-in coach, local and
+  deterministic; concurrent duplicates may each grade, only one row is kept. No external call is
+  made on this path. Not covered: a request sent without a key, or a resend with a new key.
+- Revision links: `revises_answer_id` must be the learner's own answer (else 404, no existence
+  disclosed) to the same question (else 400 `revision_other_question`); it's part of the request
+  identity (a replay can't change it); deleting the earlier answer leaves the revision unlinked.
+  Never inferred for older answers. The account export adds each answer's `id` and `revises`
+  (keys aren't exported: they're operational, not the learner's data). Practice answers are never
+  restored from a backup, as before.
+- Signals: span `answer.save` (action `keyed`/`unkeyed`; result `created`, `replayed`,
+  `replayed_concurrent`, `key_conflict`, `key_unverifiable`); no key, text or id in labels.
+- Checks: `tests/test_answer_keys.py` 29 passed on SQLite and on PostgreSQL 16 (resend,
+  unkeyed, 3 conflict shapes, other question, two owners, no regrade, before rate limit/after
+  retirement, unknown fingerprint version, 4-way concurrent resends, a deterministic barrier race
+  (both past the lookup) for the same and for a conflicting request, a failure before commit, a
+  reply lost after commit, 7 invalid keys saving nothing, size limits and 32 distinct keys,
+  revision ownership/question/replay/deletion, capability and export). Neighbouring suites: 333
+  passed. Migration on a disposable PostgreSQL database (`codecoach_rehearsal_nx`): upgrade head,
+  `alembic check` clean, downgrade base. The migration chain doesn't run on SQLite (a pre-existing
+  migration alters constraints without batch mode); SQLite is test-only (`create_all`), as
+  docs/DATABASE.md says; an existing SQLite dev database made by `create_all` must be recreated.

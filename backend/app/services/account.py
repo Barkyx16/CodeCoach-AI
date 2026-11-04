@@ -205,6 +205,7 @@ def export_user_data(db: Session, user: User) -> dict:
         ],
         "interview_answers": [
             {
+                "id": a.id,
                 "career": a.track,
                 "question": a.question_id,
                 "answer": a.answer,
@@ -213,6 +214,8 @@ def export_user_data(db: Session, user: User) -> dict:
                 "coach": a.provider,
                 "question_version": a.content_version or 1,
                 "story": a.story_id,
+                # The earlier answer (by "id") this one explicitly revises; None when it doesn't.
+                "revises": a.revises_answer_id,
                 "created_at": iso(a.created_at),
             }
             for a in answers

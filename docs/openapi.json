@@ -1782,6 +1782,7 @@
           "careers"
         ],
         "summary": "Answer a question and get feedback",
+        "description": "201 with the new answer, or 200 with header `Idempotent-Replayed: true` and the answer an earlier request with the same `client_request_id` saved (the same request, resent).",
         "operationId": "answer_question_api_v1_careers__slug__questions__question_id__answers_post",
         "security": [
           {
@@ -1829,6 +1830,16 @@
               }
             }
           },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Missing, invalid, expired or revoked access token",
             "content": {
@@ -1841,6 +1852,16 @@
           },
           "404": {
             "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
             "content": {
               "application/json": {
                 "schema": {
@@ -16918,6 +16939,18 @@
             "title": "Evaluation Note",
             "description": "One line for the learner about what that means",
             "default": ""
+          },
+          "revises_answer_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revises Answer Id",
+            "description": "Your earlier answer to this question that this one explicitly revises (None when it doesn't, for every answer saved before revision links existed, and when that earlier answer was deleted). A link says where a try came from; it doesn't make two scores comparable."
           }
         },
         "type": "object",
@@ -16994,6 +17027,34 @@
             ],
             "title": "Story Id",
             "description": "One of your stories this answer rehearses (it isn't changed)"
+          },
+          "client_request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 8,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Request Id",
+            "description": "Your key for this request (e.g. a UUID), when the server says it supports them (`/capabilities` `answer_request_keys`). Resending the same request with the same key returns the answer it saved (200, `Idempotent-Replayed: true`) instead of saving another; the same key with a different request is refused (409 `idempotency_key_reused`). Keys belong to your account: another account's identical key is a different key. Use a new key for a new try."
+          },
+          "revises_answer_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 36
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revises Answer Id",
+            "description": "One of your own earlier answers to this same question that this answer revises (404 if it isn't yours or doesn't exist; 400 `revision_other_question` if it's for another question). Only set it for an explicit revision."
           }
         },
         "type": "object",
@@ -18222,6 +18283,12 @@
             "type": "boolean",
             "title": "Ui Telemetry",
             "description": "The app may report how its round actions ended (outcome and timing only) to POST /api/v1/telemetry/ui",
+            "default": false
+          },
+          "answer_request_keys": {
+            "type": "boolean",
+            "title": "Answer Request Keys",
+            "description": "Career answers accept `client_request_id`, and this server keeps at most one saved answer per account and key (a resend returns the saved answer). Absent or false (older servers): a key is ignored, so it promises nothing.",
             "default": false
           }
         },

@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
+import hmac
+import json
+
 from app.careers import evidence, grading
 from app.careers.grading import MIN_WORDS, Feedback, grade
 from app.careers.questions import Question
@@ -10,6 +14,40 @@ from app.models import PracticeAnswer
 from app.schemas.careers import AnswerOut, FeedbackPoint
 
 OFFLINE_COACH = "built-in (offline)"
+
+
+# A keyed request's fingerprint: what it asked for, so a resend can be told from a different request
+# with the same key. Versioned: a stored fingerprint is only ever compared with one computed the same
+# way, and a version this code doesn't know is reported as unverifiable, never as a match.
+FINGERPRINT_VERSION = "v1"
+
+
+def request_fingerprint(
+    track: str, question_id: str, answer: str, story_id: str | None, revises_answer_id: str | None
+) -> str:
+    """v1: sha256 of the request's own fields exactly as sent (answer text unnormalized, so a
+    changed answer is a different request)."""
+    payload = {
+        "track": track,
+        "question_id": question_id,
+        "answer": answer,
+        "story_id": story_id,
+        "revises_answer_id": revises_answer_id,
+    }
+    digest = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()
+    ).hexdigest()
+    return f"{FINGERPRINT_VERSION}:{digest}"
+
+
+def same_request(stored: str | None, fingerprint: str) -> bool | None:
+    """Whether a stored fingerprint is this request's: True, False, or None when it can't be told
+    (no fingerprint stored, or one from a version this code doesn't compute)."""
+    if not stored or ":" not in stored:
+        return None
+    if stored.split(":", 1)[0] != FINGERPRINT_VERSION:
+        return None
+    return hmac.compare_digest(stored, fingerprint)
 
 
 def graded_answer(user_id: str, question: Question, text: str) -> PracticeAnswer:
@@ -105,4 +143,5 @@ def answer_out(row: PracticeAnswer) -> AnswerOut:
         track=row.track,
         evaluation_status=evaluation_for(row.track).status,
         evaluation_note=evaluation_for(row.track).note,
+        revises_answer_id=row.revises_answer_id,
     )

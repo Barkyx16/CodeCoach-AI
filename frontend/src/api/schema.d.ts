@@ -444,7 +444,10 @@ export interface paths {
         /** Your past answers to a question, newest first */
         get: operations["my_answers_api_v1_careers__slug__questions__question_id__answers_get"];
         put?: never;
-        /** Answer a question and get feedback */
+        /**
+         * Answer a question and get feedback
+         * @description 201 with the new answer, or 200 with header `Idempotent-Replayed: true` and the answer an earlier request with the same `client_request_id` saved (the same request, resent).
+         */
         post: operations["answer_question_api_v1_careers__slug__questions__question_id__answers_post"];
         delete?: never;
         options?: never;
@@ -3280,6 +3283,11 @@ export interface components {
              * @default
              */
             evaluation_note: string;
+            /**
+             * Revises Answer Id
+             * @description Your earlier answer to this question that this one explicitly revises (None when it doesn't, for every answer saved before revision links existed, and when that earlier answer was deleted). A link says where a try came from; it doesn't make two scores comparable.
+             */
+            revises_answer_id?: string | null;
         };
         /** AnswerPerspective */
         AnswerPerspective: {
@@ -3305,6 +3313,16 @@ export interface components {
              * @description One of your stories this answer rehearses (it isn't changed)
              */
             story_id?: string | null;
+            /**
+             * Client Request Id
+             * @description Your key for this request (e.g. a UUID), when the server says it supports them (`/capabilities` `answer_request_keys`). Resending the same request with the same key returns the answer it saved (200, `Idempotent-Replayed: true`) instead of saving another; the same key with a different request is refused (409 `idempotency_key_reused`). Keys belong to your account: another account's identical key is a different key. Use a new key for a new try.
+             */
+            client_request_id?: string | null;
+            /**
+             * Revises Answer Id
+             * @description One of your own earlier answers to this same question that this answer revises (404 if it isn't yours or doesn't exist; 400 `revision_other_question` if it's for another question). Only set it for an explicit revision.
+             */
+            revises_answer_id?: string | null;
         };
         /** AnswerReviewOut */
         AnswerReviewOut: {
@@ -3733,6 +3751,12 @@ export interface components {
              * @default false
              */
             ui_telemetry: boolean;
+            /**
+             * Answer Request Keys
+             * @description Career answers accept `client_request_id`, and this server keeps at most one saved answer per account and key (a resend returns the saved answer). Absent or false (older servers): a key is ignored, so it promises nothing.
+             * @default false
+             */
+            answer_request_keys: boolean;
         };
         /** CareerAnalytics */
         CareerAnalytics: {
@@ -11058,6 +11082,15 @@ export interface operations {
                     "application/json": components["schemas"]["AnswerOut"];
                 };
             };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Missing, invalid, expired or revoked access token */
             401: {
                 headers: {
@@ -11069,6 +11102,15 @@ export interface operations {
             };
             /** @description Not found (also returned for resources owned by another user) */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

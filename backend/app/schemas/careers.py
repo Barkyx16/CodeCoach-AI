@@ -45,6 +45,24 @@ class AnswerRequest(APIModel):
         max_length=36,
         description="One of your stories this answer rehearses (it isn't changed)",
     )
+    client_request_id: str | None = Field(
+        default=None,
+        min_length=8,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9_-]+$",
+        description="Your key for this request (e.g. a UUID), when the server says it supports them "
+        "(`/capabilities` `answer_request_keys`). Resending the same request with the same key returns "
+        "the answer it saved (200, `Idempotent-Replayed: true`) instead of saving another; the same key "
+        "with a different request is refused (409 `idempotency_key_reused`). Keys belong to your "
+        "account: another account's identical key is a different key. Use a new key for a new try.",
+    )
+    revises_answer_id: str | None = Field(
+        default=None,
+        max_length=36,
+        description="One of your own earlier answers to this same question that this answer revises "
+        "(404 if it isn't yours or doesn't exist; 400 `revision_other_question` if it's for another "
+        "question). Only set it for an explicit revision.",
+    )
 
 
 class FeedbackPoint(APIModel):
@@ -99,6 +117,12 @@ class AnswerOut(APIModel):
         description="Whether this career's written-answer feedback has been measured (app/careers/support.py)",
     )
     evaluation_note: str = Field(default="", description="One line for the learner about what that means")
+    revises_answer_id: str | None = Field(
+        default=None,
+        description="Your earlier answer to this question that this one explicitly revises (None when it "
+        "doesn't, for every answer saved before revision links existed, and when that earlier answer was "
+        "deleted). A link says where a try came from; it doesn't make two scores comparable.",
+    )
 
 
 class TrackProgress(APIModel):

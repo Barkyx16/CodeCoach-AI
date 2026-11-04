@@ -484,7 +484,11 @@ class PracticeAnswer(Base):
     (track, question_id) rather than a foreign key."""
 
     __tablename__ = "practice_answers"
-    __table_args__ = (Index("ix_practice_user_track_question", "user_id", "track", "question_id"),)
+    __table_args__ = (
+        Index("ix_practice_user_track_question", "user_id", "track", "question_id"),
+        # One saved answer per owner and request key (keys are the client's; NULLs don't collide).
+        UniqueConstraint("user_id", "client_request_id", name="uq_practice_answer_client_request"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
@@ -501,6 +505,22 @@ class PracticeAnswer(Base):
     # The learner's own story this answer rehearsed (the story itself is never changed by it).
     story_id: Mapped[str | None] = mapped_column(
         ForeignKey("experience_entries.id", ondelete="SET NULL", name="fk_answer_story"),
+        nullable=True,
+        index=True,
+    )
+    # The client's key for the request that saved this answer, if it sent one: a resend with the
+    # same key returns this answer instead of saving another. None for answers saved without a key,
+    # including every answer from before keys existed (no key is ever made up for them).
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # What that keyed request asked for, versioned ("v1:" + sha256 of the track, question, answer
+    # text, story and revised answer exactly as sent), so a resend is compared with the original
+    # request even if this row's story or revision link is later cleared.
+    request_fingerprint: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    # The learner's own earlier answer to the same question that this one explicitly revises.
+    # Set only from an explicit revision; never inferred for older answers. Deleting the earlier
+    # answer leaves this one in place, unlinked.
+    revises_answer_id: Mapped[str | None] = mapped_column(
+        ForeignKey("practice_answers.id", ondelete="SET NULL", name="fk_answer_revises"),
         nullable=True,
         index=True,
     )
