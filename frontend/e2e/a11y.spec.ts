@@ -69,7 +69,7 @@ test("signed-in screens have no WCAG 2.1 A/AA violations", async ({ page }) => {
 
   // A written answer with its feedback on screen (the coach's result, quotes and advice).
   await page.goto("/careers/registered-nurse/questions/m-walk-0");
-  await page.getByLabel("Your answer").fill(
+  await page.getByRole("textbox", { name: "Your answer" }).fill(
     "Last winter on a busy ward I was responsible for six patients. I checked the observations, called the doctor " +
       "about the sickest patient and asked a colleague to cover my bay. All six had their medicines on time.",
   );
