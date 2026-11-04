@@ -13,7 +13,7 @@ test("a nurse picks their job at sign-up, answers a question and gets feedback",
 
   // Signing up lands on a dashboard built from the nurse's own questions, not coding problems.
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByText("of 300 questions")).toBeVisible();
+  await expect(page.getByText("of 300, each counted once however many tries")).toBeVisible();
   await page.getByRole("link", { name: "Practice questions" }).click();
 
   await expect(page.getByRole("heading", { name: "Registered Nurse interview questions" })).toBeVisible();

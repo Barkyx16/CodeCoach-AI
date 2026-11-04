@@ -15,17 +15,12 @@ import { TodayCard } from "@/features/plan/TodayCard";
 import { OnboardingBanner } from "@/features/onboarding/OnboardingBanner";
 
 import { ContinueCard } from "./ContinueCard";
+import { LEVEL_UP_AFTER, LEVELS, nextLevel, RETRY_BELOW, upNext } from "./upNext";
 import { MorePractice } from "./MorePractice";
 import { StatTile } from "./StatTile";
 
-const LEVELS: Difficulty[] = ["easy", "medium", "hard"];
-/** Answers at a level before "Up next" moves on to the next one. */
-const LEVEL_UP_AFTER = 10;
-
-/** The level to practice next: the first with fewer than LEVEL_UP_AFTER answers, else hard. */
-function nextLevel(answered: Record<string, number>): Difficulty {
-  return LEVELS.find((l) => (answered[l] ?? 0) < LEVEL_UP_AFTER) ?? "hard";
-}
+/** The library lists at most this many questions per request; no level holds more. */
+const LEVEL_PAGE = 100;
 
 /** The dashboard for careers without coding problems: built only from that career's questions. */
 export function CareerDashboard({ track, careerTitle }: { track: string; careerTitle?: string }) {
@@ -33,7 +28,7 @@ export function CareerDashboard({ track, careerTitle }: { track: string; careerT
   const progress = useTrackProgress(track);
   const counts = useQuestionCounts(track, "");
   const level = progress.data ? nextLevel(progress.data.by_difficulty) : "easy";
-  const questions = useQuestions(track, { difficulty: level, page: 1, page_size: 60 });
+  const questions = useQuestions(track, { difficulty: level, page: 1, page_size: LEVEL_PAGE });
   const analytics = useCareerAnalytics(track, undefined);
   const covered = analytics.data?.skills.filter((s) => s.questions_answered > 0).length ?? 0;
   // A trend only within one evaluator, and only once there are two weeks to compare.
@@ -46,10 +41,10 @@ export function CareerDashboard({ track, careerTitle }: { track: string; careerT
   if (progress.isError) return <div className="page"><ErrorState error={progress.error} onRetry={() => progress.refetch()} /></div>;
   const p = progress.data;
   const library = `/problems`;
-  const items = questions.data?.items ?? [];
-  const upNext = items.filter((q) => q.best_score == null).slice(0, 3);
-  const retry = items.filter((q) => q.best_score != null && q.best_score < 70).slice(0, 2);
+  const next = upNext(questions.data?.items ?? [], counts.data?.[level]);
   const role = careerTitle ?? titleCase(track);
+  const levelName = titleCase(level);
+  const atLevel = p.by_difficulty[level] ?? 0;
 
   return (
     <div className="page dashboard">
@@ -71,13 +66,13 @@ export function CareerDashboard({ track, careerTitle }: { track: string; careerT
       <MorePractice coding={false} />
 
       <section className="stat-row" aria-label="Summary">
-        <StatTile icon="target" label="Answered" value={`${p.answered}`} detail={`of ${p.total_questions} questions`}
+        <StatTile icon="target" label="Questions answered" value={`${p.answered}`} detail={`of ${p.total_questions}, each counted once however many tries`}
           fraction={p.total_questions ? p.answered / p.total_questions : 0} />
-        <StatTile icon="spark" label="Strong answers" value={`${p.strong}`} detail="Best score of 85 or more" />
+        <StatTile icon="spark" label="Strong answers" value={`${p.strong}`} detail="Questions whose best score is 85 or more" />
         <StatTile icon="clock" label="Interviews completed" value={`${analytics.data?.interviews.completed ?? 0}`}
           detail={analytics.data && analytics.data.interviews.abandoned + analytics.data.interviews.expired > 0
             ? `${analytics.data.interviews.abandoned + analytics.data.interviews.expired} ended early or ran out of time` : "Mock interview rounds"} />
-        <StatTile icon="chart" label="Skills covered" value={analytics.data ? `${covered} of ${analytics.data.skills.length}` : "…"}
+        <StatTile icon="chart" label="Skills practised" value={analytics.data ? `${covered} of ${analytics.data.skills.length}` : "…"}
           detail={trendText} />
       </section>
 
@@ -89,12 +84,20 @@ export function CareerDashboard({ track, careerTitle }: { track: string; careerT
         <div className="dashboard__col">
           <Card className="stack">
             <div className="section-heading"><h2 className="section-title">Up next</h2><Link to={library}>All questions <span aria-hidden="true">→</span></Link></div>
-            {questions.isPending ? <LoadingState /> : questions.isError ? <ErrorState error={questions.error} /> : (
-              upNext.length + retry.length === 0
-                ? <p className="subtle">You've answered every {level} question. Try another level from the question library.</p>
+            <p className="subtle up-next__why">
+              Picked from your own answers by a fixed rule: questions whose best score is under {RETRY_BELOW} come back first,
+              then {level} questions you haven't answered. {level === "hard" && atLevel >= LEVEL_UP_AFTER
+                ? "You've answered at least 10 questions at every level, so this stays on hard."
+                : `You're on ${levelName} (${atLevel} of ${LEVEL_UP_AFTER} answered there before it moves up a level).`}
+            </p>
+            {questions.isPending ? <LoadingState /> : questions.isError ? <ErrorState error={questions.error} onRetry={() => questions.refetch()} /> : (
+              next.retry.length + next.fresh.length === 0
+                ? <p className="subtle">{next.levelDone
+                    ? `Every ${level} question has an answer with a best score of ${RETRY_BELOW} or more. Pick another level in the question library.`
+                    : `Nothing to suggest from the ${level} questions listed here. The question library has the full list.`}</p>
                 : (
                   <ul className="rec-list">
-                    {[...retry, ...upNext].map((q) => (
+                    {[...next.retry, ...next.fresh].map((q) => (
                       <li key={q.id}>
                         <Link to={`/careers/${track}/questions/${q.id}`} className="rec">
                           <span className="row">
@@ -103,13 +106,18 @@ export function CareerDashboard({ track, careerTitle }: { track: string; careerT
                             <Badge>{q.best_score != null ? "Try again" : KIND_LABEL[q.kind] ?? titleCase(q.kind)}</Badge>
                           </span>
                           <span className="subtle">
-                            {q.best_score != null ? `Your best score is ${q.best_score}. Another try can lift it.` : q.prompt}
+                            {q.best_score != null ? `Your best score here is ${q.best_score}, under ${RETRY_BELOW}.` : q.prompt}
                           </span>
                         </Link>
                       </li>
                     ))}
                   </ul>
                 )
+            )}
+            {p.answered > 0 && (
+              <Link to={`${library}?view=questions&status=attempted&sort=lowest_score`}>
+                Review your answered questions, lowest score first <span aria-hidden="true">→</span>
+              </Link>
             )}
           </Card>
         </div>

@@ -16,11 +16,19 @@ describe("Dashboard and interviews follow the user's career", () => {
     expect(await screen.findByText("REGISTERED NURSE INTERVIEW PRACTICE")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Ada's progress" })).toBeInTheDocument();
     const summary = screen.getByRole("region", { name: "Summary" });
-    expect(within(summary).getByText("of 300 questions")).toBeInTheDocument();
+    // Each number names its unit: questions (once each, however many tries), not attempts.
+    expect(within(summary).getByText("Questions answered")).toBeInTheDocument();
+    expect(within(summary).getByText("of 300, each counted once however many tries")).toBeInTheDocument();
+    expect(within(summary).getByText("Questions whose best score is 85 or more")).toBeInTheDocument();
     expect(screen.queryByText(/problems$/)).not.toBeInTheDocument();
-    // Up next: unanswered questions from the nurse's own library.
+    // Up next: unanswered questions from the nurse's own library, with the rule that picked them.
     const next = await screen.findByRole("link", { name: /What good patient assessment looks like/ });
     expect(next).toHaveAttribute("href", "/careers/registered-nurse/questions/e-good-0");
+    expect(screen.getByText(/Picked from your own answers by a fixed rule/)).toHaveTextContent("You're on Easy (1 of 10 answered there before it moves up a level).");
+    // The answered question (best score 90) isn't suggested again; the weakest answers are one link away.
+    expect(screen.queryByRole("link", { name: /A time patient assessment mattered/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Review your answered questions, lowest score first/ }))
+      .toHaveAttribute("href", "/problems?view=questions&status=attempted&sort=lowest_score");
     expect(within(screen.getByRole("navigation", { name: "Main" })).getByRole("link", { name: "Interview" })).toBeInTheDocument();
   });
 

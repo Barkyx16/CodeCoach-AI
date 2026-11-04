@@ -441,3 +441,36 @@ Queue scope: 02–13 as bounded changes to the career question journey and the d
 existing APIs, plus a backend status filter value if 05 needs one (no migration). Not in scope:
 a stored link between an answer and the one it revised (needs a column: proposal only), changing
 what `best_score` means across the five services that compute it (proposal only).
+
+## Checkpoint: LX02 + LX13, start, continue and unavailable links
+
+- Continue (already right, unchanged): only genuinely saved work, in a fixed priority (interview
+  in progress, unsent answer, coding draft, unsolved problem, last answered question, which is
+  labelled "Review feedback", not "continue"). A saved draft for a question that's since been
+  removed now leads to the state below instead of a dead end.
+- Changed: a question link that's mistyped or removed (API 404) says "This question isn't
+  available" and links to that career's questions (or the library for an unknown career); no
+  "Try again". The same for a coding problem. Server errors still offer a retry. Public content
+  only: ownership-sensitive "not found" messages (notes, applications, shares) are unchanged.
+- Checks: `learnerJourney.test.tsx` (5, four failed before the change), `workspace.test.tsx`.
+
+## Checkpoint: LX03 + LX04, progress units and a transparent Up next
+
+- Definitions, as computed by `GET /careers/{t}/progress` (unchanged) and now shown:
+  "Questions answered" = distinct questions with at least one answer (retries don't add; an
+  answer too short to score counts as answered); "Strong answers" = questions whose best score is
+  85+; "Skills practised" = skills with at least one answered question (the analytics page's word).
+- Up next (`features/dashboard/upNext.ts`, unit-tested): level = the first of easy, medium, hard
+  with fewer than 10 answered questions, else hard; within it, in library order, up to 2
+  questions whose best score is under 70, then up to 3 unanswered. The card says this, and where
+  the learner is ("You're on Easy (1 of 10 answered there…)"). Evidence window: all of the
+  learner's own answers on this career; nothing from other accounts; no model.
+- Fixed: it read the first 60 questions of a level and could say "You've answered every easy
+  question" when the level held more; it now reads the whole level (100, the API's page limit,
+  which no level exceeds) and claims "done" only when the listed count equals the level's total.
+- Added: "Review your answered questions, lowest score first", the library's existing filter
+  and sort (brief 05's entry point).
+- Not changed (proposal): `best_score` includes answers too short to score (capped at 35), so a
+  question tried only with a few words shows "best score 35". Excluding them is a cross-cutting
+  contract change (careers, explore, activity, roadmap); left as is and noted.
+- Checks: `upNext.test.ts` (4), `careerDashboard.test.tsx`, `progress`, `plan`; e2e text updated.
