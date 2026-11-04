@@ -296,7 +296,7 @@ The Long Overnight Upgrade Playbook (received truncated after its brief 05) maps
   results were not opened and are kept out of the repository.
 - Since the freeze, the code changed only in the learner-facing note for the two measured careers
   (`app/careers/support.py`), the release tool's reading of aggregate-only reports,
-  `.gitignore` and one end-to-end test; scoring, rubric, prompts and datasets are as frozen.
+  `.gitignore` and two end-to-end tests; scoring, rubric, prompts and datasets are as frozen.
 
 ## Final handoff (second queue)
 
@@ -317,9 +317,9 @@ The Long Overnight Upgrade Playbook (received truncated after its brief 05) maps
 ### Checks on the final code
 
 - Backend SQLite: 2120 passed, 386 skipped (sandbox, PostgreSQL-only and other environment-bound
-  tests), exit 0, on `51c040f` (later commits change docs and one end-to-end test only)
+  tests), exit 0, on `51c040f` (later commits change docs and two end-to-end tests only)
 - Backend PostgreSQL: 2122 passed, 384 skipped, exit 0, on `a1ec679`
-- Frontend (app code unchanged since `ffb116b`; this commit changes one end-to-end test): `api:check`
+- Frontend (app code unchanged since `ffb116b`; only two end-to-end tests changed since): `api:check`
   and `vitest run` 58 files / 591 tests passed on `ffb116b`; lint and typecheck clean after the test
   change; build passed; size check: shell 283.6 KB gzip (budget 300 KB), largest lazy chunk 674.5 KB
   gzip (budget 700 KB)
@@ -327,14 +327,27 @@ The Long Overnight Upgrade Playbook (received truncated after its brief 05) maps
   3 skipped, 1 failed. The failure was in the test: answer review read the whole evidence block,
   which since P06 also holds the "Show it in your answer" button. Fixed in this commit (it reads the
   quote's paragraph, and now also checks by keyboard that the button puts focus on the quote); that
-  spec then passed 2 of 2. The full suite was not re-run locally after the fix; CI runs it.
+  spec then passed 2 of 2. On CI (run 136, `21b87dc`) it passed, and onboarding failed instead: the
+  tour's Finish closes the panel at once and saves in the background, and the test's full page load
+  straight after cancelled that save (the log's diagnostics list it as never answered), so the
+  dashboard offered to resume the tour. Reproduced locally by slowing that one request; the test now
+  waits for the save before leaving, as a person would (onboarding and answer review then passed
+  10 of 10, each run twice).
 - Not run here: the sandbox job (Docker and gVisor), Docker image builds, the dependency audit, a
   real phone, real speech recognition, a screen reader, and any live Claude call.
 
 ### CI
 
 Reported with the handoff message, job by job, as read from GitHub for the final SHA; nothing
-here claims it. Intermediate pushes' runs were cancelled by the next push.
+here claims it. Intermediate pushes' runs were cancelled by the next push. Run 135 (`a1ec679`) and
+run 136 (`21b87dc`) each passed every job but end-to-end, which failed on one test each (above).
+
+### Known issue found in the final checks
+
+- Finishing the tour and reloading the page in the same instant can lose the "finished" mark (the
+  save is cancelled with the page); the dashboard then offers to resume or dismiss the tour. In-app
+  navigation doesn't cancel it. Not changed now: sending it with `keepalive` would need a CORS
+  preflight, which browsers don't all allow for keepalive requests, and that wasn't tested here.
 
 ### Not done, and why
 

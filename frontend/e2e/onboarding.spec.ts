@@ -59,9 +59,13 @@ test("a new nurse is welcomed, tours a real nursing question, gets real feedback
   await tour(page).getByRole("button", { name: "Next" }).click();
   await expect(tour(page).getByRole("heading", { name: "What to do next" })).toBeVisible();
   await expect(page.locator('[data-tour="next"]')).toHaveAttribute("data-tour-active", "");
+  const finished = page.waitForResponse((r) => r.url().endsWith("/api/v1/me/onboarding") && r.request().method() === "PATCH" && r.request().postDataJSON()?.tour === "complete");
   await tour(page).getByRole("button", { name: "Finish" }).click();
   await expect(tour(page)).toHaveCount(0);
   await expect(page.locator("#main")).toBeFocused();
+  // The panel closes at once and saves in the background; a full page load straight after can
+  // cancel that save (CI run 136: the dashboard then offered to resume). Let it land first.
+  expect((await finished).ok()).toBe(true);
 
   // The dashboard has nothing more to say; the answer counts, the tour didn't.
   await page.goto("/dashboard");
