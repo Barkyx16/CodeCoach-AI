@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
@@ -22,9 +22,11 @@ export function WelcomePage() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
   // A choice is saved before moving on; if the learner has already gone elsewhere meanwhile,
-  // don't pull them back.
+  // don't pull them back. A layout effect: its cleanup runs in the same commit that takes the page
+  // off the screen. A useEffect cleanup runs a moment later, and a save finishing in between
+  // still saw "here" and pulled the learner back (CI run 184).
   const here = useRef(true);
-  useEffect(() => {
+  useLayoutEffect(() => {
     here.current = true;
     return () => {
       here.current = false;

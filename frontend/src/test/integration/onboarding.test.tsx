@@ -104,16 +104,28 @@ describe("the welcome", () => {
     asUser();
     fakeOnboarding({ welcome_due: true, start_choice: null, format: "written", starter: nurseStarter });
     let release: () => void = () => undefined;
+    let reached = false;
     server.use(http.patch(`${API}/api/v1/me/onboarding`, async () => {
+      reached = true;
       await new Promise<void>((resolve) => { release = resolve; });
       return HttpResponse.json(onboardingState({ welcome_due: false, start_choice: "later" }));
     }));
-    const { user, router } = renderApp("/welcome", { signedIn: true });
-    await user.click(await screen.findByRole("button", { name: "Not now, take me to my dashboard" }));
+    const { user, router, queryClient } = renderApp("/welcome", { signedIn: true });
+    const button = await screen.findByRole("button", { name: "Not now, take me to my dashboard" });
+    await user.click(button);
+    await waitFor(() => expect(reached).toBe(true)); // the save is on its way
+    // The save finishes at the worst moment: in the same task the welcome leaves the screen, before
+    // React's passive effects run. This used to depend on timing (it failed in CI run 184).
+    const left = new Promise<void>((resolve) => {
+      const watch = new MutationObserver(() => {
+        if (!button.isConnected) { watch.disconnect(); release(); resolve(); }
+      });
+      watch.observe(document.body, { childList: true, subtree: true });
+    });
     await router.navigate("/targets"); // the learner moves on before the save finishes
-    await waitFor(() => expect(screen.queryByRole("button", { name: "Not now, take me to my dashboard" })).not.toBeInTheDocument());
-    release();
-    await new Promise((r) => setTimeout(r, 50));
+    await left;
+    await waitFor(() => expect(queryClient.getQueryData<Onboarding>(["me", "onboarding"])?.start_choice).toBe("later"));
+    await new Promise((r) => setTimeout(r, 50)); // anything the finished save would do has happened
     expect(router.state.location.pathname).toBe("/targets");
   });
 
