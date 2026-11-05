@@ -18,7 +18,7 @@ function entry(over: Partial<ScheduleEntry> = {}): ScheduleEntry {
     id: "e1", uid: "u1@codecoach", kind: "question", ref: "registered-nurse/m-pressure-0", title: "Patient assessment under pressure",
     href: "/careers/registered-nurse/questions/m-pressure-0", all_day: false, on_date: todayIn(device, start), local_time: "18:30", timezone: device,
     starts_at: start.toISOString(), ends_at: null, duration_min: 30, status: "scheduled", done_at: null, available: true, conflicts: [],
-    sequence: 0, notes: "", created_at: new Date().toISOString(), ...over,
+    sequence: 0, notes: "", created_at: new Date().toISOString(), follows_interview: false, ...over,
   };
 }
 
@@ -130,4 +130,22 @@ describe("reminders", () => {
     await new Promise((r) => setTimeout(r, 50));
     expect(screen.queryByText(/minutes:/)).toBeNull();
   });
+
+  it("interview preparation is a fixed time unless the learner keeps it relative to the interview", async () => {
+    let body: unknown = null;
+    const prep = entry({ id: "p1", kind: "application_event", ref: "e1", title: "Prepare: Panel interview (Mercy General)", href: "/applications/a1/events/e1/kit", sequence: 3 });
+    asUser();
+    fake({}, [prep]);
+    server.use(
+      http.put(`${API}/api/v1/me/schedule/p1/follows-interview`, async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({ ...prep, follows_interview: true });
+      }),
+    );
+    const { user } = renderApp("/schedule", { signedIn: true });
+    expect(await screen.findByText(/A fixed time: it stays here if the interview moves/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Keep it relative to the interview" }));
+    await waitFor(() => expect(body).toEqual({ follows: true, expected_sequence: 3 }));
+  });
 });
+

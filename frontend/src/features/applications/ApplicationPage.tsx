@@ -18,6 +18,7 @@ import { ScheduleLink } from "@/features/schedule/ScheduleLink";
 
 import { DraftComposer } from "./DraftComposer";
 import { EVENT_KIND_LABEL, STAGE_HINT, STAGE_LABEL, STAGES } from "./labels";
+import { PrepPanel } from "./PrepPanel";
 import { externalHref } from "@/lib/links";
 
 export function ApplicationPage() {
@@ -39,6 +40,7 @@ function Detail({ a }: { a: Application }) {
     void qc.invalidateQueries({ queryKey: ["me", "kit", next.id] });
     void qc.invalidateQueries({ queryKey: ["me", "reflection", next.id] });
     void qc.invalidateQueries({ queryKey: ["me", "schedule"] });
+    void qc.invalidateQueries({ queryKey: ["me", "prep", next.id] }); // a reschedule changes what's proposed
   };
   return (
     <div className="page application-page">
@@ -158,6 +160,7 @@ function EventsCard({ a, onDone }: { a: Application; onDone: (a: Application) =>
             <strong>{e.title}</strong> <Badge>{EVENT_KIND_LABEL[e.kind]}</Badge>
             <span className="subtle"> · {describeWhen(e)}</span>
             {e.notes && <p className="subtle">{e.notes}</p>}
+            <PrepPanel appId={a.id} eventId={e.id} />
             <span className="row">
               <Button size="sm" variant="ghost" onClick={() => setEditing(e)}>Edit</Button>
               <Link to={`/applications/${a.id}/events/${e.id}/kit`} state={back}>Interview-day kit</Link>

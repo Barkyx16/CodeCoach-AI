@@ -8581,6 +8581,190 @@
         }
       }
     },
+    "/api/v1/me/applications/{app_id}/events/{event_id}/prep": {
+      "get": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Preview: what would happen to this interview's preparation times",
+        "description": "Read-only. Fixed entries stay; entries that follow the interview get a proposed time (the same elapsed time before it) when both exact times are known.",
+        "operationId": "prep_preview_api_v1_me_applications__app_id__events__event_id__prep_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "App Id"
+            }
+          },
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrepShiftOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/applications/{app_id}/events/{event_id}/prep/shift": {
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Move the chosen preparation times as previewed (all or none)",
+        "description": "409 interview_changed if the interview moved again since the preview; 409 prep_not_movable (nothing moved) if a chosen entry changed or can't move. A resend after a lost response reports those entries as already aligned (nothing moves twice).",
+        "operationId": "prep_shift_api_v1_me_applications__app_id__events__event_id__prep_shift_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "App Id"
+            }
+          },
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepShiftIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrepShiftResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/applications/{app_id}/events/{event_id}/kit": {
       "get": {
         "tags": [
@@ -11509,6 +11693,104 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/schedule/{entry_id}/follows-interview": {
+      "put": {
+        "tags": [
+          "schedule"
+        ],
+        "summary": "Keep interview preparation relative to its interview, or fixed (the default)",
+        "description": "Following the interview never moves the entry by itself: after a reschedule, GET /me/applications/{app}/events/{event}/prep previews a move and only selected entries move.",
+        "operationId": "follow_interview_api_v1_me_schedule__entry_id__follows_interview_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Entry Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FollowInterviewIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -20641,6 +20923,12 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "follows_interview": {
+            "type": "boolean",
+            "title": "Follows Interview",
+            "description": "Interview preparation the learner chose to keep relative to its interview. It still never moves by itself: a reschedule offers a preview, and only selected entries move.",
+            "default": false
           }
         },
         "type": "object",
@@ -21975,6 +22263,27 @@
           "created_at"
         ],
         "title": "FlagOut"
+      },
+      "FollowInterviewIn": {
+        "properties": {
+          "follows": {
+            "type": "boolean",
+            "title": "Follows",
+            "description": "True: keep this preparation relative to its interview; false: a fixed time"
+          },
+          "expected_sequence": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Sequence",
+            "description": "The entry's sequence you loaded; a newer one is a 409"
+          }
+        },
+        "type": "object",
+        "required": [
+          "follows",
+          "expected_sequence"
+        ],
+        "title": "FollowInterviewIn"
       },
       "FollowupAnswer": {
         "properties": {
@@ -25672,6 +25981,287 @@
           "href"
         ],
         "title": "PracticeOut"
+      },
+      "PrepEntryOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "sequence": {
+            "type": "integer",
+            "title": "Sequence"
+          },
+          "follows_interview": {
+            "type": "boolean",
+            "title": "Follows Interview"
+          },
+          "current": {
+            "$ref": "#/components/schemas/PrepTime"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "can_move",
+              "aligned",
+              "fixed",
+              "untimed",
+              "interview_time_unknown",
+              "past",
+              "would_be_past"
+            ],
+            "title": "Status"
+          },
+          "proposal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrepTime"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Where it would move to (in its own time zone), if it can"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note",
+            "description": "What happens to it, in plain words"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "sequence",
+          "follows_interview",
+          "current",
+          "status",
+          "proposal",
+          "note"
+        ],
+        "title": "PrepEntryOut"
+      },
+      "PrepShiftEntryIn": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 36,
+            "title": "Id"
+          },
+          "sequence": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Sequence",
+            "description": "The sequence the preview showed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "sequence"
+        ],
+        "title": "PrepShiftEntryIn"
+      },
+      "PrepShiftIn": {
+        "properties": {
+          "event_starts_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Starts At",
+            "description": "The interview start the preview showed"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/PrepShiftEntryIn"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Entries",
+            "description": "Only the entries you chose"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event_starts_at",
+          "entries"
+        ],
+        "title": "PrepShiftIn"
+      },
+      "PrepShiftOut": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "event_title": {
+            "type": "string",
+            "title": "Event Title"
+          },
+          "event_starts_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Starts At",
+            "description": "The interview's exact start now; send it back when applying, so a newer change is caught"
+          },
+          "event_on_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event On Date"
+          },
+          "event_local_time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Local Time"
+          },
+          "event_timezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Timezone"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/PrepEntryOut"
+            },
+            "type": "array",
+            "title": "Entries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event_id",
+          "event_title",
+          "event_starts_at",
+          "event_on_date",
+          "event_local_time",
+          "event_timezone",
+          "entries"
+        ],
+        "title": "PrepShiftOut"
+      },
+      "PrepShiftResult": {
+        "properties": {
+          "moved": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Moved",
+            "description": "Entries moved now"
+          },
+          "already_aligned": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Already Aligned",
+            "description": "Chosen entries that already match the interview's current time (moved earlier, by a resend or by hand); not moved now"
+          },
+          "preview": {
+            "$ref": "#/components/schemas/PrepShiftOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "moved",
+          "already_aligned",
+          "preview"
+        ],
+        "title": "PrepShiftResult"
+      },
+      "PrepTime": {
+        "properties": {
+          "on_date": {
+            "type": "string",
+            "format": "date",
+            "title": "On Date"
+          },
+          "local_time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Local Time"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone"
+          },
+          "starts_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starts At"
+          },
+          "all_day": {
+            "type": "boolean",
+            "title": "All Day",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "on_date",
+          "local_time",
+          "timezone",
+          "starts_at"
+        ],
+        "title": "PrepTime"
       },
       "ProblemDetail": {
         "properties": {

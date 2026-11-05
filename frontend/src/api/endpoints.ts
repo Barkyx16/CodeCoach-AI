@@ -100,6 +100,8 @@ import type {
   ScheduleEntry,
   ScheduleEntryIn,
   ScheduleMove,
+  PrepShift,
+  PrepShiftResult,
   ScheduleSettings,
   SelfReviewIn,
   ShareCreate,
@@ -490,6 +492,14 @@ export const api = {
   createScheduleEntry: (body: ScheduleEntryIn) => apiRequest<ScheduleEntry>("/api/v1/me/schedule", { method: "POST", body }),
   moveScheduleEntry: (id: string, body: ScheduleMove) => apiRequest<ScheduleEntry>(`/api/v1/me/schedule/${encodeURIComponent(id)}`, { method: "PATCH", body }),
   cancelScheduleEntry: (id: string) => apiRequest<ScheduleEntry>(`/api/v1/me/schedule/${encodeURIComponent(id)}/cancel`, { method: "POST" }),
+  followInterview: (id: string, follows: boolean, expectedSequence: number) =>
+    apiRequest<ScheduleEntry>(`/api/v1/me/schedule/${encodeURIComponent(id)}/follows-interview`, { method: "PUT", body: { follows, expected_sequence: expectedSequence } }),
+  prepPreview: (appId: string, eventId: string) =>
+    apiRequest<PrepShift>(`/api/v1/me/applications/${encodeURIComponent(appId)}/events/${encodeURIComponent(eventId)}/prep`),
+  prepShift: (appId: string, eventId: string, eventStartsAt: string | null, entries: { id: string; sequence: number }[]) =>
+    apiRequest<PrepShiftResult>(`/api/v1/me/applications/${encodeURIComponent(appId)}/events/${encodeURIComponent(eventId)}/prep/shift`, {
+      method: "POST", body: { event_starts_at: eventStartsAt, entries },
+    }),
   scheduleIcs: (query: { ids?: string; from?: string; to?: string }) =>
     apiRequest<string>("/api/v1/me/schedule/export.ics", { query, raw: true, headers: { Accept: "text/calendar" } }),
 

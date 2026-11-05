@@ -14,7 +14,9 @@ from app.schemas.applications import (
     ApplicationUpdate,
 )
 from app.schemas.common import error_responses
+from app.schemas.schedule import PrepShiftIn, PrepShiftOut, PrepShiftResult
 from app.services.applications import Applications
+from app.services.schedule import Schedule
 
 router = APIRouter(prefix="/api/v1/me/applications", tags=["applications"])
 
@@ -160,3 +162,36 @@ def delete_event(
     app_id: str, event_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> ApplicationOut:
     return Applications(db, user).delete_event(app_id, event_id)
+
+
+@router.get(
+    "/{app_id}/events/{event_id}/prep",
+    response_model=PrepShiftOut,
+    responses=error_responses(401, 404),
+    summary="Preview: what would happen to this interview's preparation times",
+    description="Read-only. Fixed entries stay; entries that follow the interview get a proposed time "
+    "(the same elapsed time before it) when both exact times are known.",
+)
+def prep_preview(
+    app_id: str, event_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> PrepShiftOut:
+    return Schedule(db, user).prep_preview(app_id, event_id)
+
+
+@router.post(
+    "/{app_id}/events/{event_id}/prep/shift",
+    response_model=PrepShiftResult,
+    responses=error_responses(400, 401, 404, 409, 422),
+    summary="Move the chosen preparation times as previewed (all or none)",
+    description="409 interview_changed if the interview moved again since the preview; 409 "
+    "prep_not_movable (nothing moved) if a chosen entry changed or can't move. A resend after a "
+    "lost response reports those entries as already aligned (nothing moves twice).",
+)
+def prep_shift(
+    app_id: str,
+    event_id: str,
+    body: PrepShiftIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> PrepShiftResult:
+    return Schedule(db, user).prep_shift(app_id, event_id, body)

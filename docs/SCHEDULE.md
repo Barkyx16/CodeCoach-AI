@@ -90,3 +90,44 @@ with your account.
   appearing only after turning them on, at 320px in the light theme; axe scans.
 - **Not verified:** importing the files into real calendar apps (Google, Apple, Outlook) wasn't
   possible here, so behaviour on re-import is described as "may"; Safari/Firefox.
+
+
+## Interview preparation: fixed, or kept relative to the interview
+
+**Policy.** A preparation time is fixed by default: rescheduling the interview doesn't move it.
+In the schedule, each interview-preparation entry can be switched to **Keep it relative to the
+interview** (`PUT /me/schedule/{id}/follows-interview`, checked against the entry's `sequence`).
+That records the interview's exact start at that moment. It's offered only for a timed entry
+whose interview has an exact time (date, time and zone); nothing is guessed for older entries.
+
+**After a reschedule.** Nothing moves by itself. The application page's **Preparation times**
+(`GET /me/applications/{app}/events/{event}/prep`) previews each entry:
+
+| Status | Meaning |
+|---|---|
+| `can_move` | Follows the interview, which moved: proposes the same elapsed time before it, shown in the entry's own time zone |
+| `aligned` | Already matches the interview's current time |
+| `fixed` | A fixed time: it stays |
+| `untimed` | All-day: no exact time to keep relative |
+| `interview_time_unknown` | The interview has no exact time now: nothing is proposed (no midnight is invented) |
+| `past` | This preparation time has passed: it isn't moved |
+| `would_be_past` | The new time would already have passed: choose one yourself |
+
+Only entries the learner ticks move (`POST …/prep/shift`, all or none). The request carries the
+interview start and each entry's sequence the preview showed. If the interview moved again
+(`409 interview_changed`), or a chosen entry changed or can't move (`409 prep_not_movable`),
+nothing moves. Resending after a lost response finds those entries already aligned, so nothing
+moves twice. A moved entry's `sequence` goes up, so a calendar file downloaded again updates the
+event. A file downloaded before doesn't change by itself: there's no calendar sync.
+
+**Time rule.** The elapsed time before the interview is kept. Across a daylight-saving change,
+the clock time can differ, and the preview says so. Moving a followed entry by hand keeps it
+relative to the interview as it is now. Making it all-day turns it back into a fixed time.
+
+**Lifecycle.**
+- Removing the interview leaves its preparation entries as they were. They're shown as no longer
+  available, and their preview is gone.
+- Cancelled entries aren't listed.
+- Interview preparation is never marked done.
+
+The export includes `follows_interview_from`, the interview start an entry was last aligned with.

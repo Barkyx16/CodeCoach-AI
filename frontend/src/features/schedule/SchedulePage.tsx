@@ -124,6 +124,13 @@ function Entry({ e, tz, titles }: { e: ScheduleEntry; tz: string; titles: Map<st
         {!e.available && <span className="subtle"> · No longer available</span>}
         {e.conflicts.length > 0 && <span className="schedule-entry__conflict">Overlaps with {e.conflicts.map((c) => titles.get(c) ?? "another entry").join(", ")}. Nothing was moved; change one if you need to.</span>}
         {e.notes && <span className="subtle">{e.notes}</span>}
+        {e.kind === "application_event" && e.status === "scheduled" && (
+          <span className="subtle schedule-entry__follow">
+            {e.follows_interview
+              ? "Kept relative to the interview: if it moves, you'll be offered the same time before it (nothing moves until you confirm)."
+              : "A fixed time: it stays here if the interview moves."}
+          </span>
+        )}
       </span>
       {e.status === "scheduled" && (
         <span className="row schedule-entry__actions">
@@ -134,6 +141,12 @@ function Entry({ e, tz, titles }: { e: ScheduleEntry; tz: string; titles: Map<st
             try { await api.cancelScheduleEntry(e.id); refresh(); } catch (err) { setError(err); }
           }}>Cancel</Button>
           <Button size="sm" variant="ghost" onClick={() => void download({ ids: e.id }, `codecoach-${e.on_date}.ics`)}>.ics</Button>
+          {e.kind === "application_event" && !e.all_day && e.available && (
+            <Button size="sm" variant="ghost" onClick={async () => {
+              setError(null);
+              try { await api.followInterview(e.id, !e.follows_interview, e.sequence); refresh(); } catch (err) { setError(err); }
+            }}>{e.follows_interview ? "Keep it at a fixed time" : "Keep it relative to the interview"}</Button>
+          )}
         </span>
       )}
       {moving && <TimeForm tz={e.timezone ?? tz} initial={e} submitLabel="Save new time" onSubmit={async (t) => { await api.moveScheduleEntry(e.id, t); setMoving(false); refresh(); }} onCancel={() => setMoving(false)} />}

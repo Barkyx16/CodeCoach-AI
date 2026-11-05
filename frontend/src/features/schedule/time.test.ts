@@ -6,7 +6,7 @@ import { addDays, entryDay, startOfWeek, timeLabel } from "./time";
 const entry = (over: Partial<ScheduleEntry>): ScheduleEntry => ({
   id: "e", uid: "u@codecoach", kind: "question", ref: "r", title: "T", href: null, all_day: false, on_date: "2026-11-10",
   local_time: "18:30", timezone: "America/Chicago", starts_at: "2026-11-11T00:30:00Z", ends_at: null, duration_min: 30,
-  status: "scheduled", done_at: null, available: true, conflicts: [], sequence: 0, notes: "", created_at: "2026-11-01T00:00:00Z", ...over,
+  status: "scheduled", done_at: null, available: true, conflicts: [], sequence: 0, notes: "", created_at: "2026-11-01T00:00:00Z", follows_interview: false, ...over,
 });
 const settings = (over: Partial<ScheduleSettings> = {}): ScheduleSettings => ({ timezone: "America/Chicago", reminders: true, reminder_minutes: 10, quiet_start: null, quiet_end: null, ...over });
 

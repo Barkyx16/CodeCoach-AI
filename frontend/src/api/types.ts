@@ -191,6 +191,9 @@ export type ScheduleSettings = S["ScheduleSettingsOut"];
 export type ScheduleKind = S["EntryOut"]["kind"];
 export type ScheduleEntryIn = S["EntryIn"];
 export type ScheduleMove = S["EntryMove"];
+export type PrepShift = S["PrepShiftOut"];
+export type PrepEntry = S["PrepEntryOut"];
+export type PrepShiftResult = S["PrepShiftResult"];
 export type Schedulable = S["SchedulableOut"];
 
 export type Kit = S["KitOut"];

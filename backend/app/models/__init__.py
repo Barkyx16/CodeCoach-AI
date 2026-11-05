@@ -1185,6 +1185,10 @@ class ScheduleEntry(Base):
     timezone: Mapped[str | None] = mapped_column(String(64), nullable=True)
     fold: Mapped[int | None] = mapped_column(Integer, nullable=True)
     starts_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    # Interview preparation only, and only if the learner chose it: the interview's start this
+    # entry is kept relative to. NULL (every entry by default) means a fixed time. It never moves
+    # by itself: a reschedule offers a preview, and only entries the learner selects move.
+    anchor_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     duration_min: Mapped[int] = mapped_column(Integer, default=30)
     status: Mapped[str] = mapped_column(String(12), default="scheduled")  # scheduled | cancelled
     sequence: Mapped[int] = mapped_column(Integer, default=0)

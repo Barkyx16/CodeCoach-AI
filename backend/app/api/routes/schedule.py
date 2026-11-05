@@ -13,6 +13,7 @@ from app.schemas.schedule import (
     EntryIn,
     EntryMove,
     EntryOut,
+    FollowInterviewIn,
     SchedulableOut,
     ScheduleSettingsIn,
     ScheduleSettingsOut,
@@ -142,3 +143,20 @@ def cancel_entry(
     entry_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> EntryOut:
     return Schedule(db, user).cancel(entry_id)
+
+
+@router.put(
+    "/{entry_id}/follows-interview",
+    response_model=EntryOut,
+    responses=error_responses(400, 401, 404, 409, 422),
+    summary="Keep interview preparation relative to its interview, or fixed (the default)",
+    description="Following the interview never moves the entry by itself: after a reschedule, "
+    "GET /me/applications/{app}/events/{event}/prep previews a move and only selected entries move.",
+)
+def follow_interview(
+    entry_id: str,
+    body: FollowInterviewIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> EntryOut:
+    return Schedule(db, user).follow_interview(entry_id, body)

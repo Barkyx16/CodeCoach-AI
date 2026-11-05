@@ -29,3 +29,8 @@
 .event-list__item { border-top: 1px solid var(--color-border); padding-top: var(--space-2); overflow-wrap: anywhere; }
 .event-form fieldset { min-width: 0; }
 .draft-composer__text { font-family: inherit; white-space: pre-wrap; }
+
+/* An interview's preparation times and what a reschedule would do to them. */
+.prep-panel { margin-top: var(--space-2); }
+.prep-panel > summary { cursor: pointer; font-size: var(--text-sm); color: var(--color-link); }
+.prep-list { list-style: none; padding: 0; margin: var(--space-2) 0 0; display: grid; gap: var(--space-2); font-size: var(--text-sm); }

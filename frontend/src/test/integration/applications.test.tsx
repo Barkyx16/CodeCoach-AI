@@ -126,6 +126,53 @@ describe("the board", () => {
 });
 
 describe("an application", () => {
+  it("previews what a reschedule does to preparation, and moves only the ticked times", async () => {
+    asUser();
+    const ev = { id: "e1", kind: "interview" as const, title: "Panel interview", on_date: "2026-12-16", local_time: "14:00", timezone: "Europe/London", starts_at: "2026-12-16T14:00:00Z", notes: "", created_at: now() };
+    fakeApps([app({ stage: "interviewing", events: [ev] })]);
+    const preview = {
+      event_id: "e1", event_title: "Panel interview", event_starts_at: "2026-12-16T14:00:00Z", event_on_date: "2026-12-16", event_local_time: "14:00", event_timezone: "Europe/London",
+      entries: [
+        { id: "p1", title: "Prepare: Panel interview (Mercy General)", sequence: 2, follows_interview: true, status: "can_move" as const,
+          current: { on_date: "2026-12-13", local_time: "18:00", timezone: "Europe/London", starts_at: "2026-12-13T18:00:00Z", all_day: false },
+          proposal: { on_date: "2026-12-14", local_time: "22:00", timezone: "Europe/London", starts_at: "2026-12-14T22:00:00Z", all_day: false },
+          note: "Keeps the same 40 hours before the interview." },
+        { id: "p2", title: "Prepare: Panel interview (Mercy General)", sequence: 0, follows_interview: false, status: "fixed" as const,
+          current: { on_date: "2026-12-14", local_time: "09:00", timezone: "Europe/London", starts_at: "2026-12-14T09:00:00Z", all_day: false },
+          proposal: null, note: "A fixed time: it stays where it is." },
+      ],
+    };
+    let sent: unknown = null;
+    let fail = true;
+    server.use(
+      http.get(`${API}/api/v1/me/applications/a1/events/e1/prep`, () => HttpResponse.json(preview)),
+      http.post(`${API}/api/v1/me/applications/a1/events/e1/prep/shift`, async ({ request }) => {
+        sent = await request.json();
+        if (fail) {
+          fail = false;
+          return HttpResponse.json({ error: { code: "interview_changed", message: "The interview's time changed again since this preview. Nothing was moved; review it again.", request_id: "r" } }, { status: 409 });
+        }
+        return HttpResponse.json({ moved: ["p1"], already_aligned: [], preview: { ...preview, entries: [{ ...preview.entries[0]!, status: "aligned", proposal: null, note: "Already matches the interview's current time." }, preview.entries[1]] } });
+      }),
+    );
+    const { user } = renderApp("/applications/a1", { signedIn: true });
+    await user.click(await screen.findByText("Preparation times"));
+    const tick = await screen.findByRole("checkbox", { name: /Prepare: Panel interview .*→/ });
+    expect(tick).not.toBeChecked(); // nothing is chosen for the learner
+    expect(screen.getByText(/A fixed time: it stays where it is/)).toBeInTheDocument();
+    const moveBtn = screen.getByRole("button", { name: "Move selected (0)" });
+    expect(moveBtn).toBeDisabled();
+    await user.click(tick);
+    await user.click(screen.getByRole("button", { name: "Move selected (1)" }));
+    // The interview moved again in another tab: nothing moved, and the preview is reloaded.
+    expect(await screen.findByText(/changed again since this preview\. Nothing was moved/)).toBeInTheDocument();
+    expect(sent).toEqual({ event_starts_at: "2026-12-16T14:00:00Z", entries: [{ id: "p1", sequence: 2 }] });
+    await user.click(await screen.findByRole("checkbox", { name: /Prepare: Panel interview .*→/ }));
+    await user.click(screen.getByRole("button", { name: "Move selected (1)" }));
+    expect(await screen.findByText("Moved 1.")).toBeInTheDocument();
+    expect(screen.getByText(/Already matches the interview's current time/)).toBeInTheDocument();
+  });
+
   it("asks which one when a time happens twice, and never shifts it silently", async () => {
     asUser();
     fakeApps([app()]);

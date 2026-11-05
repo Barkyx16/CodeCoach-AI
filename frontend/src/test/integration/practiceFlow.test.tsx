@@ -72,7 +72,7 @@ describe("Today: scheduling", () => {
     const entry: ScheduleEntry = {
       id: "s-1", uid: "s-1@codecoach", kind: "plan_item", ref: "item-base", title: "Baseline check: 3 short questions", href: null,
       all_day: true, on_date: onDate, local_time: null, timezone: null, starts_at: null, ends_at: null, duration_min: 12,
-      status: "scheduled", done_at: null, available: true, conflicts: [], sequence: 0, notes: "", created_at: new Date().toISOString(),
+      status: "scheduled", done_at: null, available: true, conflicts: [], sequence: 0, notes: "", created_at: new Date().toISOString(), follows_interview: false,
     };
     server.use(http.get(`${API}/api/v1/me/schedule`, () => HttpResponse.json([entry])));
     asNurse();

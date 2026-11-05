@@ -1604,6 +1604,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/applications/{app_id}/events/{event_id}/prep": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview: what would happen to this interview's preparation times
+         * @description Read-only. Fixed entries stay; entries that follow the interview get a proposed time (the same elapsed time before it) when both exact times are known.
+         */
+        get: operations["prep_preview_api_v1_me_applications__app_id__events__event_id__prep_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/events/{event_id}/prep/shift": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move the chosen preparation times as previewed (all or none)
+         * @description 409 interview_changed if the interview moved again since the preview; 409 prep_not_movable (nothing moved) if a chosen entry changed or can't move. A resend after a lost response reports those entries as already aligned (nothing moves twice).
+         */
+        post: operations["prep_shift_api_v1_me_applications__app_id__events__event_id__prep_shift_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/applications/{app_id}/events/{event_id}/kit": {
         parameters: {
             query?: never;
@@ -2133,6 +2173,26 @@ export interface paths {
         put?: never;
         /** Cancel it */
         post: operations["cancel_entry_api_v1_me_schedule__entry_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/schedule/{entry_id}/follows-interview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Keep interview preparation relative to its interview, or fixed (the default)
+         * @description Following the interview never moves the entry by itself: after a reschedule, GET /me/applications/{app}/events/{event}/prep previews a move and only selected entries move.
+         */
+        put: operations["follow_interview_api_v1_me_schedule__entry_id__follows_interview_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4704,6 +4764,12 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Follows Interview
+             * @description Interview preparation the learner chose to keep relative to its interview. It still never moves by itself: a reschedule offers a preview, and only selected entries move.
+             * @default false
+             */
+            follows_interview: boolean;
         };
         /** ErrorBody */
         ErrorBody: {
@@ -5283,6 +5349,19 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /** FollowInterviewIn */
+        FollowInterviewIn: {
+            /**
+             * Follows
+             * @description True: keep this preparation relative to its interview; false: a fixed time
+             */
+            follows: boolean;
+            /**
+             * Expected Sequence
+             * @description The entry's sequence you loaded; a newer one is a 409
+             */
+            expected_sequence: number;
         };
         /** FollowupAnswer */
         FollowupAnswer: {
@@ -6660,6 +6739,106 @@ export interface components {
             label: string;
             /** Href */
             href: string;
+        };
+        /** PrepEntryOut */
+        PrepEntryOut: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Sequence */
+            sequence: number;
+            /** Follows Interview */
+            follows_interview: boolean;
+            current: components["schemas"]["PrepTime"];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "can_move" | "aligned" | "fixed" | "untimed" | "interview_time_unknown" | "past" | "would_be_past";
+            /** @description Where it would move to (in its own time zone), if it can */
+            proposal: components["schemas"]["PrepTime"] | null;
+            /**
+             * Note
+             * @description What happens to it, in plain words
+             */
+            note: string;
+        };
+        /** PrepShiftEntryIn */
+        PrepShiftEntryIn: {
+            /** Id */
+            id: string;
+            /**
+             * Sequence
+             * @description The sequence the preview showed
+             */
+            sequence: number;
+        };
+        /** PrepShiftIn */
+        PrepShiftIn: {
+            /**
+             * Event Starts At
+             * @description The interview start the preview showed
+             */
+            event_starts_at: string | null;
+            /**
+             * Entries
+             * @description Only the entries you chose
+             */
+            entries: components["schemas"]["PrepShiftEntryIn"][];
+        };
+        /** PrepShiftOut */
+        PrepShiftOut: {
+            /** Event Id */
+            event_id: string;
+            /** Event Title */
+            event_title: string;
+            /**
+             * Event Starts At
+             * @description The interview's exact start now; send it back when applying, so a newer change is caught
+             */
+            event_starts_at: string | null;
+            /** Event On Date */
+            event_on_date: string | null;
+            /** Event Local Time */
+            event_local_time: string | null;
+            /** Event Timezone */
+            event_timezone: string | null;
+            /** Entries */
+            entries: components["schemas"]["PrepEntryOut"][];
+        };
+        /** PrepShiftResult */
+        PrepShiftResult: {
+            /**
+             * Moved
+             * @description Entries moved now
+             */
+            moved: string[];
+            /**
+             * Already Aligned
+             * @description Chosen entries that already match the interview's current time (moved earlier, by a resend or by hand); not moved now
+             */
+            already_aligned: string[];
+            preview: components["schemas"]["PrepShiftOut"];
+        };
+        /** PrepTime */
+        PrepTime: {
+            /**
+             * On Date
+             * Format: date
+             */
+            on_date: string;
+            /** Local Time */
+            local_time: string | null;
+            /** Timezone */
+            timezone: string | null;
+            /** Starts At */
+            starts_at: string | null;
+            /**
+             * All Day
+             * @default false
+             */
+            all_day: boolean;
         };
         /** ProblemDetail */
         ProblemDetail: {
@@ -15719,6 +15898,128 @@ export interface operations {
             };
         };
     };
+    prep_preview_api_v1_me_applications__app_id__events__event_id__prep_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrepShiftOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    prep_shift_api_v1_me_applications__app_id__events__event_id__prep_shift_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrepShiftIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrepShiftResult"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     get_kit_api_v1_me_applications__app_id__events__event_id__kit_get: {
         parameters: {
             query?: never;
@@ -17724,6 +18025,77 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    follow_interview_api_v1_me_schedule__entry_id__follows_interview_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FollowInterviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

@@ -37,6 +37,12 @@ from app.schemas.schedule import (
     EntryIn,
     EntryMove,
     EntryOut,
+    FollowInterviewIn,
+    PrepEntryOut,
+    PrepShiftIn,
+    PrepShiftOut,
+    PrepShiftResult,
+    PrepTime,
     SchedulableOut,
     ScheduleSettingsIn,
     ScheduleSettingsOut,
@@ -48,6 +54,14 @@ from app.services.timeutil import local_to_utc, parse_hhmm, zone
 
 MAX_ENTRIES = 500
 MAX_RANGE_DAYS = 120
+
+
+def _aware(d: datetime) -> datetime:
+    return d if d.tzinfo is not None else d.replace(tzinfo=UTC)
+
+
+def _opt(d: datetime | None) -> datetime | None:
+    return _aware(d) if d is not None else None
 
 
 class Schedule:
@@ -221,6 +235,7 @@ class Schedule:
             sequence=e.sequence,
             notes=e.notes,
             created_at=e.created_at,
+            follows_interview=e.anchor_at is not None,
         )
 
     @staticmethod
@@ -412,6 +427,11 @@ class Schedule:
                 "This entry was cancelled. Schedule the activity again instead.", code="entry_cancelled"
             )
         self._apply_time(e, body.on_date, body.all_day, body.local_time, body.timezone, body.fold)
+        if e.anchor_at is not None:
+            # Moved by hand: the new time is relative to the interview as it is now. An all-day time,
+            # or an interview without an exact time, can't be kept relative: it becomes fixed.
+            ev = self._prep_event(e)
+            e.anchor_at = ev.starts_at if ev is not None and ev.starts_at and e.starts_at else None
         if body.duration_min is not None:
             e.duration_min = body.duration_min
         if body.notes is not None:
@@ -429,6 +449,210 @@ class Schedule:
             e.updated_at = datetime.now(UTC)
             self.db.commit()
         return self.get(e.id)
+
+    # --- interview preparation kept relative to its interview --------------------------------------
+    #
+    # Policy: preparation times are fixed. The learner can choose, per entry, to keep one relative
+    # to its interview; that records the interview's start (the anchor). When the interview moves,
+    # nothing changes until the learner previews and confirms: the selected entries keep the same
+    # elapsed time before the interview (so across a daylight-saving change the clock time can
+    # differ). Without exact times on both sides there's nothing to keep relative: the learner picks
+    # a time. Completed and past preparation never moves.
+
+    def _prep_event(self, e: ScheduleEntry) -> ApplicationEvent | None:
+        if e.kind != "application_event":
+            return None
+        row = self.db.execute(
+            select(ApplicationEvent)
+            .join(Application)
+            .where(ApplicationEvent.id == e.ref, Application.user_id == self.user.id)
+        ).first()
+        return row[0] if row else None
+
+    def _owned_event(self, app_id: str, event_id: str) -> ApplicationEvent:
+        row = self.db.execute(
+            select(ApplicationEvent)
+            .join(Application)
+            .where(
+                ApplicationEvent.id == event_id, Application.id == app_id, Application.user_id == self.user.id
+            )
+        ).first()
+        if row is None:
+            raise NotFoundError("Interview not found")
+        return row[0]
+
+    def follow_interview(self, entry_id: str, body: FollowInterviewIn) -> EntryOut:
+        e = self._owned(entry_id)
+        if e.sequence != body.expected_sequence:
+            raise ConflictError(
+                "This entry changed since you opened it. Nothing was changed.",
+                code="stale_sequence",
+                details={"current_sequence": e.sequence},
+            )
+        if not body.follows:
+            e.anchor_at = None
+        else:
+            if e.kind != "application_event":
+                raise AppError(
+                    "Only interview preparation can follow an interview.", code="not_interview_prep"
+                )
+            if e.status == "cancelled":
+                raise ConflictError("This entry was cancelled.", code="entry_cancelled")
+            if e.starts_at is None:
+                raise AppError(
+                    "An all-day entry has no exact time to keep relative to the interview. Give it a time first.",
+                    code="untimed_entry",
+                )
+            ev = self._prep_event(e)
+            if ev is None:
+                raise NotFoundError("Interview not found")
+            if ev.starts_at is None:
+                raise AppError(
+                    "The interview has no exact time (date, time and time zone) yet, so there's nothing to "
+                    "keep this relative to.",
+                    code="interview_time_unknown",
+                )
+            e.anchor_at = ev.starts_at
+        e.updated_at = datetime.now(UTC)
+        self.db.commit()
+        return self.get(e.id)
+
+    @staticmethod
+    def _local(instant: datetime, tz: str) -> tuple[date, str, int]:
+        local = instant.astimezone(zone(tz))
+        return local.date(), local.strftime("%H:%M"), local.fold
+
+    def _prep_entry(self, e: ScheduleEntry, ev: ApplicationEvent, now: datetime) -> PrepEntryOut:
+        current = PrepTime(
+            on_date=e.on_date,
+            local_time=e.local_time,
+            timezone=e.timezone,
+            starts_at=e.starts_at,
+            all_day=e.all_day,
+        )
+        proposal = None
+        if e.anchor_at is None:
+            status, note = "fixed", "A fixed time: it stays where it is."
+        elif e.starts_at is None or not e.timezone:
+            status, note = (
+                "untimed",
+                "An all-day entry: there's no exact time to keep relative. Move it yourself.",
+            )
+        elif ev.starts_at is None:
+            status, note = (
+                "interview_time_unknown",
+                "The interview has no exact time now, so nothing is proposed. Move it yourself if you need to.",
+            )
+        elif _aware(e.anchor_at) == _aware(ev.starts_at):
+            status, note = "aligned", "Already matches the interview's current time."
+        elif _aware(e.starts_at) < now:
+            status, note = "past", "This preparation time has passed, so it isn't moved."
+        else:
+            new_start = _aware(ev.starts_at) + (_aware(e.starts_at) - _aware(e.anchor_at))
+            day, hhmm, _fold = self._local(new_start, e.timezone)
+            proposal = PrepTime(on_date=day, local_time=hhmm, timezone=e.timezone, starts_at=new_start)
+            if new_start < now:
+                status, note = (
+                    "would_be_past",
+                    "The new time would already have passed. Choose a time yourself.",
+                )
+                proposal = None
+            else:
+                before = _aware(ev.starts_at) - new_start
+                hours = before.total_seconds() / 3600
+                gap = f"{hours:g} hours" if hours != 1 else "1 hour"
+                same_clock = e.local_time == hhmm
+                note = f"Keeps the same {gap} before the interview" + (
+                    "."
+                    if same_clock
+                    else ". The clock time differs if a daylight-saving change is in between."
+                )
+                status = "can_move"
+        return PrepEntryOut(
+            id=e.id,
+            title=e.title,
+            sequence=e.sequence,
+            follows_interview=e.anchor_at is not None,
+            current=current,
+            status=status,
+            proposal=proposal,
+            note=note,
+        )
+
+    def _prep_entries(self, ev: ApplicationEvent) -> list[ScheduleEntry]:
+        return list(
+            self.db.scalars(
+                select(ScheduleEntry)
+                .where(
+                    ScheduleEntry.user_id == self.user.id,
+                    ScheduleEntry.kind == "application_event",
+                    ScheduleEntry.ref == ev.id,
+                    ScheduleEntry.status == "scheduled",
+                )
+                .order_by(ScheduleEntry.on_date, ScheduleEntry.starts_at, ScheduleEntry.id)
+            )
+        )
+
+    def prep_preview(self, app_id: str, event_id: str) -> PrepShiftOut:
+        ev = self._owned_event(app_id, event_id)
+        now = datetime.now(UTC)
+        return PrepShiftOut(
+            event_id=ev.id,
+            event_title=ev.title,
+            event_starts_at=ev.starts_at,
+            event_on_date=ev.on_date,
+            event_local_time=ev.local_time,
+            event_timezone=ev.timezone,
+            entries=[self._prep_entry(e, ev, now) for e in self._prep_entries(ev)],
+        )
+
+    def prep_shift(self, app_id: str, event_id: str, body: PrepShiftIn) -> PrepShiftResult:
+        """Moves exactly the selected entries, all or none, against the preview the learner saw."""
+        ev = self._owned_event(app_id, event_id)
+        if _opt(ev.starts_at) != _opt(body.event_starts_at):
+            raise ConflictError(
+                "The interview's time changed again since this preview. Nothing was moved; review it again.",
+                code="interview_changed",
+                details={"event_starts_at": ev.starts_at.isoformat() if ev.starts_at else None},
+            )
+        now = datetime.now(UTC)
+        entries = {e.id: e for e in self._prep_entries(ev)}
+        moved: list[str] = []
+        already: list[str] = []
+        refused: list[dict[str, str | int]] = []
+        plans: list[tuple[ScheduleEntry, PrepEntryOut]] = []
+        for want in body.entries:
+            e = entries.get(want.id)
+            if e is None:
+                refused.append({"id": want.id, "reason": "not_found"})
+                continue
+            p = self._prep_entry(e, ev, now)
+            if p.status == "aligned":
+                already.append(e.id)  # a resend after a lost response, or set by hand: it matches already
+            elif e.sequence != want.sequence:
+                refused.append({"id": e.id, "reason": "changed", "current_sequence": e.sequence})
+            elif p.status != "can_move":
+                refused.append({"id": e.id, "reason": p.status})
+            else:
+                plans.append((e, p))
+        if refused:
+            raise ConflictError(
+                "Some of the chosen preparation can't be moved as previewed. Nothing was moved.",
+                code="prep_not_movable",
+                details={"entries": refused},
+            )
+        for e, p in plans:
+            assert p.proposal is not None and p.proposal.starts_at is not None and e.timezone
+            day, hhmm, fold = self._local(p.proposal.starts_at, e.timezone)
+            e.on_date, e.local_time, e.fold, e.starts_at = day, hhmm, fold, p.proposal.starts_at
+            e.anchor_at = ev.starts_at
+            e.sequence += 1  # a downloaded calendar file updates the event when downloaded again
+            e.updated_at = now
+            moved.append(e.id)
+        self.db.commit()
+        return PrepShiftResult(
+            moved=moved, already_aligned=already, preview=self.prep_preview(app_id, event_id)
+        )
 
     # --- calendar file ----------------------------------------------------------------------------
 
@@ -473,6 +697,9 @@ class Schedule:
                     "duration_min": e.duration_min,
                     "status": e.status,
                     "notes": e.notes,
+                    # Interview preparation kept relative to its interview: the interview start it
+                    # was last aligned with (null: a fixed time).
+                    "follows_interview_from": e.anchor_at.isoformat() if e.anchor_at else None,
                 }
                 for e in self.db.scalars(
                     select(ScheduleEntry)
