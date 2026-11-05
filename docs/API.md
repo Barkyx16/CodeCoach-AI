@@ -1308,6 +1308,7 @@ id like `m-walk-3` always means the same question for a given career.
 | `GET /api/v1/careers/{slug}/questions/{id}` | optional | Prompt, kind, tips, `rubric_labels` |
 | `POST /api/v1/careers/{slug}/questions/{id}/answers` | required | `{answer}` (1-6000 chars) → `201` feedback: `score` 0-100, `rating`, `summary`, `points[{label, covered, advice}]`, `notes`, `outline`, `word_count`, `coach`. Limited to `PRACTICE_ANSWERS_PER_HOUR` (default 60) per user; `429 rate_limited` after that |
 | `GET /api/v1/careers/{slug}/questions/{id}/answers` | required | Your past answers, newest first (max 20) |
+| `POST /api/v1/careers/{slug}/questions/{id}/answers/keyed` | required | The protected route: the same body with `client_request_id` **required** (8–64 of `A-Za-z0-9_-`). A resend with the same key returns the saved answer (`200`, `Idempotent-Replayed: true`); the same key with a different request is `409 idempotency_key_reused`. A server that doesn't keep one answer per key has no such route, so it refuses the request (`404`) instead of saving it unprotected: send keyed answers here. The plain route also accepts a key (same key space) for compatibility |
 | `GET /api/v1/careers/{slug}/progress` | required | `{answered, strong, by_difficulty, total_questions}` |
 
 The user's job is `career_track` on the user object. Set it with `career_track` on

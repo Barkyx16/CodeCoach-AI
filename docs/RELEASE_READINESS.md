@@ -16,7 +16,7 @@ Each check below is marked one of three ways:
 
 | Capability | Code | Schema | Contract | Evidence |
 |---|---|---|---|---|
-| **At most one saved answer per account and request key** | `_save_answer`, `_replay` in `backend/app/api/routes/careers.py`; `request_fingerprint`, `same_request` in `app/careers/answers.py` | `c4d5e6f7a8b9`: `client_request_id` (64), `request_fingerprint` (80), unique `(user_id, client_request_id)` | optional `client_request_id` (8–64 of `A-Za-z0-9_-`); replay is 200 with `Idempotent-Replayed: true`; 409 `idempotency_key_reused`; 409 `idempotency_key_unverifiable`; `/capabilities.answer_request_keys: true` | `tests/test_answer_keys.py`, `test_release_readiness.py`, `test_batch_interactions.py`; e2e `answer-replay.spec.ts`, `release-acceptance.spec.ts` |
+| **At most one saved answer per account and request key** | `_save_answer`, `_replay` in `backend/app/api/routes/careers.py`; `request_fingerprint`, `same_request` in `app/careers/answers.py` | `c4d5e6f7a8b9`: `client_request_id` (64), `request_fingerprint` (80), unique `(user_id, client_request_id)` | optional `client_request_id` (8–64 of `A-Za-z0-9_-`); replay is 200 with `Idempotent-Replayed: true`; 409 `idempotency_key_reused`; 409 `idempotency_key_unverifiable`; `/capabilities.answer_request_keys: true`. **Keyed answers go to the protected route** `POST …/answers/keyed`, which requires the key and which a server that ignores keys doesn't have (§2) | `tests/test_answer_keys.py`, `test_release_readiness.py`, `test_batch_interactions.py`; e2e `answer-replay.spec.ts`, `release-acceptance.spec.ts` |
 | **Explicit revision links** | `_revision_parent` | `revises_answer_id` → `practice_answers.id`, `ON DELETE SET NULL`, indexed | optional `revises_answer_id`: your own answer to the same question, else 404 / 400 `revision_other_question`; part of the fingerprint; exported as `revises` | the same tests; e2e `learner-journey.spec.ts`, `release-acceptance.spec.ts` |
 | **Score eligibility** | `app/careers/eligibility.py` and every summary listed in docs/OVERNIGHT_LOG.md (NX07) | none (reads stored feedback) | `best_scored`, `score_status` (scored / too_short / unknown), `questions_scored`, `evidence_level: "unknown"` (all additive; `best_score` keeps its raw meaning) | `tests/test_score_eligibility.py`, `scoreEligibility.test.tsx`, `upNext.test.ts`, `scoreLabel.test.ts` |
 | **Client send identity** | `frontend/src/features/careers/sendKey.ts`; `QuestionPage.tsx` | none | a key is reused only for the same send. It is kept in memory only and sent only while `/capabilities` says keys are kept. The safety claim at a lost reply is made only after asking again | `sendKey.test.ts`, `keyedSends.test.tsx` |
@@ -47,10 +47,11 @@ Expected behaviour was written down first, then checked.
 | Client | Server code | Schema | Expected | Observed | How |
 |---|---|---|---|---|---|
 | new | new | head | keys honoured, replay, ready | saves 201, resend 200 replayed, readiness `current` | **executed** (probe) |
-| old (no key, no link) | new | head | behaves as before; added fields ignored; `best_score` raw | unkeyed saves unchanged | **executed** for the API (`test_unkeyed_answers_behave_as_before`). Contract: `scripts/api_compat.py` eae8088 → now: 205 operations, **0 breaking**, 2 notices. The old browser bundle itself wasn't run |
-| old | new | head | an answer stored with no grading metadata now lists instead of failing | an old client reads `evidence_level: "unknown"` as scoreable, so it shows the raw score | **analysed** (the old UI tests only `=== "insufficient"`); before, the list returned 500 for such a row |
+| old (no key, no link) | new | head | behaves as before; added fields ignored; `best_score` raw | unkeyed saves unchanged | **executed** for the API (`test_unkeyed_answers_behave_as_before`). Contract: `scripts/api_compat.py` eae8088 → now: 205 operations compared, **0 breaking**, 2 consumer-sensitive (below), additions compatible |
+| old | new | head | an answer stored with no grading metadata now lists instead of failing | **eae8088's own page code shows it as a measured score and compares it with a scored try** (its controls are right: a real low score is a score, too short shows no number) | **executed**: the historical `FeedbackCard` and `compareTries` from a worktree of `eae8088`, fed `evidence_level: "unknown"`. Restricted, not changed: such rows aren't written by any version, and stage 0 requires `check-answers` to report **0 `eligibility_unknown`** before release (§14), so no old tab can meet one. Old tabs are also offered the new version by the service worker |
 | new | old (an application revert) | head | old code works on the expanded schema; keys ignored; client claims no protection | saves work; **a keyed resend saved a duplicate** (3 answers listed); `/capabilities` has no `answer_request_keys`; readiness has no `schema` field | **executed** (probe old-on-head) |
 | new, capability read before the revert | old | head | no "safe to resend" claim at a lost reply | the page asks `/capabilities` once more (a read) and points to saved answers first | **executed**: `keyedSends.test.tsx` (stale and unreachable cases; failed on the previous page) and e2e `release-acceptance.spec.ts` |
+| new, capabilities read from a new server, POST reaching an old one (mixed fleet) | old | head | a keyed send is never saved unprotected | the protected route is **404 on the old server and nothing is saved**; the page then asks `/capabilities`, says "your answer wasn't saved" and leaves the resend to the learner (sent without a key, to the plain route); no automatic unprotected write | **executed**: probe `protected route` against eae8088 (404, saved 0) and the new code (201, saved 1); `keyedSends.test.tsx` refused-route case; e2e specs on the protected route |
 | new, older status shape | old | any | answered questions not shown as "Not answered"; no invented number | "Answered" without a number; Up next neither retries nor offers them as new (degraded) | **executed** (`scoreLabel.test.ts`); Up next **analysed** |
 | any | new | previous | unsupported: deploy only after migrating | every answer save and list **500** (`UndefinedColumn`); readiness now **503 `schema: behind`** (before this change it said ready) | **executed** (probe new-on-b7c1) |
 | old | old | previous | the baseline | unchanged | **analysed** |
@@ -58,6 +59,28 @@ Expected behaviour was written down first, then checked.
 **An old server rejecting the key field outright** is not applicable. No version of this API
 rejects unknown fields: `APIModel` uses pydantic's default `extra="ignore"`, checked in
 `eae8088`. That is exactly why a key sent to an old server is accepted and silently ignored.
+
+**Consumer-sensitive changes** (the comparator's middle class, Verification brief 06). Two
+responses gained the enum value `evidence_level: "unknown"`. A strict old client may reject it;
+a permissive one, like `eae8088`'s page, misreads it (executed above). `api_compat.py` lists such
+changes apart from breaking ones and fails on them with `--strict`. It compares names, enums and
+required fields one level in. Types, formats, defaults, status codes and headers are not
+compared, so a clean result there is not proof of identical behaviour.
+
+**Readiness through its real path** (Verification brief 05). Executed with a real `uvicorn`
+process against the disposable database. Head gave 200 `current`, the previous schema 503
+`behind`, and SQLite `create_all` 200 `unmanaged`. With the database **unreachable**, readiness
+returned **500**, because the request dependency read content state before the check. It now
+opens its own session and returns **503 `database: fail`** (tested). Liveness (`/health`) is
+unchanged and separate.
+
+**Who actually consumes readiness:** nothing in this repository.
+
+- The API image's `HEALTHCHECK` calls `/health`.
+- Compose orders the schema first through its `migrate` service (`alembic upgrade head`), which
+  `api` waits on.
+- A deployment that routes traffic on readiness must point its probe at `/health/ready`. That is
+  a production wiring step, proposed in §14 and not tested here.
 
 **What this doesn't show.** It doesn't show that a rolling deployment is safe in general. It covers
 these combinations of these two revisions only.
@@ -153,6 +176,21 @@ Executed instead: `python backend/scripts/rehearse_restore.py <src> <dst>` (both
 - **Smoke test:** each account signed in on the copy. Its resend returned **its own** original
   answer (200, replayed), so the two keys weren't merged, and its summaries were unchanged.
 
+The rehearsal was extended in the Verification batch and run again. The source also holds an
+answer with no grading metadata. `check-answers` must then report exactly the same on the copy as
+on the source: 7 answers, 1 unknown notice and 2 revision links on both, and it passed.
+
+**Which artifact keeps what** (Verification brief 10):
+
+| Artifact | Answers, ids, scores, feedback | Revision links | Request keys and fingerprints (dedup state) |
+|---|---|---|---|
+| database dump and restore (`pg_dump`/`pg_restore`) | kept | kept | **kept**: replays work on the copy (executed) |
+| account export (`GET /api/v1/me/export`) | kept | kept (`revises`) | **not included, by design** (tested). Not a recovery path for dedup state |
+| app restore (`/restore`) | answers aren't imported | — | — |
+| a schema downgrade, then re-upgrade | kept | **lost** | **lost**: a resend after it is a new answer (§8). A passing rehearsal step that lost them proves the loss, not protection |
+
+Keys are never reconstructed from answers, and parents are never inferred.
+
 This says nothing about a production backup schedule, recovery time or data-loss window. None
 exists here. **Proposed:** an operator chooses and documents one before release.
 
@@ -217,6 +255,28 @@ these cases:
   sends a new request. The server can't tell it from a new try, so the page checks saved answers
   first.
 
+**What the hourly answer allowance charges, as implemented and now pinned by tests**
+(`tests/test_answer_quota.py`, Verification brief 08). The limiter counts a request after the
+replay lookup and the retirement check, and before grading.
+
+| Request | Charged? | Rows |
+|---|---|---|
+| a new answer | yes | +1 |
+| a replay of a saved keyed request (also after the allowance is used up) | **no**: answered first | 0 |
+| a key conflict (409) | no | 0 |
+| a save that fails while grading | **yes** | 0 |
+| each copy of a duplicate that got past the lookup at the same time | **yes, both** | +1 |
+| a new answer over the allowance (429) | no | 0, and it's `rejected` in the save metric, never a learner failure |
+
+**Charging a failed save is a product decision, not changed here.** The options are:
+
+- **(a)** Keep charging it: abuse protection stays simple, and a broken server can't be hammered
+  for free.
+- **(b)** Refund the hit when the server fails (5xx). This is kinder to learners but needs a
+  refund call on every failure path.
+- **(c)** Charge after grading. A grading failure is then free, but grading work spent on refused
+  requests rises.
+
 **Proposed for a later decision:** whether keys should expire, which would bound the unique
 index's growth (one short string per keyed answer).
 
@@ -224,6 +284,21 @@ index's growth (one short string per keyed answer).
 
 See docs/OBSERVABILITY.md, "Answer saves: what each signal shows". There is one bounded counter
 per save result, plus the span. Alert thresholds are **proposed** and not configured.
+
+**Logs, at the real boundary** (Verification brief 09, `tests/test_log_redaction.py`). Synthetic
+markers for answer text, a request key and the bearer token were checked against everything the
+app's loggers write, formatted by its own JSON formatter.
+
+- **The leak.** A real database failure during a save logged SQLAlchemy's error, which carries
+  the statement's bound values: the key, and for the insert the answer text. The engine now uses
+  `hide_parameters=True`, and the test fails without it, on SQLite and PostgreSQL.
+- **Clean paths.** Save, replay, conflict, validation error and grading failure log none of the
+  markers, and keep their span categories.
+- **Not covered:**
+  - external log collectors and shippers;
+  - a DBAPI error whose own detail text quotes values (for example a unique-violation `DETAIL`;
+    the one on request keys is caught and never logged);
+  - anything not written through the `codecoach` loggers.
 
 ## 13. Browser acceptance (brief 14)
 
@@ -249,7 +324,7 @@ records that authority.
 
 | Stage | Action | Advance only when | Watch | Stop / recover |
 |---|---|---|---|---|
-| 0. Before | **Proposed:** take and verify a production backup with the operator's own procedure, and decide the backup schedule and retention | a restore of that backup has been rehearsed on a disposable copy (`scripts/rehearse_restore.py` is a model) | — | don't start |
+| 0. Before | **Proposed:** take and verify a production backup with the operator's own procedure, and decide the backup schedule and retention. Run `python -m app.cli check-answers` (read-only) on the restored copy | a restore of that backup has been rehearsed on a disposable copy (`scripts/rehearse_restore.py` is a model), and `check-answers` reports **no violations and 0 `eligibility_unknown`** (an old open tab would misread such a row, §2) | — | don't start; if unknown rows exist, decide how to present them to old clients first |
 | 1. Expand the schema | `alembic upgrade head` (adds three nullable columns, a unique constraint, a foreign key and an index; locks `practice_answers` briefly) | CI green on the candidate SHA, including "Migrations apply cleanly and match the models". Run at a quiet time, with a `lock_timeout`, so a long read makes it fail cleanly instead of queueing writes | the migration exits 0; `/health/ready` on the **old** code still says ready | it fails as in §6 (nothing applied): remove the cause and retry |
 | 2. Deploy the new code | API first, then the web client | stage 1 done; new instances report `/health/ready` `schema: current` (an instance saying `behind` isn't ready) | `codecoach_answer_saves_total` by result; 5xx rate; `check-answers` on a **read replica or restored copy** (not run here) | revert the application (old code works on the expanded schema, §8); new rows stay |
 | 3. Observe | normal traffic | an agreed period with no `key_unverifiable` and errors within the proposed thresholds (docs/OBSERVABILITY.md; no baseline exists) | as above | as above |
@@ -259,9 +334,12 @@ records that authority.
 
 - production data shape (no production data was inspected);
 - real traffic baselines;
-- the deploy platform's readiness wiring (the image's health check calls `/health`, not
-  `/health/ready`);
-- behaviour of the old browser bundle against the new API, which was analysed but not run.
+- the deploy platform's readiness wiring (the image's health check calls `/health`; nothing in
+  the repository consumes `/health/ready`);
+- whether production routes requests to a mixed fleet during a rollout. The protected route
+  makes that safe for keyed sends; unkeyed sends never claimed protection;
+- the old browser bundle against the new API in a real browser. Its components were executed
+  against the new value; the whole bundle wasn't run.
 
 **Decisions this needs from people:**
 

@@ -1,4 +1,4 @@
-# Fresh measurement plan: rubric v9 (planned, not run)
+# Fresh measurement plan: rubric v10 (planned, not run)
 
 Declared 2026-11-05 (Durable Saves brief 15), before any of its cases exist. The machine-readable
 version is `next_measurement` in `backend/evals/protocol.json` (protocol v8). This plan does not
@@ -8,10 +8,10 @@ contain a measurement.
 
 | Evidence | Status | Where |
 |---|---|---|
-| Development results, rubric v9 | measured, on sets the tuning session read | docs/AI_EVALUATION.md, "Results: rubric v9" |
+| Development results, rubric v10 | measured, on sets the tuning session read (plus new pairs it wrote) | docs/AI_EVALUATION.md, "Results: rubric v10" |
 | Exposed historical comparison | `career-rn-holdout` and the two used sealed sets (graded once with v8) | "The sealed measurement" |
 | Human label review | packet prepared, **no person has reviewed anything** | EVAL_PROTOCOL.md, "The review sample" |
-| Independent measurement of rubric v9 | **pending**: no fresh set exists | this plan |
+| Independent measurement of rubric v10 | **pending**: no fresh set exists | this plan |
 | Live Claude evaluation | **not run**, no paid calls authorized | "Live Claude evaluation" below |
 
 Each row stands alone. A green CI run, a development gain or an offline provider test doesn't
@@ -19,11 +19,13 @@ change another row's status.
 
 ## The frozen candidate
 
-`backend/evals/results/freeze-2026-11-05-candidate-rubric-v9.json`, written with
-`python -m evals.freeze write --label candidate-rubric-v9` on a clean tree. It records:
+`backend/evals/results/freeze-2026-11-05-candidate-rubric-v10.json`, written with
+`python -m evals.freeze write --label candidate-rubric-v10` on a clean tree (protocol v9). The
+earlier v9 freeze (`…-candidate-rubric-v9.json`) is kept and superseded: its `check` fails once
+scoring changes, which is the rule working. It records:
 
-- rubric v9 and coach prompt `coach-2026-11-04c` with its request fingerprint;
-- protocol v8;
+- rubric v10 and coach prompt `coach-2026-11-04c` with its request fingerprint;
+- protocol v9;
 - a sha256 of each file that decides a career score or a request to Claude (`grading.py`,
   `questions.py`, `contradictions.py`, `evidence.py`, `profiles.py`, `anthropic_provider.py`,
   `protocol.json`), every dataset and the dependency files;

@@ -14,14 +14,15 @@ python -m evals.run --check-report evals/results/offline.json
 
 ## Status (2026-11-04, end of the Volume 4 / overnight queue)
 
-- **Versions:** rubric `v9` (development-measured only: the sealed sets were graded with v8, and
+- **Versions:** rubric `v10` (development-measured only: the sealed sets were graded with v8, and
   `app/careers/support.py` still names v8 as the rubric each career was measured with), coach
   prompt `coach-2026-11-04c` (request settings and reply handling only; prompt text unchanged
-  since `coach-2026-11-03`), evaluation protocol v8 (v2 added the contradiction pairs and metrics,
+  since `coach-2026-11-03`), evaluation protocol v9 (v2 added the contradiction pairs and metrics,
   v3 the injection challenge set and the by-kind injection metrics, v4 the action criterion and
   its set, v5 the evidence contract check, v6 a second career, v7 gates one more development
-  family, v8 declares the next measurement; see [EVAL_PROTOCOL.md](EVAL_PROTOCOL.md)). The v9
-  candidate is frozen for a fresh measurement that hasn't happened
+  family, v8 declares the next measurement, v9 names rubric v10 its candidate; see
+  [EVAL_PROTOCOL.md](EVAL_PROTOCOL.md)). The v10 candidate is frozen for a fresh measurement that
+  hasn't happened
   ([FRESH_MEASUREMENT_PLAN.md](FRESH_MEASUREMENT_PLAN.md)).
 - **Career sets** (`backend/evals/datasets.json`, sha256 prefix): `career-rn-dev` v2, 23 cases,
   `c1619da3a4ac` (development); `career-rn-holdout` v2, 17, `d43b284d6a71` (**exposed historical
@@ -57,7 +58,11 @@ python -m evals.run --check-report evals/results/offline.json
   as done, irrelevant actions credited, "felt" as an examination missed. (An unpunctuated attack
   dropping the answer and rephrased or disguised attacks are fixed in rubric v6; reworded actions
   missed and an experience or lesson read as an action in v7; denied actions credited and the
-  question's advice, reported as someone else's, credited in v9.)
+  question's advice, reported as someone else's, credited in v9; intended, thought-about or
+  regretted actions, denied objects and long listed denials credited in v10.) Still open from the
+  v10 probes, not in the register because no dataset case shows them: **a colleague's action
+  credited as the learner's**, an imagined action credited, and points that one generic cue word
+  satisfies (e.g. "customer" for "Communicates with the right people").
 
 ## What's measured
 
@@ -672,6 +677,68 @@ they can't be quoted. Recorded as coach prompt `coach-2026-11-04b` (reply handli
 request fingerprint covers the method that builds the request). Since `coach-2026-11-04c` (brief
 06) such an explanation isn't shown at all: the built-in explainer answers from the real results.
 Line references outside the learner's code were already dropped.
+
+## Results: rubric v10, what didn't happen (Verification briefs 12 and 13)
+
+Measured 2026-11-05 on development data only.
+
+- **Baseline:** rubric v9 (`evals/results/rubric-v9-dev.json`).
+- **Candidate:** `4da65a7` (`evals/results/rubric-v10-dev.*`).
+- **Comparison:** `evals/results/rubric-v9-vs-v10.md`.
+- The sealed sets were not graded.
+
+**Probed first, on one question** ("Gathers information before acting" and "Communicates with
+the right people", customer service). One sentence changed inside an answer that otherwise lacks
+the point. Under v9, all of the following earned the point exactly as the performed action did:
+
+- an action only intended ("I was going to ask…, but I didn't get to"), meant or thought about;
+- a regretted action ("I should have asked…");
+- a denied object ("I escalated nothing and I told no one");
+- the tail of a listed denial past ten words ("I did not reply … or ring … or ever **tell** my
+  lead").
+
+**The rule** (`_UNDONE` and `_denied_spans` in `app/careers/grading.py`):
+
+- **What counts as not done.** These are blanked for cue matching like v9's denials:
+  - past intentions and thoughts (was/were going or about to; meant, intended, planned, hoped or
+    wanted to; thought about/of);
+  - a counterfactual with a verb (should/could/would/might have, or 'd have, plus a verb);
+  - a denied object (I/we + up to two words + nothing/nobody/no one).
+- **Plan language isn't touched:** "I'd ask", "I would have to ask", "I would have a quick
+  talk".
+- **Where a denial ends.**
+  - When the learner ended the clause with punctuation, the denial covers the whole clause, up to
+    30 words.
+  - Without punctuation (a dictated run-on), the ten-word bound stays. For v9's denials it is
+    counted exactly as in v9, so dictation parity is unchanged. A first draft that used other
+    clause ends was caught by the parity gate on `fd-8-P-benign_control`.
+
+| Development pairs (tests/test_rubric_v10.py, written in this session) | v9 | v10 |
+|---|---|---|
+| actions that didn't happen (5) and denied objects or long listed denials (2): credited | **7/7** | **0/7** |
+| controls (performed, team, dictated, two plan forms; and two for the second point): credited | 7/7 | 7/7 |
+
+On every existing development set and the exposed historical set **nothing changed**: 0
+regressions, 0 checks fixed, and no metric or point decision moved. The rule's effect shows only
+on the new pairs, which are development data written by the tuning session. That makes this a
+bounded fix of a demonstrated defect, not an improvement measured on independent data.
+
+**Still open:**
+
+- **A colleague's action** ("My colleague asked for the order number") is credited as the
+  learner's. Telling who did it reliably needs more than cue words: "the customer told me" is
+  often valid information gathering.
+- **An imagined action** ("I imagined asking") is credited.
+
+Both are pinned as strict expected failures, so a fix is noticed. Contradictions that need word
+meaning stay as described under "Rubric v9".
+
+**v9 boundaries checked** (brief 13), and found correct:
+
+- advice turning back into the learner's own voice, twice in one answer;
+- contractions, and fillers before and inside a denial;
+- "if I didn't know";
+- quote offsets after filler blanking, which stay on the learner's words (the evidence contract).
 
 ## Results: rubric v9, denials and reported advice (Durable Saves briefs 11–13)
 

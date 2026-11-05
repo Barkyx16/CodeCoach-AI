@@ -236,6 +236,14 @@ Roles, separation steps and the declared metrics with their denominators are in
 under it.** Rubric v9's independent measurement is pending. No existing set, label, gate or
 release item changes, and the used sealed sets stay used.
 
+## Protocol v9 (2026-11-05, Verification briefs 12–14)
+
+The next measurement's candidate is now rubric v10
+(`evals/results/freeze-2026-11-05-candidate-rubric-v10.json`), because the v9 candidate's freeze
+check fails once scoring changes, as the plan requires. The v9 freeze record is kept and marked
+superseded. Nothing else in `next_measurement` changes, and neither do the existing sets,
+labels, gates or release items.
+
 ## The sealed sets have been graded (2026-11-04)
 
 `career-rn-sealed` and `career-csr-sealed` were graded once each for the frozen candidate
@@ -303,7 +311,14 @@ no person has reviewed any item.** No ratings file exists, and none may be writt
   - a `rationale`.
 - *Import* (`import <id> form.csv --reviewer "Name, role" --human`): `--human` states that a person
   made the labels, and another model's labels are not a review. A reviewer's later pass replaces
-  their earlier one.
+  their earlier one. Since the Verification batch it also refuses:
+  - a point rated twice in one form;
+  - a form missing its columns;
+  - a reviewer named as a model or tool. This is a backstop listing only names no person carries;
+    "Claude" is a person's name too.
+
+  Status lists unresolved and not-yet-adjudicated differences. These ingestion tests use
+  synthetic ratings, so they prove the checks, not a review.
 - *Second pass, reveal* (`reveal <id>`): the proposed label, the rubric's decision and every
   reviewer's label side by side. Each difference becomes a row in `2-adjudication.csv`, with
   outcome `keep`, `change` (with the label) or `unresolved` and a rationale, recorded by

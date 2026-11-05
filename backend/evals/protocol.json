@@ -1,5 +1,5 @@
 {
-  "protocol_version": 8,
+  "protocol_version": 9,
   "frozen": "2026-11-04",
   "changes": [
     {
@@ -48,6 +48,12 @@
       "date": "2026-11-05",
       "what": "Durable Saves brief 15: the next measurement is declared before any of its cases exist (next_measurement): the frozen rubric v9 candidate against the rubric v8 baseline on two fresh sets written under a stated separation, with the release rule applied to each. Nothing about the existing sets, labels, gates or the used sealed sets changes.",
       "doc": "docs/EVAL_PROTOCOL.md, 'Protocol v8'; docs/FRESH_MEASUREMENT_PLAN.md"
+    },
+    {
+      "version": 9,
+      "date": "2026-11-05",
+      "what": "Verification briefs 12-14: the candidate for the next measurement is now rubric v10 (an action that didn't happen earns nothing; a long listed denial is read whole), frozen in evals/results/freeze-2026-11-05-candidate-rubric-v10.json. The v9 freeze record is kept as superseded. Nothing else in next_measurement, and nothing about the existing sets, labels, gates or release items, changes.",
+      "doc": "docs/EVAL_PROTOCOL.md, 'Protocol v9'"
     }
   ],
   "doc": "docs/EVAL_PROTOCOL.md explains each part. Changing this file after cases are graded needs a new protocol_version and a note in that document.",
@@ -377,8 +383,8 @@
     "review_packet": "python -m evals.review_packet <dataset id>"
   },
   "next_measurement": {
-    "status": "planned, not run: no fresh set exists. Until one is written under the separation below and graded once, rubric v9 has development results only and its independent measurement is pending.",
-    "candidate": "the freeze record evals/results/freeze-2026-11-05-candidate-rubric-v9.json (rubric v9, coach prompt coach-2026-11-04c); `python -m evals.freeze check <record>` must pass immediately before grading, or the candidate is frozen again and this plan is re-declared",
+    "status": "planned, not run: no fresh set exists. Until one is written under the separation below and graded once, rubric v10 has development results only and its independent measurement is pending.",
+    "candidate": "the freeze record evals/results/freeze-2026-11-05-candidate-rubric-v10.json (rubric v10, coach prompt coach-2026-11-04c); `python -m evals.freeze check <record>` must pass immediately before grading, or the candidate is frozen again and this plan is re-declared",
     "baseline": "rubric v8, the previous frozen candidate (84dc1ee): a worktree of that commit (its own app/careers) run with the candidate's evaluation harness and the fresh sets",
     "sets": {
       "career-rn-fresh": "registered-nurse, the 5th question by id of each (difficulty, kind) cell",
