@@ -41,8 +41,9 @@ describe("the main navigation", () => {
     await user.click(heading("Job search"));
     await user.click(within(nav()).getByRole("link", { name: "Applications" }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/applications"));
-    expect(heading("Job search")).toHaveAttribute("aria-expanded", "false");
-    expect(heading("Job search").closest(".nav-group")).toHaveClass("is-current");
+    expect(heading("Job search")).toHaveAttribute("aria-expanded", "false"); // closed as soon as it's chosen
+    // The page loads its code first; once it has rendered, its section is marked as current.
+    await waitFor(() => expect(heading("Job search").closest(".nav-group")).toHaveClass("is-current"));
     expect(within(nav()).getByRole("link", { name: "Applications" })).toHaveAttribute("aria-current", "page");
   });
 

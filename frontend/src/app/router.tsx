@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components -- route config module, not a component file */
 import { lazy, Suspense } from "react";
-import { createBrowserRouter, type RouteObject } from "react-router-dom";
+import { createBrowserRouter, Outlet, type RouteObject } from "react-router-dom";
 
 import { RequireAuth } from "@/auth/RequireAuth";
 import { LoadingState } from "@/components/States";
@@ -12,13 +12,10 @@ import { GoalsPage } from "@/features/plan/GoalsPage";
 import { PlanPage } from "@/features/plan/PlanPage";
 import { RetryPage } from "@/features/review/RetryPage";
 import { ReviewQueuePage } from "@/features/review/ReviewQueuePage";
-import { TargetsPage } from "@/features/targets/TargetsPage";
-import { TargetWorkspace } from "@/features/targets/TargetWorkspace";
 import { CoachingDetailPage, SubmissionDetailPage } from "@/features/history/ActivityDetailPages";
 import { HistoryPage } from "@/features/history/HistoryPage";
 import { InterviewsPage } from "@/features/interview/InterviewsPage";
 import { QuestionInterviewPage } from "@/features/interview/QuestionInterviewPage";
-import { SettingsPage } from "@/features/settings/SettingsPage";
 import { LandingPage } from "@/features/landing/LandingPage";
 import { PracticePage } from "@/features/careers/PracticePage";
 import { QuestionPage } from "@/features/careers/QuestionPage";
@@ -26,48 +23,61 @@ import { LearnPage } from "@/features/learn/LearnPage";
 import { UnitPage } from "@/features/learn/UnitPage";
 import { NotePage } from "@/features/notes/NotePage";
 import { NotesPage } from "@/features/notes/NotesPage";
-import { ShareComposerPage } from "@/features/sharing/ShareComposerPage";
-import { ShareDetailPage } from "@/features/sharing/ShareDetailPage";
-import { SharedPage } from "@/features/sharing/SharedPage";
-import { SharesPage } from "@/features/sharing/SharesPage";
 import { OfflinePage } from "@/features/offline/OfflinePage";
-import { MyReportsPage } from "@/features/content/MyReportsPage";
 import { AdminGuard } from "@/features/admin/AdminGuard";
-import { AdminReportPage } from "@/features/admin/AdminReportPage";
-import { AdminReportsPage } from "@/features/admin/AdminReportsPage";
-import { AdminTracePage } from "@/features/admin/AdminTracePage";
-import { CollectionPage } from "@/features/saved/CollectionPage";
-import { AttemptPage } from "@/features/scenarios/AttemptPage";
-import { ScenarioBriefing, ScenariosPage } from "@/features/scenarios/ScenariosPage";
-import { QueuePage } from "@/features/saved/QueuePage";
-import { SavedPage } from "@/features/saved/SavedPage";
 import { HelpPage } from "@/features/onboarding/HelpPage";
 import { WelcomePage } from "@/features/onboarding/WelcomePage";
-import { StoriesPage } from "@/features/stories/StoriesPage";
-import { ApplicationPage } from "@/features/applications/ApplicationPage";
-import { ApplicationsPage } from "@/features/applications/ApplicationsPage";
-import { SchedulePage } from "@/features/schedule/SchedulePage";
-import { DrillPage } from "@/features/drills/DrillPage";
-import { RestorePage } from "@/features/settings/RestorePage";
-import { ReflectionPage } from "@/features/reflections/ReflectionPage";
-import { ReflectionsPage } from "@/features/reflections/ReflectionsPage";
-import { DrillsPage } from "@/features/drills/DrillsPage";
-import { WhiteboardEditorPage } from "@/features/whiteboard/WhiteboardEditor";
-import { WhiteboardPage } from "@/features/whiteboard/WhiteboardPage";
-import { KitPage } from "@/features/kit/KitPage";
-import { StoryEditorPage } from "@/features/stories/StoryEditorPage";
 
 import { Layout } from "./Layout";
 import { NotFoundPage } from "./NotFoundPage";
+import { RouteError } from "./RouteError";
 
 // The workspace pulls in the Monaco editor (~MBs); load it only when a problem is opened.
 const WorkspacePage = lazy(() => import("@/features/workspace/WorkspacePage"));
 const InterviewSessionPage = lazy(() => import("@/features/interview/InterviewSessionPage"));
 const AnalyticsPage = lazy(() => import("@/features/analytics/AnalyticsPage"));
+// Account, preparation, editing, sharing and admin pages load when first opened, so the first
+// download stays small. Pages that must work offline (lessons, questions, notes, Saved for offline,
+// history's offline notice) stay in it: a lazy page is only cached once it has been opened online.
+const SettingsPage = lazy(() => import("@/features/settings/SettingsPage").then((m) => ({ default: m.SettingsPage })));
+const RestorePage = lazy(() => import("@/features/settings/RestorePage").then((m) => ({ default: m.RestorePage })));
+const ShareComposerPage = lazy(() => import("@/features/sharing/ShareComposerPage").then((m) => ({ default: m.ShareComposerPage })));
+const ShareDetailPage = lazy(() => import("@/features/sharing/ShareDetailPage").then((m) => ({ default: m.ShareDetailPage })));
+const SharedPage = lazy(() => import("@/features/sharing/SharedPage").then((m) => ({ default: m.SharedPage })));
+const SharesPage = lazy(() => import("@/features/sharing/SharesPage").then((m) => ({ default: m.SharesPage })));
+const AdminReportPage = lazy(() => import("@/features/admin/AdminReportPage").then((m) => ({ default: m.AdminReportPage })));
+const AdminReportsPage = lazy(() => import("@/features/admin/AdminReportsPage").then((m) => ({ default: m.AdminReportsPage })));
+const AdminTracePage = lazy(() => import("@/features/admin/AdminTracePage").then((m) => ({ default: m.AdminTracePage })));
+const MyReportsPage = lazy(() => import("@/features/content/MyReportsPage").then((m) => ({ default: m.MyReportsPage })));
+const CollectionPage = lazy(() => import("@/features/saved/CollectionPage").then((m) => ({ default: m.CollectionPage })));
+const QueuePage = lazy(() => import("@/features/saved/QueuePage").then((m) => ({ default: m.QueuePage })));
+const SavedPage = lazy(() => import("@/features/saved/SavedPage").then((m) => ({ default: m.SavedPage })));
+const AttemptPage = lazy(() => import("@/features/scenarios/AttemptPage").then((m) => ({ default: m.AttemptPage })));
+const ScenarioBriefing = lazy(() => import("@/features/scenarios/ScenariosPage").then((m) => ({ default: m.ScenarioBriefing })));
+const ScenariosPage = lazy(() => import("@/features/scenarios/ScenariosPage").then((m) => ({ default: m.ScenariosPage })));
+const StoriesPage = lazy(() => import("@/features/stories/StoriesPage").then((m) => ({ default: m.StoriesPage })));
+const StoryEditorPage = lazy(() => import("@/features/stories/StoryEditorPage").then((m) => ({ default: m.StoryEditorPage })));
+const ApplicationPage = lazy(() => import("@/features/applications/ApplicationPage").then((m) => ({ default: m.ApplicationPage })));
+const ApplicationsPage = lazy(() => import("@/features/applications/ApplicationsPage").then((m) => ({ default: m.ApplicationsPage })));
+const SchedulePage = lazy(() => import("@/features/schedule/SchedulePage").then((m) => ({ default: m.SchedulePage })));
+const DrillPage = lazy(() => import("@/features/drills/DrillPage").then((m) => ({ default: m.DrillPage })));
+const DrillsPage = lazy(() => import("@/features/drills/DrillsPage").then((m) => ({ default: m.DrillsPage })));
+const ReflectionPage = lazy(() => import("@/features/reflections/ReflectionPage").then((m) => ({ default: m.ReflectionPage })));
+const ReflectionsPage = lazy(() => import("@/features/reflections/ReflectionsPage").then((m) => ({ default: m.ReflectionsPage })));
+const WhiteboardEditorPage = lazy(() => import("@/features/whiteboard/WhiteboardEditor").then((m) => ({ default: m.WhiteboardEditorPage })));
+const WhiteboardPage = lazy(() => import("@/features/whiteboard/WhiteboardPage").then((m) => ({ default: m.WhiteboardPage })));
+const KitPage = lazy(() => import("@/features/kit/KitPage").then((m) => ({ default: m.KitPage })));
+const TargetsPage = lazy(() => import("@/features/targets/TargetsPage").then((m) => ({ default: m.TargetsPage })));
+const TargetWorkspace = lazy(() => import("@/features/targets/TargetWorkspace").then((m) => ({ default: m.TargetWorkspace })));
 
 export const routes: RouteObject[] = [
   {
     element: <Layout />,
+    children: [{
+    // One boundary inside the layout: a lazy page shows a loading state, and a page that fails
+    // (including code that couldn't be downloaded) shows RouteError with the header still there.
+    element: <Suspense fallback={<LoadingState />}><Outlet /></Suspense>,
+    errorElement: <RouteError />,
     children: [
       { path: "/", element: <LandingPage /> },
       { path: "/login", element: <LoginPage /> },
@@ -148,6 +158,7 @@ export const routes: RouteObject[] = [
       { path: "/settings", element: <RequireAuth><SettingsPage /></RequireAuth> },
       { path: "*", element: <NotFoundPage /> },
     ],
+    }],
   },
 ];
 

@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { lazy, Suspense, useId, useState } from "react";
 import { Link } from "react-router-dom";
 
 import type { Note } from "@/api/types";
@@ -6,9 +6,11 @@ import { Button } from "@/components/Button";
 import { InlineError } from "@/components/States";
 import { timeAgo } from "@/lib/format";
 
-import { NoteMarkdown } from "./NoteMarkdown";
 import { parseTags } from "./tags";
 import type { NoteFields, SaveState, useNoteAutosave } from "./useNoteAutosave";
+
+// The preview (and the markdown parser behind it) loads only when the learner switches to it.
+const NoteMarkdown = lazy(() => import("./NoteMarkdown").then((m) => ({ default: m.NoteMarkdown })));
 
 const STATUS: Record<SaveState, string> = {
   idle: "Not saved yet: start typing",
@@ -61,7 +63,7 @@ export function NoteEditor({ editor, compact = false, autoFocus = false }: {
             <button type="button" className="link-button" aria-pressed={preview} onClick={() => setPreview(true)}>Preview</button>
           </span>
         </div>
-        {preview ? <div className="note-preview" aria-labelledby={`${id}-body`}><NoteMarkdown text={fields.body} /></div> : (
+        {preview ? <div className="note-preview" aria-labelledby={`${id}-body`}><Suspense fallback={<p className="subtle">Loading the preview…</p>}><NoteMarkdown text={fields.body} /></Suspense></div> : (
           <textarea className="input note-editor__body" rows={compact ? 5 : 12} maxLength={20000} value={fields.body}
             aria-labelledby={`${id}-body`} aria-describedby={`${id}-md`} onChange={(e) => change({ body: e.target.value })} />
         )}

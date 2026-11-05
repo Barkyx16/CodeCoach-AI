@@ -112,6 +112,8 @@ describe("Notebook", () => {
     const { user } = renderApp(`/notes/${note.id}`, { signedIn: true });
     await screen.findByLabelText("Note");
     await user.click(screen.getByRole("button", { name: "Preview" }));
+    // The preview's markdown renderer loads on first use.
+    await waitFor(() => expect(document.querySelector(".note-markdown")).not.toBeNull());
     const preview = document.querySelector(".note-markdown") as HTMLElement;
     expect(within(preview).getByText("bold").tagName).toBe("STRONG");
     expect(preview.querySelector("script, img")).toBeNull();
