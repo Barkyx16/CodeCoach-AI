@@ -44,7 +44,11 @@ PY="$ROOT/backend/.venv/bin/python"
   echo "revision:  $SHA ($(git -C "$ROOT" log -1 --format=%s "$SHA" | cut -c1-80))"
   echo "worktree:  $TREE (clean checkout of the revision)"
   echo "python:    $("$PY" --version 2>&1)  node: $(node --version 2>&1)"
-  echo "postgres:  ${PG:+$(echo "$PG" | sed -E 's#//([^:/@]+):[^@]*@#//\1:***@#')}${PG:-not run}"
+  if [ -n "$PG" ]; then
+    echo "postgres:  $(echo "$PG" | sed -E 's#//([^:/@]+):[^@]*@#//\1:***@#')"
+  else
+    echo "postgres:  not run"
+  fi
   echo "started:   $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 } >"$OUT/summary.txt"
 B="cd '$TREE/backend' &&"

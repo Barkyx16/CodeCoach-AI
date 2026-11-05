@@ -95,7 +95,16 @@ Open the app at <http://localhost:3000> and the interactive API docs at <http://
 EXECUTION_ENABLED=true RUNNER_TOKEN=$(openssl rand -hex 32) docker compose --profile judge up --build
 ```
 
-**Without Docker** (two terminals):
+**Without Docker, one command** (macOS or Linux; needs Python 3.12+ and Node 20+, on a Mac
+`brew install python@3.13 node`):
+```bash
+./dev.sh
+```
+It installs what it needs on the first run, starts the API (<http://localhost:8000>) and the site
+(<http://localhost:5173>) together and opens the site; `Ctrl+C` stops both. If a tool is missing it
+says which one and how to get it.
+
+**Without Docker, by hand** (two terminals):
 ```bash
 cd backend
 python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
