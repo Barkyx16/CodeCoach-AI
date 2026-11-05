@@ -13,6 +13,20 @@ from prometheus_client.exposition import CONTENT_TYPE_LATEST
 
 # Fixed label values. Anything else a client sends is folded into "other", so labels stay bounded.
 ROUND_ACTIONS = ("answer", "skip", "reply", "skip_followup")
+# A career answer save: how it was sent, and what became of it. "rejected" is any refusal before a
+# save (validation of the parent, rate limit, retired question); db_error/error/timeout a failure.
+ANSWER_KINDS = ("keyed", "unkeyed")
+ANSWER_RESULTS = (
+    "created",
+    "replayed",
+    "replayed_concurrent",
+    "key_conflict",
+    "key_unverifiable",
+    "rejected",
+    "db_error",
+    "timeout",
+    "error",
+)
 UI_ACTIONS = ("answer", "skip", "reply", "skip_followup")
 UI_OUTCOMES = ("rendered", "rejected", "server_error", "network_error", "not_rendered", "ignored")
 
@@ -56,6 +70,14 @@ class Metrics:
             ["action", "outcome"],
             registry=self.registry,
         )
+        # One per career answer save request. Never a key, account or question in a label.
+        self.answer_saves = Counter(
+            "codecoach_answer_saves_total",
+            "Career answer saves by kind (keyed, unkeyed) and result (created, replayed, "
+            "replayed_concurrent, key_conflict, key_unverifiable, rejected, db_error, timeout, error)",
+            ["kind", "result"],
+            registry=self.registry,
+        )
         # Client-measured: from the click to the next state on screen, as the browser reports it.
         self.ui_actions = Counter(
             "codecoach_ui_actions_total",
@@ -93,6 +115,11 @@ class Metrics:
 
     def observe_span(self, name: str, outcome: str, seconds: float) -> None:
         self.span_duration.labels(name, outcome).observe(seconds)
+
+    def answer_save(self, kind: str, result: str) -> None:
+        self.answer_saves.labels(
+            kind if kind in ANSWER_KINDS else "other", result if result in ANSWER_RESULTS else "other"
+        ).inc()
 
     def round_action(self, action: str, outcome: str) -> None:
         self.round_actions.labels(action if action in ROUND_ACTIONS else "other", outcome).inc()

@@ -84,6 +84,7 @@ ids, interview or question ids, or raw URLs.
 | `codecoach_http_requests_total`, `codecoach_http_request_duration_seconds` | counter, histogram | method, route, status | server |
 | `codecoach_span_duration_seconds` | histogram | span, outcome | server |
 | `codecoach_round_actions_total` | counter | action, outcome | server, once per request (a repeated submit is `duplicate`) |
+| `codecoach_answer_saves_total` | counter | kind (keyed, unkeyed), result | server, once per career answer save request (see "Answer saves" below) |
 | `codecoach_ui_actions_total`, `codecoach_ui_action_seconds` | counter, histogram | action, outcome | **browser**, click to outcome |
 | `codecoach_judge_queued_jobs`, `codecoach_judge_oldest_queued_seconds` | gauge | none | database, read at scrape time (right wherever the worker runs) |
 | `codecoach_telemetry_dropped_total` | counter | kind | server: telemetry not recorded; the request itself was fine |
@@ -117,6 +118,58 @@ production traffic to measure availability against.
 - 99% of answers that were sent show their result on screen.
 - 95% of rendered answers on screen within 2 s of the click (browser-measured).
 - No code submission waits more than 5 minutes for a judge.
+
+### Answer saves: what each signal shows (Release Readiness brief 13)
+
+Each career answer save produces one span, `answer.save`, with `action` (keyed or unkeyed) and
+`result`, and one count in `codecoach_answer_saves_total{kind, result}`. Neither carries the key,
+the fingerprint, the account, the question or the text (tested in
+`tests/test_answer_keys.py::test_saves_are_counted_by_kind_and_result_without_keys_text_or_accounts`).
+
+| `result` | What it shows | What it doesn't | Check next |
+|---|---|---|---|
+| `created` | a new answer was committed | that the reply reached the browser | the browser's own report of the action |
+| `replayed` | a keyed resend found its saved answer and returned it, without grading again | why the client resent (a lost reply, a double click, a retry) | none needed; a high share next to `created` points at lost replies or a client resending too eagerly |
+| `replayed_concurrent` | two copies of a keyed request raced; the database's (account, key) uniqueness let one in, and the other got it | which copy was first | none; a steady rate means a client sends twice at once |
+| `key_conflict` | a key was reused for a different request (409 `idempotency_key_reused`) | whether it's a client bug or a person editing a resend | the client's key reuse rule (`frontend/src/features/careers/sendKey.ts`) |
+| `key_unverifiable` | a stored fingerprint this code can't compare (409): a fingerprint version or a row this code doesn't know | data damage versus a newer code version's row | `python -m app.cli check-answers` (`fingerprint_unknown_version`, `key_without_fingerprint`) |
+| `rejected` | refused before saving: rate limit, retired question, a revision link that isn't yours or is to another question | which of those (the span's `error_code` says) | the span log line's `error_code` |
+| `db_error`, `timeout`, `error` | the save failed on the server; nothing was committed (one transaction) | whether the client will resend; a resend with its key is safe | the trace (`trace_id`) of the failing request |
+
+**What no server signal can show.** A reply lost after commit appears as `created`. Its resend
+then appears as `replayed`. A send whose request never arrived appears as nothing at all.
+"Unknown outcome" is a browser state ("No reply came back"), so the server can't count it.
+
+Two more boundaries are fixed by the code:
+
+- An unkeyed resend of a lost reply is a second `created`. Nothing on the server can tell it from
+  a new try.
+- `rejected` from the rate limit counts the hour's allowance like any save. So does a save that
+  failed while grading, because the limiter counts before grading.
+
+**Provider fallbacks vs persistence failures.** Career answers are graded by the built-in coach,
+so a save never waits on a provider. A provider fallback (`codecoach_ai_requests_total`, coaching
+requests above) and an answer save failure are separate signals.
+
+**Where the evidence is.**
+
+- **Compatibility rejections:** `/health/ready` reports `schema: behind` (503) when the database is
+  older than the code.
+- **Data checks:** `python -m app.cli check-answers` reports invariants over stored answers,
+  read-only.
+- **Rehearsals** (local, disposable databases only):
+  - `scripts/rehearse_answer_migration.py`: upgrade, interruption, downgrade;
+  - `scripts/rehearse_restore.py`: dump and restore;
+  - `scripts/mixed_version_probe.py`: mixed code and schema versions.
+
+**Thresholds: proposed, none measured.** No baseline exists, so no alert is added. The figures
+below are proposals to review once there is traffic, each for 30 minutes with at least 50 saves:
+
+- `error` + `db_error` + `timeout` above 1% of saves;
+- `key_unverifiable` above zero (it should never happen with one code version);
+- `replayed` above 10% of `created`.
+
+None is configured or running.
 
 ## Alerts
 

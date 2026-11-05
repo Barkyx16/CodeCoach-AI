@@ -305,6 +305,29 @@ def current_metrics() -> Metrics | None:
 
 
 @contextmanager
+def answer_save(kind: str) -> Iterator[Span]:
+    """A traced, counted career answer save (span ``answer.save``). Set ``result`` on the yielded
+    span (created, replayed, replayed_concurrent, key_conflict, key_unverifiable); a refusal or
+    failure without one is counted by its category. Counted exactly once per request."""
+    result = "error"
+    try:
+        with span("answer.save", action=kind) as handle:
+            try:
+                yield handle
+            except BaseException as exc:
+                result = str(handle.attrs.get("result") or categorize(exc)[0])
+                raise
+            result = str(handle.attrs.get("result") or "created")
+    finally:
+        metrics = current_metrics()
+        if metrics is not None:
+            try:
+                metrics.answer_save(kind, result)
+            except Exception:  # noqa: BLE001
+                metrics.telemetry_dropped.labels("answer_save").inc()
+
+
+@contextmanager
 def round_action(action: str, fmt: str | None = None) -> Iterator[Span]:
     """A traced, counted interview round action. Set `result` on the yielded span
     (advanced, followup, completed, duplicate); a failure is counted by its category instead.

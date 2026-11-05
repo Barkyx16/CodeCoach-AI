@@ -224,7 +224,7 @@ def answer_question(
     question = get_question(_track_or_404(slug), question_id)
     if question is None:
         raise NotFoundError(f"Question '{question_id}' not found")
-    with tracing.span("answer.save", action="keyed" if body.client_request_id else "unkeyed") as step:
+    with tracing.answer_save("keyed" if body.client_request_id else "unkeyed") as step:
         return _save_answer(slug, question, body, request, response, user, db, step)
 
 

@@ -365,3 +365,39 @@ def test_the_server_says_it_honours_keys_and_the_export_keeps_links_but_not_keys
     answers = exported.json()["interview_answers"]
     assert [a["revises"] for a in answers] == [None, first["id"]]
     assert "op-export-000001" not in exported.text
+
+
+# --- signals (Release Readiness brief 13) ----------------------------------------------------------
+
+
+def test_saves_are_counted_by_kind_and_result_without_keys_text_or_accounts(make_client, monkeypatch):
+    from tests.test_tracing import metric
+
+    c = make_client(practice_answers_per_hour=4)
+    h = auth_headers(register(c))
+    body = {"answer": TEXT, "client_request_id": "op-signal-secret-1"}
+    c.post(_url(), headers=h, json=body)  # created (the hour's 1st save)
+    c.post(_url(), headers=h, json=body)  # replayed: answered before the limit, not counted in it
+    c.post(_url(), headers=h, json={**body, "answer": TEXT + " More."})  # key_conflict
+    c.post(_url(), headers=h, json={"answer": TEXT})  # created, unkeyed (2nd)
+    c.post(_url(), headers=h, json={"answer": TEXT})  # created, unkeyed (3rd)
+    real = answers_module.graded_answer
+    monkeypatch.setattr(
+        "app.api.routes.careers.graded_answer", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom"))
+    )
+    with pytest.raises(RuntimeError):  # error (4th: a failed save still used the hour's allowance)
+        c.post(_url(), headers=h, json={"answer": TEXT, "client_request_id": "op-signal-error-1"})
+    monkeypatch.setattr("app.api.routes.careers.graded_answer", real)
+    c.post(_url(), headers=h, json={"answer": TEXT})  # rejected: rate limited
+    want = {
+        ("keyed", "created"): 1,
+        ("keyed", "replayed"): 1,
+        ("keyed", "key_conflict"): 1,
+        ("unkeyed", "created"): 2,
+        ("unkeyed", "rejected"): 1,
+        ("keyed", "error"): 1,
+    }
+    for (kind, result), n in want.items():
+        assert metric(c, "codecoach_answer_saves_total", kind=kind, result=result) == n, (kind, result)
+    page = c.get("/metrics").text
+    assert "op-signal" not in page and TEXT[:20] not in page and "ada@example.com" not in page
