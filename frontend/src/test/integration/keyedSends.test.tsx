@@ -60,6 +60,11 @@ describe("Send keys", () => {
     expect(bodies).toHaveLength(2);
     expect(bodies[0]!.client_request_id).toMatch(/^[A-Za-z0-9_-]{8,64}$/);
     expect(bodies[1]!.client_request_id).toBe(bodies[0]!.client_request_id);
+    // Release Readiness brief 06: the key lives in memory only, never in browser storage or the URL.
+    const key = bodies[0]!.client_request_id!;
+    const stored = [localStorage, sessionStorage].flatMap((st) => Object.keys(st).map((k) => `${k}=${st.getItem(k)}`));
+    expect(stored.join("\n")).not.toContain(key);
+    expect(window.location.href).not.toContain(key);
   });
 
   it("change when the text changes, and a new try after a saved one gets a new key", async () => {
