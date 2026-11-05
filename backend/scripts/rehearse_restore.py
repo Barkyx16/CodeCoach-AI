@@ -98,11 +98,11 @@ def _snapshot(eng: sa.Engine) -> dict:
     }
 
 
-def main(src: str, dst: str) -> int:
+def _rehearse(src: str, dst: str, out: dict) -> int:
     su, du = _guard(src), _guard(dst)
     if su.database == du.database:
         raise SystemExit("refused: source and target must be different databases")
-    out: dict = {"source": su.database, "target": du.database, "steps": []}
+    out.update({"source": su.database, "target": du.database})
     ok = True
 
     def step(name: str, passed: bool, **detail) -> None:
@@ -233,6 +233,18 @@ def main(src: str, dst: str) -> int:
     seng.dispose()
     deng.dispose()
     return 0 if ok else 1
+
+
+def main(src: str, dst: str) -> int:
+    """Run the rehearsal; if a step raises, print what ran so far, labelled aborted, and fail."""
+    out: dict = {"steps": []}
+    try:
+        return _rehearse(src, dst, out)
+    except Exception as exc:  # noqa: BLE001 - reported, then a failing exit status
+        out["passed"] = False
+        out["aborted"] = f"{type(exc).__name__}: {str(exc).splitlines()[0][:200] if str(exc) else ''}"
+        print(json.dumps(out, indent=2, default=str))
+        return 1
 
 
 if __name__ == "__main__":

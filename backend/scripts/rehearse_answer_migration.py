@@ -122,10 +122,10 @@ def _seed(eng: sa.Engine) -> tuple[str, dict[str, str]]:
     return user, ids
 
 
-def main(url: str) -> int:
+def _rehearse(url: str, out: dict) -> int:
     u = _guard(url)
     eng = sa.create_engine(u)
-    out: dict = {"database": u.database, "steps": []}
+    out.update({"database": u.database})
     ok = True
 
     def step(name: str, passed: bool, **detail) -> None:
@@ -241,6 +241,18 @@ def main(url: str) -> int:
     print(json.dumps(out, indent=2))
     eng.dispose()
     return 0 if ok else 1
+
+
+def main(url: str) -> int:
+    """Run the rehearsal; if a step raises, print what ran so far, labelled aborted, and fail."""
+    out: dict = {"steps": []}
+    try:
+        return _rehearse(url, out)
+    except Exception as exc:  # noqa: BLE001 - reported, then a failing exit status
+        out["passed"] = False
+        out["aborted"] = f"{type(exc).__name__}: {str(exc).splitlines()[0][:200] if str(exc) else ''}"
+        print(json.dumps(out, indent=2, default=str))
+        return 1
 
 
 if __name__ == "__main__":
