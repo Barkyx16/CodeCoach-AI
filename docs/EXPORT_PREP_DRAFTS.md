@@ -93,7 +93,7 @@ No new cases were generated, no sealed data was opened, and no paid or live mode
 
 ## Checks run
 
-Local, on this batch's working tree (Chromium headless, SQLite and PostgreSQL 16):
+On this batch's code (`d5ef6ec`; later commits change documentation only). Local: Chromium headless, SQLite, PostgreSQL 16:
 
 | Check | Result |
 |---|---|
@@ -105,9 +105,9 @@ Local, on this batch's working tree (Chromium headless, SQLite and PostgreSQL 16
 | Migration rehearsal (disposable PostgreSQL) | pass |
 | End-to-end: lazy pages, accessibility, offline | 15 passed |
 | End-to-end: connected journey (`export-prep-drafts.spec.ts`) | passed (36.6 s): interview recorded; preparation scheduled, then switched to follow the interview; reschedule previewed; a stale preview refused after another tab moved the interview again; the refreshed preview confirmed and the entry moved; draft with a chosen interview, edits kept across a change; v2 export downloaded and `check-export` found no problems |
-| Full backend suite (SQLite) | pending at commit time |
-| Full end-to-end suite | pending at commit time |
-| CI on the pushed SHA | pending |
+| Full backend suite, SQLite (`ruff check`, `ruff format --check`, `mypy app evals`, `pytest`) | 2286 passed, 386 skipped, 2 xfailed (the rubric residuals above); lint, format and types clean |
+| Full end-to-end suite (`npx playwright test`, nothing else running) | 96 passed, 3 skipped, 0 failed (12.9 min) |
+| CI on `d5ef6ec` (push run 211, pull-request run 212) | all 7 jobs passed: backend (SQLite, PostgreSQL, migrations match the models, reference solutions, content gates), frontend (lint, types, unit tests, build, API contract, budgets), runner, Docker images, dependency audit, sandbox (gVisor, real judge, judge e2e), end-to-end |
 
 ## Changed contracts and migration status
 
