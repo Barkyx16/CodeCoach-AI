@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "./fixtures";
+import { chooseJob, expect, test, type Page } from "./fixtures";
 
 const SOLUTION = `class Solution {
     public int[] twoSum(int[] nums, int target) {
@@ -106,7 +106,7 @@ test("account journey: register, filter library, sign out, sign in", async ({ pa
   await page.getByLabel("Name").fill("Ada");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill("weak");
-  await page.getByLabel("Job you're preparing for").selectOption("software-engineer");
+  await chooseJob(page, "software-engineer");
   await page.getByRole("form", { name: "Create your account" }).getByRole("button", { name: "Create account" }).click();
   await expect(page.getByText(/at least 10 characters|String should have at least 10/i).last()).toBeVisible();
   await page.getByLabel("Password", { exact: true }).fill("CorrectHorse42");

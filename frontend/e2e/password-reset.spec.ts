@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { expect, test } from "./fixtures";
+import { chooseJob, expect, test } from "./fixtures";
 
 // The e2e backend writes emails to backend/e2e-outbox (EMAIL_BACKEND=file).
 const OUTBOX = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../backend/e2e-outbox");
@@ -19,7 +19,7 @@ test("forgot password: email link, new password, old password stops working", as
   await page.goto("/register");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill("CorrectHorse42");
-  await page.getByLabel("Job you're preparing for").selectOption("software-engineer");
+  await chooseJob(page, "software-engineer");
   await page.locator("#main").getByRole("button", { name: "Create account" }).click();
   await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
   await page.getByRole("button", { name: "Sign out" }).click();

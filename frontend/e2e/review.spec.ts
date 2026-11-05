@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "./fixtures";
+import { chooseJob, expect, test } from "./fixtures";
 
 const WEAK = "We handled it together as a team and it was fine in the end.";
 const STRONG =
@@ -12,7 +12,7 @@ test("review a round, retry one question, compare, queue it, and come back to Hi
   await page.goto("/register");
   await page.getByLabel("Email").fill(`review-${Date.now()}@example.com`);
   await page.getByLabel("Password", { exact: true }).fill("CorrectHorse42");
-  await page.getByLabel("Job you're preparing for").selectOption("registered-nurse");
+  await chooseJob(page, "registered-nurse");
   await page.locator("#main").getByRole("button", { name: "Create account" }).click();
   await page.getByRole("link", { name: "Do this later" }).click();
   await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click(); // the optional welcome

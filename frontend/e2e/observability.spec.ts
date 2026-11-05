@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 
-import { expect, test, type Page, type Request } from "./fixtures";
+import { chooseJob, expect, test, type Page, type Request } from "./fixtures";
 
 // One answer followed across the system (docs/OBSERVABILITY.md): the browser's trace context goes
 // with the request, the API continues it, the page reports what it showed, and an admin reads the
@@ -15,7 +15,7 @@ async function signUp(page: Page, tag: string): Promise<string> {
   await page.goto("/register");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill("CorrectHorse42");
-  await page.getByLabel("Job you're preparing for").selectOption("registered-nurse");
+  await chooseJob(page, "registered-nurse");
   await page.locator("#main").getByRole("button", { name: "Create account" }).click();
   await page.getByRole("link", { name: "Do this later" }).click();
   await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click(); // the optional welcome

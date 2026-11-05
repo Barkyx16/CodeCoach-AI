@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "./fixtures";
+import { chooseJob, expect, test, type Page } from "./fixtures";
 
 // The application tracker against the real API: recorded facts, pointer and keyboard moves,
 // history, DST-safe interview times, links, drafts that are never sent, privacy.
@@ -17,7 +17,7 @@ async function signUpNurse(page: Page) {
   await page.goto("/register");
   await page.getByLabel("Email").fill(`apps-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@example.com`);
   await page.getByLabel("Password", { exact: true }).fill("CorrectHorse42");
-  await page.getByLabel("Job you're preparing for").selectOption("registered-nurse");
+  await chooseJob(page, "registered-nurse");
   await page.locator("#main").getByRole("button", { name: "Create account" }).click();
   await page.getByRole("link", { name: "Do this later" }).click();
   await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click();

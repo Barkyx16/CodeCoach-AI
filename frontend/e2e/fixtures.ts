@@ -114,3 +114,14 @@ export const test = base.extend<{ failureDiagnostics: void }>({
     { auto: true },
   ],
 });
+
+/** Choose a job in the job search box (CareerSelect) as a person does: type part of its name,
+ * then click it in the matches. `slug` identifies the job; its words are what gets typed. */
+export async function chooseJob(
+  scope: import("@playwright/test").Page | import("@playwright/test").Locator,
+  slug: string,
+  label: string | RegExp = "Job you're preparing for",
+): Promise<void> {
+  await scope.getByRole("combobox", { name: label }).fill(slug.replace(/-/g, " "));
+  await scope.locator(`[role="option"][data-value="${slug}"]`).click();
+}

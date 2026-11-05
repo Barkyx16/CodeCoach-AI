@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { chooseJob, expect, test } from "./fixtures";
 
 // A nurse signs up, practices nursing interview questions and gets rubric feedback: the whole
 // non-coding path against the real backend.
@@ -6,7 +6,7 @@ test("a nurse picks their job at sign-up, answers a question and gets feedback",
   await page.goto("/register");
   await page.getByLabel("Email").fill(`nurse-${Date.now()}@example.com`);
   await page.getByLabel("Password", { exact: true }).fill("CorrectHorse42");
-  await page.getByLabel("Job you're preparing for").selectOption("registered-nurse");
+  await chooseJob(page, "registered-nurse");
   await page.locator("#main").getByRole("button", { name: "Create account" }).click();
   await page.getByRole("link", { name: "Do this later" }).click();
   await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click(); // the optional welcome

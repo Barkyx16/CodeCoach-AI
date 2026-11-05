@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "./fixtures";
+import { chooseJob, expect, test, type Page } from "./fixtures";
 
 // The unified progress journey against the real backend: one coding and one non-coding career.
 
@@ -73,7 +73,7 @@ test("non-coding: answer, find it in History, inspect Analytics, switch careers 
   await page.goto("/register");
   await page.getByLabel("Email").fill(`progress-${Date.now()}@example.com`);
   await page.getByLabel("Password", { exact: true }).fill("CorrectHorse42");
-  await page.getByLabel("Job you're preparing for").selectOption("registered-nurse");
+  await chooseJob(page, "registered-nurse");
   await page.locator("#main").getByRole("button", { name: "Create account" }).click();
   await page.getByRole("link", { name: "Do this later" }).click();
   await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click(); // the optional welcome
@@ -119,7 +119,7 @@ test("non-coding: answer, find it in History, inspect Analytics, switch careers 
   // Switch careers: history stays, and the old career is still inspectable.
   await page.goto("/settings");
   const careerForm = page.getByRole("form", { name: "Career" });
-  await careerForm.getByLabel("Job you're preparing for").selectOption("barista");
+  await chooseJob(careerForm, "barista");
   await careerForm.getByRole("button", { name: "Save career" }).click();
   await expect(careerForm.getByText(/Saved/)).toBeVisible();
   await page.goto("/history?career=registered-nurse");

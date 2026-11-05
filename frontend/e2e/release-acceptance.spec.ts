@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "./fixtures";
+import { chooseJob, expect, test, type Page } from "./fixtures";
 
 // Release Readiness brief 14, against the real backend: the practice → feedback → lost reply →
 // revision flow keeps working through the compatibility states. A server that stops saying it
@@ -17,7 +17,7 @@ async function newNurse(page: Page, prefix: string): Promise<string> {
   await page.goto("/register");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill("CorrectHorse42");
-  await page.getByLabel("Job you're preparing for").selectOption("registered-nurse");
+  await chooseJob(page, "registered-nurse");
   await page.locator("#main").getByRole("button", { name: "Create account" }).click();
   await page.getByRole("link", { name: "Do this later" }).click();
   await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click();

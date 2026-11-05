@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "./fixtures";
+import { chooseJob, expect, test, type Page } from "./fixtures";
 
 // The optional first session against the real API: a welcome with a real activity from the
 // learner's own job, a tour of the real page that can be left and resumed, and Help.
@@ -28,7 +28,7 @@ test("a new nurse is welcomed, tours a real nursing question, gets real feedback
   await page.goto("/register");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill("CorrectHorse42");
-  await page.getByLabel("Job you're preparing for").selectOption("registered-nurse");
+  await chooseJob(page, "registered-nurse");
   await page.locator("#main").getByRole("button", { name: "Create account" }).click();
   await page.getByRole("link", { name: "Do this later" }).click();
 
@@ -137,7 +137,7 @@ test("a guest can switch job on the welcome, and the tour works at 320px in the 
   await expect(page).toHaveURL(/\/welcome$/);
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await page.getByRole("button", { name: "Change job" }).click();
-  await page.getByLabel("Job you're preparing for").selectOption("registered-nurse");
+  await chooseJob(page, "registered-nurse");
   await page.getByRole("button", { name: "Use this job" }).click();
   await expect(page.locator("#main").getByText("You're practising for")).toContainText("Registered Nurse");
   await expect(page.getByRole("heading", { name: "Answer one question now" })).toBeVisible();

@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { chooseJob, expect, test } from "./fixtures";
 
 const STRONG =
   "Last winter, while I was working nights, a patient's oxygen dropped during my 2 a.m. assessment. I was " +
@@ -10,7 +10,7 @@ test("a new nurse skips setup, takes the baseline, and the plan adapts for state
   await page.goto("/register");
   await page.getByLabel("Email").fill(`plan-${Date.now()}@example.com`);
   await page.getByLabel("Password", { exact: true }).fill("CorrectHorse42");
-  await page.getByLabel("Job you're preparing for").selectOption("registered-nurse");
+  await chooseJob(page, "registered-nurse");
   await page.locator("#main").getByRole("button", { name: "Create account" }).click();
   await page.getByRole("link", { name: "Do this later" }).click();
   await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click(); // the optional welcome

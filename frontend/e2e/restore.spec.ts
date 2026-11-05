@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "./fixtures";
+import { chooseJob, expect, test, type Page } from "./fixtures";
 
 // Restore against the real API with synthetic accounts only: download a real backup from one
 // account, preview and restore it into another, restore it again (nothing added), edit one
@@ -19,7 +19,7 @@ async function signUp(page: Page, tag: string) {
   await page.goto("/register");
   await page.getByLabel("Email").fill(`${tag}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@example.com`);
   await page.getByLabel("Password", { exact: true }).fill("CorrectHorse42");
-  await page.getByLabel("Job you're preparing for").selectOption("registered-nurse");
+  await chooseJob(page, "registered-nurse");
   await page.locator("#main").getByRole("button", { name: "Create account" }).click();
   await page.getByRole("link", { name: "Do this later" }).click();
   await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click();

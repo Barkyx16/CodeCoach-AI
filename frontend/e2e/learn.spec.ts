@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "./fixtures";
+import { chooseJob, expect, test } from "./fixtures";
 
 const ANSWER =
   "Situation: an oxygen alarm went off while another patient needed help to the bathroom. I asked a nursing " +
@@ -10,7 +10,7 @@ test("a nurse learns before practising: prerequisite, guided help, solution, che
   await page.goto("/register");
   await page.getByLabel("Email").fill(`learn-${Date.now()}@example.com`);
   await page.getByLabel("Password", { exact: true }).fill("CorrectHorse42");
-  await page.getByLabel("Job you're preparing for").selectOption("registered-nurse");
+  await chooseJob(page, "registered-nurse");
   await page.locator("#main").getByRole("button", { name: "Create account" }).click();
   await page.getByRole("link", { name: "Do this later" }).click();
   await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click(); // the optional welcome

@@ -2,6 +2,7 @@ import { act, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
 import { tokenResponse, user as baseUser } from "../fixtures";
+import { chooseCareer } from "../careerPicker";
 import { renderApp } from "../render";
 import { API, server } from "../server";
 
@@ -39,9 +40,7 @@ describe("Career practice", () => {
       return HttpResponse.json(nurse);
     }));
     const { user } = renderApp("/problems", { signedIn: true });
-    const select = await screen.findByLabelText("Practicing for");
-    await waitFor(() => expect(select).toBeEnabled());
-    await user.selectOptions(select, "registered-nurse");
+    await chooseCareer(user, await screen.findByLabelText("Practicing for"), "registered-nurse");
     expect(await screen.findByRole("heading", { name: "Registered Nurse interview questions" })).toBeInTheDocument();
     expect(body).toEqual({ career_track: "registered-nurse" });
   });
@@ -98,7 +97,7 @@ describe("Career practice", () => {
     const select = form.getByLabelText("Job you're preparing for");
     await waitFor(() => expect(select).toBeEnabled());
     expect(form.getByRole("button", { name: "Save career" })).toBeDisabled(); // nothing changed yet
-    await user.selectOptions(select, "barista");
+    await chooseCareer(user, select, "barista");
     await user.click(form.getByRole("button", { name: "Save career" }));
     expect(await form.findByText(/Your practice questions now match this job/)).toBeInTheDocument();
     expect(body).toEqual({ career_track: "barista" });
@@ -115,7 +114,7 @@ describe("Career practice", () => {
     await user.type(screen.getByLabelText("Password"), "CorrectHorse42");
     const create = within(screen.getByRole("main")).getByRole("button", { name: "Create account" });
     expect(create).toBeDisabled();
-    await user.selectOptions(await screen.findByLabelText("Job you're preparing for"), "barista");
+    await chooseCareer(user, await screen.findByLabelText("Job you're preparing for"), "barista");
     await user.click(create);
     await waitFor(() => expect(body.career_track).toBe("barista"));
   });

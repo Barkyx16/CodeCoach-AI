@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "./fixtures";
+import { chooseJob, expect, test, type Page } from "./fixtures";
 
 // Whiteboard practice against the real API: a diagram built with the keyboard only, one with the
 // pointer, undo/redo, recovery after a reload, strict imports, feedback that names elements,
@@ -18,7 +18,7 @@ async function signUpCoder(page: Page) {
   await page.goto("/register");
   await page.getByLabel("Email").fill(`wb-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@example.com`);
   await page.getByLabel("Password", { exact: true }).fill("CorrectHorse42");
-  await page.getByLabel("Job you're preparing for").selectOption("software-engineer");
+  await chooseJob(page, "software-engineer");
   await page.locator("#main").getByRole("button", { name: "Create account" }).click();
   await page.getByRole("link", { name: "Do this later" }).click();
   await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click();
