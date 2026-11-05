@@ -1,29 +1,26 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
-import { usePlan, useReviewQueue, useSaveGoals } from "@/api/queries";
+import { usePlan, useReviewQueue, useSaveGoals, useSchedule } from "@/api/queries";
+import type { PlanItem } from "@/api/types";
+import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/Button";
 import { ErrorState, LoadingState } from "@/components/States";
 
 import { ActivityCard } from "./ActivityCard";
 import { PlanChanges } from "./PlanChanges";
+import { addedFor, saveAdded } from "./todayAdded";
+import { saveMinutes, savedMinutes, TODAY_OPTIONS as OPTIONS } from "./todayMinutes";
 
-const OPTIONS = [5, 15, 30] as const;
-const KEY = "codecoach.today.minutes";
-
-function savedMinutes(): number {
-  try {
-    const v = Number(window.localStorage.getItem(KEY));
-    return (OPTIONS as readonly number[]).includes(v) ? v : 15;
-  } catch {
-    return 15;
-  }
-}
+const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 /**
  * "Today's practice": one recommendation sized to the time you have, with a support rail beside
- * it (this week's planned minutes, and the optional goal setup). The time chosen is a budget; the
- * session estimate is what the plan actually holds, and both are shown under their own names.
+ * it (estimated minutes of the last 7 days against the weekly goal, and the optional goal setup).
+ * The time chosen is a maximum budget, not a target: the session estimate is what the plan holds,
+ * and both are shown under their own names. With time left, the learner may add another pending
+ * activity from the same plan that fits what's left; nothing is added for them, and an unused
+ * minute isn't a shortfall.
  */
 export function TodayCard() {
   const [minutes, setMinutes] = useState(savedMinutes);
@@ -32,16 +29,40 @@ export function TodayCard() {
   const reviews = useReviewQueue();
   const choose = (m: number) => {
     setMinutes(m);
-    try {
-      window.localStorage.setItem(KEY, String(m));
-    } catch {
-      /* not remembered */
-    }
+    saveMinutes(m);
+  };
+
+  const { user } = useAuth();
+  const now = new Date();
+  const schedule = useSchedule(isoDay(now), isoDay(new Date(now.getTime() + 60 * 86_400_000)));
+  const scheduledFor = (id: string) =>
+    schedule.data?.find((e) => e.kind === "plan_item" && e.ref === id && e.status === "scheduled" && !e.done_at) ?? null;
+
+  // Activities the learner chose to add today, by id, for this plan version and budget only.
+  const scope = plan.data && user ? `${user.id}:${plan.data.track}:${plan.data.version}:${minutes}` : null;
+  const [addedState, setAddedState] = useState<{ scope: string | null; ids: string[] }>({ scope: null, ids: [] });
+  const added = scope && addedState.scope === scope ? addedState.ids : scope ? addedFor(scope) : [];
+  const add = (id: string) => {
+    if (!scope) return;
+    const ids = [...added, id];
+    saveAdded(scope, ids);
+    setAddedState({ scope, ids });
   };
 
   const today = plan.data?.today;
   const progress = plan.data?.progress;
   const due = reviews.data?.due.length ?? 0;
+  const items = plan.data?.items ?? [];
+  // Added items still in this plan version (a new version after a completion starts afresh).
+  const addedItems = added.map((id) => items.find((i) => i.id === id)).filter((i): i is PlanItem => i !== undefined);
+  const addedMinutes = addedItems.reduce((n, i) => n + i.minutes, 0);
+  const session = (today?.session_minutes ?? 0) + addedMinutes;
+  const left = minutes - session;
+  const inToday = new Set([today?.primary?.id, today?.follow_up?.id, ...added]);
+  const candidate = items
+    .filter((i) => i.status === "pending" && !inToday.has(i.id))
+    .sort((a, b) => a.position - b.position)
+    .find((i) => i.minutes <= left) ?? null;
   return (
     <section className="today" aria-labelledby="today-title">
       <div className="today__head">
@@ -67,32 +88,57 @@ export function TodayCard() {
             {today!.note && <p className="subtle today__note">{today!.note}</p>}
             {today!.primary ? (
               <div className="today__card">
-                <ActivityCard item={today!.primary} featured />
+                <ActivityCard item={today!.primary} featured scheduled={scheduledFor(today!.primary.id)} />
                 {/* Beside the recommendation, not inside it: the follow-up has its own actions. */}
                 <div className="today__card-footer">
                   {today!.follow_up ? (
                     <details className="today__follow">
                       <summary>Next: {today!.follow_up.title} · About {today!.follow_up.minutes} min</summary>
-                      <ActivityCard item={today!.follow_up} compact />
+                      <ActivityCard item={today!.follow_up} compact scheduled={scheduledFor(today!.follow_up.id)} />
                     </details>
                   ) : <span />}
-                  <span className="today__estimate">Session estimate: about {today!.session_minutes} min</span>
+                  <span className="today__estimate">
+                    Session estimate: about {session} min{addedItems.length > 0 ? ` (with ${addedItems.length} added)` : ""}
+                  </span>
                 </div>
               </div>
             ) : <p className="today__empty">Nothing open right now. Your plan refreshes as you practise.</p>}
+            {today!.primary && addedItems.length > 0 && (
+              <section className="today__added" aria-labelledby="added-title">
+                <h3 className="today__added-title" id="added-title">Added for today</h3>
+                {addedItems.map((i) => <ActivityCard key={i.id} item={i} compact scheduled={scheduledFor(i.id)} />)}
+              </section>
+            )}
+            {today!.primary && left >= 5 && (
+              <p className="today__topup">
+                <span>About {left} of your {minutes} min left.</span>
+                {candidate ? (
+                  <Button size="sm" variant="secondary" onClick={() => add(candidate.id)}>
+                    Add another activity ({candidate.title}, about {candidate.minutes} min)
+                  </Button>
+                ) : (
+                  <span className="subtle">
+                    Nothing else in your plan fits that, and that's fine.
+                    {due > 0 && <> You could <Link to="/reviews">review {due} saved {due === 1 ? "answer" : "answers"} that {due === 1 ? "is" : "are"} due</Link>.</>}
+                  </span>
+                )}
+              </p>
+            )}
           </div>
           <div className="today__rail">
             <section className="rail-card" aria-labelledby="week-title">
-              <h3 className="rail-card__eyebrow" id="week-title">This week</h3>
+              {/* A rolling 7 days of estimated minutes for finished activities (each counted once),
+                  not timed practice: the label says so. */}
+              <h3 className="rail-card__eyebrow" id="week-title">Last 7 days</h3>
               <p className="rail-card__metric">
                 <span className="rail-card__value">{progress!.minutes_this_week}</span>
-                <span className="subtle"> / {progress!.weekly_minutes} min planned</span>
+                <span className="subtle"> / {progress!.weekly_minutes} min weekly goal</span>
               </p>
               <span className="stat__bar" aria-hidden="true">
                 <span style={{ width: `${progress!.weekly_minutes ? Math.min(progress!.minutes_this_week / progress!.weekly_minutes, 1) * 100 : 0}%` }} />
               </span>
               <p className="subtle rail-card__detail">
-                {progress!.done_this_week} {progress!.done_this_week === 1 ? "activity" : "activities"} completed
+                Estimated from {progress!.done_this_week} finished {progress!.done_this_week === 1 ? "activity" : "activities"}, not timed
                 {plan.data.days_to_interview !== null && plan.data.days_to_interview !== undefined ? ` · ${plan.data.days_to_interview} days to your interview` : ""}
               </p>
               <p className="rail-card__links">

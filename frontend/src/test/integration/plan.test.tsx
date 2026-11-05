@@ -19,8 +19,9 @@ describe("Today", () => {
     expect(primary).toHaveTextContent("Baseline"); // its type; the skill, also "Baseline", isn't repeated
     expect(within(primary).getByText(/About 12 min/)).toBeInTheDocument();
     expect(within(primary).getByText(/Finish the baseline round/)).toBeInTheDocument();
-    const week = within(today).getByRole("region", { name: "This week" });
-    expect(week).toHaveTextContent("6 / 60 min planned"); // planned minutes keep their own label, apart from the session estimate
+    const week = within(today).getByRole("region", { name: "Last 7 days" });
+    expect(week).toHaveTextContent("6 / 60 min weekly goal"); // its own label, apart from the session estimate
+    expect(week).toHaveTextContent(/Estimated from \d+ finished activit(y|ies), not timed/);
   });
 
   it("the time options really change the suggested session", async () => {

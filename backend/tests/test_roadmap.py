@@ -310,3 +310,98 @@ def test_two_tabs_opening_a_new_plan_at_once_both_get_the_same_plan(client, monk
     assert [i["title"] for i in mine["items"]] == [i["title"] for i in other_tab["plan"]["items"]]
     with client.app.state.session_factory() as db:
         assert db.scalar(select(func.count()).select_from(PracticePlan)) == 1
+
+
+def test_one_spoken_answer_completes_one_activity_not_two(client):
+    """The voice activity asks out loud for the first focus question, so one spoken answer used to
+    finish both it and that question's own activity, and its minutes counted twice. Evidence is
+    now used once: the round claims its answer first; the written activity waits for another."""
+    h = user(client)
+    client.put(
+        "/api/v1/me/goals", headers=h, json={"focus_areas": ["triage"], "formats": ["written", "voice"]}
+    )
+    before = plan(client, h)
+    voice = next(i for i in before["items"] if i["kind"] == "voice")
+    [qid] = voice["round"]["question_ids"]
+    written = next(i for i in before["items"] if i["kind"] == "question" and i["href"].endswith(f"/{qid}"))
+    iv = client.post(
+        "/api/v1/interviews", headers=h, json={"kind": "questions", "question_ids": [qid]}
+    ).json()
+    r = client.post(
+        f"/api/v1/interviews/{iv['id']}/answers",
+        headers=h,
+        json={"question_index": 0, "answer": STRONG, "source": "voice"},
+    )
+    assert r.status_code == 200, r.text
+
+    after = plan(client, h)
+    assert f"Done: “{voice['title']}” (answered out loud)." in after["changes"]
+    assert not any(c.startswith(f"Done: “{written['title']}”") for c in after["changes"])  # not twice
+    assert after["progress"]["done_this_week"] == 1
+    assert after["progress"]["minutes_this_week"] == voice["minutes"]
+
+
+def test_a_too_short_answer_finishes_the_activity_without_quoting_a_score(client):
+    h = user(client)
+    q = next(i for i in plan(client, h)["items"] if i["kind"] == "question")
+    qid = q["href"].rsplit("/", 1)[1]
+    answer(client, h, "registered-nurse", qid, text="I would check on the patient.")
+    changes = plan(client, h)["changes"]
+    assert f"Done: “{q['title']}” (answered (too short to score))." in changes  # attempted, not scored
+    assert not any("scored" in c and q["title"] in c and "too short" not in c for c in changes)
+
+
+def test_swapping_never_repeats_a_target_and_keeps_the_original_when_nothing_is_left(client):
+    """Each swap brings in a question with the same skill that this plan hasn't had (the replaced
+    ones are avoided). When the pool runs out, the request says so and the activity stays."""
+    h = user(client)
+    item = next(i for i in plan(client, h)["items"] if i["kind"] == "question")
+    seen = {item["href"].rsplit("/", 1)[1]}
+    current = item
+    for _ in range(200):
+        r = client.post(f"/api/v1/me/plan/items/{current['id']}/replace", headers=h)
+        if r.status_code == 409:
+            break
+        assert r.status_code == 200, r.text
+        new = r.json()
+        qid = new["href"].rsplit("/", 1)[1]
+        assert qid not in seen and new["skill"] == item["skill"] and new["minutes"] == item["minutes"]
+        seen.add(qid)
+        current = new
+    else:
+        raise AssertionError("the pool never ran out")
+    assert r.json()["error"]["code"] == "no_alternative"
+    assert "stays in your plan" in r.json()["error"]["message"]
+    still = {i["id"]: i for i in plan(client, h)["items"]}
+    assert still[current["id"]]["status"] == "pending"  # not dropped, not marked done
+
+
+def test_a_coding_swap_is_never_longer_than_what_it_replaces(client):
+    h = user(client, track="software-engineer", email="sam@example.com")
+    client.put("/api/v1/me/goals", headers=h, json={"formats": ["written", "coding"]})
+    coding = next(i for i in plan(client, h)["items"] if i["kind"] == "coding")
+    r = client.post(f"/api/v1/me/plan/items/{coding['id']}/replace", headers=h)
+    if r.status_code == 200:
+        assert r.json()["minutes"] <= coding["minutes"]
+    else:
+        assert r.status_code == 409 and r.json()["error"]["code"] == "no_alternative"
+
+
+def test_weekly_minutes_are_a_rolling_7_days_of_estimates_each_counted_once(client, monkeypatch):
+    """What the dashboard calls "Last 7 days": estimated minutes of activities finished in the
+    previous 7 days (not timed practice), each activity once however often the plan is read."""
+    from datetime import timedelta
+
+    from app.services import roadmap
+
+    h = user(client)
+    q = next(i for i in plan(client, h)["items"] if i["kind"] == "question")
+    answer(client, h, "registered-nurse", q["href"].rsplit("/", 1)[1])
+    for _ in range(3):  # reading the plan again doesn't count the same activity again
+        progress = plan(client, h)["progress"]
+        assert progress["done_this_week"] == 1 and progress["minutes_this_week"] == q["minutes"]
+
+    real_now = roadmap._now
+    monkeypatch.setattr(roadmap, "_now", lambda: real_now() + timedelta(days=8))
+    later = plan(client, h)["progress"]
+    assert later["done_this_week"] == 0 and later["minutes_this_week"] == 0  # out of the 7 days

@@ -10,6 +10,7 @@ import { countLocalWork } from "@/auth/localWork";
 import { AppStatus } from "./AppStatus";
 import { Reminders } from "@/features/schedule/Reminders";
 import { TourFinishReconciler } from "@/features/onboarding/TourFinishReconciler";
+import { PlanReturn } from "@/features/plan/PlanReturn";
 import { MainNav, type NavGroup } from "./MainNav";
 import { NAV_ICONS } from "./navIcons";
 import { RouteAccessibility } from "./RouteAccessibility";
@@ -182,6 +183,7 @@ export function Layout() {
       )}
       <main id="main" className="app__main" tabIndex={-1}>
         <FocusModeContext.Provider value={focusMode}>
+          {isAuthenticated && <PlanReturn />}
           <Outlet />
         </FocusModeContext.Provider>
       </main>

@@ -1,8 +1,8 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 import { ScheduleLink } from "@/features/schedule/ScheduleLink";
 
-import type { PlanItem } from "@/api/types";
+import type { PlanItem, ScheduleEntry } from "@/api/types";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Icon, type IconName } from "@/components/Icon";
@@ -10,7 +10,7 @@ import { MoreOptions } from "@/components/MoreOptions";
 import { InlineError } from "@/components/States";
 import { usePlanItemAction } from "@/api/queries";
 
-import { useStartActivity } from "./useStartActivity";
+import { planReturnState, useStartActivity } from "./useStartActivity";
 
 const KIND_LABEL: Record<PlanItem["kind"], string> = {
   assessment: "Baseline",
@@ -46,11 +46,14 @@ const STATUS_LABEL: Record<PlanItem["status"], string> = {
  * filled action (Start practice); "Choose another" swaps it; scheduling and skipping sit in
  * More options. `featured` is Today's recommendation.
  */
-export function ActivityCard({ item, headingLevel = 3, compact = false, featured = false }: {
+export function ActivityCard({ item, headingLevel = 3, compact = false, featured = false, scheduled = null }: {
   item: PlanItem; headingLevel?: 2 | 3; compact?: boolean; featured?: boolean;
+  /** An upcoming schedule entry for this activity, if there is one: shown instead of another "Add". */
+  scheduled?: ScheduleEntry | null;
 }) {
   const start = useStartActivity();
   const action = usePlanItemAction();
+  const { pathname } = useLocation();
   const H = headingLevel === 2 ? "h2" : "h3";
   const open = item.status === "pending";
   const variant = `${compact ? " activity-card--compact" : ""}${featured ? " activity-card--featured" : ""}`;
@@ -63,6 +66,7 @@ export function ActivityCard({ item, headingLevel = 3, compact = false, featured
         </span>
         {item.skill !== KIND_LABEL[item.kind] && <span className="activity-card__skill"><span className="visually-hidden">Skill: </span>{item.skill}</span>}
         <span className="activity-card__time"><Icon name="clock" size={13} aria-hidden="true" /> About {item.minutes} min</span>
+        {open && scheduled && <span className="activity-card__scheduled">Scheduled {whenText(scheduled)}</span>}
         {!open && <Badge tone={item.status === "done" ? "success" : "neutral"}>{STATUS_LABEL[item.status]}{item.evidence ? `: ${item.evidence}` : ""}</Badge>}
       </div>
       <H className="activity-card__title" id={`act-${item.id}`}>{item.title}</H>
@@ -71,7 +75,8 @@ export function ActivityCard({ item, headingLevel = 3, compact = false, featured
       {open && (
         <div className="activity-card__actions">
           {item.href ? (
-            <Link className="btn btn--primary btn--md" to={item.href} state={{ from: "/dashboard", fromLabel: "Back to your plan" }}>
+            <Link className="btn btn--primary btn--md" to={item.href} state={planReturnState(pathname, item)}
+              onClick={() => start.remember(item, item.href!)}>
               Start practice <Icon name="arrow" size={15} />
             </Link>
           ) : (
@@ -86,7 +91,9 @@ export function ActivityCard({ item, headingLevel = 3, compact = false, featured
               onClick={() => action.mutate({ id: item.id, action: "replace" })}>Choose another</Button>
           )}
           <MoreOptions>
-            <ScheduleLink kind="plan_item" refId={item.id} title={item.title} />
+            {scheduled
+              ? <Link to="/schedule">Scheduled {whenText(scheduled)}: view or change</Link>
+              : <ScheduleLink kind="plan_item" refId={item.id} title={item.title} />}
             <Button variant="ghost" loading={action.isPending && action.variables?.action === "skip"}
               onClick={() => action.mutate({ id: item.id, action: "skip" })}>Skip for now</Button>
           </MoreOptions>
@@ -98,4 +105,10 @@ export function ActivityCard({ item, headingLevel = 3, compact = false, featured
       <InlineError error={start.error ?? action.error} />
     </article>
   );
+}
+
+/** "Thu 6 Nov at 09:00" (or the day alone for an all-day entry), in the learner's locale. */
+function whenText(entry: ScheduleEntry): string {
+  const day = new Date(`${entry.on_date}T00:00:00`).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+  return entry.local_time && !entry.all_day ? `${day} at ${entry.local_time.slice(0, 5)}` : day;
 }

@@ -38,7 +38,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.careers import CATALOG
-from app.careers.eligibility import eligibility, eligibility_columns
+from app.careers.eligibility import eligibility, eligibility_columns, feedback_eligibility
 from app.careers.questions import Question, get_question, questions_for
 from app.careers.skills import career_skills, question_skills, questions_by_skill
 from app.errors import AppError, ConflictError, NotFoundError
@@ -78,6 +78,19 @@ from app.services.progress import ProgressService
 
 DEFAULT_TRACK = "software-engineer"
 DEFAULT_WEEKLY_MINUTES = 60
+
+
+@dataclass
+class _Used:
+    """Evidence that already completed an item: answer ids and round (session) ids."""
+
+    answers: set[str]
+    sessions: set[str]
+
+
+# Rounds are matched before single answers, so a round claims the answers inside it.
+_ROUND_ORDER = {"assessment": 0, "mock": 1, "voice": 2}
+
 WEAK = 70
 STRONG = 85
 MAX_ITEMS = 8
@@ -602,38 +615,92 @@ class Roadmap:
         return plan
 
     def _sync(self, user: User, plan: PracticePlan) -> list[str]:
-        """Mark pending items done from evidence recorded after they were planned."""
+        """Mark pending items done from evidence recorded after they were planned.
+
+        One piece of evidence (a saved answer, or a finished round) completes at most one item, so
+        one spoken answer can't finish both "answer out loud" and "answer this question", and its
+        minutes aren't counted twice. Rounds are matched first and claim the answers inside them;
+        single-answer items then need an answer no other item used.
+        """
         done: list[str] = []
-        for item in plan.items:
-            if item.status != "pending":
-                continue
-            found = self._find_evidence(user, plan.track, item)
+        used = self._used_evidence(plan)
+        pending = [i for i in plan.items if i.status == "pending"]
+        pending.sort(key=lambda i: (_ROUND_ORDER.get(i.kind, len(_ROUND_ORDER)), i.position))
+        for item in pending:
+            found = self._find_evidence(user, plan.track, item, used)
             if found:
                 item.status = "done"
                 item.evidence = found
                 item.resolved_at = _now()
+                used.answers.update(found.get("answer_ids", []))
+                if found.get("answer_id"):
+                    used.answers.add(found["answer_id"])
+                if found.get("session_id"):
+                    used.sessions.add(found["session_id"])
                 done.append(f"Done: “{item.title}” ({found['label']}).")
         return done
 
-    def _find_evidence(self, user: User, track: str, item: PlanItem) -> dict[str, Any] | None:
+    def _used_evidence(self, plan: PracticePlan) -> _Used:
+        """The answers and rounds that already completed an item of this plan version."""
+        used = _Used(set(), set())
+        legacy: list[str] = []  # rounds recorded before items listed their answers
+        for item in plan.items:
+            ev = item.evidence or {}
+            if item.status != "done":
+                continue
+            if ev.get("answer_id"):
+                used.answers.add(ev["answer_id"])
+            used.answers.update(ev.get("answer_ids", []))
+            if ev.get("session_id"):
+                used.sessions.add(ev["session_id"])
+                if "answer_ids" not in ev:
+                    legacy.append(ev["session_id"])
+        if legacy:
+            used.answers.update(self._round_answers(legacy))
+        return used
+
+    def _round_answers(self, session_ids: list[str]) -> list[str]:
+        return [
+            a
+            for a in self.db.scalars(
+                select(InterviewTurn.answer_id).where(
+                    InterviewTurn.session_id.in_(session_ids), InterviewTurn.answer_id.is_not(None)
+                )
+            ).all()
+            if a
+        ]
+
+    def _find_evidence(
+        self, user: User, track: str, item: PlanItem, used: _Used | None = None
+    ) -> dict[str, Any] | None:
         since = _aware(item.created_at)
         t = item.target or {}
+        used = used or _Used(set(), set())
         if item.kind in ("question", "retry"):
-            a = self.db.scalar(
-                select(PracticeAnswer)
-                .where(
-                    PracticeAnswer.user_id == user.id,
-                    PracticeAnswer.track == track,
-                    PracticeAnswer.question_id == t.get("question_id"),
-                    PracticeAnswer.created_at >= since,
-                )
-                .order_by(PracticeAnswer.created_at.desc())
-                .limit(1)
+            query = select(PracticeAnswer).where(
+                PracticeAnswer.user_id == user.id,
+                PracticeAnswer.track == track,
+                PracticeAnswer.question_id == t.get("question_id"),
+                PracticeAnswer.created_at >= since,
             )
-            return {"answer_id": a.id, "label": f"answered, scored {a.score}/100"} if a else None
+            if used.answers:
+                query = query.where(PracticeAnswer.id.not_in(used.answers))
+            a = self.db.scalar(query.order_by(PracticeAnswer.created_at.desc()).limit(1))
+            if a is None:
+                return None
+            # A too-short answer did the activity, but it isn't a scored result: don't quote its score.
+            kind = feedback_eligibility(a.feedback)
+            label = (
+                f"answered, scored {a.score}/100"
+                if kind == "scored"
+                else "answered (too short to score)"
+                if kind == "too_short"
+                else "answered"
+            )
+            return {"answer_id": a.id, "label": label}
         if item.kind == "voice":
             rows = self.db.execute(
-                select(InterviewTurn.session_id, InterviewTurn.meta)
+                select(InterviewTurn.session_id, InterviewTurn.answer_id, InterviewTurn.meta)
                 .join(PracticeSession, PracticeSession.id == InterviewTurn.session_id)
                 .where(
                     PracticeSession.user_id == user.id,
@@ -641,9 +708,25 @@ class Roadmap:
                     InterviewTurn.role == TurnRole.CANDIDATE,
                     InterviewTurn.created_at >= since,
                 )
+                .order_by(InterviewTurn.created_at)
             ).all()
-            hit = next((sid for sid, meta in rows if (meta or {}).get("source") in ("voice", "mixed")), None)
-            return {"session_id": hit, "label": "answered out loud"} if hit else None
+            hit = next(
+                (
+                    (sid, aid)
+                    for sid, aid, meta in rows
+                    if (meta or {}).get("source") in ("voice", "mixed")
+                    and sid not in used.sessions
+                    and aid not in used.answers
+                ),
+                None,
+            )
+            if hit is None:
+                return None
+            return {
+                "session_id": hit[0],
+                "answer_ids": [hit[1]] if hit[1] else [],
+                "label": "answered out loud",
+            }
         if item.kind in ("mock", "assessment"):
             sessions = self.db.scalars(
                 select(PracticeSession).where(
@@ -659,12 +742,15 @@ class Roadmap:
                 (
                     s
                     for s in sessions
-                    if (s.plan or {}).get("purpose", "practice") == want
+                    if s.id not in used.sessions
+                    and (s.plan or {}).get("purpose", "practice") == want
                     and (want == "baseline" or len((s.plan or {}).get("question_ids", [])) >= 5)
                 ),
                 None,
             )
-            return {"session_id": s.id, "label": "round finished"} if s else None
+            if s is None:
+                return None
+            return {"session_id": s.id, "answer_ids": self._round_answers([s.id]), "label": "round finished"}
         if item.kind == "learn":
             ev = self.db.scalar(
                 select(LearnEvent)
@@ -812,7 +898,8 @@ class Roadmap:
                 )
         else:
             for rec in ProgressService(self.db).recommend(user, limit=6):
-                if rec.slug not in taken:
+                # Never longer than what it replaces: a swap mustn't quietly overrun the time chosen.
+                if rec.slug not in taken and CODING_MINUTES.get(rec.difficulty, 20) <= item.minutes:
                     spec = Spec(
                         "coding",
                         rec.topics[0] if rec.topics else item.skill,
@@ -825,7 +912,8 @@ class Roadmap:
                     break
         if spec is None:
             raise ConflictError(
-                "There's no other activity like this one right now. You can skip it instead.",
+                f"There's no other activity like this one that fits in {item.minutes} minutes right now. "
+                "This one stays in your plan; you can skip it instead.",
                 code="no_alternative",
             )
         item.status = "replaced"

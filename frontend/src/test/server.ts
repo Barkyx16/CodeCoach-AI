@@ -59,6 +59,7 @@ export const handlers = [
   http.get(`${API}/api/v1/careers/:track/progress`, ({ params }) =>
     HttpResponse.json({ track: params.track, answered: 1, strong: 1, by_difficulty: { easy: 1, medium: 0, hard: 0 }, total_questions: 300 })),
   http.get(`${API}/api/v1/interviews`, () => HttpResponse.json(page([]))),
+  http.get(`${API}/api/v1/me/schedule`, () => HttpResponse.json([])),
   http.get(`${API}/api/v1/problems/counts`, ({ request }) => {
     const items = filterProblems(problems, new URL(request.url).searchParams);
     const count = (d: string) => items.filter((p) => p.difficulty === d).length;

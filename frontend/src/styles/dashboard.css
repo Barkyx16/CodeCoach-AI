@@ -130,3 +130,38 @@
 @media (prefers-reduced-motion: reduce) {
   .segmented__option, .format-link, .more-options__chevron { transition: none; }
 }
+
+/* ---------- From your plan (PlanReturn): on a page opened from the plan ---------- */
+.plan-return {
+  display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;
+  width: min(100% - 2 * var(--space-6), var(--content-max-width)); margin: var(--space-4) auto 0; padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-primary-border); border-radius: 12px; background: var(--color-primary-soft); font-size: var(--text-sm);
+}
+.plan-return--done { border-color: var(--tint-success-border); background: var(--color-success-soft); }
+.plan-return__icon { display: inline-grid; place-items: center; color: var(--color-link); }
+.plan-return--done .plan-return__icon { color: var(--color-success); }
+.plan-return__text { flex: 1 1 260px; margin: 0; min-width: 0; }
+.plan-return__link { font-weight: var(--weight-semibold); white-space: nowrap; }
+.plan-return__close {
+  display: inline-grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--color-text-muted); font-size: 1.25rem; cursor: pointer;
+}
+.plan-return__close:hover { background: var(--color-surface-raised); color: var(--color-text); }
+@media (max-width: 767px) { .plan-return { width: calc(100% - 2 * var(--space-4)); } }
+
+/* Today: activities the learner chose to add, and the offer to add one within the time left. */
+.today__added { display: grid; gap: var(--space-2); }
+.today__added-title { margin: var(--space-2) 0 0; font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--color-text-muted); }
+.today__topup { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); margin: 0; font-size: var(--text-sm); color: var(--color-text-muted); }
+.today__topup .btn { min-height: 40px; white-space: normal; text-align: left; }
+.activity-card__scheduled { color: var(--color-link); }
+
+/* An ended-early mock interview: a quiet pointer to its review, not a resume button. */
+.ended-early {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-4); margin-top: var(--space-4);
+  padding: var(--space-4) var(--space-5); border: 1px solid var(--color-border); border-radius: 16px; background: var(--color-surface);
+}
+.ended-early__icon { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; color: var(--color-warning); background: var(--color-warning-soft); }
+.ended-early__text { flex: 1 1 280px; min-width: 0; display: grid; gap: 2px; }
+.ended-early__title { margin: 0; font-size: var(--text-md); font-weight: var(--weight-semibold); }
+.ended-early__text p { margin: 0; font-size: var(--text-sm); }

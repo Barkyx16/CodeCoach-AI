@@ -14,6 +14,7 @@ import { TodayCard } from "@/features/plan/TodayCard";
 import { OnboardingBanner } from "@/features/onboarding/OnboardingBanner";
 
 import { ContinueCard } from "./ContinueCard";
+import { EndedEarlyNote } from "./EndedEarlyNote";
 import { LEVEL_UP_AFTER, LEVELS, nextLevel, RETRY_BELOW, upNext } from "./upNext";
 import { MorePractice } from "./MorePractice";
 import { StatTile } from "./StatTile";
@@ -57,6 +58,7 @@ export function CareerDashboard({ track, careerTitle }: { track: string; careerT
       <OnboardingBanner />
       <TodayCard />
       <ContinueCard />
+      <EndedEarlyNote />
 
       <h2 className="dashboard__section-title">Your progress</h2>
       <section className="stat-row" aria-label="Summary">
