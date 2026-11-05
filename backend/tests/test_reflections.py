@@ -3,6 +3,7 @@ interpretations, suggestions only from what was written and never applied on the
 action accepted once, outcomes that touch the application only when asked, archived
 applications still readable, nothing logged, owner-only, exported and deleted."""
 
+import contextlib
 import logging
 
 from sqlalchemy import select
@@ -198,3 +199,144 @@ def test_owner_only_export_and_deletion(client):
             db.scalars(select(InterviewReflection)).all() == []
             and db.scalars(select(ReflectionAction)).all() == []
         )
+
+
+# --- Interview Workflow pack: deleted stories, concurrent accepts, removed results, outcomes --------
+
+
+def test_a_deleted_story_doesnt_block_saving_and_is_counted(client):
+    h = nurse(client)
+    other = nurse(client, email="bea@example.com")
+    _, _, url = event(client, h)
+    keep = client.post("/api/v1/me/stories", headers=h, json={"title": "Two call lights"}).json()
+    gone = client.post("/api/v1/me/stories", headers=h, json={"title": "Night handover"}).json()
+    saved = client.put(url, headers=h, json={**REFLECTION, "story_ids": [keep["id"], gone["id"]]}).json()
+    client.delete(f"/api/v1/me/stories/{gone['id']}", headers=h)
+    now = client.get(url, headers=h).json()
+    assert now["story_ids"] == [keep["id"]] and now["missing_stories"] == 1
+    # A tab opened before the delete still sends the old list: the words are saved, the deleted
+    # story is unlinked (before: 404 "Story not found", and the reflection couldn't be saved at all).
+    r = client.put(
+        url,
+        headers=h,
+        json={
+            **REFLECTION,
+            "clear": "Still saved",
+            "story_ids": [keep["id"], gone["id"]],
+            "expected_revision": saved["revision"],
+        },
+    )
+    assert r.status_code == 200 and r.json()["clear"] == "Still saved"
+    assert r.json()["story_ids"] == [keep["id"]] and r.json()["missing_stories"] == 0
+    # A story that was never linked, or another account's, is still refused.
+    theirs = client.post("/api/v1/me/stories", headers=other, json={"title": "Not yours"}).json()
+    for bad in (theirs["id"], "00000000-0000-0000-0000-000000000000"):
+        r = client.put(url, headers=h, json={**REFLECTION, "story_ids": [bad], "expected_revision": 2})
+        assert r.status_code == 404
+
+
+def test_two_accepts_at_once_create_one_note(client, monkeypatch):
+    """The other request accepts the step between this one's read and its write: this one must find
+    it accepted and create nothing (a read-then-create would make a second note)."""
+    from app.services import reflections as svc
+
+    h = nurse(client)
+    _, ev, url = event(client, h)
+    client.put(url, headers=h, json=REFLECTION)
+    step = next(
+        a for a in client.post(f"{url}/suggestions", headers=h).json()["actions"] if a["kind"] == "note"
+    )
+    real = svc.Reflections._targets
+    fired = []
+
+    def other_request_accepts_first(a):
+        if not fired:
+            fired.append(True)
+            with client.app.state.session_factory() as db:
+                row = db.get(ReflectionAction, step["id"])
+                user_id = db.get(InterviewReflection, ev["id"]).user_id
+                note = Note(user_id=user_id, title=row.title, body="other request", tags=[])
+                db.add(note)
+                db.flush()
+                row.status, row.target, row.applied_ref = "accepted", "notebook", note.id
+                db.commit()
+        return real(a)
+
+    monkeypatch.setattr(svc.Reflections, "_targets", staticmethod(other_request_accepts_first))
+    out = client.post(f"{url}/actions/{step['id']}/accept", headers=h, json={"target": "notebook"}).json()
+    monkeypatch.setattr(svc.Reflections, "_targets", staticmethod(real))
+    with client.app.state.session_factory() as db:
+        notes = db.scalars(select(Note)).all()
+    assert len(notes) == 1 and notes[0].body == "other request"
+    accepted = next(a for a in out["actions"] if a["id"] == step["id"])
+    assert accepted["status"] == "accepted" and accepted["applied_ref"] == notes[0].id
+
+
+def test_a_removed_result_is_shown_as_removed_and_not_recreated(client):
+    h = nurse(client)
+    _, _, url = event(client, h)
+    client.put(url, headers=h, json=REFLECTION)
+    actions = client.post(f"{url}/suggestions", headers=h).json()["actions"]
+    note_step = next(a for a in actions if a["kind"] == "note")
+    out = client.post(
+        f"{url}/actions/{note_step['id']}/accept", headers=h, json={"target": "notebook"}
+    ).json()
+    accepted = next(a for a in out["actions"] if a["id"] == note_step["id"])
+    assert accepted["applied_available"] is True
+    assert client.delete(f"/api/v1/me/notes/{accepted['applied_ref']}", headers=h).status_code in (200, 204)
+    now = next(a for a in client.get(url, headers=h).json()["actions"] if a["id"] == note_step["id"])
+    assert now["status"] == "accepted" and now["applied_available"] is False  # history kept, truthfully
+    again = client.post(f"{url}/actions/{note_step['id']}/accept", headers=h, json={"target": "notebook"})
+    assert again.status_code == 200
+    with client.app.state.session_factory() as db:
+        notes = db.scalars(select(Note)).all()
+    # No second note, and the deleted one stays deleted (restorable from the notebook's own undo).
+    assert len(notes) == 1 and notes[0].deleted_at is not None
+    # A suggested step has no result yet: nothing is claimed either way.
+    assert all(a["applied_available"] is None for a in again.json()["actions"] if a["status"] != "accepted")
+
+
+def test_an_outcome_and_its_stage_change_are_saved_together_or_not_at_all(client):
+    from sqlalchemy import event as sa_event
+
+    h = nurse(client)
+    a, _, url = event(client, h)
+    client.put(url, headers=h, json=REFLECTION)
+
+    def boom(*_):
+        raise RuntimeError("the reflection's save fails")
+
+    sa_event.listen(InterviewReflection, "before_update", boom)
+    try:
+        with contextlib.suppress(RuntimeError):
+            client.put(f"{url}/outcome", headers=h, json={"outcome": "offer", "update_application": True})
+    finally:
+        sa_event.remove(InterviewReflection, "before_update", boom)
+    app = client.get(f"{APPS}/{a['id']}", headers=h).json()
+    # Before: the stage had already been committed on its own, so the application said "offer"
+    # while the reflection didn't.
+    assert app["stage"] == "interviewing"
+    assert [s["to_stage"] for s in app["history"]] == ["interviewing"]
+    assert client.get(url, headers=h).json()["outcome"] == "unknown"
+
+
+def test_repeating_an_outcome_adds_no_history_and_moves_nothing_again(client):
+    h = nurse(client)
+    a, _, url = event(client, h)
+    client.put(url, headers=h, json=REFLECTION)
+    first = client.put(
+        f"{url}/outcome", headers=h, json={"outcome": "offer", "update_application": True}
+    ).json()
+    again = client.put(
+        f"{url}/outcome", headers=h, json={"outcome": "offer", "update_application": True}
+    ).json()
+    assert len(first["outcome_history"]) == len(again["outcome_history"]) == 1
+    assert first["outcome_history"][0]["applied_to_application"] is True
+    app = client.get(f"{APPS}/{a['id']}", headers=h).json()
+    assert [s["to_stage"] for s in app["history"]] == ["offer", "interviewing"]  # newest first
+    # A real change is still recorded, and waiting never moves the application.
+    later = client.put(
+        f"{url}/outcome", headers=h, json={"outcome": "awaiting", "update_application": True}
+    ).json()
+    assert [h_["outcome"] for h_ in later["outcome_history"]] == ["offer", "awaiting"]
+    assert client.get(f"{APPS}/{a['id']}", headers=h).json()["stage"] == "offer"

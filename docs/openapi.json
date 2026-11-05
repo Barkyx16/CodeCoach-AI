@@ -23667,6 +23667,29 @@
             "type": "boolean",
             "title": "Saved",
             "description": "False until you change something: the suggestions aren't stored yet"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision",
+            "description": "Send it back as expected_revision when saving; 0 until saved",
+            "default": 0
+          },
+          "rescheduled_from": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/KitWhen"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the interview was the last time this kit was saved, if it has moved since. Null if it hasn't moved, or if that isn't known (kits saved before this was recorded)."
+          },
+          "missing_stories": {
+            "type": "integer",
+            "title": "Missing Stories",
+            "description": "Examples chosen for this kit that were deleted since (they aren't shown)",
+            "default": 0
           }
         },
         "type": "object",
@@ -23707,6 +23730,29 @@
           "short_version": {
             "type": "string",
             "title": "Short Version"
+          },
+          "archived": {
+            "type": "boolean",
+            "title": "Archived",
+            "default": false
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision",
+            "description": "The story's current version",
+            "default": 1
+          },
+          "chosen_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chosen Revision",
+            "description": "The story's version when it was chosen for this kit (or last marked as reread); null if that wasn't recorded (kits saved before this existed)"
           }
         },
         "type": "object",
@@ -23715,7 +23761,8 @@
           "title",
           "short_version"
         ],
-        "title": "KitStory"
+        "title": "KitStory",
+        "description": "A chosen example, as it is now (it's a live reference, not a copy)."
       },
       "KitUpdate": {
         "properties": {
@@ -23836,11 +23883,85 @@
               }
             ],
             "title": "Story Ids"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Revision",
+            "description": "The kit revision you loaded (0 if it was never saved). If the kit was saved since, nothing is changed and the answer is 409 stale_revision with the current revision."
+          },
+          "reviewed_story_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 10
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed Story Ids",
+            "description": "Chosen examples you've reread since they changed: their recorded version becomes the current one. Others keep the version they had when you chose them."
           }
         },
         "type": "object",
         "title": "KitUpdate",
         "description": "Replace whichever parts you send. Lists are saved in the order given (that's the priority)."
+      },
+      "KitWhen": {
+        "properties": {
+          "on_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On Date"
+          },
+          "local_time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Local Time"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone"
+          }
+        },
+        "type": "object",
+        "required": [
+          "on_date",
+          "local_time",
+          "timezone"
+        ],
+        "title": "KitWhen"
       },
       "LearnCatalog": {
         "properties": {
@@ -26500,6 +26621,18 @@
               }
             ],
             "title": "Applied Ref"
+          },
+          "applied_available": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applied Available",
+            "description": "For an accepted step: whether what it created is still there (the note, an uncancelled schedule entry, the bookmark). False means you removed it since; accepting again doesn't recreate it."
           }
         },
         "type": "object",
@@ -26707,7 +26840,14 @@
               "type": "string"
             },
             "type": "array",
-            "title": "Story Ids"
+            "title": "Story Ids",
+            "description": "Your stories linked to this reflection that still exist"
+          },
+          "missing_stories": {
+            "type": "integer",
+            "title": "Missing Stories",
+            "description": "Stories linked to this reflection that were deleted since (not listed)",
+            "default": 0
           },
           "outcome": {
             "type": "string",

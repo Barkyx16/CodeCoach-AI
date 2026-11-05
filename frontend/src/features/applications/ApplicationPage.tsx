@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
@@ -34,6 +34,11 @@ function Detail({ a }: { a: Application }) {
   const done = (next: Application) => {
     qc.setQueryData(["me", "application", next.id], next);
     void qc.invalidateQueries({ queryKey: ["me", "applications"] });
+    // Kits and reflections read the event live: after an edit or removal they're refetched, not
+    // shown from the cache with the old date.
+    void qc.invalidateQueries({ queryKey: ["me", "kit", next.id] });
+    void qc.invalidateQueries({ queryKey: ["me", "reflection", next.id] });
+    void qc.invalidateQueries({ queryKey: ["me", "schedule"] });
   };
   return (
     <div className="page application-page">
@@ -57,11 +62,11 @@ function Detail({ a }: { a: Application }) {
           <LinksCard a={a} onDone={done} />
           <Card className="stack-sm">
             <h2 className="section-title">Keep or remove</h2>
-            <p className="subtle">Archiving hides it from your board; nothing is lost. Deleting removes it, its events and its history.</p>
+            <p className="subtle">Archiving hides it from your board; nothing is lost. Deleting removes it, its events and its history, and each event's interview kit and reflection. Your stories, notes and schedule entries stay.</p>
             <span className="row">
               <Button size="sm" onClick={async () => done(await api.archiveApplication(a.id, !a.archived))}>{a.archived ? "Unarchive" : "Archive"}</Button>
               <Button size="sm" variant="danger" onClick={async () => {
-                if (!window.confirm(`Delete ${a.role_title} at ${a.employer}, its events and its history? This can't be undone. (Archive keeps it out of the way instead.)`)) return;
+                if (!window.confirm(`Delete ${a.role_title} at ${a.employer}, its events and its history, and the interview kits and reflections for those events? Your stories, notes and schedule entries stay. This can't be undone. (Archive keeps it out of the way instead.)`)) return;
                 await api.deleteApplication(a.id);
                 void qc.invalidateQueries({ queryKey: ["me", "applications"] });
                 navigate("/applications", { replace: true });
@@ -141,6 +146,8 @@ const TIME_ZONES = (() => {
 
 function EventsCard({ a, onDone }: { a: Application; onDone: (a: Application) => void }) {
   const [editing, setEditing] = useState<ApplicationEvent | "new" | null>(null);
+  const { pathname } = useLocation();
+  const back = { from: pathname, fromLabel: "Back to the application" }; // no private text in history state
   return (
     <Card className="stack-sm">
       <h2 className="section-title">Interviews and other events</h2>
@@ -153,10 +160,12 @@ function EventsCard({ a, onDone }: { a: Application; onDone: (a: Application) =>
             {e.notes && <p className="subtle">{e.notes}</p>}
             <span className="row">
               <Button size="sm" variant="ghost" onClick={() => setEditing(e)}>Edit</Button>
-              <Link to={`/applications/${a.id}/events/${e.id}/kit`}>Interview-day kit</Link>
-              <Link to={`/applications/${a.id}/events/${e.id}/reflection`}>Reflect on this interview</Link>
+              <Link to={`/applications/${a.id}/events/${e.id}/kit`} state={back}>Interview-day kit</Link>
+              <Link to={`/applications/${a.id}/events/${e.id}/reflection`} state={back}>Reflect on this interview</Link>
               <ScheduleLink kind="application_event" refId={e.id} title={`Prepare: ${e.title} (${a.employer})`} label="Schedule preparation time" />
-              <Button size="sm" variant="ghost" onClick={async () => { if (window.confirm(`Remove “${e.title}”?`)) onDone(await api.deleteApplicationEvent(a.id, e.id)); }}>Remove</Button>
+              <Button size="sm" variant="ghost" onClick={async () => {
+                if (window.confirm(`Remove “${e.title}”? Its interview kit and reflection are removed with it. Your stories, notes and schedule entries stay.`)) onDone(await api.deleteApplicationEvent(a.id, e.id));
+              }}>Remove</Button>
             </span>
           </li>
         ))}

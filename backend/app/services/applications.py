@@ -8,7 +8,7 @@ happened. Everything is scoped to its owner."""
 from __future__ import annotations
 
 import re
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -60,16 +60,33 @@ def event_out(e: ApplicationEvent) -> ApplicationEventOut:
     )
 
 
-def _next_event(a: Application, today_utc: datetime) -> ApplicationEvent | None:
-    """The next event that hasn't happened: by exact instant when known, else by date."""
-    upcoming = []
-    for e in a.events:
-        if e.starts_at is not None:
-            if e.starts_at >= today_utc:
-                upcoming.append((e.starts_at.date(), e))
-        elif e.on_date is not None and e.on_date >= today_utc.date():
-            upcoming.append((e.on_date, e))
-    return min(upcoming, key=lambda x: x[0])[1] if upcoming else None
+def not_over(e: ApplicationEvent, now: datetime) -> bool:
+    """Whether an event may still be ahead. With an exact time: until it starts. With only a date
+    (no time or zone known): until that date has ended everywhere (UTC-12), so it isn't dropped
+    early for a learner west of UTC. With no date: never "upcoming" (nothing is assumed)."""
+    if e.starts_at is not None:
+        return _utc(e.starts_at) >= now
+    if e.on_date is not None:
+        return now < datetime.combine(e.on_date + timedelta(days=1), time(12, 0), tzinfo=UTC)
+    return False
+
+
+def _next_event(a: Application, now: datetime) -> ApplicationEvent | None:
+    """The next event that hasn't happened, in a stated order: by its own date; on the same date,
+    exactly-timed events by their instant before date-only ones (whose time isn't known); then by
+    when it was recorded. Never by random id."""
+    upcoming = [e for e in a.events if not_over(e, now)]
+
+    def key(e: ApplicationEvent) -> tuple:
+        starts = _utc(e.starts_at) if e.starts_at is not None else None
+        day = e.on_date or (starts.date() if starts else now.date())  # a timed event has its date too
+        return (day, 0 if starts else 1, starts or now, _utc(e.created_at))
+
+    return min(upcoming, key=key) if upcoming else None
+
+
+def _utc(d: datetime) -> datetime:
+    return d if d.tzinfo is not None else d.replace(tzinfo=UTC)
 
 
 class Applications:
@@ -247,14 +264,19 @@ class Applications:
         self.db.commit()
         return self.get(a.id)
 
-    def set_stage(self, app_id: str, body: ApplicationStageIn) -> ApplicationOut:
+    def set_stage(self, app_id: str, body: ApplicationStageIn, *, commit: bool = True) -> ApplicationOut:
+        """With commit=False the change joins the caller's transaction, so it's saved together with
+        the caller's own change (a reflection outcome) or not at all."""
         a = self._get(app_id)
         if a.stage == body.stage:
             return self.get(a.id)  # a repeated click changes nothing
         self._record_stage(a, body.stage, body.note, body.correction, frm=a.stage)
         a.stage = body.stage
         a.updated_at = datetime.now(UTC)
-        self.db.commit()
+        if commit:
+            self.db.commit()
+        else:
+            self.db.flush()
         return self.get(a.id)
 
     def set_archived(self, app_id: str, archived: bool) -> ApplicationOut:

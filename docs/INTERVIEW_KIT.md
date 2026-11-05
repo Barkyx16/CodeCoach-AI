@@ -57,8 +57,17 @@ The preview on the page **is** the printed pack (the same component; print style
 everything else), so what prints can't differ from what's shown. The learner chooses what goes
 in; the meeting link, interviewer names and private notes are **off** until chosen. Printing
 uses the browser's print dialog, which also offers "Save as PDF" (selectable text). The pack says
-"Your own preparation notes. Not sent to anyone." Printing is disabled while there are unsaved
-changes, so the printout matches what's saved.
+"Your own preparation notes. Not sent to anyone." With unsaved changes the "Print…" button is
+disabled, and the pack itself prints only a notice ("This kit has unsaved changes, so it isn't
+printed"), so the browser's own Print (Ctrl/Cmd+P) can't print unsaved content as if it were
+saved. The print styles apply only to a page that has a pack; any other page prints normally.
+A real PDF of the pack is checked by `e2e/kit-pdf.spec.ts` (see `INTERVIEW_WORKFLOW.md`).
+
+**Saving** is conflict-safe: each save sends the revision the page loaded, and a kit saved since
+(another tab) is a 409 `stale_revision` that changes nothing. The page keeps the learner's edits
+and offers "Save mine over it" (an explicit overwrite) or "Discard mine and load the saved kit".
+A kit records the interview time it was last saved for and each chosen story's version, so a
+reschedule or an edited story is shown, never silently applied or hidden.
 
 ## Privacy and data
 

@@ -38,6 +38,17 @@ function fakeApps(list: Application[]) {
 }
 
 describe("the board", () => {
+  it("a card's next interview leads to its kit, and says when the time isn't known", async () => {
+    asUser();
+    const ev = { id: "e9", kind: "interview" as const, title: "Panel interview", on_date: "2026-11-12", local_time: null, timezone: null, starts_at: null, notes: "", created_at: now() };
+    fakeApps([app({ stage: "interviewing", next_event: ev })]);
+    renderApp("/applications", { signedIn: true });
+    const board = await screen.findByRole("list", { name: "Applications by stage" });
+    const card = within(board).getByRole("link", { name: "Ward nurse" }).closest("li")!;
+    expect(card).toHaveTextContent(/Next: Panel interview · .*\(time not known\)/);
+    expect(within(card).getByRole("link", { name: "Prepare for Panel interview (Mercy General)" })).toHaveAttribute("href", "/applications/a1/events/e9/kit");
+  });
+
   it("moves a card by dragging it or with its keyboard menu: the same change either way", async () => {
     asUser();
     const { sent } = fakeApps([app(), app({ id: "a2", role_title: "Practice nurse", employer: "Hill Clinic", stage: "saved" })]);

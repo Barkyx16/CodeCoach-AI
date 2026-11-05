@@ -48,6 +48,11 @@ class ReflectionActionOut(APIModel):
     targets: list[ActionTarget] = Field(description="Where this can go")
     target: ActionTarget | None
     applied_ref: str | None
+    applied_available: bool | None = Field(
+        default=None,
+        description="For an accepted step: whether what it created is still there (the note, an uncancelled "
+        "schedule entry, the bookmark). False means you removed it since; accepting again doesn't recreate it.",
+    )
 
 
 class ReflectionOut(APIModel):
@@ -66,7 +71,10 @@ class ReflectionOut(APIModel):
     observations: list[ReflectionObservation]
     follow_ups: str
     practice: list[str]
-    story_ids: list[str]
+    story_ids: list[str] = Field(description="Your stories linked to this reflection that still exist")
+    missing_stories: int = Field(
+        default=0, description="Stories linked to this reflection that were deleted since (not listed)"
+    )
     outcome: Outcome
     outcome_history: list[ReflectionOutcomeChange]
     revision: int

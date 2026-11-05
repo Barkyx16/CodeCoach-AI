@@ -166,7 +166,14 @@ function AppCard({ a, today, onMove }: { a: ApplicationSummary; today: string; o
       <Link to={`/applications/${a.id}`} className="app-card__title">{a.role_title}</Link>
       <span className="subtle">{a.employer}</span>
       {a.next_action && <span className="app-card__next">{a.next_action}{a.next_action_due ? <span className="subtle"> · {dueLabel(a.next_action_due, today)}</span> : null}</span>}
-      {a.next_event && <span className="subtle">{a.next_event.title}{a.next_event.on_date ? ` · ${formatDay(a.next_event.on_date)}` : ""}</span>}
+      {a.next_event && (
+        <span className="subtle">
+          Next: {a.next_event.title}{a.next_event.on_date ? ` · ${formatDay(a.next_event.on_date)}` : ""}
+          {a.next_event.on_date && !a.next_event.local_time ? " (time not known)" : a.next_event.local_time ? `, ${a.next_event.local_time}` : ""}
+          {" · "}<Link to={`/applications/${a.id}/events/${a.next_event.id}/kit`} state={{ from: "/applications", fromLabel: "Back to your applications" }}
+            aria-label={`Prepare for ${a.next_event.title} (${a.employer})`}>Prepare</Link>
+        </span>
+      )}
       <MoveMenu a={a} onMove={onMove} />
     </li>
   );

@@ -12,13 +12,21 @@ from __future__ import annotations
 import re
 from datetime import UTC, datetime
 
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.careers.questions import get_question, is_retired, questions_for
 from app.errors import AppError, ConflictError, NotFoundError
-from app.models import Application, ApplicationEvent, ExperienceEntry, InterviewReflection, User
+from app.models import (
+    Application,
+    ApplicationEvent,
+    Bookmark,
+    ExperienceEntry,
+    InterviewReflection,
+    Note,
+    ScheduleEntry,
+    User,
+)
 from app.models import ReflectionAction as ActionRow
 from app.schemas.applications import ApplicationStageIn
 from app.schemas.explore import CollectionItemIn
@@ -199,7 +207,40 @@ class Reflections:
             targets=self._targets(a),
             target=a.target,
             applied_ref=a.applied_ref,
+            applied_available=self._still_there(a),
         )
+
+    def _still_there(self, a: ActionRow) -> bool | None:
+        """Whether what an accepted step created still exists for this learner (never another's)."""
+        if a.status != "accepted" or not a.applied_ref:
+            return None
+        if a.target == "notebook":
+            n = self.db.get(Note, a.applied_ref)
+            return n is not None and n.user_id == self.user.id and n.deleted_at is None  # not in the bin
+        if a.target == "schedule":
+            e = self.db.get(ScheduleEntry, a.applied_ref)
+            return e is not None and e.user_id == self.user.id and e.status == "scheduled"
+        track, _, qid = a.applied_ref.partition("/")
+        return (
+            self.db.scalar(
+                select(Bookmark.id).where(
+                    Bookmark.user_id == self.user.id,
+                    Bookmark.item_type == "question",
+                    Bookmark.track == track,
+                    Bookmark.ref_id == qid,
+                )
+            )
+            is not None
+        )
+
+    def _stories(self, ids: list[str] | None) -> tuple[list[str], int]:
+        """The learner's stories among `ids` that still exist, and how many don't any more."""
+        kept = []
+        for sid in ids or []:
+            s = self.db.get(ExperienceEntry, sid)
+            if s is not None and s.user_id == self.user.id:
+                kept.append(sid)
+        return kept, len(ids or []) - len(kept)
 
     def _out(self, app: Application, ev: ApplicationEvent, r: InterviewReflection | None) -> ReflectionOut:
         if r is None:  # nothing saved yet: an empty, optional form
@@ -219,7 +260,7 @@ class Reflections:
                 observations=[],
                 follow_ups="",
                 practice=[],
-                story_ids=list(app.story_ids or []),
+                story_ids=self._stories(app.story_ids)[0],  # a deleted one isn't offered back
                 outcome="unknown",
                 outcome_history=[],
                 revision=0,
@@ -244,7 +285,8 @@ class Reflections:
             observations=[ReflectionObservation(**o) for o in r.observations],
             follow_ups=r.follow_ups,
             practice=r.practice,
-            story_ids=r.story_ids,
+            story_ids=self._stories(r.story_ids)[0],
+            missing_stories=self._stories(r.story_ids)[1],
             outcome=r.outcome,
             outcome_history=[ReflectionOutcomeChange(**h) for h in r.outcome_history],
             revision=r.revision,
@@ -323,9 +365,15 @@ class Reflections:
                 code="stale_revision",
                 details={"current_revision": current},
             )
-        for sid in body.story_ids:
+        linked = set(r.story_ids if r else []) | set(app.story_ids or [])
+        story_ids = []
+        for sid in dict.fromkeys(body.story_ids):
             s = self.db.get(ExperienceEntry, sid)
-            if s is None or s.user_id != self.user.id:
+            if s is not None and s.user_id == self.user.id:
+                story_ids.append(sid)
+            elif s is None and sid in linked:
+                continue  # deleted since it was linked (maybe in another tab): unlinked, not an error
+            else:
                 raise NotFoundError("Story not found")
         if r is None:
             r = InterviewReflection(
@@ -351,7 +399,7 @@ class Reflections:
         r.observations = [
             {"text": _clean(o.text), "kind": o.kind} for o in body.observations if _clean(o.text)
         ]
-        r.story_ids = list(dict.fromkeys(body.story_ids))
+        r.story_ids = story_ids
         r.revision = current + 1
         r.updated_at = datetime.now(UTC)
         self.db.commit()
@@ -457,55 +505,77 @@ class Reflections:
     ) -> ReflectionOut:
         app, ev = self._event(app_id, event_id)
         a = self._action(ev.id, action_id)
-        r = self._row(ev.id)
         if a.status == "accepted":
-            return self._out(app, ev, r)  # accepting twice changes nothing and creates nothing new
+            # Accepting twice changes nothing and creates nothing new, even if what it created was
+            # removed since: that's shown (applied_available), not silently recreated.
+            return self._out(app, ev, self._row(ev.id))
         if body.target not in self._targets(a):
             raise AppError("This step can only go to your notebook.", code="invalid_target")
-        if body.target == "notebook":
-            from app.services.notes import Notebook
-
-            note = Notebook(self.db).create(
-                self.user,
-                NoteIn(
-                    title=a.title[:200],
-                    body=f"{a.detail}\n\nFrom your reflection on {app.role_title} at {app.employer} ({ev.title}).",
-                    tags=["interview reflection"],
-                ),
-            )
-            a.applied_ref = note.id
-        elif body.target == "schedule":
-            if body.on_date is None:
-                raise AppError("Choose a date for the schedule.", code="date_required")
-            from app.services.schedule import Schedule
-
-            entry, _ = Schedule(self.db, self.user).create(
-                EntryIn(
-                    kind="question",
-                    ref=a.ref or "",
-                    on_date=body.on_date,
-                    all_day=True,
-                    timezone=body.timezone,
-                    notes="From your interview reflection",
-                    client_request_id=f"reflection-{a.id}",
-                )
-            )
-            a.applied_ref = entry.id
-        else:
-            from app.services.explore import Explorer
-
-            track, _, qid = (a.ref or "").partition("/")
-            if get_question(track, qid) is None:
-                raise NotFoundError("That question isn't in the library any more")
-            Explorer(self.db).set_bookmark(
-                self.user, CollectionItemIn(item_type="question", track=track, ref_id=qid), True
-            )
-            a.applied_ref = a.ref
-        a.status, a.target, a.updated_at = "accepted", body.target, datetime.now(UTC)
-        try:
-            self.db.commit()
-        except IntegrityError:  # pragma: no cover - a concurrent accept of the same step
+        if body.target == "schedule" and body.on_date is None:
+            raise AppError("Choose a date for the schedule.", code="date_required")
+        track, _, qid = (a.ref or "").partition("/")
+        if body.target == "saved" and get_question(track, qid) is None:
+            raise NotFoundError("That question isn't in the library any more")
+        # Claim the step before creating anything. The conditional UPDATE takes the row's write
+        # lock, so a second accept at the same moment waits, then finds it accepted and creates
+        # nothing (a lookup followed by a create wouldn't guarantee that).
+        claimed = self.db.execute(
+            update(ActionRow)
+            .where(ActionRow.id == a.id, ActionRow.status != "accepted")
+            .values(status="accepted", target=body.target, updated_at=datetime.now(UTC))
+            .execution_options(synchronize_session=False)
+        )
+        if claimed.rowcount != 1:  # type: ignore[attr-defined]
             self.db.rollback()
+            return self._out(app, ev, self._row(ev.id))
+        applied: str | None
+        try:
+            if body.target == "notebook":
+                from app.services.notes import Notebook
+
+                note = Notebook(self.db).create(
+                    self.user,
+                    NoteIn(
+                        title=a.title[:200],
+                        body=f"{a.detail}\n\nFrom your reflection on {app.role_title} at {app.employer} ({ev.title}).",
+                        tags=["interview reflection"],
+                    ),
+                    commit=False,  # saved together with the claim, or not at all
+                )
+                applied = note.id
+            elif body.target == "schedule":
+                from app.services.schedule import Schedule
+
+                entry, _ = Schedule(self.db, self.user).create(
+                    EntryIn(
+                        kind="question",
+                        ref=a.ref or "",
+                        on_date=body.on_date,
+                        all_day=True,
+                        timezone=body.timezone,
+                        notes="From your interview reflection",
+                        client_request_id=f"reflection-{a.id}",  # its own key: never a second entry
+                    )
+                )
+                applied = entry.id
+            else:
+                from app.services.explore import Explorer
+
+                Explorer(self.db).set_bookmark(
+                    self.user, CollectionItemIn(item_type="question", track=track, ref_id=qid), True
+                )
+                applied = a.ref
+            self.db.execute(
+                update(ActionRow)
+                .where(ActionRow.id == a.id)
+                .values(applied_ref=applied)
+                .execution_options(synchronize_session=False)
+            )
+            self.db.commit()
+        except Exception:
+            self.db.rollback()  # the claim goes too: the step stays suggested
+            raise
+        self.db.expire_all()
         return self._out(app, ev, self._row(ev.id))
 
     def set_outcome(self, app_id: str, event_id: str, body: ReflectionOutcomeIn) -> ReflectionOut:
@@ -513,24 +583,34 @@ class Reflections:
         r = self._row(ev.id)
         if r is None:
             raise AppError("Save your reflection first.", code="nothing_saved")
-        applied = False
-        if body.update_application and body.outcome in STAGE_FOR and app.stage != STAGE_FOR[body.outcome]:
-            from app.services.applications import Applications
+        move = body.update_application and body.outcome in STAGE_FOR and app.stage != STAGE_FOR[body.outcome]
+        if body.outcome == r.outcome and not move:
+            return self._out(app, ev, r)  # a repeat (another click, a resend) adds no history
+        try:
+            if move:
+                from app.services.applications import Applications
 
-            Applications(self.db, self.user).set_stage(
-                app.id,
-                ApplicationStageIn(
-                    stage=STAGE_FOR[body.outcome], note="Recorded from your interview reflection"
-                ),
-            )
-            applied = True
-        r.outcome = body.outcome
-        r.outcome_history = [
-            *r.outcome_history,
-            {"outcome": body.outcome, "at": datetime.now(UTC).isoformat(), "applied_to_application": applied},
-        ]
-        r.updated_at = datetime.now(UTC)
-        self.db.commit()
+                Applications(self.db, self.user).set_stage(
+                    app.id,
+                    ApplicationStageIn(
+                        stage=STAGE_FOR[body.outcome], note="Recorded from your interview reflection"
+                    ),
+                    commit=False,  # saved with the outcome below, or neither is
+                )
+            r.outcome = body.outcome
+            r.outcome_history = [
+                *r.outcome_history,
+                {
+                    "outcome": body.outcome,
+                    "at": datetime.now(UTC).isoformat(),
+                    "applied_to_application": move,
+                },
+            ]
+            r.updated_at = datetime.now(UTC)
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
         self.db.refresh(app)
         return self._out(app, ev, r)
 

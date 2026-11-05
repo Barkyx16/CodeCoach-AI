@@ -46,6 +46,18 @@ class KitUpdate(APIModel):
     checklist: list[ChecklistItem] | None = Field(default=None, max_length=40)
     questions: list[AskQuestion] | None = Field(default=None, max_length=40)
     story_ids: list[str] | None = Field(default=None, max_length=10)
+    expected_revision: int | None = Field(
+        default=None,
+        ge=0,
+        description="The kit revision you loaded (0 if it was never saved). If the kit was saved since, "
+        "nothing is changed and the answer is 409 stale_revision with the current revision.",
+    )
+    reviewed_story_ids: list[str] | None = Field(
+        default=None,
+        max_length=10,
+        description="Chosen examples you've reread since they changed: their recorded version becomes the "
+        "current one. Others keep the version they had when you chose them.",
+    )
 
     @field_validator("meeting_link")
     @classmethod
@@ -54,9 +66,24 @@ class KitUpdate(APIModel):
 
 
 class KitStory(APIModel):
+    """A chosen example, as it is now (it's a live reference, not a copy)."""
+
     id: str
     title: str
     short_version: str
+    archived: bool = False
+    revision: int = Field(default=1, description="The story's current version")
+    chosen_revision: int | None = Field(
+        default=None,
+        description="The story's version when it was chosen for this kit (or last marked as reread); "
+        "null if that wasn't recorded (kits saved before this existed)",
+    )
+
+
+class KitWhen(APIModel):
+    on_date: date | None
+    local_time: str | None
+    timezone: str | None
 
 
 class KitOut(APIModel):
@@ -80,3 +107,14 @@ class KitOut(APIModel):
     stories: list[KitStory]
     target_title: str | None
     saved: bool = Field(description="False until you change something: the suggestions aren't stored yet")
+    revision: int = Field(
+        default=0, description="Send it back as expected_revision when saving; 0 until saved"
+    )
+    rescheduled_from: KitWhen | None = Field(
+        default=None,
+        description="When the interview was the last time this kit was saved, if it has moved since. Null if "
+        "it hasn't moved, or if that isn't known (kits saved before this was recorded).",
+    )
+    missing_stories: int = Field(
+        default=0, description="Examples chosen for this kit that were deleted since (they aren't shown)"
+    )

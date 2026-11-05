@@ -17,13 +17,21 @@
 .print-pack__note { color: var(--color-text-muted); font-size: 0.875rem; }
 .print-pack__notes { white-space: pre-wrap; }
 
-/* Printing: only the pack, in black on white, with readable page breaks. */
+.print-pack__unsaved { margin: 0; padding: var(--space-2) var(--space-3); border-radius: 8px; border: 1px solid var(--color-border-strong); font-weight: 600; }
+
+/* Printing the kit page: only the pack, in black on white, with readable page breaks. Scoped to a
+   page that has a pack (this file is loaded app-wide), so printing any other page isn't blank. */
 @media print {
-  body * { visibility: hidden; }
-  .print-pack, .print-pack * { visibility: visible; }
+  body:has(.print-pack) * { visibility: hidden; }
+  body:has(.print-pack) .print-pack, body:has(.print-pack) .print-pack * { visibility: visible; }
   .print-pack { position: absolute; inset: 0 auto auto 0; width: 100%; border: 0; padding: 0; background: #fff; color: #000; }
   .print-pack__note { color: #333; }
   .print-pack section { break-inside: avoid; }
-  .no-print, .header, .reminders { display: none !important; }
+  /* Unsaved changes: the notice only, never the unsaved content as if it were saved. */
+  .print-pack--unsaved > :not(.print-pack__unsaved) { display: none !important; }
+  .print-pack__unsaved { border-color: #000; color: #000; }
+  body:has(.print-pack) .no-print, body:has(.print-pack) .header, body:has(.print-pack) .reminders { display: none !important; }
 }
+.kit-story-changes { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-2); }
+.kit-story-changes > li { padding: var(--space-2) var(--space-3); border: 1px solid var(--color-border); border-radius: 8px; }
 .before-view a, .print-pack a { text-decoration: underline; text-underline-offset: 2px; }

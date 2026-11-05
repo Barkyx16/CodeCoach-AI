@@ -142,7 +142,7 @@ function Editor({ story }: { story: Story | null }) {
   }
 
   async function remove() {
-    if (!saved || !window.confirm("Delete this story and every saved version of it? Answers you practised with it are kept. This can't be undone.")) return;
+    if (!saved || !window.confirm("Delete this story and every saved version of it? Answers you practised with it are kept. Interview kits and reflections that used it will say an example was deleted. This can't be undone.")) return;
     await api.deleteStory(saved.id);
     window.localStorage.removeItem(key);
     void qc.invalidateQueries({ queryKey: ["me", "stories"] });

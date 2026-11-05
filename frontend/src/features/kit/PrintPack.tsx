@@ -6,12 +6,19 @@ import { FORMAT_LABEL, type PrintChoice } from "./labels";
 /**
  * The printable pack: shown on screen as the preview and the only thing that prints, so the two
  * can't differ. Only what the learner chose is in it; private details are off unless chosen.
+ * With unsaved changes it prints only a notice (even from the browser's own Print), so an unsaved
+ * kit is never printed as if it were the saved one.
  */
-export function PrintPack({ kit, choice }: { kit: Kit; choice: PrintChoice }) {
+export function PrintPack({ kit, choice, unsaved = false }: { kit: Kit; choice: PrintChoice; unsaved?: boolean }) {
   const remaining = kit.checklist.filter((c) => !c.done && !c.hidden);
   const asking = kit.questions.filter((q) => !q.excluded);
   return (
-    <article className="print-pack" aria-label="Your interview pack">
+    <article className={`print-pack${unsaved ? " print-pack--unsaved" : ""}`} aria-label="Your interview pack">
+      {unsaved && (
+        <p className="print-pack__unsaved">
+          This kit has unsaved changes, so it isn't printed. Save the kit, then print it.
+        </p>
+      )}
       <header>
         <h2>{kit.event_title}: {kit.role_title}, {kit.employer}</h2>
         <p className="print-pack__note">Your own preparation notes. Not sent to anyone.</p>

@@ -81,7 +81,7 @@ describe("Links from data follow the server's rule: absolute http(s) only", () =
     event_id: "e1", application_id: "a1", role_title: "Ward nurse", employer: "Mercy General", event_title: "Panel interview",
     event_kind: "interview", on_date: "2026-11-12", local_time: "10:00", timezone: "Europe/London", starts_at: "2026-11-12T10:00:00Z",
     format: "remote", location: "", meeting_link, interviewers: [], notes: "", checklist: [], questions: [], stories: [],
-    target_title: null, saved: true,
+    target_title: null, saved: true, revision: 1, rescheduled_from: null, missing_stories: 0,
   });
 
   it("a meeting link that isn't http(s) is shown as text, not as a link", async () => {

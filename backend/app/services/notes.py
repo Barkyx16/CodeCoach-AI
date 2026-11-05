@@ -233,7 +233,9 @@ class Notebook:
 
     # --- writing -------------------------------------------------------------------------------
 
-    def create(self, user: User, body: NoteIn) -> NoteOut:
+    def create(self, user: User, body: NoteIn, *, commit: bool = True) -> NoteOut:
+        """With commit=False the note joins the caller's transaction (flushed, not committed), so it
+        is saved together with whatever the caller saves, or not at all."""
         count = self.db.scalar(select(func.count()).select_from(Note).where(Note.user_id == user.id)) or 0
         if count >= MAX_NOTES:
             raise AppError(f"You can keep up to {MAX_NOTES} notes.", code="too_many_notes")
@@ -250,7 +252,10 @@ class Notebook:
             n.source_type = body.source.type
             n.source_id, n.source_track, n.source_version, n.source_title = self._resolve(user, body.source)
         self.db.add(n)
-        self.db.commit()
+        if commit:
+            self.db.commit()
+        else:
+            self.db.flush()
         return self.out(n)
 
     def update(self, user: User, note_id: str, patch: NotePatch) -> NoteOut:

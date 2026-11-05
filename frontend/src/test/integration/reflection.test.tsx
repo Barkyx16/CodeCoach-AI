@@ -15,7 +15,7 @@ function reflection(over: Partial<Reflection> = {}): Reflection {
   return {
     event_id: "e1", application_id: "a1", application_archived: false, role_title: "Ward nurse", employer: "Mercy General", stage: "interviewing",
     event_title: "Panel interview", event_on: "2026-11-12", questions: [], topics: [], clear: "", difficult: "", observations: [], follow_ups: "",
-    practice: [], story_ids: [], outcome: "unknown", outcome_history: [], revision: 0, saved: false, updated_at: null, warnings: [], actions: [], ...over,
+    practice: [], story_ids: [], missing_stories: 0, outcome: "unknown", outcome_history: [], revision: 0, saved: false, updated_at: null, warnings: [], actions: [], ...over,
   };
 }
 
@@ -113,4 +113,64 @@ describe("reflecting on a real interview", () => {
     await waitFor(() => expect(sent).toEqual({ outcome: "offer", update_application: true }));
     expect(await within(section).findByText(/Offer \(the application was updated\)/)).toBeInTheDocument();
   });
+
+  it("says exactly what an outcome changed, including when the application was already there", async () => {
+    setup(reflection({ saved: true, revision: 1, stage: "offer" }));
+    const history = [{ outcome: "offer" as const, at: "2026-11-20T10:00:00Z", applied_to_application: false }];
+    server.use(http.put(`${R}/outcome`, () => HttpResponse.json(reflection({ saved: true, revision: 1, stage: "offer", outcome: "offer", outcome_history: history }))));
+    const { user } = renderApp(URL, { signedIn: true });
+    const section = await screen.findByRole("region", { name: "What happened next" });
+    await user.selectOptions(within(section).getByRole("combobox", { name: /^Outcome/ }), "offer");
+    await user.click(within(section).getByRole("checkbox", { name: /Also move the application to “Offer”/ }));
+    await user.click(within(section).getByRole("button", { name: "Save outcome" }));
+    expect(await within(section).findByText("Outcome saved. The application was already at “Offer”, so it wasn't moved.")).toBeInTheDocument();
+  });
+
+  it("a failed outcome save says nothing was saved", async () => {
+    setup(reflection({ saved: true, revision: 1 }));
+    server.use(http.put(`${R}/outcome`, () => HttpResponse.json({ error: { code: "internal_error", message: "Something went wrong on our side.", request_id: "r" } }, { status: 500 })));
+    const { user } = renderApp(URL, { signedIn: true });
+    const section = await screen.findByRole("region", { name: "What happened next" });
+    await user.selectOptions(within(section).getByRole("combobox", { name: /^Outcome/ }), "not_selected");
+    await user.click(within(section).getByRole("checkbox", { name: /Also move the application/ }));
+    await user.click(within(section).getByRole("button", { name: "Save outcome" }));
+    expect(await screen.findByText(/Something went wrong on our side/)).toBeInTheDocument();
+    expect(within(section).queryByText(/Outcome saved/)).toBeNull();
+  });
+
+  it("a removed note is shown as removed, not offered again; a deleted linked story is explained", async () => {
+    const accepted = { id: "x1", kind: "note" as const, title: "Send references", detail: "By Friday", ref: null, href: null, status: "accepted" as const,
+      targets: ["notebook" as const], target: "notebook" as const, applied_ref: "n-1", applied_available: false };
+    setup(reflection({ saved: true, revision: 1, actions: [accepted], missing_stories: 1 }));
+    renderApp(URL, { signedIn: true });
+    const steps = await screen.findByRole("region", { name: "Next steps" });
+    expect(within(steps).getByText(/You added this to your notebook, and deleted that note since/)).toBeInTheDocument();
+    expect(within(steps).queryByRole("link", { name: "Open the note" })).toBeNull();
+    expect(within(steps).queryByRole("button", { name: "Add to notebook" })).toBeNull();
+    expect(screen.getByText(/A story you linked was deleted from your story bank since/)).toBeInTheDocument();
+  });
+
+  it("after a conflict, discarding loads the saved version", async () => {
+    setup(reflection({ saved: true, revision: 1, clear: "Old" }));
+    server.use(
+      http.put(R, () => HttpResponse.json({ error: { code: "stale_revision", message: "Saved elsewhere", request_id: "r", details: { current_revision: 2 } } }, { status: 409 })),
+    );
+    const { user } = renderApp(URL, { signedIn: true });
+    const clear = await screen.findByLabelText("What felt clear");
+    await user.type(clear, " and mine");
+    server.use(http.get(R, () => HttpResponse.json(reflection({ saved: true, revision: 2, clear: "From the other tab" }))));
+    await user.click(screen.getByRole("button", { name: "Save reflection" }));
+    await user.click(within(await screen.findByRole("alert")).getByRole("button", { name: "Discard mine and load the saved version" }));
+    await waitFor(() => expect(screen.getByLabelText("What felt clear")).toHaveValue("From the other tab"));
+  });
+
+  it("a linked story can be revised in its own versioned editor, which leads back here", async () => {
+    setup(reflection({ saved: true, revision: 1, story_ids: ["st1"] }));
+    server.use(http.get(`${API}/api/v1/me/stories`, () => HttpResponse.json([{ id: "st1", title: "Two call lights" }, { id: "st2", title: "Night handover" }])));
+    renderApp(URL, { signedIn: true });
+    const link = await screen.findByRole("link", { name: "Revise “Two call lights” in your story bank" });
+    expect(link).toHaveAttribute("href", "/stories/st1");
+    expect(screen.queryByRole("link", { name: /Revise “Night handover”/ })).toBeNull(); // only stories linked to this reflection
+  });
 });
+

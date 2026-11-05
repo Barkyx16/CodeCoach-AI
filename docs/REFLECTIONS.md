@@ -44,7 +44,10 @@ application is edited or archived.
 Nothing is applied until the learner chooses. Each suggestion can be edited, dismissed (and
 brought back), or added to **the notebook** (a note tagged "interview reflection"), **the
 schedule** (a practice session on a chosen date) or **Saved** (a bookmark). Accepting twice
-returns the same result and never creates a second note, entry or bookmark. Suggesting again adds
+returns the same result and never creates a second note, entry or bookmark, including two
+accepts at the same moment (the step is claimed with a conditional update before anything is
+created). If what it created is removed later (a deleted note, a cancelled entry, a removed
+bookmark), the step says so and accepting again doesn't recreate it. Suggesting again adds
 only new suggestions and never resurrects a dismissed one or changes an accepted one. The adaptive
 plan has no hand-added steps, so "add to plan" isn't offered; the schedule covers "do this on a
 day". No AI provider is used. Feeling unsure about something never marks a skill as failed.

@@ -1214,6 +1214,15 @@ class InterviewKit(Base):
     questions: Mapped[list] = mapped_column(JSONType, default=list)  # [{id, text, group, origin, excluded}]
     story_ids: Mapped[list] = mapped_column(JSONType, default=list)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    # Optimistic concurrency: every save bumps it, and an UPDATE whose revision moved underneath it
+    # matches no row (StaleDataError), so two tabs can't silently overwrite each other.
+    revision: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    # What the kit was saved against, so a later change is visible rather than silent. NULL on kits
+    # saved before these existed: then it's unknown, and nothing is claimed.
+    event_when: Mapped[str | None] = mapped_column(String(80), nullable=True)  # "date|HH:MM|zone"
+    story_revisions: Mapped[dict | None] = mapped_column(JSONType, nullable=True)  # {story id: revision}
+
+    __mapper_args__ = {"version_id_col": revision}
 
 
 class WhiteboardDraft(Base):

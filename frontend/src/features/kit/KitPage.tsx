@@ -1,7 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 
+import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
 import { useKit, useStories } from "@/api/queries";
 import type { Kit, KitQuestion } from "@/api/types";
@@ -26,41 +27,80 @@ export function KitPage() {
   const kit = useKit(id, eventId);
   if (kit.isPending) return <LoadingState label="Loading your interview kit…" />;
   if (kit.isError) return <div className="page"><ErrorState error={kit.error} onRetry={() => void kit.refetch()} /></div>;
-  return <KitEditor key={`${kit.data.event_id}`} initial={kit.data} />;
+  // The editor keeps the learner's edits; the event's logistics (read live by the server) come from
+  // the latest fetch, so a reschedule made elsewhere shows here without losing unsaved edits.
+  return <KitEditor key={`${kit.data.event_id}`} initial={kit.data} live={kit.data} />;
 }
 
-function KitEditor({ initial }: { initial: Kit }) {
+const BACK_TO_KIT = "Back to the interview kit";
+
+function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
   const qc = useQueryClient();
+  const { pathname } = useLocation();
   const narrow = useMediaQuery("(max-width: 640px)");
   const stories = useStories({});
   const [saved, setSaved] = useState(initial);
   const [kit, setKit] = useState(initial);
+  const [reviewed, setReviewed] = useState<string[]>([]);
+  const [conflict, setConflict] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [notice, setNotice] = useState("");
   const [print, setPrint] = useState<PrintChoice>(DEFAULT_PRINT);
-  const dirty = JSON.stringify(kit) !== JSON.stringify(saved);
+  const dirty = JSON.stringify(kit) !== JSON.stringify(saved) || reviewed.length > 0;
   useLeaveWarning(dirty);
   const set = <K extends keyof Kit>(k: K, v: Kit[K]) => { setKit((x) => ({ ...x, [k]: v })); setNotice(""); };
+  const fromHere = { from: pathname, fromLabel: BACK_TO_KIT };
 
-  async function save() {
+  /** Saves against the revision this page loaded; `over` is an explicit "save mine over it". */
+  async function save(over?: number) {
     setBusy(true);
     setError(null);
     try {
       const next = await api.saveKit(kit.application_id, kit.event_id, {
         format: kit.format, location: kit.location, meeting_link: kit.meeting_link || null, clear_meeting_link: !kit.meeting_link,
         interviewers: kit.interviewers, notes: kit.notes, checklist: kit.checklist, questions: kit.questions, story_ids: kit.stories.map((s) => s.id),
+        expected_revision: over ?? saved.revision, reviewed_story_ids: reviewed,
       });
-      setSaved(next);
-      setKit(next);
-      qc.setQueryData(["me", "kit", kit.application_id, kit.event_id], next);
+      replaceWith(next);
       setNotice("Saved.");
+    } catch (e) {
+      if (e instanceof ApiError && e.code === "stale_revision") {
+        setConflict((e.details as { current_revision?: number } | null)?.current_revision ?? 0);
+      } else {
+        setError(e);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function replaceWith(next: Kit) {
+    setSaved(next);
+    setKit(next);
+    setReviewed([]);
+    setConflict(null);
+    qc.setQueryData(["me", "kit", next.application_id, next.event_id], next);
+  }
+
+  async function loadSaved() {
+    setBusy(true);
+    try {
+      replaceWith(await api.kit(kit.application_id, kit.event_id));
+      setNotice("Loaded the saved kit. Your unsaved changes were discarded.");
     } catch (e) {
       setError(e);
     } finally {
       setBusy(false);
     }
   }
+
+  // Chosen examples: the bank's own list, plus any chosen one that's archived (so it can be unticked).
+  const pickable = [
+    ...(stories.data ?? []).map((s) => ({ id: s.id, title: s.title, archived: false })),
+    ...kit.stories.filter((s) => s.archived && !(stories.data ?? []).some((x) => x.id === s.id)).map((s) => ({ id: s.id, title: s.title, archived: true })),
+  ];
+  const changed = kit.stories.filter((s) => s.chosen_revision != null && s.revision > s.chosen_revision);
 
   const remaining = kit.checklist.filter((c) => !c.done && !c.hidden);
   const asking = kit.questions.filter((q) => !q.excluded);
@@ -80,14 +120,37 @@ function KitEditor({ initial }: { initial: Kit }) {
       <div className="page__header no-print">
         <div>
           <p className="eyebrow">INTERVIEW DAY</p>
-          <h1 className="page__title">{kit.event_title}</h1>
-          <p className="page__subtitle">{kit.role_title} at {kit.employer} · {describeWhen(kit)}</p>
+          <h1 className="page__title">{live.event_title}</h1>
+          <p className="page__subtitle">{live.role_title} at {live.employer} · {describeWhen(live)}</p>
         </div>
       </div>
 
+      {conflict !== null && (
+        <div className="banner banner--warning stack-sm no-print" role="alert">
+          <span>This kit was saved somewhere else since you opened it (maybe in another tab). Your changes are still here and weren't saved.</span>
+          <span className="row">
+            <Button size="sm" variant="primary" loading={busy} onClick={() => void save(conflict)}>Save mine over it</Button>
+            <Button size="sm" variant="ghost" disabled={busy} onClick={() => void loadSaved()}>Discard mine and load the saved kit</Button>
+          </span>
+        </div>
+      )}
+      {conflict === null && live.revision > saved.revision && (
+        <div className="banner banner--info no-print" role="status">
+          This kit was saved somewhere else (maybe another tab) since you opened it.
+          {dirty ? " Your changes here are kept; saving will ask before replacing that version." : " "}
+          {!dirty && <Button size="sm" variant="ghost" onClick={() => replaceWith(live)}>Show the saved kit</Button>}
+        </div>
+      )}
+      {live.rescheduled_from && (
+        <div className="banner banner--info no-print" role="status">
+          This interview moved since you last saved the kit: it was {describeWhen(live.rescheduled_from)}, and is now {describeWhen(live)}.
+          Check the logistics, and anything you ticked about the date or time. Saving the kit notes that you've seen the new time.
+        </div>
+      )}
+
       <section className="card stack-sm before-view no-print" aria-labelledby="before-title">
         <h2 className="section-title" id="before-title">Before the interview</h2>
-        <p><strong>{describeWhen(kit)}</strong> · {FORMAT_LABEL[kit.format]}{kit.format === "in_person" && kit.location ? ` · ${kit.location}` : ""}</p>
+        <p><strong>{describeWhen(live)}</strong> · {FORMAT_LABEL[kit.format]}{kit.format === "in_person" && kit.location ? ` · ${kit.location}` : ""}</p>
         {kit.meeting_link && (
           <details open={!narrow}>
             <summary>Meeting link</summary>
@@ -99,7 +162,7 @@ function KitEditor({ initial }: { initial: Kit }) {
         <div className="before-view__grid">
           <div>
             <h3 className="section-title">Examples to bring</h3>
-            {kit.stories.length === 0 ? <p className="subtle">None chosen yet.</p> : <ul className="mini-list">{kit.stories.map((s) => <li key={s.id}><Link to={`/stories/${s.id}`}>{s.title}</Link>{s.short_version && <span className="subtle"> · {s.short_version}</span>}</li>)}</ul>}
+            {kit.stories.length === 0 ? <p className="subtle">None chosen yet.</p> : <ul className="mini-list">{kit.stories.map((s) => <li key={s.id}><Link to={`/stories/${s.id}`} state={fromHere}>{s.title}</Link>{s.short_version && <span className="subtle"> · {s.short_version}</span>}</li>)}</ul>}
           </div>
           <div>
             <h3 className="section-title">Questions you'll ask</h3>
@@ -112,6 +175,7 @@ function KitEditor({ initial }: { initial: Kit }) {
         </div>
         {kit.format === "remote" && <p className="subtle">Want to check your microphone? The <Link to="/interviews">mock interview setup</Link> has a microphone test (it isn't recorded).</p>}
         <p className="subtle">Read your examples once more, and take your time with each question. This page is for you; nothing on it is sent anywhere.</p>
+        <p className="subtle">Afterwards: <Link to={`/applications/${kit.application_id}/events/${kit.event_id}/reflection`} state={fromHere}>reflect on how it went</Link> (private, like this kit).</p>
       </section>
 
       <div className="kit-page__layout no-print">
@@ -127,7 +191,7 @@ function KitEditor({ initial }: { initial: Kit }) {
               <label className="field"><span className="field__label">Location <span className="subtle">(optional)</span></span><input className="input" maxLength={500} value={kit.location} onChange={(e) => set("location", e.target.value)} /></label>
               <label className="field"><span className="field__label">Meeting link <span className="subtle">(optional, private)</span></span><input className="input" type="url" maxLength={500} placeholder="https://" value={kit.meeting_link ?? ""} onChange={(e) => set("meeting_link", e.target.value || null)} /></label>
             </div>
-            <p className="subtle">CodeCoach never opens or checks the link; it's kept for you, and left out of exports to other pages and of the printout unless you choose it.</p>
+            <p className="subtle">CodeCoach never opens or checks the link. It's kept for you: left out of the printout unless you choose it, and included only in your own data export.</p>
             <fieldset className="stack-sm">
               <legend className="field__label">Interviewers <span className="subtle">(optional; as you know them)</span></legend>
               {kit.interviewers.map((p, i) => (
@@ -187,14 +251,35 @@ function KitEditor({ initial }: { initial: Kit }) {
 
           <Card className="stack-sm">
             <h2 className="section-title">Examples to bring</h2>
-            {(stories.data ?? []).length === 0 ? <p className="subtle">No stories yet. <Link to="/stories/new">Write one</Link>.</p> : (
+            {live.missing_stories > 0 && (
+              <p className="subtle" role="status">
+                {live.missing_stories === 1 ? "An example you chose was" : `${live.missing_stories} examples you chose were`} deleted
+                from your story bank since, so {live.missing_stories === 1 ? "it isn't" : "they aren't"} in this kit any more.
+              </p>
+            )}
+            {changed.length > 0 && (
+              <ul className="kit-story-changes" aria-label="Examples edited since you chose them">
+                {changed.map((s) => (
+                  <li key={s.id}>
+                    <span>“{s.title}” was edited after you chose it (version {s.chosen_revision} then, {s.revision} now).</span>{" "}
+                    <Link to={`/stories/${s.id}`} state={fromHere}>Read it</Link>{" "}
+                    {reviewed.includes(s.id)
+                      ? <span className="subtle">Marked as reread; save the kit to keep that.</span>
+                      : <Button size="sm" variant="ghost" onClick={() => { setReviewed((r) => [...r, s.id]); setNotice(""); }}>I've reread it</Button>}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {pickable.length === 0 ? <p className="subtle">No stories yet. <Link to="/stories/new">Write one</Link>.</p> : (
               <fieldset className="stack-sm">
                 <legend className="visually-hidden">Stories</legend>
-                {(stories.data ?? []).map((s) => (
+                {pickable.map((s) => (
                   <label key={s.id} className="checkbox">
                     <input type="checkbox" checked={kit.stories.some((x) => x.id === s.id)}
-                      onChange={(e) => set("stories", e.target.checked ? [...kit.stories, { id: s.id, title: s.title, short_version: "" }] : kit.stories.filter((x) => x.id !== s.id))} />
-                    {s.title}
+                      onChange={(e) => set("stories", e.target.checked
+                        ? [...kit.stories, { id: s.id, title: s.title, short_version: "", archived: false, revision: 1, chosen_revision: null }]
+                        : kit.stories.filter((x) => x.id !== s.id))} />
+                    {s.title}{s.archived && <>{" "}<span className="subtle">(archived)</span></>}
                   </label>
                 ))}
               </fieldset>
@@ -209,7 +294,7 @@ function KitEditor({ initial }: { initial: Kit }) {
           </details>
 
           <div className="kit-save">
-            <Button variant="primary" loading={busy} disabled={!dirty} onClick={() => void save()}>Save kit</Button>
+            <Button variant="primary" loading={busy} disabled={!dirty || conflict !== null} onClick={() => void save()}>Save kit</Button>
             <span className="subtle" role="status">{notice || (dirty ? "Unsaved changes" : kit.saved ? "All changes saved" : "These are suggestions; save to keep your changes")}</span>
             <InlineError error={error} />
           </div>
@@ -232,10 +317,16 @@ function KitEditor({ initial }: { initial: Kit }) {
       </div>
       <section className="kit-preview" aria-label="Print preview">
         <p className="eyebrow no-print">PRINT PREVIEW</p>
-        <PrintPack kit={kit} choice={print} />
+        <PrintPack kit={{ ...kit, ...logistics(live) }} choice={print} unsaved={dirty} />
       </section>
     </div>
   );
+}
+
+/** The event's own details, as the server reads them now (they aren't edited on this page). */
+function logistics(k: Kit) {
+  const { event_title, role_title, employer, on_date, local_time, timezone, starts_at } = k;
+  return { event_title, role_title, employer, on_date, local_time, timezone, starts_at };
 }
 
 function AddLine({ label, onAdd, max }: { label: string; onAdd: (text: string) => void; max: number }) {

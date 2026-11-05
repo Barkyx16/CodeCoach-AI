@@ -156,9 +156,11 @@ def test_only_your_own_activities_can_be_scheduled(client):
         f"/api/v1/me/applications/{app['id']}/events", headers=other, json={"title": "Interview"}
     ).json()["events"][0]
     assert schedule(client, h, kind="application_event", ref=ev["id"]).status_code == 404
-    assert (
-        schedule(client, other, kind="application_event", ref=ev["id"]).json()["title"]
-        == "Prepare: Interview (X)"
+    prep = schedule(client, other, kind="application_event", ref=ev["id"]).json()
+    assert prep["title"] == "Prepare: Interview (X)"
+    # Preparing happens in the interview's kit (before: the application page).
+    assert prep["href"] == f"/api/v1/me/applications/{app['id']}/events/{ev['id']}/kit".removeprefix(
+        "/api/v1/me"
     )
     assert schedule(client, h, kind="plan_item", ref="nope").status_code == 404
     assert schedule(client, h, kind="question", ref=f"{NURSE}/nope").status_code == 404

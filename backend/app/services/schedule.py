@@ -41,6 +41,7 @@ from app.schemas.schedule import (
     ScheduleSettingsIn,
     ScheduleSettingsOut,
 )
+from app.services.applications import not_over
 from app.services.content import is_problem_retired
 from app.services.ics import IcsEvent, calendar
 from app.services.timeutil import local_to_utc, parse_hhmm, zone
@@ -148,7 +149,8 @@ class Schedule:
             if row is None:
                 raise NotFoundError("Event not found")
             ev, app = row
-            return f"Prepare: {ev.title} ({app.employer})", f"/applications/{app.id}", True
+            # Preparing for an interview happens in its kit (which links back to the application).
+            return f"Prepare: {ev.title} ({app.employer})", f"/applications/{app.id}/events/{ev.id}/kit", True
         raise AppError("Unknown kind.", code="unknown_kind")  # pragma: no cover - the schema limits it
 
     def _done_at(self, e: ScheduleEntry) -> datetime | None:
@@ -306,13 +308,15 @@ class Schedule:
                         minutes=10,
                     )
                 )
-        today = date.today()
+        now = datetime.now(UTC)
         for ev, app in self.db.execute(
             select(ApplicationEvent, Application)
             .join(Application)
             .where(Application.user_id == self.user.id, Application.archived.is_(False))
         ).all():
-            if ev.on_date is None or ev.on_date >= today:
+            # Undated events can be prepared for; dated ones until they're over (same rule as an
+            # application's next event, not the server's own date).
+            if ev.on_date is None or not_over(ev, now):
                 out.append(
                     SchedulableOut(
                         kind="application_event",

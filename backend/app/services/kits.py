@@ -10,14 +10,24 @@ from __future__ import annotations
 
 import re
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.exc import StaleDataError
 
-from app.errors import NotFoundError
+from app.errors import ConflictError, NotFoundError
 from app.models import Application, ApplicationEvent, ExperienceEntry, InterviewKit, RoleTarget, User
-from app.schemas.kits import AskQuestion, ChecklistItem, Interviewer, KitOut, KitStory, KitUpdate
+from app.schemas.kits import (
+    AskQuestion,
+    ChecklistItem,
+    Interviewer,
+    KitOut,
+    KitStory,
+    KitUpdate,
+    KitWhen,
+)
 
 _CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
@@ -61,6 +71,35 @@ def clean(text: str | None) -> str:
     return _CONTROL.sub("", text or "").strip()
 
 
+def _short(text: str, limit: int) -> str:
+    """At most `limit` characters, cut at a word with an ellipsis (requirements can be 300 long)."""
+    text = text.strip().rstrip(".")
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1].rsplit(" ", 1)[0].rstrip(" ,;:") + "…"
+
+
+# Where a suggested question's requirement came from, in the learner's terms. "inferred" ones were
+# added from the career profile, not found in the posting, and mustn't be described as the employer's.
+_REQUIREMENT_SOURCE = {
+    "explicit": "Based on a requirement in the job description you pasted",
+    "user": "Based on a requirement you added to your job target",
+    "inferred": "Based on a skill commonly expected in this career (not from the job description)",
+}
+
+
+def when_key(ev: ApplicationEvent) -> str:
+    """The event's logistics as recorded: date, local time and zone (any may be unknown)."""
+    return f"{ev.on_date.isoformat() if ev.on_date else ''}|{ev.local_time or ''}|{ev.timezone or ''}"
+
+
+def _when(key: str) -> KitWhen:
+    day, local_time, zone = (key.split("|") + ["", "", ""])[:3]
+    return KitWhen(
+        on_date=date.fromisoformat(day) if day else None, local_time=local_time or None, timezone=zone or None
+    )
+
+
 class Kits:
     def __init__(self, db: Session, user: User):
         self.db = db
@@ -95,13 +134,14 @@ class Kits:
                 if not r.removed and r.category in ("responsibility", "required_skill", "competency")
             ]
             for r in reqs[:3]:
+                source = _REQUIREMENT_SOURCE.get(r.origin, _REQUIREMENT_SOURCE["user"])
                 out.append(
                     AskQuestion(
                         id=f"s-req-{r.id[:8]}",
-                        text=f"How does the team approach “{r.text.rstrip('.')}” day to day?",
+                        text=f"How does the team approach “{_short(r.text, 240)}” day to day?",
                         group="role",
                         origin="suggested",
-                        note=f"Based on a requirement from your job target: “{r.text}”",
+                        note=f"{source}: “{_short(r.text, 196 - len(source))}”",
                     )
                 )
         for i, (group, text) in enumerate(GENERIC_QUESTIONS):
@@ -146,6 +186,7 @@ class Kits:
             [AskQuestion(**q) for q in kit.questions],
             kit.story_ids,
             saved=True,
+            row=kit,
         )
 
     def _out(
@@ -163,12 +204,28 @@ class Kits:
         story_ids,
         *,
         saved: bool,
+        row: InterviewKit | None = None,
     ) -> KitOut:
-        stories = []
+        stories, missing = [], 0
+        chosen = (row.story_revisions if row is not None else None) or {}
         for sid in story_ids:
             s = self.db.get(ExperienceEntry, sid)
-            if s is not None and s.user_id == self.user.id:
-                stories.append(KitStory(id=s.id, title=s.title, short_version=s.short_version))
+            if s is None or s.user_id != self.user.id:
+                missing += 1  # deleted since it was chosen: said, not silently dropped
+                continue
+            stories.append(
+                KitStory(
+                    id=s.id,
+                    title=s.title,
+                    short_version=s.short_version,
+                    archived=s.archived,
+                    revision=s.revision,
+                    chosen_revision=chosen.get(s.id),
+                )
+            )
+        moved = None
+        if row is not None and row.event_when is not None and row.event_when != when_key(ev):
+            moved = _when(row.event_when)
         return KitOut(
             event_id=ev.id,
             application_id=app.id,
@@ -190,12 +247,32 @@ class Kits:
             stories=stories,
             target_title=target.title if target else None,
             saved=saved,
+            revision=row.revision if row is not None else 0,
+            rescheduled_from=moved,
+            missing_stories=missing,
+        )
+
+    def _stale(self, event_id: str) -> ConflictError:
+        self.db.rollback()
+        kit = self.db.get(InterviewKit, event_id)
+        return ConflictError(
+            "This kit was saved somewhere else (maybe another tab) since you opened it. "
+            "Your changes weren't saved; they're still on this page.",
+            code="stale_revision",
+            details={"current_revision": kit.revision if kit is not None else 0},
         )
 
     def update(self, app_id: str, event_id: str, body: KitUpdate) -> KitOut:
         current = self.get(app_id, event_id)
         ev, app = self._event(app_id, event_id)
         kit = self.db.get(InterviewKit, ev.id)
+        if body.expected_revision is not None and body.expected_revision != current.revision:
+            raise ConflictError(
+                "This kit was saved somewhere else (maybe another tab) since you opened it. "
+                "Your changes weren't saved; they're still on this page.",
+                code="stale_revision",
+                details={"current_revision": current.revision},
+            )
         if kit is None:
             kit = InterviewKit(
                 event_id=ev.id,
@@ -236,16 +313,43 @@ class Kits:
                 if c.text not in {k["text"] for k in kept}
             ]
             kit.checklist = kept + fresh
+        before = list(kit.story_ids or [])
         if body.story_ids is not None:
-            ids = list(dict.fromkeys(body.story_ids))
-            for sid in ids:
+            ids = []
+            for sid in dict.fromkeys(body.story_ids):
                 s = self.db.get(ExperienceEntry, sid)
-                if s is None or s.user_id != self.user.id:
+                if s is not None and s.user_id == self.user.id:
+                    ids.append(sid)
+                elif s is None and sid in before:
+                    continue  # deleted since it was chosen (maybe in another tab): dropped, not an error
+                else:
                     raise NotFoundError("Story not found")
             kit.story_ids = ids
+        kit.story_revisions = self._story_revisions(kit, before, set(body.reviewed_story_ids or []))
+        kit.event_when = when_key(ev)  # saved on this page, where a move is shown
         kit.updated_at = datetime.now(UTC)
-        self.db.commit()
+        key = ev.id  # read before the commit: after a failed flush the objects are expired
+        try:
+            self.db.commit()
+        except (StaleDataError, IntegrityError):  # another save got there first
+            raise self._stale(key) from None
         return self.get(app_id, event_id)
+
+    def _story_revisions(self, kit: InterviewKit, before: list[str], reviewed: set[str]) -> dict:
+        """Each chosen story's version when it was chosen (or last marked as reread). A story newly
+        chosen gets its current version; one chosen before keeps what was recorded, or stays unknown
+        if nothing was (it isn't backfilled with today's version)."""
+        prev = dict(kit.story_revisions or {})
+        out: dict[str, int] = {}
+        for sid in kit.story_ids or []:
+            s = self.db.get(ExperienceEntry, sid)
+            if s is None or s.user_id != self.user.id:
+                continue
+            if sid in reviewed or sid not in before:
+                out[sid] = s.revision
+            elif sid in prev:
+                out[sid] = prev[sid]
+        return out
 
     @staticmethod
     def new_id() -> str:
@@ -263,6 +367,10 @@ class Kits:
                 "checklist": k.checklist,
                 "questions": k.questions,
                 "stories": k.story_ids,
+                # What it was last saved against (null for kits saved before these were kept).
+                "revision": k.revision,
+                "saved_for_event_time": k.event_when,
+                "story_versions_when_chosen": k.story_revisions,
             }
             for k in self.db.scalars(select(InterviewKit).where(InterviewKit.user_id == self.user.id))
         ]

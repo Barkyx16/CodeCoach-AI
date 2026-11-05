@@ -226,3 +226,35 @@ def test_archive_privacy_export_and_deletion(client):
     with client.app.state.session_factory() as db:
         for model in (Application, ApplicationEvent, ApplicationStageChange):
             assert db.scalars(select(model)).all() == []
+
+
+# --- Interview Workflow pack: which interview is "next" -------------------------------------------
+
+
+def test_the_next_interview_is_ordered_by_time_then_date_only_then_recorded_order(client):
+    from datetime import UTC, date, datetime, timedelta
+
+    h = auth_headers(register(client, email="ord@example.com"))
+    a = client.post(URL, headers=h, json={"employer": "Mercy", "role_title": "Nurse"}).json()
+    day = (datetime.now(UTC) + timedelta(days=3)).date().isoformat()
+    ev = lambda body: client.post(f"{URL}/{a['id']}/events", headers=h, json=body)  # noqa: E731
+    ev({"title": "Date only", "on_date": day})
+    ev({"title": "Afternoon", "on_date": day, "local_time": "15:00", "timezone": "Europe/London"})
+    ev({"title": "Morning", "on_date": day, "local_time": "09:00", "timezone": "Europe/London"})
+    ev({"title": "No date yet"})
+    nxt = client.get(f"{URL}/{a['id']}", headers=h).json()["next_event"]
+    # Before: same-day events were ordered by random id, so any of the three could come first.
+    assert nxt["title"] == "Morning"
+    # A date-only event today still counts for someone west of UTC: it's dropped only once that
+    # date is over everywhere, never on the server's own date.
+    b = client.post(URL, headers=h, json={"employer": "St Anne's", "role_title": "Nurse"}).json()
+    yesterday_utc = (datetime.now(UTC) - timedelta(hours=30)).date()
+    client.post(
+        f"{URL}/{b['id']}/events",
+        headers=h,
+        json={"title": "Long over", "on_date": (yesterday_utc - timedelta(days=1)).isoformat()},
+    )
+    client.post(
+        f"{URL}/{b['id']}/events", headers=h, json={"title": "Today", "on_date": date.today().isoformat()}
+    )
+    assert client.get(f"{URL}/{b['id']}", headers=h).json()["next_event"]["title"] == "Today"

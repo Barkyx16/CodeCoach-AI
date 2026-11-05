@@ -114,7 +114,7 @@ new pieces reuse `ActivityCard`, `MoreOptions`, `Button`, `Icon` and live in `sr
 
 ## Checks run
 
-Local, on the working tree committed with this document:
+Local, on the working tree of `1809217` (this document's first commit):
 
 | Check | Result |
 |---|---|
@@ -124,8 +124,10 @@ Local, on the working tree committed with this document:
 | Production build and bundle budgets (`npm run build`, `npm run size:check`) | pass; shell 296.4 KB / 300 KB, largest lazy chunk 674.5 KB / 700 KB |
 | Backend lint and types (`ruff check .`, `mypy app evals`) | pass (171 files) |
 | Backend roadmap tests (`pytest tests/test_roadmap.py`) | pass, including 5 new tests; the two evidence tests fail on the previous code |
-| Full backend suite (SQLite, PostgreSQL) | pending at commit time; see the progress log |
-| End-to-end (Playwright, Chromium) | pending at commit time; see the progress log |
+| Full backend suite, SQLite (`pytest`) | 2257 passed, 386 skipped, 2 xfailed (the two known rubric residuals) |
+| Full backend suite, PostgreSQL 16 (`TEST_DATABASE_URL=…/codecoach_test pytest`) | 2258 passed, 1 failed, 384 skipped, 2 xfailed. The failure was `test_the_code_knows_its_own_migration_head`, because the next pack's migration was added to the working tree while this run was going; the pinned head was updated with that migration |
+| End-to-end (Playwright, Chromium, real backend on SQLite) | 91 passed, 3 skipped, 1 failed: `explore.spec.ts` scroll restoration after reload, while the PostgreSQL suite was loading the machine. Re-run alone: 2/2 passed. Treated as a load flake, not a regression (no changed code is on that page) |
+| CI on `1809217` | Frontend, backend (SQLite + PostgreSQL + migrations), runner, Docker and dependency audit passed; end-to-end and sandbox were still running when this was written (see the interview workflow handoff) |
 
 New tests:
 

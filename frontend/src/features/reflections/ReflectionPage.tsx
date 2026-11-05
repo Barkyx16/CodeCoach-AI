@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type FormEvent } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
@@ -34,8 +34,11 @@ export function ReflectionPage() {
   return <Editor key={eventId} initial={reflection.data} />;
 }
 
+const BACK_TO_REFLECTION = "Back to your reflection";
+
 function Editor({ initial }: { initial: Reflection }) {
   const { user } = useAuth();
+  const { pathname } = useLocation();
   const qc = useQueryClient();
   const key = `reflection-draft:${user?.id ?? "anon"}:${initial.event_id}`;
   const [r, setR] = useState(initial);
@@ -67,6 +70,9 @@ function Editor({ initial }: { initial: Reflection }) {
     setR(next);
     qc.setQueryData(["me", "reflection", next.application_id, next.event_id], next);
     void qc.invalidateQueries({ queryKey: ["me", "reflections"] });
+    // An outcome can move the application's stage: its pages shouldn't show the old one.
+    void qc.invalidateQueries({ queryKey: ["me", "application", next.application_id] });
+    void qc.invalidateQueries({ queryKey: ["me", "applications"] });
   };
 
   async function run(label: string, fn: () => Promise<Reflection>, done?: string) {
@@ -96,6 +102,15 @@ function Editor({ initial }: { initial: Reflection }) {
 
   const conflict = error instanceof ApiError && error.code === "stale_revision" ? (error.details as { current_revision: number }).current_revision : null;
 
+  async function loadSaved() {
+    const fresh = await run("reload", () => api.reflection(r.application_id, r.event_id), "Loaded the saved version. Your unsaved text was discarded.");
+    if (fresh) {
+      setDraft(fromReflection(fresh));
+      setRestored((n) => n + 1);
+      try { localStorage.removeItem(key); } catch { /* blocked */ }
+    }
+  }
+
   return (
     <div className="page reflection-page">
       <BackLink fallback={{ to: `/applications/${r.application_id}`, label: `${r.role_title} at ${r.employer}` }} />
@@ -110,6 +125,9 @@ function Editor({ initial }: { initial: Reflection }) {
         </div>
       </div>
       {r.application_archived && <p className="banner banner--info">This application is archived. Your reflection stays here.</p>}
+      <p className="subtle">
+        <Link to={`/applications/${r.application_id}/events/${r.event_id}/kit`} state={{ from: pathname, fromLabel: BACK_TO_REFLECTION }}>Your interview kit for this interview</Link>
+      </p>
 
       <Card className="stack-sm reflection-guidance">
         <h2 className="section-title">Before you write</h2>
@@ -151,13 +169,25 @@ function Editor({ initial }: { initial: Reflection }) {
           <fieldset className="stack-sm reflection-stories">
             <legend className="field__label">Stories you used</legend>
             {stories.data!.map((s) => (
-              <label key={s.id} className="checkbox">
-                <input type="checkbox" checked={draft.story_ids.includes(s.id)}
-                  onChange={(e) => set("story_ids", e.target.checked ? [...draft.story_ids, s.id] : draft.story_ids.filter((x) => x !== s.id))} />
-                {s.title}
-              </label>
+              <span key={s.id} className="row reflection-stories__item">
+                <label className="checkbox">
+                  <input type="checkbox" checked={draft.story_ids.includes(s.id)}
+                    onChange={(e) => set("story_ids", e.target.checked ? [...draft.story_ids, s.id] : draft.story_ids.filter((x) => x !== s.id))} />
+                  {s.title}
+                </label>
+                {/* Editing is the story's own, versioned flow: nothing here changes the story. */}
+                {r.story_ids.includes(s.id) && (
+                  <Link to={`/stories/${s.id}`} state={{ from: pathname, fromLabel: BACK_TO_REFLECTION }} aria-label={`Revise “${s.title}” in your story bank`}>Revise this story</Link>
+                )}
+              </span>
             ))}
           </fieldset>
+        )}
+        {r.missing_stories > 0 && (
+          <p className="subtle" role="status">
+            {r.missing_stories === 1 ? "A story you linked was" : `${r.missing_stories} stories you linked were`} deleted from your story bank since.
+            Your reflection is unchanged; saving it removes the link.
+          </p>
         )}
         <span className="row">
           <Button type="submit" variant="primary" loading={busy === "save"} disabled={!dirty}>Save reflection</Button>
@@ -167,7 +197,10 @@ function Editor({ initial }: { initial: Reflection }) {
         {conflict !== null && (
           <div className="banner banner--warning row" role="alert">
             <span>This reflection was saved somewhere else (now version {conflict}). Your text is still here.</span>
-            <Button size="sm" variant="primary" onClick={() => void save(undefined, conflict)}>Save mine as the newest</Button>
+            <span className="row">
+              <Button size="sm" variant="primary" onClick={() => void save(undefined, conflict)}>Save mine as the newest</Button>
+              <Button size="sm" variant="ghost" onClick={() => void loadSaved()}>Discard mine and load the saved version</Button>
+            </span>
           </div>
         )}
         {conflict === null && <InlineError error={error} />}
@@ -232,6 +265,8 @@ function NextSteps({ r, busy, run }: { r: Reflection; busy: string | null; run: 
 }
 
 function ActionRow({ r, a, busy, run }: { r: Reflection; a: ReflectionAction; busy: string | null; run: Run }) {
+  const { pathname } = useLocation();
+  const back = { from: pathname, fromLabel: BACK_TO_REFLECTION };
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(a.title);
   const [detail, setDetail] = useState(a.detail);
@@ -243,11 +278,18 @@ function ActionRow({ r, a, busy, run }: { r: Reflection; a: ReflectionAction; bu
     <li className={`reflection-action reflection-action--${a.kind}`}>
       <div className="row">
         <Badge tone={a.kind === "gap" ? "warning" : a.kind === "practice" ? "info" : "neutral"}>{a.kind === "gap" ? "Gap" : a.kind === "practice" ? "Practice" : "Note"}</Badge>
-        {a.href ? <Link to={a.href}>{a.title}</Link> : <strong>{a.title}</strong>}
+        {a.href ? <Link to={a.href} state={back}>{a.title}</Link> : <strong>{a.title}</strong>}
       </div>
       {a.detail && <p className="subtle">{a.detail}</p>}
       {a.status === "accepted" ? (
-        <p className="reflection-action__done">Added to {a.target ? where[a.target] : "your account"}.{a.target === "notebook" && a.applied_ref && <> <Link to={`/notes/${a.applied_ref}`}>Open the note</Link></>}</p>
+        a.applied_available === false ? (
+          <p className="reflection-action__done">
+            You added this to {a.target ? where[a.target] : "your account"}, and {a.target === "notebook" ? "deleted that note" : a.target === "schedule" ? "removed it from your schedule" : "removed it from Saved"} since.
+            It isn't added again from here{a.target === "notebook" ? " (a deleted note can be restored from your notebook for a short time)" : ""}.
+          </p>
+        ) : (
+          <p className="reflection-action__done">Added to {a.target ? where[a.target] : "your account"}.{a.target === "notebook" && a.applied_ref && <> <Link to={`/notes/${a.applied_ref}`} state={back}>Open the note</Link></>}{a.target === "schedule" && <> <Link to="/schedule">Open your schedule</Link></>}{a.target === "saved" && <> <Link to="/saved">Open Saved</Link></>}</p>
+        )
       ) : editing ? (
         <form className="stack-sm" onSubmit={(e) => { e.preventDefault(); void run(`edit-${a.id}`, () => api.editReflectionStep(...base, a.id, { title, detail })).then((n) => n && setEditing(false)); }}>
           <label className="field"><span className="field__label">Step</span><input className="input" maxLength={300} value={title} onChange={(e) => setTitle(e.target.value)} /></label>
@@ -279,12 +321,24 @@ function ActionRow({ r, a, busy, run }: { r: Reflection; a: ReflectionAction; bu
 function OutcomeSection({ r, busy, run }: { r: Reflection; busy: string | null; run: Run }) {
   const [outcome, setOutcome] = useState<ReflectionOutcome>(r.outcome);
   const [apply, setApply] = useState(false);
+  const [result, setResult] = useState("");
   const stage = STAGE_FOR[outcome];
+  async function submit() {
+    const before = r.outcome_history.length;
+    const next = await run("outcome", () => api.setReflectionOutcome(r.application_id, r.event_id, { outcome, update_application: apply && !!stage }));
+    if (!next) return; // the error is shown; nothing was saved (the outcome and the stage are saved together)
+    const last = next.outcome_history.at(-1);
+    if (next.outcome_history.length === before) setResult("Nothing changed: that outcome was already recorded.");
+    else if (last?.applied_to_application && stage) setResult(`Outcome saved, and the application moved to “${STAGE_LABEL[stage]}”.`);
+    else if (apply && stage) setResult(`Outcome saved. The application was already at “${STAGE_LABEL[stage]}”, so it wasn't moved.`);
+    else setResult("Outcome saved. The application wasn't changed.");
+    setApply(false);
+  }
   return (
     <section className="card stack-sm" aria-labelledby="outcome-title">
       <h2 className="section-title" id="outcome-title">What happened next</h2>
       <p className="subtle">Only what you've been told. A slow reply isn't a rejection, and nothing here is used to score your practice.</p>
-      <form className="stack-sm" onSubmit={(e) => { e.preventDefault(); void run("outcome", () => api.setReflectionOutcome(r.application_id, r.event_id, { outcome, update_application: apply && !!stage }), "Outcome saved."); }}>
+      <form className="stack-sm" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
         <label className="field"><span className="field__label">Outcome</span>
           <select className="select" value={outcome} onChange={(e) => { setOutcome(e.target.value as ReflectionOutcome); setApply(false); }}>
             {(Object.keys(OUTCOME_LABEL) as ReflectionOutcome[]).map((o) => <option key={o} value={o}>{OUTCOME_LABEL[o]}</option>)}
@@ -296,6 +350,7 @@ function OutcomeSection({ r, busy, run }: { r: Reflection; busy: string | null; 
           </label>
         )}
         <span><Button type="submit" size="sm" loading={busy === "outcome"} disabled={outcome === r.outcome && !apply}>Save outcome</Button></span>
+        {result && <p className="subtle" role="status">{result}</p>}
       </form>
       {r.outcome_history.length > 0 && (
         <ul className="mini-list subtle">

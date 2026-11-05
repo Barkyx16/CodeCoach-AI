@@ -9,7 +9,8 @@ notifications.
 Existing activities only, by their ids: a step from your **practice plan**, a question in your
 **review queue**, any **question** or **coding problem** (from its page: "Add to schedule"), or
 **preparation** for an interview event of one of your **applications**. Nothing new is invented;
-the entry links back to the activity.
+the entry links back to the activity (for interview preparation, that interview's kit). A
+preparation entry is a time slot of its own: rescheduling the interview doesn't move it.
 
 **Scheduling something isn't doing it.** An entry shows as *Done* only when the activity itself
 was done by its own rules: the plan step was completed by the plan, or you answered the question

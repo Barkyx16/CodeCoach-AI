@@ -5929,8 +5929,25 @@ export interface components {
              * @description False until you change something: the suggestions aren't stored yet
              */
             saved: boolean;
+            /**
+             * Revision
+             * @description Send it back as expected_revision when saving; 0 until saved
+             * @default 0
+             */
+            revision: number;
+            /** @description When the interview was the last time this kit was saved, if it has moved since. Null if it hasn't moved, or if that isn't known (kits saved before this was recorded). */
+            rescheduled_from?: components["schemas"]["KitWhen"] | null;
+            /**
+             * Missing Stories
+             * @description Examples chosen for this kit that were deleted since (they aren't shown)
+             * @default 0
+             */
+            missing_stories: number;
         };
-        /** KitStory */
+        /**
+         * KitStory
+         * @description A chosen example, as it is now (it's a live reference, not a copy).
+         */
         KitStory: {
             /** Id */
             id: string;
@@ -5938,6 +5955,22 @@ export interface components {
             title: string;
             /** Short Version */
             short_version: string;
+            /**
+             * Archived
+             * @default false
+             */
+            archived: boolean;
+            /**
+             * Revision
+             * @description The story's current version
+             * @default 1
+             */
+            revision: number;
+            /**
+             * Chosen Revision
+             * @description The story's version when it was chosen for this kit (or last marked as reread); null if that wasn't recorded (kits saved before this existed)
+             */
+            chosen_revision?: number | null;
         };
         /**
          * KitUpdate
@@ -5965,6 +5998,25 @@ export interface components {
             questions?: components["schemas"]["AskQuestion"][] | null;
             /** Story Ids */
             story_ids?: string[] | null;
+            /**
+             * Expected Revision
+             * @description The kit revision you loaded (0 if it was never saved). If the kit was saved since, nothing is changed and the answer is 409 stale_revision with the current revision.
+             */
+            expected_revision?: number | null;
+            /**
+             * Reviewed Story Ids
+             * @description Chosen examples you've reread since they changed: their recorded version becomes the current one. Others keep the version they had when you chose them.
+             */
+            reviewed_story_ids?: string[] | null;
+        };
+        /** KitWhen */
+        KitWhen: {
+            /** On Date */
+            on_date: string | null;
+            /** Local Time */
+            local_time: string | null;
+            /** Timezone */
+            timezone: string | null;
         };
         /** LearnCatalog */
         LearnCatalog: {
@@ -6963,6 +7015,11 @@ export interface components {
             target: ("notebook" | "schedule" | "saved") | null;
             /** Applied Ref */
             applied_ref: string | null;
+            /**
+             * Applied Available
+             * @description For an accepted step: whether what it created is still there (the note, an uncancelled schedule entry, the bookmark). False means you removed it since; accepting again doesn't recreate it.
+             */
+            applied_available?: boolean | null;
         };
         /** ReflectionIn */
         ReflectionIn: {
@@ -7043,8 +7100,17 @@ export interface components {
             follow_ups: string;
             /** Practice */
             practice: string[];
-            /** Story Ids */
+            /**
+             * Story Ids
+             * @description Your stories linked to this reflection that still exist
+             */
             story_ids: string[];
+            /**
+             * Missing Stories
+             * @description Stories linked to this reflection that were deleted since (not listed)
+             * @default 0
+             */
+            missing_stories: number;
             /**
              * Outcome
              * @enum {string}

@@ -52,9 +52,16 @@ def test_questions_come_from_your_own_target_and_never_claim_employer_facts(clie
     a, ev, url = event(client, h, target_id=t["id"])
     kit = client.get(url, headers=h).json()
     from_target = [q for q in kit["questions"] if q["id"].startswith("s-req-")]
-    assert from_target and all(
-        q["note"].startswith("Based on a requirement from your job target") for q in from_target
-    )
+    origin = {f"s-req-{r['id'][:8]}": r["origin"] for r in t["requirement_list"]}
+    expected = {
+        "explicit": "Based on a requirement in the job description you pasted",
+        "user": "Based on a requirement you added to your job target",
+        "inferred": "Based on a skill commonly expected in this career (not from the job description)",
+    }
+    # Each says where it really came from: a skill inferred from the career profile is never
+    # presented as something the employer wrote.
+    assert from_target and all(q["note"].startswith(expected[origin[q["id"]]]) for q in from_target)
+    assert {origin[q["id"]] for q in from_target} >= {"inferred"}
     training = next(q for q in kit["questions"] if q["group"] == "training")
     assert (
         "mentions “induction”" in training["note"] and training["excluded"] is False
@@ -126,7 +133,14 @@ def test_links_are_checked_and_stories_must_be_yours(client):
     assert client.put(url, headers=h, json={"story_ids": [theirs["id"]]}).status_code == 404
     out = client.put(url, headers=h, json={"story_ids": [mine["id"]]}).json()
     assert out["stories"] == [
-        {"id": mine["id"], "title": "Two call lights", "short_version": "I triaged by risk."}
+        {
+            "id": mine["id"],
+            "title": "Two call lights",
+            "short_version": "I triaged by risk.",
+            "archived": False,
+            "revision": 1,
+            "chosen_revision": 1,  # the version it was when chosen
+        }
     ]
 
 
@@ -141,6 +155,11 @@ def test_kits_are_private_exported_and_deleted(client):
     assert client.put(url, headers=other, json={"notes": "x"}).status_code == 404
     exported = client.get("/api/v1/me/export", headers=h).json()["interview_kits"]
     assert exported[0]["notes"] == "Ask about parking."
+    assert (
+        exported[0]["revision"] == 1
+        and exported[0]["saved_for_event_time"] == "2026-11-12|10:00|Europe/London"
+    )
+    assert exported[0]["story_versions_when_chosen"] == {}
     # Deleting the event deletes its kit.
     client.delete(f"{APPS}/{a['id']}/events/{ev['id']}", headers=h)
     with client.app.state.session_factory() as db:
@@ -160,3 +179,183 @@ def test_a_format_change_saved_with_the_whole_kit_still_gets_that_formats_sugges
     texts = [c["text"] for c in out["checklist"]]
     assert "Check the address and how long it takes to get there" in texts
     assert "Find out whether it's remote, by phone or in person" not in texts
+
+
+# --- Interview Workflow pack: conflict-safe saves, what a kit was saved against --------------------
+
+
+def test_a_stale_save_is_refused_and_changes_nothing(client):
+    h = nurse(client)
+    _, _, url = event(client, h)
+    kit = client.get(url, headers=h).json()
+    assert kit["revision"] == 0  # never saved
+    first = client.put(url, headers=h, json={"notes": "Tab A", "expected_revision": 0}).json()
+    assert first["revision"] == 1
+    # Tab B loaded the kit before tab A saved, and saves an older copy.
+    stale = client.put(url, headers=h, json={"notes": "Tab B", "expected_revision": 0})
+    assert stale.status_code == 409
+    assert stale.json()["error"]["code"] == "stale_revision"
+    assert stale.json()["error"]["details"] == {"current_revision": 1}
+    assert client.get(url, headers=h).json()["notes"] == "Tab A"  # nothing overwritten
+    # Reloading, then saving against the current revision, works.
+    assert client.put(url, headers=h, json={"notes": "Tab B", "expected_revision": 1}).json()["revision"] == 2
+
+
+def test_a_save_that_loses_a_race_is_a_conflict_not_a_lost_update(client, monkeypatch):
+    """Both tabs pass the revision check; the other one commits first. The losing UPDATE matches no
+    row (the revision moved), so it's refused instead of overwriting."""
+    from app.services import kits as kits_service
+
+    h = nurse(client)
+    _, ev, url = event(client, h)
+    client.put(url, headers=h, json={"notes": "Saved", "expected_revision": 0})
+    real = kits_service.Kits._story_revisions
+
+    def other_tab_commits_first(self, kit, before, reviewed):
+        with client.app.state.session_factory() as db:
+            row = db.get(InterviewKit, ev["id"])
+            row.notes = "Other tab"
+            db.commit()
+        return real(self, kit, before, reviewed)
+
+    monkeypatch.setattr(kits_service.Kits, "_story_revisions", other_tab_commits_first)
+    r = client.put(url, headers=h, json={"notes": "This tab", "expected_revision": 1})
+    monkeypatch.setattr(kits_service.Kits, "_story_revisions", real)
+    assert r.status_code == 409 and r.json()["error"]["code"] == "stale_revision"
+    assert r.json()["error"]["details"] == {"current_revision": 2}
+    assert client.get(url, headers=h).json()["notes"] == "Other tab"
+
+
+def test_two_first_saves_at_once_give_one_kit_and_a_conflict(client, monkeypatch):
+    from app.services import kits as kits_service
+
+    h = nurse(client)
+    _, ev, url = event(client, h)
+    user_id = client.get("/api/v1/auth/me", headers=h).json()["id"]
+    real = kits_service.Kits._story_revisions
+
+    def other_tab_creates_it(self, kit, before, reviewed):
+        with client.app.state.session_factory() as db:
+            db.add(InterviewKit(event_id=ev["id"], user_id=user_id, notes="Other tab"))
+            db.commit()
+        return real(self, kit, before, reviewed)
+
+    monkeypatch.setattr(kits_service.Kits, "_story_revisions", other_tab_creates_it)
+    r = client.put(url, headers=h, json={"notes": "This tab", "expected_revision": 0})
+    monkeypatch.setattr(kits_service.Kits, "_story_revisions", real)
+    assert r.status_code == 409 and r.json()["error"]["code"] == "stale_revision"  # not a 500
+    with client.app.state.session_factory() as db:
+        assert [k.notes for k in db.scalars(select(InterviewKit))] == ["Other tab"]
+
+
+def test_a_rescheduled_interview_shows_in_the_kit_without_touching_what_you_ticked(client):
+    h = nurse(client)
+    a, ev, url = event(client, h)
+    kit = client.get(url, headers=h).json()
+    ticked = [{**c, "done": c["text"] == "Confirm the date, time and time zone"} for c in kit["checklist"]]
+    saved = client.put(url, headers=h, json={"checklist": ticked, "expected_revision": 0}).json()
+    assert saved["rescheduled_from"] is None
+    client.put(
+        f"{APPS}/{a['id']}/events/{ev['id']}",
+        headers=h,
+        json={
+            "title": "Panel interview",
+            "on_date": "2026-11-13",
+            "local_time": "14:30",
+            "timezone": "Europe/London",
+        },
+    )
+    moved = client.get(url, headers=h).json()
+    # The kit reads the event live, and says what it was saved against.
+    assert (moved["on_date"], moved["local_time"]) == ("2026-11-13", "14:30")
+    assert moved["rescheduled_from"] == {
+        "on_date": "2026-11-12",
+        "local_time": "10:00",
+        "timezone": "Europe/London",
+    }
+    # The learner's tick is theirs: not silently undone.
+    assert next(c for c in moved["checklist"] if c["text"].startswith("Confirm the date"))["done"] is True
+    again = client.put(url, headers=h, json={"notes": "Checked the new time", "expected_revision": 1}).json()
+    assert again["rescheduled_from"] is None
+
+
+def test_a_kit_saved_before_snapshots_existed_claims_nothing(client):
+    h = nurse(client)
+    a, ev, url = event(client, h)
+    client.put(url, headers=h, json={"notes": "Old kit"})
+    with client.app.state.session_factory() as db:  # as a kit saved before the upgrade looks
+        row = db.get(InterviewKit, ev["id"])
+        row.event_when, row.story_revisions = None, None
+        db.commit()
+    client.put(
+        f"{APPS}/{a['id']}/events/{ev['id']}",
+        headers=h,
+        json={"title": "Panel interview", "on_date": "2026-11-20"},
+    )
+    assert client.get(url, headers=h).json()["rescheduled_from"] is None  # unknown, not guessed
+
+
+def test_story_changes_after_choosing_are_visible_and_deleted_ones_are_counted(client):
+    h = nurse(client)
+    _, _, url = event(client, h)
+    s1 = client.post("/api/v1/me/stories", headers=h, json={"title": "Two call lights"}).json()
+    s2 = client.post("/api/v1/me/stories", headers=h, json={"title": "Night handover"}).json()
+    s3 = client.post("/api/v1/me/stories", headers=h, json={"title": "Family meeting"}).json()
+    kit = client.put(
+        url, headers=h, json={"story_ids": [s1["id"], s2["id"], s3["id"]], "expected_revision": 0}
+    ).json()
+    assert [s["chosen_revision"] for s in kit["stories"]] == [1, 1, 1]
+    # Renamed and rewritten after it was chosen.
+    client.patch(
+        f"/api/v1/me/stories/{s1['id']}",
+        headers=h,
+        json={"title": "Two call lights at once", "result": "Both patients safe.", "expected_revision": 1},
+    )
+    client.post(f"/api/v1/me/stories/{s2['id']}/archive", headers=h)
+    client.delete(f"/api/v1/me/stories/{s3['id']}", headers=h)
+    now = client.get(url, headers=h).json()
+    by_id = {s["id"]: s for s in now["stories"]}
+    assert by_id[s1["id"]]["title"] == "Two call lights at once"  # a live reference, not a copy
+    assert (by_id[s1["id"]]["revision"], by_id[s1["id"]]["chosen_revision"]) == (2, 1)
+    assert by_id[s2["id"]]["archived"] is True  # still shown, so it can be unticked
+    assert s3["id"] not in by_id and now["missing_stories"] == 1
+    # Saving something else doesn't quietly mark the change as reread...
+    kept = client.put(url, headers=h, json={"notes": "x", "expected_revision": 1}).json()
+    assert next(s for s in kept["stories"] if s["id"] == s1["id"])["chosen_revision"] == 1
+    # A page opened before the delete still sends the deleted one: saved, and it's dropped.
+    stale_list = client.put(
+        url, headers=h, json={"story_ids": [s1["id"], s2["id"], s3["id"]], "expected_revision": 2}
+    )
+    assert stale_list.status_code == 200 and stale_list.json()["missing_stories"] == 0
+    # ...saying so does.
+    reread = client.put(
+        url, headers=h, json={"reviewed_story_ids": [s1["id"]], "expected_revision": 3}
+    ).json()
+    assert next(s for s in reread["stories"] if s["id"] == s1["id"])["chosen_revision"] == 2
+
+
+def test_a_long_requirement_still_gives_a_valid_suggestion(client):
+    h = nurse(client)
+    t = client.post("/api/v1/targets", headers=h, json={"title": "Ward nurse", "description": JD}).json()
+    long_text = ("Coordinate safe discharge planning with families, social work and community teams " * 4)[
+        :300
+    ]
+    r = client.post(
+        f"/api/v1/targets/{t['id']}/requirements",
+        headers=h,
+        json={"text": long_text, "category": "responsibility"},
+    )
+    assert r.status_code in (200, 201), r.text
+    from app.models import TargetRequirement
+
+    with client.app.state.session_factory() as db:  # only the long one is left to suggest from
+        for req in db.scalars(select(TargetRequirement).where(TargetRequirement.text != long_text)):
+            req.removed = True
+        db.commit()
+    _, _, url = event(client, h, target_id=t["id"])
+    kit = client.get(url, headers=h)
+    assert kit.status_code == 200  # before: a validation error (question over 300, note over 200)
+    from_req = [q for q in kit.json()["questions"] if q["id"].startswith("s-req-")]
+    assert len(from_req) == 1 and from_req[0]["text"].endswith("…” day to day?")
+    for q in kit.json()["questions"]:
+        assert len(q["text"]) <= 300 and (q["note"] is None or len(q["note"]) <= 200)
