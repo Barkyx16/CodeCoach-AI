@@ -33,6 +33,7 @@ import csv
 import hashlib
 import html
 import json
+import re
 import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
@@ -60,6 +61,9 @@ ADJ = [
     "rationale",
 ]
 PENDING = "prepared; human review pending (no person has reviewed any item)"
+# A backstop, not the control (the --human declaration is): a reviewer named as a model or tool is
+# refused. Only names no person carries ("Claude" is also a person's name, so it isn't listed).
+_MODEL_NAME = re.compile(r"\b(?:chatgpt|gpt-?\d+\w*|llm|language model|chatbot|copilot)\b", re.IGNORECASE)
 
 
 def _manifest() -> list[dict]:
@@ -287,14 +291,28 @@ def import_ratings(
         raise SystemExit("--human is required: only a person's labels are a review (another model's are not)")
     if not reviewer.strip():
         raise SystemExit("--reviewer is required: who reviewed, and in what capacity")
+    if _MODEL_NAME.search(reviewer):
+        raise SystemExit(
+            f"{reviewer!r} reads as a model or tool: its labels aren't a review by a person and aren't imported"
+        )
     sample = load_sample(sample_id, samples_dir)
     expected = {(it["item"], p) for it in sample["items"] for p in it["points"]}
     ratings = []
+    seen: set[tuple[str, str]] = set()
     with form.open(newline="", encoding="utf-8") as f:
-        for r in csv.DictReader(f):
+        reader = csv.DictReader(f)
+        missing = {"item", "point", "your_label"} - set(reader.fieldnames or [])
+        if missing:
+            raise SystemExit(
+                f"the form is missing column(s) {sorted(missing)}: use the 1-form.csv the packet wrote"
+            )
+        for r in reader:
             key = (r["item"], r["point"])
             if key not in expected:
                 raise SystemExit(f"unknown item/point in the form: {r['item']} / {r['point']}")
+            if key in seen:
+                raise SystemExit(f"{r['item']} / {r['point']} is rated twice in this form: keep one row")
+            seen.add(key)
             label = r["your_label"].strip().lower()
             if not label:
                 continue
@@ -499,6 +517,10 @@ def status(sample_id: str, samples_dir: Path | None = None) -> dict:
     store = _store(sample_id, samples_dir)
     people = _latest_by_reviewer(store)
     changes = [d for a in store["adjudications"] for d in a["label_changes_pending"]]
+    decided = {(d["item"], d["point"]): d["outcome"] for a in store["adjudications"] for d in a["decisions"]}
+    unresolved = sorted(f"{i} / {p}" for (i, p), o in decided.items() if o == "unresolved")
+    differences = _differing(sample, people) if people else []
+    undecided = sorted(f"{i} / {p}" for i, p in differences if (i, p) not in decided)
     if not people:
         state = PENDING
     elif not store["adjudications"]:
@@ -514,7 +536,23 @@ def status(sample_id: str, samples_dir: Path | None = None) -> dict:
         "reviewers": sorted(people),
         "agreement": agreement(store),
         "label_changes": changes,
+        "unresolved": unresolved,
+        "not_adjudicated": undecided,
     }
+
+
+def _differing(sample: dict, people: dict[str, dict[tuple[str, str], str]]) -> list[tuple[str, str]]:
+    """Points where a reviewer's label differs from the proposed one, or someone couldn't tell."""
+    cases = _cases(sample)
+    out = []
+    for it in sample["items"]:
+        labels = cases[(it["dataset"], it["case"])]["labels"]["points"]
+        for p in it["points"]:
+            proposed = "covered" if labels[p] else "missing"
+            theirs = {v[(it["item"], p)] for v in people.values() if (it["item"], p) in v}
+            if theirs and (theirs - {proposed}):
+                out.append((it["item"], p))
+    return out
 
 
 def main() -> None:

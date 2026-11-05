@@ -557,6 +557,16 @@ def _contradiction_metrics(cases: dict, graded: dict) -> dict:
     }
 
 
+def _question(track: str, case: dict) -> Question:
+    """The case's question at its labelled version; a case whose question is gone is an error."""
+    q = get_question(track, case["question_id"], case["question_version"])
+    if q is None:
+        raise ValueError(
+            f"{case['id']}: question {case['question_id']} v{case['question_version']} not found"
+        )
+    return q
+
+
 def evaluate_regression(grader: Grader) -> list[dict]:
     """Each known defect (evals/regression.json) against the cases that show it, in their own sets."""
     spec = json.loads((EVAL_DIR / "regression.json").read_text(encoding="utf-8"))
@@ -582,12 +592,12 @@ def evaluate_regression(grader: Grader) -> list[dict]:
             if "error" in r:
                 shows = True
             elif sig["check"] == "typed_parity":
-                q = get_question(data["track"], case["question_id"], case["question_version"])
+                q = _question(data["track"], case)
                 shows = [p.covered for p in grader(q, case["answer"]).points] != [
                     p.covered for p in grader(q, sig["typed"]).points
                 ]
             elif sig["check"] == "pair_parity":
-                q = get_question(data["track"], case["question_id"], case["question_version"])
+                q = _question(data["track"], case)
                 typed = next(c for c in data["cases"] if c["id"] == case["pair_of"])
                 a = {p.label: p.covered for p in grader(q, case["answer"]).points}
                 b = {p.label: p.covered for p in grader(q, typed["answer"]).points}
@@ -595,7 +605,7 @@ def evaluate_regression(grader: Grader) -> list[dict]:
             elif sig["check"] == "transform_parity":
                 from evals import dictation
 
-                q = get_question(data["track"], case["question_id"], case["question_version"])
+                q = _question(data["track"], case)
                 transformed = getattr(dictation, sig["transform"])(case["answer"])
                 shows = [p.covered for p in grader(q, case["answer"]).points] != [
                     p.covered for p in grader(q, transformed).points

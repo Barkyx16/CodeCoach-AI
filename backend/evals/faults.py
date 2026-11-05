@@ -16,8 +16,8 @@ from types import SimpleNamespace
 from typing import Any
 
 import anthropic
-import httpx
-from pydantic import TypeAdapter, ValidationError
+import httpx2  # the HTTP library the pinned anthropic SDK is built on (its errors take its types)
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from app.config import Settings
 from app.schemas.ai import CodeReview, Complexity, FailureExplanation, HintContent
@@ -26,11 +26,11 @@ from app.services.ai.base import FailureContext, HintContext, ReviewContext
 from app.services.ai.service import CoachService
 from app.services.ai.static_analysis import analyze
 
-_REQ = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+_REQ = httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
 
 
 def _status(cls: type[anthropic.APIStatusError], code: int) -> anthropic.APIStatusError:
-    return cls(f"HTTP {code}", response=httpx.Response(code, request=_REQ), body=None)
+    return cls(f"HTTP {code}", response=httpx2.Response(code, request=_REQ), body=None)
 
 
 def _cut_off(schema: type) -> ValidationError:
@@ -65,7 +65,7 @@ def _reply(stop_reason: str, parsed: Any = None) -> Callable[[dict], SimpleNames
 def _nonsense(schema: type) -> Callable[[dict], SimpleNamespace]:
     """A reply that matches the schema and says nothing usable: required text empty, a complexity
     that isn't Big-O notation."""
-    parsed = {
+    makers: dict[type, Callable[[], BaseModel]] = {
         HintContent: lambda: HintContent(hint="   ", focus_area="", encouragement=""),
         CodeReview: lambda: CodeReview(
             summary="",
@@ -78,8 +78,8 @@ def _nonsense(schema: type) -> Callable[[dict], SimpleNamespace]:
         FailureExplanation: lambda: FailureExplanation(
             cause="other", headline="", explanation="", evidence="", next_steps=[], confidence="high"
         ),
-    }[schema]()
-    return _reply("end_turn", parsed)
+    }
+    return _reply("end_turn", makers[schema]())
 
 
 def _explanation(evidence: str) -> FailureExplanation:
@@ -105,7 +105,7 @@ SCENARIOS: dict[str, Callable[[type], Any]] = {
     "cut_off_json": _cut_off,
     "missing_fields_and_invalid_value": _schema_violation,
     "invalid_response_body": lambda schema: anthropic.APIResponseValidationError(
-        response=httpx.Response(200, request=_REQ), body=None
+        response=httpx2.Response(200, request=_REQ), body=None
     ),
     "schema_valid_nonsense": _nonsense,
     # Only failure explanations cite evidence; for the other actions these don't apply (None).
@@ -131,7 +131,7 @@ class FailingMessages:
         return self.outcome(kwargs)
 
 
-def _contexts() -> dict[str, tuple[type, Callable[[Any], Any]]]:
+def _contexts() -> dict[str, tuple[type[BaseModel], Callable[[Any], Any]]]:
     from evals.run import problem_contexts
 
     p = problem_contexts()["two-sum"]
@@ -179,8 +179,10 @@ def run_faults(make_coach: Callable[[Any], Any] | None = None) -> dict:
                 continue  # the scenario doesn't apply to this action
             messages = FailingMessages(outcome)
             service = CoachService(
-                db=None, settings=Settings(), provider=make_coach(SimpleNamespace(messages=messages))
-            )  # type: ignore[arg-type]
+                db=None,  # type: ignore[arg-type]  # these calls never touch the database
+                settings=Settings(),
+                provider=make_coach(SimpleNamespace(messages=messages)),
+            )
             row: dict = {"scenario": scenario, "action": action}
             start = time.perf_counter()
             try:

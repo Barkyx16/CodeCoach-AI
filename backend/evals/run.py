@@ -44,7 +44,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -269,8 +269,20 @@ def dispatch(call: Callable[[Any], Any], items: list, concurrency: int = 1) -> l
         return list(pool.map(one, items))
 
 
+class Reviewer(Protocol):
+    """All evaluate_reviews needs: a review (a provider, or Metered around one)."""
+
+    def review(self, ctx: ReviewContext) -> ProviderResult[CodeReview]: ...
+
+
+class Hinter(Protocol):
+    """All evaluate_hints needs."""
+
+    def hint(self, ctx: HintContext) -> ProviderResult[HintContent]: ...
+
+
 def evaluate_reviews(
-    provider: CoachProvider, samples: list[dict], problems: dict[str, ProblemContext], concurrency: int = 1
+    provider: Reviewer, samples: list[dict], problems: dict[str, ProblemContext], concurrency: int = 1
 ) -> dict:
     s = ReviewScores()
     contexts = []
@@ -354,7 +366,7 @@ def _mentions(text: str, term: str) -> bool:
 
 
 def evaluate_hints(
-    provider: CoachProvider, problems: dict[str, ProblemContext], terms: dict, concurrency: int = 1
+    provider: Hinter, problems: dict[str, ProblemContext], terms: dict, concurrency: int = 1
 ) -> dict:
     """Spoiler and relevance rates need hand-labeled terms, so they're measured on the labeled
     problems (hint_terms.json). The code-leak check needs no labels and runs on every problem."""
@@ -419,16 +431,16 @@ def load_grader(source: str) -> tuple[career.Grader, str, str]:
         # are given; rubric v5 also reads contradictions.py. An old grading.py with today's version
         # of either would not be the old rubric.
         modules = ["questions.py"] + (["contradictions.py"] if "contradictions" in text else [])
-        for module in modules:
+        for name in modules:
             same = (
                 subprocess.run(
-                    ["git", "diff", "--quiet", rev, "--", f":(top)backend/app/careers/{module}"], cwd=EVAL_DIR
+                    ["git", "diff", "--quiet", rev, "--", f":(top)backend/app/careers/{name}"], cwd=EVAL_DIR
                 ).returncode
                 == 0
             )
             if not same:
                 raise SystemExit(
-                    f"app/careers/{module} changed since {rev}, so its grading.py alone isn't that rubric. "
+                    f"app/careers/{name} changed since {rev}, so its grading.py alone isn't that rubric. "
                     f"Run the harness of that commit instead: git worktree add /tmp/at-{rev} {rev}, then "
                     "python -m evals.run there with the same datasets, and --compare the two reports."
                 )

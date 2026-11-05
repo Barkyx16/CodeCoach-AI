@@ -155,3 +155,63 @@ def test_the_committed_sample_is_pending_and_current():
     assert rec["status"].startswith("prepared; human review pending") and rec["reviewers"] == []
     assert not (rs.SAMPLES / "sample-2026-11-05.ratings.json").exists()  # no review has happened
     rs._cases(rec)  # every sampled set still has the hash it was drawn from
+
+
+# --- ingestion checks (Verification brief 14) ---------------------------------------------------
+
+
+def _write(tmp_path, name, rows, fields=None):
+    path = tmp_path / name
+    with path.open("w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=fields or rs.FORM, extrasaction="ignore")
+        w.writeheader()
+        w.writerows(rows)
+    return path
+
+
+def test_ingestion_refuses_duplicates_missing_columns_bad_labels_and_model_reviewers(tmp_path, sample):
+    sd = tmp_path / "samples"
+    first = sample["items"][0]
+    row = {"item": first["item"], "point": first["points"][0], "your_label": "covered", "uncertainty": "low"}
+    dup = _write(tmp_path, "dup.csv", [row, {**row, "your_label": "missing"}])
+    with pytest.raises(SystemExit, match="rated twice"):
+        rs.import_ratings(sample["sample_id"], dup, "A. Reviewer", human=True, samples_dir=sd)
+    no_label = _write(tmp_path, "cols.csv", [row], fields=["item", "point", "uncertainty"])
+    with pytest.raises(SystemExit, match="missing column"):
+        rs.import_ratings(sample["sample_id"], no_label, "A. Reviewer", human=True, samples_dir=sd)
+    bad = _write(tmp_path, "bad.csv", [{**row, "your_label": "mostly"}])
+    with pytest.raises(SystemExit, match="your_label must be one of"):
+        rs.import_ratings(sample["sample_id"], bad, "A. Reviewer", human=True, samples_dir=sd)
+    unc = _write(tmp_path, "unc.csv", [{**row, "uncertainty": "very"}])
+    with pytest.raises(SystemExit, match="uncertainty must be one of"):
+        rs.import_ratings(sample["sample_id"], unc, "A. Reviewer", human=True, samples_dir=sd)
+    good = _write(tmp_path, "good.csv", [row])
+    for name in ("GPT-4 (labels)", "an LLM", "chatbot run 3"):
+        with pytest.raises(SystemExit, match="reads as a model"):
+            rs.import_ratings(sample["sample_id"], good, name, human=True, samples_dir=sd)
+    # People's names that only look similar are accepted.
+    for name in ("Claude Martin, nurse educator", "Ai Tanaka, RN", "Teaching assistant Kim"):
+        rs.import_ratings(sample["sample_id"], good, name, human=True, samples_dir=sd)
+    assert not (sd / f"{sample['sample_id']}.ratings.json").read_text().count("GPT")
+
+
+def test_status_lists_unresolved_and_unadjudicated_differences(tmp_path, sample):
+    sd = tmp_path / "samples"
+    rs.import_ratings(
+        sample["sample_id"],
+        _fill(tmp_path, sample, "a", lambda i, r: "cant_tell"),
+        "A",
+        human=True,
+        samples_dir=sd,
+    )
+    st = rs.status(sample["sample_id"], samples_dir=sd)
+    assert st["not_adjudicated"] and st["unresolved"] == []  # every "can't tell" differs; none decided yet
+    out = rs.reveal(sample["sample_id"], samples_dir=sd, out_root=tmp_path / "out")
+    rows = list(csv.DictReader((out / "2-adjudication.csv").open(encoding="utf-8")))
+    rows[0]["outcome"] = "unresolved"
+    adj = _write(tmp_path, "adj.csv", rows[:1], fields=rs.ADJ)
+    rs.adjudicate(sample["sample_id"], adj, "C", human=True, samples_dir=sd)
+    st = rs.status(sample["sample_id"], samples_dir=sd)
+    assert st["unresolved"] == [f"{rows[0]['item']} / {rows[0]['point']}"]
+    assert f"{rows[0]['item']} / {rows[0]['point']}" not in st["not_adjudicated"]
+    assert len(st["not_adjudicated"]) == len(rows) - 1

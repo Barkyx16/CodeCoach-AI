@@ -43,7 +43,7 @@ jobs:
       - name: Lint
         run: ruff check . && ruff format --check .
       - name: Type check
-        run: mypy app
+        run: mypy app evals  # evals too since the Verification batch (clean: 0 errors)
       - name: Tests (SQLite)
         run: pytest
       - name: Tests (PostgreSQL)

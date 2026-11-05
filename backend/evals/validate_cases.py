@@ -196,7 +196,7 @@ def validate(data: dict) -> tuple[list[str], dict]:
     ids = Counter(c.get("id") for c in cases)
     errors += [f"{i}: duplicate id" for i, n in ids.items() if n > 1]
     by_id = {c.get("id"): c for c in cases}
-    variants = Counter()
+    variants: Counter[str | None] = Counter()
     families: dict[str, list[dict]] = defaultdict(list)
     for c in cases:
         cid = c.get("id", "?")
@@ -206,7 +206,7 @@ def validate(data: dict) -> tuple[list[str], dict]:
         if v not in variant_names:
             errors.append(f"{cid}: unknown variant {v!r}")
             continue
-        if pairs:
+        if pairs and plan_spec is not None:
             errors += _pair_problems(c, by_id, plan_spec)
         kinds = kinds_of.get(v)
         if kinds and c.get("kind") not in kinds:
@@ -258,7 +258,7 @@ def validate(data: dict) -> tuple[list[str], dict]:
     plan = p["family_plan_per_question"]
     per_question: dict[str, list[list[str]]] = defaultdict(list)
     for fam in families.values():
-        per_question[fam[0].get("question_id", "?")].append(sorted(x.get("variant") for x in fam))
+        per_question[fam[0].get("question_id", "?")].append(sorted(str(x.get("variant")) for x in fam))
     for qid, fams in per_question.items():
         for name, wanted in plan.items() if not pairs else ():
             if sorted(wanted) not in fams:

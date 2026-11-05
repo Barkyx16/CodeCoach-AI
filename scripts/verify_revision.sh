@@ -50,7 +50,7 @@ PY="$ROOT/backend/.venv/bin/python"
 B="cd '$TREE/backend' &&"
 F="cd '$TREE/frontend' &&"
 run_sh backend-lint "$B '$PY' -m ruff check . && '$PY' -m ruff format --check ."
-run_sh backend-types "$B '$PY' -m mypy app"
+run_sh backend-types "$B '$PY' -m mypy app evals"
 run_sh backend-sqlite "$B TEST_DATABASE_URL= '$PY' -m pytest -q -p no:cacheprovider"
 if [ -n "$PG" ]; then
   run_sh backend-pg "$B TEST_DATABASE_URL='$PG' '$PY' -m pytest -q -p no:cacheprovider"
