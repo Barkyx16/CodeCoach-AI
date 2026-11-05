@@ -1151,3 +1151,118 @@ claimed. The changed critical flows were run on the supported Pixel 7 project (3
 physical phone, a screen reader and an on-screen keyboard remain pending.
 
 **VP16:** final fixed-revision checks and CI for the pushed SHA are in the handoff that follows.
+
+## Handoff: Verification and Protocol pack (VP01–VP16)
+
+**Repository**
+
+- Branch: `claude/gallant-galileo-hapob6`.
+- Start of this pack: `b08c3a0`, where CI run 173 was green on all seven jobs.
+- VP batch: `1c8c106`. Checked code: `b85732f` (the batch plus the fixes below). The commit adding
+  this handoff is documentation only.
+- Uncommitted work: none. Unrelated edits: none found.
+- PR [Barkyx16/CodeCoach-AI#10](https://github.com/Barkyx16/CodeCoach-AI/pull/10) was not
+  modified and nothing was posted.
+
+| Brief | State | Evidence |
+|---|---|---|
+| VP01 candidate and CI | completed | run 173 on `b08c3a0`: 7/7 jobs passed (observed job by job) |
+| VP02 fixed revision | completed | `scripts/verify_revision.sh`; the final checks below ran from a clean worktree of `b85732f` |
+| VP03 exit codes | completed | `tests/test_verify_lib.py`; rehearsals print an `aborted` summary and exit 1 |
+| VP04 capability/write gap | completed (probe → fix) | old server: protected route 404, saved 0; new: 201, saved 1; `keyedSends` refused-route test; e2e |
+| VP05 readiness consumers | completed (defect fixed) | unreachable database 500 → 503 (test fails without the fix); real-server probe of current, behind and unmanaged; no repository consumer of `/health/ready` |
+| VP06 comparator | completed | `tests/test_api_compat.py` (11); eae8088 → now: 205 operations compared, 0 breaking, 2 consumer-sensitive |
+| VP07 old client and unknown | completed (restricted) | eae8088's own components misread `unknown`; release stage 0 requires 0 `eligibility_unknown` |
+| VP08 quota | completed (policy pinned; decision open) | `tests/test_answer_quota.py` (3); options in RELEASE_READINESS §11 |
+| VP09 log redaction | completed (defect fixed) | `hide_parameters=True`; `tests/test_log_redaction.py` (3; fails without the fix) |
+| VP10 restore vs export | completed | rehearsal re-run: diagnostic identical on source and copy; artifact table |
+| VP11 evals typing | completed | `mypy app evals`: 0 errors (was 24 in evals); CI gate; evaluation tests 70 passed |
+| VP12 imagined/wrong actor | completed in part | v10 fixes intended, thought-about and regretted actions; a colleague's and an imagined action remain (strict expected failures) |
+| VP13 v9 boundaries | completed (defects fixed) | denied objects and long listed denials fixed in v10; parity kept; other boundaries correct |
+| VP14 review ingestion and freeze | completed | ingestion guards (tests); protocol v9 and v10 freeze; **human review pending** |
+| VP15 browsers | completed within what's installed | Chromium only (Firefox and WebKit not installed, not claimed); Pixel 7 project: 3 critical flows passed |
+| VP16 handoff | completed | this section |
+
+**Behaviour and protocol changes**
+
+- Keyed answers go to `POST …/answers/keyed`, which requires the key and which an older server
+  refuses. The plain route still accepts a key for compatibility.
+- Readiness is 503 rather than 500 when the database is down.
+- Error logs never carry SQL parameters.
+- Rubric v10 (scoring).
+- `mypy app evals` in CI.
+- The review import is stricter.
+
+**After the batch: found while checking it, and while launching the site on a Mac**
+
+- `docs/openapi.json` was stale after the readiness description changed (snapshot test failed);
+  regenerated with the frontend types (`c7a3687`, description text only).
+- `test_the_baseline_changes_the_plan_for_stated_reasons` failed about one run in five (CI run 181):
+  its random baseline questions sometimes made the strong sample answer score low twice, and the
+  plan then rightly retried those first. The assumption came in with `59f267f`; the odds are the
+  same under rubric v9 and v10. The test now pins its precondition, and a new test covers the
+  other case (`45a626c`; 20/20 runs each).
+- The welcome's "Not now" could still pull a learner back to the dashboard when the save finished
+  in the moment between the page leaving the screen and React's passive cleanup (CI run 184). A
+  real race; the guard is now a layout effect, and the test releases the save at that moment
+  (`cd69ca4`; without the fix a probe failed 5/5, after it 8/8 passed).
+- `./dev.sh` (new): one command for the API and the site. On the person's Mac it needed, in turn:
+  rebuilding a Python 3.9 environment (`af93548`); checks that see an IPv6-only server and browser
+  errors printed in the terminal (`45a626c`); serving a build by default, with `--live` for the
+  development server, and `public/boot-check.js`, which explains a page whose code can't start
+  instead of leaving it blank (`cdceda1`); and a Node check matching Vite's real requirement
+  (20.19+ or 22.12+, not "20+"), plus a build plugin that no longer replaces a failed build's own
+  error with "no such file: dist/index.html" (`b85732f`). **The blank Safari page is not yet
+  confirmed fixed**: WebKit isn't installed here, and the cause on that Mac (an older Node is the
+  leading suspect) is unconfirmed.
+- Not changed: `test_overload.py` took 5.78 s against its 5 s bound once (push run 183). It
+  waits for one 0.5 s connection timeout, and passed in run 184 and every local run on the same
+  code. The stall is unexplained; the bound was left as it is.
+
+**Recorded, not changed**
+
+- the quota policy;
+- the old client and `unknown` rows (release-plan restriction);
+- readiness wiring in production.
+
+**Evaluation**
+
+- Rubric v10 is measured on development data only. There is no change on existing sets; on the
+  new pairs, false awards went 7/7 → 0/7 with controls 7/7.
+- Frozen: `freeze-2026-11-05-candidate-rubric-v10.json`.
+- **Pending:**
+  - independent measurement (no fresh set);
+  - human review (no person);
+  - live Claude evaluation (not run, not authorized).
+- Not supported: wrong-actor and imagined actions, meaning-based contradictions, generic
+  single-cue points.
+
+**Checks on `b85732f`** (`scripts/verify_revision.sh b85732f <out> --pg …/codecoach_test --e2e`,
+clean worktree, Python 3.13, Node 22, Chromium via Playwright, PostgreSQL 16; 0 steps failed)
+
+| Step | Result |
+|---|---|
+| backend lint / types | 330 files formatted; `mypy app evals` 0 issues in 171 files |
+| backend SQLite | 2252 passed, 386 skipped, 2 xfailed (the v10 residuals) |
+| backend PostgreSQL | 2254 passed, 384 skipped, 2 xfailed |
+| frontend lint / types / API types | pass |
+| frontend unit | 647 passed (66 files) |
+| frontend build / size | built; largest lazy chunk 674.5 KB gzip (budget 700 KB) |
+| e2e | 92 passed |
+
+**CI on `b85732f`:** push run 189 passed all 7 jobs (frontend; backend with SQLite, PostgreSQL,
+migrations, reference solutions and content gates; runner; Docker images; dependency audit;
+sandbox; end-to-end), observed job by job. The runs on `c7a3687`, `45a626c` and `cd69ca4` failed
+or were superseded, for the reasons above.
+
+**Next action:** confirm the site opens with `./dev.sh` on the person's Mac (`node --version`
+first). Then the open items: a person to review the label packet, a fresh measurement set written
+outside this repository, a decision on the quota policy, and authorization (budget and pricing
+source) if a live Claude evaluation is wanted.
+
+**Resume:**
+
+1. Read the queue and this log.
+2. Check the branch, HEAD and worktree.
+3. Check CI for the latest SHA job by job.
+4. Re-run checks only for new changes: `scripts/verify_revision.sh HEAD /tmp/out --pg <test db> --e2e`.
