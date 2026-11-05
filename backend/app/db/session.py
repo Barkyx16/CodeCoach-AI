@@ -17,7 +17,11 @@ def make_engine(database_url: str, pool_timeout: float | None = None) -> Engine:
     is_sqlite = database_url.startswith("sqlite")
     connect_args = {"check_same_thread": False} if is_sqlite else {}
     options = {} if pool_timeout is None or ":memory:" in database_url else {"pool_timeout": pool_timeout}
-    engine = create_engine(database_url, connect_args=connect_args, pool_pre_ping=True, **options)
+    # hide_parameters: a failed statement's error message (which reaches the error log) never
+    # carries its bound values: answer text, request keys, emails (Verification brief 09).
+    engine = create_engine(
+        database_url, connect_args=connect_args, pool_pre_ping=True, hide_parameters=True, **options
+    )
     if is_sqlite:
         # SQLite ignores foreign keys (including ON DELETE CASCADE) unless asked, per connection.
         # Turning them on makes local runs and tests behave like PostgreSQL.
