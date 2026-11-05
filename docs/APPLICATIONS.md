@@ -72,6 +72,20 @@ back to the application.
 out or appear as "[Your name]". The draft can be edited, **copied** or **downloaded** as a text
 file. It isn't stored, and CodeCoach never sends it. Writing a draft never changes the stage.
 
+**Context you choose.**
+- Role and employer come from the application.
+- A recorded interview is mentioned only if it's picked under "Mention a recorded interview".
+  Nothing is picked by default, and undated events aren't offered.
+- The draft gets that event's date, and its time and zone only if "Include the time" is ticked.
+  The source is shown, with a reminder that a recorded time doesn't mean it happened as planned.
+- Meeting links, kit notes, story text and reflection text are never put into a draft.
+
+**Edits are kept.**
+- Until the draft is edited, it follows the details: a reschedule or a renamed role updates it.
+- Once edited, it's never replaced silently. If the details behind it change, the page says so and
+  offers "Update the draft (replaces your edits)" or "Keep my text".
+- An interview that's removed is simply no longer mentioned.
+
 ## Privacy and data
 
 - Every application, event and stage change is scoped to its owner (404 for anyone else).

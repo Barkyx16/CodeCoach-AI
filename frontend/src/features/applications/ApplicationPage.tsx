@@ -57,7 +57,7 @@ function Detail({ a }: { a: Application }) {
           <StageCard a={a} onDone={done} />
           <EventsCard a={a} onDone={done} />
           <DetailsCard a={a} onDone={done} />
-          <DraftComposer role={a.role_title} employer={a.employer} />
+          <DraftComposer role={a.role_title} employer={a.employer} events={a.events} />
         </div>
         <aside className="stack">
           <PrepareCard a={a} />
