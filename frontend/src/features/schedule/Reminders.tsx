@@ -7,7 +7,7 @@ import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/Button";
 import { browserTimeZone, todayIn } from "@/features/applications/dates";
 
-import { dueReminders, reminderKey } from "./reminders";
+import { dueReminders, reminderKey } from "./dueReminders";
 import { addDays, timeLabel } from "./time";
 
 const SHOWN_KEY = "codecoach.reminders.shown";

@@ -1212,9 +1212,15 @@ physical phone, a screen reader and an on-screen keyboard remain pending.
   development server, and `public/boot-check.js`, which explains a page whose code can't start
   instead of leaving it blank (`cdceda1`); and a Node check matching Vite's real requirement
   (20.19+ or 22.12+, not "20+"), plus a build plugin that no longer replaces a failed build's own
-  error with "no such file: dist/index.html" (`b85732f`). **The blank Safari page is not yet
-  confirmed fixed**: WebKit isn't installed here, and the cause on that Mac (an older Node is the
-  leading suspect) is unconfirmed.
+  error with "no such file: dist/index.html" (`b85732f`). That last fix showed the cause, which
+  was not Node (that Mac has 26.13): `src/features/schedule/` held `Reminders.tsx` and
+  `reminders.ts`. A Mac's file system ignores case, so `import { Reminders } from ".../Reminders"`
+  opened `reminders.ts` there (.ts is tried before .tsx), which has no such export: the build
+  failed, and the development page stayed blank because the module graph couldn't link. Linux and
+  CI tell the two apart, so every check passed. `reminders.ts` is now `dueReminders.ts`, and
+  `src/test/fileNames.test.ts` fails on any two source files whose import paths differ only in
+  case or extension (it names the old pair when it's put back). It was the only such pair in the
+  repository. **Opening the site on that Mac is still to be confirmed.**
 - Not changed: `test_overload.py` took 5.78 s against its 5 s bound once (push run 183). It
   waits for one 0.5 s connection timeout, and passed in run 184 and every local run on the same
   code. The stall is unexplained; the bound was left as it is.

@@ -1,6 +1,6 @@
 import type { ScheduleEntry, ScheduleSettings } from "@/api/types";
 
-import { dueReminders, inQuietHours, reminderKey } from "./reminders";
+import { dueReminders, inQuietHours, reminderKey } from "./dueReminders";
 import { addDays, entryDay, startOfWeek, timeLabel } from "./time";
 
 const entry = (over: Partial<ScheduleEntry>): ScheduleEntry => ({
