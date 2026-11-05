@@ -48,7 +48,11 @@ MIN_WORDS, GOOD_MIN, GOOD_MAX, MAX_WORDS = 40, 120, 350, 600
 # v9 (2026-11-04): what the learner denies or refuses ("I would not ask anyone", "instead of hearing
 # them out") and someone else's advice reported as such ("Advice I was given: …") aren't evidence
 # for a point (Durable Saves briefs 11 and 13; _denied_spans; docs/AI_EVALUATION.md, "Rubric v9").
-RUBRIC_VERSION = "v9"
+# v10 (2026-11-05): what didn't happen isn't evidence either: an action only intended, thought about
+# or regretted ("I was going to ask", "I meant to", "I should have asked"), an object denied ("I told
+# no one", "we escalated nothing"), and a listed denial past ten words ("I did not ring X or Y or
+# ever tell Z") (Verification briefs 12 and 13; docs/AI_EVALUATION.md, "Rubric v10").
+RUBRIC_VERSION = "v10"
 STRONG_SCORE = 85  # the lowest "Strong" score (_rating)
 
 
@@ -859,6 +863,23 @@ _DENIAL = re.compile(
     r"|\binstead\s+of\b",
     re.IGNORECASE,
 )
+_UNDONE = re.compile(
+    # v10: told as not having happened. Past intentions and thoughts, and a counterfactual with
+    # a verb ("should have asked"); not plan language ("I would have a huddle", "would have to").
+    r"\b(?:i|we)\s+(?:was|were)\s+(?:going|about)\s+to\b"
+    r"|\b(?:i|we)\s+(?:meant|intended|planned|hoped|wanted)\s+to\b"
+    r"|\b(?:i|we)\s+(?:thought|was\s+thinking|were\s+thinking)\s+(?:about|of)\b"
+    r"|\b(?:i|we)(?:['’]d|\s+(?:should|could|would|might))\s+have\s+"
+    r"(?!(?:a|an|the|my|our|their|his|her|its|them|him|it|to|one|some|no|any|this|that|these|those)\b)(?=\w)"
+    # v10: the object denied ("I told no one", "we escalated nothing").
+    r"|\b(?:i|we)\s+(?:\w+\s+){1,2}?(?:nothing|nobody|no[- ]one)\b",
+    re.IGNORECASE,
+)
+# A denial whose clause the learner ended with punctuation covers that whole clause when it's
+# sentence-sized ("I did not ring X or Y or ever tell Z.", "I should have asked A and checked B
+# first."); otherwise it stops at ten words (v10).
+_CLAUSE_DENIAL_WORDS = 30
+_PUNCTUATION_END = re.compile(r"[,;:.!?\n]|\s[-–—]\s")
 _CLAUSE_END = re.compile(
     r"[,;:.!?\n]|\s[-–—]\s|\s(?:but|so|then|until|after)\s"
     r"|\s(?:and\s+)?(?:i|we)(?:\s|['’](?:d|ll|m|ve|re)\b)(?!(?:would|will|did|do|does|should)?\s*(?:not|never)\b)",
@@ -887,12 +908,23 @@ def _denied_spans(answer: str) -> list[tuple[int, int]]:
     # Read with filler sounds ("um", "uh") blanked to spaces, so "I would um not" is still a denial
     # and fillers don't count as words; offsets stay those of the answer.
     scan = _FILLER.sub(lambda f: " " * len(f.group()), answer)
-    for m in _DENIAL.finditer(scan):
+    found = [(m, False) for m in _DENIAL.finditer(scan)] + [(m, True) for m in _UNDONE.finditer(scan)]
+    for m, v10 in found:
         end = _CLAUSE_END.search(scan, m.end())
         stop = end.start() if end else len(scan)
-        cap = list(re.finditer(r"\S+", scan[m.start() :]))
-        if len(cap) > _DENIAL_WORDS:
-            stop = min(stop, m.start() + cap[_DENIAL_WORDS - 1].end())
+        if end is not None and _PUNCTUATION_END.match(end.group()):
+            # Punctuation ends the clause where the learner ended it: all of it, if it's sentence-sized.
+            words = list(re.finditer(r"\S+", scan[m.end() : stop]))
+            if len(words) > _CLAUSE_DENIAL_WORDS:
+                stop = m.end() + words[_DENIAL_WORDS - 1].end()
+        else:
+            # No punctuation to go by (a dictated run-on): ten words. v9's denials count from the
+            # learner ("I would not ..."), as measured for dictation parity; v10's longer frames count
+            # after the frame ("I was going to" is four words of frame, not of what wasn't done).
+            origin = m.end() if v10 else m.start()
+            words = list(re.finditer(r"\S+", scan[origin:stop]))
+            if len(words) > _DENIAL_WORDS:
+                stop = origin + words[_DENIAL_WORDS - 1].end()
         spans.append((m.start(), stop))
     for m in _ADVICE_FRAME.finditer(answer):
         rest = answer[m.end() :]

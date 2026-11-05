@@ -20,7 +20,7 @@ def denied(text: str) -> list[str]:
 
 
 def test_the_version():
-    assert RUBRIC_VERSION == "v9"
+    assert RUBRIC_VERSION in {"v9", "v10"}  # v10 keeps every v9 rule (tests/test_rubric_v10.py)
 
 
 @pytest.mark.parametrize(
@@ -28,7 +28,8 @@ def test_the_version():
     [
         (
             "I would not ring any customers or ask any agents anything; I'd change things straight away.",
-            ["I would not ring any customers or ask any agents"],  # at most ten words: a denial is a clause
+            # v10: the whole clause, which ends at ";" within 30 words (v9 stopped at ten words)
+            ["I would not ring any customers or ask any agents anything"],
         ),
         (
             "I wouldn't tell the customer or my team lead anything.",
