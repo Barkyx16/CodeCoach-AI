@@ -848,3 +848,65 @@ Raw scores, answer rows and "answered" counts are unchanged; nothing is regraded
   - live evaluation: not run.
 - Next action: someone outside the tuning session writes the fresh sets. Until then nothing
   further is measured.
+
+## Checkpoint: NX17, review map (docs/REVIEW_MAP.md)
+
+- PR #10 metadata and branch ancestry were read, nothing changed. `feature/premium-frontend`
+  (`7ace293`) is an ancestor of the branch: 129 ahead, 0 behind.
+- The remote has no `main`. Dependabot's branches are based on `3b08ccf`, 9 commits behind the
+  PR base. So whether that base is the intended one is **ambiguous**; it is recorded, not acted
+  on.
+- The PR description dates from `eae8088` and is now out of date. Updating it is the owner's
+  call.
+- Commits are grouped into persistence and API, score summaries, scoring, measurement process,
+  UI, operations and verification, with the files to read first.
+- Where keys, links and summaries meet: `tests/test_batch_interactions.py` (2), passing on SQLite
+  and PostgreSQL.
+
+## Checkpoint: Release Readiness RR01–RR15 (docs/RELEASE_READINESS.md)
+
+Prerequisites verified in code, not inferred from a PDF: keyed saves, revision links and score
+eligibility exist (RR01 inventory). Defects shown and fixed:
+
+- **RR02, new code on the previous schema:** every answer save and list returned 500 while
+  `/health/ready` said ready. Readiness now reports `schema` (current / behind = 503 / newer /
+  unmanaged / unknown). Executed with `scripts/mixed_version_probe.py` on PostgreSQL.
+- **RR02/03, old code ignores keys:** a resend after an application revert saved a duplicate
+  (executed with old code from `eae8088` on the expanded schema), so a capability read at page
+  load can go stale. At a lost reply the page asks `/capabilities` once more (a read) and claims
+  safety only if it still says yes. The test failed on the previous page.
+- **RR02, older status shape:** no `score_status` made the library say "Not answered". It now
+  says "Answered", without a number.
+- **RR02/11, nothing recorded:** a stored answer with no `evidence_level` and no `word_count`
+  made the whole answer list fail (KeyError). It is now `evidence_level: "unknown"` with the same
+  rule as the summaries; the UI says it isn't counted and won't compare it.
+- **RR13:** a replay and a new save were both `ok` in the metrics. `codecoach_answer_saves_total`
+  now has `kind` and `result` (bounded, redaction tested).
+
+Added without a defect found:
+
+- RR04: replay after a question change, exact text, a missing fingerprint
+  (`tests/test_release_readiness.py`).
+- RR05: already covered, mapped.
+- RR06: keys are never in storage or the URL (asserted).
+- RR10: deletion tests.
+- RR11: `python -m app.cli check-answers` (read-only).
+- RR12: retention is "as long as the answer", documented.
+- RR14: e2e `release-acceptance.spec.ts`.
+- RR15: a staged plan, proposed only.
+
+Executed rehearsals, all on local `codecoach_rehearsal_*` PostgreSQL 16 databases:
+
+- **Migration** (`scripts/rehearse_answer_migration.py`): a lock_timeout interruption rolled the
+  whole upgrade back; the retry reached head with no row rewritten; `alembic check` was clean;
+  the downgrade dropped keys and links for good.
+- **Restore** (`scripts/rehearse_restore.py`): pg_dump and pg_restore; the logical comparison
+  matched; `check-answers` was clean; each account's resend replayed its own answer.
+- **Contract** (`scripts/api_compat.py`, eae8088 → now): 205 operations, 0 breaking, 2 notices.
+
+Not done:
+
+- SQLite migration rehearsal (the chain is unsupported, pre-existing).
+- Running the old browser bundle against the new API (analysed).
+- Phone, screen reader and on-screen keyboard.
+- Anything in production: no backup, migration, deploy or alert.
