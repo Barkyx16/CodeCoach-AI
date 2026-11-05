@@ -2,6 +2,8 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_BASE_URL?: string;
+  /** "off": build without the service worker (./dev.sh does, for a local copy). */
+  readonly VITE_SERVICE_WORKER?: string;
 }
 
 interface ImportMeta {

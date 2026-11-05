@@ -2,12 +2,19 @@
 # Start CodeCoach on this computer: the API on http://localhost:8000 and the site on
 # http://localhost:5173, in one terminal. Ctrl+C stops both.
 #
-#   ./dev.sh
+#   ./dev.sh          builds the site, then serves that build (what visitors get; any browser)
+#   ./dev.sh --live   serves the code as you edit it, reloading the page on each change
 #
 # The first run creates backend/.venv and installs the Python and Node packages (a few
 # minutes); later runs start straight away. Data is kept in backend/codecoach.db (SQLite).
 set -euo pipefail
 cd "$(dirname "$0")"
+LIVE=""
+case "${1:-}" in
+  "") ;;
+  --live) LIVE=1 ;;
+  *) printf 'usage: ./dev.sh [--live]\n' >&2; exit 2 ;;
+esac
 
 say() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 stop() { printf '\n\033[31m%s\033[0m\n' "$*" >&2; exit 1; }
@@ -74,7 +81,7 @@ for port in 8000 5173; do
   fi
 done
 pids=()
-killtree() { # a server and everything it started (npm runs Vite as a grandchild)
+killtree() { # a server and everything it started
   local child
   for child in $(pgrep -P "$1" 2>/dev/null); do killtree "$child"; done
   kill "$1" 2>/dev/null || true
@@ -93,13 +100,28 @@ say "Starting the API on http://localhost:8000 ..."
 pids+=($!)
 wait_for 8000 "${pids[0]}" "The API"
 
-say "Starting the site on http://localhost:5173 ..."
-# CODECOACH_FORWARD_CONSOLE: the browser's errors are printed here too (frontend/vite.config.ts).
-(cd frontend && CODECOACH_FORWARD_CONSOLE=1 exec npm run dev -- --port 5173 --strictPort) &
+if [ -n "$LIVE" ]; then
+  say "Starting the site on http://localhost:5173 (live: it reloads as the code changes) ..."
+  # CODECOACH_FORWARD_CONSOLE: the browser's errors are printed here too (frontend/vite.config.ts).
+  (cd frontend && CODECOACH_FORWARD_CONSOLE=1 exec node_modules/.bin/vite --port 5173 --strictPort) &
+else
+  # The built site is a few bundled files compiled for older browsers too, so neither a Safari
+  # version nor a content blocker matching one of hundreds of source file names can blank it.
+  # Without the service worker: a cached old build would outlive the next `git pull`.
+  say "Building the site (under a minute) ..."
+  (cd frontend && VITE_SERVICE_WORKER=off node_modules/.bin/vite build --logLevel error) \
+    || stop "The site couldn't be built: see the messages above."
+  say "Starting the site on http://localhost:5173 ..."
+  (cd frontend && exec node_modules/.bin/vite preview --port 5173 --strictPort) &
+fi
 pids+=($!)
 wait_for 5173 "${pids[1]}" "The site"
 
 say "CodeCoach is running: open http://localhost:5173 (Ctrl+C here stops it)."
-printf '%s\n' "If the page stays blank, reload it once. Errors from the browser are printed here."
+if [ -n "$LIVE" ]; then
+  printf '%s\n' "If the page stays blank, reload it once. Errors from the browser are printed here."
+else
+  printf '%s\n' "After changing the code, run ./dev.sh again (or use ./dev.sh --live)."
+fi
 if [ "$(uname)" = "Darwin" ] && [ -z "${NO_OPEN:-}" ]; then open http://localhost:5173 || true; fi
 wait

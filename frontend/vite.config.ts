@@ -24,7 +24,7 @@ function offlineShell(): Plugin {
       const list = (dir: string, prefix: string) =>
         existsSync(join(outDir, dir)) ? readdirSync(join(outDir, dir)).filter((f) => !f.endsWith(".map")).map((f) => `${prefix}${f}`) : [];
       const entry = [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)].map((m) => m[1]!);
-      const shell = [...new Set(["/index.html", "/display-init.js", "/favicon.svg", "/manifest.webmanifest",
+      const shell = [...new Set(["/index.html", "/display-init.js", "/boot-check.js", "/favicon.svg", "/manifest.webmanifest",
         ...list("icons", "/icons/"), ...list("fonts", "/fonts/").filter((f) => f.endsWith(".woff2")), ...entry])].sort();
       const assets = list("assets", "/assets/").sort();
       const hash = createHash("sha256").update(html);

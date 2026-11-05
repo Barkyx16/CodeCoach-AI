@@ -59,8 +59,9 @@ function standalone(): boolean {
   }
 }
 
-/** Register the service worker (production builds only) and listen for updates and install offers. */
-export function startAppShell(enabled = import.meta.env.PROD): void {
+/** Register the service worker (production builds only, and not in the local copy ./dev.sh builds,
+ * where a cached old version would outlive a `git pull`) and listen for updates and install offers. */
+export function startAppShell(enabled = import.meta.env.PROD && import.meta.env.VITE_SERVICE_WORKER !== "off"): void {
   set({ installed: standalone() });
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault(); // we show our own, restrained button instead of the browser's banner
@@ -76,7 +77,11 @@ export function startAppShell(enabled = import.meta.env.PROD): void {
     return;
   }
   if (!enabled) {
-    set({ unsupportedReason: "Offline use is only available in the production build." });
+    set({
+      unsupportedReason: import.meta.env.PROD
+        ? "Offline use is turned off in this local copy."
+        : "Offline use is only available in the production build.",
+    });
     return;
   }
   let reloading = false;

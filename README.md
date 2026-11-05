@@ -102,7 +102,10 @@ EXECUTION_ENABLED=true RUNNER_TOKEN=$(openssl rand -hex 32) docker compose --pro
 ```
 It installs what it needs on the first run, starts the API (<http://localhost:8000>) and the site
 (<http://localhost:5173>) together and opens the site; `Ctrl+C` stops both. If a tool is missing it
-says which one and how to get it.
+says which one and how to get it. It builds the site first and serves that build, which works in
+any browser the app supports; after changing the code, run it again. `./dev.sh --live` serves the
+code as you edit it instead, reloading the page on each change and printing the browser's errors
+in the terminal. If the page can't start (a content blocker, say), it says so and what to try.
 
 **Without Docker, by hand** (two terminals):
 ```bash
