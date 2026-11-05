@@ -144,7 +144,9 @@ def test_capabilities_say_whether_runs_work(client, make_client):
         "execution",
         "guest_retention_days",
         "ui_telemetry",
+        "answer_request_keys",  # Durable Saves brief 05: keyed answer saves are kept once
     }
+    assert caps["answer_request_keys"] is True
     assert (
         caps["execution_enabled"] is False
         and caps["ai_provider"] == "offline"

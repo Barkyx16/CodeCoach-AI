@@ -231,7 +231,6 @@ def test_a_set_cannot_claim_review_it_did_not_get():
     assert any("claims validation or expert review without review records" in e for e in errors)
 
 
-
 def test_a_reviewed_label_change_is_a_new_version_with_its_audit_trail():
     case = _family_case()
     point = next(iter(case["labels"]["points"]))
