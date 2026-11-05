@@ -46,7 +46,13 @@ export default defineConfig({
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },
-  server: { port: 5173, strictPort: true },
+  server: {
+    port: 5173,
+    strictPort: true,
+    // ./dev.sh sets this so the browser's errors (a page that stays blank in Safari, say) are
+    // printed in the terminal running it. Unset, Vite's default applies.
+    forwardConsole: process.env.CODECOACH_FORWARD_CONSOLE === "1" ? { unhandledErrors: true, logLevels: ["error"] } : undefined,
+  },
   build: {
     sourcemap: true,
     // Monaco is only imported by the lazily-loaded workspace route, so it lands in its own

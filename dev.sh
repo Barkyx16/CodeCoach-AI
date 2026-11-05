@@ -50,8 +50,26 @@ if [ ! -d frontend/node_modules ] || [ frontend/package-lock.json -nt frontend/n
 fi
 
 # --- start both, stop both -----------------------------------------------------------------
+listening() { # is anything accepting connections on this port? IPv4 or IPv6: on a Mac the site's
+  # server can listen on ::1 (IPv6) only, which a check of 127.0.0.1 alone never sees.
+  (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null && return 0
+  (exec 3<>"/dev/tcp/::1/$1") 2>/dev/null && return 0
+  command -v curl >/dev/null 2>&1 || return 1
+  local rc=0
+  curl -s -o /dev/null --max-time 2 "http://localhost:$1/" || rc=$?
+  [ "$rc" -ne 6 ] && [ "$rc" -ne 7 ] && [ "$rc" -ne 28 ] # 6, 7, 28: no name, refused, no answer
+}
+wait_for() { # port, pid, name
+  local _
+  for _ in $(seq 1 240); do
+    listening "$1" && return 0
+    kill -0 "$2" 2>/dev/null || stop "$3 stopped while starting: see the messages above."
+    sleep 0.5
+  done
+  say "$3 hasn't answered on port $1 after two minutes; carrying on (see the messages above)."
+}
 for port in 8000 5173; do
-  if (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null; then
+  if listening "$port"; then
     stop "Something is already using port $port (an earlier run still open?). Close it, or find it with: lsof -i :$port"
   fi
 done
@@ -73,21 +91,15 @@ trap 'exit 130' INT TERM
 say "Starting the API on http://localhost:8000 ..."
 (cd backend && DATABASE_URL="${DATABASE_URL:-sqlite:///./codecoach.db}" exec .venv/bin/python -m uvicorn app.main:app --reload --port 8000) &
 pids+=($!)
-for _ in $(seq 1 120); do
-  if (exec 3<>/dev/tcp/127.0.0.1/8000) 2>/dev/null; then break; fi
-  kill -0 "${pids[0]}" 2>/dev/null || stop "The API stopped while starting: see the messages above."
-  sleep 0.5
-done
+wait_for 8000 "${pids[0]}" "The API"
 
 say "Starting the site on http://localhost:5173 ..."
-(cd frontend && exec npm run dev -- --port 5173 --strictPort) &
+# CODECOACH_FORWARD_CONSOLE: the browser's errors are printed here too (frontend/vite.config.ts).
+(cd frontend && CODECOACH_FORWARD_CONSOLE=1 exec npm run dev -- --port 5173 --strictPort) &
 pids+=($!)
-for _ in $(seq 1 120); do
-  if (exec 3<>/dev/tcp/127.0.0.1/5173) 2>/dev/null; then break; fi
-  kill -0 "${pids[1]}" 2>/dev/null || stop "The site stopped while starting: see the messages above."
-  sleep 0.5
-done
+wait_for 5173 "${pids[1]}" "The site"
 
 say "CodeCoach is running: open http://localhost:5173 (Ctrl+C here stops it)."
+printf '%s\n' "If the page stays blank, reload it once. Errors from the browser are printed here."
 if [ "$(uname)" = "Darwin" ] && [ -z "${NO_OPEN:-}" ]; then open http://localhost:5173 || true; fi
 wait

@@ -1,5 +1,8 @@
 """The adaptive practice plan: goals, baseline, evidence-based completion, adaptation, control."""
 
+from app.careers.grading import grade
+from app.services import question_rounds
+from app.services.roadmap import WEAK
 from tests.conftest import auth_headers, register
 
 STRONG = (
@@ -65,9 +68,25 @@ def test_two_careers_get_different_plans(client):
     assert nurse["assessment"]["coding"] is None
 
 
-def test_the_baseline_changes_the_plan_for_stated_reasons(client):
-    h = user(client)
-    v1 = plan(client, h)
+def strong_scores(monkeypatch, *, low: bool) -> None:
+    """Pins what the baseline tests depend on: whether STRONG scores below the plan's weak line on
+    the round's knowledge and situational questions. The round picks them at random, and STRONG is
+    low on about a fifth of the pairs (the plan then retries those two first), so without this the
+    test failed about one run in five. The real picker still runs, on a pool filtered to one case."""
+    real = question_rounds.pick_baseline
+
+    def pick(pool, answered, rng):
+        keep = [
+            q
+            for q in pool
+            if q.kind not in ("knowledge", "situational") or (grade(q, STRONG).score < WEAK) == low
+        ]
+        return real(keep, answered, rng)
+
+    monkeypatch.setattr(question_rounds, "pick_baseline", pick)
+
+
+def baseline_with_a_short_answer(client, h):
     iv = client.post(
         "/api/v1/interviews",
         headers=h,
@@ -78,6 +97,14 @@ def test_the_baseline_changes_the_plan_for_stated_reasons(client):
         client.post(
             f"/api/v1/interviews/{iv['id']}/answers", headers=h, json={"question_index": i, "answer": text}
         )
+    return iv
+
+
+def test_the_baseline_changes_the_plan_for_stated_reasons(client, monkeypatch):
+    strong_scores(monkeypatch, low=False)
+    h = user(client)
+    v1 = plan(client, h)
+    iv = baseline_with_a_short_answer(client, h)
     v2 = plan(client, h)
     assert v2["version"] == 2
     assert any(c.startswith("Done: “Baseline check") for c in v2["changes"])
@@ -96,6 +123,22 @@ def test_the_baseline_changes_the_plan_for_stated_reasons(client):
     assert review["can_mark_reviewed"] and "self-reported" in review["completion"]
     assert v2["assessment"]["state"] == "baseline_ready" and v2["assessment"]["evaluated"]
     assert v1["items"][0]["kind"] == "assessment" and v2["items"][0]["kind"] != "assessment"
+
+
+def test_two_low_scores_are_retried_before_an_answer_too_short_to_score(client, monkeypatch):
+    """The other case: STRONG scored low on both. The plan retries at most two questions, lowest
+    score first, so the one answered too briefly to score waits (app/services/roadmap.py)."""
+    strong_scores(monkeypatch, low=True)
+    h = user(client)
+    plan(client, h)
+    iv = baseline_with_a_short_answer(client, h)
+    v2 = plan(client, h)
+    qs = {q["index"]: q for q in client.get(f"/api/v1/interviews/{iv['id']}", headers=h).json()["questions"]}
+    retries = [i for i in v2["items"] if i["kind"] == "retry"]
+    assert {i["title"] for i in retries} == {f"Retry: {qs[0]['title']}", f"Retry: {qs[2]['title']}"}
+    assert all(i["reason"].startswith("Your best score is ") for i in retries)
+    scores = [int(i["reason"].removeprefix("Your best score is ").split("/")[0]) for i in retries]
+    assert scores == sorted(scores) and all(s < WEAK for s in scores)
 
 
 def test_completion_comes_from_evidence_and_refresh_keeps_progress(client):
