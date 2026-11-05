@@ -47,6 +47,7 @@ test("a new nurse skips setup, takes the baseline, and the plan adapts for state
   // Skipping sets an activity aside; it never shows as done.
   const first = page.getByRole("region", { name: /Up next/ }).getByRole("article").first();
   const title = await first.getByRole("heading").textContent();
+  await first.getByRole("button", { name: "More options" }).click();
   await first.getByRole("button", { name: "Skip for now" }).click();
   const aside = page.getByRole("region", { name: /Set aside/ });
   await expect(aside.getByRole("article", { name: title! })).toContainText("Skipped");

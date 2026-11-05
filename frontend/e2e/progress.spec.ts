@@ -79,7 +79,7 @@ test("non-coding: answer, find it in History, inspect Analytics, switch careers 
   await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click(); // the optional welcome
   await expect(page).toHaveURL(/\/dashboard$/);
 
-  await page.getByRole("link", { name: "Practice questions" }).click();
+  await navTo(page, "Questions");
   await page.getByRole("region", { name: "Question list" }).getByRole("link").first().click();
   const box = page.getByLabel("Your answer", { exact: true });
   await box.fill("When I assess a patient I start with airway, breathing and circulation, then vital signs and pain.");

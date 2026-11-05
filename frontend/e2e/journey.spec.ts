@@ -117,7 +117,7 @@ test("account journey: register, filter library, sign out, sign in", async ({ pa
   await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click(); // the optional welcome
   // New accounts are welcomed; this journey goes straight to the dashboard.
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByText("Ada's progress")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Your interview practice" })).toBeVisible();
   await navTo(page, "Questions");
   await expect(page).toHaveURL(/\/problems$/);
 
@@ -135,7 +135,7 @@ test("account journey: register, filter library, sign out, sign in", async ({ pa
   await page.getByLabel("Password", { exact: true }).fill("CorrectHorse42");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByText("Ada's progress")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Your interview practice" })).toBeVisible();
 
   // Settings: rename, then permanently delete the account.
   await page.getByRole("link", { name: /account settings/ }).click();

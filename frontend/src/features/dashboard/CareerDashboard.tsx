@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 
 import { useCareerAnalytics, useQuestionCounts, useQuestions, useTrackProgress } from "@/api/queries";
 import type { Difficulty } from "@/api/types";
-import { useAuth } from "@/auth/useAuth";
 import { Badge, DifficultyBadge } from "@/components/Badge";
 import { Card } from "@/components/Card";
 import { Icon } from "@/components/Icon";
@@ -24,7 +23,6 @@ const LEVEL_PAGE = 100;
 
 /** The dashboard for careers without coding problems: built only from that career's questions. */
 export function CareerDashboard({ track, careerTitle }: { track: string; careerTitle?: string }) {
-  const { user } = useAuth();
   const progress = useTrackProgress(track);
   const counts = useQuestionCounts(track, "");
   const level = progress.data ? nextLevel(progress.data.by_difficulty) : "easy";
@@ -48,27 +46,24 @@ export function CareerDashboard({ track, careerTitle }: { track: string; careerT
 
   return (
     <div className="page dashboard">
-      <div className="page__header">
+      <div className="page__header dashboard__header">
         <div>
-          <p className="eyebrow">{role.toUpperCase()} INTERVIEW PRACTICE</p>
-          <h1 className="page__title">{user?.display_name ? `${user.display_name}'s progress` : "Your progress"}</h1>
-          <p className="page__subtitle">Questions written for {role} interviews.</p>
+          <h1 className="page__title">Your interview practice</h1>
+          <p className="page__subtitle">{role} · {levelName} level</p>
         </div>
-        <div className="row dashboard__actions">
-          <Link to="/interviews" className="btn btn--secondary btn--md">Mock interview</Link>
-          <Link to={library} className="btn btn--primary btn--md">Practice questions <span aria-hidden="true">→</span></Link>
-        </div>
+        <Link to="/interviews" className="btn btn--secondary btn--md">Mock interview</Link>
       </div>
 
       <OnboardingBanner />
       <TodayCard />
       <ContinueCard />
-      <MorePractice coding={false} />
 
+      <h2 className="dashboard__section-title">Your progress</h2>
       <section className="stat-row" aria-label="Summary">
-        <StatTile icon="target" label="Questions answered" value={`${p.answered}`} detail={`of ${p.total_questions}, each counted once however many tries`}
+        <StatTile icon="target" label="Questions answered" value={`${p.answered}`}
+          detail={`of ${p.total_questions} unique questions`}
           fraction={p.total_questions ? p.answered / p.total_questions : 0} />
-        <StatTile icon="spark" label="Strong answers" value={`${p.strong}`} detail="Questions whose best score is 85 or more" />
+        <StatTile icon="spark" label="Strong answers" value={`${p.strong}`} detail="Questions with a best score of 85 or more" />
         <StatTile icon="clock" label="Interviews completed" value={`${analytics.data?.interviews.completed ?? 0}`}
           detail={analytics.data && analytics.data.interviews.abandoned + analytics.data.interviews.expired > 0
             ? `${analytics.data.interviews.abandoned + analytics.data.interviews.expired} ended early or ran out of time` : "Mock interview rounds"} />
@@ -77,8 +72,14 @@ export function CareerDashboard({ track, careerTitle }: { track: string; careerT
       </section>
 
       {p.answered === 0 && (
-        <div className="dashboard-onboarding"><span className="icon-tile"><Icon name="book" /></span><div><strong>Your dashboard fills in as you practice</strong><p className="subtle">Answer a question in your own words and you'll get a score, what you covered and what to add.</p></div><Link to={library} className="btn btn--secondary btn--md">Answer a question <Icon name="arrow" size={15} /></Link></div>
+        <p className="dashboard-onboarding">
+          <Icon name="book" size={16} aria-hidden="true" />
+          <span>Your progress will appear as you practise. Answer a question in your own words and you'll get a score, what you covered and what to add.{" "}
+            <Link to={library}>Answer a question <span aria-hidden="true">→</span></Link></span>
+        </p>
       )}
+
+      <MorePractice coding={false} />
 
       <div className="dashboard__layout">
         <div className="dashboard__col">

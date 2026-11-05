@@ -125,7 +125,7 @@ describe("Continue where you left off", () => {
   it("stays hidden when there's nothing saved", async () => {
     asNurse();
     renderApp("/dashboard", { signedIn: true });
-    expect(await screen.findByText("REGISTERED NURSE INTERVIEW PRACTICE")).toBeInTheDocument();
+    expect(await screen.findByText("Registered Nurse · Easy level")).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByRole("region", { name: "Continue where you left off" })).not.toBeInTheDocument());
   });
 });

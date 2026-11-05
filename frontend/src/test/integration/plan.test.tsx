@@ -12,14 +12,15 @@ describe("Today", () => {
   it("shows one next action with why, skill, time and what counts as done", async () => {
     asNurse();
     renderApp("/dashboard", { signedIn: true });
-    const today = await screen.findByRole("region", { name: "Today" });
+    const today = await screen.findByRole("region", { name: "Today's practice" });
     // 15 minutes by default: the 12-minute baseline is first and fits.
     const primary = await within(today).findByRole("article", { name: "Baseline check: 3 short questions" });
     expect(within(primary).getByText(/There isn't enough evidence to tailor your plan yet/)).toBeInTheDocument();
-    expect(within(primary).getByText("Skill: Baseline")).toBeInTheDocument();
-    expect(within(primary).getByText(/about 12 min/)).toBeInTheDocument();
+    expect(primary).toHaveTextContent("Baseline"); // its type; the skill, also "Baseline", isn't repeated
+    expect(within(primary).getByText(/About 12 min/)).toBeInTheDocument();
     expect(within(primary).getByText(/Finish the baseline round/)).toBeInTheDocument();
-    expect(within(today).getByText(/This week: 6 of 60 planned minutes/)).toBeInTheDocument();
+    const week = within(today).getByRole("region", { name: "This week" });
+    expect(week).toHaveTextContent("6 / 60 min planned"); // planned minutes keep their own label, apart from the session estimate
   });
 
   it("the time options really change the suggested session", async () => {
@@ -31,14 +32,14 @@ describe("Today", () => {
     }));
     asNurse();
     const { user } = renderApp("/dashboard", { signedIn: true });
-    const today = await screen.findByRole("region", { name: "Today" });
-    await user.click(within(today).getByRole("radio", { name: "I have 5 minutes" }));
+    const today = await screen.findByRole("region", { name: "Today's practice" });
+    await user.click(within(today).getByRole("radio", { name: "5 min" }));
     await waitFor(() => expect(asked).toContain(5));
     expect(await within(today).findByText(/Nothing fits|so here's one that fits 5/)).toBeInTheDocument();
-    await user.click(within(today).getByRole("radio", { name: "I have 30 minutes" }));
+    await user.click(within(today).getByRole("radio", { name: "30 min" }));
     expect(await within(today).findByRole("article", { name: "Baseline check: 3 short questions" })).toBeInTheDocument();
-    expect(within(today).getByText(/If you have time after/)).toBeInTheDocument();
-    expect(within(today).getByText(/Session: about 18 min/)).toBeInTheDocument();
+    expect(within(today).getByText(/^Next: /)).toBeInTheDocument(); // the follow-up, after the recommendation
+    expect(within(today).getByText(/Session estimate: about 18 min/)).toBeInTheDocument();
   });
 
   it("setup can be skipped for a starter plan, and plan changes are explained", async () => {
@@ -49,7 +50,7 @@ describe("Today", () => {
     }));
     asNurse();
     const { user } = renderApp("/dashboard", { signedIn: true });
-    const today = await screen.findByRole("region", { name: "Today" });
+    const today = await screen.findByRole("region", { name: "Today's practice" });
     expect(await within(today).findByText("Your plan changed")).toBeInTheDocument();
     expect(within(today).getByText(/Added “Retry: Patient assessment under pressure”/)).toBeInTheDocument();
     await user.click(within(today).getByRole("button", { name: "Got it" }));
@@ -75,13 +76,40 @@ describe("Today", () => {
     asNurse();
     const { user, router } = renderApp("/dashboard", { signedIn: true });
     const primary = await screen.findByRole("article", { name: "Baseline check: 3 short questions" });
-    expect(within(primary).queryByRole("button", { name: "Swap for another" })).not.toBeInTheDocument();
+    expect(within(primary).queryByRole("button", { name: "Choose another" })).not.toBeInTheDocument();
     const follow = screen.getByRole("article", { name: "What good patient assessment looks like" });
+    expect(follow).toHaveTextContent(`Skill: ${planItems[1]!.skill}`); // a skill unlike its type is shown
+    await user.click(within(follow).getByRole("button", { name: "More options" }));
+    expect(within(follow).getByRole("link", { name: "Add to schedule" })).toBeInTheDocument(); // scheduling and skipping stay distinct
     await user.click(within(follow).getByRole("button", { name: "Skip for now" }));
     await waitFor(() => expect(actions).toEqual(["item-q:skip"]));
     await user.click(within(primary).getByRole("button", { name: /Start/ }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/interviews/round-base"));
     expect(start).toMatchObject({ kind: "questions", purpose: "baseline", track: "registered-nurse", duration_minutes: 15 });
+  });
+});
+
+describe("Today's controls", () => {
+  it("time available is one labelled choice, and More options opens, closes on Escape and returns focus", async () => {
+    asNurse();
+    const { user } = renderApp("/dashboard", { signedIn: true });
+    const today = await screen.findByRole("region", { name: "Today's practice" });
+    const time = within(today).getByRole("group", { name: "Time available" });
+    expect(within(time).getAllByRole("radio").map((r) => r.getAttribute("value"))).toEqual(["5", "15", "30"]);
+    expect(within(time).getByRole("radio", { name: "15 min" })).toBeChecked();
+
+    const primary = await within(today).findByRole("article", { name: "Baseline check: 3 short questions" });
+    const actions = [...within(primary).queryAllByRole("link"), ...within(primary).queryAllByRole("button")];
+    expect(actions.filter((el) => el.classList.contains("btn--primary")).map((el) => el.textContent?.trim())).toEqual(["Start practice"]); // one filled action
+    const more = within(primary).getByRole("button", { name: "More options" });
+    expect(more).toHaveAttribute("aria-expanded", "false");
+    await user.click(more);
+    expect(more).toHaveAttribute("aria-expanded", "true");
+    await user.tab();
+    expect(within(primary).getByRole("link", { name: "Add to schedule" })).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(more).toHaveAttribute("aria-expanded", "false");
+    expect(more).toHaveFocus();
   });
 });
 

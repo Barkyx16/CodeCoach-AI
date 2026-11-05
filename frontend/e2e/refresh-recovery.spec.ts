@@ -5,7 +5,7 @@ import { navTo, chooseJob, expect, test, type BrowserContext, type Page, type Ro
 // Real browser, real backend: the cookie is HttpOnly, rotated by the server, path-scoped.
 
 const REFRESH = "**/api/v1/auth/refresh";
-const heading = (page: Page) => page.getByRole("heading", { level: 1, name: /progress/i });
+const heading = (page: Page) => page.getByRole("heading", { level: 1, name: "Your interview practice" });
 const signOut = (page: Page) => page.locator("header").getByRole("button", { name: "Sign out" });
 
 async function signUp(page: Page, tag: string) {

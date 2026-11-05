@@ -89,5 +89,5 @@ test("first use to a revised, compared answer, with a dropped send and a 320px s
   await page.goto("/dashboard");
   const summary = page.getByRole("region", { name: "Summary" });
   await expect(summary.getByText("Questions answered")).toBeVisible();
-  await expect(summary).toContainText("1of 300, each counted once however many tries");
+  await expect(summary).toContainText("1of 300 unique questions");
 });

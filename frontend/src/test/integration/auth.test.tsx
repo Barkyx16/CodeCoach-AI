@@ -17,7 +17,7 @@ describe("Authentication", () => {
         : HttpResponse.json({ error: { code: "unauthorized", message: "Missing token" } }, { status: 401 });
     }));
     renderApp("/dashboard", { signedIn: true });
-    expect(await screen.findByText("Ada's progress")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Your interview practice" })).toBeInTheDocument();
     expect(headers.length).toBeGreaterThan(0);
     expect(headers.every((value) => value === `Bearer ${tokenResponse().access_token}`)).toBe(true);
     expect(screen.queryByText("Missing token")).not.toBeInTheDocument();
@@ -29,7 +29,7 @@ describe("Authentication", () => {
     await user.type(screen.getByLabelText("Password"), "CorrectHorse42");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/dashboard"));
-    expect(await screen.findByText("Ada's progress")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Your interview practice" })).toBeInTheDocument();
   });
 
   it("opens the dashboard after signing in from the login page", async () => {
@@ -38,7 +38,7 @@ describe("Authentication", () => {
     await user.type(screen.getByLabelText("Password"), "CorrectHorse42");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/dashboard"));
-    expect(await screen.findByText("Ada's progress")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Your interview practice" })).toBeInTheDocument();
   });
 
   it("offers the optional welcome after continuing as a guest", async () => {

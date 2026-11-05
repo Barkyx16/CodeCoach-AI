@@ -13,13 +13,13 @@ describe("Dashboard and interviews follow the user's career", () => {
   it("shows a nurse their interview-question progress, not coding stats", async () => {
     signInAsNurse();
     renderApp("/dashboard", { signedIn: true });
-    expect(await screen.findByText("REGISTERED NURSE INTERVIEW PRACTICE")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Ada's progress" })).toBeInTheDocument();
+    expect(await screen.findByText("Registered Nurse · Easy level")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Your interview practice" })).toBeInTheDocument();
     const summary = screen.getByRole("region", { name: "Summary" });
     // Each number names its unit: questions (once each, however many tries), not attempts.
     expect(within(summary).getByText("Questions answered")).toBeInTheDocument();
-    expect(within(summary).getByText("of 300, each counted once however many tries")).toBeInTheDocument();
-    expect(within(summary).getByText("Questions whose best score is 85 or more")).toBeInTheDocument();
+    expect(within(summary).getByText("of 300 unique questions")).toBeInTheDocument();
+    expect(within(summary).getByText("Questions with a best score of 85 or more")).toBeInTheDocument();
     expect(screen.queryByText(/problems$/)).not.toBeInTheDocument();
     // Up next: unanswered questions from the nurse's own library, with the rule that picked them.
     const next = await screen.findByRole("link", { name: /What good patient assessment looks like/ });
@@ -34,7 +34,7 @@ describe("Dashboard and interviews follow the user's career", () => {
 
   it("keeps the coding dashboard for software engineers", async () => {
     renderApp("/dashboard", { signedIn: true });
-    expect(await screen.findByText("Ada's progress")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Your interview practice" })).toBeInTheDocument();
     expect(within(screen.getByRole("region", { name: "Summary" })).getByText("Solved")).toBeInTheDocument();
   });
 

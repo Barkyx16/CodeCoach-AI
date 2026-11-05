@@ -19,9 +19,9 @@ test("the session survives reloads via an HttpOnly cookie that page scripts can'
 
   // A reload of a protected page restores the session from the cookie.
   await page.goto("/dashboard");
-  await expect(page.getByRole("heading", { level: 1, name: /progress/i })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Your interview practice" })).toBeVisible();
   await page.reload();
-  await expect(page.getByRole("heading", { level: 1, name: /progress/i })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Your interview practice" })).toBeVisible();
   await expect(page).toHaveURL(/\/dashboard$/);
 
   // Signing out clears the cookie, so a reload no longer has a session.

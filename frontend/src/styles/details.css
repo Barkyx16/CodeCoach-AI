@@ -14,10 +14,6 @@
 .dashboard .rec .row { gap: 8px; }
 .dashboard .rec strong, .analytics .rec strong { font-size: 0.875rem; }
 .dashboard .rec .subtle, .analytics .rec .subtle { font-size: 0.75rem; line-height: 1.6; }
-.dashboard-onboarding { display: flex; align-items: center; gap: 16px; padding: 14px 18px; border: 1px dashed var(--color-border-strong); border-radius: 14px; margin: 0 0 var(--space-4); }
-.dashboard-onboarding > div { flex: 1; }
-.dashboard-onboarding strong { font-size: 0.875rem; font-weight: 550; }
-.dashboard-onboarding .subtle { margin-top: 6px; font-size: 0.75rem; }
 
 /* Library */
 .library-badge { display: inline-flex; align-items: center; gap: 10px; color: var(--color-text-muted); border: 1px solid var(--color-border); border-radius: 8px; padding: 10px 14px; font-size: 0.75rem; }

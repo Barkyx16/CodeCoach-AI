@@ -7,7 +7,7 @@ import { renderApp } from "../render";
 describe("Dashboard", () => {
   it("shows stat tiles, recommendations and charts", async () => {
     renderApp("/dashboard", { signedIn: true });
-    expect(await screen.findByText("Ada's progress")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Your interview practice" })).toBeInTheDocument();
     const summary = screen.getByRole("region", { name: "Summary" });
     expect(within(summary).getByText("Solved").nextElementSibling).toHaveTextContent("1");
     expect(screen.getByText("3 days")).toBeInTheDocument();

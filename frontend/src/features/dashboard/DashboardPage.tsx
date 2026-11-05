@@ -35,7 +35,6 @@ export function DashboardPage() {
 }
 
 function CodingDashboard() {
-  const { user } = useAuth();
   const progress = useProgress();
   const recs = useRecommendations(5);
   const usage = useAIUsage();
@@ -47,20 +46,19 @@ function CodingDashboard() {
 
   return (
     <div className="page dashboard">
-      <div className="page__header">
+      <div className="page__header dashboard__header">
         <div>
-          <p className="eyebrow">YOUR PRACTICE, IN PERSPECTIVE</p>
-          <h1 className="page__title">{user?.display_name ? `${user.display_name}'s progress` : "Your progress"}</h1>
-          <p className="page__subtitle">{p.last_active_at ? `Last active ${timeAgo(p.last_active_at)}` : "No activity yet"}</p>
+          <h1 className="page__title">Your interview practice</h1>
+          <p className="page__subtitle">Coding problems · {p.last_active_at ? `last active ${timeAgo(p.last_active_at)}` : "no activity yet"}</p>
         </div>
-        <div className="row dashboard__actions"><Link to="/interviews" className="btn btn--secondary btn--md">Start a mock interview</Link><Link to="/problems" className="btn btn--primary btn--md">Practice now <span aria-hidden="true">→</span></Link></div>
+        <Link to="/interviews" className="btn btn--secondary btn--md">Mock interview</Link>
       </div>
 
       <OnboardingBanner />
       <TodayCard />
       <ContinueCard />
-      <MorePractice coding />
 
+      <h2 className="dashboard__section-title">Your progress</h2>
       <section className="stat-row" aria-label="Summary">
         <StatTile icon="target" label="Solved" value={`${p.solved}`} detail={`of ${p.total_problems} problems`}
           fraction={p.total_problems ? p.solved / p.total_problems : 0} />
@@ -73,8 +71,14 @@ function CodingDashboard() {
       </section>
 
       {isNew && (
-        <div className="dashboard-onboarding"><span className="icon-tile"><Icon name="code" /></span><div><strong>Your dashboard fills in as you practice</strong><p className="subtle">Open a problem, ask for a hint or submit an attempt, and your stats will show up here.</p></div><Link to="/problems" className="btn btn--secondary btn--md">Start a problem <Icon name="arrow" size={15} /></Link></div>
+        <p className="dashboard-onboarding">
+          <Icon name="code" size={16} aria-hidden="true" />
+          <span>Your progress will appear as you practise. Open a problem, ask for a hint or submit an attempt, and your stats will show up here.{" "}
+            <Link to="/problems">Start a problem <span aria-hidden="true">→</span></Link></span>
+        </p>
       )}
+
+      <MorePractice coding />
 
       {/* Two independent columns, so a short card never leaves a hole beside a tall one. */}
       <div className="dashboard__layout">

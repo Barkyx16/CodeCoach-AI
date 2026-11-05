@@ -12,7 +12,7 @@ const expired = { error: { code: "invalid_token", message: "Token expired", requ
 describe("Cookie-backed sessions", () => {
   it("restores the session on load from the refresh cookie, without redirecting to sign-in", async () => {
     const { router } = renderApp("/dashboard", { signedIn: true });
-    expect(await screen.findByRole("heading", { level: 1, name: /progress/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Your interview practice" })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/dashboard");
   });
 
@@ -26,7 +26,7 @@ describe("Cookie-backed sessions", () => {
         : HttpResponse.json({ error: { code: "refresh_race", message: "retry", request_id: "r", details: null } }, { status: 401 });
     }));
     const { router } = renderApp("/dashboard", { signedIn: true, strict: true });
-    expect(await screen.findByRole("heading", { level: 1, name: /progress/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Your interview practice" })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/dashboard");
     expect(refreshes).toBe(1);
   });
