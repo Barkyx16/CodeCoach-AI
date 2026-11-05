@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
-import { useAnswerQuestion, useBookmarks, useCapabilities, useCareers, useContentMeta, useMyAnswers, useQuestion } from "@/api/queries";
-import type { Difficulty, InterviewAnswer } from "@/api/types";
+import { api } from "@/api/endpoints";
+import { queryKeys, useAnswerQuestion, useBookmarks, useCapabilities, useCareers, useContentMeta, useMyAnswers, useQuestion } from "@/api/queries";
+import type { Capabilities, Difficulty, InterviewAnswer } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { BackLink } from "@/components/BackLink";
 import { Badge, DifficultyBadge } from "@/components/Badge";
@@ -85,6 +87,7 @@ function QuestionPageFor() {
   // This server keeps at most one saved answer per send key (an older one would ignore the key,
   // so none is sent and no protection is claimed).
   const keyed = useCapabilities().data?.answer_request_keys === true;
+  const queryClient = useQueryClient();
   const pendingSend = useRef<PendingSend | null>(null);
   const content = useContentMeta("question", `${track}/${id}`);
   const bookmarks = useBookmarks(isAuthenticated);
@@ -111,7 +114,9 @@ function QuestionPageFor() {
   const [revising, setRevising] = useState<{ fromId: string; target: { label: string; advice: string } | null; keptText: boolean } | null>(null);
   const [cleared, setCleared] = useState<string | null>(null);
   // Sending failed without a reply, and the answer isn't among the saved ones (yet).
-  const [unconfirmed, setUnconfirmed] = useState(false);
+  // No reply came back: "keyed" only when the server said again, just now, that it keeps one answer
+  // per key (it may have been replaced since the page loaded); otherwise no protection is claimed.
+  const [unconfirmed, setUnconfirmed] = useState<null | "keyed" | "plain">(null);
   const [guestError, setGuestError] = useState<unknown>(null);
   const [storyId, setStoryId] = useState<string | null>(null);
   // Optional: reflect on the answer before the coach's feedback is shown (remembered on this device).
@@ -172,6 +177,13 @@ function QuestionPageFor() {
     }, 0);
   }
 
+  /** Ask the server once (a read, no retry) whether it still keeps one answer per key. */
+  async function stillKeyed(): Promise<"keyed" | "plain"> {
+    const now = await api.capabilities().catch(() => null);
+    if (now) queryClient.setQueryData<Capabilities>(queryKeys.capabilities, now);
+    return now?.answer_request_keys === true ? "keyed" : "plain";
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     const text = draft.trim();
@@ -183,7 +195,7 @@ function QuestionPageFor() {
       ? keyFor(pendingSend.current, sendSignature({ account: user?.id ?? "", track, questionId: id, answer: text, storyId, revisesAnswerId }))
       : null;
     pendingSend.current = send;
-    setUnconfirmed(false);
+    setUnconfirmed(null);
     let failure: unknown = null;
     let result = await submit.mutateAsync({ answer: text, storyId, requestKey: send?.key ?? null, revisesAnswerId })
       .catch((err: unknown) => { failure = err; return null; });
@@ -196,7 +208,7 @@ function QuestionPageFor() {
         submit.reset();
         result = saved;
       } else {
-        setUnconfirmed(true);
+        setUnconfirmed(send ? await stillKeyed() : "plain");
       }
     }
     if (result) {
@@ -320,7 +332,7 @@ function QuestionPageFor() {
             {unconfirmed && (
               <p className="banner banner--warning" role="status">
                 No reply came back, so it isn't certain whether this answer was saved, and it isn't among your saved answers
-                yet. Your text is still here. {keyed
+                yet. Your text is still here. {unconfirmed === "keyed"
                   ? "Sending it again unchanged is safe: if the first one did arrive, you'll get that answer back instead of a second copy."
                   : "When you're connected, look under “Your past answers” before sending it again."}
               </p>

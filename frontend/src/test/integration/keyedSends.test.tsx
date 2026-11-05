@@ -91,6 +91,32 @@ describe("Send keys", () => {
       unmount();
     }
   });
+
+  it("claim nothing when the server stopped saying it keeps them since the page loaded, or can't be asked", async () => {
+    // Release Readiness brief 03: a server replaced by an older one ignores the key it was sent.
+    for (const later of ["older", "unreachable"] as const) {
+      asNurse();
+      let asked = 0;
+      server.use(http.get(`${API}/api/v1/capabilities`, () => {
+        asked += 1;
+        if (asked > 1 && later === "unreachable") return HttpResponse.error();
+        return HttpResponse.json({
+          execution_enabled: false, ai_provider: "offline", guest_retention_days: 30,
+          execution: { state: "not_configured", reason: "not_configured", message: "", run_available: false, submit_mode: "saved_only", checked_at: null, setup_help: null },
+          ...(asked === 1 ? { answer_request_keys: true } : {}),
+        });
+      }));
+      const bodies = answers([], ["lost", "saved"]);
+      const { user, unmount } = renderApp(QUESTION, { signedIn: true });
+      await screen.findByRole("textbox", { name: "Your answer" });
+      await send(user, TEXT);
+      expect(await screen.findByText(/look under “Your past answers” before sending it again/)).toBeInTheDocument();
+      expect(screen.queryByText(/Sending it again unchanged is safe/)).not.toBeInTheDocument();
+      expect(bodies[0]!.client_request_id).toBeTruthy(); // it was sent while the server said it kept them
+      expect(asked).toBe(2); // asked again once, at the lost reply: a read, never a speculative write
+      unmount();
+    }
+  });
 });
 
 const first: InterviewAnswer = { ...nurseAnswer, id: "t1", question_id: "e-good-0", answer: TEXT, created_at: "2026-11-01T09:00:00Z", score: 58 };

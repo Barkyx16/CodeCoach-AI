@@ -31,7 +31,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Readiness probe (checks the database) */
+        /**
+         * Readiness probe (checks the database and its schema)
+         * @description Ready when the database answers and its schema isn't older than this code needs. Names no
+         *     revision: only whether the schema is current, behind, newer or unmanaged.
+         */
         get: operations["ready_health_ready_get"];
         put?: never;
         post?: never;

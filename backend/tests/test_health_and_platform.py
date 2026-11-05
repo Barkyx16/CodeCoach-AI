@@ -8,6 +8,46 @@ def test_readiness_checks_database(client):
     r = client.get("/health/ready")
     assert r.status_code == 200
     assert r.json()["checks"]["database"] == "ok"
+    assert r.json()["checks"]["schema"] == "unmanaged"  # tests make tables with create_all
+
+
+def test_readiness_says_when_the_schema_is_behind_this_code(client):
+    """Release Readiness brief 02: new code on the previous schema fails on columns the migration
+    adds, so it isn't ready until the migration has run. An unknown (newer) revision is an
+    application revert onto an expanded schema, which the additive migrations support."""
+    from sqlalchemy import text
+
+    from app.api.routes.health import _revisions
+
+    heads, everything = _revisions()
+    head = next(iter(heads))
+    older = next(iter(everything - heads))
+    db = client.app.state.session_factory()
+    db.execute(text("CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL)"))
+    db.commit()
+    try:
+        for at, status, schema in (
+            (head, 200, "current"),
+            (older, 503, "behind"),
+            ("f00dfeedbeef", 200, "newer"),
+        ):
+            db.execute(text("DELETE FROM alembic_version"))
+            db.execute(text("INSERT INTO alembic_version (version_num) VALUES (:v)"), {"v": at})
+            db.commit()
+            r = client.get("/health/ready")
+            assert (r.status_code, r.json()["checks"]["schema"]) == (status, schema)
+            assert at not in r.text  # no revision is named
+    finally:
+        db.execute(text("DROP TABLE alembic_version"))
+        db.commit()
+        db.close()
+
+
+def test_the_code_knows_its_own_migration_head():
+    from app.api.routes.health import _revisions
+
+    heads, everything = _revisions()
+    assert heads == {"c4d5e6f7a8b9"} and "b7c1d2e3f4a5" in everything
 
 
 def test_request_id_is_generated_and_echoed(client):

@@ -3,7 +3,7 @@ import { Link, useLocation, useSearchParams } from "react-router-dom";
 
 import type { ExploreFilters } from "@/api/endpoints";
 import { useExplore, useToggleBookmark, useTrackProgress } from "@/api/queries";
-import type { Difficulty, ExploreResult, ExploreSort, ItemStatus, MyExploreResult } from "@/api/types";
+import type { Difficulty, ExploreResult, ExploreSort, MyExploreResult } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { Badge, DifficultyBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
@@ -18,6 +18,7 @@ import { describeError } from "@/lib/errors";
 import { KIND_LABEL } from "./kinds";
 import { PracticeBar } from "./PracticeBar";
 import { usePracticeTrack } from "./practiceTrack";
+import { isAnswered, scoreLabel } from "./scoreLabel";
 
 const FIRST_PAGE = 5;
 const MORE_STEP = 10;
@@ -46,12 +47,6 @@ function isStatus(v: string | null): v is Status {
 }
 
 /** From answers long enough to score only (backend app/careers/eligibility.py). */
-function scoreLabel(st: ItemStatus | undefined): string {
-  if (!st || !st.score_status) return "Not answered";
-  if (st.best_scored != null) return `Best score ${st.best_scored}`;
-  return st.score_status === "too_short" ? "Answered, too short to score" : "Answered (how it was graded wasn't recorded)";
-}
-
 /**
  * Interview questions for one career: search, Easy/Medium/Hard tabs, format/skill/status filters with
  * counts, sorts, removable filter chips, bookmarks, and "View more". Everything that shapes the
@@ -254,7 +249,7 @@ export function QuestionLibrary() {
                   {data!.items.map((item, index) => {
                     const st = data!.status?.[item.id];
                     const label = scoreLabel(st);
-                    const answered = !!st?.score_status;
+                    const answered = isAnswered(st);
                     const best = st?.best_scored;
                     return (
                       <li key={item.id} className="explore-row">

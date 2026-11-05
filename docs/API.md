@@ -159,7 +159,7 @@ Every non-2xx response has this shape:
 | 422 | `validation_error` | Body or query failed validation. `details` is a list of `{loc, msg, type}` | Map `loc[-1]` to form fields |
 | 429 | `rate_limited` | Auth attempts or the daily AI budget exceeded (`details.retry_after_seconds` or `details.daily_limit`) | Show a cooldown |
 | 500 | `internal_error` | Unexpected server error (logged with the request id) | Generic error + request id |
-| 503 | — | `/health/ready` only, when the database is unreachable | — |
+| 503 | — | `/health/ready` only, when the database is unreachable or its schema is older than this code needs | — |
 
 Validation error example (`GET /api/v1/problems?page=0`):
 
@@ -233,9 +233,21 @@ Liveness probe. Deliberately reveals no versions or infrastructure details.
 ```
 
 #### `GET /health/ready`
-Readiness probe: checks the database connection. `200` when ready, `503` when not.
+Readiness probe: checks the database connection and how its migration revision relates to this
+code. `200` when ready, `503` when not.
+
+- `schema` is `current` when the database is at this code's migration head.
+- It is `behind` (`503`) when the database is at an older revision this code knows, so the
+  migration hasn't run yet. This code would fail on the columns the migration adds.
+- It is `newer` when the database is at a revision this code doesn't know, such as an
+  application revert onto an expanded schema (supported while migrations are additive).
+- It is `unmanaged` when there is no migration ledger (tables made by `create_all` in
+  development and tests).
+- It is `unknown` when this code's migrations couldn't be read.
+
+No revision id is shown.
 ```json
-{"status": "ok", "checks": {"database": "ok"}}
+{"status": "ok", "checks": {"database": "ok", "schema": "current"}}
 ```
 
 ### Auth

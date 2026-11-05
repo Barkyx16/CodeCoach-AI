@@ -35,7 +35,8 @@
         "tags": [
           "health"
         ],
-        "summary": "Readiness probe (checks the database)",
+        "summary": "Readiness probe (checks the database and its schema)",
+        "description": "Ready when the database answers and its schema isn't older than this code needs. Names no\nrevision: only whether the schema is current, behind, newer or unmanaged.",
         "operationId": "ready_health_ready_get",
         "responses": {
           "200": {
