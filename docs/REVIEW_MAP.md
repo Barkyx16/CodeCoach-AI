@@ -69,3 +69,23 @@ checks that they match (`npm run api:types` in "API types match docs/openapi.jso
 - **Unsupported environments:**
   - running the SQLite migration chain from scratch (pre-existing; tests use `create_all`);
   - a physical phone, a screen reader and an on-screen keyboard (not exercised).
+
+## The Verification batch (after `b08c3a0`, the first all-green CI revision since `eae8088`)
+
+| Group | Commits | Files to read first |
+|---|---|---|
+| **Persistence and API** | `8f7da18` (the protected keyed route; readiness opens its own session) | `backend/app/api/routes/careers.py` (`answer_question_keyed`), `backend/app/schemas/careers.py` (`KeyedAnswerRequest`), `backend/app/api/routes/health.py` |
+| **Privacy** | `92c3522` (`hide_parameters=True` on the engine) | `backend/app/db/session.py`, `backend/tests/test_log_redaction.py` |
+| **Scoring** | `4da65a7` (rubric v10), `9ae001b` and `d7ecb36` (protocol v9, the v10 freeze) | `backend/app/careers/grading.py` (`_UNDONE`, `_denied_spans`), `backend/tests/test_rubric_v10.py`, `backend/evals/results/rubric-v9-vs-v10.md` |
+| **Evaluation tooling** | `77d0459` (evals type-check clean, gated in CI; review ingestion) | `backend/evals/faults.py` (httpx2), `backend/evals/run.py` (`Reviewer`, `Hinter`), `backend/evals/review_sample.py`, `.github/workflows/ci.yml` |
+| **UI** | `8f7da18` (keyed sends to the protected route; "wasn't saved" when it's refused) | `frontend/src/api/endpoints.ts`, `frontend/src/features/careers/QuestionPage.tsx` |
+| **Verification** | `2f45ca3` (fixed-revision checks, pipefail), `92c3522` (comparator classes, quota tests), `1c0750a` (restore rehearsal), `31b4f72` (Pixel 7 critical flows) | `scripts/verify_revision.sh`, `backend/scripts/api_compat.py`, `backend/tests/test_answer_quota.py`, `frontend/e2e/critical-flows-mobile.spec.ts` |
+
+**How the pieces interact.**
+
+- **The protected route** shares the plain route's key space and handler, so replay, conflict,
+  quota and metrics behave identically. It is only an extra route, so `api_compat.py` classes it
+  as a compatible addition.
+- **Rubric v10** changes no decision on any existing set. It does change `RUBRIC_VERSION`, so
+  new answers record `v10`, and the try comparison, which requires the same rubric, won't compare
+  a v9 try with a v10 one.

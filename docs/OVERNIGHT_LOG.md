@@ -1063,3 +1063,91 @@ point.
 - Fix: wait for Bea's own request before the snapshot, so a later request with her token can
   only be a resend. Then 8/8 repeated runs and the full suite (646) passed.
 - That fix is the next commit. CI on it is reported with the session's final message.
+
+## Checkpoint: Verification and Protocol pack (VP01–VP16), after `b08c3a0`
+
+**VP01: CI.**
+
+- Run 173 (push) on `b08c3a0` passed all seven required jobs: backend (lint, types, SQLite,
+  PostgreSQL, migrations, reference solutions, content gates), frontend, runner, Docker images,
+  dependency audit, sandbox and e2e.
+- Its pull-request twin, run 174, ran on the same SHA.
+- No push was made while it ran; this batch was committed locally until then.
+
+**VP02, VP03: checks against one revision.**
+
+- `scripts/verify_revision.sh REV OUT --pg URL --e2e` runs every check in a clean worktree of the
+  revision, steps in sequence, with pipefail, and writes a summary with exit codes. The final
+  checks below use it.
+- A failing pipeline stage now fails its step (test). Before, `| tail` masked it, and this
+  session's own `exit=$?` after a pipe showed the same trap.
+- The rehearsal scripts print a partial summary labelled `aborted` and exit 1 when a step raises.
+
+**VP04: probe, then fix.**
+
+- Capabilities read from a new server and a POST landing on an old one: the old code ignored the
+  key.
+- Keyed sends now go to `POST …/answers/keyed`. The old server answered 404 and saved nothing
+  (executed against `eae8088`), while the new one saves once and replays.
+- When it's refused, the page says the answer wasn't saved and leaves the resend to the learner.
+
+**VP05: readiness through a real server.**
+
+- The database being unreachable gave **500**. It now gives 503 `database: fail`, with a test
+  that fails without the fix.
+- Head, previous schema and SQLite were executed: current, behind and unmanaged.
+- Nothing in the repository consumes `/health/ready`. Compose orders migrate-first through its
+  `migrate` service.
+
+**VP06: comparator.** Changes are breaking, consumer-sensitive or compatible, with fixtures for
+each direction. Against eae8088: 205 operations compared, 0 breaking, 2 consumer-sensitive.
+
+**VP07: the old client's own code**, from an `eae8088` worktree, shows `evidence_level:
+"unknown"` as a measured score and compares it.
+
+- Restricted, not changed: no version writes such rows, and stage 0 of the release plan now
+  requires `check-answers` to report 0 `eligibility_unknown`.
+
+**VP08: the quota, pinned as implemented.**
+
+- Free: replays and conflicts.
+- Charged: a new answer, a failed grading and both copies of a concurrent duplicate.
+- Changing that is a product decision; the options are in RELEASE_READINESS §11.
+
+**VP09: logs.** A real database failure logged the statement's parameters (the key, and the
+answer text). `hide_parameters=True` fixes it, with a test that fails without it on SQLite and
+PostgreSQL. The other paths were already clean.
+
+**VP10: restore versus export.** The rehearsal now carries an unknown-metadata row and compares
+`check-answers` on both sides: identical, with 1 notice and 2 links. Which artifact keeps dedup
+state is documented: the dump yes, the export no, a downgrade loses it.
+
+**VP11: typing.** `mypy evals` went from 24 errors to 0, without blanket ignores. One real
+contract mismatch: `faults.py` built SDK errors from `httpx` while the SDK uses `httpx2`. CI now
+runs `mypy app evals`; the evaluation tests (70) and the faults and contracts gates pass.
+
+**VP12, VP13: rubric v10.**
+
+- Probed first: intended, thought-about and regretted actions, denied objects and long listed
+  denials earned points.
+- On the new development pairs, false awards went 7/7 → 0/7 with controls at 7/7.
+- On existing sets nothing changed: 0 regressions, 0 metric changes.
+- A first draft broke dictation parity on `fd-8-P-benign_control`; the gate caught it and the
+  rule was fixed.
+- Residuals pinned as strict expected failures: a colleague's action and an imagined one.
+- The v9 boundaries probed (advice/own-voice transitions, contractions, fillers, offsets) were
+  correct.
+
+**VP14: ingestion and freeze.**
+
+- The import refuses a point rated twice, missing columns and a reviewer named as a model.
+  Status lists unresolved and unadjudicated differences.
+- The rubric changed, so protocol v9 names v10 the candidate. There is a new freeze record; the
+  v9 one is kept and reports its 3 changes.
+- Human review is still pending: no person has reviewed anything.
+
+**VP15: browsers.** Only Chromium is installed; Firefox and WebKit weren't available and aren't
+claimed. The changed critical flows were run on the supported Pixel 7 project (3 passed). A
+physical phone, a screen reader and an on-screen keyboard remain pending.
+
+**VP16:** final fixed-revision checks and CI for the pushed SHA are in the handoff that follows.
