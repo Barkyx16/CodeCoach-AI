@@ -824,3 +824,27 @@ Raw scores, answer rows and "answered" counts are unchanged; nothing is regraded
 - Checks: `tests/test_review_sample.py` (6) and a new validator test in `test_eval_protocol.py`.
 - Unresolved: no reviewer has taken part, so this needs people; next action is a person running
   `python -m evals.review_sample packet sample-2026-11-05`.
+
+## Checkpoint: NX15, candidate frozen, fresh measurement planned (not run)
+
+- `backend/evals/freeze.py`: `write` records the commit and tree, rubric v9, coach prompt and
+  fingerprint, protocol version, hashes of the scoring files, datasets and dependencies, the
+  declared metrics (each with its denominator) and the release rule. It refuses a dirty tree.
+  `check` fails if anything moved. Tests: `tests/test_freeze.py` (3).
+- Protocol v8 (`next_measurement`): the v9 candidate against the v8 baseline (`84dc1ee`) on two
+  fresh sets (5th question by id per cell, skipping used ones). The author must not have seen the
+  repo; a person registers the sets; the tuning session only runs `--sealed` (aggregates). If
+  content leaks, the sets count as development data.
+- Freeze record: `evals/results/freeze-2026-11-05-candidate-rubric-v9.json` (written after the
+  protocol v8 commit; `check` passes).
+- Live Claude evaluation: dry-run plan only (`evals/results/live-eval-plan-2026-11-05.json`: 666
+  answers, worst case 1,998 requests and 4.39M output tokens, proposed budgets 300 calls and
+  400k output tokens). No calls, no key, cost not estimated because no prices were supplied.
+- Status kept apart (docs/FRESH_MEASUREMENT_PLAN.md):
+  - development results: measured;
+  - exposed history: as before;
+  - human review: pending;
+  - independent v9 measurement: pending (no fresh set);
+  - live evaluation: not run.
+- Next action: someone outside the tuning session writes the fresh sets. Until then nothing
+  further is measured.

@@ -221,6 +221,21 @@ family fails under v9. No set, label, selection rule, release rule item or margi
 nothing about the sealed sets changes: they stay used, and rubric v9 has no independent
 measurement (docs/AI_EVALUATION.md, "Results: rubric v9").
 
+## Protocol v8 (2026-11-05, Durable Saves brief 15)
+
+Declares the next measurement before any of its cases exist (`next_measurement`):
+
+- the frozen rubric v9 candidate (`evals/results/freeze-2026-11-05-candidate-rubric-v9.json`,
+  checked with `python -m evals.freeze check`) against the rubric v8 baseline (`84dc1ee`);
+- two fresh sets, the 5th question by id of each cell for each career, written by an author who
+  hasn't seen this repository's code, results or other sets, and registered by a person;
+- the release rule applied to each set.
+
+Roles, separation steps and the declared metrics with their denominators are in
+[FRESH_MEASUREMENT_PLAN.md](FRESH_MEASUREMENT_PLAN.md). **Nothing has been written or measured
+under it.** Rubric v9's independent measurement is pending. No existing set, label, gate or
+release item changes, and the used sealed sets stay used.
+
 ## The sealed sets have been graded (2026-11-04)
 
 `career-rn-sealed` and `career-csr-sealed` were graded once each for the frozen candidate

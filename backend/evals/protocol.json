@@ -1,5 +1,5 @@
 {
-  "protocol_version": 7,
+  "protocol_version": 8,
   "frozen": "2026-11-04",
   "changes": [
     {
@@ -42,6 +42,12 @@
       "date": "2026-11-04",
       "what": "Durable Saves brief 13: career-csr-families-dev's keyword_list family is gated (its one failing case, paraphrased guidance, is fixed by rubric v9). Nothing about the sealed sets, the selection rule, the release rule's must-pass items or its margins changes.",
       "doc": "docs/EVAL_PROTOCOL.md, 'Protocol v7'"
+    },
+    {
+      "version": 8,
+      "date": "2026-11-05",
+      "what": "Durable Saves brief 15: the next measurement is declared before any of its cases exist (next_measurement): the frozen rubric v9 candidate against the rubric v8 baseline on two fresh sets written under a stated separation, with the release rule applied to each. Nothing about the existing sets, labels, gates or the used sealed sets changes.",
+      "doc": "docs/EVAL_PROTOCOL.md, 'Protocol v8'; docs/FRESH_MEASUREMENT_PLAN.md"
     }
   ],
   "doc": "docs/EVAL_PROTOCOL.md explains each part. Changing this file after cases are graded needs a new protocol_version and a note in that document.",
@@ -369,5 +375,32 @@
     "overlap": "python -m evals.overlap",
     "development": "python -m evals.run --split dev",
     "review_packet": "python -m evals.review_packet <dataset id>"
+  },
+  "next_measurement": {
+    "status": "planned, not run: no fresh set exists. Until one is written under the separation below and graded once, rubric v9 has development results only and its independent measurement is pending.",
+    "candidate": "the freeze record evals/results/freeze-2026-11-05-candidate-rubric-v9.json (rubric v9, coach prompt coach-2026-11-04c); `python -m evals.freeze check <record>` must pass immediately before grading, or the candidate is frozen again and this plan is re-declared",
+    "baseline": "rubric v8, the previous frozen candidate (84dc1ee): a worktree of that commit (its own app/careers) run with the candidate's evaluation harness and the fresh sets",
+    "sets": {
+      "career-rn-fresh": "registered-nurse, the 5th question by id of each (difficulty, kind) cell",
+      "career-csr-fresh": "customer-service-representative, the 5th question by id of each cell"
+    },
+    "question_rule_extra": "a question that any existing set (development, historical or sealed) already uses is skipped for the next unused index; the skips are recorded",
+    "plan": "family_plan_per_question and variants, as for the families sets (12 answers per question)",
+    "roles": {
+      "author_and_labeller": "a session (or person) that has not seen this repository's code, evaluation results, other sets or regression register; given only this protocol, the questions' prompts and their rubric points' label and advice text",
+      "operator": "a person who receives the files from the author, registers their hashes and keeps them out of the tuning session's reach (evals/sealed/, access log)",
+      "reviewer": "optional, a person not tuning the coach (evals.review_packet --reviewer-not-tuning); without one the labels stay model-written and are reported so",
+      "grader_runner": "may be the tuning session, through `python -m evals.run --sealed` only (aggregates; case-level results written unopened)"
+    },
+    "separation": [
+      "the author never sees the coach's code, outputs, other sets, case-level results or the regression register",
+      "the tuning session never opens the fresh files or their case-level results; tools it runs over them print counts, ids and hashes only",
+      "a duplicate and near-duplicate check (evals.overlap) against every existing set before registration; flagged answers are rewritten by the author, not shown to the tuning session",
+      "labels and hashes are frozen at registration (evals/datasets.json); every opening and grading is logged in evals/sealed/ACCESS.md",
+      "a separate session alone is not independence: if case text or case-level results reach the tuning session, the sets are consumed and the measurement is reported as development data"
+    ],
+    "release": "the release rule's must_pass items and non_inferiority margins, applied to each fresh set (candidate against baseline); targets_reported_not_gated reported for both, with denominators and 95% intervals",
+    "declared_metrics": "the freeze record's declared_metrics, each with what its denominator counts",
+    "if_unavailable": "report development results and leave the fresh independent measurement pending; it does not block other engineering work"
   }
 }

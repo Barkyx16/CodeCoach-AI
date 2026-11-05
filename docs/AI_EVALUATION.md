@@ -17,10 +17,12 @@ python -m evals.run --check-report evals/results/offline.json
 - **Versions:** rubric `v9` (development-measured only: the sealed sets were graded with v8, and
   `app/careers/support.py` still names v8 as the rubric each career was measured with), coach
   prompt `coach-2026-11-04c` (request settings and reply handling only; prompt text unchanged
-  since `coach-2026-11-03`), evaluation protocol v7 (v2 added the contradiction pairs and metrics,
+  since `coach-2026-11-03`), evaluation protocol v8 (v2 added the contradiction pairs and metrics,
   v3 the injection challenge set and the by-kind injection metrics, v4 the action criterion and
   its set, v5 the evidence contract check, v6 a second career, v7 gates one more development
-  family; see [EVAL_PROTOCOL.md](EVAL_PROTOCOL.md)).
+  family, v8 declares the next measurement; see [EVAL_PROTOCOL.md](EVAL_PROTOCOL.md)). The v9
+  candidate is frozen for a fresh measurement that hasn't happened
+  ([FRESH_MEASUREMENT_PLAN.md](FRESH_MEASUREMENT_PLAN.md)).
 - **Career sets** (`backend/evals/datasets.json`, sha256 prefix): `career-rn-dev` v2, 23 cases,
   `c1619da3a4ac` (development); `career-rn-holdout` v2, 17, `d43b284d6a71` (**exposed historical
   benchmark**, not an untouched test); `career-rn-families-dev` v1, 108, `6bef6d4fce71`
@@ -34,7 +36,8 @@ python -m evals.run --check-report evals/results/offline.json
   `career-csr-families-dev` v1, 108, `30591870b561` (development, separate session) and
   `career-csr-sealed` v1, 108, `22af2c53d831` (sealed, another separate session).
 - **Labels:** all model-written; **no human has reviewed any of them** (each file's
-  `review_status`). Nothing here is expert- or clinician-validated, and the coach judges answer
+  `review_status`). A bounded review sample is prepared for people
+  (`evals/reviews/samples/sample-2026-11-05.json`); human review is pending. Nothing here is expert- or clinician-validated, and the coach judges answer
   structure only, never clinical correctness.
 - **Independent evaluation: done once, 2026-11-04.** The frozen candidate (`84dc1ee`, rubric v8;
   record `evals/results/freeze-2026-11-04.json`) and the baseline (rubric v2, `20bd00f`) were each
