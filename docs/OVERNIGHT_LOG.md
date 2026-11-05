@@ -802,3 +802,25 @@ Raw scores, answer rows and "answered" counts are unchanged; nothing is regraded
   `support.py` still records v8 as the measured rubric.
 - Checks: `tests/test_rubric_v9.py` (29), eval, careers, scope, harness (incl. loading v8 from
   git) and eligibility suites passed; lint, format, types clean.
+
+## Checkpoint: NX14, a human label review packet (prepared; human review pending)
+
+- `backend/evals/review_sample.py` makes a bounded, seeded sample of development and exposed
+  historical cases (never a sealed set). Strata: `disagreement` (10 cases where rubric v9 and a
+  label differ, or the labeller was unsure; chosen on purpose, not representative) and `random`
+  (2 per set by sha256(seed:set:case), 14). It has a blind first pass and a reveal pass with
+  adjudication.
+- The blind pass hides proposed labels, coach decisions and case ids (ids name the variant). The
+  form asks for label, uncertainty, needs-expertise and rationale, and flags points worded as if
+  they judged correctness. Structural and domain judgements are kept apart.
+- Imports and adjudications need `--human` and a named reviewer, so model labels can't be recorded
+  as a review. Agreement is reported only with two or more people on the same points.
+- Committed: `evals/reviews/samples/sample-2026-11-05.json` (24 cases, 119 points, status
+  "prepared; human review pending"). No ratings file exists. Nothing was shared or sent.
+- Label changes: documented as a new dataset version with a `label_changes` audit trail, old
+  reports kept as they are (EVAL_PROTOCOL.md, "When a review changes a label"). The validator
+  now enforces each entry's fields and later version, and that it matches the set's current
+  label.
+- Checks: `tests/test_review_sample.py` (6) and a new validator test in `test_eval_protocol.py`.
+- Unresolved: no reviewer has taken part, so this needs people; next action is a person running
+  `python -m evals.review_sample packet sample-2026-11-05`.

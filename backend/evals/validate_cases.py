@@ -47,6 +47,39 @@ def rule_questions(track: str, index: int) -> set[str]:
     return {sorted(ids)[index] for ids in by_cell.values() if len(ids) > index}
 
 
+LABEL_CHANGE_FIELDS = ("case", "point", "from", "to", "version", "review", "adjudicator", "date", "rationale")
+
+
+def _label_change_errors(data: dict) -> list[str]:
+    """A label changed after review is a new dataset version with its audit trail (docs/EVAL_PROTOCOL.md,
+    "When a review changes a label"): every change names the version that made it, the review record
+    and who decided, and the set's current label is the changed one."""
+    changes = data.get("label_changes")
+    if changes is None:
+        return []
+    errors = []
+    by_id = {c.get("id"): c for c in data.get("cases", [])}
+    for n, ch in enumerate(changes):
+        where = f"label_changes[{n}]"
+        missing = [f for f in LABEL_CHANGE_FIELDS if not ch.get(f)]
+        if missing:
+            errors.append(f"{where}: missing {missing}")
+            continue
+        if not isinstance(ch["version"], int) or not 1 < ch["version"] <= data.get("version", 1):
+            errors.append(f"{where}: version must be a later version of this set, up to the current one")
+        case = by_id.get(ch["case"])
+        if case is None or ch["point"] not in case.get("labels", {}).get("points", {}):
+            errors.append(f"{where}: no point {ch['point']!r} on case {ch['case']!r}")
+            continue
+        if {ch["from"], ch["to"]} - {"covered", "missing"} or ch["from"] == ch["to"]:
+            errors.append(f"{where}: from/to must be covered or missing, and differ")
+        latest = [c for c in changes if c.get("case") == ch["case"] and c.get("point") == ch["point"]][-1]
+        current = "covered" if case["labels"]["points"][ch["point"]] else "missing"
+        if latest is ch and current != ch["to"]:
+            errors.append(f"{where}: the set's label is {current}, not the changed {ch['to']}")
+    return errors
+
+
 ACTIONS_POINT = "Describes specific actions you took"
 
 
@@ -150,6 +183,7 @@ def validate(data: dict) -> tuple[list[str], dict]:
         errors.append(f"dataset: review_status must start with one of {sorted(REVIEW_STATES)}")
     if any(w in status.lower() for w in ("validated", "expert", "clinician")) and not data.get("reviews"):
         errors.append("dataset: claims validation or expert review without review records")
+    errors += _label_change_errors(data)
     cases = data.get("cases", [])
     track = data.get("track", "registered-nurse")
     allowed_q = (

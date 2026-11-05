@@ -231,6 +231,33 @@ def test_a_set_cannot_claim_review_it_did_not_get():
     assert any("claims validation or expert review without review records" in e for e in errors)
 
 
+
+def test_a_reviewed_label_change_is_a_new_version_with_its_audit_trail():
+    case = _family_case()
+    point = next(iter(case["labels"]["points"]))
+    now = "covered" if case["labels"]["points"][point] else "missing"
+    was = "missing" if now == "covered" else "covered"
+    change = {
+        "case": case["id"],
+        "point": point,
+        "from": was,
+        "to": now,
+        "version": 2,
+        "review": "evals/reviews/samples/sample-x.ratings.json",
+        "adjudicator": "A. Adjudicator, nurse educator",
+        "date": "2026-11-05",
+        "rationale": "synthetic test change",
+    }
+    ok, _ = validate(_set([case], version=2, label_changes=[change]))
+    assert not any("label_changes" in e for e in ok)
+    same_version, _ = validate(_set([case], version=1, label_changes=[change]))
+    assert any("version must be a later version" in e for e in same_version)
+    not_applied, _ = validate(_set([case], version=2, label_changes=[{**change, "from": now, "to": was}]))
+    assert any("the set's label is" in e for e in not_applied)
+    anonymous, _ = validate(_set([case], version=2, label_changes=[{**change, "adjudicator": ""}]))
+    assert any("missing ['adjudicator']" in e for e in anonymous)
+
+
 # --- review records -------------------------------------------------------------------------------
 
 

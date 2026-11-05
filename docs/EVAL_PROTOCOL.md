@@ -259,6 +259,73 @@ rejects a set that claims validation or expert review without them. A sealed set
 for a reviewer who isn't tuning the coach. **No reviewer has taken part yet**; every set is
 unreviewed and results are provisional.
 
+### The review sample (Durable Saves brief 14): prepared, human review pending
+
+A whole set is a lot to review, so `python -m evals.review_sample` draws a bounded sample and
+runs it in two passes. The committed sample is `backend/evals/reviews/samples/sample-2026-11-05.json`
+(24 cases, 119 point judgements, drawn at rubric v9 with seed `2026-11-05`). **Status: prepared;
+no person has reviewed any item.** No ratings file exists, and none may be written by a model.
+
+- *What is sampled:* development sets and the exposed historical set only. Sealed sets are never
+  opened by this tool. They are used, and any fresh independent set must stay out of the tuning
+  session's packets too.
+- *Selection rule (seeded, recorded on every item):*
+  - stratum `disagreement` (10 cases) holds cases where the current rubric differs from a proposed
+    label, or the labeller marked a point unsure. They are taken round-robin across sets, most
+    differences first. **This stratum is chosen on purpose and is not representative.** Its figures
+    describe where labels are most likely to be wrong, not the sets.
+  - stratum `random` (2 cases per set, 14) holds the first cases in the order of
+    sha256(seed:set:case).
+  - Each set's version and sha256 are recorded. A changed set makes the sample refuse to build a
+    packet, so a new one has to be drawn.
+- *First pass, blind* (`packet <id>`): question, rubric version, each point's label and advice,
+  the labelling definitions (covered, the action criterion, contradiction) and the answer.
+  Proposed labels, the coach's decisions and case ids (which name the variant, a hint at the
+  label) are all hidden. The form `1-form.csv` asks for each point:
+  - `your_label`: covered, missing or cant_tell;
+  - `uncertainty`: low, medium or high;
+  - `needs_expertise`;
+  - a `rationale`.
+- *Import* (`import <id> form.csv --reviewer "Name, role" --human`): `--human` states that a person
+  made the labels, and another model's labels are not a review. A reviewer's later pass replaces
+  their earlier one.
+- *Second pass, reveal* (`reveal <id>`): the proposed label, the rubric's decision and every
+  reviewer's label side by side. Each difference becomes a row in `2-adjudication.csv`, with
+  outcome `keep`, `change` (with the label) or `unresolved` and a rationale, recorded by
+  `adjudicate <id> … --adjudicator "Name, role" --human`.
+- *Agreement* (`status <id>`): reported only when at least two people labelled the same points
+  (percent agreement and Cohen's kappa per pair, `cant_tell` left out). With one reviewer it says
+  it can't be computed, and no agreement figure is ever quoted from model labels.
+- *Structure, not practice:* reviewers judge whether the answer does what the point describes.
+  - Whether the nursing or customer-service practice is right is a separate judgement. It needs
+    the right expertise: a registered nurse or nurse educator for the nursing sets, an
+    experienced practitioner for customer service.
+  - A point marked `needs_expertise` stays as labelled until such a reviewer records a decision,
+    and is reported as needing expertise.
+  - Points worded "Explains … correctly" are flagged `domain` in the form. The rubric only checks
+    that the answer discusses the subject.
+
+### When a review changes a label
+
+1. The tool never edits a dataset. An adjudicated `change` is recorded, with who decided, when
+   and why, in `evals/reviews/samples/<id>.ratings.json`.
+2. Applying it makes a **new version of the set** (`version` + 1). The new version has:
+   - the label changed;
+   - a `label_changes` entry with `case`, `point`, `from`, `to`, `version`, `review` (the record's
+     path), `adjudicator`, `date` and `rationale`;
+   - `review_status` saying no more than the records support.
+
+   `evals/datasets.json` gets the new version and sha256. The validator rejects a `label_changes`
+   entry that is missing a field, has no later version, or doesn't match the set's current label.
+3. **Old reports are kept as they are.** Each records the dataset version and hash it was graded
+   on, so it stays true of that version. Results on the new version are new reports, and a
+   comparison across versions says so.
+4. Entries in `evals/regression.json` whose signal depends on a changed label are re-checked, with
+   a note.
+5. A protocol change (new `protocol_version`, a note here) is needed only if a gate, a family's
+   gating or a metric's definition changes.
+6. Sealed labels are not changed by the tuning session.
+
 ## Baseline: rubric v2 on the new development set
 
 Measured 2026-11-04 at commit `da96069` (`python -m evals.run --split dev --label baseline-v2-dev`;
@@ -294,5 +361,6 @@ python -m evals.overlap                                          # cross-split d
 python -m evals.run --split dev                                  # development measurement
 python -m evals.run                                              # everything except sealed sets, with gates
 python -m evals.review_packet career-rn-families-dev             # a packet for a reviewer
+python -m evals.review_sample packet sample-2026-11-05           # the bounded review sample, blind first pass
 python -m evals.run --sealed --label final-<date>                # once, for a frozen candidate
 ```
