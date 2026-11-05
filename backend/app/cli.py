@@ -5,6 +5,7 @@ python -m app.cli openapi     # print the OpenAPI schema (JSON) to stdout
 python -m app.cli prune-guests [--days N]   # delete guest accounts inactive for N days
                                             # (default GUEST_RETENTION_DAYS)
 python -m app.cli judge-check # prove the configured code judge works, end to end
+python -m app.cli check-export FILE.json  # read-only check of a version 2 export's ids and links
 python -m app.cli grant-admin EMAIL    # let a registered account triage content reports
 python -m app.cli revoke-admin EMAIL
 python -m app.cli check-answers [--limit-ids N]
@@ -50,6 +51,18 @@ def main(argv: list[str]) -> int:
         with make_session_factory(engine)() as session:
             print(f"Deleted {prune_inactive_guests(session, days)} guest accounts inactive for {days}+ days")
         return 0
+    if command == "check-export":
+        # Read-only: checks a version 2 export's ids and links; changes nothing anywhere.
+        from app.services.export_v2 import validate_export
+
+        if len(argv) < 3:
+            print("usage: python -m app.cli check-export FILE.json")
+            return 2
+        issues = validate_export(json.loads(Path(argv[2]).read_text(encoding="utf-8")))
+        for i in issues:
+            print(f"{i['rule']}: {i['path']}: {i['detail']}")
+        print("No problems found." if not issues else f"{len(issues)} problem(s) found.")
+        return 1 if issues else 0
     if command == "judge-check":
         from app.services.judge.check import judge_check
 

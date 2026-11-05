@@ -19501,7 +19501,10 @@ export interface operations {
     };
     export_api_v1_me_export_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 1 (default; what restore reads) or 2: the same data plus record ids and typed links between records (applications, events, targets, stories, notes, schedule entries, kits, reflections and their steps). Version 2 can't be restored yet. */
+                version?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -19524,6 +19527,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

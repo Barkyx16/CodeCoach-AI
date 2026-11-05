@@ -9,14 +9,74 @@ or copy someone else's.
 
 - One JSON object, UTF-8, at most **5 MB**. No archives, paths or attachments are read, and nothing
   in it is executed.
-- `export_version` (an integer) says which format it is. **Version 1** is the only one so far and
-  the only one restore reads; any other value is refused with the supported versions listed.
+- `export_version` (an integer) says which format it is. **Version 1** is the default and the only
+  one restore reads; version 2 (below) adds links between records and is refused by restore, like
+  any other value, with the supported versions listed and nothing changed.
   Older version-1 files that lack newer sections (for example `stories`) are fine: missing
   sections are simply empty.
 - `exported_at` (ISO 8601) is informational.
 - The file never contains a password, a password hash, a sign-in or refresh token, a share-link
   secret or a provider key. It does contain your email and display name in `profile`, and the
   text you wrote.
+
+## Version 2: the same data, with links between records (opt-in)
+
+Settings → Your data → "Include links between records" (or `GET /api/v1/me/export?version=2`)
+downloads version 2. It's the version 1 document with every section and field unchanged, plus:
+
+- `export_version: 2` and an `identities` note (scope, restore support, the link states).
+- An `id` on the records others point to: applications, their `events`, `target_roles` and their
+  `requirements`, `stories` (already had one), `notes`, `schedule.entries`, `interview_kits` and
+  `interview_reflections` (each identified by its interview event's id), reflection `actions`,
+  and `bookmarks` (`question:career/id`, made from fields already there).
+- A `links` object on the records that point to others, each link a typed reference:
+
+```json
+{"type": "story", "id": "6f1c…", "state": "present"}
+```
+
+| Record | `links` |
+|---|---|
+| application | `target`, `stories[]` |
+| interview kit | `event`, `stories[]` (each with `version_when_chosen`: a number, or `"unknown"` for kits saved before versions were kept) |
+| interview reflection | `application`, `event`, `stories[]` |
+| reflection step (`actions[]`) | `created`: the note, schedule entry or bookmark it made, or `null` if it wasn't accepted |
+| schedule entry | `activity`: the interview event, a question/problem/drill, or a plan/review item |
+| note | `source`: the lesson, question, problem or practice session it was written from |
+
+| `state` | Meaning |
+|---|---|
+| `present` | The target is in this file, with that type and id |
+| `missing` | The target isn't in the account any more (deleted, or a note in the bin), or isn't this account's. The link is kept as history; nothing is made up to fill it |
+| `public` | Library content (question, problem, lesson, drill) named by its public id |
+| `not_exported` | The account's own record in a section without ids in this format (plan activities, review queue, practice sessions) |
+| `unknown` | Not recorded |
+
+**Identity scope.** An id is the record's id in this account: unique per type within one file,
+opaque, not stable across accounts, and never a credential or proof of ownership. `present` is
+decided from the file's own contents, and a link to another account's record is `missing` (its
+existence isn't revealed).
+
+**Consistency.** The file is read in one database session, but on PostgreSQL a concurrent edit
+can appear in one section and not another: it isn't a point-in-time snapshot. Links never claim
+a target the file doesn't contain.
+
+**Check a file** (read-only): `python -m app.cli check-export codecoach-data-v2.json`. It reports
+missing or duplicate ids, unknown types or states, malformed links, links that say `present`
+but point nowhere (`dangling`) or to another kind of record (`wrong_type`), and links that say a
+target isn't here when it is (`inconsistent_state`). It can't tell whose a file is, and it changes
+nothing.
+
+| | Version 1 | Version 2 |
+|---|---|---|
+| Default download | yes | opt-in |
+| All data and fields | yes | yes (the same fields) |
+| Ids and links between records | stories only | yes |
+| Restore | yes (the sections below) | **no**: refused before anything is read or written ("Download a version 1 export to restore") |
+
+**Privacy.** Both versions are your own complete data: they include private details kept out of
+printouts (a kit's meeting link, interviewer names, private notes). They never include request
+keys, sign-in tokens, password hashes, share secrets or server settings.
 
 ## What restore reads
 

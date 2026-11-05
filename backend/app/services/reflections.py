@@ -614,10 +614,12 @@ class Reflections:
         self.db.refresh(app)
         return self._out(app, ev, r)
 
-    def export(self) -> list[dict]:
+    def export(self, *, with_ids: bool = False) -> list[dict]:
         out = []
         for r in self.db.scalars(
-            select(InterviewReflection).where(InterviewReflection.user_id == self.user.id)
+            select(InterviewReflection)
+            .where(InterviewReflection.user_id == self.user.id)
+            .order_by(InterviewReflection.event_id)
         ):
             out.append(
                 {
@@ -641,6 +643,7 @@ class Reflections:
                     "updated_at": r.updated_at.isoformat(),
                     "actions": [
                         {
+                            **({"id": a.id} if with_ids else {}),
                             "kind": a.kind,
                             "title": a.title,
                             "detail": a.detail,

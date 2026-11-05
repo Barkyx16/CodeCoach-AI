@@ -456,11 +456,12 @@ class Schedule:
         ]
         return calendar(events)
 
-    def export(self) -> dict:
+    def export(self, *, with_ids: bool = False) -> dict:
         return {
             "settings": self.settings().model_dump(),
             "entries": [
                 {
+                    **({"id": e.id} if with_ids else {}),
                     "kind": e.kind,
                     "ref": e.ref,
                     "title": e.title,
@@ -473,6 +474,10 @@ class Schedule:
                     "status": e.status,
                     "notes": e.notes,
                 }
-                for e in self.db.scalars(select(ScheduleEntry).where(ScheduleEntry.user_id == self.user.id))
+                for e in self.db.scalars(
+                    select(ScheduleEntry)
+                    .where(ScheduleEntry.user_id == self.user.id)
+                    .order_by(ScheduleEntry.created_at, ScheduleEntry.id)
+                )
             ],
         }

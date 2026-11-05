@@ -47,9 +47,12 @@ from app.services.whiteboard import Whiteboard
 EXPORT_VERSION = 1
 
 
-def export_user_data(db: Session, user: User) -> dict:
+def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict:
     """Everything stored about the user, in one JSON document. Credentials (password hash,
-    token version) are deliberately excluded."""
+    token version) are deliberately excluded. `with_ids` adds record ids to the sections that other
+    records point to (applications, events, targets, requirements, notes, schedule entries, kits,
+    reflection steps); version 2 (`export_v2`) builds its typed links on them."""
+    ids = (lambda i: {"id": i}) if with_ids else (lambda i: {})
     slugs = dict(db.execute(select(Problem.id, Problem.slug)).all())
     subs = db.scalars(
         select(Submission)
@@ -74,9 +77,16 @@ def export_user_data(db: Session, user: User) -> dict:
         .order_by(PracticePlan.track, PracticePlan.version)
     ).all()
     targets = db.scalars(
-        select(RoleTarget).options(selectinload(RoleTarget.requirements)).where(RoleTarget.user_id == user.id)
+        select(RoleTarget)
+        .options(selectinload(RoleTarget.requirements))
+        .where(RoleTarget.user_id == user.id)
+        .order_by(RoleTarget.created_at, RoleTarget.id)
     ).all()
-    experience = db.scalars(select(ExperienceEntry).where(ExperienceEntry.user_id == user.id)).all()
+    experience = db.scalars(
+        select(ExperienceEntry)
+        .where(ExperienceEntry.user_id == user.id)
+        .order_by(ExperienceEntry.created_at, ExperienceEntry.id)
+    ).all()
     retries = db.scalars(select(InterviewRetry).where(InterviewRetry.user_id == user.id)).all()
     queue = db.scalars(select(ReviewItem).where(ReviewItem.user_id == user.id)).all()
     scenario_attempts = db.scalars(
@@ -259,6 +269,7 @@ def export_user_data(db: Session, user: User) -> dict:
         ],
         "target_roles": [
             {
+                **ids(t.id),
                 "career": t.track,
                 "title": t.title,
                 "employer": t.employer,
@@ -268,6 +279,7 @@ def export_user_data(db: Session, user: User) -> dict:
                 "archived": t.archived,
                 "requirements": [
                     {
+                        **ids(r.id),
                         "category": r.category,
                         "text": r.text,
                         "origin": r.origin,
@@ -350,6 +362,7 @@ def export_user_data(db: Session, user: User) -> dict:
         ],
         "notes": [
             {
+                **ids(n.id),
                 "title": n.title,
                 "body": n.body,
                 "reflection": n.reflection,
@@ -400,7 +413,7 @@ def export_user_data(db: Session, user: User) -> dict:
             for e in experience
         ],
         # Your schedule: entries and time zone / reminder settings.
-        "schedule": Schedule(db, user).export(),
+        "schedule": Schedule(db, user).export(with_ids=with_ids),
         # Your reflections, flags and later evaluations of written answers (the originals are above).
         "answer_reviews": AnswerReview(db, user).export(),
         # Communication drills: each attempt's words, how they were given and the feedback.
@@ -408,13 +421,13 @@ def export_user_data(db: Session, user: User) -> dict:
         # Whiteboard practice: working drafts, and attempts frozen with their feedback.
         "whiteboard": Whiteboard(db, user).export(),
         # Private reflections on real interviews, with the next steps you accepted or dismissed.
-        "interview_reflections": Reflections(db, user).export(),
+        "interview_reflections": Reflections(db, user).export(with_ids=with_ids),
         # Restores you made from backup files (what each added and, if removed, what it kept).
         "restores": Restore(db, user).export(),
         # Interview-day kits: logistics, checklists, questions and chosen stories.
-        "interview_kits": Kits(db, user).export(),
+        "interview_kits": Kits(db, user).export(with_ids=with_ids),
         # Applications you recorded, with their interview events and stage history.
-        "applications": Applications(db, user).export(),
+        "applications": Applications(db, user).export(with_ids=with_ids),
         # Your choices about the first-session introduction (no answer text is part of it).
         "onboarding": Onboarding(db, user).export(),
         # Problems you reported in questions or feedback, and what happened (no internal notes).

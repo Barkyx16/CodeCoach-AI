@@ -242,7 +242,8 @@ export const api = {
     apiRequest<TokenResponse>("/api/v1/auth/password", { method: "POST", body }),
   deleteAccount: (body: { password?: string; confirm: string }) =>
     apiRequest<void>("/api/v1/auth/me", { method: "DELETE", body }),
-  exportData: () => apiRequest<Record<string, unknown>>("/api/v1/me/export"),
+  exportData: (version: 1 | 2 = 1) =>
+    apiRequest<Record<string, unknown>>(version === 2 ? "/api/v1/me/export?version=2" : "/api/v1/me/export"),
   previewRestore: (fileText: string) => apiRequest<RestorePreview>("/api/v1/me/restore/preview", { method: "POST", rawBody: fileText }),
   applyRestore: (fileText: string, categories: string[]) =>
     apiRequest<RestoreBatch>(`/api/v1/me/restore?${categories.map((c) => `categories=${encodeURIComponent(c)}`).join("&")}`, { method: "POST", rawBody: fileText }),

@@ -55,13 +55,25 @@ def recommendations(
     summary="Download all of your data as JSON",
     response_description="A JSON document with your profile, submissions, AI feedback, interviews and activity",
 )
-def export(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> JSONResponse:
+def export(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    version: int = Query(
+        default=1,
+        ge=1,
+        le=2,
+        description="1 (default; what restore reads) or 2: the same data plus record ids and typed links "
+        "between records (applications, events, targets, stories, notes, schedule entries, kits, "
+        "reflections and their steps). Version 2 can't be restored yet.",
+    ),
+) -> JSONResponse:
+    from app.services.export_v2 import export_v2
+
+    data = export_v2(db, user) if version == 2 else export_user_data(db, user)
+    name = "codecoach-data-v2.json" if version == 2 else "codecoach-data.json"
     return JSONResponse(
-        export_user_data(db, user),
-        headers={
-            "Content-Disposition": 'attachment; filename="codecoach-data.json"',
-            "Cache-Control": "no-store",
-        },
+        data,
+        headers={"Content-Disposition": f'attachment; filename="{name}"', "Cache-Control": "no-store"},
     )
 
 

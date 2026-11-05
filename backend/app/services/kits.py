@@ -355,9 +355,10 @@ class Kits:
     def new_id() -> str:
         return f"u-{uuid.uuid4().hex[:8]}"
 
-    def export(self) -> list[dict]:
+    def export(self, *, with_ids: bool = False) -> list[dict]:
         return [
             {
+                **({"id": k.event_id} if with_ids else {}),  # a kit is identified by its interview
                 "event": k.event_id,
                 "format": k.format,
                 "location": k.location,
@@ -372,5 +373,9 @@ class Kits:
                 "saved_for_event_time": k.event_when,
                 "story_versions_when_chosen": k.story_revisions,
             }
-            for k in self.db.scalars(select(InterviewKit).where(InterviewKit.user_id == self.user.id))
+            for k in self.db.scalars(
+                select(InterviewKit)
+                .where(InterviewKit.user_id == self.user.id)
+                .order_by(InterviewKit.event_id)
+            )
         ]

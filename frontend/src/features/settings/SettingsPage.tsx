@@ -527,22 +527,30 @@ function SharedRow() {
 
 function DataRow() {
   const form = useFormState();
+  const [linked, setLinked] = useState(false); // version 2: opt-in
+  const name = linked ? "codecoach-data-v2.json" : "codecoach-data.json";
   const download = () => form.run(async () => {
-    const data = await api.exportData();
+    const data = await api.exportData(linked ? 2 : 1);
     const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
     const a = document.createElement("a");
     a.href = url;
-    a.download = "codecoach-data.json";
+    a.download = name;
     a.click();
     URL.revokeObjectURL(url);
-  }, "Downloaded codecoach-data.json");
+  }, `Downloaded ${name}`);
   return (
     <div className="setting" role="group" aria-labelledby="data-title">
       <RowIntro icon="download" id="data-title" title="Your data">
         A JSON file with everything we store about you: profile, submissions with your code, AI feedback,
-        interview transcripts and activity.
+        interview transcripts and activity. It includes private details you keep out of printouts, such
+        as an interview's meeting link.
       </RowIntro>
       <div className="setting__body setting__body--center">
+        <label className="checkbox">
+          <input type="checkbox" checked={linked} onChange={(e) => setLinked(e.target.checked)} />
+          Include links between records (format version 2). It shows which interview, story or note each record
+          points to; it can't be restored yet, so keep a standard download for that.
+        </label>
         <div className="setting__actions">
           <Button onClick={() => void download()} loading={form.busy}><Icon name="download" size={16} />Download my data</Button>
           {form.done && <Status>{form.done}</Status>}

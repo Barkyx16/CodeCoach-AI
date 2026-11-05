@@ -148,6 +148,26 @@ describe("Settings", () => {
     expect(JSON.parse(await created[0]!.text())).toEqual({ export_version: 1, submissions: [] });
   });
 
+  it("downloads version 2 (with links between records) only when chosen, and says it can't be restored", async () => {
+    const asked: string[] = [];
+    server.use(http.get(`${API}/api/v1/me/export`, ({ request }) => {
+      asked.push(new URL(request.url).search);
+      return HttpResponse.json({ export_version: new URL(request.url).searchParams.get("version") === "2" ? 2 : 1 });
+    }));
+    URL.createObjectURL = vi.fn(() => "blob:x");
+    URL.revokeObjectURL = vi.fn();
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    const { user } = renderApp("/settings", { signedIn: true });
+    const option = await screen.findByRole("checkbox", { name: /Include links between records/ });
+    expect(option).not.toBeChecked(); // version 1 by default
+    expect(option.closest("label")).toHaveTextContent("it can't be restored yet");
+    expect(screen.getByText(/It includes private details you keep out of printouts/)).toBeInTheDocument();
+    await user.click(option);
+    await user.click(screen.getByRole("button", { name: "Download my data" }));
+    expect(await screen.findByText("Downloaded codecoach-data-v2.json")).toBeInTheDocument();
+    expect(asked).toEqual(["?version=2"]);
+  });
+
   it("explains what is sent to the AI", async () => {
     renderApp("/settings", { signedIn: true });
     expect(await screen.findByText(/never the prompt that contained your code/)).toBeInTheDocument();

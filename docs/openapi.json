@@ -13956,6 +13956,27 @@
         ],
         "summary": "Download all of your data as JSON",
         "operationId": "export_api_v1_me_export_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 2,
+              "minimum": 1,
+              "description": "1 (default; what restore reads) or 2: the same data plus record ids and typed links between records (applications, events, targets, stories, notes, schedule entries, kits, reflections and their steps). Version 2 can't be restored yet.",
+              "default": 1,
+              "title": "Version"
+            },
+            "description": "1 (default; what restore reads) or 2: the same data plus record ids and typed links between records (applications, events, targets, stories, notes, schedule entries, kits, reflections and their steps). Version 2 can't be restored yet."
+          }
+        ],
         "responses": {
           "200": {
             "description": "A JSON document with your profile, submissions, AI feedback, interviews and activity",
@@ -13974,13 +13995,18 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/me/activity": {

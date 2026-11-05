@@ -343,14 +343,18 @@ class Applications:
         self.db.commit()
         return self.get(a.id)
 
-    def export(self) -> list[dict]:
+    def export(self, *, with_ids: bool = False) -> list[dict]:
+        """Every application with its events and stage history. With `with_ids` (export version 2)
+        each application and event also carries its id, so other records can point to it."""
         rows = self.db.scalars(
             select(Application)
             .where(Application.user_id == self.user.id)
             .options(selectinload(Application.events), selectinload(Application.history))
+            .order_by(Application.created_at, Application.id)
         ).all()
         return [
             {
+                **({"id": a.id} if with_ids else {}),
                 "employer": a.employer,
                 "role_title": a.role_title,
                 "link": a.link,
@@ -364,6 +368,7 @@ class Applications:
                 "archived": a.archived,
                 "events": [
                     {
+                        **({"id": e.id} if with_ids else {}),
                         "kind": e.kind,
                         "title": e.title,
                         "date": e.on_date.isoformat() if e.on_date else None,
@@ -372,7 +377,7 @@ class Applications:
                         "starts_at": e.starts_at.isoformat() if e.starts_at else None,
                         "notes": e.notes,
                     }
-                    for e in a.events
+                    for e in sorted(a.events, key=lambda e: (_utc(e.created_at), e.id))
                 ],
                 "stage_history": [
                     {

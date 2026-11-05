@@ -227,6 +227,13 @@ class Restore:
                 "This doesn't look like a CodeCoach backup: it has no export_version.", code="not_a_backup"
             )
         version = data["export_version"]
+        if version == 2:  # checked before anything is read or written: nothing is partly restored
+            raise AppError(
+                "This is a version 2 export (with links between records). Restoring version 2 isn't "
+                "supported yet; nothing was changed. Download a version 1 export to restore.",
+                code="unsupported_version",
+                details={"supported": list(SUPPORTED_VERSIONS)},
+            )
         if version not in SUPPORTED_VERSIONS:
             raise AppError(
                 f"Backups of version {version!r} can't be read; this version of CodeCoach reads version 1.",
