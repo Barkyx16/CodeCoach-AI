@@ -51,6 +51,8 @@ describe("Tries at one question", () => {
     expect(compareTries(first, otherCoach)).toMatchObject({ comparable: false, reasons: [expect.stringContaining("different coaches")] });
     const tooShort = { ...first, evidence_level: "insufficient" as const };
     expect(compareTries(tooShort, second)).toMatchObject({ comparable: false, reasons: ["one of them was too short to score"] });
+    const unrecorded = { ...first, evidence_level: "unknown" as const };
+    expect(compareTries(unrecorded, second)).toMatchObject({ comparable: false, reasons: ["how one of them was graded wasn't recorded"] });
   });
 
   it("aims a revision at the first point not covered, in the rubric's order", () => {

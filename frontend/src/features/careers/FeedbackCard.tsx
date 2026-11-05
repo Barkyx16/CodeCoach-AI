@@ -39,6 +39,8 @@ export function FeedbackCard({ answer, title = "Feedback", headingId = "feedback
 }) {
   const tone = answer.score >= 85 ? "success" : answer.score >= 65 ? "info" : "warning";
   const insufficient = answer.evidence_level === "insufficient";
+  // Stored without its evidence level or word count: whether it could be scored isn't known.
+  const unrecorded = answer.evidence_level === "unknown";
   const uid = useId();
   const answerId = `${uid}-answer`;
   const markId = `${uid}-quote`;
@@ -71,6 +73,10 @@ export function FeedbackCard({ answer, title = "Feedback", headingId = "feedback
           <div className="score-pill score-pill--neutral" aria-label="Not enough to score yet">
             <strong aria-hidden="true">—</strong><span>Not enough to score</span>
           </div>
+        ) : unrecorded ? (
+          <div className="score-pill score-pill--neutral" aria-label={`Graded ${answer.score} out of 100; how it was graded wasn't recorded, so it isn't counted`}>
+            <strong aria-hidden="true">{answer.score}</strong><span>Not counted</span>
+          </div>
         ) : (
           <div className={`score-pill score-pill--${tone}`} aria-label={`Score ${answer.score} out of 100, ${answer.rating}`}>
             <strong>{answer.score}</strong><span>{answer.rating}</span>
@@ -80,6 +86,11 @@ export function FeedbackCard({ answer, title = "Feedback", headingId = "feedback
       <FeedbackKind kind="structure" />
       {answer.evaluation_note && (
         <p className={answer.evaluation_status === "measured" ? "subtle" : "banner banner--info"}>{answer.evaluation_note}</p>
+      )}
+      {unrecorded && (
+        <p className="banner banner--info" role="note">
+          How this answer was graded wasn't recorded, so its score isn't counted in your best scores or averages.
+        </p>
       )}
       {changed && (
         <p className="banner banner--info" role="note">

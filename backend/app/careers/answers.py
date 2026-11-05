@@ -7,7 +7,8 @@ import hmac
 import json
 
 from app.careers import evidence, grading
-from app.careers.grading import MIN_WORDS, Feedback, grade
+from app.careers.eligibility import feedback_eligibility
+from app.careers.grading import Feedback, grade
 from app.careers.questions import Question
 from app.careers.support import evaluation_for, scope_note
 from app.models import PracticeAnswer
@@ -119,6 +120,15 @@ def feedback_points(answer: str, stored: list[dict]) -> list[FeedbackPoint]:
     return out
 
 
+_LEVEL = {"scored": "sufficient", "too_short": "insufficient", "unknown": "unknown"}
+
+
+def _evidence_level(fb: dict) -> str:
+    """The stored level; older answers didn't store it, and their recorded word count says it. One
+    rule with the summaries (app/careers/eligibility.py): with neither recorded it's unknown."""
+    return _LEVEL[feedback_eligibility(fb)]
+
+
 def answer_out(row: PracticeAnswer) -> AnswerOut:
     fb = row.feedback
     return AnswerOut(
@@ -130,12 +140,12 @@ def answer_out(row: PracticeAnswer) -> AnswerOut:
         summary=fb["summary"],
         points=feedback_points(row.answer, fb["points"]),
         rubric_version=rubric_version_of(fb),
-        # Older answers didn't store this; their word count says it.
-        evidence_level=fb.get("evidence_level")
-        or ("insufficient" if fb["word_count"] < MIN_WORDS else "sufficient"),
+        evidence_level=_evidence_level(fb),
         notes=fb["notes"],
         outline=fb["outline"],
-        word_count=fb["word_count"],
+        # Not recorded (only in an "unknown" answer): counted from the stored text, as a fact about
+        # the text, never used to decide whether the answer could be scored.
+        word_count=fb["word_count"] if fb.get("word_count") is not None else len(row.answer.split()),
         coach=row.provider,
         created_at=row.created_at,
         content_version=row.content_version or 1,

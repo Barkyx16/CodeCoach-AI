@@ -121,8 +121,13 @@ class AnswerOut(APIModel):
     content_version: int = Field(default=1, description="The question's version when this was answered")
     story_id: str | None = Field(default=None, description="The story this answer rehearsed, if any")
     rubric_version: str = Field(default="v1", description="The rubric the coach used")
-    evidence_level: Literal["sufficient", "insufficient"] = Field(
-        default="sufficient", description="insufficient: too short to evaluate, so no score should be shown"
+    evidence_level: Literal["sufficient", "insufficient", "unknown"] = Field(
+        default="sufficient",
+        description=(
+            "insufficient: too short to evaluate, so no score should be shown. unknown: an answer stored "
+            "without either its evidence level or its word count, so whether it could be scored isn't "
+            "known; its score counts nowhere (app/careers/eligibility.py)"
+        ),
     )
     track: str | None = Field(default=None, description="The career this answer was written for")
     evaluation_status: Literal["measured", "not_measured"] = Field(

@@ -44,6 +44,9 @@ export function compareTries(before: InterviewAnswer, after: InterviewAnswer): C
   if (before.evidence_level === "insufficient" || after.evidence_level === "insufficient") {
     reasons.push("one of them was too short to score");
   }
+  if (before.evidence_level === "unknown" || after.evidence_level === "unknown") {
+    reasons.push("how one of them was graded wasn't recorded");
+  }
   if (reasons.length) return { comparable: false, reasons };
   const had = new Set(before.points.filter((p) => p.covered).map((p) => p.label));
   const has = new Set(after.points.filter((p) => p.covered).map((p) => p.label));

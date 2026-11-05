@@ -212,3 +212,18 @@ def test_a_question_answered_only_too_briefly_has_no_score_anywhere_else_either(
     plan = client.get("/api/v1/me/plan", headers=h, params={"track": TRACK}).json()
     # The only answer was too short to score, so no "best score is N/100" may appear anywhere.
     assert re.search(r"best score (here )?is \d+/100", repr(plan)) is None
+
+
+def test_an_answer_with_nothing_recorded_is_listed_as_unknown_not_an_error(client, learner):
+    """Release Readiness brief 02/11: such a row made the whole answer list fail (KeyError on
+    word_count); now it's listed with evidence_level "unknown", like the summaries say."""
+    r = client.get(_url(_qid(4)), headers=learner)
+    assert r.status_code == 200
+    [row] = r.json()
+    assert row["evidence_level"] == "unknown" and row["score"] == 50
+    assert row["word_count"] == 1  # "(legacy)": counted from the stored text, a fact, not a decision
+    assert _summaries(client, learner)[_qid(4)]["score_status"] == "unknown"
+    # the legacy short one (a recorded count under 40) is too short, as the summaries say
+    assert [a["evidence_level"] for a in client.get(_url(_qid(3)), headers=learner).json()] == [
+        "insufficient"
+    ]

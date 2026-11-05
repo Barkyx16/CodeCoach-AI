@@ -1,7 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
-import { nurseQuestions, tokenResponse, user as baseUser } from "../fixtures";
+import { nurseAnswer, nurseQuestions, tokenResponse, user as baseUser } from "../fixtures";
 import { renderApp } from "../render";
 import { API, server } from "../server";
 
@@ -44,5 +44,19 @@ describe("A question answered only too briefly", () => {
     renderApp(`/careers/registered-nurse/questions/${tooShort.id}`, { signedIn: true });
     expect(await screen.findByText("Answered, too short to score")).toBeInTheDocument();
     expect(screen.queryByText(/Best score/)).not.toBeInTheDocument();
+  });
+
+  it("lists an answer whose grading wasn't recorded as not counted, and won't compare it", async () => {
+    // Release Readiness brief 02: the server says evidence_level "unknown" for such a row.
+    asNurse();
+    withQuestions();
+    server.use(http.get(`${API}/api/v1/careers/:track/questions/:id/answers`, () => HttpResponse.json([
+      { ...nurseAnswer, id: "u1", question_id: tooShort.id, score: 50, evidence_level: "unknown", created_at: "2026-11-01T09:00:00Z" },
+    ])));
+    const { user } = renderApp(`/careers/registered-nurse/questions/${tooShort.id}`, { signedIn: true });
+    const entry = await screen.findByRole("button", { name: /not counted \(how it was graded wasn't recorded\)/ });
+    await user.click(entry);
+    expect(await screen.findByText(/its score isn't counted in your best scores or averages/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/how it was graded wasn't recorded, so it isn't counted/)).toBeInTheDocument();
   });
 });

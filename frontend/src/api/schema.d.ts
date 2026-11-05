@@ -3264,11 +3264,11 @@ export interface components {
             rubric_version: string;
             /**
              * Evidence Level
-             * @description insufficient: too short to evaluate, so no score should be shown
+             * @description insufficient: too short to evaluate, so no score should be shown. unknown: an answer stored without either its evidence level or its word count, so whether it could be scored isn't known; its score counts nowhere (app/careers/eligibility.py)
              * @default sufficient
              * @enum {string}
              */
-            evidence_level: "sufficient" | "insufficient";
+            evidence_level: "sufficient" | "insufficient" | "unknown";
             /**
              * Track
              * @description The career this answer was written for

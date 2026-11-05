@@ -380,7 +380,7 @@ function QuestionPageFor() {
                       aria-pressed={shown?.id === a.id}>
                       <span>{numbers?.get(a.id) ? `Try ${numbers.get(a.id)}${numbers.get(a.id) === 1 ? " (first)" : ""}` : timeAgo(a.created_at)}</span>
                       <span className="subtle">
-                        {a.evidence_level === "insufficient" ? "Too short to score" : `${a.score}/100 · ${a.rating}`}
+                        {a.evidence_level === "insufficient" ? "Too short to score" : a.evidence_level === "unknown" ? `${a.score}/100, not counted (how it was graded wasn't recorded)` : `${a.score}/100 · ${a.rating}`}
                         {numbers ? ` · ${timeAgo(a.created_at)}` : ""}
                         {rubrics.size > 1 ? ` · rubric ${a.rubric_version}` : ""}
                         {a.revises_answer_id ? ` · revised from ${numbers?.get(a.revises_answer_id) ? `try ${numbers.get(a.revises_answer_id)}` : "an earlier answer"}` : ""}

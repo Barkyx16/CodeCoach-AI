@@ -16909,10 +16909,11 @@
             "type": "string",
             "enum": [
               "sufficient",
-              "insufficient"
+              "insufficient",
+              "unknown"
             ],
             "title": "Evidence Level",
-            "description": "insufficient: too short to evaluate, so no score should be shown",
+            "description": "insufficient: too short to evaluate, so no score should be shown. unknown: an answer stored without either its evidence level or its word count, so whether it could be scored isn't known; its score counts nowhere (app/careers/eligibility.py)",
             "default": "sufficient"
           },
           "track": {

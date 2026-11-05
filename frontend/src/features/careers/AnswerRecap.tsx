@@ -55,7 +55,9 @@ export function AnswerRecap({ answer, tryNo, previous, previousNo, previousIsPar
 
   const outcome = insufficient
     ? `${which[0]!.toUpperCase()}${which.slice(1)} was too short to score yet (${answer.word_count} ${answer.word_count === 1 ? "word" : "words"}).`
-    : target
+    : answer.evidence_level === "unknown"
+      ? `How ${which} was graded wasn't recorded, so its score isn't counted.`
+      : target
       ? `${which[0]!.toUpperCase()}${which.slice(1)} covered ${covered} of ${total} points the rubric looks for. To add: “${target.label}”.`
       : `${which[0]!.toUpperCase()}${which.slice(1)} covered all ${total} points the rubric looks for.`;
 
