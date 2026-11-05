@@ -149,14 +149,15 @@ On the working tree of this document's first commit (local, PostgreSQL 16 and Ch
 | New backend tests fail on the previous code | 14 of 14 failed with the service and schema files stashed, then passed restored |
 | Kit, reflection, application, schedule, notes, platform and OpenAPI tests on PostgreSQL (`TEST_DATABASE_URL=…/codecoach_test`) | 71 passed, including both kit races |
 | Same files on SQLite | pass |
-| Full backend suite on SQLite | pending at commit time; see the progress log |
+| Full backend suite on SQLite (`ruff`, `mypy app evals`, `pytest`) | 2270 passed, 386 skipped, 2 xfailed (known rubric residuals); lint, format and types clean |
 | API compatibility (`scripts/api_compat.py --strict`) | 0 breaking, 9 compatible additions |
 | Migration rehearsal (disposable PostgreSQL) | pass (see above) |
 | Frontend type check, lint | pass |
 | Frontend unit and integration (`npx vitest run`) | 684 passed, 70 files; 11 new (kit 5, reflection 5, board 1) |
 | Production build and bundle budgets | pass; shell 298.2 KB / 300 KB, largest lazy chunk 674.5 KB / 700 KB |
 | End-to-end: `kit-pdf.spec.ts` (new) and `kit.spec.ts` | 3 passed |
-| End-to-end, full suite | pending at commit time; see the progress log |
+| End-to-end, full suite (`npx playwright test`, nothing else running) | 93 passed, 3 skipped, 0 failed (13.1 min) |
+| `explore.spec.ts` scroll flake (see below) | reproduced 1 in 8 under CPU load before the fix; 12 of 12 restored after it; explore and notes specs pass |
 | PDF text inspection (`pypdf`, local) | 4 of 4 files pass (below) |
 | Print rule before and after (Chromium) | old rule blanks other pages; new rule doesn't |
 
@@ -177,6 +178,22 @@ New tests:
   note; discard after conflict; revise a linked story.
 - `frontend/src/test/integration/applications.test.tsx`: the board's "Prepare" link.
 - `frontend/e2e/kit-pdf.spec.ts`: the real PDFs.
+
+### A flaky end-to-end test, fixed at the cause
+
+`explore.spec.ts` ("Back keeps the filters and scroll, even after a reload") failed in CI on
+`1809217` and once locally under load, and passed when run alone.
+
+- **Cause:** `useScrollMemory` saved positions from scroll events, and its listener was removed in
+  a passive effect. When the next page's scroll-to-top was dispatched before that effect ran, the
+  list's saved position became 0, so Back had nothing to restore.
+- **Diagnosis:** a temporary diagnostic copy of the test logged the saved value per history entry.
+  It was 0 in the failing run and 1467 in the passing ones.
+- **Fix (`src/hooks/useScrollMemory.ts`):**
+  - The listener lives in a layout effect.
+  - The exact position is saved when the entry is left.
+  - Scroll events are ignored while a Back/Forward visit is still waiting to restore.
+- The test itself is unchanged.
 
 ## PDF inspection (brief 08)
 
@@ -218,3 +235,23 @@ browsers (WebKit and Firefox aren't installed here).
 - **The app shell is 298.2 KB gzip of a 300 KB budget.**
 - **Browser coverage:** Chromium only, with no screen reader or phone. History state carries paths
   and generic labels only; nothing private goes in URLs.
+
+## Next action and resume
+
+**Highest-priority remaining issue:** the account export can't be joined back together. Records
+in it carry no ids, so kits, reflections and accepted steps point at nothing in the file. Next
+action: decide whether to add ids under a new export format version. That's the product decision
+needed; the code change is additive.
+
+**Then:**
+- Prep slots that now fall after their interview.
+- Story versions in reflections.
+- Storing `fold` for events at an ambiguous time.
+
+**Resume prompt.** Read `docs/INTERVIEW_WORKFLOW.md` and the commit history on
+`claude/gallant-galileo-hapob6`, then:
+- Verify the branch, HEAD and a clean worktree.
+- Check CI for the latest pushed SHA job by job.
+- Keep the design files and unrelated edits as they are.
+- Pick up the first open item under "Limits and open decisions" that needs no product decision.
+- Don't re-run checks that passed unless the code they cover has changed.

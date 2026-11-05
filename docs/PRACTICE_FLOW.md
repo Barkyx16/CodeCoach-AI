@@ -126,8 +126,8 @@ Local, on the working tree of `1809217` (this document's first commit):
 | Backend roadmap tests (`pytest tests/test_roadmap.py`) | pass, including 5 new tests; the two evidence tests fail on the previous code |
 | Full backend suite, SQLite (`pytest`) | 2257 passed, 386 skipped, 2 xfailed (the two known rubric residuals) |
 | Full backend suite, PostgreSQL 16 (`TEST_DATABASE_URL=…/codecoach_test pytest`) | 2258 passed, 1 failed, 384 skipped, 2 xfailed. The failure was `test_the_code_knows_its_own_migration_head`, because the next pack's migration was added to the working tree while this run was going; the pinned head was updated with that migration |
-| End-to-end (Playwright, Chromium, real backend on SQLite) | 91 passed, 3 skipped, 1 failed: `explore.spec.ts` scroll restoration after reload, while the PostgreSQL suite was loading the machine. Re-run alone: 2/2 passed. Treated as a load flake, not a regression (no changed code is on that page) |
-| CI on `1809217` | Frontend, backend (SQLite + PostgreSQL + migrations), runner, Docker and dependency audit passed; end-to-end and sandbox were still running when this was written (see the interview workflow handoff) |
+| End-to-end (Playwright, Chromium, real backend on SQLite) | 91 passed, 3 skipped, 1 failed: `explore.spec.ts` scroll restoration after reload, while the PostgreSQL suite was loading the machine. Re-run alone: 2/2 passed. Not just load: it also failed in CI. A timing race in `useScrollMemory`, fixed in the next pack (see `INTERVIEW_WORKFLOW.md`) |
+| CI on `1809217` (run 201) | Frontend, backend (SQLite + PostgreSQL + migrations), runner, Docker, dependency audit and sandbox passed. End-to-end failed: the same `explore.spec.ts` scroll test, a timing race in `useScrollMemory`, root-caused and fixed in the next pack (see `INTERVIEW_WORKFLOW.md`) |
 
 New tests:
 
