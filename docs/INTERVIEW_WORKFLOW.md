@@ -179,6 +179,18 @@ New tests:
 - `frontend/src/test/integration/applications.test.tsx`: the board's "Prepare" link.
 - `frontend/e2e/kit-pdf.spec.ts`: the real PDFs.
 
+**CI on `4f47e29`** (push run 205; the pull-request run 206 also succeeded): all 7 jobs passed.
+- Backend: lint, types, SQLite and PostgreSQL tests, migrations apply and match the models
+  (including `a1b2c3d4e5f6`), reference solutions, content gates.
+- Frontend: lint, types, unit tests, build, API contract, bundle budgets.
+- Runner, Docker images and dependency audit.
+- Sandbox: gVisor, real judge, judge end-to-end.
+- End-to-end: Playwright on the real backend, including `kit-pdf.spec.ts` and the previously
+  flaky `explore.spec.ts`.
+
+The code is unchanged after that commit (later commits are documentation). Nothing was deployed
+or migrated outside disposable databases, and no pull request was changed.
+
 ### A flaky end-to-end test, fixed at the cause
 
 `explore.spec.ts` ("Back keeps the filters and scroll, even after a reload") failed in CI on
