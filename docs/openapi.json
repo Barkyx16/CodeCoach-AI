@@ -36,7 +36,7 @@
           "health"
         ],
         "summary": "Readiness probe (checks the database and its schema)",
-        "description": "Ready when the database answers and its schema isn't older than this code needs. Names no\nrevision: only whether the schema is current, behind, newer or unmanaged.",
+        "description": "Ready when the database answers and its schema isn't older than this code needs. Names no\nrevision: only whether the schema is current, behind, newer or unmanaged. Opens its own session\n(not the request dependency, which reads content state first), so an unreachable database is a\n503 here, not an error before this check runs.",
         "operationId": "ready_health_ready_get",
         "responses": {
           "200": {

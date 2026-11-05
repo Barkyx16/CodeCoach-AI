@@ -34,7 +34,9 @@ export interface paths {
         /**
          * Readiness probe (checks the database and its schema)
          * @description Ready when the database answers and its schema isn't older than this code needs. Names no
-         *     revision: only whether the schema is current, behind, newer or unmanaged.
+         *     revision: only whether the schema is current, behind, newer or unmanaged. Opens its own session
+         *     (not the request dependency, which reads content state first), so an unreachable database is a
+         *     503 here, not an error before this check runs.
          */
         get: operations["ready_health_ready_get"];
         put?: never;
