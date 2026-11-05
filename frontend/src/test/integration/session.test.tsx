@@ -151,6 +151,10 @@ describe("Cookie-backed sessions", () => {
     await user.type(screen.getByLabelText("Password"), "CorrectHorse42");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
     await screen.findByRole("link", { name: "Bea, account settings" });
+    // Bea's own dashboard asks for her progress; wait for that request before the snapshot, so any
+    // request with her token after the release can only be Ada's being sent again (CI run 171 hit
+    // this race: Bea's own request landed just after the snapshot).
+    await waitFor(() => expect(authHeaders).toContain("Bearer bea-token"));
     const beforeRelease = authHeaders.length;
     release();
     await waitFor(() => expect(staleIgnored()).toBe(true));

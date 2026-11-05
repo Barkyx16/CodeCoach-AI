@@ -1049,3 +1049,17 @@ point.
 2. Check the branch, HEAD and worktree.
 3. Check CI for the final SHA job by job.
 4. Re-run only checks affected by a new change.
+
+**CI on `393131e`: run 171.**
+
+- Backend SQLite tests passed. Runner, Docker images and dependency audit passed.
+- Frontend unit tests **failed on one test**: `session.test.tsx`, "a request sent for one
+  account is never retried for the account that signed in next". The frontend code was
+  unchanged since `9842193`, whose frontend job passed.
+- The cause is a race in the test. Bea's own dashboard request for `/me/progress` (with her
+  token) can land just after the snapshot the test compares against, and the header assertion
+  can't tell it from Ada's request being sent again. The precise checks (no retry recorded, no
+  refresh after the switch) were unaffected.
+- Fix: wait for Bea's own request before the snapshot, so a later request with her token can
+  only be a resend. Then 8/8 repeated runs and the full suite (646) passed.
+- That fix is the next commit. CI on it is reported with the session's final message.
