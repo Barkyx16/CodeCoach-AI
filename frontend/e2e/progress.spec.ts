@@ -102,7 +102,10 @@ test("non-coding: answer, find it in History, inspect Analytics, switch careers 
   await filters(page).getByRole("combobox", { name: /^Career/ }).selectOption("registered-nurse");
   await filters(page).getByLabel("Activity").selectOption("written_answer");
   const row = page.locator(".activity-list").getByRole("listitem").first();
-  await expect(row).toContainText(/Scored \d+\/100/);
+  // The answer above is 17 words: it's listed, as too short to score, never with its capped number
+  // (Durable Saves brief 07/08).
+  await expect(row).toContainText(/Too short to score \(17 words\)/);
+  await expect(row).not.toContainText(/Scored \d+\/100/);
   await row.getByRole("link").click();
   await expect(page).toHaveURL(new RegExp(`${new URL(questionUrl).pathname}\\?answer=`));
   await expect(page.getByRole("region", { name: /Feedback on try 1 from/ })).toBeVisible();
@@ -120,7 +123,7 @@ test("non-coding: answer, find it in History, inspect Analytics, switch careers 
   await careerForm.getByRole("button", { name: "Save career" }).click();
   await expect(careerForm.getByText(/Saved/)).toBeVisible();
   await page.goto("/history?career=registered-nurse");
-  await expect(page.locator(".activity-list").getByRole("listitem").first()).toContainText(/Scored \d+\/100/);
+  await expect(page.locator(".activity-list").getByRole("listitem").first()).toContainText(/Too short to score \(17 words\)/);
   await page.goto("/analytics");
   const scope = page.getByRole("group", { name: "Analytics scope" }).getByLabel("Career");
   await expect(scope).toHaveValue("barista");
