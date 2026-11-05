@@ -27,6 +27,12 @@ command -v node >/dev/null 2>&1 || stop "Node.js wasn't found (version 20 or new
 [ "$(node -p 'process.versions.node.split(".")[0]')" -ge 20 ] || stop "Node.js $(node --version) is too old: 20 or newer is needed.$mac_hint"
 
 # --- first-run setup -----------------------------------------------------------------------
+# An environment made earlier with an older Python (e.g. the Mac's built-in python3) can't install
+# the packages: replace it.
+if [ -e backend/.venv ] && ! backend/.venv/bin/python -c 'import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)' 2>/dev/null; then
+  say "backend/.venv was made with $(backend/.venv/bin/python --version 2>&1 || echo 'another Python'), too old: making it again with $($PY --version)..."
+  rm -rf backend/.venv
+fi
 if [ ! -x backend/.venv/bin/python ]; then
   say "Creating the Python environment (backend/.venv) with $($PY --version)..."
   "$PY" -m venv backend/.venv
