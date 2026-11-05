@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { chooseJob, expect, test, type Page } from "./fixtures";
+import { navTo, chooseJob, expect, test, type Page } from "./fixtures";
 
 async function signUpNurse(page: Page, tag: string) {
   await page.goto("/register");
@@ -82,7 +82,7 @@ test("bookmarks, a collection practiced as a queue, and a second account that se
   await expect(save2.getByText("Added to “Week 1”.")).toBeVisible();
 
   // Reorder, and the order survives a reload.
-  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Saved" }).click();
+  await navTo(page, "Saved");
   await page.getByRole("link", { name: "Week 1" }).click();
   const items = page.getByRole("list", { name: "Items in order" }).getByRole("listitem");
   await expect(items).toHaveCount(2);

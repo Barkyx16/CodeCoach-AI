@@ -128,14 +128,14 @@ describe("Notebook", () => {
       makeNote({ title: "Two pointers", body: "sorted arrays", tags: ["arrays"], pinned: true }),
     );
     const { user, router } = renderApp("/notes", { signedIn: true });
-    const list = await screen.findByRole("list");
+    const list = await within(await screen.findByRole("main")).findByRole("list");
     expect(within(list).getAllByRole("listitem")[0]).toHaveTextContent("Two pointers");
     await user.type(screen.getByRole("searchbox", { name: "Search notes" }), "abcs");
-    await waitFor(() => expect(screen.getAllByRole("listitem")).toHaveLength(1));
+    await waitFor(() => expect(within(screen.getByRole("main")).getAllByRole("listitem")).toHaveLength(1));
     expect(router.state.location.search).toContain("q=abcs");
     await user.clear(screen.getByRole("searchbox", { name: "Search notes" }));
     await user.selectOptions(await screen.findByLabelText("Tag"), "arrays");
-    await waitFor(() => expect(screen.getAllByRole("listitem")).toHaveLength(1));
+    await waitFor(() => expect(within(screen.getByRole("main")).getAllByRole("listitem")).toHaveLength(1));
     await user.click(screen.getByRole("link", { name: "Two pointers" }));
     await user.click(await screen.findByRole("button", { name: "Delete" }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/notes"));

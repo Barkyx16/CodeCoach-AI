@@ -11,7 +11,7 @@ const asNurse = () => server.use(http.post(`${API}/api/v1/auth/refresh`, () => H
 describe("Unified History", () => {
   it("shows every career's activity with honest statuses and filters kept in the URL", async () => {
     const { user, router } = renderApp("/history", { signedIn: true });
-    const list = await screen.findByRole("list");
+    const list = await within(await screen.findByRole("main")).findByRole("list");
     expect(within(list).getAllByRole("listitem")).toHaveLength(3);
     expect(screen.getByText("Scored 92/100 (Strong)")).toBeInTheDocument();
     expect(screen.getByText(/Saved, not judged \(the code judge isn't available/)).toBeInTheDocument();
@@ -23,7 +23,7 @@ describe("Unified History", () => {
     await screen.findByRole("option", { name: "Registered Nurse (2)" });
     await user.selectOptions(screen.getByLabelText("Career"), "registered-nurse");
     expect(router.state.location.search).toBe("?career=registered-nurse");
-    await waitFor(() => expect(within(screen.getByRole("list")).getAllByRole("listitem")).toHaveLength(2));
+    await waitFor(() => expect(within(within(screen.getByRole("main")).getByRole("list")).getAllByRole("listitem")).toHaveLength(2));
     expect(screen.getByLabelText("Skill")).toBeEnabled();
     await user.selectOptions(screen.getByLabelText("Activity"), "interview");
     expect(router.state.location.search).toBe("?career=registered-nurse&type=interview");

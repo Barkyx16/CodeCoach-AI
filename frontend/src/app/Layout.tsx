@@ -10,6 +10,8 @@ import { countLocalWork } from "@/auth/localWork";
 import { AppStatus } from "./AppStatus";
 import { Reminders } from "@/features/schedule/Reminders";
 import { TourFinishReconciler } from "@/features/onboarding/TourFinishReconciler";
+import { MainNav, type NavGroup } from "./MainNav";
+import { NAV_ICONS } from "./navIcons";
 import { RouteAccessibility } from "./RouteAccessibility";
 
 export function Layout() {
@@ -49,6 +51,51 @@ export function Layout() {
     };
   }, [focusOn, focusMode]);
   const navClass = ({ isActive }: { isActive: boolean }) => `nav__link${isActive ? " nav__link--active" : ""}`;
+  const navGroups = useMemo<NavGroup[]>(() => {
+    const signedIn = isAuthenticated;
+    const practice: NavGroup = {
+      id: "practice", label: "Practice",
+      blurb: "Answer real interview questions for your job, one at a time or as a full mock interview.",
+      items: [
+        { to: "/problems", title: "Questions", description: "Every question for your job, by difficulty", icon: NAV_ICONS.questions },
+        ...(signedIn ? [{ to: "/interviews", title: "Mock interview", description: "Questions in a row, like the real thing", icon: NAV_ICONS.interview }] : []),
+        { to: "/learn", title: "Lessons", description: "Short lessons with guided help", icon: NAV_ICONS.lessons },
+        ...(signedIn ? [
+          { to: "/drills", title: "Drills", description: "Quick exercises in how you say it", icon: NAV_ICONS.drills },
+          { to: "/scenarios", title: "Scenarios", description: "Choose what to do and see what follows", icon: NAV_ICONS.scenarios },
+        ] : []),
+      ],
+    };
+    if (!signedIn) return [practice];
+    return [
+      practice,
+      {
+        id: "progress", label: "Progress", blurb: "See what you've done, how it's going and where to focus next.",
+        items: [
+          { to: "/dashboard", title: "Dashboard", description: "Today's plan and where you stand", icon: NAV_ICONS.dashboard },
+          { to: "/analytics", title: "Analytics", description: "Scores and trends over time", icon: NAV_ICONS.analytics },
+          { to: "/history", title: "History", description: "Every answer and round, with feedback", icon: NAV_ICONS.history },
+        ],
+      },
+      {
+        id: "job-search", label: "Job search", blurb: "The roles you're after, where you've applied and when you're interviewing.",
+        items: [
+          { to: "/targets", title: "Roles", description: "Target roles and what each one asks for", icon: NAV_ICONS.roles },
+          { to: "/applications", title: "Applications", description: "Track where you've applied", icon: NAV_ICONS.applications },
+          { to: "/schedule", title: "Schedule", description: "Interviews and practice on your calendar", icon: NAV_ICONS.schedule },
+        ],
+      },
+      {
+        id: "library", label: "Library", blurb: "Everything you've written down and kept for later.",
+        items: [
+          { to: "/stories", title: "Stories", description: "Your examples, ready for any question", icon: NAV_ICONS.stories },
+          { to: "/notes", title: "Notes", description: "What you've noted while practising", icon: NAV_ICONS.notes },
+          { to: "/saved", title: "Saved", description: "Bookmarks and collections", icon: NAV_ICONS.saved },
+          ...(user?.is_admin ? [{ to: "/admin/reports", title: "Triage", description: "Reports about questions", icon: NAV_ICONS.triage }] : []),
+        ],
+      },
+    ];
+  }, [isAuthenticated, user?.is_admin]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -96,21 +143,7 @@ export function Layout() {
         </button>
         <div id="primary-navigation" className="nav-shell" data-open={menuOpen}
           onClick={(event) => { if ((event.target as HTMLElement).closest("a")) setOpenPath(null); }}>
-        <nav className="nav" aria-label="Main">
-          <NavLink to="/problems" className={navClass}>Practice</NavLink>
-          <NavLink to="/learn" className={navClass}>Learn</NavLink>
-          {isAuthenticated && <NavLink to="/interviews" className={navClass}>Interview</NavLink>}
-          {isAuthenticated && <NavLink to="/dashboard" className={navClass}>Dashboard</NavLink>}
-          {isAuthenticated && <NavLink to="/targets" className={navClass}>Roles</NavLink>}
-          {isAuthenticated && <NavLink to="/stories" className={navClass}>Stories</NavLink>}
-          {isAuthenticated && <NavLink to="/applications" className={navClass}>Applications</NavLink>}
-          {isAuthenticated && <NavLink to="/schedule" className={navClass}>Schedule</NavLink>}
-          {isAuthenticated && <NavLink to="/analytics" className={navClass}>Analytics</NavLink>}
-          {isAuthenticated && <NavLink to="/history" className={navClass}>History</NavLink>}
-          {isAuthenticated && <NavLink to="/notes" className={navClass}>Notes</NavLink>}
-          {isAuthenticated && <NavLink to="/saved" className={navClass}>Saved</NavLink>}
-          {user?.is_admin && <NavLink to="/admin/reports" className={navClass}>Triage</NavLink>}
-        </nav>
+        <MainNav groups={navGroups} />
         <div className="header__account">
           <NavLink to="/help" className={navClass}>Help</NavLink>
           {isAuthenticated ? (

@@ -1,4 +1,4 @@
-import { chooseJob, expect, test, type Page } from "./fixtures";
+import { navTo, chooseJob, expect, test, type Page } from "./fixtures";
 
 // The unified progress journey against the real backend: one coding and one non-coding career.
 
@@ -37,7 +37,7 @@ test("coding: activity shows up honestly, and Back returns to the same filtered,
   const resume = page.getByRole("region", { name: "Continue where you left off" });
   await expect(resume).toContainText("Two Sum");
 
-  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "History" }).click();
+  await navTo(page, "History");
   await filters(page).getByRole("combobox", { name: /^Career/ }).selectOption("coding");
   await filters(page).getByLabel("Activity").selectOption("code_submission");
   await expect(page).toHaveURL(/career=coding/);
@@ -64,7 +64,7 @@ test("coding: activity shows up honestly, and Back returns to the same filtered,
   await expect(page).toHaveURL(/type=problem_opened/);
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(before - 50);
 
-  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Analytics" }).click();
+  await navTo(page, "Analytics");
   await expect(page.getByRole("group", { name: "Analytics scope" }).getByLabel("Career")).toHaveValue("coding");
   await expect(page.getByRole("region", { name: "Practice statistics" })).toBeVisible();
 });
@@ -98,7 +98,7 @@ test("non-coding: answer, find it in History, inspect Analytics, switch careers 
   await expect(page.getByRole("region", { name: "Summary" })).toContainText("1");
   await expect(page.getByText(/Acceptance/)).toHaveCount(0);
 
-  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "History" }).click();
+  await navTo(page, "History");
   await filters(page).getByRole("combobox", { name: /^Career/ }).selectOption("registered-nurse");
   await filters(page).getByLabel("Activity").selectOption("written_answer");
   const row = page.locator(".activity-list").getByRole("listitem").first();
@@ -112,7 +112,7 @@ test("non-coding: answer, find it in History, inspect Analytics, switch careers 
   await page.getByRole("link", { name: "Back to History" }).click();
   await expect(page).toHaveURL(/career=registered-nurse&type=written_answer/);
 
-  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Analytics" }).click();
+  await navTo(page, "Analytics");
   await expect(page.getByRole("region", { name: /Registered Nurse summary/ })).toBeVisible();
   await expect(page.getByText(/Acceptance rate/)).toHaveCount(0);
 

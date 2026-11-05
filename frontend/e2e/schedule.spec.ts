@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 
 import AxeBuilder from "@axe-core/playwright";
-import { chooseJob, expect, test, type Page } from "./fixtures";
+import { navTo, chooseJob, expect, test, type Page } from "./fixtures";
 
 // The schedule against the real API, in a browser set to Chicago time: scheduling from a real
 // activity, the daylight-saving choice, overlaps, .ics files, moving, cancelling, a time zone
@@ -45,7 +45,7 @@ async function scheduleFromQuestion(page: Page, qid: string, date: string, time:
 test("schedule real practice, around daylight saving, export it, move it, cancel it", async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
   await signUpNurse(page);
-  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Schedule" }).click();
+  await navTo(page, "Schedule");
   await expect(page.getByText(/uses this device's time zone, America\/Chicago/)).toBeVisible();
 
   // 01:30 on the night the clocks go back happens twice: CodeCoach asks.

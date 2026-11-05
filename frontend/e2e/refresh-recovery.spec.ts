@@ -1,4 +1,4 @@
-import { chooseJob, expect, test, type BrowserContext, type Page, type Route } from "./fixtures";
+import { navTo, chooseJob, expect, test, type BrowserContext, type Page, type Route } from "./fixtures";
 
 // A refresh the server processed but whose answer the browser never got must not sign the user
 // out, and a refresh that answers after a deliberate sign-out must not sign them back in.
@@ -124,7 +124,7 @@ test("another tab finishes a refresh that a closed tab never heard back from", a
   await expireCurrentToken(other);
   const refreshed = other.waitForResponse(REFRESH);
   const listed = other.waitForResponse((r) => new URL(r.url()).pathname === "/api/v1/me/activity" && r.status() === 200);
-  await other.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "History" }).click();
+  await navTo(other, "History");
   expect((await refreshed).status()).toBe(200); // recovered with the closed tab's attempt key
   await listed; // and the turned-down request went through on the retry
   await expect(signOut(other)).toBeVisible();
@@ -166,7 +166,7 @@ test("a refresh that answers after signing out doesn't sign the user back in", a
   }, { times: 1 });
   // An expired access token makes the page refresh in the background.
   await expireCurrentToken(page);
-  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "History" }).click();
+  await navTo(page, "History");
   await processed.promise;
 
   await signOut(page).click();

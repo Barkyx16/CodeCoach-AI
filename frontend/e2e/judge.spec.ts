@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "./fixtures";
+import { navTo, expect, test, type Page } from "./fixtures";
 
 // Real judging: browser → API → worker → runner → Docker + gVisor. Run with E2E_JUDGE=1.
 test.skip(process.env.E2E_JUDGE !== "1", "set E2E_JUDGE=1 (needs Docker + gVisor + sandbox image)");
@@ -74,7 +74,7 @@ test("submissions are judged in the gVisor sandbox", async ({ page, context }) =
   await page.screenshot({ path: "e2e/screenshots/08-judged-pass.png" });
 
   // Solving shows up on the dashboard.
-  await page.getByRole("link", { name: "Dashboard" }).click();
+  await navTo(page, "Dashboard");
   const summary = page.getByRole("region", { name: "Summary" });
   await expect(summary.getByText("Solved")).toBeVisible();
   await expect(summary.getByText("1", { exact: true }).first()).toBeVisible();

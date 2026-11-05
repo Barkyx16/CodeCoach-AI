@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { chooseJob, expect, test, type Page } from "./fixtures";
+import { navTo, chooseJob, expect, test, type Page } from "./fixtures";
 
 const JD = `Registered Nurse - Emergency Department
 Mercy General is hiring an RN for our fast-paced ED team.
@@ -30,7 +30,7 @@ test("a nurse turns a posting into a workspace, corrects it, practises, and star
   await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click(); // the optional welcome
   await expect(page).toHaveURL(/\/dashboard$/);
 
-  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Roles" }).click();
+  await navTo(page, "Roles");
   await noViolations(page, "/targets");
   await page.getByRole("button", { name: "Add a target role" }).first().click();
   await page.getByLabel("Role title").fill("ED Nurse");

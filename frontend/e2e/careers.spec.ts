@@ -1,4 +1,4 @@
-import { chooseJob, expect, test } from "./fixtures";
+import { navTo, chooseJob, expect, test } from "./fixtures";
 
 // A nurse signs up, practices nursing interview questions and gets rubric feedback: the whole
 // non-coding path against the real backend.
@@ -45,7 +45,7 @@ test("a nurse picks their job at sign-up, answers a question and gets feedback",
   await expect(page.getByText(/1 answered/)).toBeVisible();
 
   // A mock interview made of nursing questions: answer one, skip the rest, get a summary.
-  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Interview" }).click();
+  await navTo(page, "Mock interview");
   await expect(page.getByRole("heading", { name: "Registered Nurse interview" })).toBeVisible();
   await page.getByRole("button", { name: "Start interview" }).click();
   await expect(page.getByText(/REGISTERED NURSE INTERVIEW · QUESTION 1 OF 5/)).toBeVisible();

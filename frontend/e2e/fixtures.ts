@@ -125,3 +125,15 @@ export async function chooseJob(
   await scope.getByRole("combobox", { name: label }).fill(slug.replace(/-/g, " "));
   await scope.locator(`[role="option"][data-value="${slug}"]`).click();
 }
+
+/** Go to a page through the main navigation as a person does: open the heading its link sits under
+ * (a panel), then click the link. In the narrow-screen menu every section is already listed. */
+export async function navTo(page: import("@playwright/test").Page, name: string): Promise<void> {
+  const nav = page.getByRole("navigation", { name: "Main", exact: true });
+  const link = nav.getByRole("link", { name, exact: true });
+  if (!(await link.isVisible())) {
+    const title = page.locator(".nav-item__title").filter({ hasText: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`) });
+    await nav.locator(".nav-group").filter({ has: title }).getByRole("button").click();
+  }
+  await link.click();
+}

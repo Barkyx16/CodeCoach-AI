@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 
 import AxeBuilder from "@axe-core/playwright";
-import { chooseJob, expect, test, type Page } from "./fixtures";
+import { navTo, chooseJob, expect, test, type Page } from "./fixtures";
 
 // The application tracker against the real API: recorded facts, pointer and keyboard moves,
 // history, DST-safe interview times, links, drafts that are never sent, privacy.
@@ -29,7 +29,7 @@ const column = (page: Page, name: string) => page.getByRole("list", { name: "App
 test("track an application from saved to interviewing, with history, events, links and a draft that's never sent", async ({ page, browser }) => {
   page.on("dialog", (d) => void d.accept());
   await signUpNurse(page);
-  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Applications" }).click();
+  await navTo(page, "Applications");
   await expect(page.getByText("No applications yet")).toBeVisible();
 
   // Record one. A double click still creates one.

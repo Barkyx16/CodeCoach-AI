@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { chooseJob, expect, test, type Page } from "./fixtures";
+import { navTo, chooseJob, expect, test, type Page } from "./fixtures";
 
 // The optional first session against the real API: a welcome with a real activity from the
 // learner's own job, a tour of the real page that can be left and resumed, and Help.
@@ -112,7 +112,7 @@ test("a coding guest tours the workspace, leaves, resumes after a reload, and ca
 
   await tour(page).getByRole("button", { name: "Leave the introduction" }).click();
   await expect(tour(page)).toHaveCount(0);
-  await page.getByRole("link", { name: "Dashboard" }).click();
+  await navTo(page, "Dashboard");
   const banner = page.getByRole("region", { name: "Getting started" });
   await expect(banner).toContainText("You left the introduction at step 4 of 5.");
   await banner.getByRole("button", { name: "Resume" }).click();

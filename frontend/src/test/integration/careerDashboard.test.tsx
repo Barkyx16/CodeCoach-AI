@@ -29,7 +29,7 @@ describe("Dashboard and interviews follow the user's career", () => {
     expect(screen.queryByRole("link", { name: /A time patient assessment mattered/ })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Review your answered questions, lowest score first/ }))
       .toHaveAttribute("href", "/problems?view=questions&status=attempted&sort=lowest_score");
-    expect(within(screen.getByRole("navigation", { name: "Main" })).getByRole("link", { name: "Interview" })).toBeInTheDocument();
+    expect(within(screen.getByRole("navigation", { name: "Main" })).getByRole("link", { name: "Mock interview" })).toBeInTheDocument();
   });
 
   it("keeps the coding dashboard for software engineers", async () => {

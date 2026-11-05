@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { chooseJob, expect, test, type Page } from "./fixtures";
+import { navTo, chooseJob, expect, test, type Page } from "./fixtures";
 
 async function signUpNurse(page: Page, tag: string) {
   await page.goto("/register");
@@ -55,7 +55,7 @@ test("capture in context, autosave, search, edit in two tabs, leave mid-save, un
 
   // Leaving before the autosave fires still saves.
   await page.getByLabel("Note", { exact: true }).fill("Edited in tab B, then left quickly");
-  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Notes" }).click();
+  await navTo(page, "Notes");
   await expect(page.getByRole("heading", { name: "Your notes" })).toBeVisible();
   await expect.poll(async () => (await page.request.get("http://localhost:8000/health")).ok()).toBe(true);
   await page.goto(noteUrl);

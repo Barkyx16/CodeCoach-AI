@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { chooseJob, expect, test, type Page } from "./fixtures";
+import { navTo, chooseJob, expect, test, type Page } from "./fixtures";
 
 // The story bank against the real API: an example written in a job target is the same story in
 // the bank; edits are versions; the writing check only proposes; practising never edits the
@@ -43,7 +43,7 @@ test("one story, from a job target to the story bank to practice, with every ver
   await page.getByRole("button", { name: "Save example" }).click();
 
   // ...is the same story in the story bank.
-  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Stories" }).click();
+  await navTo(page, "Stories");
   await expect(page.getByRole("heading", { level: 1, name: "Your stories" })).toBeVisible();
   await expect(page.getByText("Not written yet: Task")).toBeVisible();
   await expect(page.getByText(/For Ward nurse/)).toBeVisible();

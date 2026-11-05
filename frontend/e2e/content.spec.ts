@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 
 import AxeBuilder from "@axe-core/playwright";
-import { chooseJob, expect, test, type Page } from "./fixtures";
+import { navTo, chooseJob, expect, test, type Page } from "./fixtures";
 
 // Content quality end to end with the real API: reports pinned to a version, duplicates grouped,
 // an admin (granted from the command line, the only way) triages, corrects and retires, and the
@@ -81,7 +81,7 @@ test("report, triage, correct and retire: every party sees exactly what they sho
   const adminEmail = await signUpNurse(admin, "admin");
   grantAdmin(adminEmail);
   await admin.reload();
-  await admin.getByRole("link", { name: "Triage" }).click();
+  await navTo(admin, "Triage");
   await expect(admin.getByRole("heading", { level: 1, name: "Reports" })).toBeVisible();
   const group = admin.locator(".admin-groups > li").filter({ hasText: "m-walk-1" });
   // At least the two reports above (a reused local database may hold earlier runs' too).

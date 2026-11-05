@@ -1,4 +1,4 @@
-import { chooseJob, expect, test, type Page } from "./fixtures";
+import { navTo, chooseJob, expect, test, type Page } from "./fixtures";
 
 const SOLUTION = `class Solution {
     public int[] twoSum(int[] nums, int target) {
@@ -80,7 +80,7 @@ test("guest journey: try it, code, hints, review, submit, progress", async ({ pa
   await expect.poll(() => editorText(page)).toContain("nums[i] + nums[j] == target");
 
   // Progress reflects the activity.
-  await page.getByRole("link", { name: "Dashboard" }).click();
+  await navTo(page, "Dashboard");
   const summary = page.getByRole("region", { name: "Summary" });
   await expect(summary.getByText("Coaching used")).toBeVisible();
   await expect(summary.getByText("3", { exact: true })).toBeVisible(); // 2 hints + 1 review
@@ -88,7 +88,7 @@ test("guest journey: try it, code, hints, review, submit, progress", async ({ pa
   await page.screenshot({ path: "e2e/screenshots/03-dashboard.png", fullPage: true });
 
   // History keeps the attempt and the AI feedback.
-  await page.getByRole("navigation", { name: "Main", exact: true }).getByRole("link", { name: "History", exact: true }).click();
+  await navTo(page, "History");
   // Wait for the History page itself: the dashboard (still on screen while History loads) has
   // "Two Sum" links of its own, so an unscoped check could pass against the wrong page.
   await expect(page).toHaveURL(/\/history/);
@@ -118,7 +118,7 @@ test("account journey: register, filter library, sign out, sign in", async ({ pa
   // New accounts are welcomed; this journey goes straight to the dashboard.
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByText("Ada's progress")).toBeVisible();
-  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Practice" }).click();
+  await navTo(page, "Questions");
   await expect(page).toHaveURL(/\/problems$/);
 
   await page.getByRole("button", { name: /stacks/i }).click();

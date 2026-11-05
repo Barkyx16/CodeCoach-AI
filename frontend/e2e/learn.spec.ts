@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { chooseJob, expect, test } from "./fixtures";
+import { navTo, chooseJob, expect, test } from "./fixtures";
 
 const ANSWER =
   "Situation: an oxygen alarm went off while another patient needed help to the bathroom. I asked a nursing " +
@@ -15,7 +15,7 @@ test("a nurse learns before practising: prerequisite, guided help, solution, che
   await page.getByRole("link", { name: "Do this later" }).click();
   await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click(); // the optional welcome
 
-  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Learn" }).click();
+  await navTo(page, "Lessons");
   await expect(page.getByRole("heading", { name: "Registered Nurse lessons" })).toBeVisible();
   await page.getByRole("link", { name: "Prioritizing when several patients need you" }).click();
   await expect(page.getByRole("note")).toContainText("not clinical guidance");
