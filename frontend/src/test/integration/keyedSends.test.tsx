@@ -14,7 +14,7 @@ const nurse = { ...baseUser, career_track: "registered-nurse" };
 const asNurse = () => server.use(http.post(`${API}/api/v1/auth/refresh`, () => HttpResponse.json(tokenResponse({ user: nurse }))));
 const QUESTION = "/careers/registered-nurse/questions/e-good-0";
 const TEXT = "Last winter I noticed a patient's breathing change and called the doctor.";
-type Body = { answer: string; client_request_id?: string; revises_answer_id?: string; story_id?: string };
+type Body = { answer: string; client_request_id?: string; revises_answer_id?: string; story_id?: string; route?: "keyed" | "plain" };
 
 function capabilities(keys: boolean | undefined) {
   server.use(http.get(`${API}/api/v1/capabilities`, () => HttpResponse.json({
@@ -24,18 +24,23 @@ function capabilities(keys: boolean | undefined) {
   })));
 }
 
-/** Records every answer POST; `replies` decides each one in turn (default: saved, 201). */
-function answers(listed: InterviewAnswer[] = [], replies: Array<"lost" | "saved"> = []) {
+/** Records every answer POST (and which route it used); `replies` decides each one in turn
+ * (default: saved, 201; "no_route": the 404 of a server without the protected route). */
+function answers(listed: InterviewAnswer[] = [], replies: Array<"lost" | "saved" | "no_route"> = []) {
   const bodies: Body[] = [];
+  const reply = (route: "keyed" | "plain") => async ({ request }: { request: Request }) => {
+    const body = (await request.json()) as Body;
+    bodies.push({ ...body, route });
+    const what = replies[bodies.length - 1];
+    if (what === "lost") return HttpResponse.error();
+    if (what === "no_route") return HttpResponse.json({ error: { code: "not_found", message: "Not Found", request_id: "r", details: null } }, { status: 404 });
+    return HttpResponse.json({ ...nurseAnswer, id: `a-${bodies.length}`, question_id: "e-good-0", answer: body.answer,
+      created_at: new Date().toISOString(), revises_answer_id: body.revises_answer_id ?? null }, { status: 201 });
+  };
   server.use(
     http.get(`${API}/api/v1/careers/:track/questions/:id/answers`, () => HttpResponse.json(listed)),
-    http.post(`${API}/api/v1/careers/:track/questions/:id/answers`, async ({ request }) => {
-      const body = (await request.json()) as Body;
-      bodies.push(body);
-      if (replies[bodies.length - 1] === "lost") return HttpResponse.error();
-      return HttpResponse.json({ ...nurseAnswer, id: `a-${bodies.length}`, question_id: "e-good-0", answer: body.answer,
-        created_at: new Date().toISOString(), revises_answer_id: body.revises_answer_id ?? null }, { status: 201 });
-    }),
+    http.post(`${API}/api/v1/careers/:track/questions/:id/answers/keyed`, reply("keyed")),
+    http.post(`${API}/api/v1/careers/:track/questions/:id/answers`, reply("plain")),
   );
   return bodies;
 }
@@ -60,6 +65,7 @@ describe("Send keys", () => {
     expect(bodies).toHaveLength(2);
     expect(bodies[0]!.client_request_id).toMatch(/^[A-Za-z0-9_-]{8,64}$/);
     expect(bodies[1]!.client_request_id).toBe(bodies[0]!.client_request_id);
+    expect(bodies.map((b) => b.route)).toEqual(["keyed", "keyed"]); // keyed sends use the protected route
     // Release Readiness brief 06: the key lives in memory only, never in browser storage or the URL.
     const key = bodies[0]!.client_request_id!;
     const stored = [localStorage, sessionStorage].flatMap((st) => Object.keys(st).map((k) => `${k}=${st.getItem(k)}`));
@@ -93,8 +99,36 @@ describe("Send keys", () => {
       expect(await screen.findByText(/look under “Your past answers” before sending it again/)).toBeInTheDocument();
       expect(screen.queryByText(/Sending it again unchanged is safe/)).not.toBeInTheDocument();
       expect(bodies[0]).not.toHaveProperty("client_request_id");
+      expect(bodies[0]!.route).toBe("plain");
       unmount();
     }
+  });
+
+  it("are refused, not saved, by a server without the protected route, and the next send is the learner's choice", async () => {
+    // Verification brief 04: capabilities came from a server that keeps keys, the POST reached one
+    // that doesn't (it has no /answers/keyed: 404, nothing saved).
+    asNurse();
+    let asked = 0;
+    server.use(http.get(`${API}/api/v1/capabilities`, () => {
+      asked += 1;
+      return HttpResponse.json({
+        execution_enabled: false, ai_provider: "offline", guest_retention_days: 30,
+        execution: { state: "not_configured", reason: "not_configured", message: "", run_available: false, submit_mode: "saved_only", checked_at: null, setup_help: null },
+        ...(asked === 1 ? { answer_request_keys: true } : {}),
+      });
+    }));
+    const bodies = answers([], ["no_route", "saved"]);
+    const { user } = renderApp(QUESTION, { signedIn: true });
+    await screen.findByRole("textbox", { name: "Your answer" });
+    await send(user, TEXT);
+    expect(await screen.findByText(/so your answer wasn't saved/)).toBeInTheDocument();
+    expect(screen.queryByText(/Sending it again unchanged is safe/)).not.toBeInTheDocument();
+    expect(bodies).toHaveLength(1); // no automatic resend
+    expect(bodies[0]!.route).toBe("keyed");
+    await send(user); // the learner sends it again
+    expect(await screen.findByRole("region", { name: "Feedback" })).toBeInTheDocument();
+    expect(bodies[1]!.route).toBe("plain");
+    expect(bodies[1]).not.toHaveProperty("client_request_id");
   });
 
   it("claim nothing when the server stopped saying it keeps them since the page loaded, or can't be asked", async () => {

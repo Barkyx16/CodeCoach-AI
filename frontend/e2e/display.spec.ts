@@ -78,7 +78,7 @@ test("keyboard only: find a question with a filter, answer it, recover from an e
   await page.keyboard.type(answer);
 
   // A failed request: the error is announced, tied to the answer box, and the draft is kept.
-  await page.route("**/api/v1/careers/*/questions/*/answers", (route) => route.abort(), { times: 1 });
+  await page.route("**/api/v1/careers/*/questions/*/answers**", (route) => route.abort(), { times: 1 });
   const submit = page.getByRole("button", { name: "Get feedback" });
   await tabTo(page, submit);
   await page.keyboard.press("Enter");

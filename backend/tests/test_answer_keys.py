@@ -401,3 +401,28 @@ def test_saves_are_counted_by_kind_and_result_without_keys_text_or_accounts(make
         assert metric(c, "codecoach_answer_saves_total", kind=kind, result=result) == n, (kind, result)
     page = c.get("/metrics").text
     assert "op-signal" not in page and TEXT[:20] not in page and "ada@example.com" not in page
+
+
+# --- the protected route (Verification brief 04) --------------------------------------------------
+
+
+def _keyed(qid: str | None = None) -> str:
+    return _url(qid) + "/keyed"
+
+
+def test_the_protected_route_requires_a_key_and_replays_like_the_plain_one(client):
+    h = auth_headers(register(client))
+    assert client.post(_keyed(), headers=h, json={"answer": TEXT}).status_code == 422  # no key: refused
+    assert _rows(client) == []
+    body = {"answer": TEXT, "client_request_id": "op-protected-0001"}
+    first = client.post(_keyed(), headers=h, json=body)
+    assert first.status_code == 201
+    again = client.post(_keyed(), headers=h, json=body)
+    assert again.status_code == 200 and again.headers["Idempotent-Replayed"] == "true"
+    assert again.json()["id"] == first.json()["id"]
+    # Same key space as the plain route: a key used there replays here and the other way round.
+    assert client.post(_url(), headers=h, json=body).json()["id"] == first.json()["id"]
+    conflict = client.post(_keyed(), headers=h, json={**body, "answer": TEXT + " More."})
+    assert conflict.status_code == 409 and conflict.json()["error"]["code"] == "idempotency_key_reused"
+    assert len(_rows(client)) == 1
+    assert client.post(_keyed("no-such-question"), headers=h, json=body).status_code == 404

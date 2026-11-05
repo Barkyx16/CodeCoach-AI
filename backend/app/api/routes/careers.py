@@ -22,6 +22,7 @@ from app.schemas.careers import (
     AnswerOut,
     AnswerRequest,
     CareerSummary,
+    KeyedAnswerRequest,
     QuestionDetail,
     QuestionSummary,
     TrackProgress,
@@ -226,6 +227,29 @@ def answer_question(
         raise NotFoundError(f"Question '{question_id}' not found")
     with tracing.answer_save("keyed" if body.client_request_id else "unkeyed") as step:
         return _save_answer(slug, question, body, request, response, user, db, step)
+
+
+@router.post(
+    "/careers/{slug}/questions/{question_id}/answers/keyed",
+    response_model=AnswerOut,
+    status_code=201,
+    responses=error_responses(400, 401, 404, 409, 429),
+    summary="Answer a question with a required request key (the protected route)",
+    description="The same as the plain route, except that `client_request_id` is required. A server "
+    "that doesn't keep one answer per key has no such route, so it refuses a request sent here "
+    "(404) instead of saving it unprotected: send keyed answers here, not to the plain route, so a "
+    "resend can never be saved twice by a server that ignores keys.",
+)
+def answer_question_keyed(
+    slug: str,
+    question_id: str,
+    body: KeyedAnswerRequest,
+    request: Request,
+    response: Response,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> AnswerOut:
+    return answer_question(slug, question_id, body, request, response, user, db)
 
 
 def _save_answer(

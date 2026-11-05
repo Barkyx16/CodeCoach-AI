@@ -459,6 +459,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/careers/{slug}/questions/{question_id}/answers/keyed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Answer a question with a required request key (the protected route)
+         * @description The same as the plain route, except that `client_request_id` is required. A server that doesn't keep one answer per key has no such route, so it refuses a request sent here (404) instead of saving it unprotected: send keyed answers here, not to the plain route, so a resend can never be saved twice by a server that ignores keys.
+         */
+        post: operations["answer_question_keyed_api_v1_careers__slug__questions__question_id__answers_keyed_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/careers/{slug}/progress": {
         parameters: {
             query?: never;
@@ -5836,6 +5856,29 @@ export interface components {
              */
             method: string;
         };
+        /**
+         * KeyedAnswerRequest
+         * @description The protected route's body: the request key is required (Verification brief 04).
+         */
+        KeyedAnswerRequest: {
+            /** Answer */
+            answer: string;
+            /**
+             * Story Id
+             * @description One of your stories this answer rehearses (it isn't changed)
+             */
+            story_id?: string | null;
+            /**
+             * Client Request Id
+             * @description Your key for this request (required here). Same meaning as on the plain route.
+             */
+            client_request_id: string;
+            /**
+             * Revises Answer Id
+             * @description One of your own earlier answers to this same question that this answer revises (404 if it isn't yours or doesn't exist; 400 `revision_other_question` if it's for another question). Only set it for an explicit revision.
+             */
+            revises_answer_id?: string | null;
+        };
         /** KitOut */
         KitOut: {
             /** Event Id */
@@ -11146,6 +11189,87 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["AnswerRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnswerOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    answer_question_keyed_api_v1_careers__slug__questions__question_id__answers_keyed_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KeyedAnswerRequest"];
             };
         };
         responses: {

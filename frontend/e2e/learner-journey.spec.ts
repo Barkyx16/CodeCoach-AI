@@ -33,12 +33,12 @@ test("first use to a revised, compared answer, with a dropped send and a 320px s
   // and the page says the outcome is unknown instead of inviting a blind resend.
   const box = page.getByRole("textbox", { name: "Your answer" });
   await box.fill(THIN);
-  await page.route("**/api/v1/careers/*/questions/*/answers", (route) =>
+  await page.route("**/api/v1/careers/*/questions/*/answers**", (route) =>
     route.request().method() === "POST" ? route.abort("connectionreset") : route.continue());
   await page.getByRole("button", { name: "Get feedback" }).click();
   await expect(page.getByText(/isn't certain whether this answer was saved/)).toBeVisible();
   await expect(box).toHaveValue(THIN);
-  await page.unroute("**/api/v1/careers/*/questions/*/answers");
+  await page.unroute("**/api/v1/careers/*/questions/*/answers**");
 
   // Sent for real: feedback, then what this try covered and one way on.
   await page.getByRole("button", { name: "Get feedback" }).click();

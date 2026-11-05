@@ -78,6 +78,17 @@ class AnswerRequest(APIModel):
     )
 
 
+class KeyedAnswerRequest(AnswerRequest):
+    """The protected route's body: the request key is required (Verification brief 04)."""
+
+    client_request_id: str = Field(
+        min_length=8,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9_-]+$",
+        description="Your key for this request (required here). Same meaning as on the plain route.",
+    )
+
+
 class FeedbackPoint(APIModel):
     label: str
     covered: bool

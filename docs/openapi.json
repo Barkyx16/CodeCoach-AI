@@ -1972,6 +1972,123 @@
         }
       }
     },
+    "/api/v1/careers/{slug}/questions/{question_id}/answers/keyed": {
+      "post": {
+        "tags": [
+          "careers"
+        ],
+        "summary": "Answer a question with a required request key (the protected route)",
+        "description": "The same as the plain route, except that `client_request_id` is required. A server that doesn't keep one answer per key has no such route, so it refuses a request sent here (404) instead of saving it unprotected: send keyed answers here, not to the plain route, so a resend can never be saved twice by a server that ignores keys.",
+        "operationId": "answer_question_keyed_api_v1_careers__slug__questions__question_id__answers_keyed_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "question_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Question Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeyedAnswerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnswerOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/careers/{slug}/progress": {
       "get": {
         "tags": [
@@ -23354,6 +23471,57 @@
           "method"
         ],
         "title": "KeyPoints"
+      },
+      "KeyedAnswerRequest": {
+        "properties": {
+          "answer": {
+            "type": "string",
+            "maxLength": 6000,
+            "minLength": 1,
+            "title": "Answer"
+          },
+          "story_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 36
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Story Id",
+            "description": "One of your stories this answer rehearses (it isn't changed)"
+          },
+          "client_request_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Client Request Id",
+            "description": "Your key for this request (required here). Same meaning as on the plain route."
+          },
+          "revises_answer_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 36
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revises Answer Id",
+            "description": "One of your own earlier answers to this same question that this answer revises (404 if it isn't yours or doesn't exist; 400 `revision_other_question` if it's for another question). Only set it for an explicit revision."
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer",
+          "client_request_id"
+        ],
+        "title": "KeyedAnswerRequest",
+        "description": "The protected route's body: the request key is required (Verification brief 04)."
       },
       "KitOut": {
         "properties": {

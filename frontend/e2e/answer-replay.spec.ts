@@ -21,7 +21,7 @@ test("a resend after a lost reply returns the saved answer, not a second one", a
   await box.fill(TEXT);
 
   // The POST reaches the server and is saved; its reply is dropped. The lookup that follows fails too.
-  const ANSWERS = "**/api/v1/careers/*/questions/*/answers";
+  const ANSWERS = "**/api/v1/careers/*/questions/*/answers**";
   let firstKey: string | undefined;
   await page.route(ANSWERS, async (route) => {
     if (route.request().method() === "POST") {

@@ -264,10 +264,12 @@ export const api = {
     apiRequest<DifficultyCounts>(`/api/v1/careers/${encodeURIComponent(track)}/questions/counts`, { query: { q }, signal }),
   question: (track: string, id: string, signal?: AbortSignal) =>
     apiRequest<QuestionDetail>(`/api/v1/careers/${encodeURIComponent(track)}/questions/${encodeURIComponent(id)}`, { signal }),
-  /** `requestKey`: send only to a server whose capabilities say `answer_request_keys`. */
+  /** `requestKey`: send only to a server whose capabilities say `answer_request_keys`. A keyed
+   * answer goes to the protected route, which a server that ignores keys doesn't have: it refuses
+   * the request (404) instead of saving it unprotected. */
   answerQuestion: (track: string, id: string, answer: string, storyId: string | null = null,
     opts: { requestKey?: string | null; revisesAnswerId?: string | null } = {}) =>
-    apiRequest<InterviewAnswer>(`/api/v1/careers/${encodeURIComponent(track)}/questions/${encodeURIComponent(id)}/answers`, {
+    apiRequest<InterviewAnswer>(`/api/v1/careers/${encodeURIComponent(track)}/questions/${encodeURIComponent(id)}/answers${opts.requestKey ? "/keyed" : ""}`, {
       method: "POST",
       body: {
         answer,

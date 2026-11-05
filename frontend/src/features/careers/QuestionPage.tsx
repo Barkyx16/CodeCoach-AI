@@ -117,6 +117,8 @@ function QuestionPageFor() {
   // No reply came back: "keyed" only when the server said again, just now, that it keeps one answer
   // per key (it may have been replaced since the page loaded); otherwise no protection is claimed.
   const [unconfirmed, setUnconfirmed] = useState<null | "keyed" | "plain">(null);
+  // The protected route was refused by a server that no longer says it keeps keys: not saved.
+  const [keyRefused, setKeyRefused] = useState(false);
   const [guestError, setGuestError] = useState<unknown>(null);
   const [storyId, setStoryId] = useState<string | null>(null);
   // Optional: reflect on the answer before the coach's feedback is shown (remembered on this device).
@@ -196,6 +198,7 @@ function QuestionPageFor() {
       : null;
     pendingSend.current = send;
     setUnconfirmed(null);
+    setKeyRefused(false);
     let failure: unknown = null;
     let result = await submit.mutateAsync({ answer: text, storyId, requestKey: send?.key ?? null, revisesAnswerId })
       .catch((err: unknown) => { failure = err; return null; });
@@ -209,6 +212,16 @@ function QuestionPageFor() {
         result = saved;
       } else {
         setUnconfirmed(send ? await stillKeyed() : "plain");
+      }
+    }
+    // A keyed send refused as unknown (404/405): if the server no longer says it keeps keys, it
+    // has no protected route, so nothing was saved. Say so; the next send goes without a key, and
+    // only when the learner sends it (never an automatic unprotected resend).
+    if (!result && send && failure instanceof ApiError && (failure.status === 404 || failure.status === 405)) {
+      if ((await stillKeyed()) === "plain") {
+        submit.reset();
+        pendingSend.current = null;
+        setKeyRefused(true);
       }
     }
     if (result) {
@@ -329,6 +342,12 @@ function QuestionPageFor() {
             {!online && <p className="subtle" id="answer-offline">You're offline. Feedback needs a connection; your draft stays on this device until you send it.</p>}
             {!isAuthenticated && !offlineUser && <p className="subtle">Feedback needs an account so your answers are saved. A guest session takes one click.</p>}
             <InlineError id="answer-error" error={submit.error ?? guestError} />
+            {keyRefused && (
+              <p className="banner banner--warning" role="status">
+                This server can't protect a resend right now, so your answer wasn't saved. Your text is still
+                here: send it again to save it without that protection.
+              </p>
+            )}
             {unconfirmed && (
               <p className="banner banner--warning" role="status">
                 No reply came back, so it isn't certain whether this answer was saved, and it isn't among your saved answers

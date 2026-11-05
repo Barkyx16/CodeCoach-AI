@@ -1,12 +1,10 @@
 from functools import lru_cache
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
-
-from app.api.deps import get_db
 
 router = APIRouter(tags=["health"])
 BACKEND = Path(__file__).resolve().parents[3]
@@ -54,16 +52,22 @@ def health() -> dict:
 
 
 @router.get("/health/ready", summary="Readiness probe (checks the database and its schema)")
-def ready(request: Request, db: Session = Depends(get_db)):
+def ready(request: Request):
     """Ready when the database answers and its schema isn't older than this code needs. Names no
-    revision: only whether the schema is current, behind, newer or unmanaged."""
+    revision: only whether the schema is current, behind, newer or unmanaged. Opens its own session
+    (not the request dependency, which reads content state first), so an unreachable database is a
+    503 here, not an error before this check runs."""
+    db: Session = request.app.state.session_factory()
     try:
-        db.execute(text("SELECT 1"))
-    except Exception:  # noqa: BLE001 - any DB failure means "not ready"
-        return JSONResponse(
-            status_code=503, content={"status": "unavailable", "checks": {"database": "fail"}}
-        )
-    schema = schema_state(db)
+        try:
+            db.execute(text("SELECT 1"))
+            schema = schema_state(db)
+        except Exception:  # noqa: BLE001 - any DB failure means "not ready"
+            return JSONResponse(
+                status_code=503, content={"status": "unavailable", "checks": {"database": "fail"}}
+            )
+    finally:
+        db.close()
     if schema == "behind":  # this code would fail on columns the migration hasn't added yet
         return JSONResponse(
             status_code=503,

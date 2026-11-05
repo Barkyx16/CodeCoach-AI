@@ -10,7 +10,7 @@ const TEXT = "Last winter on a busy ward I noticed a patient's breathing change 
   "observations, raised the bed, started oxygen as prescribed and called the doctor. Within the hour his saturation " +
   "was back to 96%, and I learned to escalate early rather than wait to be certain.";
 const SHORT = "I would check the patient and call the doctor.";
-const ANSWERS = "**/api/v1/careers/*/questions/*/answers";
+const ANSWERS = "**/api/v1/careers/*/questions/*/answers**";
 
 async function newNurse(page: Page, prefix: string): Promise<string> {
   const email = `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;

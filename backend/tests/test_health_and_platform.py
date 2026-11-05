@@ -133,3 +133,22 @@ def test_anthropic_provider_requires_key():
 
     with pytest.raises(ValueError, match="ANTHROPIC_API_KEY"):
         Settings(ai_provider="anthropic", anthropic_api_key=None, _env_file=None)
+
+
+def test_readiness_is_503_not_an_error_when_the_database_is_down(client, monkeypatch):
+    """Verification brief 05: through a real server the unreachable database came back as 500,
+    because the request dependency read content state before the check. Readiness now opens its
+    own session inside its own error handling."""
+    from sqlalchemy.exc import OperationalError
+
+    class Down:
+        def execute(self, *a, **k):
+            raise OperationalError("SELECT 1", {}, Exception("connection refused"))
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(client.app.state, "session_factory", lambda: Down())
+    r = client.get("/health/ready")
+    assert (r.status_code, r.json()) == (503, {"status": "unavailable", "checks": {"database": "fail"}})
+    assert client.get("/health").status_code == 200  # liveness is its own, separate policy

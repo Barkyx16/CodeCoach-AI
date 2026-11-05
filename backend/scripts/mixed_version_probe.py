@@ -78,6 +78,20 @@ def main() -> int:
                     else r.json().get("error", {}).get("code"),
                 }
             )
+        before = c.get(url, headers=h).json() if token else []
+        r = c.post(
+            f"{url}/keyed", headers=h, json={"answer": LONG + " Keyed.", "client_request_id": key + "-p"}
+        )
+        after = c.get(url, headers=h).json() if token else []
+        out["steps"].append(
+            {
+                "step": "protected route",
+                "status": r.status_code,
+                "saved": len(after) - len(before)
+                if isinstance(after, list) and isinstance(before, list)
+                else None,
+            }
+        )
         r = c.get(url, headers=h)
         out["steps"].append(
             {
