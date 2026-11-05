@@ -2,7 +2,7 @@
 import react from "@vitejs/plugin-react";
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath, URL } from "node:url";
 import { defineConfig, type Plugin } from "vite";
 
@@ -13,13 +13,23 @@ import { defineConfig, type Plugin } from "vite";
  */
 function offlineShell(): Plugin {
   let outDir = "dist";
+  let failed = false;
   return {
     name: "codecoach-offline-shell",
     apply: "build",
     configResolved(config) {
-      outDir = config.build.outDir;
+      outDir = resolve(config.root, config.build.outDir);
+    },
+    // closeBundle also runs after a failed build. Then there's nothing to fill in, and throwing
+    // here would replace the build's own error with "no such file: dist/index.html".
+    buildEnd(error) {
+      if (error) failed = true;
+    },
+    renderError() {
+      failed = true;
     },
     closeBundle() {
+      if (failed || !existsSync(join(outDir, "index.html"))) return;
       const html = readFileSync(join(outDir, "index.html"), "utf8");
       const list = (dir: string, prefix: string) =>
         existsSync(join(outDir, dir)) ? readdirSync(join(outDir, dir)).filter((f) => !f.endsWith(".map")).map((f) => `${prefix}${f}`) : [];
