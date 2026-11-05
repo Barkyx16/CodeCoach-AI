@@ -160,6 +160,22 @@ def _rehearse(src: str, dst: str, out: dict) -> int:
         all(a["replayed"] for a in accounts.values()) and accounts["ada"]["first"] != accounts["bo"]["first"],
         accounts={k: {"summary": v["summary"]} for k, v in accounts.items()},
     )
+    # An answer stored with no grading metadata (what no code writes, but a damaged row could
+    # be), copied from a real one: the restore must keep it, and keep it "unknown".
+    with seng.begin() as c:
+        c.execute(
+            sa.text(
+                "insert into practice_answers (id, user_id, track, question_id, difficulty, answer, score, "
+                "feedback, provider, created_at) select 'restore-unknown-1', user_id, track, question_id, "
+                "difficulty, '(synthetic unknown)', 50, feedback - 'evidence_level' - 'word_count', "
+                "provider, created_at from practice_answers order by created_at limit 1"
+            )
+        )
+    from app.db.session import make_session_factory
+    from app.services.answer_invariants import check
+
+    with make_session_factory(seng)() as s:
+        source_report = check(s).summary()
     before = _snapshot(seng)
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -192,12 +208,19 @@ def _rehearse(src: str, dst: str, out: dict) -> int:
         version=after["version"],
     )
 
-    from app.db.session import make_session_factory
-    from app.services.answer_invariants import check
-
     with make_session_factory(deng)() as s:
         rep = check(s)
-    step("check-answers on the restored copy", rep.ok, scope=rep.summary()["scope"])
+    with deng.connect() as c:
+        links = c.execute(
+            sa.text("select count(*) from practice_answers where revises_answer_id is not null")
+        ).scalar_one()
+    step(
+        "check-answers on the restored copy: the same as on the source",
+        rep.ok and rep.summary() == source_report and links == len(accounts),
+        scope=rep.summary()["scope"],
+        unknown_notices=rep.summary()["notices"]["eligibility_unknown"]["count"],
+        revision_links=links,
+    )
 
     with _client(dst) as c:
         smoke = {}
