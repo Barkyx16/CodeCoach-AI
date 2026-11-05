@@ -235,6 +235,10 @@ Executed with Playwright 1.63 and Chromium (the `desktop` project), against the 
   that sets the best score; and another account in the same browser.
 - `answer-replay`, `learner-journey`, `careers` and `session` were re-run after the question page
   changed: 5 passed.
+- The full browser suite (92 tests) then ran on `7aedcd8`'s code: 88 passed, 3 skipped, 1
+  failed. `progress.spec` still expected "Scored N/100" for a 17-word answer, which since the
+  eligibility change is listed as "Too short to score (17 words)". Its expectation was updated in
+  `e964db1`, and it then passed (2/2).
 
 **Pending, not done:** a physical phone, a screen reader and an on-screen keyboard.
 

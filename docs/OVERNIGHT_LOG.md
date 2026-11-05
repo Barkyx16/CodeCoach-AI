@@ -910,3 +910,142 @@ Not done:
 - Running the old browser bundle against the new API (analysed).
 - Phone, screen reader and on-screen keyboard.
 - Anything in production: no backup, migration, deploy or alert.
+
+## Handoff: Durable Saves (NX01–NX18) and Release Readiness (RR01–RR16)
+
+**Repository**
+
+- Branch: `claude/gallant-galileo-hapob6`.
+- Start of these queues: `eae8088`. Last CI-green revision: `eae8088` (runs 143 and 144,
+  historical).
+- Final pushed revision: the commit that adds this section, documentation only, on top of `e964db1`.
+- Last code or test change: `e964db1` (the revision CI checked). The commit after it, holding this handoff, is documentation only.
+- Uncommitted task work: none. No unrelated edits were found in the worktree.
+- PR [Barkyx16/CodeCoach-AI#10](https://github.com/Barkyx16/CodeCoach-AI/pull/10) was not
+  modified and no comment was posted. Its description is out of date (docs/REVIEW_MAP.md).
+
+**CI.**
+
+- From `59f267f` to `91cab79` the backend job failed. Two causes:
+  - `test_runs.py` expected the old set of `/capabilities` fields, from `59f267f`. The full
+    backend suite hadn't been run after `83e4362`.
+  - One unformatted test file, from `731a7df`.
+- Because the backend job failed, the e2e and sandbox jobs were skipped on those revisions, so
+  this batch had **no CI e2e** until the fix.
+- Fixed in `9dfc59e`, and the e2e expectation in `e964db1`. **CI on the final revision is pending at the time of writing.** Its run superseded the run for `e964db1`, which was cancelled by this push. The observed job conclusions are reported with the session's final message, not here.
+
+### Brief states
+
+| Brief | State | Evidence |
+|---|---|---|
+| NX01 | completed | queue mapped (earlier checkpoint) |
+| NX02 | completed | toolbar wraps; `workspace-toolbar.spec.ts` |
+| NX03 | completed | tour finish survives a cancelled save; `tourFinish.test.tsx`, `tour-finish.spec.ts` |
+| NX04–06, NX09, NX10 | completed | keyed saves, fingerprint v1, revision links; `test_answer_keys.py`, `keyedSends.test.tsx`, `answer-replay.spec.ts` |
+| NX07, NX08 | completed | eligibility everywhere it's summarised; `test_score_eligibility.py` |
+| NX11–13 | completed | rubric v9; development-only figures in AI_EVALUATION.md |
+| NX14 | completed (prepared) | review sample `sample-2026-11-05`; **human review pending**, no person has reviewed anything |
+| NX15 | completed (planned) | v9 frozen (`freeze-2026-11-05-candidate-rubric-v9.json`), protocol v8; **independent measurement pending** (no fresh sets); live evaluation not run |
+| NX16 | completed | e2e collection error diagnosed (earlier checkpoint) |
+| NX17 | completed | docs/REVIEW_MAP.md; the PR base is **ambiguous** (no `main`; Dependabot is based at `3b08ccf`) and was not changed |
+| NX18 / RR16 | completed | this handoff; checks below |
+| RR01–RR15 | completed | docs/RELEASE_READINESS.md: four defects shown and fixed, three rehearsals executed, the release plan **proposed, not approved** |
+
+### Behaviour changes in this batch (learner and API)
+
+**Answers.**
+
+- A keyed answer is saved at most once per account and key. A resend returns it: 200 with
+  `Idempotent-Replayed: true`, never regraded.
+- The same key with a different request is a 409 (`idempotency_key_reused`). An uncomparable
+  fingerprint is a 409 (`idempotency_key_unverifiable`).
+- Revision links must point at your own answer to the same question. They survive the parent's
+  deletion as unlinked.
+
+**Scores.**
+
+- Scores count only from answers long enough to score.
+- An answer stored with no grading metadata is shown as `unknown`, "not counted". Before, the
+  whole answer list failed for it.
+
+**The question page.**
+
+- It sends keys only while the server says it keeps them, and checks that again at a lost reply.
+- Against an older server, the library says "Answered" without a number.
+
+**Operations.**
+
+- `/health/ready` reports the schema state, with `behind` as a 503.
+- `python -m app.cli check-answers` checks stored answers, read-only.
+- `codecoach_answer_saves_total{kind,result}` counts saves.
+
+**Scoring.** Rubric v9: a denied or refused action, and someone else's reported advice, earn no
+point.
+
+**Migration.** One migration, `c4d5e6f7a8b9`, additive and nullable.
+
+**Compatibility.**
+
+- Migrate before deploying.
+- An application revert onto the expanded schema works, but ignores keys.
+- A schema downgrade **permanently** drops keys and links.
+
+**Production steps not performed:** backup, migration, deployment, alerts and monitoring.
+
+### Evidence, kept separate
+
+- **Offline provider tests:** a fake client only. They say nothing about Claude's coaching
+  quality.
+- **Development metrics:** rubric v9 against v8 on exposed sets: 0 regressions; meaning-changed
+  false awards 10/18 → 8/18 (nursing) and 8/11 → 6/11 (customer service).
+- **Exposed historical comparison:** unchanged.
+- **Independent measurement:** pending.
+- **Human label review:** pending.
+- **Live Claude evaluation:** not run.
+
+### Checks (code at `e964db1` unless noted; local, Linux, Python 3.13, Node, Chromium via Playwright 1.63)
+
+| Check | Command | Result |
+|---|---|---|
+| Backend lint and format (whole tree, as CI does) | `ruff check . && ruff format --check .` | clean after `9dfc59e` (before: one file unformatted) |
+| Backend types | `mypy app` | no issues (155 files) |
+| Backend, SQLite (full) | `pytest -q` | 2209 passed, 386 skipped, 1 failed: `test_runs::test_capabilities_say_whether_runs_work`. The run had collected the pre-fix file; the fixed test then passed (10/10 in `test_runs.py`) |
+| Backend, PostgreSQL 16 (full) | `TEST_DATABASE_URL=…/codecoach_test pytest -q` | 2211 passed, 384 skipped, the same 1 known failure; fixed test then 10/10 |
+| Migration, interruption, downgrade | `scripts/rehearse_answer_migration.py` on `codecoach_rehearsal_rr` | 7/7 steps passed |
+| Restore | `scripts/rehearse_restore.py` on `codecoach_rehearsal_src` → `_dst` | 6/6 steps passed |
+| Mixed versions | `scripts/mixed_version_probe.py` (old `eae8088` and new code; schemas `head`, `b7c1d2e3f4a5`) | as tabled in RELEASE_READINESS.md §2 |
+| API contract for old clients | `scripts/api_compat.py` eae8088 → now | 205 operations, 0 breaking, 2 notices |
+| Data checks | `python -m app.cli check-answers` (rehearsal databases only) | 0 violations; 1 notice (seeded) |
+| Frontend unit and integration | `npx vitest run` | 646 passed (66 files) before the last test edit; `keyedSends` 8/8 after |
+| Frontend lint and types | `npx eslint src --max-warnings 0`, `tsc --noEmit` | clean |
+| API types match | `npm run api:check` | match |
+| Build and size | `npm run build`, `npm run size:check` | ok; shell 287.6 KB of 300 KB gzip, largest lazy 674.5 KB of 700 KB |
+| Browser (full) | `npx playwright test` (Chromium, `desktop` project, SQLite e2e database) | 88 passed, 3 skipped, 1 failed: `progress.spec` expected "Scored N/100" for a 17-word answer. Fixed in `e964db1` (expects "Too short to score (17 words)"), then 2/2 passed |
+| Evaluation | `evals.run --split dev --sections career` and the harness and protocol tests | as in AI_EVALUATION.md "Rubric v9"; v9 freeze `check` passes |
+
+**Not run:**
+
+- the sandbox (gVisor) job locally, which is left to CI;
+- a SQLite migration rehearsal (unsupported);
+- a physical phone, a screen reader and an on-screen keyboard;
+- any paid or live provider call.
+
+
+### Highest-priority remaining issues and the next action
+
+1. **Confirm CI is green on the final revision, job by job.** If the e2e or sandbox job fails, that is the first thing to fix: neither ran on this batch until now.
+2. **Release decisions** (docs/RELEASE_READINESS.md §14):
+   - whether to release;
+   - the backup procedure;
+   - the readiness wiring;
+   - key expiry.
+3. **Measurement:**
+   - people review `sample-2026-11-05`;
+   - someone outside the tuning session writes the fresh sets (protocol v8).
+
+**Resume:**
+
+1. Read both queues and this log.
+2. Check the branch, HEAD and worktree.
+3. Check CI for the final SHA job by job.
+4. Re-run only checks affected by a new change.
