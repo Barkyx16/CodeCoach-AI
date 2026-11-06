@@ -195,6 +195,23 @@ Everything is in [SECURITY.md §7](SECURITY.md#7-secrets-rotation-and-the-databa
 - **Frontend build:** refuses secret-named `VITE_*` variables, and any bundle containing a
   server secret's value. Both were verified by failing builds on purpose.
 
+## Checks run
+
+Local runs used Chromium headless, SQLite and PostgreSQL 16 with an ordinary role, so RLS was
+enforced.
+
+| Check | Result |
+|---|---|
+| Backend lint, format, types (`ruff check`, `ruff format --check`, `mypy app evals`) | clean |
+| Backend, SQLite, full suite (on `f0ff201`) | 2,343 passed, 393 skipped, 2 xfailed (the rubric v10 residuals, still strict) |
+| Backend, PostgreSQL with RLS enforced, full suite (on `c106615`) | 2,349 passed, **1 failed**. This was a real bug that RLS exposed: another learner naming your plan activity got a 500, not a 404. Fixed in `f0ff201`. Its tests (roadmap, route access) pass on PostgreSQL, and the new write-route walk fails without the fix. The full PostgreSQL suite after the fix runs in CI |
+| Frontend type check, lint, API types match `docs/openapi.json` | pass (the OpenAPI document is unchanged) |
+| Frontend unit and integration (`npx vitest run`) | 701 passed, 73 files |
+| Build and budgets | shell 206.8 KB / 300 KB, largest lazy chunk 674.5 KB / 700 KB (unchanged) |
+| End-to-end (`npx playwright test`, nothing else running) | 96 passed, 3 skipped, 0 failed |
+| Secret scan (`scripts/check_secrets.py`) | no unreviewed findings (20 reviewed). A planted token fails it |
+| Migration rehearsal (disposable PostgreSQL) | pass, as described below |
+
 ## Changed contracts and migrations
 
 - **API:**
