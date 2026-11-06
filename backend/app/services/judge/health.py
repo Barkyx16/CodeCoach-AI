@@ -65,7 +65,7 @@ class ExecutionHealth:
         if self._runner is None:
             self._runner = HttpRunner(
                 self.settings.runner_url,
-                self.settings.runner_token or "",
+                self.settings.runner_token_value,
                 ca_bundle=self.settings.runner_ca_bundle,
             )
         return self._runner.status()

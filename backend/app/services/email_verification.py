@@ -71,7 +71,7 @@ def send_verification(
                 user_id=user.id,
                 email=user.email,
                 token_hash=_hash(raw),
-                code_hash=_code_hash(settings.secret_key, user.id, code),
+                code_hash=_code_hash(settings.signing_key, user.id, code),
                 expires_at=now + timedelta(hours=settings.email_verification_ttl_hours),
             )
         )
@@ -149,7 +149,8 @@ def confirm_code(db: Session, user: User, code: str, settings: Settings) -> User
     if row is None or _aware(row.expires_at) <= now:
         raise AppError("That code has expired. Send a new one.", code="invalid_verification_code")
     row.code_attempts += 1
-    if not hmac.compare_digest(row.code_hash, _code_hash(settings.secret_key, user.id, code.strip())):
+    candidates = [_code_hash(key, user.id, code.strip()) for key in settings.verification_keys]
+    if not any(hmac.compare_digest(row.code_hash, c) for c in candidates):
         if row.code_attempts >= MAX_CODE_ATTEMPTS:
             row.used_at = now  # too many guesses: this code (and its link) are dead
             db.commit()

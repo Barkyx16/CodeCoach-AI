@@ -42,6 +42,19 @@ def database_url(tmp_path) -> Iterator[str]:
         yield f"sqlite:///{tmp_path / 'test.db'}"
 
 
+# A production configuration that passes every startup guard (synthetic values only). Tests of
+# one guard start from this and change one thing.
+PRODUCTION_BASE: dict = {
+    "environment": "production",
+    "secret_key": "Zq7vR2mK9pX4tL8wN3cJ6hB1yF5dG0sA-uE_iO2kM7nQ",
+    "database_url": "postgresql+psycopg://app:Tq83-unique-db-password@db.internal:5432/codecoach",
+    "cors_origins": ["https://app.example"],
+    "email_backend": "smtp",
+    "smtp_host": "smtp.example.com",
+    "app_base_url": "https://app.example",
+}
+
+
 @pytest.fixture
 def make_settings(database_url) -> Callable[..., Settings]:
     def _make(**overrides) -> Settings:

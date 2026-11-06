@@ -201,14 +201,9 @@ def test_smtp_sender_uses_starttls_and_login(make_settings):
 
 
 def test_production_requires_smtp_and_an_https_app_url(make_settings):
-    base = {
-        "environment": "production",
-        "secret_key": "x" * 48,
-        "cors_origins": ["https://app.example"],
-        "email_backend": "smtp",
-        "smtp_host": "smtp.example.com",
-        "app_base_url": "https://app.example",
-    }
+    from tests.conftest import PRODUCTION_BASE
+
+    base = dict(PRODUCTION_BASE)
     assert make_settings(**base).email_backend == "smtp"
     with pytest.raises(ValueError, match="EMAIL_BACKEND=smtp"):
         make_settings(**{**base, "email_backend": "console"})

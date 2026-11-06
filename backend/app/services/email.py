@@ -71,7 +71,7 @@ class SmtpEmailSender:
             if s.smtp_starttls:
                 smtp.starttls()
             if s.smtp_username and s.smtp_password:
-                smtp.login(s.smtp_username, s.smtp_password)
+                smtp.login(s.smtp_username, s.smtp_password.get_secret_value())
             smtp.send_message(msg)
 
 

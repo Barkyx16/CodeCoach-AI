@@ -59,7 +59,7 @@ def _throttle(request: Request) -> None:
 
 def _token_response(user: User, settings: Settings) -> TokenResponse:
     token, expires = issue_access_token(
-        settings.secret_key,
+        settings.signing_key,
         user_id=user.id,
         token_version=user.token_version,
         ttl=timedelta(minutes=settings.access_token_ttl_minutes),

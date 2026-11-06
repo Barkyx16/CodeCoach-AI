@@ -138,7 +138,11 @@ def _start_embedded_worker(settings: Settings, session_factory, traces=None, met
 
     assert settings.runner_token is not None
     worker = JudgeWorker(
-        session_factory, HttpRunner(settings.runner_url, settings.runner_token), settings, traces, metrics
+        session_factory,
+        HttpRunner(settings.runner_url, settings.runner_token_value),
+        settings,
+        traces,
+        metrics,
     )
     threading.Thread(target=worker.run_forever, name="judge-worker", daemon=True).start()
     logger.info("embedded judge worker started")

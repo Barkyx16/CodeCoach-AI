@@ -13,6 +13,7 @@ Access tokens
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 
 import jwt
@@ -59,17 +60,28 @@ def issue_access_token(
     return jwt.encode(claims, secret, algorithm=ALGORITHM), expires
 
 
-def decode_access_token(secret: str, token: str) -> dict | None:
-    """Return the verified claims, or None for any invalid, expired or tampered token."""
-    try:
-        claims = jwt.decode(
-            token,
-            secret,
-            algorithms=[ALGORITHM],
-            issuer=ISSUER,
-            options={"require": ["sub", "exp", "iat", "iss"]},
-        )
-    except jwt.PyJWTError:
+def decode_access_token(secret: str | Sequence[str], token: str) -> dict | None:
+    """Return the verified claims, or None for any invalid, expired or tampered token.
+
+    `secret` may be several keys (the current one first, then ones being rotated out): a token
+    signed by any of them is accepted. Only the current key ever signs."""
+    keys = [secret] if isinstance(secret, str) else list(secret)
+    claims = None
+    for key in keys:
+        try:
+            claims = jwt.decode(
+                token,
+                key,
+                algorithms=[ALGORITHM],
+                issuer=ISSUER,
+                options={"require": ["sub", "exp", "iat", "iss"]},
+            )
+            break
+        except jwt.InvalidSignatureError:
+            continue  # maybe signed with an older key
+        except jwt.PyJWTError:
+            return None  # expired, malformed, wrong issuer: no other key changes that
+    if claims is None:
         return None
     if claims.get("typ") != "access" or not isinstance(claims.get("ver"), int):
         return None

@@ -95,7 +95,7 @@ def sanitize_code(code: str, max_chars: int) -> str:
 def build_provider(settings: Settings) -> CoachProvider:
     if settings.ai_provider == "anthropic" and settings.anthropic_api_key:
         return AnthropicCoach(
-            api_key=settings.anthropic_api_key,
+            api_key=settings.anthropic_api_key.get_secret_value(),
             model=settings.anthropic_model,
             effort=settings.anthropic_effort,
         )

@@ -35,7 +35,7 @@ def judge_check(settings: Settings, runner: HttpRunner | None = None, out=print)
         out("Code execution is not configured (EXECUTION_ENABLED is false). Nothing to check.")
         return 2
     runner = runner or HttpRunner(
-        settings.runner_url, settings.runner_token, ca_bundle=settings.runner_ca_bundle
+        settings.runner_url, settings.runner_token_value, ca_bundle=settings.runner_ca_bundle
     )
     try:
         ready = runner.status()

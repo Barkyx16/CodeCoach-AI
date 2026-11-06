@@ -139,8 +139,12 @@ def _recover(
     """The successor a lost response carried, if this is a bounded replay of that same attempt."""
     if row.used_at is None or now - _aware(row.used_at) > RECOVERY_WINDOW:
         return None
-    successor_raw = _successor(raw, attempt, settings.secret_key)
-    successor = find(db, successor_raw)
+    # The current key first; an older one only if SECRET_KEY was rotated in the last 2 minutes.
+    successor_raw, successor = "", None
+    for key in settings.verification_keys:
+        successor_raw = _successor(raw, attempt, key)
+        if (successor := find(db, successor_raw)) is not None:
+            break
     if successor is None or successor.family_id != row.family_id or successor.user_id != row.user_id:
         return None  # a different key: not the attempt that rotated this token
     if successor.used_at is not None or successor.revoked_at is not None:
@@ -202,5 +206,5 @@ def rotate(db: Session, raw: str | None, settings: Settings, attempt: str | None
             if recovered is not None:
                 return recovered
         raise UnauthorizedError("Session refresh already in progress; retry.", code="refresh_race")
-    successor = _successor(raw, attempt, settings.secret_key) if attempt is not None else None
+    successor = _successor(raw, attempt, settings.signing_key) if attempt is not None else None
     return user, issue(db, user, settings, family_id=row.family_id, raw=successor)

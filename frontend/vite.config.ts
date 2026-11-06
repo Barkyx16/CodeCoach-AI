@@ -4,7 +4,9 @@ import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath, URL } from "node:url";
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
+
+import { leakedServerSecrets, secretLookingPublicVars } from "./src/build/secretGuard";
 
 /**
  * Fills in the service worker's file lists after a production build: the app shell (index.html,
@@ -51,8 +53,35 @@ function offlineShell(): Plugin {
   };
 }
 
+/**
+ * Keeps secrets out of the browser bundle (src/build/secretGuard.ts). Refuses to start or build if
+ * a VITE_* variable is named like a secret (Vite publishes every VITE_* value), and fails a build
+ * whose output contains the value of a server-side secret from the environment or a .env file
+ * (frontend/ or the repository root). Errors name the variable, never its value.
+ */
+function noSecretsInBundle(): Plugin {
+  let env: Record<string, string | undefined> = {};
+  return {
+    name: "codecoach-no-secrets",
+    configResolved(config) {
+      const publicVars = secretLookingPublicVars({ ...process.env, ...config.env });
+      if (publicVars.length > 0) {
+        throw new Error(`${publicVars.join(", ")}: VITE_* variables are published in the browser bundle, so they can't hold secrets. Keep secrets in the backend's environment.`);
+      }
+      env = { ...loadEnv(config.mode, resolve(config.root, ".."), ""), ...loadEnv(config.mode, config.envDir || config.root, ""), ...process.env };
+    },
+    generateBundle(_options, bundle) {
+      for (const [file, output] of Object.entries(bundle)) {
+        const code = output.type === "chunk" ? output.code : typeof output.source === "string" ? output.source : Buffer.from(output.source).toString("latin1");
+        const leaked = leakedServerSecrets(code, env);
+        if (leaked.length > 0) this.error(`${file} contains the value of ${leaked.join(", ")}. Server secrets must never be in frontend code.`);
+      }
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), offlineShell()],
+  plugins: [react(), offlineShell(), noSecretsInBundle()],
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },

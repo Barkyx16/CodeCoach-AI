@@ -216,16 +216,18 @@ jobs:
           retention-days: 7
 
   security:
-    name: Dependency audit
+    name: Dependency audit and secret scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install pip-audit==2.10.1
+      - run: pip install pip-audit==2.10.1 detect-secrets==1.5.0
       - run: pip-audit -r backend/requirements.txt
       - run: pip-audit -r runner/requirements.txt
+      - name: No unreviewed secrets in tracked files (detect-secrets against .secrets.baseline)
+        run: python scripts/check_secrets.py
 
   docker:
     name: Docker images build

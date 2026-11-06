@@ -38,7 +38,7 @@ def get_optional_user(
 ) -> User | None:
     if credentials is None:
         return None
-    claims = decode_access_token(settings.secret_key, credentials.credentials)
+    claims = decode_access_token(settings.verification_keys, credentials.credentials)
     if claims is None:
         raise UnauthorizedError("Invalid or expired access token", code="invalid_token")
     user = db.get(User, claims["sub"])

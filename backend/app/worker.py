@@ -212,7 +212,7 @@ def main() -> None:  # pragma: no cover - process entry point
         raise SystemExit("EXECUTION_ENABLED=true and RUNNER_TOKEN are required to run the judge worker")
     worker = JudgeWorker(
         make_session_factory(make_engine(settings.database_url)),
-        HttpRunner(settings.runner_url, settings.runner_token, ca_bundle=settings.runner_ca_bundle),
+        HttpRunner(settings.runner_url, settings.runner_token_value, ca_bundle=settings.runner_ca_bundle),
         settings,
     )
     signal.signal(signal.SIGTERM, worker.stop)
