@@ -1,0 +1,173 @@
+{
+  "order": 297,
+  "slug": "split-array-largest-sum",
+  "title": "Split Array to Minimize the Largest Sum",
+  "difficulty": "hard",
+  "topics": [
+    "binary-search",
+    "dynamic-programming",
+    "greedy"
+  ],
+  "summary": "Split into k pieces so the biggest piece sum is as small as possible.",
+  "statement": "Split `nums` into `k` non-empty contiguous pieces. Return the smallest possible value of the largest piece sum.",
+  "constraints": [
+    "1 <= nums.length <= 1000",
+    "0 <= nums[i] <= 10^6",
+    "1 <= k <= min(50, n)"
+  ],
+  "examples": [
+    {
+      "input": "nums = [7, 2, 5, 10, 8], k = 2",
+      "output": "18"
+    },
+    {
+      "input": "nums = [1, 2, 3, 4, 5], k = 2",
+      "output": "9"
+    },
+    {
+      "input": "nums = [1, 4, 4], k = 3",
+      "output": "4"
+    }
+  ],
+  "signature": {
+    "method": "splitArray",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      },
+      {
+        "name": "k",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int splitArray(int[] nums, int k) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Guess a limit for the largest sum. Can you check a guess quickly?",
+    "Greedily fill pieces up to the limit and count them; fewer than or equal to k pieces means the limit works. Binary search the limit.",
+    "lo, hi = max(nums), sum(nums)\nwhile lo < hi:\n    mid = (lo + hi) // 2\n    if piecesNeeded(mid) <= k: hi = mid\n    else: lo = mid + 1\nreturn lo",
+    "Binary search on the answer with a greedy O(n) check: O(n log(sum)). (A DP over split points is O(n^2 k).)"
+  ],
+  "expected_complexity": {
+    "time": "O(n log S)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          7,
+          2,
+          5,
+          10,
+          8
+        ],
+        "k": 2
+      },
+      "expected_output": 18,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "k": 2
+      },
+      "expected_output": 9,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          4,
+          4
+        ],
+        "k": 3
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          5
+        ],
+        "k": 1
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          11,
+          6,
+          5,
+          12,
+          8,
+          4,
+          3,
+          8,
+          0
+        ],
+        "k": 5
+      },
+      "expected_output": 12,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          11,
+          3,
+          0
+        ],
+        "k": 1
+      },
+      "expected_output": 14,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          10,
+          10,
+          10,
+          3,
+          6,
+          11,
+          5,
+          12
+        ],
+        "k": 8
+      },
+      "expected_output": 12,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          11,
+          9,
+          8,
+          0,
+          12,
+          8
+        ],
+        "k": 6
+      },
+      "expected_output": 12,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

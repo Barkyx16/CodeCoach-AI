@@ -1,0 +1,205 @@
+{
+  "order": 336,
+  "slug": "lfu-cache",
+  "title": "Simulate an LFU Cache",
+  "difficulty": "hard",
+  "topics": [
+    "hash-maps",
+    "simulation",
+    "heaps"
+  ],
+  "summary": "Run get/put on a least-frequently-used cache.",
+  "statement": "Simulate a cache holding at most `capacity` keys. Each operation in `ops` is `\"put K V\"` or `\"get K\"`. Each\nkey has a use count: `get` of a present key and every `put` add one use. When a put of a new key would exceed\ncapacity, first evict the key with the fewest uses; ties go to the least recently used. Return the results of\nall `get` operations (`-1` for a missing key).",
+  "constraints": [
+    "1 <= capacity <= 10^4",
+    "1 <= ops.length <= 2 * 10^5"
+  ],
+  "examples": [
+    {
+      "input": "capacity = 2, ops = [\"put 1 1\", \"put 2 2\", \"get 1\", \"put 3 3\", \"get 2\", \"get 3\", \"put 4 4\", \"get 1\", \"get 3\", \"get 4\"]",
+      "output": "[1, -1, 3, -1, 3, 4]"
+    },
+    {
+      "input": "capacity = 1, ops = [\"put 1 1\", \"get 1\", \"put 2 2\", \"get 1\", \"get 2\"]",
+      "output": "[1, -1, 2]"
+    },
+    {
+      "input": "capacity = 2, ops = [\"put 1 1\", \"put 1 7\", \"put 2 2\", \"put 3 3\", \"get 1\", \"get 2\", \"get 3\"]",
+      "output": "[7, -1, 3]"
+    }
+  ],
+  "signature": {
+    "method": "lfuCache",
+    "params": [
+      {
+        "name": "capacity",
+        "type": "int"
+      },
+      {
+        "name": "ops",
+        "type": "String[]"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] lfuCache(int capacity, String[] ops) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "You need to find the smallest use count quickly and, within it, the oldest key.",
+    "Map key \u2192 (value, count), map count \u2192 insertion-ordered set of keys, and track the current minimum count.",
+    "on access: move key from bucket[count] to bucket[count+1]; if bucket[minCount] empties, minCount += 1\non put of a new key at capacity: evict the first key of bucket[minCount]; then insert with count 1, minCount = 1",
+    "Every operation is O(1). A new key always resets the minimum count to 1."
+  ],
+  "expected_complexity": {
+    "time": "O(1) per op",
+    "space": "O(capacity)"
+  },
+  "tests": [
+    {
+      "input": {
+        "capacity": 2,
+        "ops": [
+          "put 1 1",
+          "put 2 2",
+          "get 1",
+          "put 3 3",
+          "get 2",
+          "get 3",
+          "put 4 4",
+          "get 1",
+          "get 3",
+          "get 4"
+        ]
+      },
+      "expected_output": [
+        1,
+        -1,
+        3,
+        -1,
+        3,
+        4
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "capacity": 1,
+        "ops": [
+          "put 1 1",
+          "get 1",
+          "put 2 2",
+          "get 1",
+          "get 2"
+        ]
+      },
+      "expected_output": [
+        1,
+        -1,
+        2
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "capacity": 2,
+        "ops": [
+          "put 1 1",
+          "put 1 7",
+          "put 2 2",
+          "put 3 3",
+          "get 1",
+          "get 2",
+          "get 3"
+        ]
+      },
+      "expected_output": [
+        7,
+        -1,
+        3
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "capacity": 1,
+        "ops": [
+          "put 4 3",
+          "get 4",
+          "put 4 9",
+          "put 3 6",
+          "get 4",
+          "put 3 3",
+          "get 1",
+          "put 2 6",
+          "put 4 6"
+        ]
+      },
+      "expected_output": [
+        3,
+        -1,
+        -1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "capacity": 2,
+        "ops": [
+          "get 4",
+          "put 3 8",
+          "put 3 0"
+        ]
+      },
+      "expected_output": [
+        -1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "capacity": 2,
+        "ops": [
+          "get 3",
+          "put 2 2",
+          "put 4 4"
+        ]
+      },
+      "expected_output": [
+        -1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "capacity": 3,
+        "ops": [
+          "get 4",
+          "get 3",
+          "get 2",
+          "get 3",
+          "put 4 9",
+          "put 1 2",
+          "get 1",
+          "put 3 3",
+          "get 2",
+          "put 2 4",
+          "put 2 2",
+          "get 3",
+          "get 2",
+          "put 1 6"
+        ]
+      },
+      "expected_output": [
+        -1,
+        -1,
+        -1,
+        -1,
+        2,
+        -1,
+        3,
+        2
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

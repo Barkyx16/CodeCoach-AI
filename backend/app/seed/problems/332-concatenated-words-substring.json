@@ -1,0 +1,162 @@
+{
+  "order": 332,
+  "slug": "concatenated-words-substring",
+  "title": "Substrings Made of All the Words",
+  "difficulty": "hard",
+  "topics": [
+    "strings",
+    "sliding-window",
+    "hash-maps"
+  ],
+  "summary": "Start indices where every word appears exactly once, back to back.",
+  "statement": "All strings in `words` have the same length. Return (ascending) every index of `s` where a substring starts\nthat is a concatenation of all the words in some order, each used exactly as many times as it appears in `words`.",
+  "constraints": [
+    "1 <= s.length <= 10^4",
+    "1 <= words.length <= 5000",
+    "1 <= words[i].length <= 30"
+  ],
+  "examples": [
+    {
+      "input": "s = \"barfoothefoobarman\", words = [\"foo\", \"bar\"]",
+      "output": "[0, 9]"
+    },
+    {
+      "input": "s = \"wordgoodgoodgoodbestword\", words = [\"word\", \"good\", \"best\", \"word\"]",
+      "output": "[]"
+    },
+    {
+      "input": "s = \"barfoofoobarthefoobarman\", words = [\"bar\", \"foo\", \"the\"]",
+      "output": "[6, 9, 12]"
+    }
+  ],
+  "signature": {
+    "method": "findSubstring",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      },
+      {
+        "name": "words",
+        "type": "String[]"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] findSubstring(String s, String[] words) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "The window length is fixed: `len(words) \u00d7 word length`.",
+    "Slide in steps of the word length, once for each starting offset `0..L-1`, keeping counts of words in the window.",
+    "need = Counter(words)\nfor offset in range(L):\n    left = offset; window = Counter()\n    for right in range(offset, n - L + 1, L):\n        w = s[right:right+L]\n        if w not in need: reset window, left = right + L; continue\n        add w; while window[w] > need[w]: remove s[left:left+L]; left += L\n        if right + L - left == total: record left\nreturn sorted(results)",
+    "Each offset's sliding window touches every word position once: O(n \u00d7 L) overall, versus O(n \u00d7 k \u00d7 L) checking every index."
+  ],
+  "expected_complexity": {
+    "time": "O(n L)",
+    "space": "O(k)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "barfoothefoobarman",
+        "words": [
+          "foo",
+          "bar"
+        ]
+      },
+      "expected_output": [
+        0,
+        9
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "wordgoodgoodgoodbestword",
+        "words": [
+          "word",
+          "good",
+          "best",
+          "word"
+        ]
+      },
+      "expected_output": [],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "barfoofoobarthefoobarman",
+        "words": [
+          "bar",
+          "foo",
+          "the"
+        ]
+      },
+      "expected_output": [
+        6,
+        9,
+        12
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "aaaa",
+        "words": [
+          "aa",
+          "aa"
+        ]
+      },
+      "expected_output": [
+        0
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "b",
+        "words": [
+          "bb"
+        ]
+      },
+      "expected_output": [],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bab",
+        "words": [
+          "bb",
+          "ba"
+        ]
+      },
+      "expected_output": [],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "aaabaaaabab",
+        "words": [
+          "ab"
+        ]
+      },
+      "expected_output": [
+        2,
+        7,
+        9
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bb",
+        "words": [
+          "aa",
+          "ab"
+        ]
+      },
+      "expected_output": [],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -1,0 +1,194 @@
+{
+  "order": 266,
+  "slug": "keys-and-rooms",
+  "title": "Visit Every Room",
+  "difficulty": "medium",
+  "topics": [
+    "graphs"
+  ],
+  "summary": "Rooms contain keys to other rooms. Can you open them all?",
+  "statement": "Room 0 is unlocked; every other room is locked. `rooms[i]` lists the keys found in room `i` (key `k`\nopens room `k`). Return `true` if you can visit every room.",
+  "constraints": [
+    "2 <= n <= 1000",
+    "0 <= keys <= n - 1"
+  ],
+  "examples": [
+    {
+      "input": "rooms = [[1], [2], [3], []]",
+      "output": "true"
+    },
+    {
+      "input": "rooms = [[1, 3], [3, 0, 1], [2], [0]]",
+      "output": "false"
+    },
+    {
+      "input": "rooms = [[1], []]",
+      "output": "true"
+    }
+  ],
+  "signature": {
+    "method": "canVisitAllRooms",
+    "params": [
+      {
+        "name": "rooms",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean canVisitAllRooms(int[][] rooms) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "Keys are directed edges from a room to the rooms they open.",
+    "Search from room 0 (DFS or BFS), following keys, and count the rooms you reach.",
+    "seen = {0}\nstack = [0]\nwhile stack:\n    for k in rooms[stack.pop()]:\n        if k not in seen: seen.add(k); stack.append(k)\nreturn len(seen) == n",
+    "A graph search over rooms and keys: O(n + total keys)."
+  ],
+  "expected_complexity": {
+    "time": "O(n + k)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "rooms": [
+          [
+            1
+          ],
+          [
+            2
+          ],
+          [
+            3
+          ],
+          []
+        ]
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "rooms": [
+          [
+            1,
+            3
+          ],
+          [
+            3,
+            0,
+            1
+          ],
+          [
+            2
+          ],
+          [
+            0
+          ]
+        ]
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "rooms": [
+          [
+            1
+          ],
+          []
+        ]
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "rooms": [
+          [],
+          [
+            5
+          ],
+          [],
+          [
+            0
+          ],
+          [
+            0,
+            4
+          ],
+          []
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "rooms": [
+          [
+            1
+          ],
+          [],
+          [
+            1,
+            0
+          ]
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "rooms": [
+          [
+            5
+          ],
+          [],
+          [
+            2
+          ],
+          [
+            5
+          ],
+          [
+            4
+          ],
+          [
+            5,
+            4
+          ]
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "rooms": [
+          [
+            5,
+            3
+          ],
+          [],
+          [
+            1
+          ],
+          [
+            2
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            3
+          ]
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

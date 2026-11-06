@@ -1,0 +1,118 @@
+{
+  "order": 247,
+  "slug": "longest-palindromic-substring",
+  "title": "Longest Palindromic Substring",
+  "difficulty": "medium",
+  "topics": [
+    "strings",
+    "two-pointers",
+    "dynamic-programming"
+  ],
+  "summary": "Find the longest substring that's a palindrome.",
+  "statement": "Return the longest palindromic substring of `s`. If several have the same maximum length, return the\none that starts earliest.",
+  "constraints": [
+    "1 <= s.length <= 1000",
+    "letters and digits"
+  ],
+  "examples": [
+    {
+      "input": "s = \"babad\"",
+      "output": "\"bab\""
+    },
+    {
+      "input": "s = \"cbbd\"",
+      "output": "\"bb\""
+    },
+    {
+      "input": "s = \"a\"",
+      "output": "\"a\""
+    }
+  ],
+  "signature": {
+    "method": "longestPalindrome",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String longestPalindrome(String s) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "Grow palindromes outward from their centers.",
+    "Try every center (each character and each gap), expand while the ends match, and keep the longest.",
+    "best = (0, 1)\nfor each center:\n    expand l, r while s[l] == s[r]\n    if longer than best (strictly): best = (l+1, r)\nreturn s[best]",
+    "O(n^2) time, O(1) space. Only replacing on a strictly longer palindrome, scanning centers left to right, keeps the earliest one on ties."
+  ],
+  "expected_complexity": {
+    "time": "O(n^2)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "babad"
+      },
+      "expected_output": "bab",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "cbbd"
+      },
+      "expected_output": "bb",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "a"
+      },
+      "expected_output": "a",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "forgeeksskeegfor"
+      },
+      "expected_output": "geeksskeeg",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "abcd"
+      },
+      "expected_output": "a",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bacababbaa"
+      },
+      "expected_output": "bacab",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "aacabbcaabbbc"
+      },
+      "expected_output": "aca",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "aaaaab"
+      },
+      "expected_output": "aaaaa",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "caabcabc"
+      },
+      "expected_output": "aa",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

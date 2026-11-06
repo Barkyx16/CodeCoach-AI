@@ -1,0 +1,123 @@
+{
+  "order": 210,
+  "slug": "remove-k-digits",
+  "title": "Remove K Digits",
+  "difficulty": "medium",
+  "topics": [
+    "stacks",
+    "greedy",
+    "strings"
+  ],
+  "summary": "Delete k digits to make the smallest possible number.",
+  "statement": "`num` is a non-negative integer as a string. Remove exactly `k` digits so the remaining number is\nas small as possible. Return it without leading zeros (return `\"0\"` if nothing is left).",
+  "constraints": [
+    "1 <= k <= num.length <= 10^5",
+    "num has no leading zeros except \"0\""
+  ],
+  "examples": [
+    {
+      "input": "num = \"1432219\", k = 3",
+      "output": "\"1219\""
+    },
+    {
+      "input": "num = \"10200\", k = 1",
+      "output": "\"200\""
+    },
+    {
+      "input": "num = \"10\", k = 2",
+      "output": "\"0\""
+    }
+  ],
+  "signature": {
+    "method": "removeKdigits",
+    "params": [
+      {
+        "name": "num",
+        "type": "String"
+      },
+      {
+        "name": "k",
+        "type": "int"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String removeKdigits(String num, int k) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "A smaller digit early on matters more than anything later.",
+    "Keep a stack of digits. While the new digit is smaller than the top and you can still remove, pop.",
+    "stack = []\nfor d in num:\n    while k and stack and stack[-1] > d: stack.pop(); k -= 1\n    stack.append(d)\ndrop k more from the end\nstrip leading zeros\nreturn result or '0'",
+    "Greedy with a monotonic stack: each digit is pushed and popped once, O(n). Leftover removals come off the end, where the digits are already non-decreasing."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "num": "1432219",
+        "k": 3
+      },
+      "expected_output": "1219",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "num": "10200",
+        "k": 1
+      },
+      "expected_output": "200",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "num": "10",
+        "k": 2
+      },
+      "expected_output": "0",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "num": "112",
+        "k": 1
+      },
+      "expected_output": "11",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "num": "4072378",
+        "k": 2
+      },
+      "expected_output": "2378",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "num": "2206864",
+        "k": 7
+      },
+      "expected_output": "0",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "num": "8469068",
+        "k": 4
+      },
+      "expected_output": "68",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "num": "1011290",
+        "k": 7
+      },
+      "expected_output": "0",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

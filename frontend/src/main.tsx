@@ -12,9 +12,37 @@ import "./styles/layout.css";
 import "./styles/features.css";
 import "./styles/landing.css";
 import "./styles/details.css";
+import "./styles/settings.css";
+import "./styles/careers.css";
+import "./styles/voice.css";
+import "./styles/progress.css";
+import "./styles/plan.css";
+import "./styles/targets.css";
+import "./styles/review.css";
+import "./styles/saved.css";
+import "./styles/learn.css";
+import "./styles/notes.css";
+import "./styles/scenarios.css";
+import "./styles/sharing.css";
+import "./styles/formats.css";
+import "./styles/onboarding.css";
+import "./styles/stories.css";
+import "./styles/applications.css";
+import "./styles/schedule.css";
+import "./styles/kit.css";
+import "./styles/whiteboard.css";
+import "./styles/drills.css";
+import "./styles/answer-review.css";
+import "./styles/reflections.css";
+import "./styles/restore.css";
+import "./styles/dashboard.css";
+import "./styles/theme.css";
+import { startAppShell } from "./pwa/appShell";
 
 const queryClient = makeQueryClient();
 const router = createRouter();
+
+startAppShell();
 
 createRoot(document.getElementById("root") as HTMLElement).render(
   <StrictMode>

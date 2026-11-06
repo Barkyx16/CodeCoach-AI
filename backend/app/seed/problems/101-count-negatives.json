@@ -1,0 +1,180 @@
+{
+  "order": 101,
+  "slug": "count-negatives",
+  "title": "Count Negative Numbers",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "counting"
+  ],
+  "summary": "Count how many values in an array are below zero.",
+  "statement": "Given an integer array `nums`, return how many of its values are strictly less than zero.\nZero is not negative.",
+  "constraints": [
+    "0 <= nums.length <= 10^4",
+    "-10^5 <= nums[i] <= 10^5"
+  ],
+  "examples": [
+    {
+      "input": "nums = [-1, 2, -3, 0]",
+      "output": "2"
+    },
+    {
+      "input": "nums = [5, 6]",
+      "output": "0"
+    },
+    {
+      "input": "nums = [0, 0]",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "countNegatives",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int countNegatives(int[] nums) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "You only need a counter and one look at each value.",
+    "Increase the counter whenever a value is `< 0` (not `<= 0`).",
+    "count = 0\nfor n in nums:\n    if n < 0: count += 1\nreturn count",
+    "A single scan is O(n) time and O(1) space. The only trap is zero: the problem says strictly less than zero, so `0` must not be counted."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          -1,
+          2,
+          -3,
+          0
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          5,
+          6
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          0
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          -7
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": []
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -16,
+          -8,
+          -3
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -1,
+          -15,
+          -7,
+          -12,
+          -20,
+          2,
+          -2,
+          12,
+          -18,
+          -4,
+          -19,
+          -14,
+          5,
+          -17,
+          -8,
+          -8,
+          0,
+          -14,
+          -18
+        ]
+      },
+      "expected_output": 15,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          6,
+          4,
+          15,
+          -11,
+          -4,
+          5,
+          0,
+          14,
+          1,
+          20,
+          -14,
+          -3,
+          -6
+        ]
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -14,
+          18,
+          19,
+          -8,
+          -8,
+          19,
+          1,
+          -10,
+          -8,
+          17
+        ]
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

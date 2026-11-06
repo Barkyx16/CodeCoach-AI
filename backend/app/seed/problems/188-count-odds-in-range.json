@@ -1,0 +1,120 @@
+{
+  "order": 188,
+  "slug": "count-odds-in-range",
+  "title": "Count Odd Numbers in a Range",
+  "difficulty": "easy",
+  "topics": [
+    "math"
+  ],
+  "summary": "How many odd numbers lie between low and high?",
+  "statement": "Return how many odd numbers are in the inclusive range `[low, high]`.",
+  "constraints": [
+    "0 <= low <= high <= 10^9"
+  ],
+  "examples": [
+    {
+      "input": "low = 3, high = 7",
+      "output": "3"
+    },
+    {
+      "input": "low = 8, high = 10",
+      "output": "1"
+    },
+    {
+      "input": "low = 0, high = 0",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "countOdds",
+    "params": [
+      {
+        "name": "low",
+        "type": "int"
+      },
+      {
+        "name": "high",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int countOdds(int low, int high) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Looping over a range of a billion numbers is too slow. Count with arithmetic.",
+    "The number of odd values in `[0, x]` is `(x + 1) / 2`.",
+    "return (high + 1) // 2 - low // 2",
+    "Odds up to `high` minus odds below `low`: O(1)."
+  ],
+  "expected_complexity": {
+    "time": "O(1)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "low": 3,
+        "high": 7
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "low": 8,
+        "high": 10
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "low": 0,
+        "high": 0
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "low": 0,
+        "high": 1000000000
+      },
+      "expected_output": 500000000,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "low": 572008,
+        "high": 572049
+      },
+      "expected_output": 21,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "low": 634792,
+        "high": 635185
+      },
+      "expected_output": 197,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "low": 385996,
+        "high": 386049
+      },
+      "expected_output": 27,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "low": 426620,
+        "high": 426703
+      },
+      "expected_output": 42,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

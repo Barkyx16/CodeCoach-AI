@@ -1,0 +1,111 @@
+{
+  "order": 348,
+  "slug": "unique-chars-all-substrings",
+  "title": "Sum of Unique Characters Over All Substrings",
+  "difficulty": "hard",
+  "topics": [
+    "strings",
+    "dynamic-programming",
+    "math"
+  ],
+  "summary": "Add up, for every substring, how many characters appear exactly once in it.",
+  "statement": "For a string `t`, let `unique(t)` be the number of characters that appear exactly once in `t`. Return the sum of\n`unique(t)` over every substring `t` of `s` (substrings at different positions count separately).",
+  "constraints": [
+    "1 <= s.length <= 10^5",
+    "upper-case letters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"ABC\"",
+      "output": "10"
+    },
+    {
+      "input": "s = \"ABA\"",
+      "output": "8"
+    },
+    {
+      "input": "s = \"LEETCODE\"",
+      "output": "92"
+    }
+  ],
+  "signature": {
+    "method": "uniqueLetterString",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int uniqueLetterString(String s) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Turn it around: for each position, in how many substrings is that character the only copy of itself?",
+    "If the previous same letter is at `prev` and the next at `next`, position `i` is unique in `(i - prev) \u00d7 (next - i)` substrings.",
+    "for each letter c: positions p1 < p2 < ... (pad with -1 and n)\ntotal = sum((p[k] - p[k-1]) * (p[k+1] - p[k]) for each real position)\nreturn total",
+    "Counting contributions per position gives O(n) instead of O(n^2) substrings. The answer fits in an int for n \u2264 10^5 with 26 letters."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "ABC"
+      },
+      "expected_output": 10,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "ABA"
+      },
+      "expected_output": 8,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "LEETCODE"
+      },
+      "expected_output": 92,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "Z"
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "BACAACCAACB"
+      },
+      "expected_output": 56,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "ACAAAAB"
+      },
+      "expected_output": 27,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "CBABABCCB"
+      },
+      "expected_output": 47,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "BACAAACBA"
+      },
+      "expected_output": 58,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

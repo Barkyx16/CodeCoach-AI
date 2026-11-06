@@ -1,0 +1,131 @@
+{
+  "order": 335,
+  "slug": "super-egg-drop",
+  "title": "Egg Drop With K Eggs",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "math",
+    "binary-search"
+  ],
+  "summary": "Fewest drops to find the critical floor with k eggs.",
+  "statement": "You have `k` identical eggs and a building with floors `1..n`. There's an unknown floor `f` (0 \u2264 f \u2264 n):\neggs dropped above it break, eggs dropped at or below it don't. A broken egg can't be reused. Return the\nminimum number of drops that guarantees you find `f`.",
+  "constraints": [
+    "1 <= k <= 100",
+    "1 <= n <= 10^4"
+  ],
+  "examples": [
+    {
+      "input": "k = 1, n = 2",
+      "output": "2"
+    },
+    {
+      "input": "k = 2, n = 6",
+      "output": "3"
+    },
+    {
+      "input": "k = 3, n = 14",
+      "output": "4"
+    }
+  ],
+  "signature": {
+    "method": "superEggDrop",
+    "params": [
+      {
+        "name": "k",
+        "type": "int"
+      },
+      {
+        "name": "n",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int superEggDrop(int k, int n) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Flip the question: with `m` drops and `k` eggs, how many floors can you fully check?",
+    "floors(m, k) = floors(m-1, k-1) + floors(m-1, k) + 1: one drop, then either the egg breaks (search below) or not (search above).",
+    "floors = [0]*(k+1)\nm = 0\nwhile floors[k] < n:\n    m += 1\n    for j from k down to 1: floors[j] = floors[j-1] + floors[j] + 1\nreturn m",
+    "This runs O(k \u00d7 answer) steps, and the answer is at most n (with 1 egg) and much smaller otherwise. The direct DP over (eggs, floors) is O(k n^2) or O(k n log n)."
+  ],
+  "expected_complexity": {
+    "time": "O(k log n)",
+    "space": "O(k)"
+  },
+  "tests": [
+    {
+      "input": {
+        "k": 1,
+        "n": 2
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "k": 2,
+        "n": 6
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "k": 3,
+        "n": 14
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "k": 2,
+        "n": 100
+      },
+      "expected_output": 14,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "k": 1,
+        "n": 1
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "k": 2,
+        "n": 75
+      },
+      "expected_output": 12,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "k": 1,
+        "n": 53
+      },
+      "expected_output": 53,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "k": 3,
+        "n": 11
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "k": 3,
+        "n": 61
+      },
+      "expected_output": 7,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

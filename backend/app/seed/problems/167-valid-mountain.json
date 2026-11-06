@@ -1,0 +1,160 @@
+{
+  "order": 167,
+  "slug": "valid-mountain",
+  "title": "Valid Mountain Array",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "two-pointers"
+  ],
+  "summary": "Does an array strictly rise and then strictly fall?",
+  "statement": "Return `true` if `nums` has length at least 3 and strictly increases up to some peak (not the\nfirst or last element) and then strictly decreases.",
+  "constraints": [
+    "1 <= nums.length <= 10^4"
+  ],
+  "examples": [
+    {
+      "input": "nums = [2, 1]",
+      "output": "false"
+    },
+    {
+      "input": "nums = [3, 5, 5]",
+      "output": "false"
+    },
+    {
+      "input": "nums = [0, 3, 2, 1]",
+      "output": "true"
+    }
+  ],
+  "signature": {
+    "method": "validMountainArray",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean validMountainArray(int[] nums) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "Walk up as far as you can, then walk down as far as you can.",
+    "It's a mountain if the peak isn't at either end and the walk down reaches the last index.",
+    "i = 0\nwhile i+1 < n and nums[i] < nums[i+1]: i += 1\nif i == 0 or i == n-1: return false\nwhile i+1 < n and nums[i] > nums[i+1]: i += 1\nreturn i == n-1",
+    "One climb and one descent: O(n). Flat steps stop both walks, which correctly rejects plateaus."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          2,
+          1
+        ]
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          5,
+          5
+        ]
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          3,
+          2,
+          1
+        ]
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          2,
+          1
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          3,
+          0,
+          5,
+          2,
+          4
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          4
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          4,
+          4,
+          3,
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          4,
+          4,
+          1,
+          0
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

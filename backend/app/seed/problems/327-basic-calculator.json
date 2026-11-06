@@ -1,0 +1,118 @@
+{
+  "order": 327,
+  "slug": "basic-calculator",
+  "title": "Basic Calculator",
+  "difficulty": "hard",
+  "topics": [
+    "stacks",
+    "strings",
+    "math"
+  ],
+  "summary": "Evaluate an expression with +, -, parentheses and spaces.",
+  "statement": "Evaluate the expression `s`, which contains non-negative integers, `+`, `-`, parentheses and spaces.\nA `-` may also be unary (`-(2 + 3)` or `-4`). Don't use built-in expression evaluators. The result fits in an int.",
+  "constraints": [
+    "1 <= s.length <= 3 * 10^5",
+    "s is a valid expression"
+  ],
+  "examples": [
+    {
+      "input": "s = \"1 + 1\"",
+      "output": "2"
+    },
+    {
+      "input": "s = \" 2-1 + 2 \"",
+      "output": "3"
+    },
+    {
+      "input": "s = \"(1+(4+5+2)-3)+(6+8)\"",
+      "output": "23"
+    }
+  ],
+  "signature": {
+    "method": "calculate",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int calculate(String s) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Without parentheses, you'd just keep a running result and the sign of the next number.",
+    "On `(`, push the current result and sign, and start fresh. On `)`, finish the inner result and combine it with what you pushed.",
+    "result, sign, num = 0, 1, 0\nstack = []\nfor c in s:\n    if digit: num = num*10 + c\n    elif c in '+-': result += sign*num; num = 0; sign = 1 if c == '+' else -1\n    elif c == '(': stack.push(result, sign); result, sign = 0, 1\n    elif c == ')': result += sign*num; num = 0; result = stack.popSign()*result + stack.popResult()\nreturn result + sign*num",
+    "One pass with a stack of saved (result, sign) pairs: O(n). Treating `-` as \"sign = -1\" handles unary minus for free."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "1 + 1"
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": " 2-1 + 2 "
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "(1+(4+5+2)-3)+(6+8)"
+      },
+      "expected_output": 23,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "-(2 + 3)"
+      },
+      "expected_output": -5,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "- (3 - (4 + 5))"
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "2147483647"
+      },
+      "expected_output": 2147483647,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "-1+2-(3+(4-5))"
+      },
+      "expected_output": -1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "1-(2-(3-4))"
+      },
+      "expected_output": -2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "10 - (5 + 2) + -(1)"
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

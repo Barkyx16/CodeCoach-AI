@@ -1,0 +1,193 @@
+{
+  "order": 343,
+  "slug": "min-refuel-stops",
+  "title": "Fewest Refueling Stops",
+  "difficulty": "hard",
+  "topics": [
+    "heaps",
+    "greedy",
+    "dynamic-programming"
+  ],
+  "summary": "Fewest gas stations needed to reach a destination.",
+  "statement": "A car drives east toward `target` miles away, starting with `startFuel` liters and using one liter per mile.\n`stations[i] = [position, fuel]` (sorted by position). At a station you may take all its fuel. Return the\nfewest stops needed to reach the target, or `-1` if impossible.",
+  "constraints": [
+    "1 <= target, startFuel <= 10^9",
+    "0 <= stations.length <= 500",
+    "0 < position < target, sorted ascending"
+  ],
+  "examples": [
+    {
+      "input": "target = 1, startFuel = 1, stations = []",
+      "output": "0"
+    },
+    {
+      "input": "target = 100, startFuel = 1, stations = [[10, 100]]",
+      "output": "-1"
+    },
+    {
+      "input": "target = 100, startFuel = 10, stations = [[10, 60], [20, 30], [30, 30], [60, 40]]",
+      "output": "2"
+    }
+  ],
+  "signature": {
+    "method": "minRefuelStops",
+    "params": [
+      {
+        "name": "target",
+        "type": "int"
+      },
+      {
+        "name": "startFuel",
+        "type": "int"
+      },
+      {
+        "name": "stations",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int minRefuelStops(int target, int startFuel, int[][] stations) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Drive as far as you can; only stop when you have to, and then use the best station you already passed.",
+    "Keep a max-heap of fuel from stations you've passed. When you can't reach the next point, refuel from the biggest passed station.",
+    "heap = []; fuel = startFuel; stops = 0\nfor pos, gas in stations + [(target, 0)]:\n    while fuel < pos:\n        if heap empty: return -1\n        fuel += pop max; stops += 1\n    push gas\nreturn stops",
+    "Deciding retroactively which stations to use is the greedy trick: O(n log n)."
+  ],
+  "expected_complexity": {
+    "time": "O(n log n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "target": 1,
+        "startFuel": 1,
+        "stations": []
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "target": 100,
+        "startFuel": 1,
+        "stations": [
+          [
+            10,
+            100
+          ]
+        ]
+      },
+      "expected_output": -1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "target": 100,
+        "startFuel": 10,
+        "stations": [
+          [
+            10,
+            60
+          ],
+          [
+            20,
+            30
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            60,
+            40
+          ]
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "target": 6,
+        "startFuel": 14,
+        "stations": [
+          [
+            3,
+            7
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            5,
+            4
+          ]
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "target": 6,
+        "startFuel": 8,
+        "stations": [
+          [
+            3,
+            4
+          ],
+          [
+            4,
+            5
+          ]
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "target": 29,
+        "startFuel": 1,
+        "stations": [
+          [
+            4,
+            9
+          ],
+          [
+            15,
+            4
+          ],
+          [
+            28,
+            9
+          ]
+        ]
+      },
+      "expected_output": -1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "target": 30,
+        "startFuel": 6,
+        "stations": [
+          [
+            7,
+            9
+          ],
+          [
+            13,
+            2
+          ]
+        ]
+      },
+      "expected_output": -1,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -1,25 +1,21 @@
 import { useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigationType } from "react-router-dom";
 
-const TITLES: Record<string, string> = {
-  "/": "Java interview practice", "/login": "Sign in", "/register": "Create account",
-  "/problems": "Problem library", "/dashboard": "Dashboard", "/analytics": "Analytics",
-  "/history": "History", "/settings": "Settings", "/interviews": "Mock interviews",
-};
+import { routeTitle } from "./routeTitles";
 
 /** Give route changes a useful browser title and a predictable keyboard starting point. */
 export function RouteAccessibility() {
   const { pathname } = useLocation();
+  const navigationType = useNavigationType();
   const previous = useRef(pathname);
   useEffect(() => {
-    const title = TITLES[pathname] ?? (pathname.startsWith("/problems/") ? "Coding workspace"
-      : pathname.startsWith("/interviews/") ? "Mock interview" : "Page not found");
-    document.title = `${title} | CodeCoach AI`;
+    document.title = `${routeTitle(pathname)} | CodeCoach AI`;
     if (previous.current !== pathname) {
       document.getElementById("main")?.focus({ preventScroll: true });
-      window.scrollTo({ top: 0, behavior: "instant" });
+      // New pages start at the top; Back/Forward (POP) keep the position <ScrollRestoration> restores.
+      if (navigationType !== "POP") window.scrollTo({ top: 0, behavior: "instant" });
       previous.current = pathname;
     }
-  }, [pathname]);
+  }, [pathname, navigationType]);
   return null;
 }

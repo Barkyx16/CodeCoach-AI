@@ -6,7 +6,7 @@ import { API, server } from "../server";
 
 it("moves focus to the content and updates the title after route navigation", async () => {
   const { user } = renderApp("/", { signedIn: true });
-  await user.click(screen.getByRole("link", { name: "Analytics" }));
+  await user.click(await screen.findByRole("link", { name: "Analytics" })); // after the session restores
   expect(await screen.findByRole("heading", { name: "Analytics" })).toBeInTheDocument();
   expect(document.getElementById("main")).toHaveFocus();
   expect(document.title).toBe("Analytics | CodeCoach AI");
@@ -29,7 +29,7 @@ it("supports arrow, Home and End navigation through the product tour", async () 
 
 it("dismisses navigation with Escape and returns focus to its toggle", async () => {
   const { user } = renderApp("/", { signedIn: true });
-  const toggle = screen.getByRole("button", { name: "Open navigation" });
+  const toggle = screen.getByRole("button", { name: "Menu" });
   await user.click(toggle);
   expect(toggle).toHaveAttribute("aria-expanded", "true");
   await user.keyboard("{Escape}");

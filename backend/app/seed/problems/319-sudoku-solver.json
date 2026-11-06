@@ -1,0 +1,185 @@
+{
+  "order": 319,
+  "slug": "sudoku-solver",
+  "title": "Sudoku Solver",
+  "difficulty": "hard",
+  "topics": [
+    "backtracking",
+    "matrix"
+  ],
+  "summary": "Fill in a Sudoku puzzle.",
+  "statement": "`board` is 9 strings of 9 characters (`1-9` or `.` for empty). Fill the empty cells so every row, column and\n3\u00d73 box contains the digits 1-9 exactly once. The puzzle has exactly one solution. Return the solved board.",
+  "constraints": [
+    "board is 9 x 9",
+    "exactly one solution"
+  ],
+  "examples": [
+    {
+      "input": "board = [\"53..7....\", \"6..195...\", \".98....6.\", \"8...6...3\", \"4..8.3..1\", \"7...2...6\", \".6....28.\", \"...419..5\", \"....8..79\"]",
+      "output": "[\"534678912\", \"672195348\", \"198342567\", \"859761423\", \"426853791\", \"713924856\", \"961537284\", \"287419635\", \"345286179\"]"
+    },
+    {
+      "input": "board = [\"..9748...\", \"7........\", \".2.1.9...\", \"..7...24.\", \".64.1.59.\", \".98...3..\", \"...8.3.2.\", \"........6\", \"...2759..\"]",
+      "output": "[\"519748632\", \"783652419\", \"426139875\", \"357986241\", \"264317598\", \"198524367\", \"975863124\", \"832491756\", \"641275983\"]"
+    }
+  ],
+  "signature": {
+    "method": "solveSudoku",
+    "params": [
+      {
+        "name": "board",
+        "type": "String[]"
+      }
+    ],
+    "returns": "String[]"
+  },
+  "starter_code": "class Solution {\n    public String[] solveSudoku(String[] board) {\n        // TODO: write your solution here\n        return new String[0];\n    }\n}\n",
+  "hints": [
+    "Fill one empty cell at a time, and undo when you hit a dead end.",
+    "Backtracking: for the next empty cell, try each digit not already in its row, column or box.",
+    "def solve():\n    find an empty cell (best: the one with the fewest options)\n    if none: return true\n    for d in options: place d; if solve(): return true; remove d\n    return false",
+    "Tracking used digits per row/column/box makes each check O(1). Picking the most constrained cell first prunes the search dramatically."
+  ],
+  "expected_complexity": {
+    "time": "O(9^empty) worst case",
+    "space": "O(81)"
+  },
+  "tests": [
+    {
+      "input": {
+        "board": [
+          "53..7....",
+          "6..195...",
+          ".98....6.",
+          "8...6...3",
+          "4..8.3..1",
+          "7...2...6",
+          ".6....28.",
+          "...419..5",
+          "....8..79"
+        ]
+      },
+      "expected_output": [
+        "534678912",
+        "672195348",
+        "198342567",
+        "859761423",
+        "426853791",
+        "713924856",
+        "961537284",
+        "287419635",
+        "345286179"
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "board": [
+          "..9748...",
+          "7........",
+          ".2.1.9...",
+          "..7...24.",
+          ".64.1.59.",
+          ".98...3..",
+          "...8.3.2.",
+          "........6",
+          "...2759.."
+        ]
+      },
+      "expected_output": [
+        "519748632",
+        "783652419",
+        "426139875",
+        "357986241",
+        "264317598",
+        "198524367",
+        "975863124",
+        "832491756",
+        "641275983"
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "board": [
+          "8........",
+          "..36.....",
+          ".7..9.2..",
+          ".5...7...",
+          "....457..",
+          "...1...3.",
+          "..1....68",
+          "..85...1.",
+          ".9....4.."
+        ]
+      },
+      "expected_output": [
+        "812753649",
+        "943682175",
+        "675491283",
+        "154237896",
+        "369845721",
+        "287169534",
+        "521974368",
+        "438526917",
+        "796318452"
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "board": [
+          "534678912",
+          "672195348",
+          "198342567",
+          "859761423",
+          "426853791",
+          "713924856",
+          "961537284",
+          "287419635",
+          "34528617."
+        ]
+      },
+      "expected_output": [
+        "534678912",
+        "672195348",
+        "198342567",
+        "859761423",
+        "426853791",
+        "713924856",
+        "961537284",
+        "287419635",
+        "345286179"
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "board": [
+          "5.4678..2",
+          "67..953.8",
+          "1.83.25.7",
+          "8.97.14.3",
+          "42.853.91",
+          "7.392.85.",
+          "96.53.2.4",
+          "2.741.635",
+          "34.28.179"
+        ]
+      },
+      "expected_output": [
+        "534678912",
+        "672195348",
+        "198342567",
+        "859761423",
+        "426853791",
+        "713924856",
+        "961537284",
+        "287419635",
+        "345286179"
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

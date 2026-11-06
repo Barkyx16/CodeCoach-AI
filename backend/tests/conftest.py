@@ -21,6 +21,16 @@ from app.main import create_app
 TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
 
 
+@pytest.fixture(autouse=True)
+def _fresh_content_state() -> Iterator[None]:
+    """Corrections and retirements are cached per process; never let one test's leak into the next."""
+    from app.content import state as content_state
+
+    content_state.invalidate()
+    yield
+    content_state.invalidate()
+
+
 @pytest.fixture
 def database_url(tmp_path) -> Iterator[str]:
     if TEST_DATABASE_URL:
@@ -30,6 +40,20 @@ def database_url(tmp_path) -> Iterator[str]:
         yield TEST_DATABASE_URL
     else:
         yield f"sqlite:///{tmp_path / 'test.db'}"
+
+
+# A production configuration that passes every startup guard (synthetic values only). Tests of
+# one guard start from this and change one thing.
+PRODUCTION_BASE: dict = {
+    "environment": "production",
+    "secret_key": "Zq7vR2mK9pX4tL8wN3cJ6hB1yF5dG0sA-uE_iO2kM7nQ",
+    "database_url": "postgresql+psycopg://app:Tq83-unique-db-password@db.internal:5432/codecoach",
+    "cors_origins": ["https://app.example"],
+    "email_backend": "smtp",
+    "smtp_host": "smtp.example.com",
+    "app_base_url": "https://app.example",
+    "metrics_token": "metrics-synthetic-scrape-token-0123456789abcdef",
+}
 
 
 @pytest.fixture
@@ -43,6 +67,9 @@ def make_settings(database_url) -> Callable[..., Settings]:
             ai_daily_request_limit=50,
             auth_rate_limit_per_minute=1000,
             metrics_enabled=True,
+            # The jobs thread is tested on its own (test_background_jobs.py); here it would only
+            # add timing noise. Emails still get their first attempt right after the response.
+            background_jobs_in_api=False,
             _env_file=None,
         )
         base.update(overrides)
@@ -77,10 +104,12 @@ def register(
     email: str = "ada@example.com",
     password: str = "CorrectHorse42",
     display_name: str | None = "Ada",
+    career_track: str | None = None,
 ) -> dict:
-    r = client.post(
-        "/api/v1/auth/register", json={"email": email, "password": password, "display_name": display_name}
-    )
+    body = {"email": email, "password": password, "display_name": display_name}
+    if career_track:
+        body["career_track"] = career_track
+    r = client.post("/api/v1/auth/register", json=body)
     assert r.status_code == 201, r.text
     return r.json()
 
@@ -92,3 +121,20 @@ def auth_headers(token_response: dict) -> dict:
 @pytest.fixture
 def user_headers(client) -> dict:
     return auth_headers(register(client))
+
+
+@pytest.fixture
+def judged(make_client):
+    """App with execution enabled + a worker bound to a fake runner (see tests/judge_fakes.py)."""
+    from app.worker import JudgeWorker
+    from tests.judge_fakes import TOKEN, FakeRunner
+
+    def _make(script, **settings):
+        c = make_client(execution_enabled=True, runner_token=TOKEN, **settings)
+        c.app.state.execution_health.probe = lambda: True  # the fake runner is "up"
+        runner = FakeRunner(script)
+        worker = JudgeWorker(c.app.state.session_factory, runner, c.app.state.settings)
+        headers = auth_headers(register(c))
+        return c, runner, worker, headers
+
+    return _make

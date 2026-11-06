@@ -1,0 +1,111 @@
+{
+  "order": 328,
+  "slug": "calculator-with-precedence",
+  "title": "Calculator With Precedence",
+  "difficulty": "hard",
+  "topics": [
+    "stacks",
+    "recursion",
+    "strings"
+  ],
+  "summary": "Evaluate +, -, *, / with parentheses and the usual precedence.",
+  "statement": "Evaluate `s`, which contains non-negative integers, `+ - * /`, parentheses and spaces. `*` and `/` bind\ntighter than `+` and `-`; division truncates toward zero. No unary operators. Results fit in an int.",
+  "constraints": [
+    "1 <= s.length <= 10^4",
+    "s is a valid expression, no division by zero"
+  ],
+  "examples": [
+    {
+      "input": "s = \"3+2*2\"",
+      "output": "7"
+    },
+    {
+      "input": "s = \" 3/2 \"",
+      "output": "1"
+    },
+    {
+      "input": "s = \"2*(5+5*2)/3+(6/2+8)\"",
+      "output": "21"
+    }
+  ],
+  "signature": {
+    "method": "calculatePrecedence",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int calculatePrecedence(String s) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Handle one parentheses level at a time; inside a level, `*` and `/` apply immediately, `+` and `-` wait.",
+    "Recursive descent: `expression := term (('+' | '-') term)*`, `term := factor (('*' | '/') factor)*`, `factor := number | '(' expression ')'`.",
+    "def expr(): v = term(); while next is + or -: v = v \u00b1 term(); return v\ndef term(): v = factor(); while next is * or /: v = v */ factor(); return v\ndef factor(): if '(' : v = expr(); expect ')'; return v\n           else: return number",
+    "Each character is consumed once: O(n). The grammar encodes precedence, so no operator tables are needed."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(depth)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "3+2*2"
+      },
+      "expected_output": 7,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": " 3/2 "
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "2*(5+5*2)/3+(6/2+8)"
+      },
+      "expected_output": 21,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "(2+6*3+5-(3*14/7+2)*5)+3"
+      },
+      "expected_output": -12,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "14-3/2"
+      },
+      "expected_output": 13,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "7-(3*(2+1))/2"
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "1+2*3-4/2"
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "((8/3)*3)-1"
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

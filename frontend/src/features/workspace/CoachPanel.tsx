@@ -7,6 +7,7 @@ import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { InlineError } from "@/components/States";
 import { Tabs } from "@/components/Tabs";
+import { FallbackNotice } from "@/components/FallbackNotice";
 
 const LEVELS: { level: HintLevel; name: string; blurb: string }[] = [
   { level: 1, name: "Nudge", blurb: "A question that points you in the right direction" },
@@ -93,6 +94,7 @@ function HintLadder({ problemSlug, maxLevel, code }: { problemSlug: string; maxL
       {hints.length === 0 && !history.isPending && (
         <p className="muted">Stuck? Hints unlock one level at a time, so you only see as much as you need.</p>
       )}
+      <FallbackNotice provider={fresh.find((f) => f.provider.includes("fallback"))?.provider} />
       <ol className="hint-list">
         {hints.map((h) => (
           <li key={h.level} className="hint">
@@ -203,7 +205,8 @@ export function ReviewResult({ data, onHighlightLine }: { data: ReviewResponse; 
       )}
 
       <div className="banner banner--success"><strong>Next step:</strong> {r.next_step}</div>
-      <p className="subtle">{data.disclaimer}{data.provider.includes("fallback") ? " (Answered by the offline coach.)" : ""}</p>
+      <FallbackNotice provider={data.provider} />
+      <p className="subtle">{data.disclaimer}</p>
     </div>
   );
 }

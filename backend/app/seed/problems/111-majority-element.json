@@ -1,0 +1,178 @@
+{
+  "order": 111,
+  "slug": "majority-element",
+  "title": "Majority Element",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "counting"
+  ],
+  "summary": "Find the value that appears more than half the time.",
+  "statement": "Return the value that appears more than `n / 2` times in `nums`. Such a value is guaranteed to exist.",
+  "constraints": [
+    "1 <= nums.length <= 5 * 10^4",
+    "A majority value always exists"
+  ],
+  "examples": [
+    {
+      "input": "nums = [3, 2, 3]",
+      "output": "3"
+    },
+    {
+      "input": "nums = [2, 2, 1, 1, 1, 2, 2]",
+      "output": "2"
+    },
+    {
+      "input": "nums = [5]",
+      "output": "5"
+    }
+  ],
+  "signature": {
+    "method": "majorityElement",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int majorityElement(int[] nums) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Counting with a hash map works. Can you do it with O(1) memory?",
+    "Boyer-Moore voting: keep a candidate and a count; matching values add a vote, others remove one.",
+    "candidate, count = None, 0\nfor n in nums:\n    if count == 0: candidate = n\n    count += 1 if n == candidate else -1\nreturn candidate",
+    "Each non-majority value can cancel at most one majority vote, and the majority has more than half the votes, so it survives. O(n) time, O(1) space."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          3,
+          2,
+          3
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          2,
+          1,
+          1,
+          1,
+          2,
+          2
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          5
+        ]
+      },
+      "expected_output": 5,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          9,
+          9
+        ]
+      },
+      "expected_output": 9,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -1,
+          -1,
+          -1,
+          4
+        ]
+      },
+      "expected_output": -1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -8,
+          3,
+          3
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          6,
+          3,
+          3,
+          -9,
+          -1,
+          3,
+          3,
+          -1,
+          3
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -8,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          0,
+          7,
+          7,
+          9
+        ]
+      },
+      "expected_output": 9,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -6,
+          3,
+          3,
+          3,
+          3,
+          9,
+          3,
+          0,
+          3,
+          5,
+          3
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -2,7 +2,11 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, vi } from "vitest";
 
-import { server } from "./server";
+import { resetExploreStore } from "./explore";
+import { resetLearnStore } from "./learn";
+import { resetNoteStore } from "./notes";
+import { resetScenarioStore } from "./scenarios";
+import { cookieJar, server } from "./server";
 
 // Monaco needs a real browser; in jsdom we swap it for a textarea with the same contract.
 vi.mock("@monaco-editor/react", async () => {
@@ -17,7 +21,10 @@ vi.mock("@monaco-editor/react", async () => {
     loader: { config: () => undefined },
   };
 });
-vi.mock("@/features/workspace/monacoSetup", () => ({ monaco: {} }));
+vi.mock("@/features/workspace/monacoSetup", () => ({
+  monaco: {},
+  TabFocus: { getTabFocusMode: () => false, setTabFocusMode: () => undefined, onDidChangeTabFocus: () => ({ dispose: () => undefined }) },
+}));
 
 // jsdom lacks layout APIs that the resizable panel library relies on.
 class ResizeObserverStub {
@@ -32,5 +39,13 @@ afterEach(() => {
   server.resetHandlers();
   cleanup();
   window.localStorage.clear();
+  window.sessionStorage.clear(); // e.g. an unfinished refresh attempt key
+  // Display preferences and focus mode live on <html>, which outlives each test's render.
+  for (const name of ["data-theme", "data-text", "data-spacing", "data-motion", "data-contrast", "data-focus"]) document.documentElement.removeAttribute(name);
+  cookieJar.hasSession = false;
+  resetExploreStore();
+  resetLearnStore();
+  resetNoteStore();
+  resetScenarioStore();
 });
 afterAll(() => server.close());

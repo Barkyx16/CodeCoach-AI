@@ -1,0 +1,130 @@
+{
+  "order": 151,
+  "slug": "backspace-compare",
+  "title": "Compare With Backspaces",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "stacks"
+  ],
+  "summary": "Do two typed strings match after applying backspaces?",
+  "statement": "In `s` and `t`, the character `#` means backspace (delete the previous character, if any).\nReturn `true` if both strings are equal after typing them out.",
+  "constraints": [
+    "1 <= s.length, t.length <= 200",
+    "lower-case letters and '#'"
+  ],
+  "examples": [
+    {
+      "input": "s = \"ab#c\", t = \"ad#c\"",
+      "output": "true"
+    },
+    {
+      "input": "s = \"ab##\", t = \"c#d#\"",
+      "output": "true"
+    },
+    {
+      "input": "s = \"a#c\", t = \"b\"",
+      "output": "false"
+    }
+  ],
+  "signature": {
+    "method": "backspaceCompare",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      },
+      {
+        "name": "t",
+        "type": "String"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean backspaceCompare(String s, String t) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "Simulate typing each string.",
+    "A stack (or StringBuilder) works: push letters, pop on `#` if not empty.",
+    "def typed(x):\n    out = []\n    for c in x:\n        if c == '#': out.pop() if out else None\n        else: out.append(c)\n    return out\nreturn typed(s) == typed(t)",
+    "Simulating is O(n + m). For O(1) space, walk both strings from the end, skipping characters that later backspaces delete."
+  ],
+  "expected_complexity": {
+    "time": "O(n + m)",
+    "space": "O(n + m)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "ab#c",
+        "t": "ad#c"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "ab##",
+        "t": "c#d#"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "a#c",
+        "t": "b"
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "###",
+        "t": "#"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "a##c",
+        "t": "#a#c"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "a",
+        "t": "aaba"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "#bab",
+        "t": "ab"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "a#b",
+        "t": "b"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bb#babb",
+        "t": "aba##"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

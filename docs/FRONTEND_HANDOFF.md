@@ -87,9 +87,10 @@ the input).
   password) · rate-limited ("Too many attempts…").
 - Both pages offer **Continue as guest**.
 
-### 3.3 Problem library — `/problems` (`features/problems/ProblemListPage.tsx`) · `04-library-filtered.png`
+### 3.3 Problem library — `/problems` (`features/problems/ProblemListPage.tsx`) · `04-library-filtered.png`, `22-library-compact.png`
 Search box, difficulty select, topic chips (toggle, with counts), a problem list, pagination,
-and a *Recommended for you* sidebar when signed in.
+and a sidebar: *Your progress* (count + bar), *Recommended for you* (signed in) and a mock
+interview prompt.
 - Each row: status icon (✓ solved · ◐ attempted · • in progress · blank), title, one-line
   summary, up to 2 topic tags, difficulty badge.
 - States: loading · error with retry · empty ("No problems match" + Clear filters) ·
@@ -103,25 +104,34 @@ Mobile (≤ 900px): tabs **Problem | Code | Coach**.
 | Region | Contents | States to design |
 |---|---|---|
 | Statement | Title, difficulty, topics, Markdown body, examples, constraints, method signature, public tests, hidden-test count | loading, not found |
-| Editor toolbar | "Java", save status (*Draft saved* / *Saving…* / *Unsaved changes*), Reset, **Submit** | submitting |
+| Editor toolbar | "Java", save status (*Draft saved* / *Saving…* / *Unsaved changes*), Reset, **Run** (public tests only; shown only when `GET /capabilities` says execution is enabled; Ctrl/⌘ + ') and **Submit** | submitting · running |
 | Editor | Monaco. Lines flagged by a review get `.editor-line--flagged` and `.editor-glyph--flagged` | flagged line |
-| Results | Empty hint (shows the Ctrl/⌘+Enter shortcut) · status badge + spinner while judging ("Waiting for a judge…", "Running your code against the tests…") · verdict sentence · "x/y tests passed", "hidden: a/b", runtime · per-public-test rows ✓/✗ with expected vs. actual, the exception and its message, or "this test never ran" · **Compiler output** block for compile errors · when a deployment has execution off: the "Saved, but not run yet" banner (`08-judged-pass.png`) | Queued, Running, Passed, Failed, Compile error, Runtime error, Time limit, Memory limit, Judge error, execution off |
+| Results | Empty hint (shows the Ctrl/⌘+Enter shortcut) · status badge + spinner while judging ("Waiting for a judge…", "Running your code against the tests…") · verdict sentence · "x/y tests passed", "hidden: a/b", runtime · per-public-test rows ✓/✗ with expected vs. actual, the exception and its message (plus an **"at line N" link** to the editor when the line is known), or "this test never ran" · for runs, a "Run · public tests only" badge and "All public tests passed. Submit to check the hidden tests…" copy · **Explain this failure** button on failed verdicts (`FailureExplanation.tsx`): cause badge, confidence, **"Go to line N"** link, headline, explanation, "Based on:" evidence box, numbered "Try this" steps, concept to review, disclaimer · **Compiler output** block for compile errors · when a deployment has execution off: the "Saved, but not run yet" banner (`08-judged-pass.png`) | Queued, Running, Passed, Failed, Compile error, Runtime error, Time limit, Memory limit, Judge error, execution off · explanation: not asked · loading · shown · cached · budget error |
 | Coach: Hints tab | Ladder of unlocked hints (Level N · Name, focus area, hint text, encouragement); one button for the next level; a warning before level 4 ("explains the full solution") | none unlocked · some · all unlocked · loading · budget exhausted (button disabled + message) · signed-out prompt |
 | Coach: Review tab | Run button · summary · 3 complexity tiles (Time and Space with targets, Confidence; the time tile gets a warning border when it misses the target) · issue list (severity badge, category, **"line N" link that highlights the editor line**, detail, → suggestion) · strengths · Next step banner · disclaimer | not run · loading · result · error |
 | Usage | "47/50 left" in the coach header | — |
 
-### 3.5 Dashboard — `/dashboard` (`features/dashboard/*`) · `03-dashboard.png`
-KPI row (Solved, Current streak, Acceptance rate, Coaching used) · Activity heatmap
-(28 days, hover text, **Show table** toggle) · Up next (recommendations with a reason and a
-kind badge: Finish it / Weak spot / Next step) · Solved by difficulty (single-series bars, no
-legend) · By topic (solved + attempted segmented bars with a legend; figures always printed
-beside the bars).
+### 3.5 Dashboard — `/dashboard` (`features/dashboard/*`) · `20-dashboard-compact.png`
+KPI row (Solved with a thin completion bar, Current streak, Acceptance rate, Coaching used),
+then **two independent columns** (`.dashboard__layout`; one column under 960px), so a short
+card never leaves a hole beside a tall one:
+- Main: Up next (recommendations with a reason and a kind badge: Finish it / Weak spot / Next
+  step) · Recent attempts · By topic (top 6; solved + attempted segmented bars with a legend;
+  figures always printed beside the bars).
+- Side: Activity heatmap (28 days, hover text, **Show table** toggle) · Solved by difficulty
+  (single-series bars, no legend) · AI usage line.
+
+**Analytics** (`/analytics`, `features/analytics/AnalyticsPage.tsx`, `21-analytics-compact.png`)
+uses the same layout: KPI row and scope note, then Topic performance (all topics, two
+sub-columns on wide screens via `ProgressBars columns`) and Recent interviews in the main
+column; Your next focus, Solved by difficulty and Activity over time in the side column.
 - States: loading · error · brand-new user (empty-state banner + "Start a problem") ·
   acceptance shows "—" until something is judged.
 
 ### 3.6 History — `/history` (`features/history/HistoryPage.tsx`)
 Tabs: **Submissions** (table: problem, status, submitted, runtime) and **AI feedback**
-(expandable cards; reviews re-render with the same review component).
+(expandable cards with a filter for hints, reviews and failure explanations; reviews and
+explanations re-render with the same components as in the workspace).
 - States: loading · error · empty for each tab · pagination.
 
 ### 3.7 Mock interview — `/interviews`, `/interviews/:id` (`features/interview/*`) · `06-interview-live.png`, `07-interview-feedback.png`
@@ -140,13 +150,24 @@ Tabs: **Submissions** (table: problem, status, submitted, runtime) and **AI feed
   Focus next time, a collapsible transcript, and the final code.
 - History has an **Interviews** tab using the same row component.
 
-### 3.8 Settings — `/settings` (`features/settings/SettingsPage.tsx`) · `09-settings.png`
-Reached by clicking the user's name in the header. Cards: **Profile** (display name) ·
-**Password** (hidden for guests; changing it signs out other devices) · **AI coach & privacy**
-(budget used, which coach is active, plain-language notes on what's sent and stored) · **Your
-data** (JSON download) · **Delete account** (danger styling; password + typing `DELETE` enables
-the button; afterwards the user lands on the home page, signed out).
-States per card: idle · saving · saved confirmation (`role="status"`) · error.
+### 3.8 Settings — `/settings` (`features/settings/SettingsPage.tsx`, `styles/settings.css`) · `18-settings-redesign.png`, `19-settings-mobile.png`
+Reached by clicking the user's name in the header. Layout: an **account summary** (initials,
+name, email, account/verification badges, member since), then a **section nav** (sticky on the
+left on desktop; a row of pills above the content under 1000px) and five **sections**, each an
+`<h2>` plus one card of **setting rows** (name + description on the left, controls on the right;
+stacked under 760px):
+- **Account:** Keep your progress (guests only, highlighted) · Profile (display name) · Email
+  (current address + Verified/Not verified, link to enter the code, change email with password).
+- **Sign-in & security:** Password (hidden for guests; changing it signs out other devices) ·
+  Sign out (this device, or all devices after a confirm dialog).
+- **Editor:** live preview + theme, font size, indentation, wrapping, restore defaults.
+- **Privacy & data:** AI coach (requests used today with a bar, which coach is active, what's sent
+  and stored) · Your data (JSON download).
+- **Danger zone:** Delete account (red heading and card; password + typing `DELETE` enables the
+  button; afterwards the user lands on the home page, signed out).
+
+Nav links move focus to the section heading (not just the scroll position) and mark the section in
+view with `aria-current`. States per row: idle · saving · saved confirmation (`role="status"`) · error.
 
 ### 3.9 Global
 - Header: brand, nav (Practice, plus Interview, Dashboard and History when signed in), account area
@@ -177,6 +198,12 @@ States per card: idle · saving · saved confirmation (`role="status"`) · error
 - **Motion:** respect `prefers-reduced-motion` (durations already go to 0).
 - **Live regions:** save status, submission results and review results use `aria-live` /
   `role="status"`. Keep those wrappers.
+- **Visible text is the name:** if a control shows words, its accessible name must contain them
+  (WCAG 2.5.3, so voice-control users can say what they see). Don't add an `aria-label` that
+  replaces visible text; the menu button is named "Menu" and `aria-expanded` gives its state.
+- **Automated gate:** `e2e/a11y.spec.ts` runs axe-core (WCAG 2.1 A/AA) on every main screen
+  on desktop and a phone, and the judge journey scans judged results and the explanation card.
+  A new violation fails CI.
 
 ## 6. Responsive breakpoints in use
 `≤ 960px` library sidebar stacks · `≤ 900px` workspace switches to tabs · `≤ 860px`
@@ -185,7 +212,7 @@ dashboard is one column · `≤ 720px` header hides the brand name and user name
 
 ## 7. Rules that keep the tests green
 
-The automated tests (57 unit/integration + 5 Playwright end-to-end) find elements **by their
+The automated tests (108 unit/integration + 17 Playwright end-to-end, incl. 4 accessibility scans) find elements **by their
 accessible role and name**, not by CSS. Restyling is safe as long as you **don't change**:
 - visible button, tab and link text used as names (e.g. "Get a hint", "Unlock level 2: Concept",
   "Review my code", "Submit", "Show table", "Sign in", "Create account", "Try it now, no sign-up",
@@ -194,6 +221,12 @@ accessible role and name**, not by CSS. Restyling is safe as long as you **don't
 - `aria-label`s on regions ("AI coach", "Summary", "Problem list", "Workspace" tablist,
   "Interview progress", "Rubric scores, out of 4", "Your answer"), and `role="timer"` on the clock,
 - the class names `.monaco-editor`, `.editor-line--flagged` and `heat-cell` test ids.
+
+**Controls audit (`e2e/controls-audit.spec.ts`, opt-in, ~15 min):** signs in as a guest, creates
+real activity, then uses every visible button, link, tab, select, checkbox and radio on every page
+(15 page states, 325 controls) from a fresh load, and fails if any of them does nothing or causes
+a console error or failed request. Run it after a redesign:
+`AUDIT=1 E2E_JUDGE=1 npx playwright test e2e/controls-audit.spec.ts --project=desktop`.
 
 If copy changes are wanted, list them and engineering will update the tests in the same change.
 Run `npm test && npm run e2e` to check.

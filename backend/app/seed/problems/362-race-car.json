@@ -1,0 +1,116 @@
+{
+  "order": 362,
+  "slug": "race-car",
+  "title": "Race Car",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "graphs"
+  ],
+  "summary": "Shortest instruction sequence of A (accelerate) and R (reverse) to reach a target.",
+  "statement": "A car starts at position 0 with speed +1. Instruction `A`: position += speed, speed *= 2. Instruction `R`: speed\nbecomes -1 if it was positive, otherwise +1 (position unchanged). Return the length of the shortest instruction\nsequence that ends with the car at position `target`.",
+  "constraints": [
+    "1 <= target <= 10^4"
+  ],
+  "examples": [
+    {
+      "input": "target = 3",
+      "output": "2"
+    },
+    {
+      "input": "target = 6",
+      "output": "5"
+    },
+    {
+      "input": "target = 1",
+      "output": "1"
+    }
+  ],
+  "signature": {
+    "method": "racecar",
+    "params": [
+      {
+        "name": "target",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int racecar(int target) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "The state is (position, speed), and each instruction is one step: think BFS.",
+    "BFS over (position, speed), pruning positions far beyond the target (e.g. beyond 2 \u00d7 target) and below a small negative bound.",
+    "queue = [(0, 1)]; seen = {(0, 1)}; steps = 0\nwhile queue:\n    for each state in this level:\n        if pos == target: return steps\n        A: (pos + speed, speed * 2); R: (pos, -1 if speed > 0 else 1)\n        enqueue unseen states within bounds\n    steps += 1",
+    "BFS finds the shortest sequence. A DP over targets (overshoot then reverse, or stop short and reverse twice) runs in O(T log T)."
+  ],
+  "expected_complexity": {
+    "time": "O(T log T)",
+    "space": "O(T log T)"
+  },
+  "tests": [
+    {
+      "input": {
+        "target": 3
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "target": 6
+      },
+      "expected_output": 5,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "target": 1
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "target": 5
+      },
+      "expected_output": 7,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "target": 100
+      },
+      "expected_output": 19,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "target": 58
+      },
+      "expected_output": 14,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "target": 2
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "target": 34
+      },
+      "expected_output": 9,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "target": 33
+      },
+      "expected_output": 10,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

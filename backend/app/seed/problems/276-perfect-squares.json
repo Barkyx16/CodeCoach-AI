@@ -1,0 +1,116 @@
+{
+  "order": 276,
+  "slug": "perfect-squares",
+  "title": "Fewest Perfect Squares",
+  "difficulty": "medium",
+  "topics": [
+    "dynamic-programming",
+    "math"
+  ],
+  "summary": "Smallest number of square numbers that add up to n.",
+  "statement": "Return the fewest perfect squares (1, 4, 9, 16, ...) that add up to `n`.",
+  "constraints": [
+    "1 <= n <= 10^4"
+  ],
+  "examples": [
+    {
+      "input": "n = 12",
+      "output": "3"
+    },
+    {
+      "input": "n = 13",
+      "output": "2"
+    },
+    {
+      "input": "n = 1",
+      "output": "1"
+    }
+  ],
+  "signature": {
+    "method": "numSquares",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int numSquares(int n) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "The best answer for n builds on the best answer for something smaller.",
+    "best[i] = 1 + min(best[i - s]) over squares `s <= i`.",
+    "best = [0] + [inf]*n\nfor i in 1..n:\n    for each square s <= i: best[i] = min(best[i], best[i - s] + 1)\nreturn best[n]",
+    "O(n sqrt(n)) DP. (Number theory says the answer is always at most 4, which allows a faster check.)"
+  ],
+  "expected_complexity": {
+    "time": "O(n sqrt(n))",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 12
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 13
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 1
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 7
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 9999
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 272
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 72
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 380
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 152
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

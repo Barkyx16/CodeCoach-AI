@@ -1,0 +1,310 @@
+{
+  "order": 269,
+  "slug": "spiral-order",
+  "title": "Spiral Order",
+  "difficulty": "medium",
+  "topics": [
+    "matrix",
+    "simulation"
+  ],
+  "summary": "Read a matrix in clockwise spiral order.",
+  "statement": "Return all values of `matrix` in clockwise spiral order, starting at the top-left.",
+  "constraints": [
+    "1 <= rows, cols <= 10"
+  ],
+  "examples": [
+    {
+      "input": "matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]",
+      "output": "[1, 2, 3, 6, 9, 8, 7, 4, 5]"
+    },
+    {
+      "input": "matrix = [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]]",
+      "output": "[1, 2, 3, 4, 8, 12, 11, 10, 9, 5, 6, 7]"
+    },
+    {
+      "input": "matrix = [[1], [2], [3]]",
+      "output": "[1, 2, 3]"
+    }
+  ],
+  "signature": {
+    "method": "spiralOrder",
+    "params": [
+      {
+        "name": "matrix",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] spiralOrder(int[][] matrix) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "Peel the matrix layer by layer.",
+    "Keep four boundaries (top, bottom, left, right). Walk right, down, left, up, shrinking a boundary after each side.",
+    "top, bottom, left, right = 0, m-1, 0, n-1\nwhile top <= bottom and left <= right:\n    walk top row; top += 1\n    walk right col; right -= 1\n    if top <= bottom: walk bottom row backwards; bottom -= 1\n    if left <= right: walk left col upwards; left += 1",
+    "Each value is read once: O(m n). The two `if` checks stop a single remaining row or column from being read twice."
+  ],
+  "expected_complexity": {
+    "time": "O(m n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "matrix": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            4,
+            5,
+            6
+          ],
+          [
+            7,
+            8,
+            9
+          ]
+        ]
+      },
+      "expected_output": [
+        1,
+        2,
+        3,
+        6,
+        9,
+        8,
+        7,
+        4,
+        5
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            1,
+            2,
+            3,
+            4
+          ],
+          [
+            5,
+            6,
+            7,
+            8
+          ],
+          [
+            9,
+            10,
+            11,
+            12
+          ]
+        ]
+      },
+      "expected_output": [
+        1,
+        2,
+        3,
+        4,
+        8,
+        12,
+        11,
+        10,
+        9,
+        5,
+        6,
+        7
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            1
+          ],
+          [
+            2
+          ],
+          [
+            3
+          ]
+        ]
+      },
+      "expected_output": [
+        1,
+        2,
+        3
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            6,
+            17,
+            1,
+            15
+          ],
+          [
+            4,
+            10,
+            7,
+            16
+          ]
+        ]
+      },
+      "expected_output": [
+        6,
+        17,
+        1,
+        15,
+        16,
+        7,
+        10,
+        4
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            9,
+            4,
+            9,
+            18,
+            0
+          ],
+          [
+            19,
+            19,
+            0,
+            4,
+            19
+          ],
+          [
+            4,
+            8,
+            16,
+            2,
+            10
+          ],
+          [
+            0,
+            16,
+            19,
+            17,
+            11
+          ],
+          [
+            4,
+            10,
+            6,
+            11,
+            13
+          ]
+        ]
+      },
+      "expected_output": [
+        9,
+        4,
+        9,
+        18,
+        0,
+        19,
+        10,
+        11,
+        13,
+        11,
+        6,
+        10,
+        4,
+        0,
+        4,
+        19,
+        19,
+        0,
+        4,
+        2,
+        17,
+        19,
+        16,
+        8,
+        16
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            5,
+            12,
+            17
+          ],
+          [
+            9,
+            9,
+            1
+          ],
+          [
+            10,
+            2,
+            0
+          ],
+          [
+            20,
+            12,
+            3
+          ]
+        ]
+      },
+      "expected_output": [
+        5,
+        12,
+        17,
+        1,
+        0,
+        3,
+        12,
+        20,
+        10,
+        9,
+        9,
+        2
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            20
+          ],
+          [
+            4
+          ],
+          [
+            6
+          ],
+          [
+            20
+          ]
+        ]
+      },
+      "expected_output": [
+        20,
+        4,
+        6,
+        20
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

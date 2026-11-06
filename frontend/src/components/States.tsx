@@ -17,28 +17,35 @@ export function LoadingState({ label = "Loading…" }: { label?: string }) {
 
 export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   const { title, message, requestId } = describeError(error);
+  const offline = typeof navigator !== "undefined" && !navigator.onLine && (error as { code?: string } | null)?.code === "network_error";
   return (
     <div className="state state--error" role="alert">
       <strong>{title}</strong>
       <p className="muted">{message}</p>
       {requestId && <p className="subtle">Reference: <code>{requestId}</code></p>}
+      {offline && <p className="muted">You're offline. This page isn't saved on this device; <a href="/offline">see what is</a>.</p>}
       {onRetry && <Button onClick={onRetry}>Try again</Button>}
     </div>
   );
 }
 
-export function EmptyState({ title, children, action }: { title: string; children?: ReactNode; action?: ReactNode }) {
+export function EmptyState({ title, children, action, pageTitle = false }: {
+  title: string; children?: ReactNode; action?: ReactNode;
+  /** Render the title as the page's <h1> (for pages that are only an empty state, like 404). */
+  pageTitle?: boolean;
+}) {
   return (
     <div className="state state--empty">
       <span className="state__icon"><Icon name="book" size={22} /></span>
-      <strong>{title}</strong>
+      {pageTitle ? <h1 className="state__title">{title}</h1> : <strong>{title}</strong>}
       {children && <div className="muted">{children}</div>}
       {action}
     </div>
   );
 }
 
-export function InlineError({ error }: { error: unknown }) {
+/** An error under a form. Give it an `id` and point the field's aria-describedby at it so the field says what's wrong. */
+export function InlineError({ error, id }: { error: unknown; id?: string }) {
   if (!error) return null;
-  return <p className="inline-error" role="alert">{describeError(error).message}</p>;
+  return <p className="inline-error" role="alert" id={id}>{describeError(error).message}</p>;
 }

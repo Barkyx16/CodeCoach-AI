@@ -1,0 +1,123 @@
+{
+  "order": 145,
+  "slug": "is-subsequence",
+  "title": "Is Subsequence",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "two-pointers"
+  ],
+  "summary": "Can one string be found inside another in order?",
+  "statement": "Return `true` if `s` is a subsequence of `t`: you can delete some (or no) characters of `t`\nwithout reordering the rest to get `s`.",
+  "constraints": [
+    "0 <= s.length <= 100",
+    "0 <= t.length <= 10^4",
+    "lower-case English letters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"abc\", t = \"ahbgdc\"",
+      "output": "true"
+    },
+    {
+      "input": "s = \"axc\", t = \"ahbgdc\"",
+      "output": "false"
+    },
+    {
+      "input": "s = \"\", t = \"abc\"",
+      "output": "true"
+    }
+  ],
+  "signature": {
+    "method": "isSubsequence",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      },
+      {
+        "name": "t",
+        "type": "String"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean isSubsequence(String s, String t) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "Match the characters of `s` in order as you read `t`.",
+    "Use a pointer into `s` that only moves when the current character of `t` matches.",
+    "i = 0\nfor c in t:\n    if i < len(s) and s[i] == c: i += 1\nreturn i == len(s)",
+    "Greedy matching is safe: taking the earliest match never hurts later matches. O(|t|) time, O(1) space."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "abc",
+        "t": "ahbgdc"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "axc",
+        "t": "ahbgdc"
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "",
+        "t": "abc"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "aa",
+        "t": "a"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "",
+        "t": "acacaabbb"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "a",
+        "t": "ca"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "b",
+        "t": "babababcabbc"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "cbc",
+        "t": "acbccbcb"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

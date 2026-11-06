@@ -1,0 +1,109 @@
+{
+  "order": 134,
+  "slug": "capitalize-words",
+  "title": "Capitalize Each Word",
+  "difficulty": "easy",
+  "topics": [
+    "strings"
+  ],
+  "summary": "Make the first letter of every word upper-case.",
+  "statement": "`s` contains lower-case words separated by single spaces. Return it with the first letter of\neach word in upper case.",
+  "constraints": [
+    "0 <= s.length <= 10^4",
+    "lower-case letters and single spaces, no leading/trailing spaces"
+  ],
+  "examples": [
+    {
+      "input": "s = \"hello world\"",
+      "output": "\"Hello World\""
+    },
+    {
+      "input": "s = \"a b c\"",
+      "output": "\"A B C\""
+    },
+    {
+      "input": "s = \"\"",
+      "output": "\"\""
+    }
+  ],
+  "signature": {
+    "method": "capitalizeWords",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String capitalizeWords(String s) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "A letter starts a word if it's the first character or follows a space.",
+    "Walk the characters; upper-case one when it's at index 0 or the previous character is a space.",
+    "out = list(s)\nfor i in range(len(s)):\n    if i == 0 or s[i-1] == ' ': out[i] = upper(s[i])\nreturn ''.join(out)",
+    "One pass with a StringBuilder (or char array): O(n). Building with `+` in a loop would be O(n^2) in Java."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "hello world"
+      },
+      "expected_output": "Hello World",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "a b c"
+      },
+      "expected_output": "A B C",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": ""
+      },
+      "expected_output": "",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "java"
+      },
+      "expected_output": "Java",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "qv lens zoas gltk pbbeg"
+      },
+      "expected_output": "Qv Lens Zoas Gltk Pbbeg",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "dsdgn ijqc vnf y awfp"
+      },
+      "expected_output": "Dsdgn Ijqc Vnf Y Awfp",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "spztim"
+      },
+      "expected_output": "Spztim",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "q zxphk tyt"
+      },
+      "expected_output": "Q Zxphk Tyt",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

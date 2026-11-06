@@ -1,0 +1,161 @@
+{
+  "order": 293,
+  "slug": "first-missing-positive",
+  "title": "First Missing Positive",
+  "difficulty": "hard",
+  "topics": [
+    "arrays",
+    "hash-sets"
+  ],
+  "summary": "Smallest positive integer not in the array, in O(n) time and O(1) space.",
+  "statement": "Return the smallest positive integer that does not appear in `nums`. Use O(n) time and O(1) extra space\n(you may rearrange `nums`).",
+  "constraints": [
+    "1 <= nums.length <= 10^5",
+    "-2^31 <= nums[i] <= 2^31 - 1"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 2, 0]",
+      "output": "3"
+    },
+    {
+      "input": "nums = [3, 4, -1, 1]",
+      "output": "2"
+    },
+    {
+      "input": "nums = [7, 8, 9, 11, 12]",
+      "output": "1"
+    }
+  ],
+  "signature": {
+    "method": "firstMissingPositive",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int firstMissingPositive(int[] nums) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "The answer is between 1 and n + 1. Only values in that range matter.",
+    "Use the array itself as a hash table: swap each value `v` in `[1, n]` into slot `v - 1`.",
+    "for i in range(n):\n    while 1 <= nums[i] <= n and nums[nums[i] - 1] != nums[i]:\n        swap nums[i] with nums[nums[i] - 1]\nfor i in range(n):\n    if nums[i] != i + 1: return i + 1\nreturn n + 1",
+    "Each swap puts one value in its final slot, so there are at most n swaps: O(n) time, O(1) space."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          0
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          4,
+          -1,
+          1
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          7,
+          8,
+          9,
+          11,
+          12
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          1
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -3,
+          10,
+          -3,
+          6,
+          3
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          6
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -2,
+          7,
+          -3,
+          9,
+          -2,
+          4,
+          6,
+          1,
+          4,
+          9,
+          3
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          9,
+          3,
+          10
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

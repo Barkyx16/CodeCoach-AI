@@ -1,0 +1,13 @@
+{
+  "_doc": "Every pair of answers from different splits that evals/overlap.py flags must have a decision here (docs/EVAL_PROTOCOL.md). decision: 'distinct' (kept: different cases despite the similarity) or 'duplicate' (one side removed or the pair disclosed as not independent). reviewer says who looked at both texts.",
+  "pairs": [
+    {
+      "a": "coding-review-tuning/bsearch-linear",
+      "b": "coding-review-medium-holdout/md-rotated-linear",
+      "decision": "duplicate",
+      "disclosed": "Same code for two problems (binary-search vs search-rotated-array). Kept in both sets for history, recorded in datasets.json known_overlap: md-rotated-linear is not independent of tuning.",
+      "reviewer": "the harness author (AI coding assistant, tuning session)",
+      "reviewed": "2026-11-03"
+    }
+  ]
+}

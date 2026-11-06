@@ -1,0 +1,189 @@
+{
+  "order": 102,
+  "slug": "second-largest",
+  "title": "Second Largest Value",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "iteration"
+  ],
+  "summary": "Find the second-largest distinct value, or -1 if there isn't one.",
+  "statement": "Given an array of non-negative integers `nums`, return the second-largest **distinct** value.\nIf every value is the same, or the array has fewer than two values, return `-1`.\n\nFor `[5, 5, 3]` the largest is `5` and the second-largest distinct value is `3`.",
+  "constraints": [
+    "0 <= nums.length <= 10^4",
+    "0 <= nums[i] <= 10^9"
+  ],
+  "examples": [
+    {
+      "input": "nums = [3, 9, 4, 7]",
+      "output": "7"
+    },
+    {
+      "input": "nums = [5, 5, 3]",
+      "output": "3",
+      "explanation": "5 appears twice; the next distinct value is 3."
+    },
+    {
+      "input": "nums = [8, 8]",
+      "output": "-1",
+      "explanation": "Only one distinct value."
+    }
+  ],
+  "signature": {
+    "method": "secondLargest",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int secondLargest(int[] nums) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Can you find the answer in a single pass if you remember two numbers as you go?",
+    "Track `first` (largest so far) and `second` (largest value strictly smaller than `first`).",
+    "first = second = -1\nfor n in nums:\n    if n > first: second = first; first = n\n    elif first > n > second: second = n\nreturn second",
+    "Keeping the top two values makes this O(n) time and O(1) space; sorting would be O(n log n). The `first > n` check is what skips duplicates of the maximum, so `[5, 5, 3]` gives `3`."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          3,
+          9,
+          4,
+          7
+        ]
+      },
+      "expected_output": 7,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          5,
+          5,
+          3
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          8,
+          8
+        ]
+      },
+      "expected_output": -1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1
+        ]
+      },
+      "expected_output": -1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": []
+      },
+      "expected_output": -1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          2,
+          2,
+          1
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          7,
+          14,
+          13,
+          13,
+          11,
+          6,
+          2,
+          2,
+          14,
+          0,
+          14,
+          2
+        ]
+      },
+      "expected_output": 13,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          8,
+          14,
+          14
+        ]
+      },
+      "expected_output": 8,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          12,
+          1,
+          14,
+          0,
+          5,
+          4,
+          13,
+          10,
+          14
+        ]
+      },
+      "expected_output": 13,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          7,
+          9,
+          9,
+          8,
+          3,
+          1,
+          4,
+          15,
+          0,
+          8,
+          2,
+          15,
+          5,
+          3,
+          3,
+          15
+        ]
+      },
+      "expected_output": 9,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

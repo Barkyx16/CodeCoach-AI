@@ -1,0 +1,26 @@
+/* Story bank: list, editor, writing check, revisions, and the picker on question pages. */
+
+.stories-filters { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-3); margin-bottom: var(--space-4); }
+.stories-filters .field { flex: 1 1 220px; }
+.story-list { display: grid; gap: var(--space-3); }
+.story-list__preview { overflow-wrap: anywhere; }
+
+.story-editor__layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--space-6); align-items: start; }
+@media (max-width: 960px) { .story-editor__layout { grid-template-columns: minmax(0, 1fr); } }
+.story-editor__row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-3); }
+.story-editor__competencies { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: var(--space-1) var(--space-3); }
+.story-editor__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.story-editor fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+
+.proposal { border-top: 1px solid var(--color-border); padding-top: var(--space-3); display: grid; gap: var(--space-2); }
+.proposal__compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--space-3); }
+.proposal__text { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.875rem; padding: var(--space-2); border-radius: 8px; background: var(--color-surface-sunken); }
+
+.revision-list { display: grid; gap: var(--space-2); padding-left: 0; list-style: none; }
+.revision-list__detail { margin-top: var(--space-2); padding: var(--space-3); border-radius: 8px; background: var(--color-surface-sunken); overflow-wrap: anywhere; white-space: pre-wrap; }
+
+.story-picker { border: 1px dashed var(--color-border-strong); border-radius: 10px; padding: var(--space-2) var(--space-3); }
+.story-picker summary { cursor: pointer; font-weight: 550; }
+.story-picker--chosen { border-style: solid; border-color: var(--color-primary); background: var(--color-primary-soft); }
+.story-picker__list { display: grid; gap: var(--space-1); list-style: none; padding: 0; margin: var(--space-2) 0 0; }
+.story-picker fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }

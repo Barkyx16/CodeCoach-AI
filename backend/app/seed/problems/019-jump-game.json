@@ -1,0 +1,157 @@
+{
+  "order": 19,
+  "slug": "jump-game",
+  "title": "Jump Game",
+  "difficulty": "medium",
+  "topics": [
+    "arrays",
+    "greedy"
+  ],
+  "summary": "Decide whether you can hop from the first index to the last.",
+  "statement": "You start at index 0 of `nums`. Each `nums[i]` is the **maximum** jump length from index `i` (you may jump fewer steps). Return `true` if you can reach the last index, otherwise `false`.",
+  "constraints": [
+    "1 <= nums.length <= 10^4",
+    "0 <= nums[i] <= 10^5"
+  ],
+  "examples": [
+    {
+      "input": "nums = [2, 3, 1, 1, 4]",
+      "output": "true",
+      "explanation": "Jump 1 step to index 1, then 3 steps to the end."
+    },
+    {
+      "input": "nums = [3, 2, 1, 0, 4]",
+      "output": "false",
+      "explanation": "Every path lands on index 3, whose jump length is 0."
+    }
+  ],
+  "signature": {
+    "method": "canJump",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean canJump(int[] nums) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "You don't need to try every sequence of jumps. As you move through the array from the left, what single number summarises everything the jumps so far make possible?",
+    "Greedy: keep the farthest index reachable so far. At each index i you can actually stand on (i <= farthest), update farthest = max(farthest, i + nums[i]). If you ever reach an index beyond farthest, you're stuck.",
+    "farthest = 0\nfor i from 0 to n - 1:\n    if i > farthest: return false\n    farthest = max(farthest, i + nums[i])\n    if farthest >= n - 1: return true\nreturn true",
+    "Exploring every jump sequence is exponential, and a DP over 'can I reach i' is O(n^2). The reachable indices always form a contiguous prefix [0, farthest], because from any reachable index you can also land on every index in between. So one number describes everything, and one left-to-right pass decides it: O(n) time, O(1) space. A single-element array is already at the last index, so it returns true."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          2,
+          3,
+          1,
+          1,
+          4
+        ]
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          2,
+          1,
+          0,
+          4
+        ]
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0
+        ]
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          1
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          0,
+          1
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          0,
+          0
+        ]
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          1,
+          0,
+          1
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          0,
+          1,
+          0
+        ]
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    }
+  ]
+}

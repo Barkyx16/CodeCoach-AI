@@ -1,0 +1,116 @@
+{
+  "order": 150,
+  "slug": "repeated-pattern",
+  "title": "Built From a Repeated Piece",
+  "difficulty": "easy",
+  "topics": [
+    "strings"
+  ],
+  "summary": "Is a string some shorter piece repeated several times?",
+  "statement": "Return `true` if `s` can be built by taking a substring of it and repeating it two or more times\n(`\"abab\"` is `\"ab\"` twice).",
+  "constraints": [
+    "1 <= s.length <= 10^4",
+    "lower-case English letters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"abab\"",
+      "output": "true"
+    },
+    {
+      "input": "s = \"aba\"",
+      "output": "false"
+    },
+    {
+      "input": "s = \"abcabcabcabc\"",
+      "output": "true"
+    }
+  ],
+  "signature": {
+    "method": "repeatedSubstringPattern",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean repeatedSubstringPattern(String s) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "The repeated piece's length must divide the string's length.",
+    "Try each length `k` that divides `n` (with `k < n`) and check `s[i] == s[i - k]` for all `i >= k`.",
+    "for k in 1..n//2:\n    if n % k == 0 and all(s[i] == s[i-k] for i in k..n-1): return true\nreturn false",
+    "Trying divisors is O(n * d(n)), fast in practice. A neat alternative: `s` is repeated exactly when it appears inside `(s + s)` with the first and last characters removed."
+  ],
+  "expected_complexity": {
+    "time": "O(n * d(n))",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "abab"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "aba"
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "abcabcabcabc"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "a"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "aaaa"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "baabaabaabaa"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bbbb"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bbbbbb"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bbbbbbbbbb"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

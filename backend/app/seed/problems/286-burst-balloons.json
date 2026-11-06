@@ -1,0 +1,149 @@
+{
+  "order": 286,
+  "slug": "burst-balloons",
+  "title": "Burst Balloons",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming"
+  ],
+  "summary": "Order balloon bursts to collect the most coins.",
+  "statement": "Bursting balloon `i` earns `nums[left] * nums[i] * nums[right]`, where `left` and `right` are its current\nneighbors (treat missing neighbors as 1). The balloon then disappears. Return the most coins you can collect\nby bursting them all.",
+  "constraints": [
+    "1 <= nums.length <= 300",
+    "0 <= nums[i] <= 100"
+  ],
+  "examples": [
+    {
+      "input": "nums = [3, 1, 5, 8]",
+      "output": "167",
+      "explanation": "Burst 1, 5, 3, 8: 3*1*5 + 3*5*8 + 1*3*8 + 1*8*1 = 167."
+    },
+    {
+      "input": "nums = [1, 5]",
+      "output": "10"
+    },
+    {
+      "input": "nums = [7]",
+      "output": "7"
+    }
+  ],
+  "signature": {
+    "method": "maxCoins",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int maxCoins(int[] nums) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Choosing the first balloon to burst changes everyone's neighbors. What if you choose the last one instead?",
+    "If balloon `k` is the last in the open interval (i, j), its neighbors are exactly `i` and `j`. Split into two independent intervals.",
+    "pad nums with 1 at both ends\nfor length from 2 upward:\n    for i, j = i + length:\n        dp[i][j] = max over k in (i, j) of dp[i][k] + v[i]*v[k]*v[j] + dp[k][j]\nreturn dp[0][n+1]",
+    "Interval DP over O(n^2) intervals with O(n) choices each: O(n^3)."
+  ],
+  "expected_complexity": {
+    "time": "O(n^3)",
+    "space": "O(n^2)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          3,
+          1,
+          5,
+          8
+        ]
+      },
+      "expected_output": 167,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          5
+        ]
+      },
+      "expected_output": 10,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          7
+        ]
+      },
+      "expected_output": 7,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          2,
+          0
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          5,
+          7,
+          4,
+          7,
+          7,
+          3
+        ]
+      },
+      "expected_output": 909,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          5,
+          5,
+          9,
+          6,
+          1,
+          6
+        ]
+      },
+      "expected_output": 891,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          4,
+          5,
+          2,
+          1,
+          9,
+          4
+        ]
+      },
+      "expected_output": 476,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

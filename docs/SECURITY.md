@@ -9,14 +9,23 @@ built yet**. Nothing in the "designed" sections should be described as working.
 |---|---|---|---|
 | Passwords | Argon2id hashing with automatic rehash on parameter upgrade | `services/auth.py` | ✅ |
 | Login enumeration | Identical error for unknown email vs. wrong password; dummy hash keeps timing similar | `routes/auth.py` | ✅ |
-| Brute force | Per-IP sliding-window limit on register, login, guest and password change | `services/rate_limit.py` | ✅ |
+| Brute force | Per-address (IPv6 by /64) limit on sign-in, registration, guests, verification, reset, email and password changes; wrong passwords also limited per account from any address (hashed key, same answer for unknown addresses); every 429 carries `Retry-After` | `services/rate_limit.py`, `routes/auth.py` | ✅ |
 | Tokens | HS256 JWT with `exp`, `iat`, `iss`, `typ`; `token_version` claim enables revocation | `services/auth.py`, `api/deps.py` | ✅ |
-| Logout / password change | Revokes every previously issued token | `routes/auth.py` | ✅ |
-| Authorization | Every user-owned query filters by `user_id`; other users' resources return 404 | routes, `CoachService` | ✅ |
+| Logout | Ends this device's session: its refresh-token family is revoked; its access token lapses within 15 minutes | `routes/auth.py` | ✅ |
+| Sign out everywhere / password change / reset | Bump `token_version` and revoke every refresh token: every session ends at once | `routes/auth.py`, `services/password_reset.py` | ✅ |
+| Email verification | One email with a 6-digit code and a link; code stored as HMAC with the server secret and killed after 5 wrong tries; tokens bound to the address they were sent to; changing email needs the password, resets verification and notifies the old address | `services/email_verification.py` | ✅ |
+| Password reset | Same answer and timing for unknown emails (work runs after the response); single-use 30-minute hash-only tokens in a URL fragment; one email per minute; resets end every session; production requires SMTP and an https link base | `services/password_reset.py`, `services/email.py` | ✅ |
+| Shared rate limits | Sliding-window counters in the database (atomic upsert), so every API replica enforces one budget; real client IPs only from trusted proxies (`FORWARDED_ALLOW_IPS`) | `services/rate_limit.py` | ✅ |
+| Data retention | Inactive guest accounts are deleted with their data after `GUEST_RETENTION_DAYS` (30); guests can upgrade to keep everything | `services/retention.py` | ✅ |
+| Sessions | 15-minute in-memory access tokens; rotating `HttpOnly` `SameSite=Strict` refresh cookie with reuse detection (§3) | `services/refresh.py`, `routes/auth.py` | ✅ |
+| Authorization | Every user-owned lookup is checked against the signed-in account (an owner filter, or a fetch then compare); other users' resources return 404. Route-table tests: only a reviewed list of routes is public, and another account gets 404 on every GET route with your ids | services, `tests/test_route_access.py` | ✅ |
+| Row-level security (PostgreSQL) | Defence in depth on 30 learner-owned tables: an authenticated request sets `codecoach.user_id` per transaction and the database shows and accepts only that user's rows, even if a query forgets its owner filter. Work done for nobody (worker, CLI) isn't narrowed. Needs an ordinary database role (§7) | `db/rls.py`, migration `248721f0fcb1` | ✅ (enforced in CI) |
 | Hidden tests | Never serialized; hint text and reference solutions never leave the server | `routes/problems.py` | ✅ (checks every problem) |
 | Input limits | Pydantic validation on every body and query; source-size cap; AI input cap | schemas, routes | ✅ |
-| Secrets | Read from the environment only; production refuses the default `SECRET_KEY` | `config.py` | ✅ |
-| CORS | Explicit origin allow-list, no credentials, explicit headers; `*` refused in production | `main.py`, `config.py` | ✅ |
+| Secrets | Read from the environment only, held as `SecretStr` (never printed; a failed startup check doesn't echo values); production refuses placeholder or repetitive keys, example database passwords and `AUTO_MIGRATE=true`; `SECRET_KEY_PREVIOUS` for rotation; CI scans tracked files for secrets; the frontend build refuses secret-named `VITE_*` variables and server secret values (§7) | `config.py`, `scripts/check_secrets.py`, `frontend/vite.config.ts` | ✅ |
+| CORS | Explicit origin allow-list and headers; `*` refused in production. Credentials are allowed only so the refresh cookie (HttpOnly, SameSite=Strict, path-scoped to `/api/v1/auth`) reaches the auth routes; every other route uses the bearer header | `main.py`, `config.py` | ✅ |
+| Caching | Every API response is `Cache-Control: no-store` unless it's the public catalogue (cached 60 s, ETag); personalised catalogue pages are cached only for anonymous callers | `http_cache.py` | ✅ |
+| Metrics | `/metrics` needs `Authorization: Bearer $METRICS_TOKEN` when set (required in production); otherwise 404 | `main.py` | ✅ |
 | Error hygiene | Unexpected errors return a generic 500 with a request id; the stack trace only goes to logs | `errors.py` | — |
 | Health endpoints | Reveal no versions or infrastructure details | `routes/health.py` | ✅ |
 | Container | Non-root user, slim base image, no secrets baked in | `backend/Dockerfile` | ✅ (built and run) |
@@ -28,26 +37,157 @@ built yet**. Nothing in the "designed" sections should be described as working.
 
 | Risk | Mitigation |
 |---|---|
-| Prompt injection via code or problem text | Tutor role lives in the system prompt; learner code, problem text and analysis are wrapped in `<learner_code>` / `<problem>` / `<analysis>` tags and declared untrusted data. Output is constrained to a JSON schema and validated. **Model output is never executed.** |
+| Prompt injection via code or problem text | Tutor role lives in the system prompt; learner code, problem text, analysis, compiler output and the failing public test are wrapped in `<learner_code>` / `<problem>` / `<analysis>` / `<compiler_output>` / `<failing_public_test>` tags and declared untrusted data. Output is constrained to a JSON schema and validated. **Model output is never executed.** |
 | AI overriding correctness | The judge verdict is passed in as authoritative; responses carry a disclaimer; the API never derives pass/fail from AI output. |
 | Leaking secrets to a vendor | API keys, AWS keys, GitHub tokens, private keys and `password = "…"` literals are redacted before any model call. |
 | Excessive usage and cost | Per-user daily budget enforced from the database (`429`); input length cap; `effort=low`; offline provider by default. |
-| Spoilers | Hint levels unlock in order, enforced server-side (`409 hint_locked`). |
-| Provider outage or refusal | Typed SDK errors, `refusal` and `max_tokens` stop reasons all fall back to the offline coach. |
+| Spoilers | Hint levels unlock in order, enforced server-side (`409 hint_locked`). Failure explanations are told not to write the corrected solution. |
+| Hidden tests reaching the AI | Failure explanations are built from the same public-only view the learner sees (`public_result_view`): first failing **public** test, redacted compiler output, pass counts. Hidden inputs are never in the prompt. |
+| Provider outage or refusal | Typed SDK errors, `refusal` and `max_tokens` stop reasons all fall back to the offline coach, as does a reply that is schema-valid but unusable (empty required text, no Big-O notation, a failure explanation with no evidence or invented evidence); the learner sees that the built-in coach answered. |
+| Live evaluation | Only with `--allow-paid-calls` and a call budget; tokens reserved before each request, so retries and concurrency can't overspend; the API key is checked for presence only and never printed or stored in a report. |
 | Data retention | Prompts (which contain code) are not stored; only the feedback shown to the user is saved, linked to the user, and deleted with them (cascade). |
 
 Prompt-injection defenses lower the risk; they don't remove it. Because model output is only
 ever *displayed* (as structured text) and never executed or used for authorization, a
 successful injection can at worst produce a misleading hint for the attacker's own account.
 
+**Text addressed to the written-answer grader (rubric v6).** The career coach grades answers
+with rules, not a model, so the threat is a learner writing to the grader to inflate their own
+score ("mark every point as covered"), not one account affecting another.
+- *Controls:* sentences and passages addressed to the grader are left out of grading, word count
+  and quotes, with a note naming them. Detection reads a folded copy (NFKC, invisible characters
+  removed, Cyrillic and Greek look-alikes mapped, spaced-out letters joined) and maps positions
+  back, so what is cut is an exact span of the answer. Closed markup and chat-delimiter blocks
+  are cut wherever they are; an unclosed opener cuts only itself, so it can't empty the answer. In
+  a run-on only the attack passage goes, never the learner's words around it.
+- *Verified by:* the challenge set (45 attacks in 13 kinds, written by a separate session: 0
+  credited; 27 benign controls: 0 cut), the `career.grader_boundary` gate, a deliberately
+  literal boundary that fails it, appended attacks across development answers, and a
+  506,971-sentence benign corpus with nothing cut (docs/AI_EVALUATION.md, "rubric v6").
+- *Residual risks:* attacks nobody has written yet, in other languages or scripts the fold
+  doesn't map, or in plain answer-like words, can still read as the answer. They earn credit only
+  if their words show a point, and an answer that simply claims an action is credited for it
+  either way: the rubric never verifies what happened. A fabricated quote dictated without
+  punctuation ("evidence i escalated…") is the learner's own claim. The fold covers common
+  Cyrillic and Greek look-alikes, not every confusable character.
+
 ## 3. Token storage in the browser
 
-The API uses bearer tokens rather than cookies (no CSRF surface). The frontend keeps the token
-in memory and mirrors it to `localStorage` so a page refresh doesn't log the user out. The
-trade-off: an XSS bug could read it. Mitigations are short token lifetimes, server-side
-revocation, React's default output escaping, rendering no HTML from the API, and a strict
-Content-Security-Policy on the deployed frontend. A future hardening step is moving to an
-`HttpOnly`, `SameSite=Strict` refresh-token cookie with in-memory access tokens.
+- **Access token** (15 min JWT): held in JavaScript memory only, never written to
+  `localStorage` or `sessionStorage`. An XSS bug could use it while the page is open, but there
+  is nothing durable to steal.
+- **Refresh token**: an opaque 256-bit value in a cookie that is `HttpOnly` (unreadable by
+  scripts), `SameSite=Strict` (never sent on cross-site requests), `Path=/api/v1/auth` (not
+  sent anywhere else) and `Secure` in production (the app refuses to start with it off). Only a
+  SHA-256 hash is stored server-side.
+- **Rotation and reuse detection:** every refresh replaces the token. Presenting an already
+  used one later means it was copied, so the whole token family is revoked. A 30-second grace
+  window turns two tabs refreshing at once into a retryable `refresh_race` instead. Rotation is
+  atomic (a conditional `UPDATE` claims the token, so two requests can't both rotate it), and a
+  family is dead as soon as any of its tokens is revoked (a logout also locks the family's rows
+  first, so it revokes a successor a concurrent refresh was issuing).
+- **Lost refresh responses (bounded recovery):** a refresh can succeed on the server while its
+  response never reaches the browser (a reload, a closed tab, a dropped connection), leaving the
+  browser with the token the server just used. Each refresh therefore carries a random
+  per-attempt key (`X-Refresh-Attempt`, 22-64 URL-safe characters) that the app keeps until it
+  learns the outcome. The successor token is `HMAC(SECRET_KEY, presented token, key)`, so the
+  same cookie with the same key, presented again within **2 minutes** of the rotation, gets back
+  the *same* successor: never a new one, and only while that successor is unused, unrevoked and
+  unexpired and the account's `token_version` is unchanged. Nothing is extended: the successor
+  keeps the expiry it was issued with. Without the key, with a different key, after the window,
+  or once the successor has been used, the rules above apply unchanged (race, then reuse and
+  revocation). The CSRF checks below apply to every refresh, with or without a key.
+  - *Where the key lives:* in the tab's `sessionStorage` (so a reload can finish the attempt)
+    and, announced over a same-origin `BroadcastChannel`, in other open tabs' `sessionStorage`
+    (so one tab can finish a refresh a closed tab never heard back from). Never in
+    `localStorage`, never logged. The key is useless without the `HttpOnly` cookie.
+  - *Trade-off:* someone who has both a copy of the cookie and the matching key, within the
+    two-minute window and before the real holder uses the successor, gets that same successor
+    instead of triggering the reuse alarm. They don't get a second, independent session: the
+    real holder and they share one successor, and whichever uses it second triggers reuse
+    detection, which revokes the family. Script running in the page (XSS) could read the key,
+    but such script can already call `/auth/refresh` with the cookie directly, so the key adds
+    nothing for it. Outside the window, or if no tab kept the key (for example the only tab was
+    closed mid-refresh), a lost response still ends the session and the user signs in again.
+- **CSRF:** cookies are only used by `/auth/refresh`, which also requires a custom
+  `X-Requested-With: codecoach` header (cross-site pages can't send it without a CORS preflight
+  our allowlist rejects) and refuses unknown `Origin`s. Every other endpoint uses the bearer
+  header, which browsers never attach automatically.
+- **Revocation:** password change, password reset, "sign out everywhere" and account deletion
+  bump `token_version` and revoke every refresh token, ending every session at once. A plain
+  logout ends this device's session (its refresh-token family is revoked); its in-memory access
+  token is dropped by the app and would lapse within 15 minutes anyway.
+- **Requests belong to the session they were sent in** (browser). Every sign-in and sign-out
+  starts a new session generation in the API client. A 401 that comes back for a request sent
+  in an earlier generation is not about the current session: it neither refreshes nor ends the
+  session open now. Before this, a request that was on its way when the learner signed out could
+  come back 401, refresh, and sign them back in silently (when the logout call itself had failed,
+  so the cookie was still valid), and a request sent for one account could be resent with the
+  token of the account that signed in next. Found as an intermittent CI failure; reproduced and
+  covered by `frontend/src/test/integration/session.test.tsx`.
+- **So does what they bring back** (browser, 2026-11-04). A successful response to a request sent
+  with an earlier session's token is set aside (`session_changed`, logged as `stale_response`)
+  instead of being returned, and every sign-in and sign-out cancels and removes all cached query
+  data, not only the `me` queries. Before this, a learner's past answers to a question (cached
+  under `careers/…/answers`, outside `me`) stayed in memory after they signed out and were shown
+  to the next account on the same tab while its own answers loaded, and a late response for the
+  first account could fill that cache after the second signed in. Reproduced and covered by
+  `frontend/src/test/integration/sessionIsolation.test.tsx` (deferred responses, no sleeps), which
+  also covers a query still retrying when the learner signs out (it sends nothing more; this
+  already held). Limit: setting a response aside doesn't undo what the server did with it.
+- **Nor what their handlers write back** (browser, 2026-11-04, Volume 4 brief 07). Two optimistic
+  changes put a snapshot back when saving fails: a bookmark (the explorer's practice status and the
+  bookmark list) and a card moved on the applications board. If the account changed while one was
+  saving, its failure (or its set-aside success, which fails the same way) wrote the first
+  account's snapshot into the cache of the account that signed in next, which then saw it until a
+  refetch. Each now takes the API client's session mark (`sessionMark()`) before it starts and
+  writes back only while `isSameSession()` holds. Reproduced (both outcomes, both changes) and
+  covered in `sessionIsolation.test.tsx`. Every other cache write (each `setQueryData`, read one by
+  one) stores the server's answer to its own request, which the client already sets aside when it
+  belongs to an earlier session.
+- **A sign-out the server never heard** (browser, 2026-11-04, Volume 4 brief 07). If the logout
+  request failed, the learner was signed out on the page but the refresh cookie stayed valid on
+  the server, so the next page load quietly signed them back in. Now the device keeps one flag (no
+  account data, no token): while it is set no refresh is attempted, and each load first uses the
+  cookie once to get a token for the sign-out request and sends it; a cookie that no longer works
+  clears the flag, a lost connection keeps it for the next load, and a new sign-in clears it.
+  Covered in `frontend/src/auth/refreshRecovery.test.tsx` (a late refresh after the failed
+  sign-out, the reload, an offline reload, a 401 meanwhile, a new sign-in). Limit: another tab that
+  is still signed in keeps its session until its next refresh, which the flag then refuses.
+- **Quotes shown as evidence** (Volume 4 prompt 06). The written-answer coach's quotes are checked
+  against the stored answer before every display (position, no grader-directed text, no cut
+  negation) and dropped if they don't check out. A Claude failure explanation that quotes text
+  its request didn't contain isn't shown (the built-in explainer answers from the real results
+  instead), so an invented or injected "quote" isn't presented as the learner's results; hidden
+  test inputs are never in that request. Covered in
+  `backend/tests/test_evidence_contract.py`.
+- **The session boundary, in short.** Belong to the session they were sent in, and have no effect
+  on a later one: requests and their 401s (no refresh, no sign-out), responses (set aside), late
+  refreshes (discarded by the provider's epoch: they can't restore a signed-out user or replace the
+  account that signed in next; tested for both), queries still retrying (cancelled and removed),
+  and write-backs from handlers (session mark). Concurrent refreshes in one tab share one request;
+  across tabs a lock and the attempt key keep one cookie rotation (§3 above).
+- **Untrusted text at the render boundary** (browser, 2026-11-04). Learner answers, the coach's
+  text (built-in or Claude: feedback, quotes, notes, hints, reviews, explanations, interviewer
+  messages) and API data are rendered as React text; no raw-HTML API is used anywhere
+  (`dangerouslySetInnerHTML`, `innerHTML` and the like: none). Notes are Markdown through
+  react-markdown with raw HTML skipped, no images and its default URL filter; problem statements
+  are our own seed Markdown, also without raw HTML. **Links that come from data** (an interview
+  kit's meeting link, an application's posting, content references in scenarios and lessons)
+  follow the server's rule at render time too: only an absolute http(s) URL becomes a link
+  (`frontend/src/lib/links.ts`), anything else is shown as text. Before this a `javascript:` link
+  that reached the page (the server rejects it on save, so: an older row or a path that skipped
+  the check) was rendered as a live link, and React 18 doesn't block those. Back links built
+  from navigation state only point inside the app. Tests at the real pages:
+  `frontend/src/test/integration/safeRendering.test.tsx` (markup in feedback, quotes and a hint
+  renders literally and runs nothing; the link rule, including mixed case, `data:`,
+  protocol-relative and spaced URLs). Not verified one by one: every other provider text path
+  (inspected, rendered as text), admin pages, the shared-answer page, the code editor's own
+  rendering, and the Content Security Policy; grader-instruction detection (the rubric) is a
+  separate check and not relied on here.
+- Older versions stored the access token in `localStorage`; the app deletes that key on startup.
+- Remaining defences against XSS: React's output escaping, no HTML rendered from the API, and
+  a strict Content-Security-Policy on the deployed frontend.
 
 ## 4. Secure Java execution (implemented: gVisor sandbox)
 
@@ -107,7 +247,7 @@ Browser ──POST /submissions──▶ API ──(row: QUEUED)──▶ Postgr
 | Cross-run leakage | `--rm`, a fresh container per run; stale containers removed at startup | `test_each_run_starts_from_a_clean_sandbox` |
 | Abusive traffic | Auth required; per-user rate limit and pending-job cap; global queue-depth limit (503) | `backend/tests/test_judge.py` |
 | Forged results | Per-run nonce read from stdin **before** learner code runs (not in env/argv); results written through a captured stream; first report per test wins | `test_nonce_is_not_in_env_or_argv`, `test_forgery_attempt_from_inside_the_sandbox`, JVM forgery test |
-| Hidden test leakage | Expected outputs never enter the sandbox; raw run-phase output is never returned to users (learner code could print hidden inputs); per-test detail only for public tests; compiler output is shown with sandbox paths removed | `test_failed_tests_reveal_public_details_only` |
+| Hidden test leakage | Expected outputs never enter the sandbox; raw run-phase output is never returned to users (learner code could print hidden inputs); per-test detail only for public tests; compiler output is shown with sandbox paths removed **and diagnostics about the judge driver (`Main.java`) reduced to vetted messages**, re-applied when stored output is read (see §4.5) | `test_failed_tests_reveal_public_details_only`, `test_driver_diagnostics_never_echo_test_inputs`, `test_explain_failure_on_real_judge_output` |
 
 ### 4.3 Residual risks (honest)
 
@@ -131,6 +271,8 @@ Browser ──POST /submissions──▶ API ──(row: QUEUED)──▶ Postgr
 | `SANDBOX_IMAGE` | `codecoach-java-sandbox:21` | Built from `runner/sandbox-image` |
 | `MAX_CONCURRENCY` | `2` | Parallel sandboxes; excess requests get 503 |
 | `WALL_TIMEOUT_S`, `MEMORY_MB`, `HEAP_MB`, `PIDS_LIMIT`, `CPUS`, `TMPFS_MB`, `OUTPUT_LIMIT_BYTES` | 20 s, 512, 192, 64, 1, 64, 64 KB | Hard ceilings (requests may only ask for less) |
+| `GET /ready` | — | Readiness probe: 503 when the Docker daemon doesn't answer (the image healthcheck uses it) |
+| `WARMUP_ON_START` | `true` | Compile and run one trivial program before serving, so a slow first sandbox start isn't charged to a learner's wall-clock time limit. A failed warm-up is logged and never blocks startup |
 
 | Variable (API/worker) | Default | Meaning |
 |---|---|---|
@@ -141,16 +283,43 @@ Browser ──POST /submissions──▶ API ──(row: QUEUED)──▶ Postgr
 | `JUDGE_MAX_ATTEMPTS` / `JUDGE_STALE_AFTER_S` | 2 / 120 | Infrastructure retry and crash recovery |
 | `EMBEDDED_WORKER` | `false` | Run the worker inside the API process (dev/e2e only) |
 
+### 4.5 Finding: compiler output leaked hidden test inputs (fixed)
+
+Found while building "Explain my failure" (session 3). When a learner renamed the method or
+changed its parameters, `javac` reported errors **in the judge's generated `Main.java`**, and
+javac echoes the offending source line under each error. Those lines are test calls such as
+`run(out, prefix, 4, () -> new Solution().max(new int[] {-1000000000, -999999999}))`, so the
+compile output returned in `stderr_excerpt` listed **every hidden input** of the problem.
+
+- **Fix:** `redact_driver_diagnostics` (`backend/app/services/judge/judge.py`) parses javac
+  output into diagnostics. Learner (`Solution.java`) diagnostics are kept verbatim. Driver
+  diagnostics keep only a message from an allowlist of patterns that can't carry literals
+  (otherwise a fixed "details hidden" message) and `symbol:`/`location:`-style lines made of
+  identifiers and type names; source and caret lines are dropped and duplicates collapsed.
+- **Defence in depth:** it is applied when the output is stored *and* again when it's read
+  (it's idempotent), so rows stored before the fix are safe without a data migration.
+- **Proof:** `test_explain_failure_on_real_judge_output[find-largest-number-compile-error]`
+  renames the method in the real gVisor sandbox and asserts no hidden input appears in the
+  submission or the explanation. With the redaction disabled, that test fails with
+  `hidden input [-1000000000, -999999999] leaked`; with it, it passes.
+
 ## 5. Known gaps (honest list)
 
-- No refresh tokens yet; access tokens last 60 minutes.
-- The auth rate limiter is per process (move to Redis for multiple replicas).
-- No email verification or password reset (needs an email provider).
-- No account deletion endpoint yet (the database cascades are ready).
-- The AI evaluation suite (30+ labeled samples, spoiler and hallucination rates) is not built,
-  so no AI accuracy claims are made anywhere.
+- Unverified accounts can still use the app (verification is encouraged, not required), so an
+  address isn't proven until the owner enters the code or opens the link.
+- AI quality is measured only for the offline coach ([AI_EVALUATION.md](AI_EVALUATION.md)); Claude's
+  numbers need an API key, so no claims are made about it.
 - Code execution is off by default; deployments must opt in (`EXECUTION_ENABLED=true`) and
   run the runner on a dedicated gVisor host (see §4.3 for the residual risks).
+- Row-level security is fail-open for work done for nobody: a code path that runs without a
+  signed-in user (worker, CLI) sees every row by design. It covers 30 tables, not submissions,
+  shares, sign-in tokens or content triage (reasons in `db/rls.py`).
+- `POST /auth/guest` takes no body, so a cross-site form could start a new, empty guest session
+  in someone's browser (replacing theirs). Nobody gains access to anything; the JSON-only rule
+  that blocks this for sign-in and registration doesn't apply (`tests/test_route_access.py`).
+- Rate limits run in the API, so a large flood still costs each process a database write per
+  attempt (measured in [PERFORMANCE.md](PERFORMANCE.md#pre-launch-load-tests-2026-11-06)). Put an
+  edge limit (proxy or CDN) in front for volumetric attacks.
 - `npm audit` reports a moderate `minimatch` advisory inside `openapi-typescript`, a
   dev-only tool that runs on our own spec file at build time and never ships to browsers.
   Production dependencies audit clean, and CI enforces that with `npm audit --omit=dev`.
@@ -158,3 +327,29 @@ Browser ──POST /submissions──▶ API ──(row: QUEUED)──▶ Postgr
 ## 6. Reporting
 
 Please report vulnerabilities privately to the repository owner rather than opening a public issue.
+
+## 7. Secrets, rotation and the database role
+
+- **Where secrets live:** the server's environment (or a `.env` file that is never committed).
+  `SECRET_KEY`, `ANTHROPIC_API_KEY`, `SMTP_PASSWORD`, `RUNNER_TOKEN` and `METRICS_TOKEN` are
+  `SecretStr`: printing the settings shows `**********`, and a settings error at startup never
+  echoes the values it was given (it used to print the whole input, API key included).
+  `DATABASE_URL` is left out of `repr` and dumps. Nothing secret is ever a `VITE_*` variable:
+  the frontend build refuses one named like a secret and fails if any server secret's value
+  appears in the bundle (`frontend/src/build/secretGuard.ts`).
+- **Production refuses:** the dev `SECRET_KEY`, any key that looks typed (placeholder words,
+  repetitive, too short); the example database passwords (`codecoach`, `postgres`, …);
+  `AUTO_MIGRATE=true`; metrics without `METRICS_TOKEN`; plus the earlier email/CORS/cookie checks.
+- **Rotating `SECRET_KEY`:** set the new value and move the old one to `SECRET_KEY_PREVIOUS`
+  (comma-separated). Tokens, email codes and refresh recovery signed with the old key keep
+  working; only the new key signs. After `REFRESH_TOKEN_TTL_DAYS`, remove the old key. Removing
+  it early signs those sessions out (nothing worse). After a leak, remove it at once.
+- **Scanning:** CI runs detect-secrets over every tracked file against a reviewed baseline
+  (`.secrets.baseline`: synthetic test values and documented local defaults). A new finding fails
+  CI; if it's a real secret, rotate it (a pushed secret is compromised); if it's a test value,
+  review it and run `python scripts/check_secrets.py --update`.
+- **Database role and RLS:** row-level security never applies to superusers or roles with
+  BYPASSRLS. Connect the API as an ordinary role that owns the tables (the policies are FORCEd,
+  so the owner is subject to them). `python -m app.cli check-rls` says whether it's enforced;
+  startup logs a warning when it isn't. The Docker image's `POSTGRES_USER` is a superuser, so a
+  compose deployment should add an app role for this to take effect.

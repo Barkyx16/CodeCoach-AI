@@ -1,0 +1,129 @@
+{
+  "order": 131,
+  "slug": "palindrome-number",
+  "title": "Palindrome Number",
+  "difficulty": "easy",
+  "topics": [
+    "math"
+  ],
+  "summary": "Does a number read the same backwards?",
+  "statement": "Return `true` if the integer `x` reads the same forwards and backwards. Negative numbers\nare never palindromes (`-121` reads `121-` backwards).",
+  "constraints": [
+    "-2^31 <= x <= 2^31 - 1"
+  ],
+  "examples": [
+    {
+      "input": "x = 121",
+      "output": "true"
+    },
+    {
+      "input": "x = -121",
+      "output": "false"
+    },
+    {
+      "input": "x = 10",
+      "output": "false"
+    }
+  ],
+  "signature": {
+    "method": "isPalindrome",
+    "params": [
+      {
+        "name": "x",
+        "type": "int"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean isPalindrome(int x) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "Reversing the number and comparing would work. Watch out for overflow.",
+    "Reverse only the second half of the digits and compare it with the first half.",
+    "if x < 0 or (x % 10 == 0 and x != 0): return false\nrev = 0\nwhile x > rev:\n    rev = rev*10 + x%10\n    x //= 10\nreturn x == rev or x == rev // 10",
+    "Reversing half the digits avoids overflow and runs in O(log x). The `rev // 10` case handles an odd number of digits, where the middle digit doesn't matter."
+  ],
+  "expected_complexity": {
+    "time": "O(log x)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "x": 121
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "x": -121
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "x": 10
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "x": 0
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "x": 1221
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "x": 2147447412
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "x": 2147483647
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "x": 97688679
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "x": 504173
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "x": 589933
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "x": 79397
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

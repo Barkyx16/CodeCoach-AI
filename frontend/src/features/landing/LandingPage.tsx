@@ -24,8 +24,13 @@ export function LandingPage() {
     setBusy(true);
     setError(null);
     try {
-      if (!isAuthenticated) await continueAsGuest();
-      navigate("/problems/two-sum");
+      if (isAuthenticated) {
+        navigate("/problems/two-sum");
+      } else {
+        // A deliberate demo: a guest session, then the optional welcome to choose how to start.
+        await continueAsGuest();
+        navigate("/welcome");
+      }
     } catch (e) {
       setError(e);
     } finally {

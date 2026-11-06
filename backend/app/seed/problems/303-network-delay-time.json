@@ -1,0 +1,222 @@
+{
+  "order": 303,
+  "slug": "network-delay-time",
+  "title": "Network Signal Delay",
+  "difficulty": "hard",
+  "topics": [
+    "graphs",
+    "heaps"
+  ],
+  "summary": "How long until a signal reaches every node?",
+  "statement": "`times[i] = [u, v, w]` is a directed edge from node `u` to node `v` taking `w` time. Nodes are `1..n`.\nA signal starts at node `k`. Return the time until all nodes have received it, or `-1` if some never do.",
+  "constraints": [
+    "1 <= n <= 100",
+    "1 <= times.length <= 6000",
+    "0 <= w <= 100"
+  ],
+  "examples": [
+    {
+      "input": "times = [[2, 1, 1], [2, 3, 1], [3, 4, 1]], n = 4, k = 2",
+      "output": "2"
+    },
+    {
+      "input": "times = [[1, 2, 1]], n = 2, k = 1",
+      "output": "1"
+    },
+    {
+      "input": "times = [[1, 2, 1]], n = 2, k = 2",
+      "output": "-1"
+    }
+  ],
+  "signature": {
+    "method": "networkDelayTime",
+    "params": [
+      {
+        "name": "times",
+        "type": "int[][]"
+      },
+      {
+        "name": "n",
+        "type": "int"
+      },
+      {
+        "name": "k",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int networkDelayTime(int[][] times, int n, int k) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Each node receives the signal at its shortest-path distance from k.",
+    "Run Dijkstra's algorithm from k; the answer is the largest distance, or -1 if any node is unreachable.",
+    "dist = {k: 0}\npq = [(0, k)]\nwhile pq:\n    d, u = pop min\n    if d > dist[u]: continue\n    for v, w in adj[u]: relax\nreturn max(dist) if all reached else -1",
+    "Dijkstra with a binary heap: O(E log V). Skipping stale heap entries keeps it correct without a decrease-key operation."
+  ],
+  "expected_complexity": {
+    "time": "O(E log V)",
+    "space": "O(V + E)"
+  },
+  "tests": [
+    {
+      "input": {
+        "times": [
+          [
+            2,
+            1,
+            1
+          ],
+          [
+            2,
+            3,
+            1
+          ],
+          [
+            3,
+            4,
+            1
+          ]
+        ],
+        "n": 4,
+        "k": 2
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "times": [
+          [
+            1,
+            2,
+            1
+          ]
+        ],
+        "n": 2,
+        "k": 1
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "times": [
+          [
+            1,
+            2,
+            1
+          ]
+        ],
+        "n": 2,
+        "k": 2
+      },
+      "expected_output": -1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "times": [
+          [
+            1,
+            2,
+            5
+          ],
+          [
+            1,
+            3,
+            1
+          ],
+          [
+            3,
+            2,
+            1
+          ]
+        ],
+        "n": 3,
+        "k": 1
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "times": [
+          [
+            2,
+            3,
+            1
+          ],
+          [
+            3,
+            2,
+            4
+          ],
+          [
+            1,
+            3,
+            0
+          ]
+        ],
+        "n": 3,
+        "k": 2
+      },
+      "expected_output": -1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "times": [],
+        "n": 1,
+        "k": 1
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "times": [
+          [
+            1,
+            2,
+            1
+          ],
+          [
+            2,
+            1,
+            7
+          ]
+        ],
+        "n": 2,
+        "k": 2
+      },
+      "expected_output": 7,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "times": [
+          [
+            4,
+            1,
+            1
+          ],
+          [
+            1,
+            4,
+            6
+          ],
+          [
+            1,
+            5,
+            3
+          ]
+        ],
+        "n": 5,
+        "k": 1
+      },
+      "expected_output": -1,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

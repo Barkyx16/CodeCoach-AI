@@ -1,0 +1,232 @@
+{
+  "order": 192,
+  "slug": "top-k-frequent",
+  "title": "Top K Frequent Values",
+  "difficulty": "medium",
+  "topics": [
+    "hash-maps",
+    "heaps",
+    "sorting"
+  ],
+  "summary": "Return the k values that appear most often.",
+  "statement": "Return the `k` most frequent values in `nums`, ordered from most to least frequent. Break\nfrequency ties by the smaller value first. `k` is at most the number of distinct values.",
+  "constraints": [
+    "1 <= nums.length <= 10^5",
+    "1 <= k <= number of distinct values"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 1, 1, 2, 2, 3], k = 2",
+      "output": "[1, 2]"
+    },
+    {
+      "input": "nums = [1], k = 1",
+      "output": "[1]"
+    },
+    {
+      "input": "nums = [4, 4, 5, 5, 6], k = 2",
+      "output": "[4, 5]"
+    }
+  ],
+  "signature": {
+    "method": "topKFrequent",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      },
+      {
+        "name": "k",
+        "type": "int"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] topKFrequent(int[] nums, int k) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "Start by counting how often each value appears.",
+    "Then you need the k best (count, value) pairs: sort them, use a heap of size k, or bucket by count.",
+    "counts = count values\npairs = sort counts by (-count, value)\nreturn first k values",
+    "Counting is O(n); sorting the d distinct pairs is O(d log d). A size-k heap gives O(d log k), and bucket sort by count gives O(n)."
+  ],
+  "expected_complexity": {
+    "time": "O(n + d log d)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          1,
+          1,
+          2,
+          2,
+          3
+        ],
+        "k": 2
+      },
+      "expected_output": [
+        1,
+        2
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1
+        ],
+        "k": 1
+      },
+      "expected_output": [
+        1
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          4,
+          4,
+          5,
+          5,
+          6
+        ],
+        "k": 2
+      },
+      "expected_output": [
+        4,
+        5
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          0,
+          1,
+          0
+        ],
+        "k": 3
+      },
+      "expected_output": [
+        0,
+        1,
+        3
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          3,
+          -1,
+          -4,
+          2,
+          -3,
+          -2,
+          2,
+          2,
+          -3,
+          0,
+          6,
+          -1,
+          0,
+          2,
+          6,
+          -2,
+          3
+        ],
+        "k": 3
+      },
+      "expected_output": [
+        2,
+        -3,
+        -2
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          5,
+          3,
+          -1,
+          -4,
+          1,
+          4,
+          5,
+          0,
+          2,
+          6,
+          -1,
+          -4,
+          -3
+        ],
+        "k": 2
+      },
+      "expected_output": [
+        -4,
+        -1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          6,
+          3,
+          3,
+          3,
+          2,
+          -4,
+          4,
+          1,
+          4
+        ],
+        "k": 5
+      },
+      "expected_output": [
+        3,
+        4,
+        -4,
+        1,
+        2
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          3,
+          -4,
+          -4,
+          2,
+          6,
+          -2,
+          -4,
+          5,
+          -3,
+          -2,
+          -1,
+          -1,
+          -3,
+          -3,
+          3
+        ],
+        "k": 2
+      },
+      "expected_output": [
+        -4,
+        -3
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

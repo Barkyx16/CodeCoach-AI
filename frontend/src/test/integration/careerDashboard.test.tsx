@@ -1,0 +1,61 @@
+import { screen, waitFor, within } from "@testing-library/react";
+import { http, HttpResponse } from "msw";
+
+import { tokenResponse, user as baseUser } from "../fixtures";
+import { renderApp } from "../render";
+import { API, server } from "../server";
+
+const nurse = { ...baseUser, career_track: "registered-nurse" };
+const signInAsNurse = () =>
+  server.use(http.post(`${API}/api/v1/auth/refresh`, () => HttpResponse.json(tokenResponse({ user: nurse }))));
+
+describe("Dashboard and interviews follow the user's career", () => {
+  it("shows a nurse their interview-question progress, not coding stats", async () => {
+    signInAsNurse();
+    renderApp("/dashboard", { signedIn: true });
+    expect(await screen.findByText("Registered Nurse · Easy level")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Your interview practice" })).toBeInTheDocument();
+    const summary = screen.getByRole("region", { name: "Summary" });
+    // Each number names its unit: questions (once each, however many tries), not attempts.
+    expect(within(summary).getByText("Questions answered")).toBeInTheDocument();
+    expect(within(summary).getByText("of 300 unique questions")).toBeInTheDocument();
+    expect(within(summary).getByText("Questions with a best score of 85 or more")).toBeInTheDocument();
+    expect(screen.queryByText(/problems$/)).not.toBeInTheDocument();
+    // Up next: unanswered questions from the nurse's own library, with the rule that picked them.
+    const next = await screen.findByRole("link", { name: /What good patient assessment looks like/ });
+    expect(next).toHaveAttribute("href", "/careers/registered-nurse/questions/e-good-0");
+    expect(screen.getByText(/Picked from your own answers by a fixed rule/)).toHaveTextContent("You're on Easy (1 of 10 answered there before it moves up a level).");
+    // The answered question (best score 90) isn't suggested again; the weakest answers are one link away.
+    expect(screen.queryByRole("link", { name: /A time patient assessment mattered/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Review your answered questions, lowest score first/ }))
+      .toHaveAttribute("href", "/problems?view=questions&status=attempted&sort=lowest_score");
+    expect(within(screen.getByRole("navigation", { name: "Main" })).getByRole("link", { name: "Mock interview" })).toBeInTheDocument();
+  });
+
+  it("keeps the coding dashboard for software engineers", async () => {
+    renderApp("/dashboard", { signedIn: true });
+    expect(await screen.findByRole("heading", { level: 1, name: "Your interview practice" })).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Summary" })).getByText("Solved")).toBeInTheDocument();
+  });
+
+  it("starts a nurse's mock interview from their own career on the server", async () => {
+    signInAsNurse();
+    let body: unknown = null;
+    server.use(http.post(`${API}/api/v1/interviews`, async ({ request }) => {
+      body = await request.json();
+      return HttpResponse.json({ error: { code: "interview_in_progress", message: "You already have an interview in progress.", request_id: "r", details: { interview_id: "round-9" } } }, { status: 409 });
+    }));
+    const { user } = renderApp("/interviews", { signedIn: true });
+    expect(await screen.findByRole("heading", { name: "Registered Nurse interview" })).toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: "Medium" }));
+    await user.click(screen.getByRole("button", { name: "Start interview" }));
+    await waitFor(() => expect(body).toEqual({ kind: "questions", purpose: "practice", track: "registered-nurse", difficulty: "medium", duration_minutes: 15 }));
+    expect(await screen.findByRole("link", { name: "Resume it" })).toHaveAttribute("href", "/interviews/round-9");
+  });
+
+  it("offers software engineers a question round next to the coding interview", async () => {
+    const { user } = renderApp("/interviews", { signedIn: true });
+    await user.click(await screen.findByRole("link", { name: /Start a question round/ }));
+    expect(await screen.findByRole("heading", { name: "Software Engineer interview" })).toBeInTheDocument();
+  });
+});

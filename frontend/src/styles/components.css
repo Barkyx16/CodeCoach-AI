@@ -12,12 +12,16 @@
   font-weight: var(--weight-medium);
   cursor: pointer;
   transition: background var(--duration-fast) var(--ease-standard), border-color var(--duration-fast);
-  white-space: nowrap;
+  /* Wraps only when there's no room (narrow screens, large text, zoom) instead of overflowing. */
+  white-space: normal;
+  text-align: center;
+  max-width: 100%;
 }
 .btn--md { padding: var(--space-2) var(--space-4); font-size: var(--text-sm); min-height: 42px; }
 .btn--sm { padding: var(--space-1) var(--space-3); font-size: var(--text-xs); min-height: 34px; }
 .btn:hover:not(:disabled) { border-color: var(--color-link); }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn[aria-busy="true"] { cursor: progress; }
 .btn--primary { background: var(--color-primary); border-color: var(--color-link); color: var(--color-text-inverse); }
 .btn--primary:hover:not(:disabled) { background: var(--color-primary-hover); }
 .btn--ghost { background: transparent; border-color: transparent; color: var(--color-text-muted); }
@@ -81,7 +85,7 @@
   justify-content: center;
   gap: var(--space-2);
   text-align: center;
-  padding: var(--space-10) var(--space-6);
+  padding: var(--space-6) var(--space-4);
 }
 .state--loading { flex-direction: row; }
 .state--error strong { color: var(--color-danger); }
@@ -126,3 +130,20 @@
 .card { box-shadow: var(--shadow-sm); }
 .input::placeholder { color: var(--color-text-subtle); opacity: 1; }
 @media (pointer: coarse) { .btn--sm { min-height: 44px; } }
+
+/* An empty state that is the whole page (404) keeps the empty-state look for its <h1>. */
+.state__title { margin: 0; font-size: var(--text-md); font-weight: var(--weight-semibold); }
+
+/* Password field with a show/hide (eye) button */
+.password-input { position: relative; display: flex; }
+.password-input .input { flex: 1; padding-right: 44px; }
+.password-input__toggle { position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--color-text-muted); cursor: pointer; }
+.password-input__toggle:hover { color: var(--color-text); }
+.password-input__toggle:focus-visible { outline: 2px solid transparent; box-shadow: var(--focus-ring); }
+.password-input__toggle[aria-pressed="true"] { color: var(--color-primary); }
+
+/* Live password checklist */
+.password-rules { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: var(--text-xs); color: var(--color-text-subtle); }
+.password-rules__ok { color: var(--color-success); }

@@ -1,0 +1,132 @@
+{
+  "order": 200,
+  "slug": "longest-k-distinct",
+  "title": "Longest Substring With at Most K Distinct Letters",
+  "difficulty": "medium",
+  "topics": [
+    "strings",
+    "sliding-window",
+    "hash-maps"
+  ],
+  "summary": "Longest substring using no more than k different characters.",
+  "statement": "Return the length of the longest substring of `s` that contains at most `k` distinct characters.",
+  "constraints": [
+    "0 <= s.length <= 5 * 10^4",
+    "0 <= k <= 26",
+    "lower-case letters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"eceba\", k = 2",
+      "output": "3"
+    },
+    {
+      "input": "s = \"aa\", k = 1",
+      "output": "2"
+    },
+    {
+      "input": "s = \"abc\", k = 0",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "lengthOfLongestKDistinct",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      },
+      {
+        "name": "k",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int lengthOfLongestKDistinct(String s, int k) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "A window that is valid stays valid if you shrink it.",
+    "Grow the right edge; when the window has more than `k` distinct letters, move the left edge until it doesn't.",
+    "counts = {}\nleft = best = 0\nfor right, c in enumerate(s):\n    counts[c] += 1\n    while len(counts) > k:\n        counts[s[left]] -= 1; drop it at zero; left += 1\n    best = max(best, right - left + 1)\nreturn best",
+    "Each index enters and leaves the window once: O(n) time and O(k) space."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(k)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "eceba",
+        "k": 2
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "aa",
+        "k": 1
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "abc",
+        "k": 0
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "",
+        "k": 3
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "abaccc",
+        "k": 2
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "a",
+        "k": 1
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "cdddbd",
+        "k": 1
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "abcddabccac",
+        "k": 2
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "d",
+        "k": 2
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

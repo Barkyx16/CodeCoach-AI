@@ -1,0 +1,160 @@
+{
+  "order": 16,
+  "slug": "coin-change",
+  "title": "Coin Change",
+  "difficulty": "medium",
+  "topics": [
+    "dynamic-programming"
+  ],
+  "summary": "Make an amount with the fewest coins, or report that it can't be done.",
+  "statement": "You have coins of the denominations in `coins`, with an unlimited supply of each. Return the **fewest** coins that add up exactly to `amount`, or `-1` if no combination does.\n\nAn amount of 0 needs 0 coins.",
+  "constraints": [
+    "1 <= coins.length <= 12",
+    "1 <= coins[i] <= 10^4",
+    "0 <= amount <= 10^4"
+  ],
+  "examples": [
+    {
+      "input": "coins = [1, 2, 5], amount = 11",
+      "output": "3",
+      "explanation": "11 = 5 + 5 + 1."
+    },
+    {
+      "input": "coins = [2], amount = 3",
+      "output": "-1"
+    },
+    {
+      "input": "coins = [1], amount = 0",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "coinChange",
+    "params": [
+      {
+        "name": "coins",
+        "type": "int[]"
+      },
+      {
+        "name": "amount",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int coinChange(int[] coins, int amount) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Always taking the largest coin first doesn't work: with coins [1, 5, 6, 9] and amount 11 it picks 9 + 1 + 1, but 6 + 5 is better. Suppose you already knew the best answer for every amount smaller than 11. How would you get the answer for 11?",
+    "Dynamic programming over amounts. best[a] = 1 + min(best[a - c]) over every coin c <= a, with best[0] = 0. Amounts that can't be made stay 'infinite', and the final answer is -1 if best[amount] is still infinite.",
+    "best = array of size amount + 1, filled with amount + 1   // 'infinity'\nbest[0] = 0\nfor a from 1 to amount:\n    for each coin c:\n        if c <= a:\n            best[a] = min(best[a], best[a - c] + 1)\nreturn best[amount] > amount ? -1 : best[amount]",
+    "Greedy fails for some coin systems, and trying every combination is exponential. The subproblem 'fewest coins for amount a' has optimal substructure: the last coin used is some c, and the rest must be an optimal answer for a - c. Filling best[0..amount] bottom-up takes O(amount * coins) time and O(amount) space. Using amount + 1 as 'infinity' avoids integer overflow from adding 1 to Integer.MAX_VALUE."
+  ],
+  "expected_complexity": {
+    "time": "O(amount * k)",
+    "space": "O(amount)"
+  },
+  "tests": [
+    {
+      "input": {
+        "coins": [
+          1,
+          2,
+          5
+        ],
+        "amount": 11
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "coins": [
+          2
+        ],
+        "amount": 3
+      },
+      "expected_output": -1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "coins": [
+          1
+        ],
+        "amount": 0
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "coins": [
+          1
+        ],
+        "amount": 2
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "coins": [
+          2,
+          5,
+          10,
+          1
+        ],
+        "amount": 27
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "coins": [
+          9,
+          6,
+          5,
+          1
+        ],
+        "amount": 11
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "coins": [
+          5,
+          3
+        ],
+        "amount": 7
+      },
+      "expected_output": -1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "coins": [
+          186,
+          419,
+          83,
+          408
+        ],
+        "amount": 6249
+      },
+      "expected_output": 20,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "coins": [
+          7
+        ],
+        "amount": 10000
+      },
+      "expected_output": -1,
+      "visibility": "hidden"
+    }
+  ]
+}

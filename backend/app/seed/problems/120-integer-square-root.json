@@ -1,0 +1,117 @@
+{
+  "order": 120,
+  "slug": "integer-square-root",
+  "title": "Integer Square Root",
+  "difficulty": "easy",
+  "topics": [
+    "binary-search",
+    "math"
+  ],
+  "summary": "Return the floor of the square root without Math.sqrt.",
+  "statement": "Return the largest integer `r` such that `r * r <= x`, for a non-negative integer `x`.\nDon't use built-in square-root functions.",
+  "constraints": [
+    "0 <= x <= 2^31 - 1"
+  ],
+  "examples": [
+    {
+      "input": "x = 8",
+      "output": "2",
+      "explanation": "sqrt(8) is about 2.83, so the answer is 2."
+    },
+    {
+      "input": "x = 16",
+      "output": "4"
+    },
+    {
+      "input": "x = 0",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "mySqrt",
+    "params": [
+      {
+        "name": "x",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int mySqrt(int x) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "The answer lies somewhere between 0 and x. How can you search that range quickly?",
+    "Binary search for the largest `r` with `r * r <= x`. Use `long` for `r * r` to avoid overflow.",
+    "lo, hi = 0, x\nwhile lo < hi:\n    mid = (lo + hi + 1) // 2\n    if mid*mid <= x: lo = mid\n    else: hi = mid - 1\nreturn lo",
+    "Binary search halves the range each step: O(log x). Rounding `mid` up stops an infinite loop when `lo + 1 == hi`, and computing `mid * mid` in a long avoids overflow near 2^31."
+  ],
+  "expected_complexity": {
+    "time": "O(log x)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "x": 8
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "x": 16
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "x": 0
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "x": 1
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "x": 2147483647
+      },
+      "expected_output": 46340,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "x": 82603262
+      },
+      "expected_output": 9088,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "x": 60917894
+      },
+      "expected_output": 7804,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "x": 380459303
+      },
+      "expected_output": 19505,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "x": 872462299
+      },
+      "expected_output": 29537,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

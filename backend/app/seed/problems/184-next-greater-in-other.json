@@ -1,0 +1,223 @@
+{
+  "order": 184,
+  "slug": "next-greater-in-other",
+  "title": "Next Greater Element in Another Array",
+  "difficulty": "easy",
+  "topics": [
+    "stacks",
+    "hash-maps"
+  ],
+  "summary": "For each value of a subset, find the next bigger value to its right in the full array.",
+  "statement": "`nums1` is a subset of `nums2`, and all values are distinct. For each `x` in `nums1`, find `x` in\n`nums2` and return the first value to its right that is greater than `x`, or `-1` if none.",
+  "constraints": [
+    "1 <= nums1.length <= nums2.length <= 1000",
+    "distinct values"
+  ],
+  "examples": [
+    {
+      "input": "nums1 = [4, 1, 2], nums2 = [1, 3, 4, 2]",
+      "output": "[-1, 3, -1]"
+    },
+    {
+      "input": "nums1 = [2, 4], nums2 = [1, 2, 3, 4]",
+      "output": "[3, -1]"
+    },
+    {
+      "input": "nums1 = [5], nums2 = [5]",
+      "output": "[-1]"
+    }
+  ],
+  "signature": {
+    "method": "nextGreaterElement",
+    "params": [
+      {
+        "name": "nums1",
+        "type": "int[]"
+      },
+      {
+        "name": "nums2",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] nextGreaterElement(int[] nums1, int[] nums2) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "Compute the next greater value for every element of `nums2` once.",
+    "A decreasing stack: when a bigger value arrives, it's the answer for everything smaller on the stack.",
+    "next = {}\nstack = []\nfor x in nums2:\n    while stack and stack[-1] < x: next[stack.pop()] = x\n    stack.append(x)\nreturn [next.get(x, -1) for x in nums1]",
+    "Every value is pushed and popped once: O(n + m), versus O(n * m) for scanning right each time."
+  ],
+  "expected_complexity": {
+    "time": "O(n + m)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums1": [
+          4,
+          1,
+          2
+        ],
+        "nums2": [
+          1,
+          3,
+          4,
+          2
+        ]
+      },
+      "expected_output": [
+        -1,
+        3,
+        -1
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums1": [
+          2,
+          4
+        ],
+        "nums2": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "expected_output": [
+        3,
+        -1
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums1": [
+          5
+        ],
+        "nums2": [
+          5
+        ]
+      },
+      "expected_output": [
+        -1
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums1": [
+          13,
+          6,
+          18
+        ],
+        "nums2": [
+          18,
+          24,
+          25,
+          39,
+          6,
+          21,
+          13,
+          26,
+          14,
+          0,
+          31,
+          33
+        ]
+      },
+      "expected_output": [
+        26,
+        21,
+        24
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums1": [
+          23
+        ],
+        "nums2": [
+          15,
+          23
+        ]
+      },
+      "expected_output": [
+        -1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums1": [
+          11
+        ],
+        "nums2": [
+          4,
+          0,
+          21,
+          11,
+          33,
+          28,
+          18
+        ]
+      },
+      "expected_output": [
+        33
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums1": [
+          39,
+          22,
+          10,
+          3,
+          2,
+          26,
+          20,
+          4,
+          35,
+          6,
+          30,
+          1
+        ],
+        "nums2": [
+          22,
+          3,
+          4,
+          6,
+          2,
+          20,
+          10,
+          39,
+          30,
+          35,
+          1,
+          26
+        ]
+      },
+      "expected_output": [
+        -1,
+        39,
+        39,
+        4,
+        20,
+        -1,
+        39,
+        6,
+        -1,
+        20,
+        35,
+        26
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

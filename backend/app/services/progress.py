@@ -26,6 +26,7 @@ from app.models import (
     Problem,
     ProgressEvent,
     Submission,
+    SubmissionMode,
     SubmissionStatus,
     User,
 )
@@ -37,6 +38,7 @@ from app.schemas.progress import (
     Recommendation,
     TopicProgress,
 )
+from app.services.content import retired_problem_slugs
 
 _DIFFICULTY_RANK = {Difficulty.EASY: 0, Difficulty.MEDIUM: 1, Difficulty.HARD: 2}
 
@@ -104,7 +106,9 @@ class ProgressService:
         facts = {p.id: _ProblemFacts(problem=p) for p in problems}
 
         for sub in self.db.scalars(
-            select(Submission).where(Submission.user_id == user.id).order_by(Submission.created_at)
+            select(Submission)
+            .where(Submission.user_id == user.id, Submission.mode == SubmissionMode.SUBMIT)
+            .order_by(Submission.created_at)
         ):
             f = facts.get(sub.problem_id)
             if f is None:
@@ -175,7 +179,7 @@ class ProgressService:
         status_counts = dict(
             self.db.execute(
                 select(Submission.status, func.count())
-                .where(Submission.user_id == user.id)
+                .where(Submission.user_id == user.id, Submission.mode == SubmissionMode.SUBMIT)
                 .group_by(Submission.status)
             ).all()
         )
@@ -237,7 +241,8 @@ class ProgressService:
         self, user: User, *, limit: int = 5, facts: dict[int, _ProblemFacts] | None = None
     ) -> list[Recommendation]:
         facts = facts if facts is not None else self._facts(user)
-        values = list(facts.values())
+        retired = retired_problem_slugs()  # never recommended; still counted in history
+        values = [f for f in facts.values() if f.problem.slug not in retired]
         picks: list[Recommendation] = []
         chosen: set[str] = set()
 

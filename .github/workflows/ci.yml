@@ -43,12 +43,23 @@ jobs:
       - name: Lint
         run: ruff check . && ruff format --check .
       - name: Type check
-        run: mypy app
+        run: mypy app evals  # evals too since the Verification batch (clean: 0 errors)
       - name: Tests (SQLite)
         run: pytest
-      - name: Tests (PostgreSQL)
+      - name: An ordinary database role for the app (superusers bypass row-level security)
+        run: |
+          python - <<'PY'
+          from sqlalchemy import create_engine, text
+          e = create_engine(
+              "postgresql+psycopg://codecoach:codecoach@localhost:5432/codecoach_test", isolation_level="AUTOCOMMIT"
+          )
+          with e.connect() as c:
+              c.execute(text("CREATE ROLE codecoach_app LOGIN PASSWORD 'codecoach' NOSUPERUSER NOBYPASSRLS"))
+              c.execute(text("CREATE DATABASE codecoach_app_test OWNER codecoach_app"))
+          PY
+      - name: Tests (PostgreSQL, as that role, so row-level security is enforced)
         env:
-          TEST_DATABASE_URL: postgresql+psycopg://codecoach:codecoach@localhost:5432/codecoach_test
+          TEST_DATABASE_URL: postgresql+psycopg://codecoach_app:codecoach@localhost:5432/codecoach_app_test
         run: pytest
       - name: Migrations apply cleanly and match the models
         env:
@@ -65,6 +76,13 @@ jobs:
           alembic downgrade base
       - name: Reference solutions pass every seeded test
         run: python scripts/verify_reference_solutions.py
+      - name: Content quality gates (questions, corrections, lessons, scenarios, problems)
+        env:
+          DATABASE_URL: postgresql+psycopg://codecoach:codecoach@localhost:5432/codecoach_test
+        run: |
+          alembic upgrade head
+          python -m app.cli seed
+          python -m app.cli validate-content
 
   frontend:
     name: Frontend (lint, types, unit tests, build, API contract)
@@ -90,6 +108,8 @@ jobs:
         run: npm test
       - name: Production build
         run: npm run build
+      - name: Bundle size budgets (shell and largest lazy chunk, gzipped)
+        run: npm run size:check
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=moderate
 
@@ -207,16 +227,18 @@ jobs:
           retention-days: 7
 
   security:
-    name: Dependency audit
+    name: Dependency audit and secret scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install pip-audit==2.10.1
+      - run: pip install pip-audit==2.10.1 detect-secrets==1.5.0
       - run: pip-audit -r backend/requirements.txt
       - run: pip-audit -r runner/requirements.txt
+      - name: No unreviewed secrets in tracked files (detect-secrets against .secrets.baseline)
+        run: python scripts/check_secrets.py
 
   docker:
     name: Docker images build

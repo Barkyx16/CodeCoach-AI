@@ -1,0 +1,181 @@
+{
+  "order": 299,
+  "slug": "jump-game-equal-values",
+  "title": "Jump Game With Teleports",
+  "difficulty": "hard",
+  "topics": [
+    "graphs",
+    "arrays",
+    "hash-maps"
+  ],
+  "summary": "Fewest moves to the end, where equal values let you teleport.",
+  "statement": "From index `i` you can move to `i + 1`, `i - 1`, or any index `j` with `nums[j] == nums[i]`. Return the\nminimum number of moves from index 0 to the last index.",
+  "constraints": [
+    "1 <= nums.length <= 5 * 10^4"
+  ],
+  "examples": [
+    {
+      "input": "nums = [100, -23, -23, 404, 100, 23, 23, 23, 3, 404]",
+      "output": "3"
+    },
+    {
+      "input": "nums = [7]",
+      "output": "0"
+    },
+    {
+      "input": "nums = [7, 6, 9, 6, 9, 6, 9, 7]",
+      "output": "1"
+    }
+  ],
+  "signature": {
+    "method": "minJumps",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int minJumps(int[] nums) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Every move costs the same: think shortest path in a graph.",
+    "BFS over indices. Group indices by value; after using a value's teleports once, clear that group so it isn't scanned again.",
+    "groups = value -> list of indices\nqueue = [0]; dist[0] = 0\nwhile queue:\n    i = pop front\n    for j in [i-1, i+1] + groups[nums[i]]:\n        if unvisited: dist[j] = dist[i] + 1; push j\n    groups[nums[i]] = []\nreturn dist[n-1]",
+    "Clearing each value group after first use keeps BFS at O(n); without it, many equal values make it O(n^2)."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          100,
+          -23,
+          -23,
+          404,
+          100,
+          23,
+          23,
+          23,
+          3,
+          404
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          7
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          7,
+          6,
+          9,
+          6,
+          9,
+          6,
+          9,
+          7
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          2,
+          5,
+          5
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          4,
+          1,
+          4,
+          4,
+          3,
+          1,
+          5,
+          2,
+          4,
+          1,
+          4,
+          3,
+          3,
+          0
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          4,
+          1,
+          2,
+          0,
+          3,
+          3,
+          3,
+          3,
+          1,
+          1,
+          0
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          1,
+          3,
+          0,
+          2,
+          4,
+          5,
+          4,
+          5,
+          0
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

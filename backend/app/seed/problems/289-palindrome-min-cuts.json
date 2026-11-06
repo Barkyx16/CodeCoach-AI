@@ -1,0 +1,110 @@
+{
+  "order": 289,
+  "slug": "palindrome-min-cuts",
+  "title": "Fewest Cuts for Palindrome Pieces",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "strings"
+  ],
+  "summary": "Cut a string into palindromes using as few cuts as possible.",
+  "statement": "Return the minimum number of cuts needed to split `s` so that every piece is a palindrome.",
+  "constraints": [
+    "1 <= s.length <= 2000",
+    "lower-case letters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"aab\"",
+      "output": "1"
+    },
+    {
+      "input": "s = \"a\"",
+      "output": "0"
+    },
+    {
+      "input": "s = \"ab\"",
+      "output": "1"
+    }
+  ],
+  "signature": {
+    "method": "minCut",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int minCut(String s) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "If you know the fewest cuts for every prefix, can you extend to a longer prefix?",
+    "cuts[i] = min over palindromic `s[j..i]` of cuts[j-1] + 1 (or 0 if j == 0). Precompute which substrings are palindromes.",
+    "pal[j][i] = s[j] == s[i] and (i - j < 2 or pal[j+1][i-1])\nfor i in range(n):\n    cuts[i] = min(0 if j == 0 else cuts[j-1] + 1 for j with pal[j][i])\nreturn cuts[n-1]",
+    "O(n^2) time and space. Expanding around centers can fill the cuts array without the n\u00d7n table."
+  ],
+  "expected_complexity": {
+    "time": "O(n^2)",
+    "space": "O(n^2)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "aab"
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "a"
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "ab"
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "racecarxyz"
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "babb"
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "aaba"
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bbaabb"
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "abbbaabbab"
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -1,0 +1,114 @@
+{
+  "order": 154,
+  "slug": "jewels-and-stones",
+  "title": "Jewels and Stones",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "hash-sets"
+  ],
+  "summary": "Count how many of your stones are jewels.",
+  "statement": "Each character in `jewels` is a type of jewel. Return how many characters in `stones` are\njewels. Letters are case-sensitive (`a` and `A` are different).",
+  "constraints": [
+    "1 <= jewels.length, stones.length <= 50",
+    "jewels has distinct letters"
+  ],
+  "examples": [
+    {
+      "input": "jewels = \"aA\", stones = \"aAAbbbb\"",
+      "output": "3"
+    },
+    {
+      "input": "jewels = \"z\", stones = \"ZZ\"",
+      "output": "0"
+    },
+    {
+      "input": "jewels = \"abc\", stones = \"a\"",
+      "output": "1"
+    }
+  ],
+  "signature": {
+    "method": "numJewelsInStones",
+    "params": [
+      {
+        "name": "jewels",
+        "type": "String"
+      },
+      {
+        "name": "stones",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int numJewelsInStones(String jewels, String stones) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "For each stone you need a fast \"is this a jewel?\" check.",
+    "Put the jewel letters in a set (or a 128-slot boolean array).",
+    "jewel = set(jewels)\nreturn count of c in stones where c in jewel",
+    "Set lookups make this O(J + S) instead of O(J * S)."
+  ],
+  "expected_complexity": {
+    "time": "O(J + S)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "jewels": "aA",
+        "stones": "aAAbbbb"
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "jewels": "z",
+        "stones": "ZZ"
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "jewels": "abc",
+        "stones": "a"
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "jewels": "b",
+        "stones": "AbAazcbBb"
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "jewels": "a",
+        "stones": "bBaBaBbBAzBbB"
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "jewels": "aB",
+        "stones": "aaBbzAAzAcaAa"
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "jewels": "ba",
+        "stones": "baABzbzBcBAa"
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

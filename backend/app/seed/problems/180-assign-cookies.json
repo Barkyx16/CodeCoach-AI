@@ -1,0 +1,175 @@
+{
+  "order": 180,
+  "slug": "assign-cookies",
+  "title": "Assign Cookies",
+  "difficulty": "easy",
+  "topics": [
+    "greedy",
+    "sorting",
+    "two-pointers"
+  ],
+  "summary": "Give cookies to as many satisfied children as possible.",
+  "statement": "Child `i` is content with a cookie of size at least `greed[i]`. Each child gets at most one cookie,\nand `sizes[j]` are the cookie sizes. Return the maximum number of content children.",
+  "constraints": [
+    "0 <= greed.length, sizes.length <= 3 * 10^4"
+  ],
+  "examples": [
+    {
+      "input": "greed = [1, 2, 3], sizes = [1, 1]",
+      "output": "1"
+    },
+    {
+      "input": "greed = [1, 2], sizes = [1, 2, 3]",
+      "output": "2"
+    },
+    {
+      "input": "greed = [], sizes = [5]",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "findContentChildren",
+    "params": [
+      {
+        "name": "greed",
+        "type": "int[]"
+      },
+      {
+        "name": "sizes",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int findContentChildren(int[] greed, int[] sizes) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Should the smallest cookie go to the least greedy child?",
+    "Sort both arrays. Walk the cookies; if the current cookie satisfies the current child, move to the next child.",
+    "sort greed, sizes\ni = 0\nfor s in sizes:\n    if i < len(greed) and s >= greed[i]: i += 1\nreturn i",
+    "Giving each child the smallest cookie that works never wastes a bigger cookie: O(n log n + m log m) for sorting."
+  ],
+  "expected_complexity": {
+    "time": "O(n log n + m log m)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "greed": [
+          1,
+          2,
+          3
+        ],
+        "sizes": [
+          1,
+          1
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "greed": [
+          1,
+          2
+        ],
+        "sizes": [
+          1,
+          2,
+          3
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "greed": [],
+        "sizes": [
+          5
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "greed": [
+          10,
+          9,
+          8,
+          7
+        ],
+        "sizes": [
+          5,
+          6,
+          7,
+          8
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "greed": [
+          9,
+          3,
+          5,
+          8
+        ],
+        "sizes": []
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "greed": [
+          9,
+          2
+        ],
+        "sizes": [
+          6,
+          1,
+          8
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "greed": [
+          7,
+          7,
+          5,
+          3
+        ],
+        "sizes": [
+          2,
+          4,
+          10,
+          1,
+          6,
+          4,
+          10
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "greed": [
+          4
+        ],
+        "sizes": []
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -10,9 +10,10 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import TypeVar
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
+from app import tracing
 from app.config import Settings
 from app.errors import ConflictError, NotFoundError, RateLimitedError
 from app.models import (
@@ -22,12 +23,17 @@ from app.models import (
     ProgressEvent,
     ProgressEventType,
     Submission,
+    SubmissionMode,
+    SubmissionStatus,
     User,
 )
 from app.schemas.ai import (
     HINT_LEVEL_NAMES,
     AIUsage,
     Complexity,
+    ExplainFailureRequest,
+    ExplainFailureResponse,
+    FailureExplanation,
     HintRequest,
     HintResponse,
     ReviewRequest,
@@ -36,16 +42,29 @@ from app.schemas.ai import (
 from app.services.ai.anthropic_provider import AnthropicCoach
 from app.services.ai.base import (
     CoachProvider,
+    FailingCase,
+    FailureContext,
     HintContext,
     ProblemContext,
     ProviderError,
     ProviderResult,
     ReviewContext,
 )
+from app.services.ai.bounded import BoundedProvider
 from app.services.ai.offline import OfflineCoach
 from app.services.ai.static_analysis import analyze
+from app.services.judge.views import public_result_view
 
 T = TypeVar("T")
+
+# Learner-caused verdicts. PASSED has nothing to explain; INTERNAL_ERROR is the judge's fault.
+EXPLAINABLE = {
+    SubmissionStatus.FAILED,
+    SubmissionStatus.COMPILE_ERROR,
+    SubmissionStatus.RUNTIME_ERROR,
+    SubmissionStatus.TIME_LIMIT,
+    SubmissionStatus.MEMORY_LIMIT,
+}
 
 # Secrets must never be forwarded to a model provider (blueprint section 06).
 _SECRET_PATTERNS = [
@@ -76,12 +95,17 @@ def sanitize_code(code: str, max_chars: int) -> str:
 
 def build_provider(settings: Settings) -> CoachProvider:
     if settings.ai_provider == "anthropic" and settings.anthropic_api_key:
-        return AnthropicCoach(
-            api_key=settings.anthropic_api_key,
-            model=settings.anthropic_model,
-            effort=settings.anthropic_effort,
-        )
+        return BoundedProvider(_anthropic(settings), settings.ai_max_concurrent_calls)
     return OfflineCoach()
+
+
+def _anthropic(settings: Settings) -> CoachProvider:
+    assert settings.anthropic_api_key is not None
+    return AnthropicCoach(
+        api_key=settings.anthropic_api_key.get_secret_value(),
+        model=settings.anthropic_model,
+        effort=settings.anthropic_effort,
+    )
 
 
 def problem_context(problem: Problem) -> ProblemContext:
@@ -184,6 +208,9 @@ class CoachService:
             submission_id = submission.id
             if submission.status.is_terminal:
                 judge_status = submission.status.value
+                if submission.mode == SubmissionMode.RUN:
+                    # Don't let the coach treat a public-tests-only run as a full verdict.
+                    judge_status += " on public tests only (a Run; hidden tests were not executed)"
         self.check_budget(user)
 
         code = sanitize_code(req.source_code, self.settings.ai_max_code_chars)
@@ -211,6 +238,90 @@ class CoachService:
             expected_complexity=Complexity(**expected) if expected else None,
         )
 
+    def explain_failure(self, user: User, req: ExplainFailureRequest) -> ExplainFailureResponse:
+        sub = self.db.get(Submission, req.submission_id)
+        # Same 404 for "doesn't exist" and "not yours": don't leak other users' ids.
+        if sub is None or sub.user_id != user.id:
+            raise NotFoundError("Submission not found")
+        if not sub.status.is_terminal:
+            raise ConflictError("This submission hasn't been judged yet.", code="not_judged")
+        if sub.status == SubmissionStatus.PASSED:
+            raise ConflictError(
+                "This submission passed, so there's no failure to explain.", code="not_failed"
+            )
+        if sub.status not in EXPLAINABLE:
+            raise ConflictError(
+                "The judge had a problem running this submission. It wasn't your code; please resubmit.",
+                code="judge_error",
+            )
+
+        # One explanation per submission: asking again returns the saved one and costs nothing.
+        saved = self.db.scalar(
+            select(AIInteraction)
+            .where(
+                AIInteraction.user_id == user.id,
+                AIInteraction.submission_id == sub.id,
+                AIInteraction.action == AIAction.EXPLAIN_FAILURE,
+                AIInteraction.response.is_not(None),
+            )
+            .order_by(AIInteraction.created_at.desc())
+            .limit(1)
+        )
+        if saved is not None and saved.response is not None:
+            return ExplainFailureResponse(
+                submission_id=sub.id,
+                status=sub.status.value,
+                explanation=FailureExplanation.model_validate(saved.response),
+                provider=saved.provider,
+                cached=True,
+            )
+        self.check_budget(user)
+
+        problem = sub.problem
+        view = public_result_view(sub)
+        rows = view.public_results if view else []
+        first = next((r for r in rows if not r.passed), None)
+        code = sanitize_code(sub.source_code, self.settings.ai_max_code_chars)
+        ctx = FailureContext(
+            problem=problem_context(problem),
+            code=code,
+            analysis=analyze(
+                code,
+                signature=problem.signature,
+                starter_code=problem.starter_code,
+                expected_time=(problem.expected_complexity or {}).get("time"),
+                constraints=list(problem.constraints),
+            ),
+            status=sub.status.value,
+            compile_output=view.stderr_excerpt if view else None,
+            failing_case=FailingCase(
+                index=first.index,
+                input=first.input,
+                expected=first.expected_output,
+                actual=first.actual_output,
+                exception=first.exception,
+                message=first.exception_message,
+                line=first.line,
+                missing=first.missing,
+            )
+            if first
+            else None,
+            public_passed=sum(r.passed for r in rows),
+            public_total=len(rows),
+            hidden_passed=view.hidden_passed if view else 0,
+            hidden_total=view.hidden_total if view else 0,
+        )
+        result = self.call_with_fallback(lambda p: p.explain_failure(ctx))
+        self.record_interaction(user, problem, AIAction.EXPLAIN_FAILURE, result, submission_id=sub.id)
+        self.db.commit()
+        return ExplainFailureResponse(
+            submission_id=sub.id,
+            status=sub.status.value,
+            explanation=result.content,
+            provider=result.provider,
+            cached=False,
+        )
+
     # --- internals --------------------------------------------------------------------
 
     def _problem(self, slug: str) -> Problem:
@@ -230,22 +341,63 @@ class CoachService:
             or 0
         )
 
+    def _claim_turn(self, user: User) -> bool:
+        """One AI request per user at a time, on PostgreSQL: a transaction-scoped advisory lock,
+        taken without waiting and released when this request's transaction ends. Held across
+        the count, the provider call and the insert, it makes the daily budget exact: two
+        requests can't both pass at 49 of 50. SQLite (local runs) has no such lock: always True."""
+        bind = self.db.get_bind()
+        if bind.dialect.name != "postgresql":
+            return True
+        key = f"codecoach:ai-turn:{user.id}"
+        return bool(
+            self.db.scalar(text("SELECT pg_try_advisory_xact_lock(hashtextextended(:k, 0))"), {"k": key})
+        )
+
     def check_budget(self, user: User) -> None:
-        if self._used_today(user) >= self.settings.ai_daily_request_limit:
-            raise RateLimitedError(
+        if not self._claim_turn(user):
+            raise RateLimitedError.wait(
+                "Your previous coaching request is still being answered. Try again when it's done.",
+                2,
+                code="ai_request_in_progress",
+            )
+        limit = self.settings.ai_daily_request_limit
+        if self._used_today(user) >= limit:
+            since = datetime.now(UTC) - timedelta(days=1)
+            # The window is rolling: a request frees up when the oldest in the last 24 h ages out.
+            oldest = self.db.scalar(
+                select(func.min(AIInteraction.created_at)).where(
+                    AIInteraction.user_id == user.id, AIInteraction.created_at >= since
+                )
+            )
+            wait = 3600.0
+            if oldest is not None:
+                oldest = oldest if oldest.tzinfo else oldest.replace(tzinfo=UTC)
+                wait = (oldest + timedelta(days=1) - datetime.now(UTC)).total_seconds()
+            raise RateLimitedError.wait(
                 "You've used today's AI coaching budget. It resets on a rolling 24-hour window.",
-                details={"daily_limit": self.settings.ai_daily_request_limit},
+                wait,
+                daily_limit=limit,
             )
 
     def call_with_fallback(self, call: Callable[[CoachProvider], ProviderResult[T]]) -> ProviderResult[T]:
-        """Run `call` on the configured provider; on ProviderError, answer with the offline coach."""
+        """Run `call` on the configured provider; on ProviderError, answer with the offline coach.
+
+        Measured as the span `coach.provider`, whose outcome says what happened without any learner
+        text: `ok`, or `fallback_<reason>` (timeout, connection, rate_limited, http_5xx, http_4xx,
+        refusal, cut_off, invalid_output, invalid_body). The metrics endpoint counts spans by name
+        and outcome, so fallbacks are counted by reason."""
         start = time.perf_counter()
-        try:
-            result = call(self.provider)
-        except ProviderError:
-            if self.fallback is None or self.fallback is self.provider:
-                raise
-            result = replace(call(self.fallback), provider=f"{self.fallback.name} (fallback)")
+        with tracing.span("coach.provider", provider=self.provider.name) as step:
+            try:
+                result = call(self.provider)
+                step.set(attempt=result.attempts)  # requests sent, retries included
+            except ProviderError as exc:
+                step.set(attempt=getattr(exc, "attempts", 1))
+                if self.fallback is None or self.fallback is self.provider:
+                    raise
+                step.outcome = f"fallback_{getattr(exc, 'reason', 'error')}"
+                result = replace(call(self.fallback), provider=f"{self.fallback.name} (fallback)")
         return replace(result, latency_ms=int((time.perf_counter() - start) * 1000))
 
     def record_interaction(

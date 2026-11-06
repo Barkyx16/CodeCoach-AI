@@ -1,0 +1,121 @@
+{
+  "order": 141,
+  "slug": "add-binary",
+  "title": "Add Two Binary Strings",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "math"
+  ],
+  "summary": "Add two numbers written in binary.",
+  "statement": "`a` and `b` are binary strings (only `0` and `1`, no leading zeros except `\"0\"`). Return their\nsum as a binary string.",
+  "constraints": [
+    "1 <= a.length, b.length <= 10^4"
+  ],
+  "examples": [
+    {
+      "input": "a = \"11\", b = \"1\"",
+      "output": "\"100\""
+    },
+    {
+      "input": "a = \"1010\", b = \"1011\"",
+      "output": "\"10101\""
+    },
+    {
+      "input": "a = \"0\", b = \"0\"",
+      "output": "\"0\""
+    }
+  ],
+  "signature": {
+    "method": "addBinary",
+    "params": [
+      {
+        "name": "a",
+        "type": "String"
+      },
+      {
+        "name": "b",
+        "type": "String"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String addBinary(String a, String b) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "Add from the rightmost digits, like column addition.",
+    "Keep a carry. Each column's sum is 0-3: the digit is `sum % 2`, the new carry is `sum / 2`.",
+    "i, j, carry = len(a)-1, len(b)-1, 0\nwhile i >= 0 or j >= 0 or carry:\n    total = carry + digit(a, i) + digit(b, j)\n    out.append(total % 2); carry = total // 2; i -= 1; j -= 1\nreturn reversed(out)",
+    "One pass over the longer string: O(max(n, m)). Strings can be 10^4 bits, so converting to a long would overflow."
+  ],
+  "expected_complexity": {
+    "time": "O(max(n, m))",
+    "space": "O(max(n, m))"
+  },
+  "tests": [
+    {
+      "input": {
+        "a": "11",
+        "b": "1"
+      },
+      "expected_output": "100",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": "1010",
+        "b": "1011"
+      },
+      "expected_output": "10101",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": "0",
+        "b": "0"
+      },
+      "expected_output": "0",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": "1111111111",
+        "b": "1"
+      },
+      "expected_output": "10000000000",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": "11100100001101101100011101111011000001100",
+        "b": "1011000111010010100100100001000110101111001"
+      },
+      "expected_output": "1110101011100000010000111111000001110000101",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": "11111011000010001000111010110011111011000010100110110101110111",
+        "b": "1010000011110010000010100001011011110011111111100"
+      },
+      "expected_output": "11111011000011011001011001000100001111001110000101010101110011",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": "1111100000011010010001000",
+        "b": "10000001000111010111110110000111010111000110001000000001001011010"
+      },
+      "expected_output": "10000001000111010111110110000111010111010101101000011011011100010",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": "1101101011101",
+        "b": "111"
+      },
+      "expected_output": "1101101100100",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

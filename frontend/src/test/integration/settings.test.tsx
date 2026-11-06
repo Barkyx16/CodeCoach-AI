@@ -1,8 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
-import { loadSession } from "@/auth/session";
-
 import { tokenResponse, user as baseUser } from "../fixtures";
 import { renderApp } from "../render";
 import { API, server } from "../server";
@@ -18,6 +16,50 @@ describe("Settings", () => {
     await user.click(screen.getByRole("button", { name: "Restore editor defaults" }));
     expect(screen.getByLabelText("Font size")).toHaveValue("14");
     expect(JSON.parse(localStorage.getItem(EDITOR_KEY)!)).toMatchObject({ fontSize: 14, theme: "codecoach-dark", wordWrap: "off" });
+  });
+
+  it("updates the editor preview as each preference changes", async () => {
+    const { user } = renderApp("/settings", { signedIn: true });
+    const preview = await screen.findByLabelText("Editor appearance preview");
+    const code = within(preview).getByRole("region", { name: "Editor code preview" });
+    expect(preview).toHaveAttribute("data-theme", "codecoach-dark");
+    await user.selectOptions(screen.getByLabelText("Editor theme"), "vs");
+    expect(preview).toHaveAttribute("data-theme", "vs");
+    await user.selectOptions(screen.getByLabelText("Font size"), "20");
+    expect(code).toHaveStyle({ fontSize: "20px" });
+    await user.selectOptions(screen.getByLabelText("Indentation"), "2");
+    expect(code.textContent).toContain("2  //"); // line 2 is indented by two spaces
+    await user.click(screen.getByLabelText("Wrap long lines"));
+    expect(code).toHaveStyle({ whiteSpace: "pre-wrap" });
+  });
+
+  it("lets a guest keep their progress by creating an account in place", async () => {
+    const guestUser = { ...baseUser, email: null, is_guest: true, display_name: "Guest" };
+    let body: unknown = null;
+    server.use(
+      http.post(`${API}/api/v1/auth/refresh`, () => HttpResponse.json(tokenResponse({ user: guestUser }))),
+      http.post(`${API}/api/v1/auth/upgrade`, async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json(tokenResponse({ user: { ...baseUser, display_name: "Grace", email: "grace@example.com" } }));
+      }),
+    );
+    const { user } = renderApp("/settings", { signedIn: true });
+    const card = within(await screen.findByRole("form", { name: "Keep your progress" }));
+    expect(await card.findByText(/deleted after 30 days without activity/)).toBeInTheDocument();
+    await user.type(card.getByLabelText(/Name/), "Grace");
+    await user.type(card.getByLabelText("Email"), "grace@example.com");
+    await user.type(card.getByLabelText("Password"), "CorrectHorse42");
+    await user.click(card.getByRole("button", { name: "Create my account" }));
+    expect(await screen.findByText(/Your account is ready\. Everything you did as a guest is saved/)).toBeInTheDocument();
+    expect(body).toEqual({ email: "grace@example.com", password: "CorrectHorse42", display_name: "Grace" });
+    expect(screen.queryByRole("form", { name: "Keep your progress" })).not.toBeInTheDocument();
+    expect(within(screen.getByRole("banner")).getByText("Grace")).toBeInTheDocument();
+  });
+
+  it("doesn't offer the guest upgrade to full accounts", async () => {
+    renderApp("/settings", { signedIn: true });
+    expect(await screen.findByRole("heading", { name: "Settings" })).toBeInTheDocument();
+    expect(screen.queryByRole("form", { name: "Keep your progress" })).not.toBeInTheDocument();
   });
 
   it("warns when editor preferences cannot be persisted", async () => {
@@ -54,7 +96,6 @@ describe("Settings", () => {
     await user.click(screen.getByRole("button", { name: "Save profile" }));
     expect(await screen.findByText("Saved.")).toBeInTheDocument();
     expect(within(screen.getByRole("banner")).getByText("Grace")).toBeInTheDocument();
-    expect(loadSession()?.user.display_name).toBe("Grace");
   });
 
   it("changes the password and adopts the new token", async () => {
@@ -67,11 +108,11 @@ describe("Settings", () => {
       }),
     );
     const { user } = renderApp("/settings", { signedIn: true });
-    await user.type(await screen.findByLabelText("Current password"), "CorrectHorse42");
-    await user.type(screen.getByLabelText("New password"), "BatteryStaple99");
-    await user.click(screen.getByRole("button", { name: "Change password" }));
+    const passwordForm = within(await screen.findByRole("form", { name: "Password" }));
+    await user.type(passwordForm.getByLabelText("Current password"), "CorrectHorse42");
+    await user.type(passwordForm.getByLabelText("New password"), "BatteryStaple99");
+    await user.click(passwordForm.getByRole("button", { name: "Change password" }));
     expect(await screen.findByText(/Other devices were signed out/)).toBeInTheDocument();
-    expect(loadSession()?.token).toBe("rotated-token");
     // Requests made after the change use the new token (the old one is revoked server-side).
     await waitFor(() => expect(auth).toBe("Bearer rotated-token"));
   });
@@ -91,7 +132,6 @@ describe("Settings", () => {
     await user.click(button);
     await waitFor(() => expect(router.state.location.pathname).toBe("/"));
     expect(body).toEqual({ password: "CorrectHorse42", confirm: "DELETE" });
-    expect(loadSession()).toBeNull();
     expect(await screen.findByRole("link", { name: "Sign in" })).toBeInTheDocument();
   });
 
@@ -108,9 +148,47 @@ describe("Settings", () => {
     expect(JSON.parse(await created[0]!.text())).toEqual({ export_version: 1, submissions: [] });
   });
 
+  it("downloads version 2 (with links between records) only when chosen, and says it can't be restored", async () => {
+    const asked: string[] = [];
+    server.use(http.get(`${API}/api/v1/me/export`, ({ request }) => {
+      asked.push(new URL(request.url).search);
+      return HttpResponse.json({ export_version: new URL(request.url).searchParams.get("version") === "2" ? 2 : 1 });
+    }));
+    URL.createObjectURL = vi.fn(() => "blob:x");
+    URL.revokeObjectURL = vi.fn();
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    const { user } = renderApp("/settings", { signedIn: true });
+    const option = await screen.findByRole("checkbox", { name: /Include links between records/ });
+    expect(option).not.toBeChecked(); // version 1 by default
+    expect(option.closest("label")).toHaveTextContent("it can't be restored yet");
+    expect(screen.getByText(/It includes private details you keep out of printouts/)).toBeInTheDocument();
+    await user.click(option);
+    await user.click(screen.getByRole("button", { name: "Download my data" }));
+    expect(await screen.findByText("Downloaded codecoach-data-v2.json")).toBeInTheDocument();
+    expect(asked).toEqual(["?version=2"]);
+  });
+
   it("explains what is sent to the AI", async () => {
     renderApp("/settings", { signedIn: true });
     expect(await screen.findByText(/never the prompt that contained your code/)).toBeInTheDocument();
     expect(await screen.findByText(/built-in \(offline\)/)).toBeInTheDocument();
+  });
+
+  it("groups settings into sections you can jump to, moving focus to the section", async () => {
+    const { user } = renderApp("/settings", { signedIn: true });
+    const nav = within(await screen.findByRole("navigation", { name: "Settings sections" }));
+    const sections = ["Account", "Sign-in & security", "Display & reading", "Editor", "Offline & app", "Privacy & data", "Danger zone"];
+    expect(nav.getAllByRole("link").map((a) => a.textContent)).toEqual(sections);
+    for (const name of sections) expect(screen.getByRole("region", { name })).toBeInTheDocument();
+    // Each form sits in the section you'd look for it in.
+    expect(within(screen.getByRole("region", { name: "Account" })).getByRole("form", { name: "Email" })).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Sign-in & security" })).getByRole("form", { name: "Password" })).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Danger zone" })).getByRole("form", { name: "Delete account" })).toBeInTheDocument();
+
+    expect(nav.getByRole("link", { name: "Account" })).toHaveAttribute("aria-current", "true");
+    await user.click(nav.getByRole("link", { name: "Danger zone" }));
+    expect(screen.getByRole("heading", { name: "Danger zone", level: 2 })).toHaveFocus();
+    expect(nav.getByRole("link", { name: "Danger zone" })).toHaveAttribute("aria-current", "true");
+    expect(nav.getByRole("link", { name: "Account" })).not.toHaveAttribute("aria-current");
   });
 });

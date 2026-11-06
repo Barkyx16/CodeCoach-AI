@@ -1,27 +1,32 @@
 import { render } from "@testing-library/react";
+import { StrictMode } from "react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 
 import { AppProviders } from "@/app/providers";
 import { makeQueryClient } from "@/app/queryClient";
 import { routes } from "@/app/router";
-import { saveSession } from "@/auth/session";
-
-import { tokenResponse } from "./fixtures";
+import { cookieJar } from "./server";
 
 /** Render the real app (real routes, providers and API client) at a URL. */
-export function renderApp(path: string, { signedIn = false }: { signedIn?: boolean } = {}) {
-  if (signedIn) {
-    const t = tokenResponse();
-    saveSession({ token: t.access_token, expiresAt: t.expires_at, user: t.user });
-  }
+export function renderApp(
+  path: string,
+  { signedIn = false, strict = false, queries }: { signedIn?: boolean; strict?: boolean; queries?: Record<string, unknown> } = {},
+) {
+  // A signed-in visitor is one whose browser holds a refresh cookie: the app restores the
+  // session from it on load, exactly as after a page reload.
+  cookieJar.hasSession = signedIn;
   const router = createMemoryRouter(routes, { initialEntries: [path] });
   const queryClient = makeQueryClient();
-  queryClient.setDefaultOptions({ queries: { retry: false } });
-  const utils = render(
+  // Tests don't retry failed queries unless they ask to (queries: { retry, retryDelay }).
+  queryClient.setDefaultOptions({ queries: { retry: false, ...queries } });
+  const app = (
     <AppProviders queryClient={queryClient}>
       <RouterProvider router={router} />
-    </AppProviders>,
+    </AppProviders>
   );
-  return { ...utils, router, user: userEvent.setup() };
+  // strict: render like main.tsx does, where React runs effects twice in development.
+  const utils = render(strict ? <StrictMode>{app}</StrictMode> : app);
+
+  return { ...utils, router, queryClient, user: userEvent.setup() };
 }

@@ -91,7 +91,8 @@ operation has been validated in this audit; no Anthropic binding is configured.
 - **Documentation drift:** README's small architecture sketch still says the runner is
   "designed, not built", despite the implemented service and integration tests.
 - **Deployment:** deployment, refresh tokens and distributed auth rate limiting remain
-  separate work. No claim of production readiness follows from this local audit.
+  separate work. No claim of production readiness follows from this local audit. (Since then,
+  refresh tokens and database-backed rate limits were built: [HARDENING.md](HARDENING.md).)
 
 ## Proposed frontend architecture
 

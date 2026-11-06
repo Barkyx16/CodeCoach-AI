@@ -1,0 +1,233 @@
+{
+  "order": 106,
+  "slug": "unique-sorted",
+  "title": "Remove Duplicates from a Sorted Array",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "two-pointers"
+  ],
+  "summary": "Return each value of a sorted array once.",
+  "statement": "`nums` is sorted in non-decreasing order. Return a new array that contains each distinct\nvalue exactly once, still in sorted order.",
+  "constraints": [
+    "0 <= nums.length <= 10^4",
+    "nums is sorted in non-decreasing order"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 1, 2]",
+      "output": "[1, 2]"
+    },
+    {
+      "input": "nums = [0, 0, 1, 1, 1, 2, 3, 3]",
+      "output": "[0, 1, 2, 3]"
+    },
+    {
+      "input": "nums = []",
+      "output": "[]"
+    }
+  ],
+  "signature": {
+    "method": "uniqueSorted",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] uniqueSorted(int[] nums) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "In a sorted array, duplicates sit next to each other.",
+    "Keep a value only if it differs from the previous one.",
+    "out = []\nfor i, n in enumerate(nums):\n    if i == 0 or n != nums[i-1]: out.append(n)\nreturn out",
+    "Because equal values are adjacent, comparing with the previous element finds every duplicate in one O(n) pass. No set is needed, unlike for unsorted input."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          1,
+          2
+        ]
+      },
+      "expected_output": [
+        1,
+        2
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          0,
+          1,
+          1,
+          1,
+          2,
+          3,
+          3
+        ]
+      },
+      "expected_output": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": []
+      },
+      "expected_output": [],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          5
+        ]
+      },
+      "expected_output": [
+        5
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -2,
+          -2,
+          -2
+        ]
+      },
+      "expected_output": [
+        -2
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -5,
+          -5,
+          -5,
+          -5,
+          -5,
+          -4,
+          -4,
+          -4,
+          -4,
+          -4,
+          -3,
+          -3,
+          -1,
+          -1,
+          0,
+          2,
+          3,
+          3,
+          4
+        ]
+      },
+      "expected_output": [
+        -5,
+        -4,
+        -3,
+        -1,
+        0,
+        2,
+        3,
+        4
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -3,
+          1,
+          2
+        ]
+      },
+      "expected_output": [
+        -3,
+        1,
+        2
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -5,
+          -5,
+          -5,
+          -4,
+          -3,
+          -3,
+          -2,
+          -1,
+          0,
+          1,
+          1,
+          2,
+          3
+        ]
+      },
+      "expected_output": [
+        -5,
+        -4,
+        -3,
+        -2,
+        -1,
+        0,
+        1,
+        2,
+        3
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -5,
+          -4,
+          -4,
+          -3,
+          -3,
+          -2,
+          0,
+          0,
+          1,
+          2,
+          2,
+          3,
+          5
+        ]
+      },
+      "expected_output": [
+        -5,
+        -4,
+        -3,
+        -2,
+        0,
+        1,
+        2,
+        3,
+        5
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -1,0 +1,105 @@
+{
+  "order": 205,
+  "slug": "decode-nested-string",
+  "title": "Decode a Nested String",
+  "difficulty": "medium",
+  "topics": [
+    "strings",
+    "stacks",
+    "recursion"
+  ],
+  "summary": "Expand patterns like 3[a2[c]].",
+  "statement": "Decode `s`, where `k[text]` means `text` repeated `k` times, and patterns can nest: `\"3[a2[c]]\"`\nbecomes `\"accaccacc\"`. The input is always valid, and `k` is a positive integer.",
+  "constraints": [
+    "1 <= s.length <= 30",
+    "1 <= k <= 300",
+    "the output length is at most 10^5"
+  ],
+  "examples": [
+    {
+      "input": "s = \"3[a]2[bc]\"",
+      "output": "\"aaabcbc\""
+    },
+    {
+      "input": "s = \"3[a2[c]]\"",
+      "output": "\"accaccacc\""
+    },
+    {
+      "input": "s = \"2[abc]3[cd]ef\"",
+      "output": "\"abcabccdcdcdef\""
+    }
+  ],
+  "signature": {
+    "method": "decodeString",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String decodeString(String s) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "When you reach a `]`, you need the text and the count that started that bracket.",
+    "Use two stacks: one for counts and one for the text built before each `[`.",
+    "counts, texts = [], []\ncur, k = '', 0\nfor c in s:\n    if digit: k = k*10 + c\n    elif c == '[': push k and cur; cur, k = '', 0\n    elif c == ']': cur = texts.pop() + cur * counts.pop()\n    else: cur += c\nreturn cur",
+    "Each character is processed once, plus the cost of building the output: O(output length). Counts can have several digits, so accumulate them before the `[`."
+  ],
+  "expected_complexity": {
+    "time": "O(output)",
+    "space": "O(output)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "3[a]2[bc]"
+      },
+      "expected_output": "aaabcbc",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "3[a2[c]]"
+      },
+      "expected_output": "accaccacc",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "2[abc]3[cd]ef"
+      },
+      "expected_output": "abcabccdcdcdef",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "abc"
+      },
+      "expected_output": "abc",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "10[x]"
+      },
+      "expected_output": "xxxxxxxxxx",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "x2[y]z"
+      },
+      "expected_output": "xyyz",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "2[a3[b]]"
+      },
+      "expected_output": "abbbabbb",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

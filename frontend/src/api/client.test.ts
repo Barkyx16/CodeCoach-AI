@@ -73,7 +73,10 @@ describe("query policies", () => {
   it("polls only while a job is running and execution is enabled", () => {
     expect(submissionPollInterval(undefined)).toBe(false);
     expect(submissionPollInterval(queuedSubmission)).toBe(false); // execution disabled
-    expect(submissionPollInterval({ ...queuedSubmission, execution_enabled: true })).toBe(1500);
+    const fresh = { ...queuedSubmission, execution_enabled: true, created_at: new Date().toISOString() };
+    expect(submissionPollInterval(fresh)).toBe(1500);
+    expect(submissionPollInterval(fresh, Date.now() + 2 * 60_000)).toBe(5000); // slower after a minute
+    expect(submissionPollInterval(fresh, Date.now() + 16 * 60_000)).toBe(false); // bounded
     expect(submissionPollInterval({ ...queuedSubmission, execution_enabled: true, status: "PASSED", is_terminal: true })).toBe(false);
   });
 });

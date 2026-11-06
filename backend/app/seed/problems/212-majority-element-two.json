@@ -1,0 +1,186 @@
+{
+  "order": 212,
+  "slug": "majority-element-two",
+  "title": "Values Appearing More Than n/3 Times",
+  "difficulty": "medium",
+  "topics": [
+    "arrays",
+    "counting"
+  ],
+  "summary": "Find every value that appears more than a third of the time.",
+  "statement": "Return, in ascending order, every value that appears more than `n / 3` times in `nums`\n(there can be at most two). Try for O(1) extra space.",
+  "constraints": [
+    "1 <= nums.length <= 5 * 10^4"
+  ],
+  "examples": [
+    {
+      "input": "nums = [3, 2, 3]",
+      "output": "[3]"
+    },
+    {
+      "input": "nums = [1]",
+      "output": "[1]"
+    },
+    {
+      "input": "nums = [1, 2]",
+      "output": "[1, 2]"
+    }
+  ],
+  "signature": {
+    "method": "majorityElement",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] majorityElement(int[] nums) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "How many values can appear more than n/3 times?",
+    "At most two. Extended Boyer-Moore keeps two candidates and two counters, then verifies them.",
+    "c1, c2, n1, n2 = None, None, 0, 0\nfor x in nums:\n    if x == c1: n1 += 1\n    elif x == c2: n2 += 1\n    elif n1 == 0: c1, n1 = x, 1\n    elif n2 == 0: c2, n2 = x, 1\n    else: n1 -= 1; n2 -= 1\nkeep candidates that really appear > n/3 times",
+    "The voting pass finds the only possible answers; a second pass counts them. O(n) time, O(1) space."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          3,
+          2,
+          3
+        ]
+      },
+      "expected_output": [
+        3
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1
+        ]
+      },
+      "expected_output": [
+        1
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2
+        ]
+      },
+      "expected_output": [
+        1,
+        2
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          0,
+          0
+        ]
+      },
+      "expected_output": [
+        0
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          1,
+          1,
+          3,
+          1,
+          4,
+          5,
+          6
+        ]
+      },
+      "expected_output": [
+        1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          2,
+          1,
+          1,
+          2,
+          3,
+          1
+        ]
+      },
+      "expected_output": [
+        1,
+        2
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          0,
+          0,
+          2,
+          2,
+          1,
+          0,
+          3,
+          2
+        ]
+      },
+      "expected_output": [],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          0,
+          2,
+          2
+        ]
+      },
+      "expected_output": [
+        0,
+        2
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          3,
+          3,
+          1,
+          3
+        ]
+      },
+      "expected_output": [
+        3
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

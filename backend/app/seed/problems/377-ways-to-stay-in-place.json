@@ -1,0 +1,121 @@
+{
+  "order": 377,
+  "slug": "ways-to-stay-in-place",
+  "title": "Ways to Return to the Start",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming"
+  ],
+  "summary": "Count step sequences that end back at index 0.",
+  "statement": "A pointer starts at index 0 of an array of length `arrLen`. Each step it moves left, moves right, or stays,\nnever leaving the array. Return the number of ways to be back at index 0 after exactly `steps` steps, modulo\n`10^9 + 7`.",
+  "constraints": [
+    "1 <= steps <= 500",
+    "1 <= arrLen <= 10^6"
+  ],
+  "examples": [
+    {
+      "input": "steps = 3, arrLen = 2",
+      "output": "4"
+    },
+    {
+      "input": "steps = 2, arrLen = 4",
+      "output": "2"
+    },
+    {
+      "input": "steps = 4, arrLen = 2",
+      "output": "8"
+    }
+  ],
+  "signature": {
+    "method": "numWays",
+    "params": [
+      {
+        "name": "steps",
+        "type": "int"
+      },
+      {
+        "name": "arrLen",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int numWays(int steps, int arrLen) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "You can never get further than steps / 2 from the start and still come back.",
+    "dp[pos] = ways to be at `pos` after the current number of steps; each step adds from pos - 1, pos and pos + 1.",
+    "limit = min(arrLen, steps // 2 + 1)\ndp = [1] + [0]*(limit - 1)\nrepeat steps times:\n    new[p] = dp[p] + dp[p-1] + dp[p+1] (within bounds)\n    dp = new\nreturn dp[0]",
+    "O(steps \u00d7 min(arrLen, steps)) time. Capping the positions is what makes huge `arrLen` values fine."
+  ],
+  "expected_complexity": {
+    "time": "O(s \u00b7 min(s, L))",
+    "space": "O(min(s, L))"
+  },
+  "tests": [
+    {
+      "input": {
+        "steps": 3,
+        "arrLen": 2
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "steps": 2,
+        "arrLen": 4
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "steps": 4,
+        "arrLen": 2
+      },
+      "expected_output": 8,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "steps": 27,
+        "arrLen": 7
+      },
+      "expected_output": 127784505,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "steps": 26,
+        "arrLen": 479390
+      },
+      "expected_output": 669818301,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "steps": 9,
+        "arrLen": 51931
+      },
+      "expected_output": 835,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "steps": 9,
+        "arrLen": 917530
+      },
+      "expected_output": 835,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "steps": 8,
+        "arrLen": 83148
+      },
+      "expected_output": 323,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

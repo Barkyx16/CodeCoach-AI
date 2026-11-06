@@ -33,6 +33,16 @@ class JudgeBusyError(AppError):
     code = "judge_busy"
 
 
+class ExecutionDisabledError(AppError):
+    status_code = 503
+    code = "execution_disabled"
+
+
+class JudgeUnavailableError(AppError):
+    status_code = 503
+    code = "judge_unavailable"
+
+
 class ExecutionBackend(Protocol):
     name: str
     enabled: bool
@@ -44,12 +54,37 @@ class ExecutionBackend(Protocol):
         """Schedule a submission for judging. Must not block on execution."""
 
 
+def _check_rate(db: Session, user: User, limit: int) -> None:
+    """At most `limit` submissions per user per minute, counted from the saved rows."""
+    since = datetime.now(UTC) - timedelta(minutes=1)
+    recent = db.scalars(
+        select(Submission.created_at)
+        .where(Submission.user_id == user.id, Submission.created_at >= since)
+        .order_by(Submission.created_at)
+    ).all()
+    if len(recent) >= limit:
+        oldest = recent[-limit]
+        oldest = oldest if oldest.tzinfo else oldest.replace(tzinfo=UTC)
+        wait = (oldest + timedelta(minutes=1) - datetime.now(UTC)).total_seconds()
+        raise RateLimitedError.wait(
+            "You're submitting very quickly. Wait a moment and try again.",
+            wait,
+            limit_per_minute=limit,
+        )
+
+
 class DisabledExecutionBackend:
+    """Code isn't run, but each submission is still saved (up to MAX_SOURCE_CHARS), so the same
+    per-minute limit applies: without it, saving was the one unlimited write."""
+
     name = "disabled"
     enabled = False
 
+    def __init__(self, settings: Settings | None = None):
+        self.limit = settings.submission_rate_limit_per_minute if settings else 6
+
     def admit(self, db: Session, user: User) -> None:
-        return None
+        _check_rate(db, user, self.limit)
 
     def enqueue(self, db: Session, submission: Submission) -> None:
         submission.status_detail = EXECUTION_DISABLED_DETAIL
@@ -63,20 +98,7 @@ class QueuedExecutionBackend:
         self.settings = settings
 
     def admit(self, db: Session, user: User) -> None:
-        since = datetime.now(UTC) - timedelta(minutes=1)
-        recent = (
-            db.scalar(
-                select(func.count())
-                .select_from(Submission)
-                .where(Submission.user_id == user.id, Submission.created_at >= since)
-            )
-            or 0
-        )
-        if recent >= self.settings.submission_rate_limit_per_minute:
-            raise RateLimitedError(
-                "You're submitting very quickly. Wait a moment and try again.",
-                details={"limit_per_minute": self.settings.submission_rate_limit_per_minute},
-            )
+        _check_rate(db, user, self.settings.submission_rate_limit_per_minute)
         pending = (
             db.scalar(
                 select(func.count())
@@ -108,4 +130,6 @@ class QueuedExecutionBackend:
 
 
 def build_backend(settings: Settings) -> ExecutionBackend:
-    return QueuedExecutionBackend(settings) if settings.execution_enabled else DisabledExecutionBackend()
+    return (
+        QueuedExecutionBackend(settings) if settings.execution_enabled else DisabledExecutionBackend(settings)
+    )

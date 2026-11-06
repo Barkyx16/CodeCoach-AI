@@ -1,0 +1,185 @@
+{
+  "order": 373,
+  "slug": "min-swaps-increasing",
+  "title": "Swaps to Make Two Sequences Increasing",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming"
+  ],
+  "summary": "Swap a[i] and b[i] at some positions so both arrays strictly increase.",
+  "statement": "`a` and `b` have the same length. You may swap `a[i]` with `b[i]` at any positions. Return the minimum number of\nswaps so that both arrays are strictly increasing. The input guarantees it's possible.",
+  "constraints": [
+    "2 <= n <= 10^5",
+    "it is always possible"
+  ],
+  "examples": [
+    {
+      "input": "a = [1, 3, 5, 4], b = [1, 2, 3, 7]",
+      "output": "1"
+    },
+    {
+      "input": "a = [0, 3, 5, 8, 9], b = [2, 1, 4, 6, 9]",
+      "output": "1"
+    },
+    {
+      "input": "a = [1, 2], b = [3, 4]",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "minSwap",
+    "params": [
+      {
+        "name": "a",
+        "type": "int[]"
+      },
+      {
+        "name": "b",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int minSwap(int[] a, int[] b) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "At each index you either swap or don't, and only the previous index's choice matters.",
+    "Keep `keep` = min swaps if index i is not swapped, `swap` = if it is. Update from the previous pair based on which orderings are valid.",
+    "keep, swap = 0, 1\nfor i in 1..n-1:\n    nk = ns = inf\n    if a[i-1] < a[i] and b[i-1] < b[i]: nk = keep; ns = swap + 1\n    if a[i-1] < b[i] and b[i-1] < a[i]: nk = min(nk, swap); ns = min(ns, keep + 1)\n    keep, swap = nk, ns\nreturn min(keep, swap)",
+    "Two-state DP: O(n) time, O(1) space."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "a": [
+          1,
+          3,
+          5,
+          4
+        ],
+        "b": [
+          1,
+          2,
+          3,
+          7
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": [
+          0,
+          3,
+          5,
+          8,
+          9
+        ],
+        "b": [
+          2,
+          1,
+          4,
+          6,
+          9
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": [
+          1,
+          2
+        ],
+        "b": [
+          3,
+          4
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": [
+          0,
+          3,
+          5,
+          7
+        ],
+        "b": [
+          1,
+          2,
+          5,
+          6
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": [
+          1,
+          3,
+          5,
+          7,
+          8
+        ],
+        "b": [
+          0,
+          2,
+          5,
+          6,
+          9
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": [
+          1,
+          3,
+          5
+        ],
+        "b": [
+          0,
+          3,
+          4
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": [
+          0,
+          3,
+          4,
+          7,
+          8,
+          11
+        ],
+        "b": [
+          1,
+          2,
+          4,
+          6,
+          8,
+          11
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -1,0 +1,169 @@
+{
+  "order": 164,
+  "slug": "search-insert-position",
+  "title": "Search Insert Position",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "binary-search"
+  ],
+  "summary": "Find where a value is, or where it would go, in a sorted array.",
+  "statement": "`nums` is sorted with distinct values. Return the index of `target` if present, otherwise the\nindex where it would be inserted to keep the array sorted. Aim for O(log n).",
+  "constraints": [
+    "1 <= nums.length <= 10^4",
+    "distinct, sorted ascending"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 3, 5, 6], target = 5",
+      "output": "2"
+    },
+    {
+      "input": "nums = [1, 3, 5, 6], target = 2",
+      "output": "1"
+    },
+    {
+      "input": "nums = [1, 3, 5, 6], target = 7",
+      "output": "4"
+    }
+  ],
+  "signature": {
+    "method": "searchInsert",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      },
+      {
+        "name": "target",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int searchInsert(int[] nums, int target) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "This is the first index whose value is at least `target`.",
+    "Binary search for that boundary: `lo = 0, hi = n` (n is a valid answer).",
+    "lo, hi = 0, n\nwhile lo < hi:\n    mid = (lo + hi) // 2\n    if nums[mid] < target: lo = mid + 1\n    else: hi = mid\nreturn lo",
+    "The search keeps the invariant answer \u2208 [lo, hi], halving each step: O(log n). Starting `hi` at `n` handles targets larger than everything."
+  ],
+  "expected_complexity": {
+    "time": "O(log n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          3,
+          5,
+          6
+        ],
+        "target": 5
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          3,
+          5,
+          6
+        ],
+        "target": 2
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          3,
+          5,
+          6
+        ],
+        "target": 7
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          3,
+          5,
+          6
+        ],
+        "target": 0
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -23,
+          -22,
+          -21,
+          -8,
+          1,
+          3,
+          19,
+          24
+        ],
+        "target": -13
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -20,
+          -4,
+          24
+        ],
+        "target": 14
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -1,
+          13,
+          16,
+          17,
+          24,
+          29
+        ],
+        "target": 12
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -18,
+          -16,
+          -15,
+          -13,
+          -3,
+          2
+        ],
+        "target": 17
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

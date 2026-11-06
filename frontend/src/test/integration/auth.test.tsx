@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
+import { chooseCareer } from "../careerPicker";
 import { renderApp } from "../render";
 import { API, server } from "../server";
 import { progress, tokenResponse } from "../fixtures";
@@ -16,7 +17,7 @@ describe("Authentication", () => {
         : HttpResponse.json({ error: { code: "unauthorized", message: "Missing token" } }, { status: 401 });
     }));
     renderApp("/dashboard", { signedIn: true });
-    expect(await screen.findByText("Ada's progress")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Your interview practice" })).toBeInTheDocument();
     expect(headers.length).toBeGreaterThan(0);
     expect(headers.every((value) => value === `Bearer ${tokenResponse().access_token}`)).toBe(true);
     expect(screen.queryByText("Missing token")).not.toBeInTheDocument();
@@ -28,7 +29,22 @@ describe("Authentication", () => {
     await user.type(screen.getByLabelText("Password"), "CorrectHorse42");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/dashboard"));
-    expect(await screen.findByText("Ada's progress")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Your interview practice" })).toBeInTheDocument();
+  });
+
+  it("opens the dashboard after signing in from the login page", async () => {
+    const { user, router } = renderApp("/login");
+    await user.type(await screen.findByLabelText("Email"), "ada@example.com");
+    await user.type(screen.getByLabelText("Password"), "CorrectHorse42");
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/dashboard"));
+    expect(await screen.findByRole("heading", { level: 1, name: "Your interview practice" })).toBeInTheDocument();
+  });
+
+  it("offers the optional welcome after continuing as a guest", async () => {
+    const { user, router } = renderApp("/login");
+    await user.click(await screen.findByRole("button", { name: "Continue as guest" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/welcome"));
   });
 
   it("shows the generic login error", async () => {
@@ -49,6 +65,7 @@ describe("Authentication", () => {
     const { user } = renderApp("/register");
     await user.type(await screen.findByLabelText("Email"), "a@example.com");
     await user.type(screen.getByLabelText("Password"), "alllowercase");
+    await chooseCareer(user, screen.getByLabelText("Job you're preparing for"), "registered-nurse");
     await user.click(within(screen.getByRole("form", { name: "Create your account" })).getByRole("button", { name: "Create account" }));
     expect(await screen.findByText("password needs upper- and lower-case letters and at least one digit")).toBeInTheDocument();
     expect(screen.getByLabelText("Password")).toHaveAttribute("aria-invalid", "true");
@@ -57,7 +74,8 @@ describe("Authentication", () => {
   it("starts a guest session from the landing page", async () => {
     const { user, router } = renderApp("/");
     await user.click(await screen.findByRole("button", { name: /try it now/i }));
-    await waitFor(() => expect(router.state.location.pathname).toBe("/problems/two-sum"));
+    // A deliberate demo: the guest chooses how to start on the optional welcome.
+    await waitFor(() => expect(router.state.location.pathname).toBe("/welcome"));
     expect(await screen.findByText("Guest")).toBeInTheDocument();
   });
 

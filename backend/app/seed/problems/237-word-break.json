@@ -1,0 +1,154 @@
+{
+  "order": 237,
+  "slug": "word-break",
+  "title": "Word Break",
+  "difficulty": "medium",
+  "topics": [
+    "dynamic-programming",
+    "strings",
+    "hash-sets"
+  ],
+  "summary": "Can a string be split into dictionary words?",
+  "statement": "Return `true` if `s` can be split into a sequence of one or more words from `dict` (words may be\nreused).",
+  "constraints": [
+    "1 <= s.length <= 300",
+    "1 <= dict.length <= 1000",
+    "lower-case letters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"leetcode\", dict = [\"leet\", \"code\"]",
+      "output": "true"
+    },
+    {
+      "input": "s = \"applepenapple\", dict = [\"apple\", \"pen\"]",
+      "output": "true"
+    },
+    {
+      "input": "s = \"catsandog\", dict = [\"cats\", \"dog\", \"sand\", \"and\", \"cat\"]",
+      "output": "false"
+    }
+  ],
+  "signature": {
+    "method": "wordBreak",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      },
+      {
+        "name": "dict",
+        "type": "String[]"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean wordBreak(String s, String[] dict) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "If you know which prefixes can be split, can you extend that knowledge?",
+    "ok[i] means `s[:i]` can be split. ok[i] is true if some `ok[j]` is true and `s[j:i]` is a word.",
+    "ok = [true] + [false]*n\nfor i in 1..n:\n    for j in 0..i-1:\n        if ok[j] and s[j:i] in words: ok[i] = true; break\nreturn ok[n]",
+    "O(n^2) substring checks with a hash set (O(n^3) counting substring building). Limiting `j` to the longest word length speeds it up."
+  ],
+  "expected_complexity": {
+    "time": "O(n^2)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "leetcode",
+        "dict": [
+          "leet",
+          "code"
+        ]
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "applepenapple",
+        "dict": [
+          "apple",
+          "pen"
+        ]
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "catsandog",
+        "dict": [
+          "cats",
+          "dog",
+          "sand",
+          "and",
+          "cat"
+        ]
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "aaaaaaa",
+        "dict": [
+          "aaaa",
+          "aaa"
+        ]
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "abbaabaaaabb",
+        "dict": [
+          "bbb",
+          "bba",
+          "bba"
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "abbba",
+        "dict": [
+          "b",
+          "ba",
+          "aba"
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "aaaabbb",
+        "dict": [
+          "aba",
+          "bba",
+          "abb"
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "aaa",
+        "dict": [
+          "abb",
+          "bbb"
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

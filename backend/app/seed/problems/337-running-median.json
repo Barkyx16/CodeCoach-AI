@@ -1,0 +1,219 @@
+{
+  "order": 337,
+  "slug": "running-median",
+  "title": "Running Median",
+  "difficulty": "hard",
+  "topics": [
+    "heaps",
+    "sorting"
+  ],
+  "summary": "The median after each new number arrives.",
+  "statement": "Numbers arrive one at a time from `nums`. After each arrival, report the median of everything so far. When\nthe count is even, report the **lower** of the two middle values.",
+  "constraints": [
+    "1 <= nums.length <= 10^5"
+  ],
+  "examples": [
+    {
+      "input": "nums = [5, 15, 1, 3]",
+      "output": "[5, 5, 5, 3]"
+    },
+    {
+      "input": "nums = [2]",
+      "output": "[2]"
+    },
+    {
+      "input": "nums = [1, 2, 3, 4, 5]",
+      "output": "[1, 1, 2, 2, 3]"
+    }
+  ],
+  "signature": {
+    "method": "runningMedian",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] runningMedian(int[] nums) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "Re-sorting after every number is O(n^2 log n). Keep the two halves organized instead.",
+    "A max-heap for the lower half and a min-heap for the upper half, balanced so the lower half has equal or one more element.",
+    "for x in nums:\n    push x into low (max-heap); move low's max to high\n    if len(high) > len(low): move high's min to low\n    out.append(max of low)\nreturn out",
+    "Each insertion is O(log n), and the lower median is always the top of the max-heap."
+  ],
+  "expected_complexity": {
+    "time": "O(n log n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          5,
+          15,
+          1,
+          3
+        ]
+      },
+      "expected_output": [
+        5,
+        5,
+        5,
+        3
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          2
+        ]
+      },
+      "expected_output": [
+        2
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "expected_output": [
+        1,
+        1,
+        2,
+        2,
+        3
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          -1,
+          -2,
+          -3
+        ]
+      },
+      "expected_output": [
+        -1,
+        -2,
+        -2
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          11,
+          -15,
+          15,
+          9,
+          -14,
+          4,
+          -14,
+          13,
+          13
+        ]
+      },
+      "expected_output": [
+        11,
+        -15,
+        11,
+        9,
+        9,
+        4,
+        4,
+        4,
+        9
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          10,
+          -18,
+          -7,
+          -9,
+          -2,
+          7,
+          -3,
+          17,
+          18,
+          2,
+          -5,
+          -3
+        ]
+      },
+      "expected_output": [
+        0,
+        0,
+        0,
+        -7,
+        -7,
+        -7,
+        -2,
+        -3,
+        -2,
+        -2,
+        0,
+        -2,
+        -2
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -1,
+          -3,
+          0,
+          -13,
+          12
+        ]
+      },
+      "expected_output": [
+        -1,
+        -3,
+        -1,
+        -3,
+        -1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -3,
+          11,
+          1,
+          14,
+          -2,
+          10,
+          6
+        ]
+      },
+      "expected_output": [
+        -3,
+        -3,
+        1,
+        1,
+        1,
+        1,
+        6
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

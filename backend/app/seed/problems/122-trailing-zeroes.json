@@ -1,0 +1,116 @@
+{
+  "order": 122,
+  "slug": "trailing-zeroes",
+  "title": "Factorial Trailing Zeroes",
+  "difficulty": "easy",
+  "topics": [
+    "math"
+  ],
+  "summary": "Count the zeros at the end of n!.",
+  "statement": "Return how many trailing zeros `n!` has. Don't compute `n!` itself; it grows far too large.",
+  "constraints": [
+    "0 <= n <= 10^9"
+  ],
+  "examples": [
+    {
+      "input": "n = 5",
+      "output": "1",
+      "explanation": "5! = 120 has one trailing zero."
+    },
+    {
+      "input": "n = 3",
+      "output": "0"
+    },
+    {
+      "input": "n = 25",
+      "output": "6"
+    }
+  ],
+  "signature": {
+    "method": "trailingZeroes",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int trailingZeroes(int n) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Each trailing zero comes from a factor of 10 = 2 * 5. Which factor is rarer?",
+    "Count the factors of 5 in 1..n: multiples of 5 give one, of 25 another, of 125 another\u2026",
+    "count = 0\nwhile n > 0:\n    n //= 5\n    count += n\nreturn count",
+    "There are always more 2s than 5s, so zeros = number of 5 factors = n/5 + n/25 + n/125 + ... That's O(log n)."
+  ],
+  "expected_complexity": {
+    "time": "O(log n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 5
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 3
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 25
+      },
+      "expected_output": 6,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 0
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 1000000000
+      },
+      "expected_output": 249999998,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 957352
+      },
+      "expected_output": 239334,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 161988
+      },
+      "expected_output": 40493,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 643795
+      },
+      "expected_output": 160946,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 296970
+      },
+      "expected_output": 74239,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

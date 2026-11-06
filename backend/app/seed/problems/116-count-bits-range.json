@@ -1,0 +1,290 @@
+{
+  "order": 116,
+  "slug": "count-bits-range",
+  "title": "Count Bits for 0..n",
+  "difficulty": "easy",
+  "topics": [
+    "bit-manipulation",
+    "dynamic-programming"
+  ],
+  "summary": "For every number from 0 to n, count its 1 bits.",
+  "statement": "Return an array `ans` of length `n + 1` where `ans[i]` is the number of `1` bits in the\nbinary form of `i`.",
+  "constraints": [
+    "0 <= n <= 10^5"
+  ],
+  "examples": [
+    {
+      "input": "n = 5",
+      "output": "[0, 1, 1, 2, 1, 2]",
+      "explanation": "0=0, 1=1, 10=1, 11=2, 100=1, 101=2."
+    },
+    {
+      "input": "n = 0",
+      "output": "[0]"
+    },
+    {
+      "input": "n = 2",
+      "output": "[0, 1, 1]"
+    }
+  ],
+  "signature": {
+    "method": "countBits",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] countBits(int n) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "Can a number's bit count be derived from a smaller number's?",
+    "`i >> 1` drops the last bit, so `bits(i) = bits(i >> 1) + (i & 1)`.",
+    "ans[0] = 0\nfor i in 1..n:\n    ans[i] = ans[i >> 1] + (i & 1)\nreturn ans",
+    "Each value reuses an earlier answer, so the whole table is O(n) time, versus O(n log n) for counting each number's bits from scratch."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 5
+      },
+      "expected_output": [
+        0,
+        1,
+        1,
+        2,
+        1,
+        2
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 0
+      },
+      "expected_output": [
+        0
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 2
+      },
+      "expected_output": [
+        0,
+        1,
+        1
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 16
+      },
+      "expected_output": [
+        0,
+        1,
+        1,
+        2,
+        1,
+        2,
+        2,
+        3,
+        1,
+        2,
+        2,
+        3,
+        2,
+        3,
+        3,
+        4,
+        1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 45
+      },
+      "expected_output": [
+        0,
+        1,
+        1,
+        2,
+        1,
+        2,
+        2,
+        3,
+        1,
+        2,
+        2,
+        3,
+        2,
+        3,
+        3,
+        4,
+        1,
+        2,
+        2,
+        3,
+        2,
+        3,
+        3,
+        4,
+        2,
+        3,
+        3,
+        4,
+        3,
+        4,
+        4,
+        5,
+        1,
+        2,
+        2,
+        3,
+        2,
+        3,
+        3,
+        4,
+        2,
+        3,
+        3,
+        4,
+        3,
+        4
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 60
+      },
+      "expected_output": [
+        0,
+        1,
+        1,
+        2,
+        1,
+        2,
+        2,
+        3,
+        1,
+        2,
+        2,
+        3,
+        2,
+        3,
+        3,
+        4,
+        1,
+        2,
+        2,
+        3,
+        2,
+        3,
+        3,
+        4,
+        2,
+        3,
+        3,
+        4,
+        3,
+        4,
+        4,
+        5,
+        1,
+        2,
+        2,
+        3,
+        2,
+        3,
+        3,
+        4,
+        2,
+        3,
+        3,
+        4,
+        3,
+        4,
+        4,
+        5,
+        2,
+        3,
+        3,
+        4,
+        3,
+        4,
+        4,
+        5,
+        3,
+        4,
+        4,
+        5,
+        4
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 13
+      },
+      "expected_output": [
+        0,
+        1,
+        1,
+        2,
+        1,
+        2,
+        2,
+        3,
+        1,
+        2,
+        2,
+        3,
+        2,
+        3
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 23
+      },
+      "expected_output": [
+        0,
+        1,
+        1,
+        2,
+        1,
+        2,
+        2,
+        3,
+        1,
+        2,
+        2,
+        3,
+        2,
+        3,
+        3,
+        4,
+        1,
+        2,
+        2,
+        3,
+        2,
+        3,
+        3,
+        4
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

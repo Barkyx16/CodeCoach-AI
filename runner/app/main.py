@@ -9,17 +9,40 @@ from __future__ import annotations
 import hmac
 import logging
 import threading
+import time
 from contextlib import asynccontextmanager
 
+import anyio
 from fastapi import Depends, FastAPI, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.config import RunnerSettings, get_settings
-from app.sandbox import DockerSandbox, cleanup_stale
+from app.sandbox import DockerSandbox, cleanup_stale, docker_reachable
 from app.schemas import RunRequest, RunResponse
 
 logger = logging.getLogger("runner")
 _bearer = HTTPBearer(auto_error=False)
+
+WARMUP_FILES = {
+    "Solution.java": "class Solution { int ping() { return 1; } }\n",
+    "Main.java": "public final class Main {\n"
+    "    public static void main(String[] args) { System.out.println(new Solution().ping()); }\n}\n",
+}
+
+
+def warm_up(sandbox: DockerSandbox, settings: RunnerSettings) -> str:
+    """One trivial compile + run, so the cold start isn't charged to a learner's time limit."""
+    start = time.perf_counter()
+    try:
+        result = sandbox.run(WARMUP_FILES, "warmup", settings.wall_timeout_s)
+    except Exception as exc:  # noqa: BLE001 - a failed warm-up must never stop the runner starting
+        logger.warning("sandbox warm-up failed: %s", exc)
+        return "error"
+    logger.info(
+        "sandbox warm-up status=%s in %d ms", result.status, int((time.perf_counter() - start) * 1000)
+    )
+    return result.status
 
 
 def create_app(
@@ -35,6 +58,9 @@ def create_app(
             removed = cleanup_stale(settings)
             if removed:
                 logger.warning("removed %d stale sandbox containers", removed)
+        if settings.warmup_on_start:
+            # Before serving: the container orchestrator only routes work once startup completes.
+            await anyio.to_thread.run_sync(warm_up, sandbox, settings)
         yield
 
     app = FastAPI(
@@ -54,6 +80,17 @@ def create_app(
     @app.get("/health")
     def health() -> dict:
         return {"status": "ok"}
+
+    @app.get("/ready")
+    def ready() -> JSONResponse:
+        """Can this runner actually start sandboxes? Checks the Docker daemon (no details leak)."""
+        ok = docker_reachable(settings)
+        return JSONResponse(status_code=200 if ok else 503, content={"status": "ok" if ok else "unavailable"})
+
+    @app.get("/v1/status", dependencies=[Depends(authorize)])
+    def runner_status() -> dict:
+        """Authenticated readiness for the API: proves the token works, not just that a port answers."""
+        return {"ready": docker_reachable(settings)}
 
     @app.post("/v1/run", response_model=RunResponse, dependencies=[Depends(authorize)])
     def run(body: RunRequest, request: Request) -> RunResponse:
