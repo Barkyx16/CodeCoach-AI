@@ -156,6 +156,8 @@ def seed(client, h):
     history = client.get("/api/v1/me/ai-history", headers=h).json()
     items = history["items"] if isinstance(history, dict) else history
     ids["interaction_id"] = items[0]["id"]
+    client.put("/api/v1/me/goals", headers=h, json={"focus_areas": ["triage"]})
+    ids["item_id"] = client.get("/api/v1/me/plan", headers=h).json()["items"][0]["id"]  # a plan activity
     return ids
 
 
@@ -216,3 +218,29 @@ def test_a_cross_site_form_can_not_sign_anyone_in(client):
             )
             assert r.status_code == 422, (path, content_type, r.status_code)
             assert "set-cookie" not in r.headers
+
+
+def test_another_account_changes_nothing_of_yours_on_any_write_route(client):
+    """Every POST/PUT/PATCH/DELETE route with your record ids, called by another account: never a
+    success, never a server error (with row-level security, a parent record that's invisible to
+    them must read as "not found", not crash), and your records are all still there."""
+    ada = auth_headers(register(client, email="ada@example.com", career_track=TRACK))
+    bea = auth_headers(register(client, email="bea@example.com", career_track=TRACK))
+    ids = seed(client, ada)
+    before = client.get("/api/v1/me/export", headers=ada).json()
+    walked = 0
+    for method, path, kind, _ in route_table(client.app):
+        if method == "GET" or kind != "user":
+            continue
+        private = set(re.findall(r"{(\w+)(?::\w+)?}", path)) - PUBLIC_PARAMS
+        if not private or not private <= ids.keys():
+            continue
+        r = client.request(method, concrete(path, ids), headers=bea, json={})
+        walked += 1
+        assert r.status_code < 500, (method, path, r.status_code, r.text[:200])
+        assert not 200 <= r.status_code < 300, (method, path, r.status_code)
+        assert SECRET not in r.text, (method, path)
+    assert walked >= 30, walked
+    after = client.get("/api/v1/me/export", headers=ada).json()
+    for section in ("notes", "applications", "stories", "schedule"):
+        assert after.get(section) == before.get(section), section

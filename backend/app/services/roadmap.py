@@ -843,7 +843,9 @@ class Roadmap:
         item = self.db.scalar(
             select(PlanItem).options(selectinload(PlanItem.plan)).where(PlanItem.id == item_id)
         )
-        if item is None or item.plan.user_id != user.id:
+        # The plan can read as missing too: with row-level security another learner's plan is
+        # invisible (app/db/rls.py), and that's a 404 like any other item that isn't yours.
+        if item is None or item.plan is None or item.plan.user_id != user.id:
             raise NotFoundError("Activity not found")
         latest = self._latest(user, item.plan.track)
         if latest is None or latest.id != item.plan_id or item.status != "pending":
