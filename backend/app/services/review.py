@@ -546,9 +546,9 @@ class InterviewReviews:
         if self.limiter is not None:
             allowed, retry_after = self.limiter.hit(f"practice:{user.id}")
             if not allowed:
-                raise RateLimitedError(
+                raise RateLimitedError.wait(
                     "You've answered a lot of questions this hour. Take a short break and try again soon.",
-                    details={"retry_after_seconds": int(retry_after) + 1},
+                    retry_after,
                 )
         if is_retired(q.track, q.id):
             raise ConflictError(

@@ -123,3 +123,20 @@ def test_rotating_secret_key_keeps_people_signed_in_when_the_old_key_is_listed(m
 
     dropped = make_client(secret_key=NEW, auto_migrate=False)
     assert dropped.get("/api/v1/auth/me", headers=headers).status_code == 401
+
+
+METRICS_TOKEN = "metrics-synthetic-token-0123456789abcdefghij"
+
+
+def test_metrics_need_the_token_when_one_is_set(make_client):
+    c = make_client(metrics_token=METRICS_TOKEN)
+    assert c.get("/metrics").status_code == 404  # not even admitted to exist
+    assert c.get("/metrics", headers={"Authorization": "Bearer wrong-token"}).status_code == 404
+    ok = c.get("/metrics", headers={"Authorization": f"Bearer {METRICS_TOKEN}"})
+    assert ok.status_code == 200 and "codecoach_http_requests_total" in ok.text
+
+
+def test_production_metrics_require_a_token():
+    with pytest.raises(ValidationError, match="METRICS_TOKEN"):
+        Settings(**{**PRODUCTION_BASE, "metrics_token": None}, _env_file=None)
+    assert Settings(**{**PRODUCTION_BASE, "metrics_token": None, "metrics_enabled": False}, _env_file=None)

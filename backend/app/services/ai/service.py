@@ -10,7 +10,7 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import TypeVar
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app import tracing
@@ -50,6 +50,7 @@ from app.services.ai.base import (
     ProviderResult,
     ReviewContext,
 )
+from app.services.ai.bounded import BoundedProvider
 from app.services.ai.offline import OfflineCoach
 from app.services.ai.static_analysis import analyze
 from app.services.judge.views import public_result_view
@@ -94,12 +95,17 @@ def sanitize_code(code: str, max_chars: int) -> str:
 
 def build_provider(settings: Settings) -> CoachProvider:
     if settings.ai_provider == "anthropic" and settings.anthropic_api_key:
-        return AnthropicCoach(
-            api_key=settings.anthropic_api_key.get_secret_value(),
-            model=settings.anthropic_model,
-            effort=settings.anthropic_effort,
-        )
+        return BoundedProvider(_anthropic(settings), settings.ai_max_concurrent_calls)
     return OfflineCoach()
+
+
+def _anthropic(settings: Settings) -> CoachProvider:
+    assert settings.anthropic_api_key is not None
+    return AnthropicCoach(
+        api_key=settings.anthropic_api_key.get_secret_value(),
+        model=settings.anthropic_model,
+        effort=settings.anthropic_effort,
+    )
 
 
 def problem_context(problem: Problem) -> ProblemContext:
@@ -335,11 +341,43 @@ class CoachService:
             or 0
         )
 
+    def _claim_turn(self, user: User) -> bool:
+        """One AI request per user at a time, on PostgreSQL: a transaction-scoped advisory lock,
+        taken without waiting and released when this request's transaction ends. Held across
+        the count, the provider call and the insert, it makes the daily budget exact: two
+        requests can't both pass at 49 of 50. SQLite (local runs) has no such lock: always True."""
+        bind = self.db.get_bind()
+        if bind.dialect.name != "postgresql":
+            return True
+        key = f"codecoach:ai-turn:{user.id}"
+        return bool(
+            self.db.scalar(text("SELECT pg_try_advisory_xact_lock(hashtextextended(:k, 0))"), {"k": key})
+        )
+
     def check_budget(self, user: User) -> None:
-        if self._used_today(user) >= self.settings.ai_daily_request_limit:
-            raise RateLimitedError(
+        if not self._claim_turn(user):
+            raise RateLimitedError.wait(
+                "Your previous coaching request is still being answered. Try again when it's done.",
+                2,
+                code="ai_request_in_progress",
+            )
+        limit = self.settings.ai_daily_request_limit
+        if self._used_today(user) >= limit:
+            since = datetime.now(UTC) - timedelta(days=1)
+            # The window is rolling: a request frees up when the oldest in the last 24 h ages out.
+            oldest = self.db.scalar(
+                select(func.min(AIInteraction.created_at)).where(
+                    AIInteraction.user_id == user.id, AIInteraction.created_at >= since
+                )
+            )
+            wait = 3600.0
+            if oldest is not None:
+                oldest = oldest if oldest.tzinfo else oldest.replace(tzinfo=UTC)
+                wait = (oldest + timedelta(days=1) - datetime.now(UTC)).total_seconds()
+            raise RateLimitedError.wait(
                 "You've used today's AI coaching budget. It resets on a rolling 24-hour window.",
-                details={"daily_limit": self.settings.ai_daily_request_limit},
+                wait,
+                daily_limit=limit,
             )
 
     def call_with_fallback(self, call: Callable[[CoachProvider], ProviderResult[T]]) -> ProviderResult[T]:

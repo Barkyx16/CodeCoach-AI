@@ -282,9 +282,9 @@ def _save_answer(
         )
     allowed, retry_after = request.app.state.practice_limiter.hit(f"practice:{user.id}")
     if not allowed:
-        raise RateLimitedError(
+        raise RateLimitedError.wait(
             "You've answered a lot of questions this hour. Take a short break and try again soon.",
-            details={"retry_after_seconds": int(retry_after) + 1},
+            retry_after,
         )
     story_id = check_story_owner(db, user, body.story_id)  # your own story, or 404
     parent_id = _revision_parent(db, user, slug, question_id, body.revises_answer_id)

@@ -20,6 +20,7 @@ from app.schemas.shares import (
     TokenIn,
     UsefulIn,
 )
+from app.services.rate_limit import client_key
 from app.services.shares import Shares
 
 me_router = APIRouter(prefix="/api/v1/me/shares", tags=["sharing"])
@@ -36,11 +37,11 @@ def private_response(response: Response) -> None:
 def _throttle(request: Request, limiter_name: str, key: str, message: str) -> None:
     allowed, retry_after = getattr(request.app.state, limiter_name).hit(key)
     if not allowed:
-        raise RateLimitedError(message, details={"retry_after_seconds": round(retry_after, 1)})
+        raise RateLimitedError.wait(message, retry_after)
 
 
 def _ip(request: Request) -> str:
-    return request.client.host if request.client else "unknown"
+    return client_key(request)
 
 
 # ---------------------------------------------------------------------------- owner

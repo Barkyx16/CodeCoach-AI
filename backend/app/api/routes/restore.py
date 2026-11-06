@@ -9,6 +9,7 @@ from app.errors import AppError
 from app.models import User
 from app.schemas.common import error_responses
 from app.schemas.restore import RestoreBatch, RestorePreview
+from app.services.rate_limit import enforce
 from app.services.restore import MAX_BYTES, Restore
 
 router = APIRouter(prefix="/api/v1/me/restore", tags=["backup"])
@@ -22,6 +23,16 @@ _BODY = {
         },
     }
 }
+
+
+async def _limit(request: Request, user: User) -> None:
+    """Counted before the file is read: each check parses up to 5 MB."""
+    await run_in_threadpool(
+        enforce,
+        request.app.state.restore_limiter,
+        f"restore:{user.id}",
+        "You've checked or restored backups many times this hour. Try again later.",
+    )
 
 
 async def _read(request: Request) -> bytes:
@@ -55,6 +66,7 @@ async def preview(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> RestorePreview:
+    await _limit(request, user)
     raw = await _read(request)
     response.headers["Cache-Control"] = "no-store"
     return await run_in_threadpool(Restore(db, user).preview, raw)
@@ -75,6 +87,7 @@ async def apply(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> RestoreBatch:
+    await _limit(request, user)
     raw = await _read(request)
     batch, created = await run_in_threadpool(Restore(db, user).apply, raw, categories)
     if not created:

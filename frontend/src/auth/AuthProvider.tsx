@@ -167,7 +167,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             continue;
           }
           diag("auth", { event: "refresh", outcome: code, tries });
-          lastFailure.current = code === "network_error" ? "network" : "rejected";
+          // Only the server saying the cookie is no good ends the session. A busy server (503),
+          // a rate limit (429) or another server error says nothing about the session: treat it
+          // like a lost connection, so the cookie is tried again later instead of signing out.
+          const rejected = error instanceof ApiError && (error.status === 401 || error.status === 403);
+          lastFailure.current = rejected ? "rejected" : "network";
           return null;
         }
       }

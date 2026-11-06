@@ -3,10 +3,11 @@ interactive OpenAPI docs live at /docs (Swagger UI) and /redoc."""
 
 from __future__ import annotations
 
+import hmac
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
@@ -41,10 +42,13 @@ from app.api.routes import (
     whiteboard,
 )
 from app.config import Settings, get_settings
+from app.db import rls
 from app.db.dev_schema import add_missing_columns
 from app.db.seed import seed_problems
 from app.db.session import Base, make_engine, make_session_factory
-from app.errors import install_error_handlers
+from app.errors import NotFoundError, install_error_handlers
+from app.http_cache import CacheMiddleware, ResponseCache
+from app.jobs import JobsRunner
 from app.metrics import Metrics
 from app.observability import RequestContextMiddleware, configure_logging
 from app.services.ai.service import build_provider
@@ -153,7 +157,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(getattr(logging, settings.log_level.upper(), logging.INFO))
 
-    engine = make_engine(settings.database_url, pool_timeout=settings.db_pool_timeout_seconds)
+    engine = make_engine(
+        settings.database_url,
+        pool_timeout=settings.db_pool_timeout_seconds,
+        pool_size=settings.db_pool_size,
+        max_overflow=settings.db_max_overflow,
+    )
     session_factory = make_session_factory(engine)
 
     @asynccontextmanager
@@ -162,13 +171,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             # Dev convenience. Production: `alembic upgrade head` + `python -m app.cli seed`.
             Base.metadata.create_all(engine)
             add_missing_columns(engine, Base.metadata)  # a database an older run made
+            with engine.begin() as conn:
+                rls.apply(conn)  # PostgreSQL row-level security, as the migration sets it up
             with session_factory() as session:
                 seed_problems(session)
+        rls.warn_if_not_enforced(engine)
         worker = None
         if settings.execution_enabled and settings.embedded_worker:
             worker = _start_embedded_worker(settings, session_factory, app.state.traces, app.state.metrics)
+        jobs = None
+        if settings.background_jobs_in_api:
+            jobs = JobsRunner(session_factory, settings, app.state.email_sender).start()
         logger.info("startup complete")
         yield
+        if jobs is not None:
+            jobs.stop()
         if worker is not None:
             worker.stop()
         engine.dispose()
@@ -203,6 +220,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             return DatabaseRateLimiter(session_factory, limit, window_s)
         return SlidingWindowLimiter(limit, float(window_s))
 
+    app.state.login_failure_limiter = limiter(settings.login_failures_per_account, 900)
+    app.state.refresh_limiter = limiter(settings.refresh_rate_limit_per_minute, 60)
+    app.state.export_limiter = limiter(settings.exports_per_hour, 3600)
+    app.state.restore_limiter = limiter(settings.restores_per_hour, 3600)
     app.state.share_open_limiter = limiter(settings.share_opens_per_10_minutes, 600)
     app.state.share_feedback_limiter = limiter(settings.share_feedback_per_hour, 3600)
     app.state.share_create_limiter = limiter(settings.shares_created_per_hour, 3600)
@@ -218,6 +239,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.metrics.queue_probe = lambda: _judge_queue_state(session_factory)
 
     install_error_handlers(app)
+    # Innermost: caching of the public catalogue and no-store for everything else (app/http_cache.py).
+    app.state.response_cache = ResponseCache()
+    app.add_middleware(CacheMiddleware, cache=app.state.response_cache)
     app.add_middleware(RequestContextMiddleware)
     app.add_middleware(
         CORSMiddleware,
@@ -275,7 +299,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     if app.state.metrics is not None:
 
         @app.get("/metrics", include_in_schema=False)
-        def metrics() -> Response:
+        def metrics(request: Request) -> Response:
+            if settings.metrics_token is not None:
+                expected = f"Bearer {settings.metrics_token.get_secret_value()}".encode()
+                given = request.headers.get("authorization", "").encode()
+                if not hmac.compare_digest(given, expected):
+                    raise NotFoundError("Not Found")
             return Response(app.state.metrics.render(), media_type=app.state.metrics.content_type)
 
     return app

@@ -67,9 +67,9 @@ def report(
 ) -> MyReport:
     allowed, retry_after = request.app.state.report_limiter.hit(f"report:{user.id}")
     if not allowed:
-        raise RateLimitedError(
+        raise RateLimitedError.wait(
             "You've sent a lot of reports. Try again later.",
-            details={"retry_after_seconds": round(retry_after, 1)},
+            retry_after,
         )
     return ContentService(db).report(user, body)
 

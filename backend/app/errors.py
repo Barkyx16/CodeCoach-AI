@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -57,6 +58,23 @@ class RateLimitedError(AppError):
     status_code = 429
     code = "rate_limited"
 
+    @classmethod
+    def wait(
+        cls, message: str, retry_after: float, *, code: str | None = None, **details: Any
+    ) -> RateLimitedError:
+        """A 429 that says how long to wait: whole seconds, at least 1, in the body and in a
+        Retry-After header."""
+        seconds = max(1, math.ceil(retry_after))
+        return cls(message, code=code, details={"retry_after_seconds": seconds, **details})
+
+
+def _retry_after(details: Any) -> str | None:
+    """Whole seconds for a Retry-After header, from a 429's details (never less than 1)."""
+    value = details.get("retry_after_seconds") if isinstance(details, dict) else None
+    if isinstance(value, int | float) and not isinstance(value, bool):
+        return str(max(1, math.ceil(value)))
+    return None
+
 
 def _envelope(request: Request, status: int, code: str, message: str, details: Any = None):
     request_id = getattr(request.state, "request_id", None)
@@ -64,6 +82,9 @@ def _envelope(request: Request, status: int, code: str, message: str, details: A
     headers = {"X-Request-ID": request_id} if request_id else None
     if status == 401:
         headers = {**(headers or {}), "WWW-Authenticate": "Bearer"}
+    if status == 429 and (wait := _retry_after(details)) is not None:
+        # Standard header (RFC 9110) as well as the body field, so clients and proxies can back off.
+        headers = {**(headers or {}), "Retry-After": wait}
     return JSONResponse(status_code=status, content=body, headers=headers)
 
 

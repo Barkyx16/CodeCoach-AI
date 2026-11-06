@@ -1,3 +1,4 @@
+import hashlib
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Header, Request, Response, status
@@ -35,26 +36,57 @@ from app.schemas.auth import (
     VerifyEmailRequest,
 )
 from app.schemas.common import error_responses
-from app.services import email_verification, password_reset
+from app.services import email_verification, outbox, password_reset
 from app.services import refresh as refresh_tokens
 from app.services.auth import hash_password, issue_access_token, needs_rehash, verify_password
+from app.services.rate_limit import client_key
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 _ERRORS = error_responses(401, 409, 422, 429)
 
 
-def _client_key(request: Request) -> str:
-    return request.client.host if request.client else "unknown"
-
-
 def _throttle(request: Request) -> None:
-    allowed, retry_after = request.app.state.auth_limiter.hit(f"auth:{_client_key(request)}")
+    allowed, retry_after = request.app.state.auth_limiter.hit(f"auth:{client_key(request)}")
     if not allowed:
-        raise RateLimitedError(
-            "Too many attempts. Wait a minute and try again.",
-            details={"retry_after_seconds": round(retry_after, 1)},
+        raise RateLimitedError.wait("Too many attempts. Wait a minute and try again.", retry_after)
+
+
+def _account_key(email: str) -> str:
+    # Hashed: the counter table never holds addresses. Unknown addresses are counted the same
+    # way as registered ones, so a 429 here doesn't reveal whether an account exists.
+    return "login-fail:" + hashlib.sha256(email.lower().encode()).hexdigest()[:40]
+
+
+def _check_account_failures(request: Request, email: str) -> None:
+    """Many wrong passwords for one address (from any number of addresses) pause sign-in to
+    it for a while. Password reset still works, and the per-IP limit still applies."""
+    allowed, retry_after = request.app.state.login_failure_limiter.peek(_account_key(email))
+    if not allowed:
+        raise RateLimitedError.wait(
+            "Too many wrong passwords for this account. Wait a few minutes, or reset your password.",
+            retry_after,
+            code="account_throttled",
         )
+
+
+def _send_email(
+    request: Request,
+    background: BackgroundTasks,
+    db: Session,
+    settings: Settings,
+    kind: str,
+    *,
+    user_id: str | None = None,
+    payload: dict | None = None,
+) -> None:
+    """Record the email as a durable job, then try it right after the response. If that try
+    fails (or this process stops first), the background jobs loop retries it (services/outbox.py)."""
+    job = outbox.enqueue(db, kind, user_id=user_id, payload=payload)
+    db.commit()
+    background.add_task(
+        outbox.run, request.app.state.session_factory, job.id, settings, request.app.state.email_sender
+    )
 
 
 def _token_response(user: User, settings: Settings) -> TokenResponse:
@@ -131,13 +163,7 @@ def register(
     except IntegrityError as exc:  # concurrent registration with the same email
         db.rollback()
         raise ConflictError("An account with this email already exists", code="email_taken") from exc
-    background.add_task(
-        email_verification.send_verification,
-        request.app.state.session_factory,
-        user.id,
-        settings,
-        request.app.state.email_sender,
-    )
+    _send_email(request, background, db, settings, "verify_email", user_id=user.id)
     return _start_session(db, user, response, settings)
 
 
@@ -152,10 +178,12 @@ def login(
     settings: Settings = Depends(get_settings_dep),
 ) -> TokenResponse:
     _throttle(request)
+    _check_account_failures(request, body.email)
     user = db.scalar(select(User).where(User.email == body.email.lower()))
     # verify_password runs a full hash comparison even when the user doesn't exist, and the
     # error message is identical either way, so attackers can't probe which emails exist.
     if not verify_password(user.password_hash if user else None, body.password) or user is None:
+        request.app.state.login_failure_limiter.hit(_account_key(body.email))
         raise UnauthorizedError("Incorrect email or password", code="invalid_credentials")
     if user.password_hash and needs_rehash(user.password_hash):
         user.password_hash = hash_password(body.password)
@@ -228,13 +256,7 @@ def upgrade_guest(
     except IntegrityError as exc:  # concurrent registration with the same email
         db.rollback()
         raise ConflictError("An account with this email already exists", code="email_taken") from exc
-    background.add_task(
-        email_verification.send_verification,
-        request.app.state.session_factory,
-        user.id,
-        settings,
-        request.app.state.email_sender,
-    )
+    _send_email(request, background, db, settings, "verify_email", user_id=user.id)
     return _start_session(db, user, response, settings)
 
 
@@ -266,6 +288,11 @@ def refresh(
     origin = request.headers.get("origin")
     if x_requested_with != "codecoach" or (origin and origin not in settings.cors_origins):
         raise ForbiddenError("Refresh must come from the CodeCoach app.", code="csrf_rejected")
+    # Its own, generous bucket: every open tab refreshes, so the sign-in limit would be too tight.
+    # The app treats a 429 here as "try again later", never as signed out.
+    allowed, retry_after = request.app.state.refresh_limiter.hit(f"refresh:{client_key(request)}")
+    if not allowed:
+        raise RateLimitedError.wait("Too many session refreshes. Try again in a moment.", retry_after)
     try:
         attempt = refresh_tokens.valid_attempt_key(x_refresh_attempt)
         user, raw = refresh_tokens.rotate(db, cc_refresh, settings, attempt=attempt)
@@ -318,19 +345,15 @@ def resend_verification(
     request: Request,
     background: BackgroundTasks,
     user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> AcceptedResponse:
+    _throttle(request)  # the email itself is also limited per account (one a minute)
     if user.is_guest or not user.email:
         raise ConflictError("Guest accounts have no email to verify.", code="not_applicable")
     if user.email_verified_at is not None:
         raise ConflictError("This email is already verified.", code="already_verified")
-    background.add_task(
-        email_verification.send_verification,
-        request.app.state.session_factory,
-        user.id,
-        settings,
-        request.app.state.email_sender,
-    )
+    _send_email(request, background, db, settings, "verify_email", user_id=user.id)
     return AcceptedResponse(message=f"We've sent a new verification link to {user.email}.")
 
 
@@ -364,16 +387,10 @@ def change_email(
     except IntegrityError as exc:
         db.rollback()
         raise ConflictError("An account with this email already exists", code="email_taken") from exc
-    background.add_task(
-        email_verification.send_verification,
-        request.app.state.session_factory,
-        user.id,
-        settings,
-        request.app.state.email_sender,
-    )
+    _send_email(request, background, db, settings, "verify_email", user_id=user.id)
     if old_email:
-        background.add_task(
-            email_verification.notify_email_changed, request.app.state.email_sender, old_email, new_email
+        _send_email(
+            request, background, db, settings, "email_changed", payload={"old": old_email, "new": new_email}
         )
     return user
 
@@ -389,17 +406,14 @@ def request_password_reset(
     body: PasswordResetRequest,
     request: Request,
     background: BackgroundTasks,
+    db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> AcceptedResponse:
     _throttle(request)
     # The lookup and the email happen after the response is sent: the reply and its timing are
-    # identical for registered and unknown addresses.
-    background.add_task(
-        password_reset.request_reset,
-        request.app.state.session_factory,
-        str(body.email),
-        settings,
-        request.app.state.email_sender,
+    # identical for registered and unknown addresses (a job is recorded either way).
+    _send_email(
+        request, background, db, settings, "password_reset", payload={"email": str(body.email).lower()}
     )
     return AcceptedResponse(
         message="If an account exists for that email, we've sent a link to reset the password."

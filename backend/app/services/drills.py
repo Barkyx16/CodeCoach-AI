@@ -103,9 +103,9 @@ class Drills:
             raise AppError("Spoken time is only for recorded answers.", code="invalid_measure")
         allowed, retry = limiter.hit(f"drill:{self.user.id}")
         if not allowed:
-            raise RateLimitedError(
+            raise RateLimitedError.wait(
                 "That's a lot of drills this hour. Take a short break.",
-                details={"retry_after_seconds": int(retry) + 1},
+                retry,
             )
         if self._count(d.id) >= MAX_PER_DRILL:
             raise AppError(

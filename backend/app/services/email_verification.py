@@ -44,21 +44,30 @@ def _code_hash(secret: str, user_id: str, code: str) -> str:
 
 
 def send_verification(
-    session_factory: Callable[[], Session], user_id: str, settings: Settings, sender: EmailSender
-) -> None:
+    session_factory: Callable[[], Session],
+    user_id: str,
+    settings: Settings,
+    sender: EmailSender,
+    *,
+    cooldown: bool = True,
+    raise_errors: bool = False,
+) -> bool:
+    """Make a fresh code and link and email them. False if there was nothing to send (verified,
+    gone, or a code was sent under a minute ago and `cooldown` applies). The outbox retries with
+    `cooldown=False` and `raise_errors=True`, so a failed send is retried rather than skipped."""
     now = datetime.now(UTC)
     with session_factory() as db:
         user = db.get(User, user_id)
         if user is None or user.is_guest or not user.email or user.email_verified_at is not None:
-            return
+            return False
         latest = db.scalar(
             select(EmailVerificationToken.created_at)
             .where(EmailVerificationToken.user_id == user.id, EmailVerificationToken.email == user.email)
             .order_by(EmailVerificationToken.created_at.desc())
             .limit(1)
         )
-        if latest is not None and now - _aware(latest) < RESEND_COOLDOWN:
-            return
+        if cooldown and latest is not None and now - _aware(latest) < RESEND_COOLDOWN:
+            return False
         db.execute(
             update(EmailVerificationToken)
             .where(EmailVerificationToken.user_id == user.id, EmailVerificationToken.used_at.is_(None))
@@ -78,7 +87,7 @@ def send_verification(
         db.commit()
         to = user.email
     link = f"{settings.app_base_url.rstrip('/')}/verify-email#token={raw}"
-    _deliver(
+    return _deliver(
         sender,
         Email(
             to=to,
@@ -91,12 +100,15 @@ def send_verification(
                 "If you didn't create an account, you can ignore this email.\n"
             ),
         ),
+        raise_errors=raise_errors,
     )
 
 
-def notify_email_changed(sender: EmailSender, old_email: str, new_email: str) -> None:
+def notify_email_changed(
+    sender: EmailSender, old_email: str, new_email: str, *, raise_errors: bool = False
+) -> bool:
     """Tell the previous address, so a hijacked account doesn't change hands silently."""
-    _deliver(
+    return _deliver(
         sender,
         Email(
             to=old_email,
@@ -107,14 +119,19 @@ def notify_email_changed(sender: EmailSender, old_email: str, new_email: str) ->
                 "password: reply to this email so we can help you recover the account.\n"
             ),
         ),
+        raise_errors=raise_errors,
     )
 
 
-def _deliver(sender: EmailSender, email: Email) -> None:
+def _deliver(sender: EmailSender, email: Email, *, raise_errors: bool = False) -> bool:
     try:
         sender.send(email)
     except Exception:  # noqa: BLE001 - delivery failures are logged, never shown to users
+        if raise_errors:
+            raise  # the outbox records it and tries again later
         logger.exception("email delivery failed")
+        return False
+    return True
 
 
 def confirm(db: Session, raw: str) -> User:

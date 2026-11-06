@@ -47,7 +47,7 @@ def test_the_code_knows_its_own_migration_head():
     from app.api.routes.health import _revisions
 
     heads, everything = _revisions()
-    assert heads == {"b2c3d4e5f6a7"} and "a1b2c3d4e5f6" in everything
+    assert heads == {"b7abe5833c3c"} and "248721f0fcb1" in everything
 
 
 def test_request_id_is_generated_and_echoed(client):

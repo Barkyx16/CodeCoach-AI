@@ -16,6 +16,7 @@ from datetime import UTC, date, datetime
 
 from sqlalchemy import (
     JSON,
+    BigInteger,
     Boolean,
     Date,
     DateTime,
@@ -197,6 +198,30 @@ class PasswordResetToken(Base):
     used_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
 
 
+class EmailJob(Base):
+    """An email to send, kept until it's sent or given up on, so a restart or a mail-server outage
+    doesn't lose it (app/services/outbox.py). It records what to send (kind, account, the addresses
+    involved), never a link or a code: those are created when the email is actually sent, so no
+    usable secret waits here. `payload` is emptied once the job is finished."""
+
+    __tablename__ = "email_jobs"
+    __table_args__ = (Index("ix_email_jobs_due", "status", "next_attempt_at"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    kind: Mapped[str] = mapped_column(String(32))
+    user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    payload: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
+    # pending → sending → sent | skipped (nothing to do) | dropped (too old) | failed (gave up)
+    status: Mapped[str] = mapped_column(String(12), default="pending")
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    next_attempt_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    finished_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    last_error: Mapped[str | None] = mapped_column(String(80), nullable=True)  # an error class, no content
+
+
 class RateLimitCounter(Base):
     """Attempts per key per fixed window, shared by every API replica (see services/rate_limit)."""
 
@@ -205,6 +230,9 @@ class RateLimitCounter(Base):
     key: Mapped[str] = mapped_column(String(160), primary_key=True)
     window: Mapped[int] = mapped_column(Integer, primary_key=True)  # epoch seconds // window length
     count: Mapped[int] = mapped_column(Integer, default=0)
+    # Epoch seconds after which no limiter reads this row (the end of the window after it), so
+    # housekeeping can delete it. Null on rows written before this column existed.
+    expires_at: Mapped[int | None] = mapped_column(BigInteger, nullable=True, index=True)
 
 
 class EmailVerificationToken(Base):

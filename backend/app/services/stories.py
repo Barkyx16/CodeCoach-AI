@@ -336,9 +336,12 @@ class Stories:
         if old is None:
             raise NotFoundError("Revision not found")
         fields = dict(old.fields)
-        # A target that's gone since stays unlinked; everything written comes back.
-        if fields.get("target_id") and self.db.get(RoleTarget, fields["target_id"]) is None:
-            fields["target_id"] = None
+        # A target that's gone since (or was never this learner's: the same check as an edit)
+        # stays unlinked; everything written comes back.
+        if fields.get("target_id"):
+            t = self.db.get(RoleTarget, fields["target_id"])
+            if t is None or t.user_id != user.id:
+                fields["target_id"] = None
         if fields.get("target_id") != e.target_id:
             e.requirement_ids = []  # requirements belong to the target they came from
         for f in SNAPSHOT_FIELDS:

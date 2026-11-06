@@ -21,6 +21,7 @@ from app.schemas.progress import ProgressOut, Recommendation
 from app.services.account import export_user_data
 from app.services.activity import ActivityFilters, ActivityService
 from app.services.progress import ProgressService
+from app.services.rate_limit import enforce
 
 router = APIRouter(prefix="/api/v1/me", tags=["progress"])
 
@@ -56,6 +57,7 @@ def recommendations(
     response_description="A JSON document with your profile, submissions, AI feedback, interviews and activity",
 )
 def export(
+    request: Request,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     version: int = Query(
@@ -69,6 +71,11 @@ def export(
 ) -> JSONResponse:
     from app.services.export_v2 import export_v2
 
+    enforce(
+        request.app.state.export_limiter,
+        f"export:{user.id}",
+        "You've downloaded your data many times this hour. Try again later.",
+    )
     data = export_v2(db, user) if version == 2 else export_user_data(db, user)
     name = "codecoach-data-v2.json" if version == 2 else "codecoach-data.json"
     return JSONResponse(

@@ -46,9 +46,20 @@ jobs:
         run: mypy app evals  # evals too since the Verification batch (clean: 0 errors)
       - name: Tests (SQLite)
         run: pytest
-      - name: Tests (PostgreSQL)
+      - name: An ordinary database role for the app (superusers bypass row-level security)
+        run: |
+          python - <<'PY'
+          from sqlalchemy import create_engine, text
+          e = create_engine(
+              "postgresql+psycopg://codecoach:codecoach@localhost:5432/codecoach_test", isolation_level="AUTOCOMMIT"
+          )
+          with e.connect() as c:
+              c.execute(text("CREATE ROLE codecoach_app LOGIN PASSWORD 'codecoach' NOSUPERUSER NOBYPASSRLS"))
+              c.execute(text("CREATE DATABASE codecoach_app_test OWNER codecoach_app"))
+          PY
+      - name: Tests (PostgreSQL, as that role, so row-level security is enforced)
         env:
-          TEST_DATABASE_URL: postgresql+psycopg://codecoach:codecoach@localhost:5432/codecoach_test
+          TEST_DATABASE_URL: postgresql+psycopg://codecoach_app:codecoach@localhost:5432/codecoach_app_test
         run: pytest
       - name: Migrations apply cleanly and match the models
         env:

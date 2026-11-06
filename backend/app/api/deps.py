@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.content import state as content_state
+from app.db import rls
 from app.errors import NotFoundError, UnauthorizedError
 from app.models import User
 from app.services.auth import decode_access_token
@@ -45,6 +46,8 @@ def get_optional_user(
     if user is None or user.token_version != claims["ver"]:
         # Unknown user, or the token was revoked by logout / password change.
         raise UnauthorizedError("Access token has been revoked", code="invalid_token")
+    # From here on, PostgreSQL itself only shows this request this user's rows (app/db/rls.py).
+    rls.bind_user(db, user.id)
     return user
 
 

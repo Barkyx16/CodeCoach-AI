@@ -31,7 +31,6 @@ from app.models import ProgressEvent, ProgressEventType, Submission, SubmissionM
 from app.observability import configure_logging
 from app.services.judge.judge import STATUS_DETAIL, JudgeInfrastructureError, judge_submission
 from app.services.judge.runner_client import HttpRunner, Runner, RunnerUnavailable
-from app.services.retention import prune_inactive_guests
 
 logger = logging.getLogger("codecoach.worker")
 
@@ -182,20 +181,14 @@ class JudgeWorker:
         return True
 
     def run_forever(self) -> None:
+        # Housekeeping (guest retention among it) lives in app/jobs.py now, so it runs whether or
+        # not the judge does; main() starts it next to this loop.
         last_recovery = 0.0
-        last_retention = 0.0
         while not self._stop:
             if time.monotonic() - last_recovery > 30:
                 with self.session_factory() as db:
                     self.recover_stale(db)
                 last_recovery = time.monotonic()
-            if time.monotonic() - last_retention > 24 * 3600:  # housekeeping, once a day
-                try:
-                    with self.session_factory() as db:
-                        prune_inactive_guests(db, self.settings.guest_retention_days)
-                except Exception:  # noqa: BLE001 - never let housekeeping stop judging
-                    logger.exception("guest retention failed")
-                last_retention = time.monotonic()
             try:
                 worked = self.process_one()
             except Exception:  # noqa: BLE001 - keep the worker alive; the job is recovered later
@@ -206,17 +199,38 @@ class JudgeWorker:
 
 
 def main() -> None:  # pragma: no cover - process entry point
+    """Background jobs (email retries, housekeeping) always; the judge too when code execution is
+    configured. Without it, this is a jobs-only worker."""
+    from app.jobs import JobsRunner
+    from app.services.email import build_email_sender
+
     settings = get_settings()
     configure_logging()
+    session_factory = make_session_factory(
+        make_engine(
+            settings.database_url, pool_timeout=settings.db_pool_timeout_seconds, pool_size=2, max_overflow=2
+        )
+    )
+    jobs = JobsRunner(session_factory, settings, build_email_sender(settings))
     if not settings.execution_enabled or not settings.runner_token:
-        raise SystemExit("EXECUTION_ENABLED=true and RUNNER_TOKEN are required to run the judge worker")
+        logger.info("background jobs worker started (no judge: EXECUTION_ENABLED is off)")
+        signal.signal(signal.SIGTERM, lambda *_: jobs.stop())
+        signal.signal(signal.SIGINT, lambda *_: jobs.stop())
+        jobs.run_forever()
+        return
     worker = JudgeWorker(
-        make_session_factory(make_engine(settings.database_url)),
+        session_factory,
         HttpRunner(settings.runner_url, settings.runner_token_value, ca_bundle=settings.runner_ca_bundle),
         settings,
     )
-    signal.signal(signal.SIGTERM, worker.stop)
-    signal.signal(signal.SIGINT, worker.stop)
+
+    def stop(*_: object) -> None:
+        jobs.stop()
+        worker.stop()
+
+    signal.signal(signal.SIGTERM, stop)
+    signal.signal(signal.SIGINT, stop)
+    jobs.start()
     logger.info("judge worker started")
     worker.run_forever()
 

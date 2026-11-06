@@ -41,21 +41,29 @@ def _aware(dt: datetime) -> datetime:
 
 
 def request_reset(
-    session_factory: Callable[[], Session], email: str, settings: Settings, sender: EmailSender
-) -> None:
+    session_factory: Callable[[], Session],
+    email: str,
+    settings: Settings,
+    sender: EmailSender,
+    *,
+    cooldown: bool = True,
+    raise_errors: bool = False,
+) -> bool:
+    """Make a fresh single-use link and email it. False if there was nothing to send (no such
+    account, or a link was sent under a minute ago and `cooldown` applies)."""
     now = datetime.now(UTC)
     with session_factory() as db:
         user = db.scalar(select(User).where(User.email == email.lower(), User.is_guest.is_(False)))
         if user is None:
-            return  # nothing to send; the caller already gave the same answer either way
+            return False  # nothing to send; the caller already gave the same answer either way
         latest = db.scalar(
             select(PasswordResetToken.created_at)
             .where(PasswordResetToken.user_id == user.id)
             .order_by(PasswordResetToken.created_at.desc())
             .limit(1)
         )
-        if latest is not None and now - _aware(latest) < RESEND_COOLDOWN:
-            return
+        if cooldown and latest is not None and now - _aware(latest) < RESEND_COOLDOWN:
+            return False
         # Only the newest link works.
         db.execute(
             update(PasswordResetToken)
@@ -88,7 +96,11 @@ def request_reset(
             )
         )
     except Exception:  # noqa: BLE001 - delivery failures are logged, never shown to the requester
+        if raise_errors:
+            raise  # the outbox records it and tries again later
         logger.exception("password reset email failed")
+        return False
+    return True
 
 
 def confirm_reset(db: Session, raw: str, new_password: str) -> None:

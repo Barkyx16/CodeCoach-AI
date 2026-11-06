@@ -52,6 +52,7 @@ PRODUCTION_BASE: dict = {
     "email_backend": "smtp",
     "smtp_host": "smtp.example.com",
     "app_base_url": "https://app.example",
+    "metrics_token": "metrics-synthetic-scrape-token-0123456789abcdef",
 }
 
 
@@ -66,6 +67,9 @@ def make_settings(database_url) -> Callable[..., Settings]:
             ai_daily_request_limit=50,
             auth_rate_limit_per_minute=1000,
             metrics_enabled=True,
+            # The jobs thread is tested on its own (test_background_jobs.py); here it would only
+            # add timing noise. Emails still get their first attempt right after the response.
+            background_jobs_in_api=False,
             _env_file=None,
         )
         base.update(overrides)

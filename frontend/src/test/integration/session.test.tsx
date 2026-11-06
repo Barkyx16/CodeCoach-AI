@@ -69,6 +69,28 @@ describe("Cookie-backed sessions", () => {
     expect(screen.queryByText(/Your session ended/)).not.toBeInTheDocument();
   });
 
+  it.each([
+    [503, "server_busy"],
+    [429, "rate_limited"],
+    [500, "internal_error"],
+  ])("a %i from the refresh (%s) doesn't sign the user out: the session isn't known to have ended", async (status, code) => {
+    let refreshes = 0;
+    server.use(
+      http.post(`${API}/api/v1/auth/refresh`, () => {
+        refreshes += 1;
+        return refreshes === 1
+          ? HttpResponse.json(tokenResponse({ access_token: "old-token" }))
+          : HttpResponse.json({ error: { code, message: "try again", request_id: "r", details: null } }, { status });
+      }),
+      http.get(`${API}/api/v1/me/progress`, () => HttpResponse.json(expired, { status: 401 })),
+    );
+    const { router } = renderApp("/dashboard", { signedIn: true });
+    await waitFor(() => expect(refreshes).toBeGreaterThan(1));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByText(/Your session ended/)).not.toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/dashboard");
+  });
+
   it("signs out with an explanation when the session can't be refreshed", async () => {
     server.use(http.get(`${API}/api/v1/me/progress`, () => {
       cookieJar.hasSession = false; // e.g. signed out on another device

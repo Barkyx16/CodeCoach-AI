@@ -11,12 +11,25 @@ class Base(DeclarativeBase):
     pass
 
 
-def make_engine(database_url: str, pool_timeout: float | None = None) -> Engine:
+def make_engine(
+    database_url: str,
+    pool_timeout: float | None = None,
+    pool_size: int | None = None,
+    max_overflow: int | None = None,
+) -> Engine:
     """`pool_timeout`: how long a request may wait for a free database connection before it is
-    answered 503 "busy, retry" (app/errors.py) instead of queueing on (SQLAlchemy's default 30 s)."""
+    answered 503 "busy, retry" (app/errors.py) instead of queueing on (SQLAlchemy's default 30 s).
+    `pool_size` / `max_overflow`: the connection pool (SQLAlchemy's defaults, 5 and 10, if unset)."""
     is_sqlite = database_url.startswith("sqlite")
     connect_args = {"check_same_thread": False} if is_sqlite else {}
-    options = {} if pool_timeout is None or ":memory:" in database_url else {"pool_timeout": pool_timeout}
+    options: dict = (
+        {} if pool_timeout is None or ":memory:" in database_url else {"pool_timeout": pool_timeout}
+    )
+    if not is_sqlite:
+        if pool_size is not None:
+            options["pool_size"] = pool_size
+        if max_overflow is not None:
+            options["max_overflow"] = max_overflow
     # hide_parameters: a failed statement's error message (which reaches the error log) never
     # carries its bound values: answer text, request keys, emails (Verification brief 09).
     engine = create_engine(

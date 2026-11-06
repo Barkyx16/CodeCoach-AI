@@ -5,7 +5,9 @@ python -m app.cli openapi     # print the OpenAPI schema (JSON) to stdout
 python -m app.cli prune-guests [--days N]   # delete guest accounts inactive for N days
                                             # (default GUEST_RETENTION_DAYS)
 python -m app.cli judge-check # prove the configured code judge works, end to end
+python -m app.cli housekeeping  # retry due emails and run every housekeeping step once, now
 python -m app.cli check-export FILE.json  # read-only check of a version 2 export's ids and links
+python -m app.cli check-rls   # is PostgreSQL row-level security in force for this connection?
 python -m app.cli grant-admin EMAIL    # let a registered account triage content reports
 python -m app.cli revoke-admin EMAIL
 python -m app.cli check-answers [--limit-ids N]
@@ -63,6 +65,30 @@ def main(argv: list[str]) -> int:
             print(f"{i['rule']}: {i['path']}: {i['detail']}")
         print("No problems found." if not issues else f"{len(issues)} problem(s) found.")
         return 1 if issues else 0
+    if command == "housekeeping":
+        from app.jobs import housekeeping
+        from app.services import outbox
+        from app.services.email import build_email_sender
+
+        settings = get_settings()
+        factory = make_session_factory(make_engine(settings.database_url))
+        done = {
+            f"emails_{k}": v for k, v in outbox.drain(factory, settings, build_email_sender(settings)).items()
+        }
+        done |= housekeeping(factory, settings, daily=True)
+        print(json.dumps(done, indent=2))
+        return 0
+    if command == "check-rls":
+        from app.db.rls import rls_status
+
+        status = rls_status(make_engine(get_settings().database_url))
+        print(json.dumps(status, indent=2))
+        if not status.get("supported"):
+            print("SQLite: no row-level security (the application's owner checks still apply).")
+            return 0
+        enforced = not status["role_bypasses_rls"] and not status["missing"]
+        print("Row-level security is enforced." if enforced else "Row-level security is NOT enforced.")
+        return 0 if enforced else 1
     if command == "judge-check":
         from app.services.judge.check import judge_check
 

@@ -9,6 +9,7 @@ several API replicas, other replicas see a change within `MAX_AGE_S`.
 
 from __future__ import annotations
 
+import hashlib
 import threading
 import time
 from dataclasses import dataclass, field
@@ -38,6 +39,8 @@ class Snapshot:
     retired: dict[tuple[str, str], str] = field(default_factory=dict)
     loaded_at: float = 0.0
     source: str = ""
+    # Changes whenever what's published changes: response caches key on it (app/http_cache.py).
+    fingerprint: str = ""
 
 
 _lock = threading.Lock()
@@ -67,6 +70,12 @@ def load(db: Session) -> Snapshot:
         )
     for status in db.scalars(select(ContentStatus).where(ContentStatus.status == "retired")):
         snap.retired[(status.content_type, status.content_id)] = status.reason
+    digest = hashlib.sha256(snap.source.encode())
+    for key in sorted(snap.corrections):
+        digest.update(repr((key, [c.version for c in snap.corrections[key]])).encode())
+    for key in sorted(snap.retired):
+        digest.update(repr(("retired", key)).encode())
+    snap.fingerprint = digest.hexdigest()[:16]
     return snap
 
 

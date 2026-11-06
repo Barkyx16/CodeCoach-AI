@@ -116,8 +116,18 @@ class Settings(BaseSettings):
     # Guest (demo) accounts with no activity for this many days are deleted with their data
     # (python -m app.cli prune-guests, or daily by the judge worker). 0 keeps them forever.
     guest_retention_days: int = Field(default=30, ge=0)
-    # Per-IP attempts per minute for sign-in, registration and password reset.
+    # Per-IP attempts per minute for sign-in, registration, password reset, verification and
+    # other account changes (one bucket per client address; IPv6 grouped by /64).
     auth_rate_limit_per_minute: int = 10
+    # Wrong passwords for one account in 15 minutes, from any addresses, before sign-in to it
+    # pauses (credential stuffing spread over many IPs). Password reset still works.
+    login_failures_per_account: int = Field(default=20, ge=1)
+    # Session refreshes per client address per minute (every open tab refreshes).
+    refresh_rate_limit_per_minute: int = Field(default=60, ge=1)
+    # Exports and backup restores (preview or apply) per user per hour: each builds or parses
+    # all of a user's data.
+    exports_per_hour: int = Field(default=20, ge=1)
+    restores_per_hour: int = Field(default=20, ge=1)
     # Written interview answers graded per user per hour (offline grading is cheap; this bounds storage).
     practice_answers_per_hour: int = 60
     # Shared answer links (per client IP / per user). The link secret is 256 bits, so these bound
@@ -159,6 +169,11 @@ class Settings(BaseSettings):
     anthropic_model: str = "claude-opus-5-5"
     anthropic_effort: Literal["low", "medium", "high"] = "low"
     ai_daily_request_limit: int = Field(default=50, ge=0)
+    # Calls to a paid provider running at once in one API process. When all are busy, the free
+    # offline coach answers at once (labelled as a fallback) instead of queueing: a slow provider
+    # can't tie up every database connection and worker thread. Each user has one AI request in
+    # flight at a time (PostgreSQL), which also makes the daily budget exact under concurrency.
+    ai_max_concurrent_calls: int = Field(default=8, ge=1, le=256)
     ai_max_code_chars: int = Field(default=12_000, ge=500)
 
     # --- Code execution ---------------------------------------------------------------------
@@ -184,13 +199,25 @@ class Settings(BaseSettings):
     # Run the judge worker as a thread inside the API process. Convenient for local dev and the
     # end-to-end tests; production runs `python -m app.worker` as its own process instead.
     embedded_worker: bool = False
+    # Email retries and housekeeping (app/jobs.py) in a thread in each API process. Safe with any
+    # number of replicas. Turn off only if `python -m app.worker` runs them instead.
+    background_jobs_in_api: bool = True
 
     # Overload: a request that can't get a database connection within this many seconds is
     # answered 503 `server_busy` with Retry-After, instead of queueing (docs/PERFORMANCE.md).
     db_pool_timeout_seconds: float = Field(default=10.0, gt=0, le=60)
+    # Connections each process keeps open, and how many more it may open under a burst. Size it
+    # so (API processes × (pool + overflow)) + workers stays under PostgreSQL's max_connections
+    # (default 100). docs/PERFORMANCE.md "Sizing".
+    db_pool_size: int = Field(default=5, ge=1, le=200)
+    db_max_overflow: int = Field(default=10, ge=0, le=200)
 
     # --- Observability ----------------------------------------------------------------------
     metrics_enabled: bool = True
+    # When set, /metrics answers only `Authorization: Bearer <METRICS_TOKEN>` (anything else gets
+    # 404, so it isn't discoverable). Required in production while metrics are on: the counts are
+    # operational detail (routes, error rates, queue depth) that the public doesn't need.
+    metrics_token: SecretStr | None = None
     # Recent traces kept in memory for the admin lookup (GET /api/v1/admin/traces/{id}). Spans are
     # also written to the log either way. 0 traces turns the in-memory store off.
     trace_store_max_traces: int = Field(default=500, ge=0, le=20000)
@@ -233,6 +260,13 @@ class Settings(BaseSettings):
             if default_db_password(self.database_url):
                 raise ValueError(
                     "DATABASE_URL uses an example password from this repository; set a unique one in production"
+                )
+            if self.metrics_enabled and (
+                not self.metrics_token or len(self.metrics_token.get_secret_value()) < 32
+            ):
+                raise ValueError(
+                    "METRICS_ENABLED=true in production needs METRICS_TOKEN (at least 32 characters) "
+                    "for the scraper, or METRICS_ENABLED=false"
                 )
             if self.auto_migrate_setting:
                 raise ValueError(
