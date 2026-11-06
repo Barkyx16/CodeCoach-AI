@@ -41,6 +41,7 @@ from app.api.routes import (
     whiteboard,
 )
 from app.config import Settings, get_settings
+from app.db.dev_schema import add_missing_columns
 from app.db.seed import seed_problems
 from app.db.session import Base, make_engine, make_session_factory
 from app.errors import install_error_handlers
@@ -156,6 +157,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if settings.auto_migrate:
             # Dev convenience. Production: `alembic upgrade head` + `python -m app.cli seed`.
             Base.metadata.create_all(engine)
+            add_missing_columns(engine, Base.metadata)  # a database an older run made
             with session_factory() as session:
                 seed_problems(session)
         worker = None
