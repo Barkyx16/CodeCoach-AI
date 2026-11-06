@@ -128,9 +128,10 @@ class CacheMiddleware:
     """Pure ASGI (no BaseHTTPMiddleware), innermost: the request-context middleware outside it
     still logs, traces and counts every request, cached or not."""
 
-    def __init__(self, app: ASGIApp, cache: ResponseCache | None = None) -> None:
+    def __init__(self, app: ASGIApp, cache: ResponseCache | None = None, ttl: int = TTL_S) -> None:
         self.app = app
         self.cache = cache or ResponseCache()
+        self.ttl = ttl
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -139,8 +140,10 @@ class CacheMiddleware:
         path = scope["path"]
         method = scope["method"]
         signed_in = _header(scope, b"authorization") is not None
-        cacheable = method in ("GET", "HEAD") and (
-            _SHARED.match(path) is not None or (_ANONYMOUS.match(path) is not None and not signed_in)
+        cacheable = (
+            self.ttl > 0
+            and method in ("GET", "HEAD")
+            and (_SHARED.match(path) is not None or (_ANONYMOUS.match(path) is not None and not signed_in))
         )
         if not cacheable:
             await self.app(scope, receive, _no_store(send))
@@ -187,11 +190,15 @@ class CacheMiddleware:
             await send({"type": "http.response.body", "body": body})
             return
         etag = _etag(body)
-        headers += [(b"cache-control", f"public, max-age={TTL_S}".encode()), (b"etag", etag)]
+        headers += [(b"cache-control", f"public, max-age={self.ttl}".encode()), (b"etag", etag)]
         if vary:
             headers.append((b"vary", b"Authorization"))
         entry = Entry(
-            body=body, headers=headers, etag=etag, expires=time.monotonic() + TTL_S, route=scope.get("route")
+            body=body,
+            headers=headers,
+            etag=etag,
+            expires=time.monotonic() + self.ttl,
+            route=scope.get("route"),
         )
         # Keyed by the snapshot the route just answered from (it refreshes it on the way in).
         self.cache.put((method, path, query, content_state.current().fingerprint), entry)

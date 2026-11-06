@@ -4,6 +4,61 @@ Measured numbers, with the setup that produced them. Nothing here is projected o
 These describe **one 4-vCPU development VM**; production hardware will differ, so re-measure
 before quoting numbers for a deployment.
 
+## Pre-launch load tests (2026-11-06)
+
+The **shipped configuration** (the Docker image runs one uvicorn process; nothing measured it
+before), on PostgreSQL 16 with the new migrations applied and row-level security enforced. Same
+4-vCPU VM, load generator on the same machine (so absolute numbers are pessimistic; the
+comparisons are what matter). Tool: `backend/scripts/loadtest_hardening.py`; raw results:
+`backend/scripts/results/hardening-*.json`. Synthetic accounts in a disposable database
+(created and dropped).
+
+| Scenario | Setting | Result |
+|---|---|---|
+| Public catalogue, 16 anonymous clients, 20 s | response cache **off** (`RESPONSE_CACHE_TTL_SECONDS=0`) | **41 req/s** in total; p50 99–458 ms, p95 341–884 ms, p99 up to 5.0 s. One process is CPU-bound building these responses |
+| Same | cache **on** (default, 60 s) | **565 req/s** (13.8×); p50 12 ms, p95 68–71 ms, p99 ≤ 126 ms; 27 misses in 11,309 requests |
+| Sign-ins, 8 accounts, 20 s | per-IP limit raised to measure | **15.9 logins/s**, p50 503 ms, p95 619 ms. Argon2id (64 MiB, 4 lanes) is deliberately costly: this is about what 4 cores verify; more processes on the same cores won't add much |
+| Sign-in flood: 8 clients, one address, wrong passwords, 20 s, plus 2 readers | default limits | 1,337 attempts: **8 reached a password check, 1,329 got 429**, 0 errors. Readers: 335 requests, all 200, p95 158 ms (the flood still costs CPU: see below) |
+| Slow AI provider (10 s per call), 40 users asking for hints non-stop, plus 8 readers, 30 s | **no cap** | **Breaking point.** Every database connection was held by a waiting AI call: readers got 16 responses in 30 s, **10 of them 503** `server_busy`, p50 15 s; 34 AI requests 503; the pool ran out 44 times |
+| Same | **`AI_MAX_CONCURRENT_CALLS=8`** (default) | **0 errors.** Readers: 401 requests, all 200 (p50 ~550 ms, p95 ≤ 1.15 s: the process's CPU was saturated by 55 offline answers/s from clients with no pause). AI: 1,646 answered, 24 by the slow provider (8 at a time), 1,622 at once by the offline coach; the pool never ran out |
+
+What this means for launch:
+- **Cache the catalogue** (done): the public pages a new visitor loads are 14× cheaper.
+- **A slow or failing AI provider can't take the site down** any more: at most 8 calls per
+  process wait on it; the rest get the offline coach immediately, labelled as a fallback.
+- **Sign-in is CPU-bound by design.** Budget about 16 sign-ins/s per 4 cores. A launch-day spike
+  above that queues (it doesn't fail); add CPU or instances.
+- **Rate limits work, but cost CPU.** The flood above still took 67 attempts/s of one process's
+  time; readers stayed correct but slower. For volumetric attacks, add an edge limit (proxy/CDN).
+
+### Sizing
+
+- **Processes:** `WEB_CONCURRENCY` (uvicorn reads it; the image defaults to 1). One per core is a
+  reasonable start for this mostly-CPU-bound API.
+- **Connections:** each process holds up to `DB_POOL_SIZE + DB_MAX_OVERFLOW` (5 + 10). Keep
+  `processes × 15 + workers × 4 + headroom` under PostgreSQL's `max_connections` (100 by
+  default): e.g. 4 processes = 60 + a worker = 64. Raise `max_connections` or lower the pool
+  before adding processes.
+- **AI:** `AI_MAX_CONCURRENT_CALLS` (8) per process stays below the pool (15), so AI calls can
+  never hold every connection.
+- **Edge:** set `FORWARDED_ALLOW_IPS` to the proxy's address, or every client shares the
+  proxy's rate-limit bucket.
+
+### Reproduce
+```bash
+cd backend
+# A disposable database, migrated (createdb …; DATABASE_URL=… alembic upgrade head; python -m app.cli seed)
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --proxy-headers          # the shipped config
+python scripts/loadtest_hardening.py catalog --clients 16 --duration 20     # RESPONSE_CACHE_TTL_SECONDS=0 for "off"
+AUTH_RATE_LIMIT_PER_MINUTE=1000000 uvicorn …;  python scripts/loadtest_hardening.py logins --clients 8
+uvicorn …;  python scripts/loadtest_hardening.py abuse --clients 8          # default limits
+PYTHONPATH=. AUTH_RATE_LIMIT_PER_MINUTE=1000000 AI_DAILY_REQUEST_LIMIT=100000 \
+  python scripts/serve_slow_ai.py --delay 10 --cap 1000                     # then --cap 8
+python scripts/loadtest_hardening.py slow-ai --ai-users 40 --readers 8 --duration 30
+```
+No provider is called: `serve_slow_ai.py` uses a fake that sleeps, then answers like the offline
+coach, and refuses to run with `ENVIRONMENT=production`.
+
 ## Real journeys: search, dashboard, history, answering (2026-11-03)
 
 What learners do most, measured before and after optimizing, with the same workload:
@@ -266,6 +321,7 @@ through all 12 problems the library had at the time (it now has 300). Time to ve
   CPUs are full), or a warm pool of pre-started sandboxes to cut the ~4 s startup.
 - **API at higher load:** measure on separate machines for the API, the database and the load
   generator, and profile the per-request overhead (the 1-client floor of 5–16 ms leaves room).
+  The pre-launch runs above share one machine with their load generator.
 - **Peak memory per submission** isn't measured (the API reports `memory_kb: null`).
 
 ## How these were measured

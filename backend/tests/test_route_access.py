@@ -195,3 +195,24 @@ def test_another_account_reads_nothing_of_yours_on_any_get_route(client):
     assert skipped == set(NOT_WALKED), (
         f"GET routes with ids this walk doesn't cover: {sorted(skipped - set(NOT_WALKED))}"
     )
+
+
+def test_a_cross_site_form_can_not_sign_anyone_in(client):
+    """Login CSRF: a page elsewhere can only send 'simple' requests without a CORS preflight
+    (form-encoded or text/plain bodies). The cookie-setting routes read JSON only, so those are
+    refused before anything happens and no session cookie is set."""
+    register(client, email="ada@example.com")
+    client.cookies.clear()
+    body = '{"email": "ada@example.com", "password": "CorrectHorse42"}'
+    # (POST /auth/guest takes no body, so this doesn't apply to it: see docs/HARDENING.md "Limits".)
+    for path in ("/api/v1/auth/login", "/api/v1/auth/register"):
+        for content_type in (
+            "text/plain",
+            "application/x-www-form-urlencoded",
+            "multipart/form-data; boundary=x",
+        ):
+            r = client.post(
+                path, content=body, headers={"Content-Type": content_type, "Origin": "https://evil.example"}
+            )
+            assert r.status_code == 422, (path, content_type, r.status_code)
+            assert "set-cookie" not in r.headers

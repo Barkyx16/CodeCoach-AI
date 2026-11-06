@@ -212,6 +212,10 @@ class Settings(BaseSettings):
     db_pool_size: int = Field(default=5, ge=1, le=200)
     db_max_overflow: int = Field(default=10, ge=0, le=200)
 
+    # Seconds the shared public catalogue is cached in each process (and by browsers); 0 turns
+    # the in-process cache off (responses are still no-store / revalidated). app/http_cache.py.
+    response_cache_ttl_seconds: int = Field(default=60, ge=0, le=3600)
+
     # --- Observability ----------------------------------------------------------------------
     metrics_enabled: bool = True
     # When set, /metrics answers only `Authorization: Bearer <METRICS_TOKEN>` (anything else gets

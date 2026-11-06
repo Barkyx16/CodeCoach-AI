@@ -1368,8 +1368,11 @@ All configuration is environment variables (or a `.env` file; see
 | `ENVIRONMENT` | `development` | `development`, `test` or `production`. Production refuses to start with the default `SECRET_KEY` or a `*` CORS origin. |
 | `LOG_LEVEL` | `INFO` | Python log level for the JSON logs. |
 | `DATABASE_URL` | `postgresql+psycopg://codecoach:codecoach@localhost:5432/codecoach` | SQLAlchemy URL. `sqlite:///./codecoach.db` works for a quick start. |
-| `AUTO_MIGRATE` | `true` | Create tables and seed problems on startup. Set `false` when migrations run separately (Docker Compose, production). |
-| `SECRET_KEY` | insecure dev value | **Secret.** Signs JWTs. At least 32 characters; required in production. |
+| `AUTO_MIGRATE` | on outside production | Create tables and seed problems on startup. Off by default in production, which refuses `true` (run `alembic upgrade head` and `python -m app.cli seed`). |
+| `DB_POOL_SIZE` / `DB_MAX_OVERFLOW` | `5` / `10` | Database connections per process. Keep processes × (pool + overflow) under PostgreSQL's `max_connections` ([PERFORMANCE.md](PERFORMANCE.md#sizing)). |
+| `DB_POOL_TIMEOUT_SECONDS` | `10` | A request waiting longer for a connection gets `503 server_busy` with `Retry-After`. |
+| `SECRET_KEY` | insecure dev value | **Secret.** Signs access tokens and keys the email-code and refresh-recovery HMACs. Production refuses the dev value, placeholder text and repetitive strings. |
+| `SECRET_KEY_PREVIOUS` | (none) | **Secret.** Comma-separated keys being rotated out: accepted when checking, never used to sign ([SECURITY.md §7](SECURITY.md#7-secrets-rotation-and-the-database-role)). |
 | `ACCESS_TOKEN_TTL_MINUTES` | `15` | Access-token lifetime (5–1440). |
 | `REFRESH_TOKEN_TTL_DAYS` | `30` | Refresh-cookie lifetime; it rotates on every use (1–90). |
 | `REFRESH_COOKIE_SECURE` | unset | Unset: `Secure` in production only. `false` is refused in production. |
@@ -1378,10 +1381,15 @@ All configuration is environment variables (or a `.env` file; see
 | `SHARE_FEEDBACK_PER_HOUR` | `20` | Per-IP feedback submissions on shared answers. |
 | `SHARES_CREATED_PER_HOUR` | `30` | Share links (new or replaced) per user per hour. |
 | `CONTENT_REPORTS_PER_HOUR` | `10` | Content reports per user per hour. |
-| `AUTH_RATE_LIMIT_PER_MINUTE` | `10` | Per-IP attempts per minute for register, login, guest, upgrade, password change and password reset. |
+| `AUTH_RATE_LIMIT_PER_MINUTE` | `10` | Per-address attempts per minute (IPv6 by /64) for sign-in, registration, guests, verification, resend, reset, email and password changes. |
+| `LOGIN_FAILURES_PER_ACCOUNT` | `20` | Wrong passwords for one account in 15 minutes, from any address, before sign-in to it pauses (`429 account_throttled`). |
+| `REFRESH_RATE_LIMIT_PER_MINUTE` | `60` | Session refreshes per address per minute (the app treats a 429 here as "try later", never as signed out). |
+| `EXPORTS_PER_HOUR` / `RESTORES_PER_HOUR` | `20` / `20` | Data exports, and backup checks or restores, per user per hour. |
 | `RATE_LIMIT_BACKEND` | `database` | `database`: counters shared by every API replica (sliding window, atomic upsert). `memory`: one process only. |
 | `FORWARDED_ALLOW_IPS` | `127.0.0.1` | (uvicorn) Proxies whose `X-Forwarded-For` is trusted. Set it to your load balancer's address, or every user shares the proxy's IP for rate limiting. Untrusted headers are ignored, so they can't be spoofed. |
-| `GUEST_RETENTION_DAYS` | `30` | Guest accounts with no activity for this long are deleted with their data (worker, daily; or `python -m app.cli prune-guests`). `0` keeps them. |
+| `GUEST_RETENTION_DAYS` | `30` | Guest accounts with no activity for this long are deleted with their data (background jobs, daily; or `python -m app.cli housekeeping` / `prune-guests`). `0` keeps them. |
+| `BACKGROUND_JOBS_IN_API` | `true` | Email retries and housekeeping in a thread in each API process (safe with any number of replicas). Off only if `python -m app.worker` runs them. |
+| `RESPONSE_CACHE_TTL_SECONDS` | `60` | How long the public catalogue is cached per process and by browsers. `0` turns the in-process cache off. |
 | `APP_BASE_URL` | `http://localhost:5173` | Public web-app URL used in emailed links. Must be `https` in production. |
 | `EMAIL_BACKEND` | `console` | `console` (log), `file` (write to `EMAIL_FILE_DIR`, for tests) or `smtp`. Production requires `smtp`. |
 | `EMAIL_FROM`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_STARTTLS` | –, –, `587`, –, –, `true` | SMTP delivery settings. |
@@ -1392,7 +1400,8 @@ All configuration is environment variables (or a `.env` file; see
 | `ANTHROPIC_API_KEY` | — | **Secret.** Required when `AI_PROVIDER=anthropic`. |
 | `ANTHROPIC_MODEL` | `claude-opus-5-5` | Model ID used for hints and reviews. |
 | `ANTHROPIC_EFFORT` | `low` | `low`, `medium` or `high`. Higher is deeper and more expensive. |
-| `AI_DAILY_REQUEST_LIMIT` | `50` | AI calls per user per rolling 24 hours. |
+| `AI_DAILY_REQUEST_LIMIT` | `50` | AI calls per user per rolling 24 hours (exact under concurrency on PostgreSQL: one AI request per user at a time). |
+| `AI_MAX_CONCURRENT_CALLS` | `8` | Paid-provider calls at once per process; when all are busy the offline coach answers immediately. |
 | `AI_MAX_CODE_CHARS` | `12000` | Code beyond this length is truncated before reaching a model. |
 | `EXECUTION_ENABLED` | `false` | Judge submissions in the gVisor runner (requires `RUNNER_TOKEN` and the judge services) |
 | `RUNNER_URL` | `http://localhost:8100` | Runner service address (used by the worker) |
@@ -1403,6 +1412,7 @@ All configuration is environment variables (or a `.env` file; see
 | `EMBEDDED_WORKER` | `false` | Run the worker inside the API process (local dev and e2e only) |
 | `MAX_SOURCE_CHARS` | `20000` | Maximum submission size. |
 | `METRICS_ENABLED` | `true` | Serves Prometheus metrics at `/metrics`. |
+| `METRICS_TOKEN` | (none) | **Secret.** When set, `/metrics` needs `Authorization: Bearer <token>` (else 404). Required in production while metrics are on. |
 | `POSTGRES_PASSWORD` | `codecoach` | Used by `docker-compose.yml` only. |
 | `VITE_API_BASE_URL` | `http://localhost:8000` | Frontend build-time API URL. **Public**: never put secrets in `VITE_*`. |
 

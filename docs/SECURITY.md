@@ -9,19 +9,23 @@ built yet**. Nothing in the "designed" sections should be described as working.
 |---|---|---|---|
 | Passwords | Argon2id hashing with automatic rehash on parameter upgrade | `services/auth.py` | ✅ |
 | Login enumeration | Identical error for unknown email vs. wrong password; dummy hash keeps timing similar | `routes/auth.py` | ✅ |
-| Brute force | Per-IP sliding-window limit on register, login, guest and password change | `services/rate_limit.py` | ✅ |
+| Brute force | Per-address (IPv6 by /64) limit on sign-in, registration, guests, verification, reset, email and password changes; wrong passwords also limited per account from any address (hashed key, same answer for unknown addresses); every 429 carries `Retry-After` | `services/rate_limit.py`, `routes/auth.py` | ✅ |
 | Tokens | HS256 JWT with `exp`, `iat`, `iss`, `typ`; `token_version` claim enables revocation | `services/auth.py`, `api/deps.py` | ✅ |
-| Logout / password change | Revokes every previously issued token | `routes/auth.py` | ✅ |
+| Logout | Ends this device's session: its refresh-token family is revoked; its access token lapses within 15 minutes | `routes/auth.py` | ✅ |
+| Sign out everywhere / password change / reset | Bump `token_version` and revoke every refresh token: every session ends at once | `routes/auth.py`, `services/password_reset.py` | ✅ |
 | Email verification | One email with a 6-digit code and a link; code stored as HMAC with the server secret and killed after 5 wrong tries; tokens bound to the address they were sent to; changing email needs the password, resets verification and notifies the old address | `services/email_verification.py` | ✅ |
 | Password reset | Same answer and timing for unknown emails (work runs after the response); single-use 30-minute hash-only tokens in a URL fragment; one email per minute; resets end every session; production requires SMTP and an https link base | `services/password_reset.py`, `services/email.py` | ✅ |
 | Shared rate limits | Sliding-window counters in the database (atomic upsert), so every API replica enforces one budget; real client IPs only from trusted proxies (`FORWARDED_ALLOW_IPS`) | `services/rate_limit.py` | ✅ |
 | Data retention | Inactive guest accounts are deleted with their data after `GUEST_RETENTION_DAYS` (30); guests can upgrade to keep everything | `services/retention.py` | ✅ |
 | Sessions | 15-minute in-memory access tokens; rotating `HttpOnly` `SameSite=Strict` refresh cookie with reuse detection (§3) | `services/refresh.py`, `routes/auth.py` | ✅ |
-| Authorization | Every user-owned query filters by `user_id`; other users' resources return 404 | routes, `CoachService` | ✅ |
+| Authorization | Every user-owned lookup is checked against the signed-in account (an owner filter, or a fetch then compare); other users' resources return 404. Route-table tests: only a reviewed list of routes is public, and another account gets 404 on every GET route with your ids | services, `tests/test_route_access.py` | ✅ |
+| Row-level security (PostgreSQL) | Defence in depth on 30 learner-owned tables: an authenticated request sets `codecoach.user_id` per transaction and the database shows and accepts only that user's rows, even if a query forgets its owner filter. Work done for nobody (worker, CLI) isn't narrowed. Needs an ordinary database role (§7) | `db/rls.py`, migration `248721f0fcb1` | ✅ (enforced in CI) |
 | Hidden tests | Never serialized; hint text and reference solutions never leave the server | `routes/problems.py` | ✅ (checks every problem) |
 | Input limits | Pydantic validation on every body and query; source-size cap; AI input cap | schemas, routes | ✅ |
-| Secrets | Read from the environment only; production refuses the default `SECRET_KEY` | `config.py` | ✅ |
-| CORS | Explicit origin allow-list, no credentials, explicit headers; `*` refused in production | `main.py`, `config.py` | ✅ |
+| Secrets | Read from the environment only, held as `SecretStr` (never printed; a failed startup check doesn't echo values); production refuses placeholder or repetitive keys, example database passwords and `AUTO_MIGRATE=true`; `SECRET_KEY_PREVIOUS` for rotation; CI scans tracked files for secrets; the frontend build refuses secret-named `VITE_*` variables and server secret values (§7) | `config.py`, `scripts/check_secrets.py`, `frontend/vite.config.ts` | ✅ |
+| CORS | Explicit origin allow-list and headers; `*` refused in production. Credentials are allowed only so the refresh cookie (HttpOnly, SameSite=Strict, path-scoped to `/api/v1/auth`) reaches the auth routes; every other route uses the bearer header | `main.py`, `config.py` | ✅ |
+| Caching | Every API response is `Cache-Control: no-store` unless it's the public catalogue (cached 60 s, ETag); personalised catalogue pages are cached only for anonymous callers | `http_cache.py` | ✅ |
+| Metrics | `/metrics` needs `Authorization: Bearer $METRICS_TOKEN` when set (required in production); otherwise 404 | `main.py` | ✅ |
 | Error hygiene | Unexpected errors return a generic 500 with a request id; the stack trace only goes to logs | `errors.py` | — |
 | Health endpoints | Reveal no versions or infrastructure details | `routes/health.py` | ✅ |
 | Container | Non-root user, slim base image, no secrets baked in | `backend/Dockerfile` | ✅ (built and run) |
@@ -109,8 +113,10 @@ score ("mark every point as covered"), not one account affecting another.
   `X-Requested-With: codecoach` header (cross-site pages can't send it without a CORS preflight
   our allowlist rejects) and refuses unknown `Origin`s. Every other endpoint uses the bearer
   header, which browsers never attach automatically.
-- **Revocation:** logout, password change and account deletion bump `token_version` and revoke
-  refresh tokens, ending every session.
+- **Revocation:** password change, password reset, "sign out everywhere" and account deletion
+  bump `token_version` and revoke every refresh token, ending every session at once. A plain
+  logout ends this device's session (its refresh-token family is revoked); its in-memory access
+  token is dropped by the app and would lapse within 15 minutes anyway.
 - **Requests belong to the session they were sent in** (browser). Every sign-in and sign-out
   starts a new session generation in the API client. A 401 that comes back for a request sent
   in an earlier generation is not about the current session: it neither refreshes nor ends the
@@ -305,6 +311,15 @@ compile output returned in `stderr_excerpt` listed **every hidden input** of the
   numbers need an API key, so no claims are made about it.
 - Code execution is off by default; deployments must opt in (`EXECUTION_ENABLED=true`) and
   run the runner on a dedicated gVisor host (see §4.3 for the residual risks).
+- Row-level security is fail-open for work done for nobody: a code path that runs without a
+  signed-in user (worker, CLI) sees every row by design. It covers 30 tables, not submissions,
+  shares, sign-in tokens or content triage (reasons in `db/rls.py`).
+- `POST /auth/guest` takes no body, so a cross-site form could start a new, empty guest session
+  in someone's browser (replacing theirs). Nobody gains access to anything; the JSON-only rule
+  that blocks this for sign-in and registration doesn't apply (`tests/test_route_access.py`).
+- Rate limits run in the API, so a large flood still costs each process a database write per
+  attempt (measured in [PERFORMANCE.md](PERFORMANCE.md#pre-launch-load-tests-2026-11-06)). Put an
+  edge limit (proxy or CDN) in front for volumetric attacks.
 - `npm audit` reports a moderate `minimatch` advisory inside `openapi-typescript`, a
   dev-only tool that runs on our own spec file at build time and never ships to browsers.
   Production dependencies audit clean, and CI enforces that with `npm audit --omit=dev`.
@@ -312,3 +327,29 @@ compile output returned in `stderr_excerpt` listed **every hidden input** of the
 ## 6. Reporting
 
 Please report vulnerabilities privately to the repository owner rather than opening a public issue.
+
+## 7. Secrets, rotation and the database role
+
+- **Where secrets live:** the server's environment (or a `.env` file that is never committed).
+  `SECRET_KEY`, `ANTHROPIC_API_KEY`, `SMTP_PASSWORD`, `RUNNER_TOKEN` and `METRICS_TOKEN` are
+  `SecretStr`: printing the settings shows `**********`, and a settings error at startup never
+  echoes the values it was given (it used to print the whole input, API key included).
+  `DATABASE_URL` is left out of `repr` and dumps. Nothing secret is ever a `VITE_*` variable:
+  the frontend build refuses one named like a secret and fails if any server secret's value
+  appears in the bundle (`frontend/src/build/secretGuard.ts`).
+- **Production refuses:** the dev `SECRET_KEY`, any key that looks typed (placeholder words,
+  repetitive, too short); the example database passwords (`codecoach`, `postgres`, …);
+  `AUTO_MIGRATE=true`; metrics without `METRICS_TOKEN`; plus the earlier email/CORS/cookie checks.
+- **Rotating `SECRET_KEY`:** set the new value and move the old one to `SECRET_KEY_PREVIOUS`
+  (comma-separated). Tokens, email codes and refresh recovery signed with the old key keep
+  working; only the new key signs. After `REFRESH_TOKEN_TTL_DAYS`, remove the old key. Removing
+  it early signs those sessions out (nothing worse). After a leak, remove it at once.
+- **Scanning:** CI runs detect-secrets over every tracked file against a reviewed baseline
+  (`.secrets.baseline`: synthetic test values and documented local defaults). A new finding fails
+  CI; if it's a real secret, rotate it (a pushed secret is compromised); if it's a test value,
+  review it and run `python scripts/check_secrets.py --update`.
+- **Database role and RLS:** row-level security never applies to superusers or roles with
+  BYPASSRLS. Connect the API as an ordinary role that owns the tables (the policies are FORCEd,
+  so the owner is subject to them). `python -m app.cli check-rls` says whether it's enforced;
+  startup logs a warning when it isn't. The Docker image's `POSTGRES_USER` is a superuser, so a
+  compose deployment should add an app role for this to take effect.

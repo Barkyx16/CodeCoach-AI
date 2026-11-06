@@ -241,7 +241,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     install_error_handlers(app)
     # Innermost: caching of the public catalogue and no-store for everything else (app/http_cache.py).
     app.state.response_cache = ResponseCache()
-    app.add_middleware(CacheMiddleware, cache=app.state.response_cache)
+    app.add_middleware(
+        CacheMiddleware, cache=app.state.response_cache, ttl=settings.response_cache_ttl_seconds
+    )
     app.add_middleware(RequestContextMiddleware)
     app.add_middleware(
         CORSMiddleware,
