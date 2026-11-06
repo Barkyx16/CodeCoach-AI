@@ -57,6 +57,8 @@ export default defineConfig({
         EMAIL_BACKEND: "file",
         EMAIL_FILE_DIR: "./e2e-outbox",
         AUTH_RATE_LIMIT_PER_MINUTE: "1000",
+        // Every test runs from 127.0.0.1 and every page load refreshes the session.
+        REFRESH_RATE_LIMIT_PER_MINUTE: "10000",
         LOG_LEVEL: "WARNING",
         ...(judge
           ? { EXECUTION_ENABLED: "true", EMBEDDED_WORKER: "true", RUNNER_URL: "http://localhost:8100",
