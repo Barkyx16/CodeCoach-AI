@@ -139,7 +139,7 @@ jobs:
         env:
           CI: "true"
           PYTHON: python
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-traces
@@ -219,7 +219,7 @@ jobs:
           PYTHON: python
           E2E_JUDGE: "1"
         run: npx playwright test e2e/judge.spec.ts
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: sandbox-traces
