@@ -14,11 +14,12 @@ from __future__ import annotations
 import json
 import logging
 import smtplib
+import sys
 import time
 from dataclasses import asdict, dataclass
 from email.message import EmailMessage
 from pathlib import Path
-from typing import Protocol
+from typing import Protocol, TextIO
 
 from app.config import Settings
 
@@ -37,11 +38,32 @@ class EmailSender(Protocol):
 
 
 class ConsoleEmailSender:
+    """Development only (production refuses it): nothing is sent. The email is printed to the
+    terminal running the server as a plain, readable block, so a verification code or reset link
+    can be copied from there."""
+
+    def __init__(self, stream: TextIO | None = None):
+        self.stream = stream
+
     def send(self, email: Email) -> None:
         logger.info(
             "email (console backend, not delivered)", extra={"to": email.to, "subject": email.subject}
         )
-        logger.info("email body:\n%s", email.text)
+        rule = "─" * 72
+        lines = [
+            "",
+            f"┌{rule}",
+            "│ EMAIL (not sent: this server has no mail server set up; see docs/EMAIL.md)",
+            f"│ To:      {email.to}",
+            f"│ Subject: {email.subject}",
+            "│",
+            *(f"│ {line}" for line in email.text.splitlines()),
+            f"└{rule}",
+            "",
+        ]
+        stream = self.stream or sys.stderr
+        stream.write("\n".join(lines) + "\n")
+        stream.flush()
 
 
 class FileEmailSender:

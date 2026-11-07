@@ -7,11 +7,18 @@ See .env.example at the repository root for the full list.
 
 import math
 from functools import lru_cache
+from pathlib import Path
 from typing import Annotated, Literal
 from urllib.parse import urlparse
 
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+# Where settings files are read from, lowest priority first: the repository root's .env (what
+# .env.example and docker compose use), backend/.env, then .env in the current directory. Real
+# environment variables override all of them.
+_BACKEND_DIR = Path(__file__).resolve().parents[1]
+ENV_FILES = (str(_BACKEND_DIR.parent / ".env"), str(_BACKEND_DIR / ".env"), ".env")
 
 _INSECURE_DEFAULT_SECRET = "dev-only-insecure-secret-change-me-0000"
 _LOOPBACK = {"localhost", "127.0.0.1", "::1"}
@@ -75,7 +82,7 @@ class Settings(BaseSettings):
     # (the whole input, API keys included, would otherwise appear in the traceback).
     # env_ignore_empty: a blank line copied from .env.example (`SECRET_KEY=`) means "not set".
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=ENV_FILES,
         env_file_encoding="utf-8",
         extra="ignore",
         hide_input_in_errors=True,

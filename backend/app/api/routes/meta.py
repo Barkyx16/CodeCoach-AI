@@ -44,6 +44,12 @@ class Capabilities(APIModel):
         description="The app may report how its round actions ended (outcome and timing only) to "
         "POST /api/v1/telemetry/ui",
     )
+    emails_delivered: bool = Field(
+        default=True,
+        description="False on a development server with no mail server set up: emails (verification "
+        "codes, reset links) are printed in the server's terminal instead of being sent. Always true in "
+        "production, which refuses to start without one.",
+    )
     answer_request_keys: bool = Field(
         default=False,
         description="Career answers accept `client_request_id`, and this server keeps at most one saved "
@@ -76,5 +82,6 @@ def capabilities(request: Request, db: Session = Depends(get_db)) -> Capabilitie
         ),
         guest_retention_days=settings.guest_retention_days,
         ui_telemetry=settings.ui_telemetry_enabled,
+        emails_delivered=settings.email_backend == "smtp",
         answer_request_keys=True,
     )

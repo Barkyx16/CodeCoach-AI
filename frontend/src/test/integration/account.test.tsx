@@ -79,6 +79,28 @@ describe("Email verification", () => {
     expect(await screen.findByText(/We've sent a new verification link/)).toBeInTheDocument();
   });
 
+  it.each([
+    [false, true],
+    [true, false],
+  ])("says where the code went when the server can't send email (emails_delivered: %s)", async (delivered, shown) => {
+    server.use(
+      http.post(`${API}/api/v1/auth/refresh`, () => HttpResponse.json(tokenResponse({ user: unverified }))),
+      http.get(`${API}/api/v1/capabilities`, () => HttpResponse.json({
+        execution_enabled: false, ai_provider: "offline", guest_retention_days: 30, emails_delivered: delivered,
+        execution: { state: "not_configured", reason: "not_configured", message: "", run_available: false,
+          submit_mode: "saved_only", checked_at: new Date().toISOString(), setup_help: null },
+      })),
+    );
+    renderApp("/verify-email", { signedIn: true });
+    await screen.findByRole("heading", { name: "Check your email" });
+    if (shown) {
+      expect(await screen.findByRole("note")).toHaveTextContent(/isn't set up to send email.*printed in the terminal/);
+    } else {
+      await new Promise((r) => setTimeout(r, 50));
+      expect(screen.queryByText(/isn't set up to send email/)).not.toBeInTheDocument();
+    }
+  });
+
   it("verifies from the emailed link even when signed out, and removes the token from the URL", async () => {
     let body: unknown = null;
     server.use(http.post(`${API}/api/v1/auth/verify-email`, async ({ request }) => {

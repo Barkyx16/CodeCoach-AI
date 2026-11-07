@@ -124,6 +124,11 @@ pids+=($!)
 wait_for 5173 "${pids[1]}" "The site"
 
 say "CodeCoach is running: open http://localhost:5173 (Ctrl+C here stops it)."
+email_backend=$(cd backend && .venv/bin/python -c 'from app.config import get_settings; print(get_settings().email_backend)' 2>/dev/null || echo console)
+if [ "$email_backend" != "smtp" ]; then
+  printf '%s\n' "Emails aren't sent from this computer: verification codes and reset links are printed in" \
+    "this window, in a box marked EMAIL. To send real emails, see docs/EMAIL.md."
+fi
 if [ -n "$LIVE" ]; then
   printf '%s\n' "If the page stays blank, reload it once. Errors from the browser are printed here."
 else

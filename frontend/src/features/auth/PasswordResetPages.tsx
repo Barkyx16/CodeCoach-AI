@@ -9,6 +9,7 @@ import { PasswordChecklist } from "@/components/PasswordChecklist";
 import { InlineError } from "@/components/States";
 
 import { AuthLayout } from "./AuthLayout";
+import { EmailNotSentNote } from "./EmailNotSentNote";
 import { fieldErrorsFrom } from "./fieldErrors";
 
 export function ForgotPasswordPage() {
@@ -38,6 +39,7 @@ export function ForgotPasswordPage() {
           <>
             <p role="status">{sent}</p>
             <p className="muted">The link works once and expires soon. Check your spam folder if it doesn't arrive.</p>
+            <EmailNotSentNote what="reset link" />
           </>
         ) : (
           <>

@@ -9,6 +9,7 @@ import { Field } from "@/components/Field";
 import { InlineError, LoadingState } from "@/components/States";
 
 import { AuthLayout } from "./AuthLayout";
+import { EmailNotSentNote } from "./EmailNotSentNote";
 
 /** Where to go afterwards: whatever page sent the user here, else the dashboard. */
 function useNext(): string {
@@ -132,6 +133,7 @@ function VerifyByCode() {
       <p className="muted">
         We sent a 6-digit code to <strong>{user.email}</strong>. Enter it below, or click the link in that email.
       </p>
+      <EmailNotSentNote what="code (and the link)" />
       <Field label="Verification code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]*"
         maxLength={6} required value={code} className="input code-input"
         onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}

@@ -3838,6 +3838,12 @@ export interface components {
              */
             ui_telemetry: boolean;
             /**
+             * Emails Delivered
+             * @description False on a development server with no mail server set up: emails (verification codes, reset links) are printed in the server's terminal instead of being sent. Always true in production, which refuses to start without one.
+             * @default true
+             */
+            emails_delivered: boolean;
+            /**
              * Answer Request Keys
              * @description Career answers accept `client_request_id`, and this server keeps at most one saved answer per account and key (a resend returns the saved answer). Absent or false (older servers): a key is ignored, so it promises nothing.
              * @default false
