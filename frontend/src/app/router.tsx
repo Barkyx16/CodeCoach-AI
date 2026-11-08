@@ -26,6 +26,7 @@ import { NotesPage } from "@/features/notes/NotesPage";
 import { OfflinePage } from "@/features/offline/OfflinePage";
 import { AdminGuard } from "@/features/admin/AdminGuard";
 import { HelpPage } from "@/features/onboarding/HelpPage";
+import { SupportReportPage } from "@/features/support/SupportReportPage";
 import { WelcomePage } from "@/features/onboarding/WelcomePage";
 
 import { Layout } from "./Layout";
@@ -130,6 +131,8 @@ export const routes: RouteObject[] = [
       { path: "/shared", element: <SharedPage /> },
       { path: "/offline", element: <OfflinePage /> },
       { path: "/help", element: <HelpPage /> },
+      // Public: the report works signed out, offline and while the server is down.
+      { path: "/help/report", element: <SupportReportPage /> },
       { path: "/stories", element: <RequireAuth><StoriesPage /></RequireAuth> },
       { path: "/applications", element: <RequireAuth><ApplicationsPage /></RequireAuth> },
       { path: "/schedule", element: <RequireAuth><SchedulePage /></RequireAuth> },

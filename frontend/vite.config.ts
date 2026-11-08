@@ -1,5 +1,6 @@
 /// <reference types="vitest/config" />
 import react from "@vitejs/plugin-react";
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -80,7 +81,24 @@ function noSecretsInBundle(): Plugin {
   };
 }
 
+/**
+ * Which build this is, for the support report: CODECOACH_BUILD_ID when the build sets it (CI, an
+ * image build without .git), else the commit it was built from, else "unknown". A commit id
+ * only: never a branch name, path or anything else from the build machine.
+ */
+function buildId(): string {
+  const given = process.env.CODECOACH_BUILD_ID?.trim();
+  if (given && /^[A-Za-z0-9._-]{1,40}$/.test(given)) return given;
+  try {
+    const sha = execFileSync("git", ["rev-parse", "--short=12", "HEAD"], { stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+    return /^[0-9a-f]{7,40}$/.test(sha) ? sha : "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
 export default defineConfig({
+  define: { __CODECOACH_BUILD__: JSON.stringify(buildId()) },
   plugins: [react(), offlineShell(), noSecretsInBundle()],
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },

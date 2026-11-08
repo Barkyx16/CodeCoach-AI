@@ -2,6 +2,8 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, vi } from "vitest";
 
+import { clearFailures } from "@/lib/supportLog";
+
 import { resetExploreStore } from "./explore";
 import { resetLearnStore } from "./learn";
 import { resetNoteStore } from "./notes";
@@ -47,5 +49,6 @@ afterEach(() => {
   resetLearnStore();
   resetNoteStore();
   resetScenarioStore();
+  clearFailures(); // a page load starts with an empty failed-request log; so does each test
 });
 afterAll(() => server.close());

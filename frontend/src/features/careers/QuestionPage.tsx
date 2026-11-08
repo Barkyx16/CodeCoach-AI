@@ -344,7 +344,7 @@ function QuestionPageFor() {
             {retired && <p className="subtle" id="answer-retired">This question is retired, so it isn't graded any more. Your draft stays on this device.</p>}
             {!online && <p className="subtle" id="answer-offline">You're offline. Feedback needs a connection; your draft stays on this device until you send it.</p>}
             {!isAuthenticated && !offlineUser && <p className="subtle">Feedback needs an account so your answers are saved. A guest session takes one click.</p>}
-            <InlineError id="answer-error" error={submit.error ?? guestError} />
+            <InlineError id="answer-error" error={submit.error ?? guestError} action="Saving your answer" />
             {keyRefused && (
               <p className="banner banner--warning" role="status">
                 This server can't protect a resend right now, so your answer wasn't saved. Your text is still

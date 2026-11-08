@@ -1,5 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 
+import { reportedError, reportHelps, useGetHelp } from "@/features/support/getHelp";
+import { SupportReportPanel } from "@/features/support/SupportReport";
 import { useRetryWait } from "@/hooks/useCountdown";
 import { describeError, failureKind, formatWait } from "@/lib/errors";
 
@@ -11,7 +13,8 @@ import { Button } from "./Button";
  * learner's work stays where it was: this never replaces the page.
  *
  * Only the first sentence is announced (role="alert"), once. The countdown and the button sit
- * outside it, so a ticking wait isn't read out every second.
+ * outside it, so a ticking wait isn't read out every second. Where a support report could help,
+ * "Get help with this" opens one in place (identifiers only, never the message or the work).
  */
 export function ActionError({ error, action, onRetry, retrying = false, repeatSafe = false, id }: {
   error: unknown;
@@ -25,6 +28,7 @@ export function ActionError({ error, action, onRetry, retrying = false, repeatSa
 }) {
   const location = useLocation();
   const wait = useRetryWait(error);
+  const help = useGetHelp(error);
   if (!error) return null;
   const kind = failureKind(error);
   const { message, requestId } = describeError(error);
@@ -45,10 +49,11 @@ export function ActionError({ error, action, onRetry, retrying = false, repeatSa
       detail = message;
   }
   const retryable = ["offline", "busy", "unavailable", "server", "other"].includes(kind);
+  const helps = reportHelps(error);
   return (
     <div className="action-error banner banner--warning" id={id}>
       <p role="alert" className="action-error__message"><strong>{action} didn't go through.</strong> {detail}</p>
-      {(wait > 0 || (onRetry && retryable) || kind === "signed_out" || (kind === "server" && requestId)) && (
+      {(wait > 0 || (onRetry && retryable) || kind === "signed_out" || (kind === "server" && requestId) || helps) && (
         <div className="action-error__actions">
           {wait > 0 && <span className="subtle">You can try again in {formatWait(wait)}.</span>}
           {onRetry && retryable && (
@@ -62,6 +67,12 @@ export function ActionError({ error, action, onRetry, retrying = false, repeatSa
           {kind === "server" && requestId && (
             <span className="subtle">Reference for support: <code>{requestId.slice(0, 12)}</code></span>
           )}
+          {helps && <Button size="sm" variant="ghost" {...help.button} />}
+        </div>
+      )}
+      {help.open && (
+        <div id={help.panelId}>
+          <SupportReportPanel problem={reportedError(error, action)} pagePath={location.pathname} />
         </div>
       )}
     </div>

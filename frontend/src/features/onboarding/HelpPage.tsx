@@ -63,6 +63,12 @@ export function HelpPage() {
         </div>
         <aside className="stack">
           <IntroductionCard />
+          <Card className="stack-sm">
+            <h2 className="section-title">Something not working?</h2>
+            <p>A support report describes the problem without your answers, code or account details. You see all of it
+              first, and it stays on this device until you copy or save it.</p>
+            <p><Link to="/help/report" state={{ from: "/help", fromLabel: "Back to Help" }}>Get a support report</Link></p>
+          </Card>
         </aside>
       </div>
     </div>

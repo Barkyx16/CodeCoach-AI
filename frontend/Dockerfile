@@ -8,6 +8,10 @@ COPY . .
 # Public, build-time configuration only. Never pass secrets as VITE_* variables.
 ARG VITE_API_BASE_URL=http://localhost:8000
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+# Which build this is, shown in the support report (letters, digits, ".", "_", "-"; up to 40).
+# There's no .git in this context, so without it the report says "unknown".
+ARG CODECOACH_BUILD_ID=unknown
+ENV CODECOACH_BUILD_ID=$CODECOACH_BUILD_ID
 # The Content-Security-Policy must allow exactly the API origin this build calls (connect-src).
 # scripts/csp-origin.mjs parses it with the standard URL parser and fails the build on anything
 # but a plain http(s) URL, then fills the template's one placeholder (nothing else changes).

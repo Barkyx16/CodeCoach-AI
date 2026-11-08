@@ -7,6 +7,7 @@
  * - Network failures become ApiError("network_error") so callers have one error type.
  */
 import { diag, diagPath } from "@/lib/diagnostics";
+import { clearFailures, recordFailure } from "@/lib/supportLog";
 
 import type { ErrorEnvelope } from "./types";
 
@@ -96,6 +97,7 @@ export function configureAuth(
 /** A session started or ended: requests already on their way belong to the previous one. */
 export function startAuthGeneration(): void {
   generation += 1;
+  clearFailures(); // another session: the earlier one's failures don't belong in this one's report
 }
 
 /**
@@ -195,6 +197,7 @@ async function send<T>(path: string, options: RequestOptions, isRetry: boolean):
     const aborted = cause instanceof DOMException && cause.name === "AbortError";
     diag("http", { ...where, status: 0, outcome: aborted ? "aborted" : "network_error", ms: Math.round(performance.now() - started) });
     if (aborted) throw cause;
+    recordFailure({ method, path, status: 0, code: "network_error", request_id: null });
     throw new ApiError(0, "network_error", "Can't reach the CodeCoach server. Check your connection and try again.");
   }
   diag("http", {
@@ -224,6 +227,11 @@ async function send<T>(path: string, options: RequestOptions, isRetry: boolean):
   if (!response.ok) {
     const requestId = response.headers.get("X-Request-ID");
     const retryAfter = parseRetryAfter(response.headers.get("Retry-After"));
+    // A refused session check is how "signed out" is learned, not a failure (the report says signed out).
+    if (!(response.status === 401 && path.startsWith("/api/v1/auth/refresh"))) {
+      recordFailure({ method, path, status: response.status, code: isErrorEnvelope(data) ? data.error.code : "http_error",
+        request_id: (isErrorEnvelope(data) ? data.error.request_id : null) ?? requestId });
+    }
     const error = isErrorEnvelope(data)
       ? new ApiError(response.status, data.error.code, data.error.message, data.error.details ?? null,
           data.error.request_id ?? requestId, retryAfter)

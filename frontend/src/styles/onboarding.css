@@ -61,3 +61,23 @@ html { scroll-padding-top: calc(var(--header-height) + 8px); scroll-padding-bott
 .help-item summary { cursor: pointer; font-weight: 550; }
 .help-item p { margin: var(--space-2) 0 0; }
 .help-item__links { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+
+/* Support report (Volume 7, prompt 8): the exact text, readable and selectable, never rendered as markup. */
+.support-report { text-align: left; width: 100%; max-width: 72ch; }
+.support-report__title { margin: var(--space-2) 0 0; }
+.support-report__preview {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  white-space: pre;
+  overflow: auto;
+  resize: vertical;
+}
+.support-report__status { margin: 0; min-height: 1.25em; }
+.support-report__status--warn { color: var(--color-text); font-size: var(--text-sm); }
+.support-report-page__layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--space-6); align-items: start; }
+@media (max-width: 900px) { .support-report-page__layout { grid-template-columns: minmax(0, 1fr); } }
+.support-report-page__list { margin: 0; padding-left: 1.2em; display: grid; gap: var(--space-1); }
+.state__message { align-items: center; }
+.state__actions { justify-content: center; }
+.state__report { width: 100%; display: flex; justify-content: center; }

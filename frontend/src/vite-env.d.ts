@@ -20,3 +20,6 @@ declare module "monaco-editor/editor/browser/config/tabFocus" {
     onDidChangeTabFocus(listener: (on: boolean) => void): { dispose(): void };
   };
 }
+
+/** The build's commit id (or "unknown"), set by vite.config.ts; shown in the support report. */
+declare const __CODECOACH_BUILD__: string;

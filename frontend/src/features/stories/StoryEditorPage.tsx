@@ -316,7 +316,7 @@ function Editor({ story }: { story: Story | null }) {
             <Button type="submit" variant="primary" loading={busy} disabled={!form.title.trim() || (!!saved && !dirty)}>{saved ? "Save changes" : "Save story"}</Button>
             <span className="subtle" role="status">{notice || (dirty ? (kept ? "Unsaved changes, kept on this device" : "Unsaved changes, and this browser can't keep a copy") : saved ? "All changes saved" : "")}</span>
           </div>
-          <InlineError error={error} />
+          <InlineError error={error} action="Saving the story" />
         </form>
 
         <aside className="stack">
