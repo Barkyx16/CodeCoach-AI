@@ -67,3 +67,49 @@ def test_the_preflight_says_whether_forwarded_addresses_are_believed():
     assert _client_address_check("10.0.0.0/8, *").status == UNVERIFIED
     ok = _client_address_check("172.18.0.1")
     assert ok.status == READY and "172.18.0.1" not in ok.reason  # set, value not shown
+
+
+# --- The trust chain, entry by entry (docs/STORAGE.md "Client addresses") --------------------
+# uvicorn reads X-Forwarded-For from the right and stops at the first address it doesn't trust:
+# the one the trusted proxy appended. So whatever a client puts in front can't choose its key.
+
+
+@pytest.mark.parametrize(
+    "forwarded",
+    [
+        "198.51.100.66, 203.0.113.7",  # a forged entry in front of the real one
+        "garbage, 203.0.113.7",  # malformed in front
+        "203.0.113.7",
+    ],
+)
+def test_a_forged_or_malformed_prefix_cant_choose_the_address(forwarded):
+    assert seen_client(compose_default(), "172.18.0.1", forwarded) == "203.0.113.7"
+
+
+def test_ipv6_visitors_are_seen_as_themselves():
+    assert seen_client(compose_default(), "172.18.0.1", "2001:db8::42") == "2001:db8::42"
+
+
+def test_known_limit_a_visitor_on_a_private_network_trusted_as_a_proxy():
+    """The private ranges cover Docker's gateway, but also any visitor whose own address is
+    private (the API on a LAN). uvicorn then skips that visitor as "a proxy" and takes the
+    entry to its left, which that visitor could have forged. Narrowing FORWARDED_ALLOW_IPS to
+    the gateway itself removes it. Documented; asserted here so the trade-off can't drift."""
+    forged = "198.51.100.66, 10.1.2.3"
+    assert seen_client(compose_default(), "172.18.0.1", forged) == "198.51.100.66"
+    assert seen_client("172.18.0.1", "172.18.0.1", forged) == "10.1.2.3"
+
+
+def test_links_and_cookies_never_come_from_forwarded_headers():
+    """Password-reset and verification links use APP_BASE_URL, and the cookie's Secure flag is
+    COOKIE_SECURE: a forwarded Host or scheme can't steer either."""
+    import inspect
+
+    from app.api.routes import auth
+    from app.services import email_verification, password_reset
+
+    for module in (email_verification, password_reset):
+        source = inspect.getsource(module)
+        assert "app_base_url" in source
+        assert "base_url" not in source.replace("app_base_url", "") and "x-forwarded" not in source.lower()
+    assert "secure=settings.cookie_secure" in inspect.getsource(auth)

@@ -5,6 +5,7 @@
 #
 #   scripts/rehearse_production_storage.sh
 #   IMAGE=codecoach-api:rehearsal scripts/rehearse_production_storage.sh   # use a prebuilt API image
+#   FORWARDED_ALLOW_IPS=127.0.0.1 ...       # override the compose default (shows the shared-limit defect)
 #   WEB_IMAGE=codecoach-web:rehearsal ...   # also start the web service from a prebuilt image
 #                                           # (built with VITE_API_BASE_URL=https://rehearsal.invalid)
 #   BACKUP_IMAGE=codecoach-backup:rehearsal ...   # a prebuilt backup image (backend/Dockerfile, target backup)
@@ -41,6 +42,7 @@ POSTGRES_SUPERUSER_PASSWORD=$SUPER
 CODECOACH_OWNER_PASSWORD=$OWNER
 CODECOACH_APP_PASSWORD=$APP
 PUBLIC_API_URL=https://rehearsal.invalid
+${FORWARDED_ALLOW_IPS:+FORWARDED_ALLOW_IPS=$FORWARDED_ALLOW_IPS}
 EOF
 # The compose file reads deploy/.env.app; a rehearsal brings its own and removes it afterwards.
 if [ -e deploy/.env.app ]; then echo "deploy/.env.app exists: refusing to overwrite it"; exit 2; fi
@@ -133,6 +135,25 @@ if ! dc logs api 2>/dev/null | grep -q '203\.0\.113\.7'; then
   echo "FAIL: the API didn't see the forwarded address; it sees:"; dc logs api 2>/dev/null | grep 'GET /health ' | tail -1; exit 1
 fi
 echo "ok: the API sees the visitor's forwarded address, not Docker's gateway: rate limits are per visitor"
+# The effect on real limits (synthetic documentation addresses, never a real service): one visitor
+# who uses up the sign-in limit (AUTH_RATE_LIMIT_PER_MINUTE=100 here) gets 429 with Retry-After,
+# while a second visitor still gets through.
+login_as() {  # $1 = forwarded address, $2 = email; prints the status code
+  curl -s -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:$PORT/api/v1/auth/login" -H "X-Forwarded-For: $1" \
+    -H 'Content-Type: application/json' -d "{\"email\":\"$2\",\"password\":\"wrong-password\"}"
+}
+for i in $(seq 1 100); do login_as 203.0.113.10 "visitor-a-$i@example.com" >/dev/null; done
+[ "$(login_as 203.0.113.10 visitor-a-x@example.com)" = 429 ] || { echo "FAIL: visitor A wasn't limited"; exit 1; }
+curl -s -D - -o /dev/null -X POST "http://127.0.0.1:$PORT/api/v1/auth/login" -H 'X-Forwarded-For: 203.0.113.10' \
+  -H 'Content-Type: application/json' -d '{"email":"a@example.com","password":"x"}' | grep -qi '^retry-after:' \
+  || { echo "FAIL: the 429 has no Retry-After"; exit 1; }
+[ "$(login_as 203.0.113.11 visitor-b@example.com)" = 401 ] || { echo "FAIL: visitor B shared visitor A's limit"; exit 1; }
+echo "ok: visitor A is limited (429, Retry-After) while visitor B still signs in normally: separate limits"
+# And the per-account limit still holds across addresses: 20 wrong passwords for one account, each
+# from a different address, pause sign-in to that account for the 21st address too.
+for i in $(seq 1 20); do login_as "198.51.100.$i" throttled@example.com >/dev/null; done
+[ "$(login_as 198.51.100.99 throttled@example.com)" = 429 ] || { echo "FAIL: the per-account limit didn't hold across addresses"; exit 1; }
+echo "ok: the per-account limit holds no matter how many addresses the attempts come from"
 
 step "3. save work, then restart and recreate"
 TOKEN=$(curl -s -X POST "http://127.0.0.1:$PORT/api/v1/auth/register" -H 'Content-Type: application/json' \

@@ -79,15 +79,46 @@ backup (profile "backup": not started by `up`; the host's scheduler runs it, as 
   settings come from `deploy/.env.app`. So the API container never holds the owner's or the
   superuser's password; the rehearsal checks its environment for both. Both files are
   gitignored; the `*.example` files name every setting without values.
-- **Client addresses.** A proxy on the host reaches the API through Docker's gateway
-  (172.x.0.1), never 127.0.0.1. With uvicorn's default, every visitor would share the gateway's
-  address and its sign-in rate limit: 10 a minute, for the whole site. This was found while
-  preparing this layout, before any deployment. The api service sets
-  `FORWARDED_ALLOW_IPS` to the private ranges, so the proxy's `X-Forwarded-For` is believed. A
-  direct client's isn't, and the port is published on 127.0.0.1 only. Narrow it in
-  `.env.production` if you like (`FORWARDED_ALLOW_IPS=172.18.0.1`). `tests/test_client_addresses.py`
-  feeds the compose file's value to uvicorn's own middleware; the rehearsal checks it through
-  Docker (step 2c).
+- **Client addresses (the trust chain).** Rate limits are per visitor address, so the API must
+  see the visitor, not the proxy:
+  - **The chain:** browser → your https reverse proxy on the host → Docker's published port
+    `127.0.0.1:8000` → the API container. Docker's port publishing makes every connection arrive
+    from the network's gateway (172.x.0.1), never 127.0.0.1. So with uvicorn's default
+    (`FORWARDED_ALLOW_IPS=127.0.0.1`), every visitor shared the gateway's address and its
+    sign-in limit (10 a minute, for the whole site). Found while preparing this layout,
+    before any deployment.
+  - **The fix:** the api service sets `FORWARDED_ALLOW_IPS` to the private ranges, which cover
+    the gateway on any Docker network. uvicorn reads `X-Forwarded-For` from the right and stops
+    at the first address it doesn't trust: the one your proxy appended. So anything a client
+    puts in front of it (forged, malformed) is ignored.
+  - **Your proxy** must append the client's address (nginx: `proxy_set_header X-Forwarded-For
+    $proxy_add_x_forwarded_for;`) or replace the header with it (Caddy's default). Then a
+    client can't choose its own rate-limit address.
+  - **Who else is trusted:** anything with a private address that can reach the API's port.
+    That's only this compose project's own containers and processes on this host, because the
+    port is published on 127.0.0.1. Loopback binding narrows that, but doesn't make every
+    process on the host trustworthy.
+  - **Known limit:** a visitor whose own address is private (the API serving a LAN) is skipped
+    as if it were a proxy, so the entry to its left, which it could forge, is used instead.
+    Narrow the setting to the gateway itself in `.env.production` (e.g.
+    `FORWARDED_ALLOW_IPS=172.18.0.1`; `docker network inspect codecoach_default` shows it).
+  - **Not covered:** a load balancer or CDN in front of your proxy adds a hop. Add its addresses
+    too, or every visitor appears as the load balancer. Untested here.
+  - **Links and cookies don't depend on any of this.** Emailed links come from `APP_BASE_URL`,
+    and the session cookie's `Secure` flag from `COOKIE_SECURE`, never from a forwarded Host or
+    scheme.
+  - **Evidence:**
+    - `tests/test_client_addresses.py` feeds the compose file's value to uvicorn's own
+      middleware: gateways believed, forged and malformed prefixes ignored, IPv6, the private
+      network limit;
+    - the compose rehearsal's step 2c, through Docker: the forwarded address is seen; one
+      visitor using up the sign-in limit gets 429 with `Retry-After` while another signs in
+      normally; and 20 wrong passwords for one account from 20 addresses still pause that
+      account for a 21st;
+    - the same rehearsal with `FORWARDED_ALLOW_IPS=127.0.0.1` fails at that step: the API
+      sees `172.18.0.1`.
+    - The preflight's "client addresses" line says whether the setting is present, never its
+      value.
 - **Checks:**
   - `python -m app.cli check-rls --strict` fails unless the connected role is the least-privilege
     app role.
@@ -184,6 +215,8 @@ ok: the CSP allows exactly the API origin the build calls (PUBLIC_API_URL)
 ok: framing and sniffing blocked
 == 2c. client addresses through Docker's published port
 ok: the API sees the visitor's forwarded address, not Docker's gateway: rate limits are per visitor
+ok: visitor A is limited (429, Retry-After) while visitor B still signs in normally: separate limits
+ok: the per-account limit holds no matter how many addresses the attempts come from
 == 3. save work, then restart and recreate
 ok: after an API restart
 ok: after the database container was removed and recreated
