@@ -129,7 +129,7 @@ What this rehearsal does **not** show:
 | Codes or links don't arrive | `python -m app.cli email-status` | `check-email --connect`; after an outage, `email-retry --failed` ([EMAIL.md](EMAIL.md)) |
 | `/health/ready` is 503 | `docker compose … ps`, `… logs db` | the database is back → readiness returns by itself; schema behind → run `migrate` |
 | A migration failed | `docker compose … logs migrate` | nothing changed (one transaction): fix the cause, `up` again |
-| Lost the disk, or a bad change to data | — | restore the newest backup into a new database and switch to it ([BACKUP.md](BACKUP.md)) |
+| Lost the disk, or a bad change to data | — | restore the newest backup into a new database, decide on the emails it held (`email-quarantine`), and switch to it ([BACKUP.md](BACKUP.md)) |
 | Worried about isolation | `python -m app.cli check-rls --strict` (as the API's role) | [ROW_LEVEL_SECURITY.md](ROW_LEVEL_SECURITY.md) |
 
 ## Remaining launch blockers (as of this batch)

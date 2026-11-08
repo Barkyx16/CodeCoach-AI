@@ -268,6 +268,7 @@ def _jobs_checks(s: Settings, session_factory: Callable[[], Session]) -> list[Ch
         )
     try:
         with session_factory() as db:
+            held = db.scalar(select(func.count()).select_from(EmailJob).where(EmailJob.status == "held"))
             stuck = db.scalar(
                 select(func.count())
                 .select_from(EmailJob)
@@ -286,7 +287,15 @@ def _jobs_checks(s: Settings, session_factory: Callable[[], Session]) -> list[Ch
     except Exception as exc:  # noqa: BLE001
         out.append(Check("outbox", UNVERIFIED, f"couldn't read the outbox: {type(exc).__name__}"))
         return out
-    if stuck:
+    if held:
+        out.append(
+            Check(
+                "outbox",
+                BLOCKED,
+                f"{held} emails held after a restore: review them with `email-quarantine`, then release or suppress them",
+            )
+        )
+    elif stuck:
         out.append(
             Check("outbox", BLOCKED, f"{stuck} emails overdue by 15+ minutes: is anything processing jobs?")
         )

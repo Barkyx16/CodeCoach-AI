@@ -13,6 +13,10 @@ python -m app.cli email-status [--recent N] [--job ID] [--message-id ID] [--acco
                               # the outbox, redacted: statuses, attempts, error classes, Message-IDs
 python -m app.cli email-retry --failed [--hours N]
                               # after an outage: retry failed verification emails (default 24 h)
+python -m app.cli email-quarantine [--release | --suppress] [--kind KIND] [--job ID ...] [--apply]
+                              # after a restore: the emails held on the copy (redacted), and what
+                              # releasing them would do; release or suppress chosen ones (dry run
+                              # unless --apply)
 python -m app.cli check-export FILE.json  # read-only check of a version 2 export's ids and links
 python -m app.cli preflight [--connect-email] [--backup-manifest FILE] [--json]
                               # launch checks for THIS environment: ready / blocked / optional /
@@ -158,6 +162,53 @@ def main(argv: list[str]) -> int:
         print(
             "They're sent by the next outbox pass (the API's jobs thread, or `python -m app.cli housekeeping`)."
         )
+        return 0
+    if command == "email-quarantine":
+        from app.services.email_ops import held_inventory, release_held, suppress_held
+        from app.services.outbox import KINDS
+
+        action = "release" if "--release" in argv else "suppress" if "--suppress" in argv else None
+        if "--release" in argv and "--suppress" in argv:
+            print("Choose one: --release or --suppress")
+            return 2
+        kind = argv[argv.index("--kind") + 1] if "--kind" in argv[:-1] else None
+        if ("--kind" in argv and kind is None) or (kind is not None and kind not in KINDS):
+            print(f"--kind must be one of: {', '.join(KINDS)}")
+            return 2
+        job_ids = [argv[i + 1] for i, a in enumerate(argv) if a == "--job" and i + 1 < len(argv)] or None
+        apply = "--apply" in argv
+        settings = get_settings()
+        engine = make_engine(settings.database_url)
+        with make_session_factory(engine)() as session:
+            held_jobs = held_inventory(session, settings)
+            if action is None:
+                if not held_jobs:
+                    print("No emails are held.")
+                    return 0
+                print(f"{len(held_jobs)} email(s) held after a restore (none is sent until released):")
+                for held_row in held_jobs:
+                    print(
+                        f"  {held_row['job']}  {held_row['kind']:<24} {held_row['age_hours']:>7} h old  to *@{held_row['to_domain']}"
+                        f"  attempts {held_row['attempts']}  on release: {held_row['on_release']}"
+                    )
+                print("Then: --release or --suppress, with --kind or --job to choose, and --apply to do it.")
+                return 0
+            if action == "release":
+                chosen = release_held(session, kind=kind, job_ids=job_ids, apply=apply)
+            else:
+                chosen = suppress_held(session, kind=kind, job_ids=job_ids, apply=apply)
+        verbs = {"release": ("Released", "Would release"), "suppress": ("Suppressed", "Would suppress")}[
+            action
+        ]
+        print(
+            f"{verbs[0] if apply else verbs[1]} {len(chosen)} held email(s){'' if apply else '. Dry run: pass --apply.'}"
+        )
+        for job_id in chosen:
+            print(f"  {job_id}")
+        if apply and action == "release" and chosen:
+            print(
+                "They go out on the next outbox pass. A verification or reset email gets a fresh code or link then."
+            )
         return 0
     if command == "housekeeping":
         from app.jobs import housekeeping

@@ -320,6 +320,7 @@ class Restored:
     rows: int
     schema: str  # current | behind (migrate next) | ...
     notes: list[str]
+    held_emails: int = 0  # unsent at backup time, held on the copy (email-quarantine)
 
 
 def _check_target(target_url: str, live_url: str | None) -> Engine:
@@ -484,20 +485,30 @@ def restore(
     try:
         with Session(bind=check) as db:
             schema = schema_state(db)
+            # Before anything can start on the copy: emails that were unsent at backup time are
+            # held, not sent by the first worker that starts (email-quarantine decides).
+            from app.services.email_ops import hold_unsent
+
+            held = hold_unsent(db)
     finally:
         check.dispose()
+    if held:
+        notes.append(
+            f"{held} email(s) unsent at backup time are held, not sent: review them with "
+            "`python -m app.cli email-quarantine`, then release or suppress them (docs/BACKUP.md)"
+        )
     if schema == "behind":
         notes.append(
             "the backup's schema is older than this code: run `alembic upgrade head` on the restored copy"
         )
     timings["total"] = time.monotonic() - t0
     rows = sum(after["tables"].values())
-    if not _record_restore(dump_file, len(after["tables"]), rows, schema):
+    if not _record_restore(dump_file, len(after["tables"]), rows, schema, held):
         notes.append(f"couldn't record this rehearsal in {RESTORE_LOG} (the backup folder is read-only?)")
-    return Restored(timings, len(after["tables"]), rows, schema, notes)
+    return Restored(timings, len(after["tables"]), rows, schema, notes, held)
 
 
-def _record_restore(dump_file: Path, tables: int, rows: int, schema: str) -> bool:
+def _record_restore(dump_file: Path, tables: int, rows: int, schema: str, held: int = 0) -> bool:
     """Append this restore to the backup folder's log (no user data: names and counts)."""
     log = dump_file.parent / RESTORE_LOG
     try:
@@ -511,6 +522,7 @@ def _record_restore(dump_file: Path, tables: int, rows: int, schema: str) -> boo
                 "tables": tables,
                 "rows": rows,
                 "schema": schema,
+                "held_emails": held,
             }
         )
         partial = log.with_name("." + log.name + ".partial")

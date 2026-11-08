@@ -184,6 +184,17 @@ python -m app.cli email-retry --failed       # verification emails from the last
   reset again, and "Send a new code" works for verification.
 - `rejected` emails are never retried. The address should be corrected (Settings → Email).
 
+### After a restore: held emails
+
+A restored database brings back the outbox as it was at backup time. So `restore-database`
+**holds** every email that wasn't finished then (status `held`). No worker sends a held email,
+however many start or restart, and `preflight` blocks until each one is decided.
+`python -m app.cli email-quarantine` lists them by domain and says what releasing each would do.
+`--release` or `--suppress`, with `--kind` or `--job` and `--apply`, decides. A released
+verification or reset email gets a fresh code or link when it's sent; one too old for its kind is
+dropped instead. The procedure is in [BACKUP.md](BACKUP.md), "Restoring", and the tests are in
+`tests/test_restore_quarantine.py`.
+
 ### Sender domain: SPF, DKIM, DMARC
 
 Before launch, mail must come from your own domain, authenticated:

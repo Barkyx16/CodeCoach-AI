@@ -225,10 +225,18 @@ ok: after docker compose down and up (the volume is kept)
 database stopped: /health/ready=503 /health=200
 database back: /health/ready=200
 == 5. the scheduled backup, then a restore into a separate database
+versions: server 16.15 · pg_dump (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) pg_restore (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) age 1.1.1 
+ok: a backup job that can't encrypt exits non-zero (the scheduler's alert fires)
 ok: two runs of the backup job: each backed up as the owner, pruned (kept 2) and checked
 ok: the API container has no backups volume
 ok: the newest backup restored into a separate database; row counts and policies match
+ok: the emails unsent at backup time are held on the copy, not queued: held=2 (attempts 4)
 ok: the saved note is in the restored copy
+ok: check-backups now reports when recovery was last rehearsed
+ok: the app runs on the restored copy as its app role: check-rls --strict, sign-in, own notes only, B's note 404
+ok: after the restored API ran its email loop, the held emails are untouched (no attempt made)
+ok: email-quarantine lists them by domain only, a dry run changes nothing, suppress finishes them: dropped=2 (attempts 4)
+ok: a damaged backup is refused, and its target stays empty
 ok: no password in the backup or restore output
 ```
 

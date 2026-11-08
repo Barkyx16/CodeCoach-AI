@@ -97,3 +97,104 @@ def requeue_failed(db: Session, *, within: timedelta, now: datetime | None = Non
     left = db.scalar(select(func.count()).select_from(EmailJob).where(*window))
     db.commit()
     return {"requeued": int(getattr(result, "rowcount", 0) or 0), "not_resendable": int(left or 0)}
+
+
+# --- After a restore: held emails ------------------------------------------------------------
+# A restored database brings back the outbox as it was at backup time. Its pending jobs may have
+# been sent since by the old server, or may no longer be wanted, and the restored app would send
+# them as soon as it started. So restore-database holds every unsent job (`held`): no worker
+# claims one (they claim `pending` and `sending` only), however many workers start or restart,
+# until an operator releases or suppresses it. A job never holds a usable code or link: one is
+# made when the email is actually sent, so releasing a verification email sends a fresh code. An
+# expired one is never revived. Restarts outside a restore don't hold anything.
+
+HELD = "held"
+
+
+def hold_unsent(db: Session) -> int:
+    """Hold every job that hasn't finished (pending, retrying, or leased mid-send). Commits."""
+    result = db.execute(
+        update(EmailJob)
+        .where(EmailJob.status.in_(("pending", "sending")))
+        .values(status=HELD, last_error="held after a restore")
+        .execution_options(synchronize_session=False)
+    )
+    db.commit()
+    return int(getattr(result, "rowcount", 0) or 0)
+
+
+def held_inventory(db: Session, settings: Any, now: datetime | None = None) -> list[dict[str, Any]]:
+    """Every held job, redacted like email-status, with what releasing it would do."""
+    from app.services import outbox
+
+    now = now or datetime.now(UTC)
+    rows = db.execute(
+        select(EmailJob, User)
+        .outerjoin(User, User.id == EmailJob.user_id)
+        .where(EmailJob.status == HELD)
+        .order_by(EmailJob.created_at)
+    ).all()
+    out = []
+    for job, user in rows:
+        created = job.created_at if job.created_at.tzinfo else job.created_at.replace(tzinfo=UTC)
+        age = now - created
+        too_old = age > outbox._max_age(job.kind, settings)
+        row = _row(job, user)
+        row["age_hours"] = round(age.total_seconds() / 3600, 1)
+        row["on_release"] = (
+            "dropped: too old to send (its kind's limit), nothing goes out"
+            if too_old
+            else "sent, with a fresh code or link made at send time"
+            if job.kind in ("verify_email", "password_reset")
+            else "sent as it was queued"
+        )
+        out.append(row)
+    return out
+
+
+def _held(kind: str | None, job_ids: list[str] | None) -> list[Any]:
+    clauses = [EmailJob.status == HELD]
+    if kind:
+        clauses.append(EmailJob.kind == kind)
+    if job_ids:
+        clauses.append(EmailJob.id.in_(job_ids))
+    return clauses
+
+
+def release_held(
+    db: Session, *, kind: str | None = None, job_ids: list[str] | None = None, apply: bool = False
+) -> list[str]:
+    """Let the chosen held jobs go out (they become due now). A dry run unless `apply`. Touches
+    only held jobs, so running it twice is harmless. Commits when applying."""
+    chosen = list(db.scalars(select(EmailJob.id).where(*_held(kind, job_ids))))
+    if apply and chosen:
+        db.execute(
+            update(EmailJob)
+            .where(*_held(kind, job_ids), EmailJob.id.in_(chosen))
+            .values(status="pending", next_attempt_at=datetime.now(UTC), last_error=None)
+            .execution_options(synchronize_session=False)
+        )
+        db.commit()
+    return chosen
+
+
+def suppress_held(
+    db: Session, *, kind: str | None = None, job_ids: list[str] | None = None, apply: bool = False
+) -> list[str]:
+    """Never send the chosen held jobs: they're finished as `dropped`, their addresses cleared.
+    A dry run unless `apply`. Running it twice is harmless. Commits when applying."""
+    chosen = list(db.scalars(select(EmailJob.id).where(*_held(kind, job_ids))))
+    if apply and chosen:
+        db.execute(
+            update(EmailJob)
+            .where(*_held(kind, job_ids), EmailJob.id.in_(chosen))
+            .values(
+                status="dropped",
+                finished_at=datetime.now(UTC),
+                payload=None,
+                last_error="suppressed after a restore",
+            )
+            .execution_options(synchronize_session=False)
+        )
+        db.commit()
+    return chosen

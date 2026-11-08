@@ -213,6 +213,14 @@ RESTORED=$(bk -e RESTORE_DATABASE_URL -v "$WORK/identity.txt:/run/identity.txt:r
   python -m app.cli restore-database "$NEWEST" --identity /run/identity.txt 2>&1) || { echo "FAIL: restore"; tail -5 <<<"$RESTORED"; exit 1; }
 must "counts and row-level security policies match" "$RESTORED"
 echo "ok: the newest backup restored into a separate database; row counts and policies match"
+# The signup emails couldn't go out here (the SMTP host never resolves), so the backup holds them
+# unsent. On the copy they must be held, not queued: the restored API would send them at once.
+outbox_of() { dc exec -T db psql -U postgres -d "$1" -tAc "SELECT coalesce(string_agg(status || '=' || n || ' (attempts ' || tries || ')', ', '), 'empty') FROM (SELECT status, count(*) n, sum(attempts) tries FROM email_jobs GROUP BY status ORDER BY status) s" | tr -d '\r'; }
+must "unsent at backup time are held" "$RESTORED"
+HELD_AT_RESTORE=$(outbox_of codecoach_restored)
+grep -q 'held=' <<<"$HELD_AT_RESTORE" && ! grep -qE '(pending|sending)=' <<<"$HELD_AT_RESTORE" \
+  || { echo "FAIL: the unsent emails on the restored copy aren't held: $HELD_AT_RESTORE"; exit 1; }
+echo "ok: the emails unsent at backup time are held on the copy, not queued: $HELD_AT_RESTORE"
 [ "$(dc exec -T db psql -U postgres -d codecoach_restored -tAc "SELECT count(*) FROM notes WHERE id = '$NOTE'")" = 1 ] \
   || { echo "FAIL: the saved note isn't in the restored copy"; exit 1; }
 echo "ok: the saved note is in the restored copy"
@@ -235,7 +243,22 @@ grep -q "$NOTE" <<<"$LIST_A" && ! grep -q "$NOTE_B" <<<"$LIST_A" || { echo "FAIL
 [ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$RPORT/api/v1/me/notes/$NOTE_B" -H "Authorization: Bearer $T_A")" = 404 ] \
   || { echo "FAIL: account A can reach B's note on the restored copy"; exit 1; }
 echo "ok: the app runs on the restored copy as its app role: check-rls --strict, sign-in, own notes only, B's note 404"
-echo "outbox on the restored copy: $(dc exec -T db psql -U postgres -d codecoach_restored -tAc "SELECT coalesce(string_agg(status || '=' || n, ' '), 'empty') FROM (SELECT status, count(*) n FROM email_jobs GROUP BY status ORDER BY status) s" | tr -d '\r')"
+# Its email loop runs every 5 s: give it more than one pass, then nothing held may have moved.
+sleep 7
+[ "$(outbox_of codecoach_restored)" = "$HELD_AT_RESTORE" ] \
+  || { echo "FAIL: the restored API touched held emails: $(outbox_of codecoach_restored), was $HELD_AT_RESTORE"; exit 1; }
+echo "ok: after the restored API ran its email loop, the held emails are untouched (no attempt made)"
+# The operator's view and decision, inside the API image as the app role: the domain, never the address.
+q() { docker exec codecoach_rehearsal_restored_api python -m app.cli email-quarantine "$@" 2>&1; }
+LISTING=$(q) || { echo "FAIL: email-quarantine"; echo "$LISTING"; exit 1; }
+must "email(s) held" "$LISTING"; must "@example.com" "$LISTING"
+if grep -q "rehearsal@\|rehearsal-b@" <<<"$LISTING"; then echo "FAIL: email-quarantine shows a full address"; exit 1; fi
+must "Would suppress" "$(q --suppress --kind verify_email)"
+[ "$(outbox_of codecoach_restored)" = "$HELD_AT_RESTORE" ] || { echo "FAIL: a dry run changed the outbox"; exit 1; }
+must "Suppressed" "$(q --suppress --kind verify_email --apply)"
+AFTER=$(outbox_of codecoach_restored)
+grep -q 'dropped=' <<<"$AFTER" && ! grep -q 'held=' <<<"$AFTER" || { echo "FAIL: suppressing left: $AFTER"; exit 1; }
+echo "ok: email-quarantine lists them by domain only, a dry run changes nothing, suppress finishes them: $AFTER"
 docker stop codecoach_rehearsal_restored_api >/dev/null 2>&1 || true
 
 # A damaged backup is refused before anything is written.

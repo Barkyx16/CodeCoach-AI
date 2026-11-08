@@ -21,6 +21,8 @@ from sqlalchemy import create_engine, text
 
 from app.db.backup import BackupError, backup, restore
 from app.main import create_app
+from app.models import EmailJob
+from app.services import outbox
 from tests.conftest import auth_headers, register
 from tests.test_storage import ADMIN_URL, needs_admin, rehearsal, run  # noqa: F401  (rehearsal: a fixture)
 
@@ -93,6 +95,13 @@ def test_a_backup_restores_into_a_separate_database_and_the_app_runs_on_it(
     source, empty_target, keys, tmp_path, make_settings, capsys
 ):
     recipients, identity = keys
+    # One signup email was still unsent when the backup ran (the other one went out).
+    owner = create_engine(source.owner_url)
+    with owner.begin() as conn:
+        unsent = conn.scalar(text("SELECT id FROM email_jobs ORDER BY created_at LIMIT 1"))
+        conn.execute(text("UPDATE email_jobs SET status = 'pending' WHERE id = :i"), {"i": unsent})
+        sent = conn.scalar(text("SELECT id FROM email_jobs WHERE id <> :i"), {"i": unsent})
+    owner.dispose()
     made = backup(source.owner_url, tmp_path / "backups", recipients)
     manifest = made.manifest_data
     assert manifest["tables"]["users"] == 2 and manifest["tables"]["notes"] == 4
@@ -111,6 +120,14 @@ def test_a_backup_restores_into_a_separate_database_and_the_app_runs_on_it(
     assert record["backup"] == made.dump.name.removesuffix(".dump.age") and record["rows"] == done.rows
     assert "ada@example.com" not in (made.dump.parent / RESTORE_LOG).read_text()
     assert done.schema == "current" and done.rows == sum(manifest["tables"].values())
+    # The unsent email is held on the copy, not sent by the first worker to start there.
+    assert done.held_emails == 1 and record["held_emails"] == 1
+    assert any("1 email(s) unsent at backup time are held" in n for n in done.notes)
+    copy = create_engine(empty_target)
+    with copy.connect() as conn:
+        statuses = dict(conn.execute(text("SELECT id, status FROM email_jobs")).all())
+    copy.dispose()
+    assert statuses == {unsent: "held", sent: "accepted"}
     with capsys.disabled():
         print(
             f"\n[backup] {made.seconds:.2f} s; [restore] "
@@ -138,6 +155,10 @@ def test_a_backup_restores_into_a_separate_database_and_the_app_runs_on_it(
         assert c.patch(f"/api/v1/me/notes/{bea_note}", headers=ada_h, json={"title": "x"}).status_code == 404
         # New work on the copy gets fresh ids (sequences came back too).
         assert c.post("/api/v1/me/notes", headers=ada_h, json={"title": "after restore"}).status_code == 201
+        # The app's own outbox pass, as the app role on the copy, sends nothing that was held.
+        assert outbox.drain(c.app.state.session_factory, c.app.state.settings, c.app.state.email_sender) == {}
+        with c.app.state.session_factory() as db:
+            assert db.get(EmailJob, unsent).status == "held"
 
 
 def test_the_restore_refuses_before_writing_anything(source, empty_target, keys, tmp_path):

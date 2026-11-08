@@ -193,13 +193,43 @@ The restore records itself in the backup folder (`codecoach-restores.json`: the 
 backup's name, table and row counts; no user data). So `check-backups` can say when recovery was
 last rehearsed.
 
-**The restored copy's outbox.** Emails that were still pending when the backup was taken are in
-the copy, and the app will try them when it starts. In the rehearsal: two verification emails.
-Before switching, run `python -m app.cli email-status` against the copy and decide whether
-those are still wanted.
+**The restored copy's outbox: held, never replayed.** The backup holds the outbox as it was:
+emails not yet sent then (waiting, retrying, or mid-send) come back with it. The old server may
+have sent them since, or they may no longer be wanted. So the restore **holds** every unfinished
+email on the copy before anything can start there. No worker claims a held email, however many
+start or restart. Each stays held until you decide. The restore says how many it held, and
+records the number in `codecoach-restores.json`. In the compose rehearsal: two verification
+emails.
+
+While any email is held, `preflight` reports **blocked** (outbox: "N emails held after a restore").
+To decide, as the app role against the copy (inside the API container, for example):
+
+```bash
+python -m app.cli email-quarantine                      # what's held: job, kind, age, *@domain, what release would do
+python -m app.cli email-quarantine --release --kind verify_email          # dry run: which would go
+python -m app.cli email-quarantine --release --job <id> --job <id> --apply # send these
+python -m app.cli email-quarantine --suppress --kind email_changed --apply # never send these
+```
+
+- **The listing shows the domain, never the address.** It shows the job id, kind, age and
+  attempts, and what releasing would do.
+- **Nothing changes without `--apply`.** `--kind` or `--job` (repeatable) narrows the choice.
+  Running a command twice is harmless: it acts only on emails that are still held.
+- **Release** makes the email due now, and the next outbox pass sends it. A verification or reset
+  email gets a fresh code or link at send time: the outbox never stores a usable one. An email
+  older than its kind's limit is dropped instead: nothing goes out, the listing says so first.
+  A released email that fails is retried as normal; it isn't held again.
+- **Suppress** finishes the email as `dropped` and clears its stored addresses. It's never sent.
+
+Rule of thumb: release verification emails for accounts that still need one (the code is new
+anyway). Suppress change-of-address notices and anything the old server most likely sent
+already. A user can always ask for a new verification or reset email from the app.
+
+Only a restore holds emails. Ordinary restarts, deploys and new workers send queued mail as usual.
 
 **4. Before switching anyone to it:**
 - start the app against the copy, as the app role: `check-rls --strict` and `/health/ready`;
+- decide on the held emails (`email-quarantine`, above) until `preflight` no longer blocks on them;
 - sign in with a test account;
 - spot-check another account's data stays out of reach.
 
@@ -246,6 +276,20 @@ again at real size before relying on the 2-hour target.
 | The CLI prints neither password | pass |
 | A `pg_dump` whose major version isn't the server's | refused; nothing written |
 | A `pg_restore` older than the backup's `pg_dump`, or newer than the target server | refused; target untouched |
+| An email unsent at backup time | held on the copy (an email already sent is untouched); the restored app's own outbox pass, as the app role, sends nothing | pass |
+
+And the held emails (`tests/test_restore_quarantine.py`, against a real SMTP conversation; SQLite and PostgreSQL as the app role):
+
+| Case | Result |
+|---|---|
+| Held emails of every unsent kind (never tried, retrying, leased mid-send, too old): two workers, then a restarted one | no message sent; all still held |
+| The listing | says what release would do (sent with a fresh code, or dropped as too old); domain only, never an address |
+| Release: a dry run, then two of four with `--apply`, then the same again | the dry run changes nothing; one is sent with a new code, the too-old one is dropped, nothing goes out for it; the repeat is a no-op; the other two stay held |
+| A released email whose send fails | retried as normal (pending), not held again |
+| Suppress | never sent; addresses cleared; a repeat is a no-op; a sent email isn't touched |
+| No restore | nothing held; queued mail goes out |
+| `preflight` while emails are held | blocked, naming the held emails |
+| The CLI | a dry run by default; domain only; `--release --suppress` together refused |
 
 And the backup folder (`tests/test_backup_store.py`, plain files, runs everywhere):
 
@@ -270,8 +314,14 @@ The whole scheduled path runs in the production compose rehearsal
 5. `check-backups` then reports the rehearsal;
 6. the **app itself starts on the restored copy as its app role**: `check-rls --strict` passes,
    account A signs in and sees its own note, and account B's note is a 404;
-7. a damaged copy of the backup is refused, and its target database stays empty;
-8. no password and no private key appears in any output.
+7. the signup emails that were unsent at backup time are **held** on the copy (none pending).
+   After the restored API has run its 5-second email loop more than once, they are exactly as
+   they were, with no attempt made. Then `email-quarantine`, in the API image as the app role:
+   - it lists them by domain only;
+   - a dry run changes nothing;
+   - `--suppress --apply` finishes them;
+8. a damaged copy of the backup is refused, and its target database stays empty;
+9. no password and no private key appears in any output.
 
 Compatibility matrix (each line is from the tools' own output):
 

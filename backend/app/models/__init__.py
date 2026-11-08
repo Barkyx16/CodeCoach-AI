@@ -220,7 +220,9 @@ class EmailJob(Base):
     payload: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
     # pending → sending → accepted (the mail server took it: not proof of delivery) | rejected (the
     # mail server refused it for good) | skipped (nothing to send) | dropped (too old to be useful) |
-    # failed (gave up after every retry).
+    # failed (gave up after every retry). After a restore, every unfinished job is held (no worker
+    # claims it) until an operator releases it (back to pending) or suppresses it (dropped):
+    # services/email_ops.py, docs/BACKUP.md.
     status: Mapped[str] = mapped_column(String(12), default="pending")
     # The Message-ID the email went out with: matches a provider's logs and events to this job.
     message_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
