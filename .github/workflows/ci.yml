@@ -227,7 +227,8 @@ jobs:
           CI: "true"
           PYTHON: python
           E2E_JUDGE: "1"
-        run: npx playwright test e2e/judge.spec.ts
+        # Through the launcher, like every other e2e run: it owns and stops what the run starts.
+        run: npm run e2e -- e2e/judge.spec.ts
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
