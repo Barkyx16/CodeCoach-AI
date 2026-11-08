@@ -106,6 +106,86 @@ Each email carries a `Message-ID` (`<codecoach.JOB_ID@your-domain>`), stored on 
 provider's logs can be matched to the job. Logs name the job, its kind and an SMTP code or error
 class. They never contain an address, subject, code or link (`tests/test_email_transport.py`).
 
+## When emails don't arrive
+
+### What the app knows, and what it can't
+
+| Problem | Seen by the app? | Where it shows |
+|---|---|---|
+| Mail server down, timing out, deferring (4xx), or a bad SMTP password | yes | job `pending` with `last_error`, then `failed` after 5 attempts |
+| Mail server refused the recipient for good (5xx at send time) | yes | job `rejected`, never retried |
+| Accepted, then bounced later by the receiving server | **no** | the provider's dashboard, or a bounce email to the sender address |
+| Delivered to the inbox, or to spam | **no** | the provider's dashboard |
+| The person marked it as spam (complaint) | **no** | the provider's dashboard |
+
+The "no" rows need the provider's delivery events (webhooks). They aren't connected, because
+no provider has been chosen yet. Until then those states stay unknown, and nothing in the app
+calls an email "delivered".
+
+### Diagnosing (on the server)
+
+```bash
+python -m app.cli email-status                         # counts by status + the 20 newest jobs
+python -m app.cli email-status --account ada@example.com
+python -m app.cli email-status --message-id '<codecoach.JOB_ID@your-domain>'
+```
+
+Each line shows:
+- the job and its kind;
+- status, attempts and the error class or SMTP code;
+- the account id;
+- the recipient's domain only (`to=*@gmail.com`);
+- the Message-ID, which is how the email appears in a provider's logs.
+
+It never shows an address's local part, a subject, a code or a link. There's no web page for
+this: it needs shell access to the server.
+
+### Recovering after an outage
+
+An outage ends with each email in `failed` after 5 attempts (30 s, 2, 10, 30 min apart). It
+never resends endlessly (`tests/test_email_delivery_problems.py`). Once the mail server works
+again:
+
+```bash
+python -m app.cli check-email --connect      # it really works now
+python -m app.cli email-retry --failed       # verification emails from the last 24 h (--hours N)
+```
+
+- Each retried email is sent once.
+- A code that outlived its 48 hours is dropped rather than sent, and an address verified
+  meanwhile is skipped.
+- Reset links and change notices aren't retried: their addresses were cleared when the job
+  finished, and a reset link would usually be past its 30 minutes anyway. People can request a
+  reset again, and "Send a new code" works for verification.
+- `rejected` emails are never retried. The address should be corrected (Settings → Email).
+
+### Sender domain: SPF, DKIM, DMARC
+
+Before launch, mail must come from your own domain, authenticated:
+- **SPF**: a TXT record that lists the servers allowed to send for the domain.
+- **DKIM**: a public key in DNS; the provider signs each message with the private half.
+- **DMARC**: a TXT record at `_dmarc.<domain>` saying what receivers do when SPF/DKIM fail, and
+  where to send reports. Start with `p=none` and tighten after a few weeks of clean reports.
+
+Every transactional provider (Amazon SES, Postmark, Resend, SendGrid, …) shows the exact records
+to add once you register your domain with it. No records are listed here, because none come from
+a real provider configuration. Nothing in DNS has been changed.
+
+### When a provider is chosen (blocked until then)
+
+These steps need the provider's account and documentation:
+1. Its SMTP settings go in `deploy/.env.app` (above).
+2. Its delivery webhooks: verify each request with **that provider's documented signature
+   scheme** over the raw request bytes, and reject replays (event ids, timestamps). Match
+   events to jobs by Message-ID, and keep the most severe or latest state when events arrive out
+   of order.
+3. A hard bounce or complaint should stop further mail to that address. It must never change
+   the account's email or its security settings. Only signed events count, and no response
+   reveals whether an address has an account.
+4. Tests with the provider's signed sample events or its sandbox.
+
+Until then, the outbox's own statuses are the whole truth the app has.
+
 ## Verification: the states
 
 | State | What's true | What the person sees |

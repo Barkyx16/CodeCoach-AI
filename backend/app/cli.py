@@ -9,6 +9,10 @@ python -m app.cli housekeeping  # retry due emails and run every housekeeping st
 python -m app.cli check-email [--connect] [--send-test ADDRESS]
                               # email settings (names and presence only); --connect signs in to the
                               # mail server without sending; --send-test sends ONE test email
+python -m app.cli email-status [--recent N] [--job ID] [--message-id ID] [--account EMAIL]
+                              # the outbox, redacted: statuses, attempts, error classes, Message-IDs
+python -m app.cli email-retry --failed [--hours N]
+                              # after an outage: retry failed verification emails (default 24 h)
 python -m app.cli check-export FILE.json  # read-only check of a version 2 export's ids and links
 python -m app.cli check-rls [--strict]
                               # is PostgreSQL row-level security in force for this connection?
@@ -84,6 +88,56 @@ def main(argv: list[str]) -> int:
 
         send_to = argv[argv.index("--send-test") + 1] if "--send-test" in argv else None
         return check_email(get_settings(), connect="--connect" in argv, send_to=send_to)
+    if command == "email-status":
+        from app.services.email_ops import status_report
+
+        def opt(name: str) -> str | None:
+            return argv[argv.index(name) + 1] if name in argv else None
+
+        engine = make_engine(get_settings().database_url)
+        with make_session_factory(engine)() as session:
+            outbox_report = status_report(
+                session,
+                job_id=opt("--job"),
+                message_id=opt("--message-id"),
+                account_email=opt("--account"),
+                limit=int(opt("--recent") or 20),
+            )
+        print(
+            "counts: "
+            + (", ".join(f"{k} {v}" for k, v in sorted(outbox_report["counts"].items())) or "no jobs")
+        )
+        for job in outbox_report["jobs"]:
+            print(
+                f"{job['created_at'][:19]}  {job['kind']:<22} {job['status']:<9} attempts={job['attempts']} "
+                f"to=*@{job['to_domain']} account={job['account']} job={job['job']}"
+                + (f" error={job['last_error']}" if job["last_error"] else "")
+                + (f" message_id={job['message_id']}" if job["message_id"] else "")
+                + (f" next={job['next_attempt_at'][:19]}" if job["next_attempt_at"] else "")
+            )
+        print("accepted = the mail server took it; delivery to the inbox isn't known (docs/EMAIL.md).")
+        return 0
+    if command == "email-retry":
+        from datetime import timedelta
+
+        from app.services.email_ops import requeue_failed
+
+        if "--failed" not in argv:
+            print("usage: python -m app.cli email-retry --failed [--hours N]")
+            return 2
+        hours = float(argv[argv.index("--hours") + 1]) if "--hours" in argv else 24.0
+        engine = make_engine(get_settings().database_url)
+        with make_session_factory(engine)() as session:
+            done = requeue_failed(session, within=timedelta(hours=hours))
+        print(f"Requeued {done['requeued']} failed verification emails from the last {hours:g} h.")
+        if done["not_resendable"]:
+            print(
+                f"{done['not_resendable']} failed change notices can't be resent (their addresses were cleared)."
+            )
+        print(
+            "They're sent by the next outbox pass (the API's jobs thread, or `python -m app.cli housekeeping`)."
+        )
+        return 0
     if command == "housekeeping":
         from app.jobs import housekeeping
         from app.services import outbox
