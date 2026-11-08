@@ -50,3 +50,4 @@ backend/evals/reviews/out/
 # backend/evals/results keep aggregates only). Regenerate from the frozen commit if needed;
 # opening them consumes the sealed sets (backend/evals/sealed/ACCESS.md).
 backend/evals/sealed/results/
+deploy/.rehearsal.override.yml

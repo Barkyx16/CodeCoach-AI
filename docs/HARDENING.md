@@ -241,7 +241,8 @@ enforced.
 
 - Row-level security is PostgreSQL-only, and fail-open for work done for nobody. It doesn't cover
   submissions, shares, sign-in tokens or triage (reasons in `db/rls.py`). It needs an ordinary
-  database role, and the compose file's default user is a superuser.
+  database role. The production layout uses one that owns nothing
+  ([STORAGE.md](STORAGE.md)); the development compose file's default user is a superuser.
 - The in-process cache is per process. A CDN in front would multiply the gain; none is
   configured.
 - Rate limits run in the API, so a flood still costs CPU. An edge limit is the next layer.

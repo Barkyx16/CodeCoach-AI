@@ -8,3 +8,5 @@ __pycache__
 *.db
 .env
 tests
+.env.*
+e2e-outbox

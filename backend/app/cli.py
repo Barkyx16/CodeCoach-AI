@@ -10,7 +10,14 @@ python -m app.cli check-email [--connect] [--send-test ADDRESS]
                               # email settings (names and presence only); --connect signs in to the
                               # mail server without sending; --send-test sends ONE test email
 python -m app.cli check-export FILE.json  # read-only check of a version 2 export's ids and links
-python -m app.cli check-rls   # is PostgreSQL row-level security in force for this connection?
+python -m app.cli check-rls [--strict]
+                              # is PostgreSQL row-level security in force for this connection?
+                              # --strict also fails if this role owns tables or can create them
+python -m app.cli grant-app-role ROLE  # as the table owner, after migrating: let the ordinary app
+                                       # role read and write rows (and nothing more)
+python -m app.cli copy-database --from SQLITE_URL [--apply]
+                              # optional: copy a development database into the freshly migrated
+                              # DATABASE_URL; a dry run unless --apply (docs/STORAGE.md)
 python -m app.cli grant-admin EMAIL    # let a registered account triage content reports
 python -m app.cli revoke-admin EMAIL
 python -m app.cli check-answers [--limit-ids N]
@@ -88,15 +95,82 @@ def main(argv: list[str]) -> int:
         return 0
     if command == "check-rls":
         from app.db.rls import rls_status
+        from app.db.roles import engine_role_report, least_privilege_problems
 
-        status = rls_status(make_engine(get_settings().database_url))
-        print(json.dumps(status, indent=2))
+        engine = make_engine(get_settings().database_url)
+        status = rls_status(engine)
         if not status.get("supported"):
+            print(json.dumps(status, indent=2))
             print("SQLite: no row-level security (the application's owner checks still apply).")
             return 0
+        role_attrs = engine_role_report(engine) or {}
+        print(json.dumps({**status, "role_attributes": role_attrs}, indent=2))
         enforced = not status["role_bypasses_rls"] and not status["missing"]
         print("Row-level security is enforced." if enforced else "Row-level security is NOT enforced.")
-        return 0 if enforced else 1
+        problems = least_privilege_problems(role_attrs)
+        for problem in problems:
+            print(f"{'FAIL' if '--strict' in argv else 'note'}: role {role_attrs['role']} {problem}")
+        if not problems:
+            print(
+                f"Role {role_attrs['role']} owns nothing and can't create objects: a least-privilege app role."
+            )
+        return 0 if enforced and not (problems and "--strict" in argv) else 1
+    if command == "grant-app-role":
+        from app.db.roles import apply_grants
+
+        if len(argv) < 3:
+            print("usage: python -m app.cli grant-app-role ROLE   (connected as the table owner)")
+            return 2
+        engine = make_engine(get_settings().database_url)
+        if engine.dialect.name != "postgresql":
+            print("SQLite has no roles: nothing to grant.")
+            return 0
+        try:
+            with engine.begin() as conn:
+                apply_grants(conn, argv[2])
+        except ValueError as exc:
+            print(f"Not granted: {exc}")
+            return 1
+        print(f"Granted row access (no ownership, no DDL, read-only migration ledger) to {argv[2]}.")
+        return 0
+    if command == "copy-database":
+        import os
+
+        from sqlalchemy import create_engine
+
+        from app.db.copy import SKIPPED, copy, plan
+
+        source_url = (
+            argv[argv.index("--from") + 1] if "--from" in argv else os.environ.get("SOURCE_DATABASE_URL")
+        )
+        if not source_url:
+            print("usage: python -m app.cli copy-database --from sqlite:///path/to/codecoach.db [--apply]")
+            print("(the target is DATABASE_URL; for a PostgreSQL source, set SOURCE_DATABASE_URL instead)")
+            return 2
+        source, target = create_engine(source_url), make_engine(get_settings().database_url)
+        copy_plan = plan(source, target)
+        print(
+            f"From {source.dialect.name} ({source.url.database}) to {target.dialect.name} ({target.url.database})."
+        )
+        for problem in copy_plan.problems:
+            print(f"refused: {problem}")
+        if not copy_plan.ok:
+            return 1
+        for name, rows in copy_plan.counts.items():
+            if rows:
+                print(f"  copy {rows:>7}  {name}")
+        for name, rows in copy_plan.skipped.items():
+            if rows:
+                print(f"  skip {rows:>7}  {name} ({SKIPPED[name]})")
+        if "--apply" not in argv:
+            print("Dry run: nothing was written. Re-run with --apply to copy (the source is never changed).")
+            return 0
+        copied = copy(source, target)
+        print(f"Copied {sum(copied.values())} rows in one transaction; every table's count matched.")
+        print(
+            "Next: python -m app.cli seed  (refreshes the problem library), then grant-app-role if you use one."
+        )
+        return 0
     if command == "judge-check":
         from app.services.judge.check import judge_check
 

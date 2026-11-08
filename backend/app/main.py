@@ -175,7 +175,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 rls.apply(conn)  # PostgreSQL row-level security, as the migration sets it up
             with session_factory() as session:
                 seed_problems(session)
-        rls.warn_if_not_enforced(engine)
+        rls.warn_if_not_enforced(engine, production=settings.environment == "production")
         if settings.email_backend != "smtp":
             logger.warning(
                 "email is NOT sent: EMAIL_BACKEND=%s %s messages instead (docs/EMAIL.md)",

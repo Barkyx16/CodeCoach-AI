@@ -348,8 +348,15 @@ Please report vulnerabilities privately to the repository owner rather than open
   (`.secrets.baseline`: synthetic test values and documented local defaults). A new finding fails
   CI; if it's a real secret, rotate it (a pushed secret is compromised); if it's a test value,
   review it and run `python scripts/check_secrets.py --update`.
-- **Database role and RLS:** row-level security never applies to superusers or roles with
-  BYPASSRLS. Connect the API as an ordinary role that owns the tables (the policies are FORCEd,
-  so the owner is subject to them). `python -m app.cli check-rls` says whether it's enforced;
-  startup logs a warning when it isn't. The Docker image's `POSTGRES_USER` is a superuser, so a
-  compose deployment should add an app role for this to take effect.
+- **Database roles and RLS:** row-level security never applies to superusers or roles with
+  BYPASSRLS. Production runs migrations as an owner role and the API as an app role that owns
+  nothing. The app role can read and write rows but can't alter tables or turn RLS off
+  (`deploy/docker-compose.production.yml`, `deploy/postgres-init`, `python -m app.cli
+  grant-app-role`; [STORAGE.md](STORAGE.md)). The owner's password never reaches the API
+  container. Development connects as the owner: the policies are FORCEd, so it's subject to them
+  too, but an owner could switch them off.
+  - `python -m app.cli check-rls` says whether RLS is enforced; `--strict` also fails for an
+    owner.
+  - Start-up warns when RLS isn't enforced, and in production also when the role owns tables.
+  - The development `docker-compose.yml` still connects as the image's superuser, so RLS doesn't
+    apply there.

@@ -283,6 +283,11 @@ class Settings(BaseSettings):
                         f"{name} {reason}; generate one with: "
                         'python -c "import secrets; print(secrets.token_urlsafe(48))"'
                     )
+            if self.database_url.startswith("sqlite"):
+                raise ValueError(
+                    "DATABASE_URL is SQLite: in production use PostgreSQL. A SQLite file lives on the "
+                    "server's own disk, which many hosts wipe on every restart or deploy (docs/STORAGE.md)"
+                )
             if default_db_password(self.database_url):
                 raise ValueError(
                     "DATABASE_URL uses an example password from this repository; set a unique one in production"

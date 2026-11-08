@@ -12,13 +12,19 @@ from collections.abc import Callable, Iterator
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, make_url
 
 from app.config import Settings
 from app.db.session import Base
 from app.main import create_app
 
 TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
+# The suite drops every table in that database before each test. Refuse one that isn't plainly a
+# test database, so a development, staging or production URL pasted here by mistake stays intact.
+if TEST_DATABASE_URL and "test" not in (make_url(TEST_DATABASE_URL).database or ""):
+    raise pytest.UsageError(
+        "TEST_DATABASE_URL must name a database with 'test' in its name: the suite empties it"
+    )
 
 
 @pytest.fixture(autouse=True)

@@ -11,8 +11,9 @@ Fail-open by design, for work done for nobody in particular: a transaction that 
 known) sees every row, as before. Only authenticated requests are narrowed.
 
 Not effective for a role that bypasses RLS (a superuser, or BYPASSRLS): `rls_status` reports
-that, and startup logs a warning. FORCE is set so the table owner (what the app usually connects
-as) is subject to it. SQLite has no RLS: everything here is a no-op there.
+that, and startup logs a warning. FORCE is set so the table owner (what development connects as)
+is subject to it too. An owner could still turn it off, so production connects as an app role that
+owns nothing (db/roles.py, docs/STORAGE.md). SQLite has no RLS: everything here is a no-op there.
 
 Not covered, deliberately: `submissions`/`execution_results` (the judge's queue depth and stall
 checks count across learners inside a learner's request); the sign-in tokens (looked up by token
@@ -159,14 +160,26 @@ def rls_status(engine: Engine) -> dict[str, Any]:
     }
 
 
-def warn_if_not_enforced(engine: Engine) -> None:
+def warn_if_not_enforced(engine: Engine, production: bool = False) -> None:
+    from app.db.roles import engine_role_report
+
     try:
         status = rls_status(engine)
+        report = engine_role_report(engine)
     except Exception:  # pragma: no cover - a startup diagnostic must never stop startup
         logger.warning("row-level security status could not be read", exc_info=True)
         return
     if not status.get("supported"):
         return
+    if report and report["owns_tables"] and not status["role_bypasses_rls"]:
+        # Development connects as the owner (one role is simpler); production should not.
+        logger.log(
+            logging.WARNING if production else logging.INFO,
+            "database role %s owns %s tables: it could turn row-level security off. In production "
+            "connect the API as an app role that owns nothing (docs/STORAGE.md)",
+            status["role"],
+            report["owns_tables"],
+        )
     if status["role_bypasses_rls"]:
         logger.warning(
             "row-level security is NOT enforced: database role %s is a superuser or has BYPASSRLS; "

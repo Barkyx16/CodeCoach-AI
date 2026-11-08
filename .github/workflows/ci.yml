@@ -60,6 +60,9 @@ jobs:
       - name: Tests (PostgreSQL, as that role, so row-level security is enforced)
         env:
           TEST_DATABASE_URL: postgresql+psycopg://codecoach_app:codecoach@localhost:5432/codecoach_app_test
+          # The service's superuser, for tests/test_storage.py's rehearsals only: they create and drop
+          # their own codecoach_rehearsal_* databases and roles (owner/app split, upgrades, copy).
+          TEST_DATABASE_ADMIN_URL: postgresql+psycopg://codecoach:codecoach@localhost:5432/codecoach_test
         run: pytest
       - name: Migrations apply cleanly and match the models
         env:
