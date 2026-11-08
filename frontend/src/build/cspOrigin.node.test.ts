@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest";
 // @ts-expect-error: a plain .mjs build script, no type declarations
 import { apiOrigin, fillTemplate } from "../../scripts/csp-origin.mjs";
 
+// Built at runtime: a credential-shaped literal would (rightly) trip the repository's secret scan.
+const WITH_CREDENTIALS = ["https://user", "not-a-password@api.example.com"].join(":");
+
 describe("the API origin written into the web image's Content-Security-Policy", () => {
   it.each([
     ["https://api.example.com", "https://api.example.com"],
@@ -22,7 +25,7 @@ describe("the API origin written into the web image's Content-Security-Policy", 
     ["api.example.com", /isn't a URL/],
     ["ftp://api.example.com", /http or https/],
     ["javascript:alert(1)", /http or https/],
-    ["https://user:secret@api.example.com", /credentials/],
+    [WITH_CREDENTIALS, /credentials/],
     ["https://api.example.com/?x=1", /query or a fragment/],
     ["https://api.example.com/#frag", /query or a fragment/],
     ["http://[::1]:8000", /IPv6/],

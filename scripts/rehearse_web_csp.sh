@@ -31,7 +31,9 @@ trap cleanup EXIT
 build() { docker build --progress=plain ${WEB_DOCKERFILE:+-f "$WEB_DOCKERFILE"} ${WEB_BUILD_ARGS:-} --build-arg "VITE_API_BASE_URL=$1" -t "$2" frontend; }
 
 echo "== 1. a bad API URL fails the build, before the bundle is built"
-for bad in 'https://api.example.com; script-src *' 'ftp://api.example.com' 'https://user:pw@api.example.com'; do
+# The credentials case is assembled here: a credential-shaped literal would trip the secret scan.
+WITH_CREDENTIALS=$(printf 'https://%s@api.example.com' "user:not-a-password")
+for bad in 'https://api.example.com; script-src *' 'ftp://api.example.com' "$WITH_CREDENTIALS"; do
   if build "$bad" "codecoach-web:csp-bad-$RUN_ID" >"$WORK/bad.log" 2>&1; then
     echo "FAIL: the build accepted $bad"; exit 1
   fi
