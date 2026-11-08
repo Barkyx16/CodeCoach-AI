@@ -43,13 +43,15 @@ nothing rewards a shorter or faster answer.
   from the learner's words (for example "The first sentence is 41 words long").
 - **Broad claims** ("hard worker", "team player", "always") are pointed out when nothing
   concrete stands beside them, as a suggestion, not a penalty.
-- **Measured** is only what was measured: the word count of the text, and spoken time only when
-  the browser timed a recording (the microphone's on time). A "time to say it aloud" figure is
+- **Measured** is only what was measured: the word count of the text, and, for a spoken answer,
+  how long the microphone was on, pauses included ("The microphone was on for N seconds"). Nothing
+  is recorded. A "time to say it aloud" figure is
   labelled an estimate (150 words a minute) and never stands in for spoken time. Typed answers
   never get a spoken time.
-- **Transcript artifacts are not the learner's speech.** Filler sounds that speech recognition
-  writes down ("um", "uh") are left out of the counts, and the feedback says so and that they
-  aren't marked down. Pauses, accents, disability and choosing to type are never judged.
+- **Transcript artifacts are not the learner's speech.** Filler sounds ("um", "uh") are left out of
+  the counts, and the feedback says so and that they aren't marked down. This applies to typed and
+  spoken answers alike (Volume 7, prompt 9), so the same words get the same evaluation; before, only
+  spoken answers had them removed. Pauses, accents, disability and choosing to type are never judged.
 - **Delivery measurements can be turned off** (spoken time and the target length). The choice is
   remembered on this device.
 - It's built-in rules, not a reviewer, and says so: it can miss a good answer phrased

@@ -85,12 +85,12 @@ export function LiveRound({ iv }: { iv: Interview }) {
   };
   // A new question: move focus to it and, if chosen, have the interviewer read it.
   const prompt = current?.prompt;
-  const { speak } = voice;
+  const { autoSpeak } = voice;
   useEffect(() => {
     if (!prompt) return;
     heading.current?.focus();
-    if (prefs.readAloud) speak(prompt);
-  }, [prompt, prefs.readAloud, speak]);
+    if (prefs.readAloud) autoSpeak(prompt);
+  }, [prompt, prefs.readAloud, autoSpeak]);
 
   useRoundViewDiag(iv, pending ? "followup" : current ? "question" : "empty");
   if (!current && !pending) return null; // completed or out of questions; the parent shows results after refetch

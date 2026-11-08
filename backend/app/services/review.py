@@ -450,11 +450,19 @@ class InterviewReviews:
                     evidence=evidence_for(dim, x["evidence"]) if x else [],
                 )
             )
+        spoke = any(
+            t.role == TurnRole.CANDIDATE and (t.meta or {}).get("source") in ("voice", "mixed") for t in turns
+        )
         overall.append(
             Dimension(
                 name="Spoken delivery",
                 status="not_evaluated",
-                summary="Not measured: spoken answers are scored from their transcript only.",
+                summary="Not measured: spoken messages are scored from their transcript only. Accent, pace and tone "
+                "aren't analysed or kept.",
+            )
+            if spoke
+            else Dimension(
+                name="Spoken delivery", status="not_applicable", summary="Every message was typed."
             )
         )
         overall.append(

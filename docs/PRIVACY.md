@@ -27,6 +27,7 @@ is in [ROW_LEVEL_SECURITY.md](ROW_LEVEL_SECURITY.md) and [SECURITY.md](SECURITY.
 | Server backups | encrypted files, off the server once a schedule exists ([BACKUP.md](BACKUP.md)) | proposed: up to ~3 months | **not erased from older backups**: they age out. A restore must re-delete accounts deleted after that backup |
 | Drafts in your browser (answers, code, notes, stories, whiteboards, reflections, drills, interviews) | this browser's storage | sent, or **cleared when you sign out** on this device (after a warning) | cleared on this device |
 | Display, editor and voice preferences; public pages saved for offline | this browser | until you change or remove them | kept: device settings, not account data |
+| Spoken answers (dictation) | **no audio reaches CodeCoach.** The browser transcribes: Chrome and Edge send the speech to the browser maker's speech service, under the browser's terms; Safari may do it on the device. Only the text you send is stored, as an answer ([VOICE.md](VOICE.md)) | as the answer | as the answer |
 | Private pages and API responses | never cached: `Cache-Control: no-store` on every private response; only the public catalogue is cacheable (`tests/test_http_cache.py`) | — | — |
 
 ## Deletion, step by step

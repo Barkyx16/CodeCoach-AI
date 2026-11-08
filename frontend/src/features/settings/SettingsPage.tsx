@@ -17,6 +17,7 @@ import { fieldErrorsFrom } from "@/features/auth/fieldErrors";
 import { EditorAppearancePreview } from "./EditorAppearancePreview";
 import { CareerSelect } from "@/features/careers/CareerSelect";
 import { DisplayControls } from "@/features/display/DisplayControls";
+import { VoiceSettings } from "@/features/voice/VoiceSettings";
 
 import { DeviceRows } from "./DeviceSection";
 import { EditorPreferencesControls } from "./EditorPreferencesControls";
@@ -78,6 +79,14 @@ export function SettingsPage() {
               </RowIntro>
               <div className="setting__body setting__body--wide">
                 <DisplayControls />
+              </div>
+            </div>
+            <div className="setting" role="group" aria-labelledby="voice-settings-title">
+              <RowIntro icon="speaker" id="voice-settings-title" title="Interview voice and cues">
+                Reading questions aloud, captions, and the simulated engagement cue.
+              </RowIntro>
+              <div className="setting__body setting__body--wide">
+                <VoiceSettings />
               </div>
             </div>
           </Section>

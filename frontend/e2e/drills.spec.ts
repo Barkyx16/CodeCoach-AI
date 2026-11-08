@@ -87,7 +87,7 @@ test("every drill type in text mode, with a repeat compared under the same rubri
   await expect(page.getByRole("region", { name: /Feedback on your attempt/ })).toContainText("Last month when I was on nights");
 });
 
-test("voice: an editable transcript, measured time only from the recording, and fillers never marked down", async ({ page }) => {
+test("voice: an editable transcript, microphone time only (nothing recorded), and fillers never marked down", async ({ page }) => {
   await fakeSpeech(page, ["um I'm a registered nurse on a medical ward uh and I've trained new staff which is why I want this role"]);
   await signUpNurse(page);
   await page.goto("/drills/intro");
@@ -102,13 +102,13 @@ test("voice: an editable transcript, measured time only from the recording, and 
   await box.pressSequentially(" Thank you.");
   await page.getByRole("button", { name: "Get feedback" }).click();
   const fb = page.getByRole("region", { name: /Feedback on your attempt/ });
-  await expect(fb).toContainText(/You spoke for \d+ seconds \(timed while the microphone was on\)/);
+  await expect(fb).toContainText(/The microphone was on for \d+ seconds, pauses included \(nothing was recorded\)/);
   await expect(fb).toContainText("2 filler sounds from speech recognition were left out of the counts. They aren't marked down.");
   await expect(fb).toContainText("Thank you.");
 
   // Turn delivery measurements off: no spoken time and no target length.
   await page.getByRole("checkbox", { name: /Show delivery measurements/ }).uncheck();
-  await expect(fb).not.toContainText("You spoke for");
+  await expect(fb).not.toContainText("The microphone was on for");
   await expect(page.getByText("There's no time limit, and speed isn't scored.")).toBeVisible();
 });
 

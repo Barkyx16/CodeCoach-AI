@@ -5,6 +5,9 @@ import { canTestMicrophone, microphonePermission, type MicPermission } from "./c
 /**
  * Microphone check: asks for access only when `enable()` is called (a deliberate click), then
  * shows the input level. Audio is analysed in the page and never recorded or sent anywhere.
+ * The microphone is released on Stop, on leaving the page, and when it's unplugged; a stream that
+ * arrives after the test was stopped (or the page left) is released at once, and a second click
+ * while the browser is still asking does nothing.
  */
 export function useMicTest() {
   const supported = canTestMicrophone();
@@ -16,12 +19,16 @@ export function useMicTest() {
   const stream = useRef<MediaStream | null>(null);
   const context = useRef<AudioContext | null>(null);
   const frame = useRef<number | null>(null);
+  const attempt = useRef(0); // which enable() is current; a stop or unmount makes earlier ones stale
+  const [starting, setStarting] = useState(false);
 
   useEffect(() => {
     void microphonePermission().then(setPermission);
   }, []);
 
   const stopTest = useCallback(() => {
+    attempt.current += 1;
+    setStarting(false);
     if (frame.current !== null) cancelAnimationFrame(frame.current);
     frame.current = null;
     stream.current?.getTracks().forEach((t) => t.stop());
@@ -33,12 +40,26 @@ export function useMicTest() {
   }, []);
 
   const enable = useCallback(async () => {
-    if (!supported) return;
+    if (!supported || stream.current) return;
+    const mine = ++attempt.current;
     setError(null);
+    setStarting(true);
     try {
       const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (mine !== attempt.current) {
+        s.getTracks().forEach((t) => t.stop()); // stopped, or the page left, while the browser asked
+        return;
+      }
+      setStarting(false);
       stream.current = s;
       setPermission("granted");
+      for (const track of s.getAudioTracks()) {
+        track.addEventListener("ended", () => {
+          if (stream.current !== s) return;
+          stopTest();
+          setError("The microphone was disconnected. Reconnect it and test again, or answer by typing.");
+        });
+      }
       const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!Ctx) {
         setLevel(0);
@@ -61,6 +82,8 @@ export function useMicTest() {
       };
       tick();
     } catch (e) {
+      if (mine !== attempt.current) return;
+      setStarting(false);
       const name = (e as { name?: string }).name;
       if (name === "NotAllowedError" || name === "SecurityError") {
         setPermission("denied");
@@ -71,9 +94,9 @@ export function useMicTest() {
         setError("The microphone couldn't be started. You can still answer by typing.");
       }
     }
-  }, [supported]);
+  }, [supported, stopTest]);
 
   useEffect(() => stopTest, [stopTest]);
 
-  return { supported, permission, level, heard, testing: level !== null, error, enable, stopTest };
+  return { supported, permission, level, heard, testing: level !== null, starting, error, enable, stopTest };
 }

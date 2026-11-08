@@ -6,7 +6,7 @@ import type { Interview, RoundQuestion } from "@/api/types";
 import { nurseAnswer, nurseQuestions, tokenResponse, user as baseUser } from "../fixtures";
 import { renderApp } from "../render";
 import { API, server } from "../server";
-import { FakeRecognition, finishSpeaking, installSpeech, spoken, uninstallSpeech } from "../speech";
+import { failSpeaking, FakeRecognition, finishSpeaking, installSpeech, loadVoices, spoken, uninstallSpeech } from "../speech";
 
 const nurse = { ...baseUser, career_track: "registered-nurse" };
 const now = () => new Date().toISOString();
@@ -75,7 +75,11 @@ function roundServer({ answerDelay }: { answerDelay?: Promise<void> } = {}) {
   return { requests, get iv() { return iv; } };
 }
 
-afterEach(() => uninstallSpeech());
+afterEach(() => {
+  uninstallSpeech();
+  delete (navigator as unknown as Record<string, unknown>).userActivation;
+  Object.defineProperty(document, "hidden", { configurable: true, get: () => false });
+});
 
 describe("Voice interview studio", () => {
   it("dictation fills an editable draft: interim text stays separate and nothing submits while listening", async () => {
@@ -85,7 +89,9 @@ describe("Voice interview studio", () => {
     expect(await screen.findByRole("heading", { name: nurseQuestions[0]!.title })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Speak answer" }));
     expect(screen.getByText("Listening. Microphone on")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Stop listening" })).toHaveAttribute("aria-pressed", "true");
+    // Explicit controls, not a toggle: Stop and Discard while the microphone is on.
+    expect(screen.getByRole("button", { name: "Stop listening" })).not.toHaveAttribute("aria-pressed");
+    expect(screen.queryByRole("button", { name: "Speak answer" })).not.toBeInTheDocument();
 
     FakeRecognition.latest.emit(["Good assessment means", true], ["checking vital", false]);
     const box = screen.getByLabelText("Your answer");
@@ -123,6 +129,7 @@ describe("Voice interview studio", () => {
     expect(screen.getByText("Microphone blocked")).toBeInTheDocument();
     expect(box).toHaveValue("I start with the airway."); // the unconfirmed words were not added
     expect(screen.queryByRole("button", { name: "Speak answer" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try the microphone again" })).toBeInTheDocument();
     expect(srv.requests).toHaveLength(0); // nothing was submitted automatically
     await user.click(screen.getByRole("button", { name: "Next question" }));
     await waitFor(() => expect(srv.requests).toEqual([{ index: 0, answer: "I start with the airway.", source: "typed" }]));
@@ -234,6 +241,194 @@ describe("Voice interview studio", () => {
     expect(screen.getByRole("link", { name: "Finish your saved draft on its own page" })).toHaveAttribute(
       "href", `/careers/registered-nurse/questions/${nurseQuestions[0]!.id}`,
     );
+  });
+});
+
+/**
+ * Voice controls and recovery (Volume 7, prompt 9): explicit Start / Stop / Discard, each phrase
+ * once, a failed or interrupted take that keeps its words, no microphone or speech without a
+ * deliberate action, playback that fails out loud, and cues that can be hidden from Settings.
+ */
+describe("Voice controls and recovery", () => {
+  const answerBox = () => screen.getByLabelText("Your answer");
+
+  it("two phrases in one event both land, and a phrase the browser sends again isn't added twice", async () => {
+    installSpeech();
+    roundServer();
+    const { user } = renderApp("/interviews/round-1", { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Speak answer" }));
+    FakeRecognition.latest.emit(["I checked the airway", true], ["then breathing", true]);
+    expect(answerBox()).toHaveValue("I checked the airway then breathing");
+    FakeRecognition.latest.redeliver(["and circulation", true]); // earlier finals again, from index 0
+    expect(answerBox()).toHaveValue("I checked the airway then breathing and circulation");
+  });
+
+  it("shows how long it has listened, outside the announced status, and Discard puts the answer back", async () => {
+    installSpeech();
+    roundServer();
+    const { user } = renderApp("/interviews/round-1", { signedIn: true });
+    await user.type(await screen.findByLabelText("Your answer"), "Typed start.");
+    await user.click(screen.getByRole("button", { name: "Speak answer" }));
+    const elapsed = screen.getByText("0:00");
+    expect(elapsed.closest("[role=status]")).toBeNull(); // not read out every second
+    FakeRecognition.latest.emit(["words I didn't mean", true], ["and more", false]);
+    expect(answerBox()).toHaveValue("Typed start. words I didn't mean");
+    await user.click(screen.getByRole("button", { name: "Discard this take" }));
+    expect(answerBox()).toHaveValue("Typed start.");
+    expect(FakeRecognition.latest.aborted).toBe(true);
+    expect(screen.getByText("Ready")).toBeInTheDocument();
+    expect(screen.queryByText(/weren't confirmed|not confirmed/)).not.toBeInTheDocument(); // discarded means gone
+
+    // After a take ends, it can still be discarded until the answer is edited.
+    await user.click(screen.getByRole("button", { name: "Speak answer" }));
+    FakeRecognition.latest.emit(["second take", true]);
+    await user.click(screen.getByRole("button", { name: "Stop listening" }));
+    FakeRecognition.latest.end();
+    expect(screen.getByRole("button", { name: "Discard last take" })).toBeInTheDocument();
+    await user.type(answerBox(), " Edited.");
+    expect(screen.queryByRole("button", { name: "Discard last take" })).not.toBeInTheDocument();
+    expect(answerBox()).toHaveValue("Typed start. second take Edited.");
+  });
+
+  it("a microphone lost mid-answer keeps the words, offers the unconfirmed ones, and the interview goes on", async () => {
+    installSpeech();
+    const srv = roundServer();
+    const { user } = renderApp("/interviews/round-1", { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Speak answer" }));
+    FakeRecognition.latest.emit(["First I check the patient", true], ["then the monitor", false]);
+    FakeRecognition.latest.fail("audio-capture"); // unplugged
+    expect(screen.getByRole("alert")).toHaveTextContent("The microphone isn't available");
+    expect(answerBox()).toHaveValue("First I check the patient");
+    const offered = screen.getByRole("group", { name: "Words that weren't confirmed" });
+    expect(offered).toHaveTextContent("then the monitor");
+    await user.click(within(offered).getByRole("button", { name: "Add them to my answer" }));
+    expect(answerBox()).toHaveValue("First I check the patient then the monitor");
+    // Reconnected: speak again on the same question, then send. No restart.
+    await user.click(screen.getByRole("button", { name: "Speak answer" }));
+    FakeRecognition.latest.emit(["and escalate early.", true]);
+    await user.click(screen.getByRole("button", { name: "Stop listening" }));
+    FakeRecognition.latest.end();
+    await user.click(screen.getByRole("button", { name: "Next question" }));
+    await waitFor(() => expect(srv.requests[0]).toMatchObject({
+      index: 0, source: "voice", answer: "First I check the patient then the monitor and escalate early.",
+    }));
+    expect(await screen.findByRole("heading", { name: nurseQuestions[1]!.title })).toBeInTheDocument();
+  });
+
+  it("unconfirmed words can be left out", async () => {
+    installSpeech();
+    roundServer();
+    const { user } = renderApp("/interviews/round-1", { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Speak answer" }));
+    FakeRecognition.latest.emit(["Kept", true], ["mumbled bit", false]);
+    FakeRecognition.latest.fail("network");
+    await user.click(screen.getByRole("button", { name: "Leave them out" }));
+    expect(screen.queryByRole("group", { name: "Words that weren't confirmed" })).not.toBeInTheDocument();
+    expect(answerBox()).toHaveValue("Kept");
+  });
+
+  it("a blocked microphone can be tried again once it's allowed, on the same question", async () => {
+    installSpeech();
+    roundServer();
+    const { user } = renderApp("/interviews/round-1", { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Speak answer" }));
+    FakeRecognition.latest.fail("not-allowed");
+    expect(screen.getByRole("alert")).toHaveTextContent("press Try the microphone again");
+    await user.click(screen.getByRole("button", { name: "Try the microphone again" }));
+    expect(FakeRecognition.instances).toHaveLength(2);
+    expect(screen.getByText("Listening. Microphone on")).toBeInTheDocument();
+  });
+
+  it("speech turned off on the device is told apart from a blocked microphone", async () => {
+    installSpeech();
+    roundServer();
+    const { user } = renderApp("/interviews/round-1", { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Speak answer" }));
+    FakeRecognition.latest.fail("service-not-allowed");
+    expect(screen.getByRole("alert")).toHaveTextContent("Speech recognition is turned off for this browser or device");
+  });
+
+  it("listening that ends on its own, or because the tab went into the background, says so and keeps the words", async () => {
+    installSpeech();
+    roundServer();
+    const { user } = renderApp("/interviews/round-1", { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Speak answer" }));
+    FakeRecognition.latest.emit(["After a pause", true]);
+    FakeRecognition.latest.end(); // the browser ended it, not the learner
+    expect(screen.getByText(/Listening stopped on its own/)).toBeInTheDocument();
+    expect(answerBox()).toHaveValue("After a pause");
+
+    await user.click(screen.getByRole("button", { name: "Speak answer" }));
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+    act(() => { document.dispatchEvent(new Event("visibilitychange")); });
+    expect(FakeRecognition.latest.stopped).toBe(true);
+    FakeRecognition.latest.end();
+    expect(screen.getByText(/this tab went into the background/)).toBeInTheDocument();
+    expect(screen.getByText("Ready")).toBeInTheDocument();
+  });
+
+  it("leaving the page while listening releases the microphone", async () => {
+    installSpeech();
+    roundServer();
+    const { user, router } = renderApp("/interviews/round-1", { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Speak answer" }));
+    const recognition = FakeRecognition.latest;
+    await act(() => router.navigate("/dashboard"));
+    expect(recognition.aborted).toBe(true);
+  });
+
+  it("on resume, nothing listens and nothing plays until the learner acts", async () => {
+    installSpeech();
+    localStorage.setItem("codecoach.voice", JSON.stringify({ readAloud: true }));
+    Object.defineProperty(navigator, "userActivation", { configurable: true, value: { hasBeenActive: false, isActive: false } });
+    roundServer();
+    renderApp("/interviews/round-1", { signedIn: true });
+    expect(await screen.findByText(/Read aloud is on, but your browser plays speech only after you interact/)).toBeInTheDocument();
+    expect(spoken).toEqual([]);
+    expect(FakeRecognition.instances).toHaveLength(0);
+    localStorage.clear();
+  });
+
+  it("the question isn't cut off and read again when the browser's voices load", async () => {
+    installSpeech();
+    localStorage.setItem("codecoach.voice", JSON.stringify({ readAloud: true }));
+    roundServer();
+    renderApp("/interviews/round-1", { signedIn: true });
+    await waitFor(() => expect(spoken).toEqual([nurseQuestions[0]!.prompt]));
+    loadVoices();
+    loadVoices();
+    expect(spoken).toHaveLength(1);
+    localStorage.clear();
+  });
+
+  it("playback that fails is said, and the question stays written on the page", async () => {
+    installSpeech();
+    roundServer();
+    const { user } = renderApp("/interviews/round-1", { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Read question aloud" }));
+    failSpeaking("synthesis-failed");
+    expect(screen.getByText(/The interviewer's voice couldn't play/)).toBeInTheDocument();
+    expect(screen.getByText("Ready")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: nurseQuestions[0]!.title })).toBeInTheDocument();
+    // Stopping on purpose isn't a failure.
+    await user.click(screen.getByRole("button", { name: "Dismiss" }));
+    await user.click(screen.getByRole("button", { name: "Read question aloud" }));
+    failSpeaking("interrupted");
+    expect(screen.queryByText(/couldn't play/)).not.toBeInTheDocument();
+  });
+
+  it("the engagement cue can be hidden from Settings, without changing practice or feedback", async () => {
+    roundServer();
+    const { user, router } = renderApp("/settings", { signedIn: true });
+    const cue = await screen.findByLabelText("Show the simulated interviewer engagement cue during interviews");
+    expect(cue).toBeChecked();
+    expect(screen.getByText(/doesn't listen to your voice or tone/)).toBeInTheDocument();
+    await user.click(cue);
+    await act(() => router.navigate("/interviews/round-1"));
+    const panel = await screen.findByRole("region", { name: "Simulated interviewer engagement" });
+    expect(within(panel).getByText("Hidden. You can review it after the interview.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Your answer")).toBeEnabled();
+    localStorage.clear();
   });
 });
 

@@ -43,7 +43,7 @@ export function VoiceSetup({ prefs, onChange }: { prefs: VoicePrefs; onChange: (
           <div className="row">
             {mic.testing
               ? <Button variant="secondary" onClick={mic.stopTest}>Stop microphone test</Button>
-              : <Button variant="secondary" onClick={() => void mic.enable()}>Enable microphone and test</Button>}
+              : <Button variant="secondary" loading={mic.starting} onClick={() => void mic.enable()}>Enable microphone and test</Button>}
           </div>
           {mic.level !== null && (
             <div className="voice-level">

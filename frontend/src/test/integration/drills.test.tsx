@@ -122,9 +122,9 @@ describe("communication drills", () => {
     const { user } = renderApp("/drills/intro?attempt=a1", { signedIn: true });
     const fb = await screen.findByRole("region", { name: /Feedback on your attempt/ });
     expect(within(fb).getByText("Now there: mentions one concrete strength or experience.")).toBeInTheDocument();
-    expect(within(fb).getByText(/You spoke for 41 seconds/)).toBeInTheDocument();
+    expect(within(fb).getByText(/The microphone was on for 41 seconds, pauses included/)).toBeInTheDocument();
     await user.click(screen.getByRole("checkbox", { name: /Show delivery measurements/ }));
-    expect(within(fb).queryByText(/You spoke for 41 seconds/)).not.toBeInTheDocument();
+    expect(within(fb).queryByText(/The microphone was on for 41 seconds/)).not.toBeInTheDocument();
     expect(within(fb).queryByText(/The aim is about 60 seconds/)).not.toBeInTheDocument();
     expect(screen.getByText("There's no time limit, and speed isn't scored.")).toBeInTheDocument();
     await waitFor(() => expect(localStorage.getItem("codecoach.drills.delivery")).toBe("off"));

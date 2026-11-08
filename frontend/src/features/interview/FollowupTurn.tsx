@@ -31,12 +31,12 @@ export function FollowupTurn({ iv, followup, voice, readAloud }: {
   const busy = reply.isPending || skip.isPending;
   const asker = followup.speaker?.title ?? "Interviewer";
   const parent = iv.questions[followup.question_index];
-  const { speak } = voice;
+  const { autoSpeak } = voice;
 
   useEffect(() => {
     heading.current?.focus();
-    if (readAloud) speak(followup.question); // speak() stops anything already playing first
-  }, [followup.question, readAloud, speak]);
+    if (readAloud) autoSpeak(followup.question); // speaking stops anything already playing first
+  }, [followup.question, readAloud, autoSpeak]);
 
   async function send(source: AnswerSource): Promise<boolean> {
     try {

@@ -25,6 +25,12 @@
 .voice-status--denied, .voice-status--error { color: var(--color-warning); border-color: currentColor; }
 .voice-status--unavailable { color: var(--color-text-muted); }
 @keyframes voice-pulse { 50% { opacity: .35; } }
+.voice-composer__state { display: inline-flex; align-items: center; gap: 8px; }
+.voice-elapsed { font-variant-numeric: tabular-nums; }
+.voice-notice { margin: 0; }
+.voice-unconfirmed { display: grid; gap: 8px; padding: 10px 12px; border: 1px dashed var(--color-border-strong); border-radius: 8px; }
+.voice-unconfirmed p { margin: 0; font-size: 0.875rem; }
+.voice-settings { display: grid; gap: 8px; }
 .voice-interim { margin: 0; padding: 8px 12px; border: 1px dashed var(--color-border-strong); border-radius: 8px; font-size: 0.875rem; font-style: italic; color: var(--color-text-muted); }
 .voice-interim__tag { font-style: normal; font-size: 0.6875rem; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; margin-right: 6px; }
 .voice-caption { margin: 0; padding: 10px 14px; border-radius: 8px; background: var(--color-surface-sunken); font-size: 1rem; line-height: 1.6; }
@@ -34,9 +40,9 @@
 .engagement__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .engagement__state { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 1rem; }
 .engagement__glyph { font-size: 1.25rem; line-height: 1; }
-.engagement__state--explore_further { color: var(--color-success); }
-.engagement__state--following { color: var(--color-info); }
-.engagement__state--more_detail { color: var(--color-warning); }
+/* One neutral colour for every state: a simulated cue isn't a pass/fail light. The shape and the
+   words carry the state (Volume 7, prompt 9). */
+.engagement__state { color: var(--color-text); }
 .engagement__state--not_enough_evidence { color: var(--color-text-muted); }
 .engagement__reason { margin: 0; font-size: 0.875rem; line-height: 1.6; color: var(--color-text); }
 .engagement__evidence summary { cursor: pointer; font-size: 0.8125rem; min-height: 32px; display: flex; align-items: center; }

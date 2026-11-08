@@ -30,9 +30,25 @@ export class FakeRecognition {
   abort() {
     this.aborted = true;
   }
-  /** Deliver results: [text, isFinal] pairs, as one recognition event. */
+  /** Final results so far, as the browser keeps them: earlier results keep their index. */
+  finals: string[] = [];
+  /**
+   * Deliver results: [text, isFinal] pairs, as one recognition event. Like a real browser in
+   * continuous mode, they follow the session's earlier final results (resultIndex points at the
+   * first new one); interim text sits after them and is replaced by the next event.
+   */
   emit(...results: [string, boolean][]) {
-    const list = results.map(([text, isFinal]) => Object.assign([{ transcript: text }], { isFinal }));
+    const resultIndex = this.finals.length;
+    const list = [...this.finals.map((text) => [text, true] as [string, boolean]), ...results]
+      .map(([text, isFinal]) => Object.assign([{ transcript: text }], { isFinal }));
+    for (const [text, isFinal] of results) if (isFinal) this.finals.push(text);
+    act(() => this.onresult?.({ resultIndex, results: list }));
+  }
+  /** What some mobile browsers do: send every earlier final result again, from index 0. */
+  redeliver(...results: [string, boolean][]) {
+    const list = [...this.finals.map((text) => [text, true] as [string, boolean]), ...results]
+      .map(([text, isFinal]) => Object.assign([{ transcript: text }], { isFinal }));
+    for (const [text, isFinal] of results) if (isFinal) this.finals.push(text);
     act(() => this.onresult?.({ resultIndex: 0, results: list }));
   }
   fail(error: string) {
@@ -49,21 +65,22 @@ export class FakeRecognition {
 }
 
 export const spoken: string[] = [];
-let speaking: { onend?: () => void } | null = null;
+let speaking: { onend?: () => void; onerror?: (e: { error: string }) => void } | null = null;
+const voiceListeners = new Set<() => void>();
 
 class FakeUtterance {
   voice: unknown = null;
   rate = 1;
   volume = 1;
   onend?: () => void;
-  onerror?: () => void;
+  onerror?: (e: { error: string }) => void;
   constructor(public text: string) {}
 }
 
 const synthesis = {
   getVoices: () => [{ name: "Test Voice", lang: "en-US", voiceURI: "test-voice" }],
-  addEventListener: () => undefined,
-  removeEventListener: () => undefined,
+  addEventListener: (type: string, fn: () => void) => { if (type === "voiceschanged") voiceListeners.add(fn); },
+  removeEventListener: (type: string, fn: () => void) => { if (type === "voiceschanged") voiceListeners.delete(fn); },
   speak(u: FakeUtterance) {
     spoken.push(u.text);
     speaking = u;
@@ -72,6 +89,18 @@ const synthesis = {
     speaking = null;
   },
 };
+
+/** Playback fails, as the browser reports it (e.g. "synthesis-failed", "not-allowed"). */
+export function failSpeaking(error: string) {
+  const u = speaking;
+  speaking = null;
+  act(() => u?.onerror?.({ error }));
+}
+
+/** The browser finishes loading its voices (it fires "voiceschanged", often after the page has started). */
+export function loadVoices() {
+  act(() => { for (const fn of [...voiceListeners]) fn(); });
+}
 
 /** Finish the utterance being spoken, as the browser does when playback ends. */
 export function finishSpeaking() {
@@ -83,6 +112,8 @@ export function finishSpeaking() {
 export function installSpeech({ recognition = true, synthesis: withSynthesis = true } = {}) {
   FakeRecognition.instances = [];
   spoken.length = 0;
+  speaking = null;
+  voiceListeners.clear();
   const w = window as unknown as Record<string, unknown>;
   if (recognition) w.webkitSpeechRecognition = FakeRecognition;
   if (withSynthesis) {

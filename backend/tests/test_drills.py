@@ -67,6 +67,26 @@ def test_measurements_are_only_what_was_measured_and_fillers_are_never_penalised
     ]  # typing isn't penalised
 
 
+def test_the_same_words_get_the_same_evaluation_typed_or_spoken(client):
+    """Volume 7, prompt 9: how an answer was entered never changes what it's credited with."""
+    h = nurse(client)
+    text = "Um, I'm a registered nurse with three years on a medical ward. Uh, I've led handovers and trained new staff."
+    spoken = client.post(
+        f"{URL}/intro/attempts", headers=h, json={"text": text, "source": "voice", "spoken_seconds": 30}
+    ).json()["feedback"]
+    typed = client.post(f"{URL}/intro/attempts", headers=h, json={"text": text, "source": "typed"}).json()[
+        "feedback"
+    ]
+    for key in ("observations", "generalities", "rubric_version", "limitations"):
+        assert typed[key] == spoken[key], key
+    assert typed["measured"]["words"] == spoken["measured"]["words"]
+    assert typed["measured"]["reading_estimate_seconds"] == spoken["measured"]["reading_estimate_seconds"]
+    # Only what's genuinely different differs: the microphone time, and where the fillers came from.
+    assert "spoken_seconds" in spoken["measured"] and "spoken_seconds" not in typed["measured"]
+    assert any("from speech recognition" in n for n in spoken["notes"])
+    assert any("filler sounds were left out" in n for n in typed["notes"])
+
+
 def test_feedback_describes_the_words_and_points_out_generalities():
     drill = BY_ID["example"]
     vague = evaluate(

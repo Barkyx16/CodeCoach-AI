@@ -1,10 +1,11 @@
 """Drill feedback: observations grounded in the learner's own words, never a judgment of them.
 
-- Measurements are only what was measured: the word count of the text, and spoken time only if
-  the browser timed a recording. A reading-time figure is labelled as an estimate and never
+- Measurements are only what was measured: the word count of the text, and, for a spoken answer,
+  how long the microphone was on (pauses included; nothing is recorded). A reading-time figure is labelled as an estimate and never
   stands in for spoken time.
-- Filler sounds ("um", "uh") that speech recognition writes down are left out of the counts and
-  never criticised; neither are pauses, accents or choosing to type.
+- Filler sounds ("um", "uh") are left out of the counts and never criticised, whether speech
+  recognition wrote them down or they were typed: the same words get the same evaluation however
+  they were entered. Neither are pauses, accents or choosing to type.
 - Nothing rewards a shorter or faster answer.
 """
 
@@ -147,18 +148,20 @@ def generalities(text: str) -> list[str]:
 
 
 def evaluate(drill: Drill, prompt: str, text: str, source: str, spoken_seconds: int | None) -> dict:
-    cleaned, fillers = clean_transcript(text) if source == "voice" else (text.strip(), 0)
+    # The same for typed and spoken answers: identical words get an identical evaluation.
+    cleaned, fillers = clean_transcript(text)
     n = len(words(cleaned))
     measured: dict = {"words": n}
     if source == "voice" and spoken_seconds is not None:
-        measured["spoken_seconds"] = spoken_seconds  # timed by the browser while you spoke
+        measured["spoken_seconds"] = spoken_seconds  # how long the microphone was on, pauses included
     measured["reading_estimate_seconds"] = round(
         n / 150 * 60
     )  # an estimate at 150 words a minute, never spoken time
     notes = []
     if fillers:
+        origin = " from speech recognition" if source == "voice" else ""
         notes.append(
-            f"{fillers} filler sound{'s' if fillers != 1 else ''} from speech recognition {'were' if fillers != 1 else 'was'} left out of the counts. They aren't marked down."
+            f"{fillers} filler sound{'s' if fillers != 1 else ''}{origin} {'were' if fillers != 1 else 'was'} left out of the counts. They aren't marked down."
         )
     if drill.target_seconds:
         notes.append(f"The aim is about {drill.target_seconds} seconds; that's a guide, not a score.")

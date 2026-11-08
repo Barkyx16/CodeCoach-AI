@@ -44,7 +44,9 @@ export function DrillPage() {
   const dictation = useDictation((said) => {
     setUsedVoice(true);
     const current = textRef.current;
-    setText((current && !/\s$/.test(current) ? `${current} ` : current) + said);
+    const next = (current && !/\s$/.test(current) ? `${current} ` : current) + said;
+    textRef.current = next; // two phrases in one recognition event both land
+    setText(next);
   });
   useEffect(() => {
     if (dictation.state === "listening") listeningSince.current = Date.now();
@@ -67,6 +69,7 @@ export function DrillPage() {
   if (drill.isError) return <div className="page"><ErrorState error={drill.error} onRetry={() => void drill.refetch()} /></div>;
   const d = drill.data;
   const listening = dictation.state === "listening";
+  const busyMic = listening || dictation.state === "processing"; // final words may still arrive
   const words = (text.match(/[A-Za-z0-9']+/g) ?? []).length;
 
   async function send() {
@@ -131,7 +134,7 @@ export function DrillPage() {
             <span className="subtle">{words} {words === 1 ? "word" : "words"}{text.trim() ? (kept ? " · kept on this device until you send it" : " · this browser can't keep a copy") : ""}</span>
             <InlineError error={error} />
             <span className="row">
-              <Button variant="primary" loading={busy} disabled={words < 3 || listening} onClick={() => void send()}>Get feedback</Button>
+              <Button variant="primary" loading={busy} disabled={words < 3 || busyMic} onClick={() => void send()}>Get feedback</Button>
               <ScheduleLink kind="drill" refId={d.id} title={d.title} label="Add this drill to my schedule" />
             </span>
           </section>
@@ -188,7 +191,7 @@ function Feedback({ a, delivery }: { a: DrillAttempt; delivery: boolean }) {
       <ul className="mini-list">
         <li>{fb.measured.words} words</li>
         {!delivery ? null : fb.measured.spoken_seconds !== undefined
-          ? <li>You spoke for {fb.measured.spoken_seconds} seconds (timed while the microphone was on)</li>
+          ? <li>The microphone was on for {fb.measured.spoken_seconds} seconds, pauses included (nothing was recorded)</li>
           : <li>Spoken time: not measured{a.source === "typed" ? " (typed answer)" : ""}</li>}
         <li>About {fb.measured.reading_estimate_seconds} seconds to say aloud at an average pace (an estimate, not a measurement)</li>
       </ul>

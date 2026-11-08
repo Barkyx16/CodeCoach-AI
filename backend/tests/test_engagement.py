@@ -88,10 +88,8 @@ def test_reasons_refer_to_the_answer_never_to_feelings_or_hiring(text):
         assert r.reason.startswith(r.label)
 
 
-def test_voice_or_typed_makes_no_difference():
-    # The function never receives the source: identical text gives identical reads.
-    question = q("situational", "medium")
-    assert read(question, STRONG) == read(question, STRONG)
+# Typed vs spoken parity is checked end to end, through the API, in
+# test_question_rounds.py::test_the_same_answer_typed_or_spoken_gets_the_same_evaluation.
 
 
 @pytest.mark.parametrize(

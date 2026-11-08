@@ -101,11 +101,14 @@ function LiveInterview({ iv, problemSlug }: { iv: Interview; problemSlug: string
 
   const lastInterviewer = [...iv.turns].reverse().find((t) => t.role === "interviewer");
   const lastEngagement = [...iv.turns].reverse().find((t) => t.role === "candidate" && t.engagement)?.engagement ?? null;
-  const { speak } = voice;
+  const { autoSpeak } = voice;
+  // The code editor's Ctrl/⌘+Enter sends through the answer box's own checks (not while the
+  // microphone is on, never twice, with the right typed/spoken record).
+  const composerSubmit = useRef<(() => void) | null>(null);
   // Read each new interviewer message aloud, if chosen.
   useEffect(() => {
-    if (prefs.readAloud && lastInterviewer) speak(lastInterviewer.content);
-  }, [lastInterviewer?.seq, prefs.readAloud, speak]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (prefs.readAloud && lastInterviewer) autoSpeak(lastInterviewer.content);
+  }, [lastInterviewer?.seq, prefs.readAloud, autoSpeak]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function onSend(source: AnswerSource = "typed"): Promise<boolean> {
     const text = message.trim();
@@ -196,7 +199,7 @@ function LiveInterview({ iv, problemSlug }: { iv: Interview; problemSlug: string
           </div>
           <VoiceComposer
             id="iv-message" label="Your answer" value={message} onChange={setMessage} onSubmit={onSend}
-            submitting={send.isPending} rows={3} maxLength={4000} submitLabel="Send" voice={voice}
+            submitting={send.isPending} rows={3} maxLength={4000} submitLabel="Send" voice={voice} submitRef={composerSubmit}
             disabled={ready || seconds === 0 || iv.candidate_turns_remaining === 0 || finish.isPending || abandon.isPending}
             placeholder={ready ? "The interviewer has wrapped up. Click Finish to see your feedback." : "Think out loud… (Ctrl/⌘ + Enter to send)"}
             hint={`${iv.candidate_turns_remaining} messages left`} errorId={send.error ?? finish.error ?? abandon.error ? "iv-error" : undefined}
@@ -213,7 +216,7 @@ function LiveInterview({ iv, problemSlug }: { iv: Interview; problemSlug: string
             <span className="subtle">Your code is shared with the interviewer when you send a message.</span>
           </div>
           {problem.isError ? <ErrorState error={problem.error} onRetry={() => void problem.refetch()} />
-            : problem.data ? <CodeEditor value={draft.code} onChange={draft.setCode} onSubmit={() => void onSend()} />
+            : problem.data ? <CodeEditor value={draft.code} onChange={draft.setCode} onSubmit={() => composerSubmit.current?.()} />
               : <LoadingState label="Loading editor…" />}
         </section>
       </div>

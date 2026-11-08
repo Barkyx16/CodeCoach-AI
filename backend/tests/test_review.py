@@ -165,12 +165,28 @@ def test_coding_review_links_feedback_to_turns_and_never_claims_correctness(clie
     assert comm["evidence"][0]["item_key"] == "turn-1"
     assert any(e["label"] == "You didn't answer in this phase" for d in r["overall"] for e in d["evidence"])
     assert "Confidence describes the evaluator, not your answer" in r["disclaimer"]
+    # Every message was typed: spoken delivery doesn't apply (it isn't "not measured").
+    delivery = next(d for d in r["overall"] if d["name"] == "Spoken delivery")
+    assert (delivery["status"], delivery["summary"]) == ("not_applicable", "Every message was typed.")
     assert (
         client.post(
             f"/api/v1/interviews/{iv['id']}/questions/0/retries", headers=h, json={"answer": "x"}
         ).status_code
         == 409
     )
+
+
+def test_a_coding_review_with_a_spoken_message_says_delivery_isnt_measured(client):
+    h = auth_headers(register(client))
+    iv = client.post("/api/v1/interviews", headers=h, json={"problem_slug": "two-sum"}).json()
+    client.post(
+        f"/api/v1/interviews/{iv['id']}/messages",
+        headers=h,
+        json={"message": "Can the array be empty?", "source": "voice"},
+    )
+    client.post(f"/api/v1/interviews/{iv['id']}/finish", headers=h, json={"code": "class Solution {}"})
+    delivery = next(d for d in review(client, h, iv["id"])["overall"] if d["name"] == "Spoken delivery")
+    assert delivery["status"] == "not_evaluated" and "transcript only" in delivery["summary"]
 
 
 def test_review_queue_schedule_snooze_and_remove(client):

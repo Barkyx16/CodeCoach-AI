@@ -53,6 +53,25 @@ def test_a_round_uses_the_users_own_career_in_interview_order(client):
     assert iv["seconds_remaining"] > 14 * 60
 
 
+def test_the_same_answer_typed_or_spoken_gets_the_same_evaluation(client):
+    """Volume 7, prompt 9: the source is recorded for review, never used to grade or to read engagement."""
+    typed_h, spoken_h = nurse(client, "typed@example.com"), nurse(client, "spoken@example.com")
+    picked = start(client, typed_h).json()
+    first = picked["questions"][0]["id"]
+    client.post(f"/api/v1/interviews/{picked['id']}/abandon", headers=typed_h)
+    typed_iv = start(client, typed_h, question_ids=[first]).json()
+    spoken_iv = start(client, spoken_h, question_ids=[first]).json()  # the same question for both
+    typed = answer(client, typed_h, typed_iv["id"], 0, source="typed").json()
+    spoken = answer(client, spoken_h, spoken_iv["id"], 0, source="voice").json()
+    graded = [b["questions"][0]["answer"] for b in (typed, spoken)]
+    for key in ("score", "feedback", "scoring"):
+        if key in graded[0]:
+            assert graded[0][key] == graded[1][key], key
+    replies = [next(t for t in b["turns"] if t["role"] == "candidate") for b in (typed, spoken)]
+    assert replies[0]["engagement"] == replies[1]["engagement"]
+    assert (replies[0]["source"], replies[1]["source"]) == ("typed", "voice")  # recorded, for review only
+
+
 def test_answers_are_graded_saved_and_carry_engagement_and_source(client):
     h = nurse(client)
     iv = start(client, h).json()
