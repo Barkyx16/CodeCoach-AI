@@ -168,7 +168,8 @@ export function Layout() {
           ) : (
             <>
               <NavLink to="/login" className="nav__link">Sign in</NavLink>
-              <Button variant="primary" size="sm" onClick={() => { setOpenPath(null); navigate("/register"); }}>Create account</Button>
+              {/* A link like "Sign in": on /register it's marked as the current page, not a button that does nothing. */}
+              <NavLink to="/register" className="btn btn--primary btn--sm" onClick={() => setOpenPath(null)}>Create account</NavLink>
             </>
           )}
         </div>

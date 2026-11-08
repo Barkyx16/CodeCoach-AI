@@ -80,8 +80,18 @@ async function probe(page: Page, i: number, d: Awaited<ReturnType<typeof describ
 
   const el = page.locator(CONTROLS).nth(i);
   // Clicking a control focuses it, so focus landing on the control itself isn't an effect: the
-  // audit's self-test showed a do-nothing button "passing" that way. Marked to tell it apart.
+  // audit's self-test showed a do-nothing button "passing" that way. Marked to tell it apart, and
+  // to find the same node after the click (an index can point at another one by then).
   await el.evaluate((node) => node.setAttribute("data-audit-target", ""));
+  const marked = page.locator("[data-audit-target]");
+  // Effects that are one attribute or one removal, below the DOM-change threshold: a disclosure
+  // that opens or closes, a toggle's pressed/expanded state, a control that dismisses itself.
+  const stateOf = () => marked.first().evaluate((node) => ({
+    open: (node.closest("details") as HTMLDetailsElement | null)?.open ?? null,
+    expanded: node.getAttribute("aria-expanded"),
+    pressed: node.getAttribute("aria-pressed"),
+  })).catch(() => null);
+  const stateBefore = await stateOf();
   const tag = await el.evaluate((e) => e.tagName.toLowerCase());
   const valueEffect: string[] = [];
   try {
@@ -113,7 +123,9 @@ async function probe(page: Page, i: number, d: Awaited<ReturnType<typeof describ
   const muts = await page.evaluate(() => (window as unknown as { __m: number }).__m);
   const after = { url: page.url(), focus: await page.evaluate(() => document.activeElement?.outerHTML.slice(0, 80) ?? "") };
   const focusOnItself = await page.evaluate(() => document.activeElement?.hasAttribute("data-audit-target") ?? false);
-  await el.evaluate((node) => node.removeAttribute("data-audit-target")).catch(() => {}); // may be gone
+  const stillThere = (await marked.count()) > 0 && (await marked.first().isVisible().catch(() => false));
+  const stateAfter = stillThere ? await stateOf() : null;
+  await marked.first().evaluate((node) => node.removeAttribute("data-audit-target")).catch(() => {}); // may be gone
   page.off("console", onConsole); page.off("pageerror", onPageError); page.off("response", onResponse);
   page.off("request", onRequest); page.off("dialog", onDialog);
 
@@ -123,6 +135,12 @@ async function probe(page: Page, i: number, d: Awaited<ReturnType<typeof describ
   if (requests) effect.push(`${requests} request(s)`);
   if (muts > baseline + 2) effect.push(`dom +${muts} (baseline ${baseline})`);
   if (after.focus !== before.focus && !focusOnItself) effect.push("focus moved");
+  if (stateBefore && stateAfter) {
+    if (stateBefore.open !== null && stateAfter.open !== stateBefore.open) effect.push(stateAfter.open ? "expanded" : "collapsed");
+    if (stateAfter.expanded !== stateBefore.expanded) effect.push(`aria-expanded ${stateAfter.expanded}`);
+    if (stateAfter.pressed !== stateBefore.pressed) effect.push(`aria-pressed ${stateAfter.pressed}`);
+  }
+  if (!stillThere && after.url === before.url) effect.push("dismissed itself");
   return { page: url, control: d.label, effect: effect.length ? effect : ["NOTHING"], errors };
 }
 
@@ -166,7 +184,17 @@ test("the audit flags a control that does nothing, and one that throws", async (
     const throws = document.createElement("button");
     throws.textContent = "Audit self-test: throws";
     throws.addEventListener("click", () => { throw new Error("audit self-test"); });
-    document.body.prepend(dead, throws);
+    // Real effects that are a single attribute or a single removal must still count.
+    const details = document.createElement("details");
+    const summary = document.createElement("summary");
+    summary.textContent = "Audit self-test: discloses";
+    details.append(summary, Object.assign(document.createElement("p"), { textContent: "Disclosed." }));
+    const note = document.createElement("aside");
+    const close = document.createElement("button");
+    close.textContent = "Audit self-test: dismisses";
+    close.addEventListener("click", () => note.remove());
+    note.append("A note. ", close);
+    document.body.prepend(dead, throws, details, note);
   });
   const at = async (name: string) =>
     (await page.locator(CONTROLS).evaluateAll((els, n) => els.findIndex((e) => e.textContent === n), name));
@@ -174,6 +202,10 @@ test("the audit flags a control that does nothing, and one that throws", async (
   expect(dead.effect).toEqual(["NOTHING"]);
   const throws = await probe(page, await at("Audit self-test: throws"), await describe(page, await at("Audit self-test: throws")), "/");
   expect(throws.errors.join(" ")).toContain("pageerror audit self-test");
+  const discloses = await probe(page, await at("Audit self-test: discloses"), await describe(page, await at("Audit self-test: discloses")), "/");
+  expect(discloses.effect).toContain("expanded");
+  const dismisses = await probe(page, await at("Audit self-test: dismisses"), await describe(page, await at("Audit self-test: dismisses")), "/");
+  expect(dismisses.effect).toContain("dismissed itself");
 });
 
 test("a signed-out pass that's secretly signed in is caught, not audited", async ({ page }) => {

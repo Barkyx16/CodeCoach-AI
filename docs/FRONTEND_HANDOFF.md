@@ -222,10 +222,20 @@ accessible role and name**, not by CSS. Restyling is safe as long as you **don't
   "Interview progress", "Rubric scores, out of 4", "Your answer"), and `role="timer"` on the clock,
 - the class names `.monaco-editor`, `.editor-line--flagged` and `heat-cell` test ids.
 
-**Controls audit (`e2e/controls-audit.spec.ts`, opt-in, ~15 min):** signs in as a guest, creates
+**Controls audit (`e2e/controls-audit.spec.ts`, opt-in, ~37 min):** signs in as a guest, creates
 real activity, then uses every visible button, link, tab, select, checkbox and radio on every page
-(15 page states, 325 controls) from a fresh load, and fails if any of them does nothing or causes
-a console error or failed request. Run it after a redesign:
+(15 page states, about 440 controls) from a fresh load. It fails if any of them does nothing or
+causes a console error or failed request.
+
+Counted as an effect:
+- navigation, a dialog, a request, a DOM change beyond the page's own idle churn;
+- a changed value, focus moving somewhere other than the clicked control;
+- a disclosure opening or closing, a change to `aria-expanded` or `aria-pressed`;
+- the control dismissing itself (a "Hide" button).
+
+Its self-tests check that a do-nothing button is still flagged and a throwing one reported. They
+also check that a one-attribute disclosure and a self-dismissing note both count. The self-tests
+run in every e2e run. Run the full audit after a redesign:
 `AUDIT=1 E2E_JUDGE=1 npm run e2e -- e2e/controls-audit.spec.ts --project=desktop` (through the launcher, which owns the servers it starts).
 
 If copy changes are wanted, list them and engineering will update the tests in the same change.
