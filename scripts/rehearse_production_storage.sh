@@ -5,6 +5,8 @@
 #
 #   scripts/rehearse_production_storage.sh
 #   IMAGE=codecoach-api:rehearsal scripts/rehearse_production_storage.sh   # use a prebuilt API image
+#   WEB_IMAGE=codecoach-web:rehearsal ...   # also start the web service from a prebuilt image
+#                                           # (built with VITE_API_BASE_URL=https://rehearsal.invalid)
 #
 # Checks, in order:
 #   1. db + migrate + api start: the migrate job (owner role) runs alembic, seed and grant-app-role;
@@ -22,6 +24,7 @@ command -v docker >/dev/null || { echo "needs docker"; exit 2; }
 
 PROJECT=codecoach_rehearsal
 PORT=${PORT:-18000}
+WEB_PORT=${WEB_PORT:-13000}
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 hex() { openssl rand -hex 32; }
@@ -63,6 +66,12 @@ trap 'rm -rf "$WORK" deploy/.env.app' EXIT
     echo "    image: $IMAGE"
     echo "    build: !reset null"
   fi
+  if [ -n "${WEB_IMAGE:-}" ]; then
+    echo "  web:"
+    echo "    image: $WEB_IMAGE"
+    echo "    build: !reset null"
+    echo "    ports: !override [\"127.0.0.1:$WEB_PORT:8080\"]"
+  fi
 } >"$WORK/override.yml"
 cp "$WORK/override.yml" deploy/.rehearsal.override.yml
 trap 'rm -rf "$WORK" deploy/.env.app deploy/.rehearsal.override.yml' EXIT
@@ -86,6 +95,17 @@ grep -q "$OWNER" <<<"$ENVDUMP" && { echo "FAIL: owner password inside the API co
 grep -q "$SUPER" <<<"$ENVDUMP" && { echo "FAIL: superuser password inside the API container"; exit 1; }
 grep -q "codecoach_app:" <<<"$ENVDUMP" && echo "ok: API connects as codecoach_app; neither the owner's nor the superuser's password is in its environment"
 dc exec -T api python -m app.cli check-rls --strict | tail -2
+
+if [ -n "${WEB_IMAGE:-}" ]; then
+  step "2b. the web service"
+  dc up -d web >/dev/null 2>&1
+  for _ in $(seq 1 30); do curl -sf -o /dev/null "http://127.0.0.1:$WEB_PORT/" && break; sleep 1; done
+  HEADERS=$(curl -s -D - -o "$WORK/index.html" "http://127.0.0.1:$WEB_PORT/")
+  grep -q '<div id="root">' "$WORK/index.html" && echo "ok: the built app is served"
+  [ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$WEB_PORT/dashboard")" = 200 ] && echo "ok: app routes fall back to the app (/dashboard)"
+  grep -qi "connect-src 'self' https://rehearsal.invalid;" <<<"$HEADERS" && echo "ok: the CSP allows exactly the API origin the build calls (PUBLIC_API_URL)"
+  grep -qi "x-frame-options: DENY" <<<"$HEADERS" && grep -qi "x-content-type-options: nosniff" <<<"$HEADERS" && echo "ok: framing and sniffing blocked"
+fi
 
 step "3. save work, then restart and recreate"
 TOKEN=$(curl -s -X POST "http://127.0.0.1:$PORT/api/v1/auth/register" -H 'Content-Type: application/json' \

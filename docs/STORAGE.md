@@ -165,6 +165,11 @@ ok: migrate job exited 0
 ok: API connects as codecoach_app; neither the owner's nor the superuser's password is in its environment
 Row-level security is enforced.
 Role codecoach_app owns nothing and can't create objects: a least-privilege app role.
+== 2b. the web service
+ok: the built app is served
+ok: app routes fall back to the app (/dashboard)
+ok: the CSP allows exactly the API origin the build calls (PUBLIC_API_URL)
+ok: framing and sniffing blocked
 == 3. save work, then restart and recreate
 ok: after an API restart
 ok: after the database container was removed and recreated
@@ -174,11 +179,14 @@ database stopped: /health/ready=503 /health=200
 database back: /health/ready=200
 ```
 
-Two caveats about that run:
-- The API image came from the repository's Dockerfile plus two lines that trust this sandbox's
-  network proxy for `pip` (`IMAGE=…`); CI builds the unmodified Dockerfile.
-- The `web` service wasn't started: its build needs the same proxy workaround for npm, and the
-  rehearsal is about storage.
+One caveat about that run: the API and web images came from the repository's Dockerfiles plus
+two lines each that trust this sandbox's network proxy, for `pip` and `npm` (`IMAGE=…`,
+`WEB_IMAGE=…`). CI builds the unmodified Dockerfiles.
+
+The web step found a real production bug. The web image's Content-Security-Policy hard-coded
+`connect-src 'self' http://localhost:8000`, so a browser on the real site would have blocked
+every call to `PUBLIC_API_URL`. The image now writes the API origin of its build into the policy.
+Only a plain http(s) origin is accepted: a malformed URL fails the build.
 
 ## Limits
 

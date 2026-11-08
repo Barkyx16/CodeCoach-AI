@@ -22,10 +22,11 @@ Steps:
 - worker interruption (a job claimed by a process that died): delivered once after its lease;
 - account deletion: the second account is unaffected.
 
-Two things differ from a real launch:
-- AUTH_RATE_LIMIT_PER_MINUTE is raised, so one script can run the journey;
-- the API is reached over plain HTTP, so the Secure refresh cookie isn't exercised; the journey
-  uses access tokens.
+One thing differs from a real launch: AUTH_RATE_LIMIT_PER_MINUTE is raised, so one script can
+run the journey. The API is served over HTTPS (uvicorn's own TLS, with the throwaway
+certificate), so the Secure refresh cookie works as it would behind a real https proxy. The
+refresh is checked after the restart, during and after the database outage, and after the
+password reset.
 """
 
 from __future__ import annotations
@@ -75,14 +76,34 @@ def sh(args: list[str], env: dict, check: bool = True) -> subprocess.CompletedPr
 
 
 class Api:
-    def __init__(self, env: dict):
-        self.env, self.port = env, free_port()
-        self.base = f"http://127.0.0.1:{self.port}"
+    """The API over HTTPS (uvicorn's own TLS, the rehearsal's throwaway certificate), so the
+    Secure refresh cookie behaves as it would behind a real https proxy."""
+
+    def __init__(self, env: dict, cert: tuple[Path, Path]):
+        self.env, self.port, self.cert = env, free_port(), cert
+        self.base = f"https://localhost:{self.port}"
         self.proc: subprocess.Popen | None = None
+
+    def client(self) -> httpx.Client:
+        return httpx.Client(base_url=self.base, timeout=10, verify=str(self.cert[0]))
+
+    def ready(self, timeout: float = 1) -> int:
+        return httpx.get(self.base + "/health/ready", timeout=timeout, verify=str(self.cert[0])).status_code
 
     def start(self) -> None:
         self.proc = subprocess.Popen(
-            [sys.executable, "-m", "uvicorn", "app.main:app", "--port", str(self.port)],
+            [
+                sys.executable,
+                "-m",
+                "uvicorn",
+                "app.main:app",
+                "--port",
+                str(self.port),
+                "--ssl-certfile",
+                str(self.cert[0]),
+                "--ssl-keyfile",
+                str(self.cert[1]),
+            ],  # fmt: skip
             cwd=BACKEND,
             env=self.env,
             stdout=subprocess.DEVNULL,
@@ -90,7 +111,7 @@ class Api:
         )
         for _ in range(150):
             try:
-                if httpx.get(self.base + "/health/ready", timeout=1).status_code == 200:
+                if self.ready() == 200:
                     return
             except httpx.HTTPError:
                 pass
@@ -222,9 +243,13 @@ def main() -> int:
         record("preflight has nothing blocked", not blocked, ", ".join(blocked))
 
         print("\n== journey")
-        api = Api(run_env)
+        api = Api(run_env, cert)
         api.start()
-        c = httpx.Client(base_url=api.base, timeout=10)
+        c, cb = api.client(), api.client()  # one per account: each holds its own session cookie
+        REFRESH = {"X-Requested-With": "codecoach"}
+
+        def refresh(client: httpx.Client) -> int:
+            return client.post("/api/v1/auth/refresh", headers=REFRESH).status_code
 
         def headers(token: str) -> dict:
             return {"Authorization": f"Bearer {token}"}
@@ -247,14 +272,14 @@ def main() -> int:
         ).json()
         record("save work", bool(note.get("id")))
 
-        b = c.post(
+        b = cb.post(
             "/api/v1/auth/register", json={"email": b_mail, "password": PASSWORD, "display_name": "Second"}
         ).json()["access_token"]
-        cross = c.get(f"/api/v1/me/notes/{note['id']}", headers=headers(b))
-        change = c.patch(
+        cross = cb.get(f"/api/v1/me/notes/{note['id']}", headers=headers(b))
+        change = cb.patch(
             f"/api/v1/me/notes/{note['id']}", headers=headers(b), json={"base_revision": 1, "title": "x"}
         )
-        listing = c.get("/api/v1/me/notes", headers=headers(b)).json()["items"]
+        listing = cb.get("/api/v1/me/notes", headers=headers(b)).json()["items"]
         record(
             "a second account can't see or change it",
             cross.status_code == 404 and change.status_code == 404 and listing == [],
@@ -264,19 +289,26 @@ def main() -> int:
         api.start()
         me = c.get("/api/v1/auth/me", headers=headers(a))
         kept = c.get(f"/api/v1/me/notes/{note['id']}", headers=headers(a))
+        after_restart = refresh(c)  # the Secure refresh cookie, over https
         record(
-            "restart (SIGKILL): still signed in, work intact",
-            me.status_code == 200 and kept.json().get("title") == "Owner's private note",
+            "restart (SIGKILL): still signed in (token and refresh cookie), work intact",
+            me.status_code == 200
+            and kept.json().get("title") == "Owner's private note"
+            and after_restart == 200,
         )
 
         c.post("/api/v1/auth/password-reset", json={"email": a_mail})
         token, _ = code_for(smtp, a_mail, after=1)
         r = c.post("/api/v1/auth/password-reset/confirm", json={"token": token, "new_password": NEW_PASSWORD})
+        stale_session = refresh(c)  # the reset ended every session, this one's cookie included
         old_pw = c.post("/api/v1/auth/login", json={"email": a_mail, "password": PASSWORD})
         login = c.post("/api/v1/auth/login", json={"email": a_mail, "password": NEW_PASSWORD})
         record(
             "recover with an emailed reset link",
-            r.status_code == 204 and old_pw.status_code == 401 and login.status_code == 200,
+            r.status_code == 204
+            and stale_session == 401
+            and old_pw.status_code == 401
+            and login.status_code == 200,
             "(a reset signs out every session, by design)",
         )
         a = login.json()["access_token"]
@@ -306,26 +338,30 @@ def main() -> int:
         )
 
         sh(["docker", "stop", container], dict(os.environ))  # database outage
-        during = httpx.get(api.base + "/health/ready", timeout=10).status_code
+        during = api.ready(timeout=10)
+        refresh_during = refresh(c)  # an outage must not end the session (the app keeps it on a 503)
         failed_write = c.post(
             "/api/v1/me/notes", headers=headers(a), json={"title": "during the outage"}
         ).status_code
         subprocess.run(["docker", "start", container], check=True, capture_output=True)
         for _ in range(120):
             try:
-                if httpx.get(api.base + "/health/ready", timeout=2).status_code == 200:
+                if api.ready(timeout=2) == 200:
                     break
             except httpx.HTTPError:
                 pass
             time.sleep(0.5)
         after = c.get(f"/api/v1/me/notes/{note['id']}", headers=headers(a))
+        refresh_after = refresh(c)
         record(
             "database outage: 503 while down, then back with nothing lost and nobody signed out",
             during == 503
             and failed_write >= 500
             and after.status_code == 200
-            and after.json()["title"] == "Owner's private note",
-            f"(ready={during}, write={failed_write} while down)",
+            and after.json()["title"] == "Owner's private note"
+            and refresh_during == 503
+            and refresh_after == 200,
+            f"(ready={during}, write={failed_write}, refresh={refresh_during} while down; refresh={refresh_after} after)",
         )
 
         d_mail = f"fourth-{suffix}@example.com"

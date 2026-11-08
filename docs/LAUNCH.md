@@ -46,7 +46,9 @@ secret's value appears).
 disposable and removed at the end:
 - PostgreSQL 16 in a docker container, with the roles made by `deploy/postgres-init/10-roles.sh`;
 - migrate, seed and grant run as the owner;
-- the API as its own process with `ENVIRONMENT=production`, connected as the app role;
+- the API as its own process with `ENVIRONMENT=production`, connected as the app role, served
+  over HTTPS (uvicorn's TLS with the throwaway certificate), so the Secure session cookie behaves
+  as behind a real https proxy;
 - a real SMTP conversation over STARTTLS with a verified (throwaway) certificate. No message
   leaves the machine.
 
@@ -78,10 +80,10 @@ PASS  preflight has nothing blocked
 PASS  sign up and verify with the emailed code
 PASS  save work
 PASS  a second account can't see or change it
-PASS  restart (SIGKILL): still signed in, work intact
+PASS  restart (SIGKILL): still signed in (token and refresh cookie), work intact
 PASS  recover with an emailed reset link  (a reset signs out every session, by design)
 PASS  mail outage: signed up meanwhile; the code arrives once when mail is back
-PASS  database outage: 503 while down, then back with nothing lost and nobody signed out  (ready=503, write=503 while down)
+PASS  database outage: 503 while down, then back with nothing lost and nobody signed out  (ready=503, write=503, refresh=503 while down; refresh=200 after)
 PASS  worker interruption: the claimed job is delivered once after its lease
 PASS  delete the account: gone, can't sign in, the second account unaffected
 10 passed, 0 failed. Container, keys, mail and processes removed.
@@ -97,9 +99,6 @@ a missing table, is still a 500 that gets logged and investigated (`test_storage
 What this rehearsal does **not** show:
 - **Real email.** The mail server is a local fake with a throwaway CA. Real delivery needs a
   provider account and a test send to an inbox you own.
-- **The Secure refresh cookie.** The API is reached over plain HTTP, so the journey uses access
-  tokens. The cookie path is covered by the browser tests over HTTP in development, and needs a
-  TLS proxy to check in production mode.
 - **Launch-day rate limits.** `AUTH_RATE_LIMIT_PER_MINUTE` is raised so one script can sign up
   several accounts.
 - **A real host.** No CDN, load balancer, managed database or failover.
