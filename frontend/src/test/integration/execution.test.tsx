@@ -14,7 +14,8 @@ describe("Code execution states", () => {
   it("a configured but unreachable judge pauses Run, keeps Submit (queued), and shows developer help", async () => {
     server.use(caps("unavailable", "The API can't reach RUNNER_URL. See docs/REMOTE_JUDGE.md."));
     const { user } = renderApp("/problems/two-sum", { signedIn: true });
-    const banner = await screen.findByText("The code judge is temporarily unavailable.");
+    // The problem page is lazy: the first test in the file also pays its cold import.
+    const banner = await screen.findByText("The code judge is temporarily unavailable.", {}, { timeout: 3000 });
     const box = banner.closest("[role=status]") as HTMLElement;
     expect(box).toHaveTextContent("Submissions wait in the queue and are judged when it's back; Run is paused.");
     expect(screen.queryByRole("button", { name: "Run" })).not.toBeInTheDocument();
@@ -26,7 +27,7 @@ describe("Code execution states", () => {
   it("a ready judge shows Run and Submit and no warning", async () => {
     server.use(caps("ready"));
     renderApp("/problems/two-sum", { signedIn: true });
-    expect(await screen.findByRole("button", { name: "Run" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Run" }, { timeout: 3000 })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Submit/ })).toBeInTheDocument();
     expect(screen.queryByText(/temporarily unavailable|can't run on this server/)).not.toBeInTheDocument();
   });
@@ -42,7 +43,7 @@ describe("Code execution states", () => {
       return HttpResponse.json({ ...queuedSubmission, execution_enabled: true }, { status: 202 });
     }));
     const { user } = renderApp("/problems/two-sum", { signedIn: true });
-    await user.click(await screen.findByRole("button", { name: /^Submit/ }));
+    await user.click(await screen.findByRole("button", { name: /^Submit/ }, { timeout: 3000 }));
     const alert = await screen.findByText(/We couldn't confirm your submission because the connection dropped/);
     await user.click(within(alert.closest("[role=alert]") as HTMLElement).getByRole("button", { name: "Try again" }));
     await waitFor(() => expect(ids).toHaveLength(2));
@@ -64,7 +65,7 @@ describe("Code execution states", () => {
       }),
     );
     renderApp("/problems/two-sum", { signedIn: true });
-    expect(await screen.findByText("Running your code against the tests…")).toBeInTheDocument();
+    expect(await screen.findByText("Running your code against the tests…", {}, { timeout: 3000 })).toBeInTheDocument();
     expect(await screen.findByText("All tests passed. Nice work.", {}, { timeout: 4000 })).toBeInTheDocument();
   });
 });
