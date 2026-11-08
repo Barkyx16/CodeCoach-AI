@@ -43,6 +43,8 @@ REPO = BACKEND.parent
 ADMIN_URL = os.environ.get("TEST_DATABASE_ADMIN_URL")
 PREVIOUS = "b165a5a80342"  # the revision before this code's head
 PASSWORD = "CorrectHorse42"
+# Nothing listens on port 1: every connection is refused at once.
+UNREACHABLE = "postgresql+psycopg://127.0.0.1:1/none?connect_timeout=1"
 
 needs_admin = pytest.mark.skipif(
     not ADMIN_URL, reason="needs TEST_DATABASE_ADMIN_URL (creates disposable databases and roles)"
@@ -414,7 +416,7 @@ def test_an_older_schema_upgrades_in_place_and_a_failed_migration_changes_nothin
 def test_readiness_is_503_while_the_database_is_unreachable_and_200_once_it_answers(
     make_settings, database_url
 ):
-    unreachable = "postgresql+psycopg://nobody:nothing@127.0.0.1:1/none?connect_timeout=1"
+    unreachable = UNREACHABLE
     with TestClient(create_app(make_settings(database_url=unreachable, auto_migrate=False))) as client:
         r = client.get("/health/ready")
         assert (r.status_code, r.json()["checks"]) == (503, {"database": "fail"})
@@ -543,9 +545,9 @@ def test_copy_from_sqlite_into_a_migrated_postgresql_database(rehearsal, make_se
 
 
 def test_requests_while_the_database_is_unreachable_get_a_retryable_503(make_settings):
-    unreachable = "postgresql+psycopg://nobody:nothing@127.0.0.1:1/none?connect_timeout=1"
+    unreachable = UNREACHABLE
     with TestClient(create_app(make_settings(database_url=unreachable, auto_migrate=False))) as client:
         r = client.post("/api/v1/auth/login", json={"email": "ada@example.com", "password": PASSWORD})
         assert r.status_code == 503 and r.json()["error"]["code"] == "database_unavailable"
         assert r.headers["Retry-After"] == "5"
-        assert "nothing" not in r.text and "127.0.0.1" not in r.text  # no connection details
+        assert "127.0.0.1" not in r.text and "none" not in r.text  # no connection details
