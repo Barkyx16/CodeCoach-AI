@@ -304,22 +304,34 @@ def main(argv: list[str]) -> int:
                 else timedelta(hours=24),
                 apply=apply,
             )
-        except (FileNotFoundError, ValueError) as exc:
+        except ValueError as exc:
             print(f"Not pruned: {exc}")
             return 2
+        except OSError as exc:  # an unreadable folder is never treated as an empty one
+            print(f"Not pruned: the backup folder couldn't be listed ({type(exc).__name__}): {exc}")
+            return 1
         for kept, why in sorted(prune_plan.keep.items(), key=lambda kv: kv[0].stamp, reverse=True):
             print(f"keep    {kept.name}  ({', '.join(why)})")
-        for gone in prune_plan.delete:
-            print(f"{'deleted' if apply else 'delete '} {gone.name}")
-        for half in prune_plan.incomplete:
-            print(f"left    {half.name}  (half a pair: not deleted; check it by hand)")
+        for held, reason in sorted(prune_plan.held.items(), key=lambda kv: kv[0].stamp, reverse=True):
+            print(f"held    {held.name}  ({reason}: never deleted; look at it by hand)")
         for path in prune_plan.other:
-            print(f"left    {path.name}  (not a backup this command made)")
+            print(f"left    {path.name}  (not a backup this command manages, e.g. a named one)")
+        if prune_plan.refused:
+            print(f"Nothing deleted: {prune_plan.refused}")
+            return 1
+        failed = {name for name, _ in prune_plan.failed}
+        for gone in prune_plan.delete:
+            removed = apply and f"{gone.name}.dump.age" not in failed
+            print(f"{'deleted' if removed else 'delete '} {gone.name}")
+        for name, error in prune_plan.failed:
+            print(f"FAILED  couldn't delete {name} ({error})")
         verb = "Deleted" if apply else "Would delete"
         print(
-            f"Kept {len(prune_plan.keep)}. {verb} {len(prune_plan.delete)}.{'' if apply else ' Dry run: pass --apply.'}"
+            f"Kept {len(prune_plan.keep)}. {verb} {len(prune_plan.delete) - len(failed)}."
+            f"{'' if apply else ' Dry run: pass --apply.'}"
+            + (f" {len(prune_plan.held)} held." if prune_plan.held else "")
         )
-        return 0
+        return 1 if prune_plan.failed else 0
     if command == "check-backups":
         from datetime import timedelta
 
@@ -333,7 +345,7 @@ def main(argv: list[str]) -> int:
             backup_health = check_backups(
                 Path(argv[argv.index("--dir") + 1]), timedelta(hours=hours), verify_all="--all" in argv
             )
-        except FileNotFoundError as exc:
+        except OSError as exc:
             print(f"FAIL  {exc}")
             return 1
         for note in backup_health.notes:

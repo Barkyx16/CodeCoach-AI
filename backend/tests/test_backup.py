@@ -101,7 +101,15 @@ def test_a_backup_restores_into_a_separate_database_and_the_app_runs_on_it(
     assert b"ada@example.com" not in made.dump.read_bytes()  # encrypted, not just compressed
     assert "ada@example.com" not in made.manifest.read_text()  # the manifest holds no user data
 
+    assert manifest["encrypted_bytes"] == made.dump.stat().st_size  # cheap completeness check
+    assert not list(made.dump.parent.glob(".*partial"))  # the manifest was renamed into place
+
     done = restore(made.dump, identity, empty_target, live_url=source.owner_url)
+    from app.db.backup import RESTORE_LOG
+
+    record = json.loads((made.dump.parent / RESTORE_LOG).read_text())[-1]
+    assert record["backup"] == made.dump.name.removesuffix(".dump.age") and record["rows"] == done.rows
+    assert "ada@example.com" not in (made.dump.parent / RESTORE_LOG).read_text()
     assert done.schema == "current" and done.rows == sum(manifest["tables"].values())
     with capsys.disabled():
         print(
@@ -225,6 +233,17 @@ def test_a_backup_never_overwrites_one_and_a_failed_dump_keeps_nothing(source, k
     with pytest.raises(Exception):  # noqa: B017 - connection refused before anything is written
         backup(broken, tmp_path / "c", recipients)
     assert not list((tmp_path / "c").glob("*.dump.age"))
+
+
+def test_a_backup_that_cant_encrypt_fails_and_keeps_nothing(source, tmp_path):
+    """age exits at once with no usable key, so writing into its pipe breaks. Before the fix, that
+    BrokenPipeError skipped the cleanup and left a partial dump. The next restore picked it up as
+    the newest backup (found by the compose rehearsal)."""
+    empty = tmp_path / "no-keys.txt"
+    empty.write_text("")
+    with pytest.raises(BackupError, match="nothing kept"):
+        backup(source.owner_url, tmp_path / "b", empty)
+    assert not [p for p in (tmp_path / "b").iterdir()]
 
 
 def test_a_pg_dump_that_doesnt_match_the_server_is_refused_before_anything_is_written(

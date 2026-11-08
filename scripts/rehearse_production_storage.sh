@@ -19,8 +19,9 @@
 #      and `docker compose down` followed by `up`.
 #   4. Readiness: 503 while the database is stopped, 200 again once it's back.
 #   5. The scheduled backup (`--profile backup run --rm backup`), twice: each run backs up as the
-#      owner, prunes and checks. The API can't see the backups. The newest restores into a separate
-#      database with a key that the server never holds, and the saved note is in the copy.
+#      owner, prunes and checks; a run that can't encrypt fails. The API can't see the backups. The
+#      newest restores into a separate database with a key the server never holds; the app then runs
+#      on that copy as its app role (sign-in, own notes only); a damaged backup is refused.
 # Everything runs under its own project and volume names (codecoach_rehearsal*), and only those are
 # removed at the end. A production volume (codecoach_pgdata) is never touched.
 set -euo pipefail
@@ -97,7 +98,7 @@ step() { printf '\n== %s\n' "$*"; }
 api() { curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT$1"; }
 wait_ready() { for _ in $(seq 1 60); do [ "$(api /health/ready)" = 200 ] && return 0; sleep 1; done; echo "API not ready"; dc logs api | tail -20; return 1; }
 
-cleanup() { dc --profile backup down -v --remove-orphans >/dev/null 2>&1 || true; }   # this rehearsal's project and volumes only
+cleanup() { docker stop codecoach_rehearsal_restored_api >/dev/null 2>&1 || true; dc --profile backup down -v --remove-orphans >/dev/null 2>&1 || true; }   # this rehearsal's project and volumes only
 trap 'cleanup; rm -rf "$WORK" deploy/.env.app deploy/.rehearsal.override.yml' EXIT
 
 step "1. start db, migrate (owner) and api (app role)"
@@ -139,6 +140,11 @@ TOKEN=$(curl -s -X POST "http://127.0.0.1:$PORT/api/v1/auth/register" -H 'Conten
 NOTE=$(curl -s -X POST "http://127.0.0.1:$PORT/api/v1/me/notes" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d '{"title":"Survives restarts","body":"synthetic"}' | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
 echo "saved note $NOTE"
+# A second account with its own note: after a restore, each must still see only its own.
+TOKEN_B=$(curl -s -X POST "http://127.0.0.1:$PORT/api/v1/auth/register" -H 'Content-Type: application/json' \
+  -d '{"email":"rehearsal-b@example.com","password":"CorrectHorse42","display_name":"Rehearsal B"}' | python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')
+NOTE_B=$(curl -s -X POST "http://127.0.0.1:$PORT/api/v1/me/notes" -H "Authorization: Bearer $TOKEN_B" -H 'Content-Type: application/json' \
+  -d '{"title":"B only","body":"synthetic"}' | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
 has_note() {
   local t
   t=$(curl -s -X POST "http://127.0.0.1:$PORT/api/v1/auth/login" -H 'Content-Type: application/json' \
@@ -168,6 +174,14 @@ for night in 1 2; do
   sleep 1   # backups are named to the second
 done
 must() { grep -q "$1" <<<"$2" || { echo "FAIL: expected \"$1\" in:"; grep -v '^ Container' <<<"$2"; exit 1; }; }
+# The compatibility matrix, from the tools themselves (no credentials in any of it).
+echo "versions: server $(dc exec -T db psql -U postgres -tAc 'SHOW server_version' | tr -d '\r') ·" \
+  "$(bk --no-deps --entrypoint sh backup -c 'pg_dump --version; pg_restore --version; printf "age "; age --version' 2>/dev/null | tr '\n' ' ')"
+# A failing job must fail the run, not report success: here, no usable public key.
+cp "$WORK/recipients.txt" "$WORK/recipients.good"; : >"$WORK/recipients.txt"
+if bk backup >/dev/null 2>&1; then echo "FAIL: the backup job exited 0 without a usable key"; exit 1; fi
+cp "$WORK/recipients.good" "$WORK/recipients.txt"
+echo "ok: a backup job that can't encrypt exits non-zero (the scheduler's alert fires)"
 must "^Backup written" "$OUT"; must "^Kept 2\. Deleted 0\." "$OUT"; must "^OK " "$OUT"
 echo "ok: two runs of the backup job: each backed up as the owner, pruned (kept 2) and checked"
 if dc exec -T api sh -c 'test -e /backups'; then echo "FAIL: the API container can see the backups"; exit 1; fi
@@ -182,9 +196,44 @@ echo "ok: the newest backup restored into a separate database; row counts and po
 [ "$(dc exec -T db psql -U postgres -d codecoach_restored -tAc "SELECT count(*) FROM notes WHERE id = '$NOTE'")" = 1 ] \
   || { echo "FAIL: the saved note isn't in the restored copy"; exit 1; }
 echo "ok: the saved note is in the restored copy"
+OUT_CHECK=$(bk backup python -m app.cli check-backups --dir /backups 2>&1) || { echo "FAIL: check-backups after the restore"; echo "$OUT_CHECK"; exit 1; }
+must "restore rehearsal: 0 days ago" "$OUT_CHECK"
+echo "ok: check-backups now reports when recovery was last rehearsed"
+
+# The app itself on the restored copy, as its least-privilege role: sign-in, data, isolation.
+RPORT=$((PORT + 1))
+export DATABASE_URL="postgresql+psycopg://codecoach_app:$APP@db:5432/codecoach_restored"
+dc run -d --rm --no-deps --name codecoach_rehearsal_restored_api -p "127.0.0.1:$RPORT:8000" -e DATABASE_URL api >/dev/null 2>&1
+unset DATABASE_URL
+for _ in $(seq 1 60); do [ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$RPORT/health/ready")" = 200 ] && break; sleep 1; done
+[ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$RPORT/health/ready")" = 200 ] || { echo "FAIL: the API on the restored copy isn't ready"; docker logs codecoach_rehearsal_restored_api 2>&1 | tail -5; exit 1; }
+docker exec codecoach_rehearsal_restored_api python -m app.cli check-rls --strict >/dev/null || { echo "FAIL: check-rls --strict on the restored copy"; exit 1; }
+T_A=$(curl -s -X POST "http://127.0.0.1:$RPORT/api/v1/auth/login" -H 'Content-Type: application/json' \
+  -d '{"email":"rehearsal@example.com","password":"CorrectHorse42"}' | python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')
+LIST_A=$(curl -s "http://127.0.0.1:$RPORT/api/v1/me/notes" -H "Authorization: Bearer $T_A")
+grep -q "$NOTE" <<<"$LIST_A" && ! grep -q "$NOTE_B" <<<"$LIST_A" || { echo "FAIL: account A's notes on the restored copy"; exit 1; }
+[ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$RPORT/api/v1/me/notes/$NOTE_B" -H "Authorization: Bearer $T_A")" = 404 ] \
+  || { echo "FAIL: account A can reach B's note on the restored copy"; exit 1; }
+echo "ok: the app runs on the restored copy as its app role: check-rls --strict, sign-in, own notes only, B's note 404"
+echo "outbox on the restored copy: $(dc exec -T db psql -U postgres -d codecoach_restored -tAc "SELECT coalesce(string_agg(status || '=' || n, ' '), 'empty') FROM (SELECT status, count(*) n FROM email_jobs GROUP BY status ORDER BY status) s" | tr -d '\r')"
+docker stop codecoach_rehearsal_restored_api >/dev/null 2>&1 || true
+
+# A damaged backup is refused before anything is written.
+bk --no-deps --entrypoint sh backup -c "cp '$NEWEST' /backups/codecoach-damaged.dump.age && cp '${NEWEST%.dump.age}.manifest.json' /backups/codecoach-damaged.manifest.json && printf 'x' | dd of=/backups/codecoach-damaged.dump.age bs=1 seek=100 conv=notrunc 2>/dev/null" 2>/dev/null
+dc exec -T db createdb -U postgres -O codecoach_owner codecoach_restored_twice
+export RESTORE_DATABASE_URL="postgresql+psycopg://codecoach_owner:$OWNER@db:5432/codecoach_restored_twice"
+if DAMAGED=$(bk -e RESTORE_DATABASE_URL -v "$WORK/identity.txt:/run/identity.txt:ro" backup \
+  python -m app.cli restore-database /backups/codecoach-damaged.dump.age --identity /run/identity.txt 2>&1); then
+  echo "FAIL: a damaged backup restored"; exit 1
+fi
+must "damaged or incomplete" "$DAMAGED"
+[ "$(dc exec -T db psql -U postgres -d codecoach_restored_twice -tAc "SELECT count(*) FROM pg_tables WHERE schemaname = 'public'" | tr -d '\r')" = 0 ] \
+  || { echo "FAIL: the refused restore wrote something"; exit 1; }
+echo "ok: a damaged backup is refused, and its target stays empty"
 for secret in "$OWNER" "$SUPER" "$APP"; do
-  grep -qF "$secret" <<<"$OUT$RESTORED" && { echo "FAIL: a password in the output"; exit 1; }
+  grep -qF "$secret" <<<"$OUT$RESTORED$OUT_CHECK$DAMAGED" && { echo "FAIL: a password in the output"; exit 1; }
 done
+grep -q "AGE-SECRET-KEY" <<<"$OUT$RESTORED$OUT_CHECK$DAMAGED" && { echo "FAIL: the private key in the output"; exit 1; }
 echo "ok: no password in the backup or restore output"
 
 step "done: removing this rehearsal's containers and its volumes (codecoach_rehearsal_pgdata, codecoach_rehearsal_backups)"

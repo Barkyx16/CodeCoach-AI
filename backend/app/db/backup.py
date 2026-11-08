@@ -56,6 +56,9 @@ from sqlalchemy import create_engine, inspect, make_url, text
 from sqlalchemy.engine import Connection, Engine
 
 CHUNK = 1 << 20
+# Successful restores are recorded next to the backups they came from, so `check-backups` can say
+# when recovery was last rehearsed. Not a backup: pruning never touches it.
+RESTORE_LOG = "codecoach-restores.json"
 
 
 class BackupError(RuntimeError):
@@ -182,28 +185,66 @@ class _Hash:
 def _dump_to(
     pg_dump: str, age: str, database_url: str, recipients: Path, dump_file: Path, snapshot: str, plain: _Hash
 ) -> None:
-    with dump_file.open("xb") as out:
-        encrypt = subprocess.Popen(
-            [age, "--encrypt", "-R", str(recipients)], stdin=subprocess.PIPE, stdout=out
+    """Stream pg_dump through age into `dump_file`. On ANY failure (pg_dump, age, a broken pipe
+    because one of them died, an exception here) nothing is kept: the partial file is deleted and
+    both processes are reaped. A partial dump left behind would look like the newest backup."""
+    kept = False
+    dump_err = age_err = ""
+    dump_rc = encrypt_rc = -1
+    broken = False
+    try:
+        with dump_file.open("xb") as out:
+            encrypt = subprocess.Popen(
+                [age, "--encrypt", "-R", str(recipients)],
+                stdin=subprocess.PIPE,
+                stdout=out,
+                stderr=subprocess.PIPE,
+            )
+            # --enable-row-security: the tables FORCE row-level security, so a plain pg_dump as their
+            # owner is refused. With no RLS scope set the owner sees every row (db/rls.py).
+            dump = subprocess.Popen(
+                [
+                    pg_dump,
+                    "--format=custom",
+                    "--enable-row-security",
+                    "--no-password",
+                    f"--snapshot={snapshot}",
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=_libpq_env(database_url),
+            )
+            assert dump.stdout and encrypt.stdin
+            try:
+                try:
+                    while chunk := dump.stdout.read(CHUNK):
+                        plain.update(chunk)
+                        encrypt.stdin.write(chunk)
+                except BrokenPipeError:  # age exited early (no usable key, disk full, ...)
+                    broken = True
+                try:
+                    encrypt.stdin.close()
+                except BrokenPipeError:
+                    broken = True
+            finally:
+                if dump.poll() is None and broken:
+                    dump.kill()
+                dump_err = dump.stderr.read().decode(errors="replace") if dump.stderr else ""
+                age_err = encrypt.stderr.read().decode(errors="replace") if encrypt.stderr else ""
+                dump_rc, encrypt_rc = dump.wait(), encrypt.wait()
+        kept = dump_rc == 0 and encrypt_rc == 0 and not broken
+    finally:
+        if not kept:
+            dump_file.unlink(missing_ok=True)
+    if not kept:
+        # The first real cause: age's message when it failed (it names files, never keys), else
+        # pg_dump's. Never the database URL: it reaches pg_dump through the environment only.
+        source = age_err if (encrypt_rc != 0 or broken) and age_err.strip() else dump_err
+        detail = (
+            source.strip().splitlines()[-1]
+            if source.strip()
+            else f"pg_dump exited {dump_rc}, age exited {encrypt_rc}"
         )
-        # --enable-row-security: the tables FORCE row-level security, so a plain pg_dump as their
-        # owner is refused. With no RLS scope set the owner sees every row (db/rls.py).
-        dump = subprocess.Popen(
-            [pg_dump, "--format=custom", "--enable-row-security", "--no-password", f"--snapshot={snapshot}"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env=_libpq_env(database_url),
-        )
-        assert dump.stdout and encrypt.stdin
-        while chunk := dump.stdout.read(CHUNK):
-            plain.update(chunk)
-            encrypt.stdin.write(chunk)
-        encrypt.stdin.close()
-        dump_err = dump.stderr.read().decode(errors="replace") if dump.stderr else ""
-        dump_rc, encrypt_rc = dump.wait(), encrypt.wait()
-    if dump_rc != 0 or encrypt_rc != 0:
-        dump_file.unlink(missing_ok=True)
-        detail = dump_err.strip().splitlines()[-1] if dump_err.strip() else f"age exited {encrypt_rc}"
         raise BackupError(f"backup failed, nothing kept: {detail}")
 
 
@@ -255,6 +296,7 @@ def backup(database_url: str, out_dir: Path, recipients_file: Path, name: str | 
         "created_at": datetime.now(UTC).isoformat(),
         "dump_file": dump_file.name,
         "encrypted_sha256": _sha256(dump_file),
+        "encrypted_bytes": dump_file.stat().st_size,
         "plaintext_sha256": plain.hexdigest(),
         "plaintext_bytes": plain.plain_bytes,
         "pg_dump_version": subprocess.run(
@@ -263,7 +305,11 @@ def backup(database_url: str, out_dir: Path, recipients_file: Path, name: str | 
         **inventory,
     }
     manifest = manifest_path(dump_file)
-    manifest.write_text(json.dumps(data, indent=2) + "\n")
+    # The manifest is the completion marker: written under a temporary name (which pruning never
+    # touches), then renamed, so nobody ever sees half a manifest.
+    partial = manifest.with_name("." + manifest.name + ".partial")
+    partial.write_text(json.dumps(data, indent=2) + "\n")
+    os.replace(partial, manifest)
     return Backup(dump_file, manifest, time.monotonic() - started, data)
 
 
@@ -437,4 +483,31 @@ def restore(
             "the backup's schema is older than this code: run `alembic upgrade head` on the restored copy"
         )
     timings["total"] = time.monotonic() - t0
-    return Restored(timings, len(after["tables"]), sum(after["tables"].values()), schema, notes)
+    rows = sum(after["tables"].values())
+    if not _record_restore(dump_file, len(after["tables"]), rows, schema):
+        notes.append(f"couldn't record this rehearsal in {RESTORE_LOG} (the backup folder is read-only?)")
+    return Restored(timings, len(after["tables"]), rows, schema, notes)
+
+
+def _record_restore(dump_file: Path, tables: int, rows: int, schema: str) -> bool:
+    """Append this restore to the backup folder's log (no user data: names and counts)."""
+    log = dump_file.parent / RESTORE_LOG
+    try:
+        records = json.loads(log.read_text()) if log.exists() else []
+        if not isinstance(records, list):
+            records = []
+        records.append(
+            {
+                "restored_at": datetime.now(UTC).isoformat(),
+                "backup": dump_file.name.removesuffix(".dump.age"),
+                "tables": tables,
+                "rows": rows,
+                "schema": schema,
+            }
+        )
+        partial = log.with_name("." + log.name + ".partial")
+        partial.write_text(json.dumps(records[-50:], indent=2) + "\n")
+        os.replace(partial, log)
+        return True
+    except (OSError, ValueError):
+        return False

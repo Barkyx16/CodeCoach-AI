@@ -75,7 +75,9 @@ DATABASE_URL=postgresql+psycopg://codecoach_owner:…@host:5432/codecoach \
 
 - The plaintext never touches the disk: the dump is hashed and encrypted as it streams.
 - A backup never overwrites another.
-- A failed dump keeps nothing.
+- A failed dump keeps nothing, whatever fails: `pg_dump`, `age` (e.g. no usable key) or the pipe
+  between them. The compose rehearsal found that an `age` failure used to leave a partial dump
+  behind, and the next restore picked it as the newest backup. Fixed, with a regression test.
 - Before an upgrade or a risky change, make one by name: `--name pre-upgrade-20261108`. Pruning
   never touches a named backup; delete it yourself when it's no longer needed.
 
@@ -102,20 +104,41 @@ cp recipients.txt deploy/backup-recipients.txt
 webhook. None is configured: that depends on the host. A systemd timer works the same way, with
 `OnFailure=` for the alert.
 
-**Retention** (`prune-backups`; a dry run unless `--apply`):
-- the newest backup, and every backup made in the 24 hours before it (`--keep-within-hours`);
-- the newest of each of the last 7 days, 4 ISO weeks and 3 months that have a backup
-  (`--keep-daily`, `--keep-weekly`, `--keep-monthly`).
+**Retention contract** (`prune-backups`; a dry run unless `--apply`):
 
-It counts backups, not the calendar. If backups stop, nothing more expires while they're stopped.
-It only manages `codecoach-<UTC time>` pairs. A named backup, half a pair, or any other file is
-listed and left alone. A backup's dump is deleted before its manifest, so an interrupted prune
-never leaves something that looks complete.
+| Question | Answer |
+|---|---|
+| What's managed | Only `codecoach-<UTC time>.dump.age` + `.manifest.json` pairs that `backup-database` named. |
+| What's never deleted | A named backup (`--name …`: the way to pin one), any other file, a symlink (even one named like a backup; its target is never touched), a temporary file, and the restore log. |
+| What counts as usable | Both files are regular files. The manifest is readable, of this format, and names this dump. The dump is exactly the size the manifest records (every backup since that check exists). The stamp isn't more than 10 minutes in the future. |
+| What isn't usable | It's **held**: never deleted, never the reference point, and listed by `prune-backups` and `check-backups`. A half-written, truncated, garbled or future-dated artifact can't move the cutoff and erase good backups. |
+| Time source | The UTC stamp in the name: the backing-up machine's clock when the backup started. Periods are UTC days, ISO weeks and months. |
+| What's kept | The newest usable backup; every one made at most 24 h before it (inclusive: exactly 24 h is kept; `--keep-within-hours`); the newest of each of the last 7 days, 4 weeks and 3 months that have a backup. |
+| Minimum | `--keep-daily` can't be below 1, so a typo can't shrink retention to a single backup. |
+| Before deleting | The newest backup's hash is checked. If it doesn't match its manifest, nothing at all is deleted. |
+| Failures | A folder that can't be listed is an error, never an empty store. A file that can't be deleted is named, and the command exits 1. A dump goes before its manifest, so an interrupted prune never leaves something that looks complete. |
+| Concurrency | `backup-database` writes the dump first and the manifest last, under a temporary name and then renamed. A backup being written is half a pair, so it's held. A prune only deletes what it saw complete when it started. |
 
-**Checks** (`check-backups --dir DIR [--max-age-hours 26] [--all]`, exit 1 on a problem):
-- the newest backup is under 26 hours old;
-- its manifest is readable;
-- the encrypted file's SHA-256 matches the manifest. A truncated or damaged copy fails.
+It counts backups, not the calendar: if backups stop, nothing more expires while they're stopped.
+Named backups grow the folder until deleted by hand. `check-backups` prints how much space the
+managed and the other files take. Every rule above has a test (`tests/test_backup_store.py`):
+- either side of the 24 h cutoff and exactly on it;
+- a future date;
+- partial and garbled files;
+- a damaged newest backup;
+- a backup completing during a prune;
+- a failed deletion;
+- an unreadable folder;
+- symlinks.
+
+**Checks** (`check-backups --dir DIR [--max-age-hours 26] [--all]`, exit 1 on a problem). It
+reports three things separately:
+- **recency**: the newest *usable* backup is under 26 hours old. A newer artifact that isn't
+  usable (last night's, truncated) and a future-dated one are problems: before this, one
+  backup stamped by a wrong clock made the check pass forever;
+- **integrity**: that backup's SHA-256 matches its manifest. A truncated or damaged copy fails;
+- **the last restore rehearsal** recorded in the folder (`codecoach-restores.json`, written by
+  `restore-database`). It warns when that's older than a month, but doesn't fail the night.
 
 `--all` checks every backup's hash. Run it against an off-site copy after downloading it. It
 decrypts nothing, so passing isn't recovery: rehearse a restore monthly (below).
@@ -165,6 +188,15 @@ The restore:
 - confirms row-level security is in place on every protected table;
 - reports the schema state. If the backup is older than the code, run `alembic upgrade head` on
   the copy next.
+
+The restore records itself in the backup folder (`codecoach-restores.json`: the time, the
+backup's name, table and row counts; no user data). So `check-backups` can say when recovery was
+last rehearsed.
+
+**The restored copy's outbox.** Emails that were still pending when the backup was taken are in
+the copy, and the app will try them when it starts. In the rehearsal: two verification emails.
+Before switching, run `python -m app.cli email-status` against the copy and decide whether
+those are still wanted.
 
 **4. Before switching anyone to it:**
 - start the app against the copy, as the app role: `check-rls --strict` and `/health/ready`;
@@ -229,13 +261,29 @@ And the backup folder (`tests/test_backup_store.py`, plain files, runs everywher
 All verified locally on PostgreSQL 16; in CI once pushed (`TEST_DATABASE_ADMIN_URL` is set
 there).
 
-The whole scheduled path ran in the production compose rehearsal
-(`scripts/rehearse_production_storage.sh`, step 5). Two runs of the `backup` service each backed
-up as the owner, pruned and checked. The API container had no backups volume. The newest backup
-restored into a separate database with a key the server never held, with the rehearsal's saved
-note in it, and no password appeared in any output. In this sandbox the image's `pg_dump` and
-`age` came from the host (`pg_dump` 16), because the package mirror isn't reachable from here.
-CI builds the real `backup` stage and runs the same rehearsal.
+The whole scheduled path runs in the production compose rehearsal
+(`scripts/rehearse_production_storage.sh`, step 5):
+1. two runs of the `backup` service, each backing up as the owner, pruning and checking;
+2. a run that can't encrypt (no usable key) exits non-zero, so the scheduler's alert would fire;
+3. the API container has no backups volume;
+4. the newest backup restores into a separate database with a key the server never held;
+5. `check-backups` then reports the rehearsal;
+6. the **app itself starts on the restored copy as its app role**: `check-rls --strict` passes,
+   account A signs in and sees its own note, and account B's note is a 404;
+7. a damaged copy of the backup is refused, and its target database stays empty;
+8. no password and no private key appears in any output.
+
+Compatibility matrix (each line is from the tools' own output):
+
+| Where | Server | `pg_dump` / `pg_restore` | `age` | Result |
+|---|---|---|---|---|
+| This sandbox, 2026-11-08 (tools copied from the host into a sandbox-only image) | 16.15 | 16.15 (Ubuntu) | 1.1.1 | every step passes |
+| CI run 231 on `6d9911b` (the real stage, Debian's client) | 16 (postgres:16-alpine) | 17 | Debian's | **restore failed**: `SET transaction_timeout` |
+| CI run 233 on `a60edca` (the real stage, PGDG client pinned to 16) | 16 | 16 (exact-major check passed) | Debian's | steps 1–5 of that version of the rehearsal pass; steps 6–8 were added after it and run in CI with the next push |
+| Locally, PostgreSQL 17's own tools against our 16 | 16.15 | 17.11 | — | `pg_restore` 17 → 16 fails (`transaction_timeout`); `pg_restore` 16 can't read the 17 archive |
+
+The sandbox image is a stand-in: its tools were copied from this machine, because the package
+mirrors aren't reachable from here. Only CI's runs prove the image that would actually ship.
 
 CI's first run of it found a real defect. The stage installed Debian's `postgresql-client`,
 which is version 17. Its backups of the 16 server succeeded, but the restore failed with
