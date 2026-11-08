@@ -6,8 +6,19 @@ State machine (status)                Phase arc while IN_PROGRESS
          └──abandon────▶ ABANDONED         and a phase auto-advances after 3 candidate turns)
 
 Rules
-- One interview in progress per user (starting another returns 409 with the active id).
+- One interview in progress per user, of either kind. The database enforces it (a partial unique
+  index), so two Starts at once can't both succeed. Starting another returns 409
+  `interview_in_progress` with the active interview's id and what's needed to recognize and resume
+  it (kind, title, progress, time left, last activity), before any AI call is made.
 - Time limits are enforced on the server; expiry is applied lazily on the next read or write.
+- Moving out of in_progress (finish, abandon, expiry) is one compare-and-set: if two requests
+  close the same interview at once, one runs the evaluation and the other returns its result.
+- Each turn has a unique position (session_id, seq), so two answers sent at once from two tabs
+  can't both be stored. A coding message can carry the transcript length it was written against
+  (`after_seq`): if the interview moved on since (another tab or device), it's refused with 409
+  `interview_advanced` rather than appended out of context. Its `client_request_id` makes a resend
+  of the same message (a response lost after the server accepted it) return the current state
+  instead of a second reply.
 - Every interviewer turn uses the user's AI budget. The final evaluation always runs (falling
   back to the offline scorer when the budget is used up) so a learner never loses feedback for
   a finished session.
@@ -20,8 +31,10 @@ deadline and one-active-interview rules; they have no phases and make no AI call
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app import tracing
@@ -118,45 +131,67 @@ class InterviewService:
 
     # --- commands ---------------------------------------------------------------------
 
-    def start(self, user: User, body: InterviewStart) -> InterviewOut:
-        active = self.db.scalar(
-            select(PracticeSession).where(
+    def _live(self, user: User) -> PracticeSession | None:
+        return self.db.scalar(
+            select(PracticeSession)
+            .options(selectinload(PracticeSession.turns), selectinload(PracticeSession.problem))
+            .where(
                 PracticeSession.user_id == user.id,
                 PracticeSession.mode.in_(INTERVIEW_MODES),
                 PracticeSession.status == InterviewStatus.IN_PROGRESS,
             )
         )
+
+    def _in_progress(self, session: PracticeSession) -> ConflictError:
+        """The 409 for a Start while another interview is live: enough to recognize and resume it."""
+        return ConflictError(
+            "You already have an interview in progress. Resume it, or end it to start another.",
+            code="interview_in_progress",
+            details={
+                "interview_id": session.id,
+                "interview": self._to_summary(session).model_dump(mode="json"),
+            },
+        )
+
+    def start(self, user: User, body: InterviewStart) -> InterviewOut:
+        active = self._live(user)
         if active is not None:
             self._expire_if_due(user, active)
             if active.status == InterviewStatus.IN_PROGRESS:
-                raise ConflictError(
-                    "You already have an interview in progress. Finish or abandon it first.",
-                    code="interview_in_progress",
-                    details={"interview_id": active.id},
-                )
+                raise self._in_progress(active)
 
-        if body.kind == "questions":
-            session = self.rounds.start(user, body)
-            self.db.commit()
-            return self._to_out(session)
+        try:
+            if body.kind == "questions":
+                session = self.rounds.start(user, body)
+                self.db.commit()
+                return self._to_out(session)
 
-        problem = self._pick_problem(user, body.problem_slug)
-        self.coach.check_budget(user)
-        now = _now()
-        duration = body.duration_minutes * 60
-        session = PracticeSession(
-            user_id=user.id,
-            mode=PracticeMode.INTERVIEW,
-            problem_id=problem.id,
-            status=InterviewStatus.IN_PROGRESS,
-            phase=InterviewPhase.CLARIFY,
-            duration_seconds=duration,
-            started_at=now,
-            deadline_at=now + timedelta(seconds=duration),
-        )
-        session.problem = problem
-        self.db.add(session)
-        self.db.flush()
+            problem = self._pick_problem(user, body.problem_slug)
+            now = _now()
+            duration = body.duration_minutes * 60
+            session = PracticeSession(
+                user_id=user.id,
+                mode=PracticeMode.INTERVIEW,
+                problem_id=problem.id,
+                status=InterviewStatus.IN_PROGRESS,
+                phase=InterviewPhase.CLARIFY,
+                duration_seconds=duration,
+                started_at=now,
+                deadline_at=now + timedelta(seconds=duration),
+            )
+            session.problem = problem
+            self.db.add(session)
+            # The one-live-interview index applies here, before the AI is asked anything (and before
+            # the per-user AI lock, so a second Start gets the useful 409, not "request in progress").
+            self.db.flush()
+            self.coach.check_budget(user)
+        except IntegrityError:
+            # Another Start (a second tab, a double click, a retry) got there first.
+            self.db.rollback()
+            winner = self._live(user)
+            if winner is None:
+                raise
+            raise self._in_progress(winner) from None
 
         ctx = self._context(session, code="", is_opening=True)
         result = self.coach.call_with_fallback(lambda p: p.interview_turn(ctx))
@@ -168,9 +203,18 @@ class InterviewService:
 
     def respond(self, user: User, interview_id: str, body: InterviewMessage) -> InterviewOut:
         session = self._load(user, interview_id)
+        if body.client_request_id and any(
+            (t.meta or {}).get("client_request_id") == body.client_request_id for t in session.turns
+        ):
+            # The same message again: its response was lost after the server took it. Reconcile
+            # (the current state, the reply included) instead of asking the interviewer twice.
+            self._expire_if_due(user, session)
+            return self._to_out(session)
         self._expire_if_due(user, session)
         self._require_in_progress(session)
         self._require_kind(session, PracticeMode.INTERVIEW)
+        if body.after_seq is not None and body.after_seq != len(session.turns):
+            raise self._advanced(session)
         candidate_turns = sum(1 for t in session.turns if t.role == TurnRole.CANDIDATE)
         if candidate_turns >= MAX_CANDIDATE_TURNS:
             raise AppError(
@@ -186,13 +230,15 @@ class InterviewService:
         message = body.message.strip()
         expected = (session.problem.expected_complexity or {}).get("time") if session.problem else None
         read = engagement.for_coding_message(session.phase, message, expected)
-        self._add_turn(
-            session,
-            TurnRole.CANDIDATE,
-            message,
-            meta={"source": body.source, "engagement": read.model_dump(mode="json")},
-        )
-        self.db.flush()
+        meta: dict[str, Any] = {"source": body.source, "engagement": read.model_dump(mode="json")}
+        if body.client_request_id:
+            meta["client_request_id"] = body.client_request_id
+        self._add_turn(session, TurnRole.CANDIDATE, message, meta=meta)
+        try:
+            self.db.flush()  # a turn's position is unique: a message sent at the same moment elsewhere loses here
+        except IntegrityError:
+            self.db.rollback()
+            raise self._advanced(self._load(user, interview_id)) from None
 
         ctx = self._context(session, code=code)
         result = self.coach.call_with_fallback(lambda p: p.interview_turn(ctx))
@@ -211,12 +257,55 @@ class InterviewService:
             self._expire_if_due(user, session)
             self._require_kind(session, PracticeMode.QUESTIONS)
             duplicate = self.rounds._already_handled(session, body.question_index)
-            if not duplicate:
+            if duplicate:
+                self._same_answer_or_conflict(session, body)
+            else:
                 self._require_in_progress(session)
-            self.rounds.answer(user, session, body)
-            self._commit()
+            try:
+                self.rounds.answer(user, session, body)
+                self._commit()
+            except IntegrityError:
+                # Answered at the same moment in another tab: that answer was stored first.
+                self.db.rollback()
+                session = self._load(user, interview_id)
+                self._same_answer_or_conflict(session, body)
+                duplicate = True
             step.set(result=self._round_result(session, duplicate))
             return self._to_out(session)
+
+    def _same_answer_or_conflict(self, session: PracticeSession, body: RoundAnswer) -> None:
+        """A repeat of the stored answer is a retry: fine. A different text means this question was
+        answered (or skipped) elsewhere: refused, so the caller keeps its text instead of losing it."""
+        stored = next(
+            (
+                t
+                for t in session.turns
+                if t.role == TurnRole.CANDIDATE and t.question_index == body.question_index
+            ),
+            None,
+        )
+        if stored is not None and " ".join(stored.content.split()) == " ".join(body.answer.split()):
+            return
+        current = next((q.index for q in self.rounds.questions_out(session) if q.status == "current"), None)
+        raise ConflictError(
+            "This question already has an answer: sent earlier, or from another tab or device. "
+            "Your text here wasn't sent, and it's still in the box.",
+            code="question_answered_elsewhere",
+            details={
+                "question_index": body.question_index,
+                "skipped": bool(stored is not None and (stored.meta or {}).get("skipped")),
+                "current_question_index": current,
+                "status": session.status.value,
+            },
+        )
+
+    def _advanced(self, session: PracticeSession) -> ConflictError:
+        return ConflictError(
+            "This interview moved on in another tab or on another device. Your message wasn't sent, "
+            "and it's still in the box.",
+            code="interview_advanced",
+            details={"turns": len(session.turns), "status": session.status.value},
+        )
 
     def skip_question(self, user: User, interview_id: str, body: RoundSkip) -> InterviewOut:
         with tracing.round_action("skip") as step:
@@ -339,7 +428,23 @@ class InterviewService:
             self._close(user, session, InterviewStatus.EXPIRED, "time_expired")
             self.db.commit()
 
+    def _claim_close(self, session: PracticeSession, status: InterviewStatus) -> bool:
+        """Move this interview out of in_progress, atomically. False: another request (a second
+        tab, a retry, the deadline seen twice) closed it first; `session` then holds its result."""
+        won = self.db.execute(
+            update(PracticeSession)
+            .where(PracticeSession.id == session.id, PracticeSession.status == InterviewStatus.IN_PROGRESS)
+            .values(status=status, ended_at=_now())
+            .execution_options(synchronize_session=False)
+        )
+        if int(getattr(won, "rowcount", 0) or 0) == 0:
+            self.db.refresh(session)
+            return False
+        return True
+
     def _close(self, user: User, session: PracticeSession, status: InterviewStatus, reason: str) -> None:
+        if not self._claim_close(session, status):
+            return
         if session.mode == PracticeMode.QUESTIONS:
             # Each answer was graded as it came in; there's no AI evaluation to run.
             session.status = status
@@ -492,7 +597,22 @@ class InterviewService:
             ended_at=session.ended_at,
             overall=ev.get("overall"),
             average_score=round(sum(scores) / len(scores), 2) if scores else None,
+            **self._live_context(session),
         )
+
+    def _live_context(self, session: PracticeSession) -> dict[str, Any]:
+        """Progress, time left and last activity, for an interview in progress (a Resume card)."""
+        if session.status != InterviewStatus.IN_PROGRESS:
+            return {}
+        replies = sum(1 for t in session.turns if t.role == TurnRole.CANDIDATE)
+        return {
+            "progress_done": replies,
+            "progress_total": len((session.plan or {}).get("question_ids") or [])
+            if session.mode == PracticeMode.QUESTIONS
+            else None,
+            "seconds_remaining": self._seconds_remaining(session),
+            "last_activity_at": max((t.created_at for t in session.turns), default=session.started_at),
+        }
 
 
 def format_options(track: str, difficulty: str) -> list[FormatOption]:

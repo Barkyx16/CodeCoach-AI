@@ -153,6 +153,19 @@ class InterviewMessage(APIModel):
     source: AnswerSource = Field(
         default="typed", description="How the text was produced. Recorded for review only"
     )
+    client_request_id: str | None = Field(
+        default=None,
+        min_length=8,
+        max_length=64,
+        description="Send the same id again for the same message (a response lost after the server took it): "
+        "you get the current state, the reply included, instead of a second reply",
+    )
+    after_seq: int | None = Field(
+        default=None,
+        ge=0,
+        description="How many turns the transcript had when this was written. If the interview has moved on "
+        "since (another tab or device), the message is refused with 409 interview_advanced, not appended",
+    )
 
     @field_validator("message")
     @classmethod
@@ -267,3 +280,11 @@ class InterviewSummary(APIModel):
     ended_at: datetime | None
     overall: str | None
     average_score: float | None
+    # In progress only: enough to recognize the interview and pick it up from any device.
+    progress_done: int | None = Field(
+        default=None,
+        description="In progress: questions answered or skipped (a round), or messages sent (coding)",
+    )
+    progress_total: int | None = Field(default=None, description="In progress, a round: how many questions")
+    seconds_remaining: int | None = Field(default=None, description="In progress: time left, from the server")
+    last_activity_at: datetime | None = Field(default=None, description="In progress: the latest turn")

@@ -23135,6 +23135,33 @@
             "title": "Source",
             "description": "How the text was produced. Recorded for review only",
             "default": "typed"
+          },
+          "client_request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 8
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Request Id",
+            "description": "Send the same id again for the same message (a response lost after the server took it): you get the current state, the reply included, instead of a second reply"
+          },
+          "after_seq": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After Seq",
+            "description": "How many turns the transcript had when this was written. If the interview has moved on since (another tab or device), the message is refused with 409 interview_advanced, not appended"
           }
         },
         "type": "object",
@@ -23772,6 +23799,55 @@
               }
             ],
             "title": "Average Score"
+          },
+          "progress_done": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Progress Done",
+            "description": "In progress: questions answered or skipped (a round), or messages sent (coding)"
+          },
+          "progress_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Progress Total",
+            "description": "In progress, a round: how many questions"
+          },
+          "seconds_remaining": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seconds Remaining",
+            "description": "In progress: time left, from the server"
+          },
+          "last_activity_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Activity At",
+            "description": "In progress: the latest turn"
           }
         },
         "type": "object",

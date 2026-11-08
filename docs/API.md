@@ -146,8 +146,10 @@ Every non-2xx response has this shape:
 | 405 | `method_not_allowed` | Wrong HTTP method | (client bug) |
 | 409 | `email_taken` | Registration with an existing email | Form error on email |
 | 409 | `hint_locked` | Hint level requested before the previous one (`details.next_unlockable_level`) | Disable later hint buttons |
-| 409 | `interview_in_progress` | Starting an interview while one is active (`details.interview_id`) | Offer "Resume" |
+| 409 | `interview_in_progress` | Starting an interview while one is active, from any tab or device (`details.interview_id`, and `details.interview`: its summary with progress, time left and last activity). Two Starts at once make one interview: the database enforces it | Offer "Resume" with that context |
 | 409 | `interview_closed` | Sending a message to a finished, expired or abandoned interview (`details.status`) | Show the results view |
+| 409 | `interview_advanced` | A coding message sent with `after_seq` older than the transcript: another tab or device moved the interview on (`details.turns`, `details.status`). Nothing was appended, nothing was asked of the AI | Load the latest; keep the unsent text |
+| 409 | `question_answered_elsewhere` | A round answer to a question that already has a different answer or a skip (`details.question_index`, `details.skipped`, `details.current_question_index`). The same text again is a retry: 200 | Show the next question; keep the unsent text visible |
 | 400 | `turn_limit_reached` | Interview message cap reached (`details.max_candidate_turns`) | Prompt to finish |
 | 409 | `not_judged` | Explain-failure on a submission that's still queued or running | Wait for the verdict |
 | 409 | `not_failed` | Explain-failure on a submission that passed | Hide the button |

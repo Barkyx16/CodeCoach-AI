@@ -79,16 +79,20 @@ def test_repeated_submissions_never_grade_twice(client):
     h = nurse(client)
     iv = start(client, h).json()
     first = answer(client, h, iv["id"], 0)
-    again = answer(
-        client, h, iv["id"], 0, text="A completely different second attempt that should be ignored."
-    )
+    # The same text again (a double click, a retry after a lost response): the current state.
+    again = answer(client, h, iv["id"], 0)
     assert first.status_code == again.status_code == 200
     assert (
         again.json()["questions"][0]["answer"]["answer"] == first.json()["questions"][0]["answer"]["answer"]
     )
+    assert sum(t["role"] == "candidate" for t in again.json()["turns"]) == 1
+    # A different text for the answered question (a stale tab or device) is refused, not silently
+    # dropped: the caller keeps it. The first answer stands, graded once.
+    other = answer(client, h, iv["id"], 0, text="A completely different second attempt from another tab.")
+    assert other.status_code == 409 and other.json()["error"]["code"] == "question_answered_elsewhere"
+    assert other.json()["error"]["details"]["question_index"] == 0
     with client.app.state.session_factory() as db:
         assert db.scalar(select(func.count()).select_from(PracticeAnswer)) == 1
-    assert sum(t["role"] == "candidate" for t in again.json()["turns"]) == 1
 
 
 def test_questions_must_be_answered_in_order(client):

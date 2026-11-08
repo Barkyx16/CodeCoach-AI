@@ -30,6 +30,7 @@ from sqlalchemy import (
     UniqueConstraint,
     false,
 )
+from sqlalchemy import text as sa_text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.engine import Dialect
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -417,10 +418,24 @@ class TurnRole(enum.StrEnum):
     CANDIDATE = "candidate"
 
 
+# One interview (coding or question round) in progress per user, enforced by the database: two
+# Starts at once can't both succeed (migration 8d9e0f1a2b3c). Practice sessions aren't counted.
+LIVE_INTERVIEW = "status = 'in_progress' AND mode IN ('interview', 'questions')"
+
+
 class PracticeSession(Base):
     """A timed session. mode=interview sessions carry the mock-interview state machine."""
 
     __tablename__ = "practice_sessions"
+    __table_args__ = (
+        Index(
+            "uq_one_live_interview",
+            "user_id",
+            unique=True,
+            postgresql_where=sa_text(LIVE_INTERVIEW),
+            sqlite_where=sa_text(LIVE_INTERVIEW),
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
@@ -452,6 +467,8 @@ class PracticeSession(Base):
 
 class InterviewTurn(Base):
     __tablename__ = "interview_turns"
+    # One turn per position: two answers sent at once (two tabs) can't both be stored.
+    __table_args__ = (UniqueConstraint("session_id", "seq", name="uq_interview_turn_seq"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     session_id: Mapped[str] = mapped_column(

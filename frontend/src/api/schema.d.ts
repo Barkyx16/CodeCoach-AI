@@ -5724,6 +5724,16 @@ export interface components {
              * @enum {string}
              */
             source: "typed" | "voice" | "mixed";
+            /**
+             * Client Request Id
+             * @description Send the same id again for the same message (a response lost after the server took it): you get the current state, the reply included, instead of a second reply
+             */
+            client_request_id?: string | null;
+            /**
+             * After Seq
+             * @description How many turns the transcript had when this was written. If the interview has moved on since (another tab or device), the message is refused with 409 interview_advanced, not appended
+             */
+            after_seq?: number | null;
         };
         /** InterviewOut */
         InterviewOut: {
@@ -5944,6 +5954,26 @@ export interface components {
             overall: string | null;
             /** Average Score */
             average_score: number | null;
+            /**
+             * Progress Done
+             * @description In progress: questions answered or skipped (a round), or messages sent (coding)
+             */
+            progress_done?: number | null;
+            /**
+             * Progress Total
+             * @description In progress, a round: how many questions
+             */
+            progress_total?: number | null;
+            /**
+             * Seconds Remaining
+             * @description In progress: time left, from the server
+             */
+            seconds_remaining?: number | null;
+            /**
+             * Last Activity At
+             * @description In progress: the latest turn
+             */
+            last_activity_at?: string | null;
         };
         /** Interviewer */
         Interviewer: {
