@@ -6,9 +6,18 @@ line: on the tables below, PostgreSQL only shows and accepts rows whose `user_id
 (api/deps.py → `bind_user`), so a query that forgot its owner filter finds nothing of anyone
 else's, and a write can't put a row under another user.
 
-Fail-open by design, for work done for nobody in particular: a transaction that hasn't set
-`codecoach.user_id` (the judge worker, housekeeping, the CLI, migrations, sign-in before the user is
-known) sees every row, as before. Only authenticated requests are narrowed.
+Who sees what is decided per transaction by two settings, both transaction-local so a pooled
+connection never carries them into the next use:
+- `codecoach.user_id`: once set, only that learner's rows, whatever the scope.
+- `codecoach.scope`, when no user is set:
+  - `request` (every API request, api/deps.get_db): **nothing**. A request that hasn't
+    authenticated, or a route that forgot to, sees no learner's rows and can't write any.
+  - `worker` (the judge worker and the jobs thread): **nothing**, unless it binds the one user
+    whose work it's doing (the judge does, to record a solved problem).
+  - `maintenance` (one named, reviewed step at a time, `maintenance()`): every learner's rows,
+    **read-only**. Today only the guest clean-up, which reads each guest's latest activity time.
+  - unset (operator commands, migrations, tests' own sessions): every row. Those run with the
+    owner's or an operator's credentials, deliberately, not from a request.
 
 Not effective for a role that bypasses RLS (a superuser, or BYPASSRLS): `rls_status` reports
 that, and startup logs a warning. FORCE is set so the table owner (what development connects as)
@@ -24,6 +33,8 @@ before the user is known); `shares`/`share_feedback` (read by the recipient); co
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from typing import Any
 
 from sqlalchemy import event, text
@@ -33,7 +44,11 @@ from sqlalchemy.orm import Session
 logger = logging.getLogger("codecoach.rls")
 
 SETTING = "codecoach.user_id"
+SCOPE_SETTING = "codecoach.scope"
 POLICY = "codecoach_owner_only"
+MAINTENANCE_POLICY = "codecoach_maintenance_read"
+REQUEST, WORKER, MAINTENANCE = "request", "worker", "maintenance"
+SCOPES = (REQUEST, WORKER, MAINTENANCE)
 
 # Every table here has a `user_id` column holding the owner's id. Migration 248721f0fcb1 enables
 # RLS on exactly this list; tests check the two agree.
@@ -70,11 +85,15 @@ PROTECTED_TABLES: tuple[str, ...] = (
     "whiteboard_drafts",
 )
 
-# Unset, or set to '' (what a transaction-local setting reads as after its transaction ended on a
-# pooled connection), means "no user context": see the module docstring.
+# Unset, or '' (what a transaction-local setting reads as on a pooled connection after its
+# transaction ended), means "not set". Migration 7c1d2e3f4a5b installs exactly these.
+_NO_USER = f"coalesce(current_setting('{SETTING}', true), '') = ''"
+_SCOPE = f"coalesce(current_setting('{SCOPE_SETTING}', true), '')"
 _CONDITION = (
-    f"coalesce(current_setting('{SETTING}', true), '') = '' OR user_id = current_setting('{SETTING}', true)"
+    f"user_id = current_setting('{SETTING}', true) "
+    f"OR ({_NO_USER} AND {_SCOPE} NOT IN ('{REQUEST}', '{WORKER}', '{MAINTENANCE}'))"
 )
+_MAINTENANCE_CONDITION = f"{_NO_USER} AND {_SCOPE} = '{MAINTENANCE}'"
 
 
 def enable_statements(table: str) -> list[str]:
@@ -83,11 +102,14 @@ def enable_statements(table: str) -> list[str]:
         f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY",
         f"DROP POLICY IF EXISTS {POLICY} ON {table}",
         f"CREATE POLICY {POLICY} ON {table} USING ({_CONDITION}) WITH CHECK ({_CONDITION})",
+        f"DROP POLICY IF EXISTS {MAINTENANCE_POLICY} ON {table}",
+        f"CREATE POLICY {MAINTENANCE_POLICY} ON {table} FOR SELECT USING ({_MAINTENANCE_CONDITION})",
     ]
 
 
 def disable_statements(table: str) -> list[str]:
     return [
+        f"DROP POLICY IF EXISTS {MAINTENANCE_POLICY} ON {table}",
         f"DROP POLICY IF EXISTS {POLICY} ON {table}",
         f"ALTER TABLE {table} NO FORCE ROW LEVEL SECURITY",
         f"ALTER TABLE {table} DISABLE ROW LEVEL SECURITY",
@@ -112,23 +134,75 @@ def bind_user(session: Session, user_id: str) -> None:
     """Narrow this session to one user's rows from now on (every transaction it starts). If a
     transaction is already open, it's narrowed at once."""
     session.info["rls_user_id"] = user_id
+    _apply_now(session)
+
+
+def set_scope(session: Session, scope: str) -> Session:
+    """Declare what this session is for (see the module docstring). Applies to every transaction
+    it starts, and at once to an open one. Returns the session."""
+    if scope not in SCOPES:
+        raise ValueError(f"unknown row-level security scope {scope!r}")
+    session.info["rls_scope"] = scope
+    _apply_now(session)
+    return session
+
+
+def scoped(factory: Callable[[], Session], scope: str) -> Callable[[], Session]:
+    """A session factory whose sessions all start in `scope` (the worker's, the jobs thread's)."""
+    if scope not in SCOPES:
+        raise ValueError(f"unknown row-level security scope {scope!r}")
+
+    def make() -> Session:
+        return set_scope(factory(), scope)
+
+    return make
+
+
+@contextmanager
+def maintenance(session: Session, reason: str) -> Iterator[Session]:
+    """Read every learner's rows (never write them) for one named step, then go back to the
+    session's scope. Logged with its reason, so each use stays visible and reviewable."""
+    previous = session.info.get("rls_scope")
+    logger.info("row-level security: maintenance read for %s", reason)
+    session.info["rls_scope"] = MAINTENANCE
+    _apply_now(session)
+    try:
+        yield session
+    finally:
+        if previous is None:
+            session.info.pop("rls_scope", None)
+        else:
+            session.info["rls_scope"] = previous
+        _apply_now(session)
+
+
+def _apply_now(session: Session) -> None:
     if session.in_transaction():
         conn = session.connection()
         if conn.dialect.name == "postgresql":
-            _set(conn, user_id)
+            _set(conn, session.info)
 
 
-def _set(conn: Connection, user_id: str) -> None:
+def _set(conn: Connection, info: dict) -> None:
     # Transaction-local (is_local = true): it ends with the transaction, so a pooled connection
-    # never carries one request's user into the next.
-    conn.execute(text("SELECT set_config(:name, :value, true)"), {"name": SETTING, "value": user_id})
+    # never carries one request's user or scope into the next.
+    conn.execute(
+        text("SELECT set_config(:u, :uv, true), set_config(:s, :sv, true)"),
+        {
+            "u": SETTING,
+            "uv": info.get("rls_user_id") or "",
+            "s": SCOPE_SETTING,
+            "sv": info.get("rls_scope") or "",
+        },
+    )
 
 
 @event.listens_for(Session, "after_begin")
 def _narrow_each_transaction(session: Session, _transaction: Any, connection: Connection) -> None:
-    user_id = session.info.get("rls_user_id")
-    if user_id and connection.dialect.name == "postgresql":
-        _set(connection, user_id)
+    if (
+        session.info.get("rls_user_id") or session.info.get("rls_scope")
+    ) and connection.dialect.name == "postgresql":
+        _set(connection, session.info)
 
 
 def rls_status(engine: Engine) -> dict[str, Any]:

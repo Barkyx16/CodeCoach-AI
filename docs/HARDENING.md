@@ -74,8 +74,11 @@ The gaps that were real (each was reproduced or verified before it was fixed):
   `codecoach.user_id` setting.
 - **Where the setting comes from.** Authenticated requests set it per transaction
   (`db/rls.bind_user`, called from `api/deps.get_optional_user`).
-- **Unset means unrestricted.** That covers the worker, CLI, migrations and sign-in before the
-  user is known. Writes are checked too (`WITH CHECK`).
+- **No user, no rows, for requests and the worker** (since migration `7c1d2e3f4a5b`). A
+  signed-out request and the background worker see nothing until a user is bound. One named
+  maintenance step may read across learners, read-only. Operator commands and migrations are
+  unrestricted. Writes are checked too (`WITH CHECK`). Runtime behaviour, pooled connections and
+  the worker model: [ROW_LEVEL_SECURITY.md](ROW_LEVEL_SECURITY.md).
 - **Proof:** with the notes service's owner check deliberately removed, another account still
   gets 404 (`test_a_route_that_forgot_its_owner_check_still_leaks_nothing`). The same test
   without the RLS context returns 200: the leak RLS exists for.
@@ -239,7 +242,7 @@ enforced.
 
 ## Limits
 
-- Row-level security is PostgreSQL-only, and fail-open for work done for nobody. It doesn't cover
+- Row-level security is PostgreSQL-only, and open to operator commands and migrations (no scope). It doesn't cover
   submissions, shares, sign-in tokens or triage (reasons in `db/rls.py`). It needs an ordinary
   database role. The production layout uses one that owns nothing
   ([STORAGE.md](STORAGE.md)); the development compose file's default user is a superuser.

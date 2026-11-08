@@ -23,7 +23,8 @@ def get_settings_dep(request: Request) -> Settings:
 
 
 def get_db(request: Request) -> Iterator[Session]:
-    session = request.app.state.session_factory()
+    # Row-level security: a request sees no learner's rows until it authenticates (db/rls.py).
+    session = rls.set_scope(request.app.state.session_factory(), rls.REQUEST)
     # Corrections and retirements published by triage apply to the generated question bank.
     content_state.refresh(session)
     try:

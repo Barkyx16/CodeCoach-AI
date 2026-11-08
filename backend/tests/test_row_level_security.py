@@ -31,6 +31,20 @@ def test_the_migration_and_the_app_protect_the_same_tables():
         assert "user_id" in Base.metadata.tables[name].columns, name
 
 
+SCOPES_MIGRATION = MIGRATION.parent / "20261108_7c1d2e3f4a5b_rls_scopes.py"
+
+
+def test_the_scopes_migration_installs_exactly_what_the_app_does():
+    spec = importlib.util.spec_from_file_location("rls_scopes_migration", SCOPES_MIGRATION)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert module.TABLES == rls.PROTECTED_TABLES
+    assert (module.POLICY, module.MAINTENANCE_POLICY) == (rls.POLICY, rls.MAINTENANCE_POLICY)
+    assert module.CONDITION == rls._CONDITION  # what a dev database gets from rls.apply()
+    assert module.MAINTENANCE_CONDITION == rls._MAINTENANCE_CONDITION
+
+
 def _enforced(url: str) -> bool:
     engine = create_engine(url)
     with engine.connect() as conn:

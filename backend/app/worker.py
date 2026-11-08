@@ -18,6 +18,7 @@ from __future__ import annotations
 import logging
 import signal
 import time
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select
@@ -25,6 +26,7 @@ from sqlalchemy.orm import Session, selectinload, sessionmaker
 
 from app import tracing
 from app.config import Settings, get_settings
+from app.db import rls
 from app.db.session import make_engine, make_session_factory
 from app.metrics import Metrics
 from app.models import ProgressEvent, ProgressEventType, Submission, SubmissionMode, SubmissionStatus
@@ -58,13 +60,15 @@ def judge_queue_state(session_factory: sessionmaker[Session]) -> tuple[int, floa
 class JudgeWorker:
     def __init__(
         self,
-        session_factory: sessionmaker[Session],
+        session_factory: Callable[[], Session],
         runner: Runner,
         settings: Settings,
         traces: tracing.TraceStore | None = None,
         metrics: Metrics | None = None,
     ):
-        self.session_factory = session_factory
+        # Worker scope: submissions aren't covered by row-level security, learners' rows are hidden
+        # unless a step binds the one learner it's working for (recording a solved problem).
+        self.session_factory = rls.scoped(session_factory, rls.WORKER)
         self.runner = runner
         self.settings = settings
         # Each job continues the trace of the request that queued it (Submission.trace_id). An
@@ -171,6 +175,7 @@ class JudgeWorker:
             sub.test_version = max((t.version for t in tests), default=None)
             sub.result = verdict.result
             if verdict.status == SubmissionStatus.PASSED and sub.mode == SubmissionMode.SUBMIT:
+                rls.bind_user(db, sub.user_id)  # the one learner whose work this is
                 db.add(
                     ProgressEvent(
                         user_id=sub.user_id, problem_id=sub.problem_id, event_type=ProgressEventType.SOLVED

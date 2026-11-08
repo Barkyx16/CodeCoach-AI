@@ -311,9 +311,10 @@ compile output returned in `stderr_excerpt` listed **every hidden input** of the
   numbers need an API key, so no claims are made about it.
 - Code execution is off by default; deployments must opt in (`EXECUTION_ENABLED=true`) and
   run the runner on a dedicated gVisor host (see §4.3 for the residual risks).
-- Row-level security is fail-open for work done for nobody: a code path that runs without a
-  signed-in user (worker, CLI) sees every row by design. It covers 30 tables, not submissions,
-  shares, sign-in tokens or content triage (reasons in `db/rls.py`).
+- Row-level security denies signed-out requests and the background worker, but operator
+  commands and migrations (no scope) see every row by design. It covers 30 tables, not
+  submissions, shares, sign-in tokens or content triage (reasons in `db/rls.py`;
+  [ROW_LEVEL_SECURITY.md](ROW_LEVEL_SECURITY.md)).
 - `POST /auth/guest` takes no body, so a cross-site form could start a new, empty guest session
   in someone's browser (replacing theirs). Nobody gains access to anything; the JSON-only rule
   that blocks this for sign-in and registration doesn't apply (`tests/test_route_access.py`).

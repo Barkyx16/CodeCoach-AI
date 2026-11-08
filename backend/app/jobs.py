@@ -24,6 +24,7 @@ from collections.abc import Callable
 from sqlalchemy.orm import Session
 
 from app.config import Settings
+from app.db import rls
 from app.services import outbox
 from app.services.email import EmailSender
 from app.services.rate_limit import purge_expired
@@ -51,9 +52,16 @@ def housekeeping(
 
     step("rate_limit_counters_purged", lambda db: purge_expired(db))
     if daily:
-        step("guests_deleted", lambda db: prune_inactive_guests(db, settings.guest_retention_days))
+        step("guests_deleted", lambda db: _prune_guests(db, settings.guest_retention_days))
         step("email_jobs_purged", lambda db: outbox.purge_finished(db))
     return done
+
+
+def _prune_guests(db: Session, days: int) -> int:
+    # Reads each guest's latest activity time across learners (progress events), so it needs the
+    # maintenance read. The deletes are of users (not covered by RLS); their rows go by cascade.
+    with rls.maintenance(db, "guest clean-up: each guest's latest activity"):
+        return prune_inactive_guests(db, days)
 
 
 class JobsRunner:
@@ -65,7 +73,9 @@ class JobsRunner:
         interval: float = 5.0,
         clock: Callable[[], float] = time.monotonic,
     ):
-        self.session_factory = session_factory
+        # Worker scope: no learner's rows (emails and counters don't need any); the one step that
+        # reads across learners asks for it by name (`rls.maintenance`).
+        self.session_factory = rls.scoped(session_factory, rls.WORKER)
         self.settings = settings
         self.sender = sender
         self.interval = interval
