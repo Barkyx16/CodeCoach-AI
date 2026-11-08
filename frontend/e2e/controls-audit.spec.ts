@@ -167,11 +167,12 @@ test("every control does something", async ({ page, context }) => {
   }
   // A live interview last (its controls can end it).
   await page.goto("/interviews");
-  await page.getByRole("button", { name: "Start interview" }).click();
-  // The audit of /interviews may already have started one: there's one active interview per user.
+  await settle(page);
+  // The audit of /interviews may already have started one (one interview at a time): then the
+  // page offers "Resume it" and Start is disabled, rather than a Start that can only fail.
   const resume = page.getByRole("link", { name: "Resume it" });
-  await Promise.race([page.waitForURL(/\/interviews\/[0-9a-f-]+$/), resume.waitFor()]);
   if (await resume.isVisible()) await resume.click();
+  else await page.getByRole("button", { name: "Start interview" }).click();
   await expect(page).toHaveURL(/\/interviews\/[0-9a-f-]+$/);
   await audit(page, page.url().replace(/^https?:\/\/[^/]+/, ""), rows, /Sign out|Delete|End early/i);
 

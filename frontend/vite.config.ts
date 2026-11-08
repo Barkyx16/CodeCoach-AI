@@ -6,7 +6,7 @@ import { join, resolve } from "node:path";
 import { fileURLToPath, URL } from "node:url";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 
-import { leakedServerSecrets, secretLookingPublicVars } from "./src/build/secretGuard";
+import { leakedServerSecrets, secretLookingPublicVars } from "./src/build/secretGuard.ts";
 
 /**
  * Fills in the service worker's file lists after a production build: the app shell (index.html,

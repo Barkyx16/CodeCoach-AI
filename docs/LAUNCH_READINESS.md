@@ -31,7 +31,7 @@ push). The commits after it are local, awaiting your go-ahead (see "After the ba
 
 ## After the batch: gaps closed while checking that everything runs
 
-Each of these was found by running something, not by reading. None is pushed yet.
+Each of these was found by running something, not by reading.
 
 | Commit | What | How it was found |
 |---|---|---|
@@ -39,7 +39,8 @@ Each of these was found by running something, not by reading. None is pushed yet
 | `09f4f5e` | The launch rehearsal serves the API over HTTPS, so the Secure session cookie behaves as in production: still signed in after a restart, signed out by a reset, kept through a database outage. The compose rehearsal also checks the web service. | — |
 | `d7f7a52` | Scheduled backups: a compose `backup` job (as the owner, encrypted to public keys), retention (`prune-backups`) and a health check (`check-backups`) for the scheduler's alert. Rehearsed: two runs, then a restore of the newest into a separate database. | The rehearsal's own check: the first retention would have deleted a backup made by hand before an upgrade, at the next run that day. Now the last 24 h are kept and `--name` backups are never pruned. |
 | `4ded096` | Behind the production proxy each visitor gets their own rate limit. Before, the API saw everyone as Docker's gateway, so the whole site shared one sign-in limit of 10 a minute. | a request through Docker's published port logged as `172.17.0.1` |
-| (next) | The "Add to a collection" picker no longer shows a dropdown with one choice when there are no collections. The controls audit's signed-out pass now clears cookies, and a missing control fails in 15 s instead of 30 min. | The controls audit flagged the picker. Its first run then stalled: its "signed-out" pages were still signed in through a leftover cookie. |
+| (next) | The backup image's client tools are pinned to the server's PostgreSQL 16. `backup-database` and `restore-database` refuse mismatched versions before writing anything. Before, every backup it made could only have been restored into PostgreSQL 17 or newer. | **CI** (run 231): the compose rehearsal's restore failed on `SET transaction_timeout`. Reproduced here with PostgreSQL 17's tools. |
+| `6d9911b` | The "Add to a collection" picker no longer shows a dropdown with one choice when there are no collections. The controls audit's signed-out pass now clears cookies, and a missing control fails in 15 s instead of 30 min. | The controls audit flagged the picker. Its first run then stalled: its "signed-out" pages were still signed in through a leftover cookie. |
 
 ## Migrations (in order; all additive, all reversible)
 

@@ -187,6 +187,23 @@ describe("Mock interview", () => {
     expect(await screen.findByRole("link", { name: "Resume it" })).toHaveAttribute("href", "/interviews/iv-9");
   });
 
+  it("offers the interview in progress up front instead of a Start that can only fail", async () => {
+    let posts = 0;
+    server.use(
+      http.get(`${API}/api/v1/interviews`, () => HttpResponse.json({ items: [{
+        id: "iv-7", kind: "coding", status: "in_progress", problem: { slug: "two-sum", title: "Two Sum", difficulty: "easy" },
+        started_at: new Date().toISOString(), ended_at: null, overall: null, average_score: null,
+      }], total: 1, page: 1, page_size: 5 })),
+      http.post(`${API}/api/v1/interviews`, () => { posts += 1; return HttpResponse.json({}, { status: 500 }); }),
+    );
+    renderApp("/interviews", { signedIn: true });
+    const resume = await screen.findByRole("link", { name: "Resume it" });
+    expect(resume).toHaveAttribute("href", "/interviews/iv-7");
+    expect(resume.closest("[role=status]")).toHaveTextContent("end it there to start another");
+    expect(screen.getByRole("button", { name: /Start interview/ })).toBeDisabled();
+    expect(posts).toBe(0);
+  });
+
   it("requires sign-in", async () => {
     renderApp("/interviews");
     expect(await screen.findByRole("heading", { name: "Welcome back" })).toBeInTheDocument();

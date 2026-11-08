@@ -12,6 +12,7 @@ import { usePracticeTrack } from "@/features/careers/practiceTrack";
 import { VoiceSetup } from "@/features/voice/VoiceSetup";
 
 import { FormatPicker } from "./FormatPicker";
+import { useActiveInterviewId } from "./useActiveInterview";
 import { useVoicePrefs } from "@/features/voice/voicePrefs";
 
 const LEVELS: Difficulty[] = ["easy", "medium", "hard"];
@@ -33,9 +34,11 @@ export function QuestionInterviewPage() {
   // A format that isn't available at this level falls back to the default instead of failing on start.
   const format: InterviewFormatId = formats.data?.find((f) => f.id === chosenFormat)?.available ? chosenFormat : "mixed";
   const role = career?.title ?? titleCase(track);
-  const activeId = start.error instanceof ApiError && start.error.code === "interview_in_progress"
+  const running = useActiveInterviewId();
+  const conflictId = start.error instanceof ApiError && start.error.code === "interview_in_progress"
     ? (start.error.details as { interview_id?: string } | null)?.interview_id ?? null
     : null;
+  const activeId = conflictId ?? running;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -94,11 +97,12 @@ export function QuestionInterviewPage() {
             </div>
           </fieldset>
           {activeId ? (
-            <div className="banner banner--warning" role="alert">
-              You already have an interview in progress. <Link to={`/interviews/${activeId}`}>Resume it</Link>
+            <div className="banner banner--warning" role={conflictId ? "alert" : "status"}>
+              You already have an interview in progress. <Link to={`/interviews/${activeId}`}>Resume it</Link>, or end it
+              there to start another.
             </div>
           ) : <InlineError error={start.error} />}
-          <Button type="submit" variant="primary" loading={start.isPending}>Start interview</Button>
+          <Button type="submit" variant="primary" loading={start.isPending} disabled={Boolean(activeId)}>Start interview</Button>
           <p className="subtle">Want to work on one question at a time? <Link to="/problems?view=questions">Browse all {role} questions</Link>.</p>
         </form>
       </div>
