@@ -8,8 +8,9 @@ export function hasUnretainedWork(): boolean {
 }
 
 /**
- * While `active`, the browser asks before the page is closed or reloaded, and an app update
- * waits for confirmation. Use it only when the draft really can't be kept.
+ * While `active`, the browser asks before the page is closed or reloaded, in-app navigation to
+ * another page asks first (app/LeaveGuard.tsx), and an app update waits for confirmation. Use it
+ * when leaving would lose work: edits held only in memory, or a draft this browser can't keep.
  */
 export function useLeaveWarning(active: boolean): void {
   const id = useId();

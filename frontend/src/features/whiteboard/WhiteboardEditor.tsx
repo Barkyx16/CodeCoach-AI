@@ -11,9 +11,12 @@ import { BackLink } from "@/components/BackLink";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { CopyWork } from "@/components/CopyWork";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { VersionConflict } from "@/components/VersionConflict";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
-import { formatDateTime } from "@/lib/format";
+import { savedVersion } from "@/lib/conflict";
+import { formatDateTime, timeAgo } from "@/lib/format";
 
 import { Canvas } from "./Canvas";
 import { describe, fingerprint, fit, history, KIND_LABEL, MAX_EDGES, MAX_NODES, normalize, type Diagram, type NodeKind, type NotesKey } from "./diagram";
@@ -59,6 +62,9 @@ function Editor({ prompt, initial }: { prompt: WhiteboardPrompt; initial: Whiteb
   const [selected, setSelected] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [status, setStatus] = useState("");
+  // The version saved elsewhere: from a refused save (409), or newer than a kept copy being restored.
+  const [against, setAgainst] = useState<WhiteboardDraft | null>(null);
+  const [keptHere, setKeptHere] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState<"save" | "feedback" | null>(null);
   const [attempt, setAttempt] = useState<WhiteboardAttempt | null>(null);
@@ -72,7 +78,9 @@ function Editor({ prompt, initial }: { prompt: WhiteboardPrompt; initial: Whiteb
   // Unsaved work is also kept on this device, so a closed tab or a crash loses nothing.
   useEffect(() => {
     if (dirty && !recovery) {
-      try { localStorage.setItem(localKey, JSON.stringify({ diagram: d, explanation, base: saved.revision })); } catch { /* blocked: the warning above still applies */ }
+      let ok = true;
+      try { localStorage.setItem(localKey, JSON.stringify({ diagram: d, explanation, base: saved.revision })); } catch { ok = false; }
+      queueMicrotask(() => setKeptHere(ok)); // blocked or full: the page says the copy wasn't kept
     }
   }, [d, explanation, dirty, recovery, localKey, saved.revision]);
   const words = (explanation.match(/\w+/g) ?? []).length;
@@ -90,9 +98,14 @@ function Editor({ prompt, initial }: { prompt: WhiteboardPrompt; initial: Whiteb
       setSaved({ diagram: d, explanation, revision: out.revision });
       try { localStorage.removeItem(localKey); } catch { /* blocked */ }
       qc.setQueryData(["me", "whiteboard", "draft", prompt.id], out);
+      setAgainst(null);
       setStatus("Saved to your account.");
     } catch (e) {
-      setError(e);
+      if (e instanceof ApiError && e.code === "stale_revision") {
+        setAgainst(savedVersion<WhiteboardDraft>(e.details) ?? (await api.whiteboardDraft(prompt.id).catch(() => null)));
+      } else {
+        setError(e);
+      }
     } finally {
       setBusy(null);
     }
@@ -137,7 +150,19 @@ function Editor({ prompt, initial }: { prompt: WhiteboardPrompt; initial: Whiteb
     setStatus(`Downloaded ${filename}.`);
   }
 
-  const conflict = error instanceof ApiError && error.code === "stale_revision" ? (error.details as { current_revision: number }).current_revision : null;
+  function takeSaved(version: WhiteboardDraft) {
+    const diagram = normalize(version.diagram);
+    dispatch({ type: "load", diagram });
+    setExplanation(version.explanation);
+    setSaved({ diagram, explanation: version.explanation, revision: version.revision });
+    qc.setQueryData(["me", "whiteboard", "draft", prompt.id], version);
+    setAgainst(null);
+    try { localStorage.removeItem(localKey); } catch { /* blocked */ }
+  }
+  const inWords = (x: Diagram) => describe(x).join("\n");
+  const SAVED_NOTICE = "Saved to your account.";
+  // "Saved" describes the diagram at the time; after an edit the page says it's unsaved again.
+  const shownStatus = status === SAVED_NOTICE && dirty ? "" : status;
 
   return (
     <div className="page whiteboard-page">
@@ -158,7 +183,13 @@ function Editor({ prompt, initial }: { prompt: WhiteboardPrompt; initial: Whiteb
         <div className="banner banner--info row" role="region" aria-label="Unsaved changes">
           <span>You have unsaved changes to this diagram on this device.</span>
           <span className="row">
-            <Button size="sm" variant="primary" onClick={() => { dispatch({ type: "load", diagram: recovery.diagram }); setExplanation(recovery.explanation); setRecovery(null); }}>Restore them</Button>
+            <Button size="sm" variant="primary" onClick={() => {
+              dispatch({ type: "load", diagram: recovery.diagram });
+              setExplanation(recovery.explanation);
+              setRecovery(null);
+              // Kept against an older saved version: compare before anything is saved over it.
+              if (recovery.base !== saved.revision) setAgainst({ ...initial, diagram: saved.diagram, explanation: saved.explanation, revision: saved.revision });
+            }}>Restore them</Button>
             <Button size="sm" variant="ghost" onClick={() => { try { localStorage.removeItem(localKey); } catch { /* blocked */ } setRecovery(null); }}>Discard them</Button>
           </span>
         </div>
@@ -211,7 +242,8 @@ function Editor({ prompt, initial }: { prompt: WhiteboardPrompt; initial: Whiteb
         <Button variant="ghost" onClick={() => fileRef.current?.click()}>Import JSON…</Button>
         <input ref={fileRef} type="file" accept="application/json,.json" className="visually-hidden" aria-label="Import a diagram file" tabIndex={-1}
           onChange={(e) => { const f = e.target.files?.[0]; if (f) void importFile(f); e.target.value = ""; }} />
-        <span className="subtle" role="status">{status || (dirty ? "Unsaved changes, kept on this device" : saved.revision ? "Saved to your account" : "")}</span>
+        <span className="subtle" role="status">{shownStatus || (dirty ? (keptHere ? "Unsaved changes, kept on this device" : "Unsaved changes, and this browser can't keep a copy: save, or copy your work") : saved.revision ? "Saved to your account" : "")}</span>
+        {dirty && !keptHere && <CopyWork text={`${inWords(d)}\n\n${explanation}`} label="Copy your work" />}
       </div>
       {exporting && (
         <Card className="stack-sm wb-export">
@@ -221,13 +253,17 @@ function Editor({ prompt, initial }: { prompt: WhiteboardPrompt; initial: Whiteb
           <span className="row"><Button size="sm" variant="primary" onClick={exportFile}>Download {filename}</Button><Button size="sm" variant="ghost" onClick={() => setExporting(false)}>Close</Button></span>
         </Card>
       )}
-      {conflict !== null && (
-        <div className="banner banner--warning row" role="alert">
-          <span>This diagram was saved somewhere else (now version {conflict}). Your changes are still here.</span>
-          <Button size="sm" variant="primary" onClick={() => void save(conflict)}>Save mine as the newest</Button>
-        </div>
+      {against && (
+        <VersionConflict what="diagram" savedWhen={`version ${against.revision}${against.updated_at ? `, ${timeAgo(against.updated_at)}` : ""}`}
+          busy={busy === "save"} keepMineLabel="Keep mine as the newest"
+          fields={[
+            { label: "The diagram in words", mine: inWords(d), saved: inWords(normalize(against.diagram)) },
+            { label: "Your explanation", mine: explanation, saved: against.explanation },
+          ]}
+          onKeepMine={() => void save(against.revision)}
+          onUseSaved={() => takeSaved(against)} />
       )}
-      {conflict === null && <InlineError error={error} />}
+      <InlineError error={error} />
 
       {attempt && <Feedback attempt={attempt} changed={lastDigestDiffers} onRefs={(refs) => setHighlight(new Set(refs))} />}
       {attempts.data && attempts.data.length > 0 && (

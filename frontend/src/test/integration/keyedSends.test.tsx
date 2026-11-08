@@ -213,3 +213,29 @@ describe("Revision links", () => {
     expect(recap).not.toHaveTextContent(/Compared with/);
   });
 });
+
+describe("Sending an answer: exact save state", () => {
+  it("words typed while it's sending stay in the box; only what was sent is cleared", async () => {
+    asNurse();
+    capabilities(true);
+    let release!: () => void;
+    const answered = new Promise<void>((r) => { release = r; });
+    server.use(
+      http.get(`${API}/api/v1/careers/:track/questions/:id/answers`, () => HttpResponse.json([])),
+      http.post(`${API}/api/v1/careers/:track/questions/:id/answers/keyed`, async ({ request }) => {
+        const body = (await request.json()) as Body;
+        await answered; // slow
+        return HttpResponse.json({ ...nurseAnswer, id: "a-1", question_id: "e-good-0", answer: body.answer, created_at: new Date().toISOString(), revises_answer_id: null }, { status: 201 });
+      }),
+    );
+    const { user } = renderApp(QUESTION, { signedIn: true });
+    await screen.findByRole("textbox", { name: "Your answer" });
+    await send(user, TEXT);
+    const box = screen.getByRole("textbox", { name: "Your answer" });
+    expect(box).toBeEnabled(); // the box stays editable while the answer is on its way
+    await user.type(box, " Then I stayed with him.");
+    release();
+    expect(await screen.findByRole("region", { name: "Feedback" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Your answer" })).toHaveValue(`${TEXT} Then I stayed with him.`);
+  });
+});

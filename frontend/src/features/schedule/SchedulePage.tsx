@@ -310,13 +310,15 @@ function RemindersCard({ settings, tz }: { settings: ScheduleSettings; tz: strin
   const qc = useQueryClient();
   const [form, setForm] = useState({ reminders: settings.reminders, reminder_minutes: settings.reminder_minutes, quiet_start: settings.quiet_start ?? "", quiet_end: settings.quiet_end ?? "" });
   const [error, setError] = useState<unknown>(null);
-  const [saved, setSaved] = useState(false);
+  // What the server last accepted: "Saved." only while the form still says exactly that.
+  const [savedAs, setSavedAs] = useState<string | null>(null);
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    const sent = JSON.stringify(form);
     try {
       qc.setQueryData(["me", "schedule", "settings"], await api.saveScheduleSettings({ timezone: settings.timezone ?? tz, ...form }));
-      setSaved(true);
+      setSavedAs(sent);
     } catch (err) {
       setError(err);
     }
@@ -325,19 +327,19 @@ function RemindersCard({ settings, tz }: { settings: ScheduleSettings; tz: strin
     <form className="card stack-sm" aria-label="Reminders" onSubmit={(e) => void submit(e)}>
       <h2 className="section-title">Reminders</h2>
       <p className="subtle">Reminders appear only inside CodeCoach, while it's open in a browser tab. CodeCoach doesn't send emails, push notifications or calendar invitations, and doesn't remind you about anything you've already done.</p>
-      <label className="checkbox"><input type="checkbox" checked={form.reminders} onChange={(e) => { setForm({ ...form, reminders: e.target.checked }); setSaved(false); }} />Show reminders while CodeCoach is open</label>
+      <label className="checkbox"><input type="checkbox" checked={form.reminders} onChange={(e) => { setForm({ ...form, reminders: e.target.checked }); }} />Show reminders while CodeCoach is open</label>
       <div className="app-form__grid">
         <label className="field"><span className="field__label">How long before</span>
-          <select className="select" value={form.reminder_minutes} onChange={(e) => { setForm({ ...form, reminder_minutes: Number(e.target.value) }); setSaved(false); }}>
+          <select className="select" value={form.reminder_minutes} onChange={(e) => { setForm({ ...form, reminder_minutes: Number(e.target.value) }); }}>
             {[0, 5, 10, 15, 30, 60].map((m) => <option key={m} value={m}>{m === 0 ? "At the start time" : `${m} minutes`}</option>)}
           </select>
         </label>
-        <label className="field"><span className="field__label">Quiet from</span><input className="input" type="time" value={form.quiet_start} onChange={(e) => { setForm({ ...form, quiet_start: e.target.value }); setSaved(false); }} /></label>
-        <label className="field"><span className="field__label">Quiet until</span><input className="input" type="time" value={form.quiet_end} onChange={(e) => { setForm({ ...form, quiet_end: e.target.value }); setSaved(false); }} /></label>
+        <label className="field"><span className="field__label">Quiet from</span><input className="input" type="time" value={form.quiet_start} onChange={(e) => { setForm({ ...form, quiet_start: e.target.value }); }} /></label>
+        <label className="field"><span className="field__label">Quiet until</span><input className="input" type="time" value={form.quiet_end} onChange={(e) => { setForm({ ...form, quiet_end: e.target.value }); }} /></label>
       </div>
       <p className="subtle">Quiet hours are in {zoneLabel(settings.timezone ?? tz)}. Leave them empty for none.</p>
       <InlineError error={error} />
-      <span className="row"><Button type="submit" size="sm">Save reminders</Button>{saved && <span className="subtle" role="status">Saved.</span>}</span>
+      <span className="row"><Button type="submit" size="sm">Save reminders</Button>{savedAs === JSON.stringify(form) && <span className="subtle" role="status">Saved.</span>}</span>
     </form>
   );
 }

@@ -216,3 +216,32 @@ describe("an application", () => {
     expect(screen.getByText("Applied", { selector: ".badge" })).toBeInTheDocument();
   });
 });
+
+describe("application details: exact save state", () => {
+  it("'Saved.' only while the form still says exactly what the server accepted", async () => {
+    asUser();
+    const a = app();
+    fakeApps([a]);
+    let release!: () => void;
+    const answered = new Promise<void>((r) => { release = r; });
+    server.use(http.patch(`${API}/api/v1/me/applications/:id`, async ({ request }) => {
+      const body = (await request.json()) as Partial<Application>;
+      await answered; // a slow save
+      return HttpResponse.json({ ...a, ...body });
+    }));
+    const { user } = renderApp(`/applications/${a.id}`, { signedIn: true });
+    const details = await screen.findByRole("form", { name: "Details" });
+    const notes = within(details).getByLabelText(/Notes/);
+    await user.type(notes, "First");
+    await user.click(within(details).getByRole("button", { name: "Save details" }));
+    await user.type(notes, " and more"); // typed while it was saving
+    release();
+    await waitFor(() => expect(within(details).getByRole("button", { name: "Save details" })).not.toHaveAttribute("aria-busy"));
+    expect(within(details).queryByText("Saved.")).toBeNull(); // the newer text wasn't saved
+    expect(notes).toHaveValue(`${a.notes}First and more`);
+    await user.click(within(details).getByRole("button", { name: "Save details" }));
+    expect(await within(details).findByText("Saved.")).toBeInTheDocument();
+    await user.type(notes, "!");
+    expect(within(details).queryByText("Saved.")).toBeNull(); // an edit after saving: no longer saved
+  });
+});

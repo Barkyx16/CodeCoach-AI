@@ -30,8 +30,15 @@ function readDraft(key: string): StoredDraft | null {
     return null;
   }
 }
-function writeDraft(key: string, d: StoredDraft) {
-  try { window.localStorage.setItem(key, JSON.stringify(d)); } catch { /* storage blocked: nothing to recover from */ }
+/** False when this browser couldn't keep the copy (private mode, storage full): the page then
+ * says so, instead of claiming the text is kept on this device. */
+function writeDraft(key: string, d: StoredDraft): boolean {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(d));
+    return true;
+  } catch {
+    return false;
+  }
 }
 function clearDraft(key: string) {
   try { window.localStorage.removeItem(key); } catch { /* nothing stored */ }
@@ -55,6 +62,7 @@ export function useNoteAutosave({ initial, createWith, draftKey, onSaved, delayM
   const [state, setState] = useState<SaveState>(initial ? "saved" : "idle");
   const [error, setError] = useState<unknown>(null);
   const [conflict, setConflict] = useState<Note | null>(null);
+  const [kept, setKept] = useState(true);
   const [recovery, setRecovery] = useState<StoredDraft | null>(() => {
     const d = readDraft(draftKey);
     if (!d || empty(d.fields)) return null;
@@ -133,7 +141,7 @@ export function useNoteAutosave({ initial, createWith, draftKey, onSaved, delayM
     const next = { ...fieldsRef.current, ...patch };
     fieldsRef.current = next;
     setFields(next);
-    writeDraft(draftKey, { fields: next, base: serverRef.current?.revision ?? null, at: new Date().toISOString() });
+    setKept(writeDraft(draftKey, { fields: next, base: serverRef.current?.revision ?? null, at: new Date().toISOString() }));
     if (conflictRef.current) return;
     setState("unsaved");
     window.clearTimeout(timer.current);
@@ -229,5 +237,5 @@ export function useNoteAutosave({ initial, createWith, draftKey, onSaved, delayM
     setServer(n);
   }, []);
 
-  return { fields, server, state, error, conflict, recovery, change, save, restore, discardRecovery, keepMine, takeSaved, saveMineAsNew, adopt };
+  return { fields, server, state, kept, error, conflict, recovery, change, save, restore, discardRecovery, keepMine, takeSaved, saveMineAsNew, adopt };
 }

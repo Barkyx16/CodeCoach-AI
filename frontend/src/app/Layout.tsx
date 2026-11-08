@@ -8,6 +8,7 @@ import { FocusModeContext } from "@/features/display/focusContext";
 import { countLocalWork } from "@/auth/localWork";
 
 import { AppStatus } from "./AppStatus";
+import { LeaveGuard } from "./LeaveGuard";
 import { Reminders } from "@/features/schedule/Reminders";
 import { TourFinishReconciler } from "@/features/onboarding/TourFinishReconciler";
 import { PlanReturn } from "@/features/plan/PlanReturn";
@@ -177,6 +178,7 @@ export function Layout() {
       </header>
       )}
       <AppStatus />
+      <LeaveGuard />
       <Reminders />
       {isAuthenticated && <TourFinishReconciler />}
       {signedOutReason && !isAuthenticated && (

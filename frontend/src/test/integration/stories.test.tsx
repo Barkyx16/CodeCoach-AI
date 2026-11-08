@@ -47,7 +47,7 @@ function fakeStories(initial: Story[] = [story()]) {
       sent.push({ method: "PATCH", url: request.url, body });
       const s = stories.get(String(params.id))!;
       if (body.expected_revision !== s.revision) {
-        return HttpResponse.json({ error: { code: "stale_revision", message: "Changed", request_id: "r", details: { current_revision: s.revision } } }, { status: 409 });
+        return HttpResponse.json({ error: { code: "stale_revision", message: "Changed", request_id: "r", details: { current_revision: s.revision, current: s } } }, { status: 409 });
       }
       const fields = Object.fromEntries(Object.entries(body).filter(([k]) => !["expected_revision", "reason", "clear_target"].includes(k)));
       const next = { ...s, ...(fields as Partial<Story>), revision: s.revision + 1 };
@@ -103,11 +103,15 @@ describe("the story bank", () => {
     const result = await screen.findByLabelText("Result");
     await user.clear(result);
     await user.type(result, "Both were seen in five minutes.");
-    stories.set("s1", { ...stories.get("s1")!, revision: 2 }); // saved elsewhere meanwhile
+    stories.set("s1", { ...stories.get("s1")!, revision: 2, result: "Saved on the other device." }); // saved elsewhere meanwhile
     await user.click(screen.getByRole("button", { name: "Save changes" }));
-    expect(await screen.findByText(/saved somewhere else since you opened it \(now version 2\)/)).toBeInTheDocument();
+    // Both versions side by side, only the part that differs, and nothing lost or overwritten.
+    const conflict = await screen.findByRole("region", { name: "Edit conflict" });
+    expect(conflict).toHaveTextContent("This story was saved in another tab or on another device (version 2");
+    expect(within(conflict).getByText("Both were seen in five minutes.")).toBeInTheDocument();
+    expect(within(conflict).getByText("Saved on the other device.")).toBeInTheDocument();
     expect(screen.getByLabelText("Result")).toHaveValue("Both were seen in five minutes.");
-    await user.click(screen.getByRole("button", { name: "Save mine as the newest version" }));
+    await user.click(within(conflict).getByRole("button", { name: "Keep mine as the newest version" }));
     expect(await screen.findByText("Saved as version 3.")).toBeInTheDocument();
     const patches = sent.filter((r) => r.method === "PATCH").map((r) => r.body);
     expect(patches).toEqual([
@@ -186,5 +190,53 @@ describe("practising with a story", () => {
     await user.click(screen.getByRole("button", { name: "Get feedback" }));
     await waitFor(() => expect(answerBody).toMatchObject({ story_id: "s1" }));
     expect(sent.filter((r) => r.method === "PATCH")).toHaveLength(0);
+  });
+});
+
+describe("exact save state", () => {
+  it("a save that answers after more typing keeps that typing, and doesn't call it saved", async () => {
+    asUser();
+    fakeStories();
+    let release!: () => void;
+    const answered = new Promise<void>((r) => { release = r; });
+    const bodies: Record<string, unknown>[] = [];
+    server.use(http.patch(`${API}/api/v1/me/stories/:id`, async ({ request }) => {
+      const body = (await request.json()) as Record<string, unknown>;
+      bodies.push(body);
+      if (bodies.length === 1) await answered; // the first save is slow
+      return HttpResponse.json(story({ revision: 1 + bodies.length, result: String(body.result) }));
+    }));
+    const { user } = renderApp("/stories/s1", { signedIn: true });
+    const result = await screen.findByLabelText("Result");
+    await user.clear(result);
+    await user.type(result, "First.");
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.type(result, " Second."); // typed while that save is on its way
+    release();
+    await waitFor(() => expect(screen.getByText("Unsaved changes, kept on this device")).toBeInTheDocument());
+    expect(screen.getByLabelText("Result")).toHaveValue("First. Second."); // not replaced by the server's copy
+    expect(screen.queryByText(/Saved as version/)).toBeNull();
+    // The next save sends the newer text against the version the first save made.
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    expect(await screen.findByText("Saved as version 3.")).toBeInTheDocument();
+    expect(bodies[1]).toMatchObject({ result: "First. Second.", expected_revision: 2 });
+  });
+
+  it("restoring a copy kept against an older version compares first, and saves nothing on its own", async () => {
+    asUser();
+    const { sent } = fakeStories([story({ revision: 2, result: "Saved later on the other device." })]);
+    const { fromStory, storyDraftKey } = await import("@/features/stories/storyForm");
+    window.localStorage.setItem(storyDraftKey(nurse.id, "s1"), JSON.stringify({
+      form: { ...fromStory(story()), result: "Kept on this device." }, base: 1, at: now(),
+    }));
+    const { user } = renderApp("/stories/s1", { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Restore them" }));
+    const conflict = await screen.findByRole("region", { name: "Edit conflict" });
+    expect(within(conflict).getByText("Kept on this device.")).toBeInTheDocument();
+    expect(within(conflict).getByText("Saved later on the other device.")).toBeInTheDocument();
+    expect(sent.filter((r) => r.method === "PATCH")).toHaveLength(0);
+    await user.click(within(conflict).getByRole("button", { name: "Use the saved version" }));
+    expect(screen.getByLabelText("Result")).toHaveValue("Saved later on the other device.");
+    expect(window.localStorage.getItem(storyDraftKey(nurse.id, "s1"))).toBeNull();
   });
 });

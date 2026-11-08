@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import type { Note } from "@/api/types";
 import { Button } from "@/components/Button";
+import { CopyWork } from "@/components/CopyWork";
 import { InlineError } from "@/components/States";
 import { timeAgo } from "@/lib/format";
 
@@ -21,6 +22,16 @@ const STATUS: Record<SaveState, string> = {
   conflict: "Not saved: this note changed somewhere else",
   pending: "Offline: saved on this device. Sync pending: it's sent when you're back online.",
   offline: "Not saved yet: you're offline. Kept on this device; press Save now when you're back online.",
+};
+
+// The text isn't on the server in these states. When this browser also couldn't keep a copy, the
+// status says so plainly (and offers Copy), rather than claiming it's kept on this device.
+const NOT_ON_SERVER = new Set<SaveState>(["unsaved", "error", "pending", "offline"]);
+const NOT_KEPT: Partial<Record<SaveState, string>> = {
+  unsaved: "Unsaved changes, and this browser can't keep a copy",
+  error: "Could not save, and this browser can't keep a copy: copy your text",
+  pending: "Offline, and this browser can't keep a copy: copy your text",
+  offline: "Not saved: you're offline and this browser can't keep a copy: copy your text",
 };
 
 /** The editing surface shared by the capture panel and the note page. */
@@ -81,7 +92,8 @@ export function NoteEditor({ editor, compact = false, autoFocus = false }: {
       </label>
       <div className="row note-editor__status">
         {/* Not a live region (it changes as you type); failures and conflicts are announced by their own alerts. */}
-        <span className={`note-status note-status--${state}`}>{STATUS[state]}</span>
+        <span className={`note-status note-status--${state}`}>{editor.kept || !NOT_ON_SERVER.has(state) ? STATUS[state] : NOT_KEPT[state]}</span>
+        {!editor.kept && NOT_ON_SERVER.has(state) && <CopyWork text={[fields.title, fields.body].filter(Boolean).join("\n\n")} />}
         {state === "conflict" && <span className="visually-hidden" role="alert">Not saved: this note changed somewhere else. Choose which version to keep.</span>}
         {state === "error" && <Button size="sm" onClick={() => void editor.save()}>Try again</Button>}
         {(state === "unsaved" || state === "offline") && <Button size="sm" variant="ghost" onClick={() => void editor.save()}>Save now</Button>}

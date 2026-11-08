@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useId, useState, type FormEvent } from "react";
+import { useId, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
@@ -11,9 +11,11 @@ import { BackLink } from "@/components/BackLink";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { VersionConflict } from "@/components/VersionConflict";
 import { CareerSelect } from "@/features/careers/CareerSelect";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
-import { formatDateTime } from "@/lib/format";
+import { savedVersion } from "@/lib/conflict";
+import { formatDateTime, timeAgo } from "@/lib/format";
 
 import { COMPETENCIES, COMPETENCY_LABEL, CONTEXT_LABEL, SECTION_LABEL, SECTION_PROMPT, SECTIONS } from "./labels";
 import { RevisionsPanel } from "./RevisionsPanel";
@@ -53,7 +55,10 @@ function Editor({ story }: { story: Story | null }) {
   const key = storyDraftKey(user?.id ?? "anon", story?.id ?? "new");
   const [saved, setSaved] = useState<Story | null>(story);
   const base = saved ? fromStory(saved) : emptyForm(user?.career_track ?? "");
-  const [form, setForm] = useState<StoryForm>(base);
+  const [form, setFormState] = useState<StoryForm>(base);
+  // The form as it is now, for a save that resolves after newer edits (it must not overwrite them).
+  const latest = useRef(base);
+  const setForm = (next: StoryForm) => { latest.current = next; setFormState(next); };
   const [recovery, setRecovery] = useState<Recovery | null>(() => {
     const r = readRecovery(key);
     return r && !sameForm(r.form, base) ? r : null;
@@ -62,7 +67,8 @@ function Editor({ story }: { story: Story | null }) {
   const [assisted, setAssisted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
-  const [conflict, setConflict] = useState<number | null>(null);
+  // A refused stale save: the version saved elsewhere, shown beside this page's.
+  const [conflict, setConflict] = useState<Story | null>(null);
   const [notice, setNotice] = useState("");
   const dirty = !sameForm(form, base);
   useLeaveWarning(dirty && !kept);
@@ -81,15 +87,20 @@ function Editor({ story }: { story: Story | null }) {
   }
   const edit = (next: StoryForm) => {
     setForm(next);
+    setNotice(""); // "Saved as version N" is about the text before this edit
     keep(next);
   };
   const set = <K extends keyof StoryForm>(k: K, v: StoryForm[K]) => edit({ ...form, [k]: v });
 
-  async function save(e?: FormEvent, overrideRevision?: number) {
+  /** Save the form. `against`: the version to save over (after a conflict, the saved one), so
+   * "keep my version" sends all of mine, not just what differs from the version I first loaded. */
+  async function save(e?: FormEvent, against?: Story) {
     e?.preventDefault();
     setBusy(true);
     setError(null);
     setNotice("");
+    const sent = latest.current;
+    const over = against ?? saved;
     try {
       let next: Story;
       if (!saved) {
@@ -100,18 +111,24 @@ function Editor({ story }: { story: Story | null }) {
         navigate(`/stories/${next.id}`, { replace: true });
         return;
       }
-      next = await api.updateStory(saved.id, { clear_target: false, ...changes(base, form), expected_revision: overrideRevision ?? saved.revision, reason: assisted ? "assisted" : "edited" });
+      const from = over ? fromStory(over) : base;
+      next = await api.updateStory(saved.id, { clear_target: false, ...changes(from, sent), expected_revision: over!.revision, reason: assisted ? "assisted" : "edited" });
       setSaved(next);
-      setForm(fromStory(next));
       setAssisted(false);
       setConflict(null);
-      setNotice(next.revision === saved.revision ? "Nothing changed." : `Saved as version ${next.revision}.`);
+      if (sameForm(latest.current, sent)) {
+        // Nothing typed while it was saving: the page shows exactly what was saved.
+        setForm(fromStory(next));
+        window.localStorage.removeItem(key);
+        setNotice(next.revision === over!.revision ? "Nothing changed." : `Saved as version ${next.revision}.`);
+      }
+      // Otherwise the newer edits stay, now unsaved against this version, and say so.
       qc.setQueryData(["me", "story", next.id], next);
       void qc.invalidateQueries({ queryKey: ["me", "stories"] });
       void qc.invalidateQueries({ queryKey: ["me", "story", next.id, "revisions"] });
     } catch (err) {
       if (err instanceof ApiError && err.code === "stale_revision") {
-        setConflict((err.details as { current_revision?: number } | null)?.current_revision ?? null);
+        setConflict(savedVersion<Story>(err.details) ?? (saved ? await api.story(saved.id).catch(() => null) : null));
       } else {
         setError(err);
       }
@@ -120,12 +137,13 @@ function Editor({ story }: { story: Story | null }) {
     }
   }
 
-  async function reloadSaved() {
-    if (!saved) return;
-    const fresh = await api.story(saved.id);
-    setSaved(fresh);
-    setForm(fromStory(fresh));
+  function takeSaved(version: Story) {
+    setSaved(version);
+    setForm(fromStory(version));
     setConflict(null);
+    setRecovery(null);
+    window.localStorage.removeItem(key);
+    qc.setQueryData(["me", "story", version.id], version);
   }
 
   function replaceWith(next: Story) {
@@ -167,19 +185,26 @@ function Editor({ story }: { story: Story | null }) {
         <div className="banner banner--info row" role="region" aria-label="Unsaved changes">
           <span>You have unsaved changes to this story from {formatDateTime(recovery.at)} on this device.</span>
           <span className="row">
-            <Button size="sm" variant="primary" onClick={() => { setForm(recovery.form); setRecovery(null); }}>Restore them</Button>
+            <Button size="sm" variant="primary" onClick={() => {
+              setForm(recovery.form);
+              setRecovery(null);
+              // Kept against an older version than the one saved now: compare before anything is saved over it.
+              if (saved && recovery.base !== null && recovery.base !== saved.revision) setConflict(saved);
+            }}>Restore them</Button>
             <Button size="sm" variant="ghost" onClick={() => { window.localStorage.removeItem(key); setRecovery(null); }}>Discard them</Button>
           </span>
         </div>
       )}
-      {conflict !== null && (
-        <div className="banner banner--warning stack-sm" role="alert">
-          <span>This story was saved somewhere else since you opened it (now version {conflict}). Your edits are still here and weren't saved.</span>
-          <span className="row">
-            <Button size="sm" variant="primary" loading={busy} onClick={() => void save(undefined, conflict)}>Save mine as the newest version</Button>
-            <Button size="sm" variant="ghost" onClick={() => void reloadSaved()}>Discard mine and load the saved version</Button>
-          </span>
-        </div>
+      {conflict && (
+        <VersionConflict what="story" savedWhen={`version ${conflict.revision}, ${timeAgo(conflict.updated_at)}`} busy={busy}
+          keepMineLabel="Keep mine as the newest version"
+          fields={[
+            { label: "Title", mine: form.title, saved: conflict.title },
+            ...SECTIONS.map((s) => ({ label: SECTION_LABEL[s], mine: form[s], saved: conflict[s] })),
+            { label: "Long version", mine: form.long_version, saved: conflict.long_version ?? "" },
+          ]}
+          onKeepMine={() => void save(undefined, conflict)}
+          onUseSaved={() => takeSaved(conflict)} />
       )}
 
       <div className="story-editor__layout">

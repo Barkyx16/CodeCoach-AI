@@ -72,13 +72,15 @@ export function DrillPage() {
   async function send() {
     setBusy(true);
     setError(null);
+    const sent = text;
     try {
       const seconds = Math.round(spokenMs.current / 1000);
       const out = await api.submitDrill(d.id, {
-        text, source: usedVoice ? "voice" : "typed", spoken_seconds: delivery && usedVoice && seconds > 0 ? seconds : null, client_request_id: requestId,
+        text: sent, source: usedVoice ? "voice" : "typed", spoken_seconds: delivery && usedVoice && seconds > 0 ? seconds : null, client_request_id: requestId,
       });
       show(out);
-      setText("");
+      // Clear only what was sent: words typed or dictated while it was sending stay in the box.
+      if (textRef.current === sent) setText("");
       setUsedVoice(false);
       spokenMs.current = 0;
       setRequestId(crypto.randomUUID());

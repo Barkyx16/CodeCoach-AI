@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
@@ -11,9 +11,12 @@ import { BackLink } from "@/components/BackLink";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { CopyWork } from "@/components/CopyWork";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { VersionConflict } from "@/components/VersionConflict";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
-import { formatDateTime } from "@/lib/format";
+import { savedVersion } from "@/lib/conflict";
+import { formatDateTime, timeAgo } from "@/lib/format";
 
 import { ListField } from "./ListField";
 import { OUTCOME_LABEL, STAGE_FOR, STAGE_LABEL } from "./labels";
@@ -43,15 +46,24 @@ function Editor({ initial }: { initial: Reflection }) {
   const key = `reflection-draft:${user?.id ?? "anon"}:${initial.event_id}`;
   const [r, setR] = useState(initial);
   const [draft, setDraft] = useState<Draft>(() => fromReflection(initial));
-  const [recovery, setRecovery] = useState<Draft | null>(() => {
+  // A copy kept on this device, and the saved version it was written against (null: an older copy
+  // that didn't record it). Restoring one written against an older version compares first.
+  const [recovery, setRecovery] = useState<{ draft: Draft; base: number | null } | null>(() => {
     try {
       const raw = localStorage.getItem(key);
-      const kept = raw ? (JSON.parse(raw) as Draft) : null;
-      return kept && JSON.stringify(kept) !== JSON.stringify(fromReflection(initial)) ? kept : null;
+      const parsed = raw ? (JSON.parse(raw) as { draft?: Draft; base?: number } & Partial<Draft>) : null;
+      const kept = parsed ? (parsed.draft ? { draft: parsed.draft, base: parsed.base ?? null } : { draft: parsed as Draft, base: null }) : null;
+      return kept && JSON.stringify(kept.draft) !== JSON.stringify(fromReflection(initial)) ? kept : null;
     } catch {
       return null;
     }
   });
+  // The version saved elsewhere, when a save was refused (409) or a kept copy is older than it.
+  const [against, setAgainst] = useState<Reflection | null>(null);
+  const [keptHere, setKeptHere] = useState(true);
+  // The draft as last rendered, for a save that resolves after newer edits.
+  const latest = useRef(draft);
+  useEffect(() => { latest.current = draft; }, [draft]);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [status, setStatus] = useState("");
@@ -62,10 +74,19 @@ function Editor({ initial }: { initial: Reflection }) {
   // Unsaved words are kept on this device until saved, so a failed save or a closed tab loses nothing.
   useEffect(() => {
     if (!dirty || recovery) return;
-    try { localStorage.setItem(key, JSON.stringify(draft)); } catch { /* blocked: the leave warning still applies */ }
-  }, [draft, dirty, recovery, key]);
+    let ok = true;
+    try {
+      localStorage.setItem(key, JSON.stringify({ draft, base: r.revision }));
+    } catch {
+      ok = false; // private mode or full: the text exists only on this page now, and the page says so
+    }
+    queueMicrotask(() => setKeptHere(ok)); // storage answered: report it (not a render-time update)
+  }, [draft, dirty, recovery, key, r.revision]);
 
-  const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setDraft((d) => ({ ...d, [k]: v }));
+  const set = <K extends keyof Draft>(k: K, v: Draft[K]) => {
+    setStatus(""); // "Saved" was about the text before this edit
+    setDraft((d) => ({ ...d, [k]: v }));
+  };
   const put = (next: Reflection) => {
     setR(next);
     qc.setQueryData(["me", "reflection", next.application_id, next.event_id], next);
@@ -93,23 +114,41 @@ function Editor({ initial }: { initial: Reflection }) {
 
   async function save(e?: FormEvent, revision = r.revision) {
     e?.preventDefault();
-    const next = await run("save", () => api.saveReflection(r.application_id, r.event_id, { ...draft, expected_revision: revision }), "Saved. Only you can see it.");
-    if (next) {
-      setDraft(fromReflection(next));
-      try { localStorage.removeItem(key); } catch { /* blocked */ }
+    const sent = draft;
+    setBusy("save");
+    setError(null);
+    try {
+      const next = await api.saveReflection(r.application_id, r.event_id, { ...sent, expected_revision: revision });
+      put(next);
+      setAgainst(null);
+      // Typed while it was saving? Those edits stay, unsaved; "Saved" is only for exactly what was sent.
+      if (JSON.stringify(latest.current) === JSON.stringify(sent)) {
+        setDraft(fromReflection(next));
+        setStatus("Saved. Only you can see it.");
+        try { localStorage.removeItem(key); } catch { /* blocked */ }
+      }
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "stale_revision") {
+        setAgainst(savedVersion<Reflection>(err.details) ?? (await api.reflection(r.application_id, r.event_id).catch(() => null)));
+      } else {
+        setError(err);
+      }
+    } finally {
+      setBusy(null);
     }
   }
 
-  const conflict = error instanceof ApiError && error.code === "stale_revision" ? (error.details as { current_revision: number }).current_revision : null;
-
-  async function loadSaved() {
-    const fresh = await run("reload", () => api.reflection(r.application_id, r.event_id), "Loaded the saved version. Your unsaved text was discarded.");
-    if (fresh) {
-      setDraft(fromReflection(fresh));
-      setRestored((n) => n + 1);
-      try { localStorage.removeItem(key); } catch { /* blocked */ }
-    }
+  function takeSaved(version: Reflection) {
+    put(version);
+    setDraft(fromReflection(version));
+    setRestored((n) => n + 1);
+    setAgainst(null);
+    setStatus("Loaded the saved version.");
+    try { localStorage.removeItem(key); } catch { /* blocked */ }
   }
+
+  const lines = (xs: string[]) => xs.join("\n");
+  const observed = (xs: Draft["observations"]) => xs.map((o) => `${o.kind === "observed" ? "Observed" : "My interpretation"}: ${o.text}`).join("\n");
 
   return (
     <div className="page reflection-page">
@@ -143,7 +182,13 @@ function Editor({ initial }: { initial: Reflection }) {
         <div className="banner banner--info row" role="region" aria-label="Unsaved changes">
           <span>You have unsaved changes to this reflection on this device.</span>
           <span className="row">
-            <Button size="sm" variant="primary" onClick={() => { setDraft(recovery); setRecovery(null); setRestored((n) => n + 1); }}>Restore them</Button>
+            <Button size="sm" variant="primary" onClick={() => {
+              setDraft(recovery.draft);
+              setRecovery(null);
+              setRestored((n) => n + 1);
+              // Kept against an older saved version: compare before anything is saved over it.
+              if (recovery.base !== null && recovery.base !== r.revision) setAgainst(r);
+            }}>Restore them</Button>
             <Button size="sm" variant="ghost" onClick={() => { try { localStorage.removeItem(key); } catch { /* blocked */ } setRecovery(null); }}>Discard them</Button>
           </span>
         </div>
@@ -191,19 +236,26 @@ function Editor({ initial }: { initial: Reflection }) {
         )}
         <span className="row">
           <Button type="submit" variant="primary" loading={busy === "save"} disabled={!dirty}>Save reflection</Button>
-          <span className="subtle" role="status">{status || (dirty ? "Unsaved changes, kept on this device" : r.saved ? `Saved ${r.updated_at ? formatDateTime(r.updated_at) : ""}` : "")}</span>
+          <span className="subtle" role="status">{status || (dirty ? (keptHere ? "Unsaved changes, kept on this device" : "Unsaved changes, and this browser can't keep a copy: save, or copy your text") : r.saved ? `Saved ${r.updated_at ? formatDateTime(r.updated_at) : ""}` : "")}</span>
+          {dirty && !keptHere && <CopyWork text={[draft.clear, draft.difficult, observed(draft.observations), draft.follow_ups].filter(Boolean).join("\n\n")} />}
         </span>
         {r.warnings.map((w) => <p key={w} className="banner banner--warning">{w}</p>)}
-        {conflict !== null && (
-          <div className="banner banner--warning row" role="alert">
-            <span>This reflection was saved somewhere else (now version {conflict}). Your text is still here.</span>
-            <span className="row">
-              <Button size="sm" variant="primary" onClick={() => void save(undefined, conflict)}>Save mine as the newest</Button>
-              <Button size="sm" variant="ghost" onClick={() => void loadSaved()}>Discard mine and load the saved version</Button>
-            </span>
-          </div>
+        {against && (
+          <VersionConflict what="reflection" savedWhen={`version ${against.revision}${against.updated_at ? `, ${timeAgo(against.updated_at)}` : ""}`}
+            busy={busy === "save"} keepMineLabel="Keep mine as the newest"
+            fields={[
+              { label: "Questions you were asked", mine: lines(draft.questions), saved: lines(against.questions) },
+              { label: "Topics that came up", mine: lines(draft.topics), saved: lines(against.topics) },
+              { label: "What felt clear", mine: draft.clear, saved: against.clear },
+              { label: "What was difficult", mine: draft.difficult, saved: against.difficult },
+              { label: "Observations", mine: observed(draft.observations), saved: observed(against.observations) },
+              { label: "What you said you'd do", mine: draft.follow_ups, saved: against.follow_ups },
+              { label: "What you want to practise", mine: lines(draft.practice), saved: lines(against.practice) },
+            ]}
+            onKeepMine={() => void save(undefined, against.revision)}
+            onUseSaved={() => takeSaved(against)} />
         )}
-        {conflict === null && <InlineError error={error} />}
+        <InlineError error={error} />
       </form>
 
       {r.saved && <NextSteps r={r} busy={busy} run={run} />}

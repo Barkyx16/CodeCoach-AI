@@ -166,3 +166,23 @@ describe("Notebook", () => {
     expect(await screen.findByText("Note not found")).toBeInTheDocument();
   });
 });
+
+describe("Notebook: when this browser can't keep a copy", () => {
+  it("a failed save says the copy wasn't kept either, and offers Copy instead of claiming it's safe", async () => {
+    asNurse();
+    const note = makeNote({ title: "Shift notes", body: "start" });
+    noteStore.notes.push(note);
+    noteStore.failSaves = 99;
+    const blocked = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new DOMException("full", "QuotaExceededError"); });
+    try {
+      const { user } = renderApp(`/notes/${note.id}`, { signedIn: true });
+      await user.type(await screen.findByLabelText("Note"), " more");
+      expect(await screen.findByText("Could not save, and this browser can't keep a copy: copy your text", {}, { timeout: 3000 })).toBeInTheDocument();
+      expect(screen.queryByText(/Your text is kept in this browser/)).toBeNull();
+      expect(screen.getByRole("button", { name: "Copy your text" })).toBeInTheDocument();
+    } finally {
+      blocked.mockRestore();
+      noteStore.failSaves = 0;
+    }
+  });
+});

@@ -160,7 +160,12 @@ describe("reflecting on a real interview", () => {
     await user.type(clear, " and mine");
     server.use(http.get(R, () => HttpResponse.json(reflection({ saved: true, revision: 2, clear: "From the other tab" }))));
     await user.click(screen.getByRole("button", { name: "Save reflection" }));
-    await user.click(within(await screen.findByRole("alert")).getByRole("button", { name: "Discard mine and load the saved version" }));
+    const conflict = await screen.findByRole("region", { name: "Edit conflict" });
+    // Both versions of the part that differs, under the page's own label.
+    expect(within(conflict).getAllByText("What felt clear")).toHaveLength(2);
+    expect(within(conflict).getByText("Old and mine")).toBeInTheDocument();
+    expect(within(conflict).getByText("From the other tab")).toBeInTheDocument();
+    await user.click(within(conflict).getByRole("button", { name: "Use the saved version" }));
     await waitFor(() => expect(screen.getByLabelText("What felt clear")).toHaveValue("From the other tab"));
   });
 
@@ -174,3 +179,36 @@ describe("reflecting on a real interview", () => {
   });
 });
 
+
+describe("reflection: exact save state", () => {
+  it("when this browser can't keep a copy, the page says so and offers Copy", async () => {
+    setup(reflection({ saved: true, revision: 1, clear: "Old" }));
+    const blocked = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new DOMException("full", "QuotaExceededError"); });
+    try {
+      const { user } = renderApp(URL, { signedIn: true });
+      await user.type(await screen.findByLabelText("What felt clear"), " and mine");
+      expect(await screen.findByText(/this browser can't keep a copy/)).toBeInTheDocument();
+      expect(screen.queryByText("Unsaved changes, kept on this device")).toBeNull();
+      expect(screen.getByRole("button", { name: "Copy your text" })).toBeInTheDocument();
+    } finally {
+      blocked.mockRestore();
+    }
+  });
+
+  it("a kept copy written against an older version is compared before anything is saved over it", async () => {
+    setup(reflection({ saved: true, revision: 2, clear: "Saved later on the other device" }));
+    localStorage.setItem(`reflection-draft:${baseUser.id}:e1`, JSON.stringify({
+      draft: { ...fromReflectionForTest(reflection({ clear: "Kept on this device" })) }, base: 1,
+    }));
+    const { user } = renderApp(URL, { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Restore them" }));
+    const conflict = await screen.findByRole("region", { name: "Edit conflict" });
+    expect(within(conflict).getByText("Kept on this device")).toBeInTheDocument();
+    expect(within(conflict).getByText("Saved later on the other device")).toBeInTheDocument();
+  });
+});
+
+/** The editable part of a reflection, as the page keeps it on this device. */
+function fromReflectionForTest(r: Reflection) {
+  return { questions: r.questions, topics: r.topics, clear: r.clear, difficult: r.difficult, observations: r.observations, follow_ups: r.follow_ups, practice: r.practice, story_ids: r.story_ids };
+}

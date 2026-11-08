@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
@@ -11,12 +11,14 @@ import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { VersionConflict } from "@/components/VersionConflict";
 import { describeWhen } from "@/features/applications/dates";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 import { DEFAULT_PRINT, FORMAT_LABEL, GROUP_LABEL, PRINT_LABEL, type KitFormat, type PrintChoice, type QuestionGroup } from "./labels";
 import { PrintPack } from "./PrintPack";
+import { savedVersion } from "@/lib/conflict";
 import { externalHref } from "@/lib/links";
 
 const newId = () => `u-${crypto.randomUUID().slice(0, 8)}`;
@@ -42,12 +44,16 @@ function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
   const [saved, setSaved] = useState(initial);
   const [kit, setKit] = useState(initial);
   const [reviewed, setReviewed] = useState<string[]>([]);
-  const [conflict, setConflict] = useState<number | null>(null);
+  // A refused stale save: the kit saved elsewhere, shown beside this page's.
+  const [conflict, setConflict] = useState<Kit | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [notice, setNotice] = useState("");
   const [print, setPrint] = useState<PrintChoice>(DEFAULT_PRINT);
   const dirty = JSON.stringify(kit) !== JSON.stringify(saved) || reviewed.length > 0;
+  // The kit as last rendered, for a save that resolves after newer edits (it must not undo them).
+  const latest = useRef(kit);
+  useEffect(() => { latest.current = kit; }, [kit]);
   useLeaveWarning(dirty);
   const set = <K extends keyof Kit>(k: K, v: Kit[K]) => { setKit((x) => ({ ...x, [k]: v })); setNotice(""); };
   const fromHere = { from: pathname, fromLabel: BACK_TO_KIT };
@@ -56,17 +62,26 @@ function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
   async function save(over?: number) {
     setBusy(true);
     setError(null);
+    const sent = kit;
     try {
-      const next = await api.saveKit(kit.application_id, kit.event_id, {
-        format: kit.format, location: kit.location, meeting_link: kit.meeting_link || null, clear_meeting_link: !kit.meeting_link,
-        interviewers: kit.interviewers, notes: kit.notes, checklist: kit.checklist, questions: kit.questions, story_ids: kit.stories.map((s) => s.id),
+      const next = await api.saveKit(sent.application_id, sent.event_id, {
+        format: sent.format, location: sent.location, meeting_link: sent.meeting_link || null, clear_meeting_link: !sent.meeting_link,
+        interviewers: sent.interviewers, notes: sent.notes, checklist: sent.checklist, questions: sent.questions, story_ids: sent.stories.map((s) => s.id),
         expected_revision: over ?? saved.revision, reviewed_story_ids: reviewed,
       });
-      replaceWith(next);
-      setNotice("Saved.");
+      if (JSON.stringify(latest.current) === JSON.stringify(sent)) {
+        replaceWith(next);
+        setNotice("Saved.");
+      } else {
+        // Edited while it was saving: keep those edits, now unsaved against the version just saved.
+        setSaved(next);
+        setReviewed([]);
+        setConflict(null);
+        qc.setQueryData(["me", "kit", next.application_id, next.event_id], next);
+      }
     } catch (e) {
       if (e instanceof ApiError && e.code === "stale_revision") {
-        setConflict((e.details as { current_revision?: number } | null)?.current_revision ?? 0);
+        setConflict(savedVersion<Kit>(e.details) ?? (await api.kit(kit.application_id, kit.event_id).catch(() => null)));
       } else {
         setError(e);
       }
@@ -83,17 +98,9 @@ function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
     qc.setQueryData(["me", "kit", next.application_id, next.event_id], next);
   }
 
-  async function loadSaved() {
-    setBusy(true);
-    try {
-      replaceWith(await api.kit(kit.application_id, kit.event_id));
-      setNotice("Loaded the saved kit. Your unsaved changes were discarded.");
-    } catch (e) {
-      setError(e);
-    } finally {
-      setBusy(false);
-    }
-  }
+  const people = (k: Kit) => k.interviewers.map((i) => [i.name, i.role].filter(Boolean).join(", ")).join("\n");
+  const ticks = (k: Kit) => k.checklist.filter((c) => !c.hidden).map((c) => `${c.done ? "[x]" : "[ ]"} ${c.text}`).join("\n");
+  const asks = (k: Kit) => k.questions.filter((q) => !q.excluded).map((q) => q.text).join("\n");
 
   // Chosen examples: the bank's own list, plus any chosen one that's archived (so it can be unticked).
   const pickable = [
@@ -125,16 +132,23 @@ function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
         </div>
       </div>
 
-      {conflict !== null && (
-        <div className="banner banner--warning stack-sm no-print" role="alert">
-          <span>This kit was saved somewhere else since you opened it (maybe in another tab). Your changes are still here and weren't saved.</span>
-          <span className="row">
-            <Button size="sm" variant="primary" loading={busy} onClick={() => void save(conflict)}>Save mine over it</Button>
-            <Button size="sm" variant="ghost" disabled={busy} onClick={() => void loadSaved()}>Discard mine and load the saved kit</Button>
-          </span>
+      {conflict && (
+        <div className="no-print">
+          <VersionConflict what="kit" savedWhen={`version ${conflict.revision}`} busy={busy} keepMineLabel="Keep mine (replaces that version)"
+            fields={[
+              { label: "Format", mine: FORMAT_LABEL[kit.format as KitFormat] ?? kit.format, saved: FORMAT_LABEL[conflict.format as KitFormat] ?? conflict.format },
+              { label: "Where", mine: [kit.location, kit.meeting_link].filter(Boolean).join("\n"), saved: [conflict.location, conflict.meeting_link].filter(Boolean).join("\n") },
+              { label: "Interviewers", mine: people(kit), saved: people(conflict) },
+              { label: "Notes", mine: kit.notes, saved: conflict.notes },
+              { label: "Checklist", mine: ticks(kit), saved: ticks(conflict) },
+              { label: "Questions to ask", mine: asks(kit), saved: asks(conflict) },
+              { label: "Examples", mine: kit.stories.map((x) => x.title).join("\n"), saved: conflict.stories.map((x) => x.title).join("\n") },
+            ]}
+            onKeepMine={() => void save(conflict.revision)}
+            onUseSaved={() => { replaceWith(conflict); setNotice("Loaded the saved kit. Your unsaved changes were discarded."); }} />
         </div>
       )}
-      {conflict === null && live.revision > saved.revision && (
+      {!conflict && live.revision > saved.revision && (
         <div className="banner banner--info no-print" role="status">
           This kit was saved somewhere else (maybe another tab) since you opened it.
           {dirty ? " Your changes here are kept; saving will ask before replacing that version." : " "}

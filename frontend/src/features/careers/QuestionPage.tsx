@@ -97,6 +97,9 @@ function QuestionPageFor() {
   const location = useLocation();
   const carried = (location.state as { draft?: string } | null)?.draft ?? "";
   const [draft, setDraft, kept] = useStoredDraft(answerDraftKey(draftScope, track, id));
+  // The draft as last rendered: a send that resolves after newer typing mustn't wipe that typing.
+  const draftNow = useRef(draft);
+  useEffect(() => { draftNow.current = draft; }, [draft]);
   useLeaveWarning(!kept && draft.trim().length > 0);
   useEffect(() => {
     if (carried && !draft) setDraft(carried);
@@ -230,7 +233,7 @@ function QuestionPageFor() {
       setSent(result);
       if (wanted) setParams((p) => { p.delete("answer"); return p; }, { replace: true, state: location.state });
       setGated(reflectFirst); // the answer is saved either way; only the reveal waits
-      setDraft("");
+      if (draftNow.current.trim() === text) setDraft(""); // typed while sending? that stays, unsent
       setRevising(null);
       setCleared(null);
       setStoryId(null); // the next answer is only tied to a story if you choose one again

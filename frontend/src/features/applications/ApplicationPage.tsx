@@ -243,19 +243,22 @@ function DetailsCard({ a, onDone }: { a: Application; onDone: (a: Application) =
   const [form, setForm] = useState({ role_title: a.role_title, employer: a.employer, link: a.link ?? "", applied_on: a.applied_on ?? "", next_action: a.next_action, next_action_due: a.next_action_due ?? "", notes: a.notes });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
-  const [saved, setSaved] = useState(false);
-  const set = (k: keyof typeof form, v: string) => { setForm((f) => ({ ...f, [k]: v })); setSaved(false); };
+  // What the server last accepted: "Saved." only while the form still says exactly that, so a slow
+  // response never labels newer edits as saved.
+  const [savedAs, setSavedAs] = useState<string | null>(null);
+  const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
   async function submit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
+    const sent = JSON.stringify(form);
     const clear = (["link", "applied_on", "next_action_due"] as const).filter((k) => !form[k] && a[k]);
     try {
       onDone(await api.updateApplication(a.id, {
         role_title: form.role_title, employer: form.employer, next_action: form.next_action, notes: form.notes,
         link: form.link || null, applied_on: form.applied_on || null, next_action_due: form.next_action_due || null, clear,
       }));
-      setSaved(true);
+      setSavedAs(sent);
     } catch (err) {
       setError(err);
     } finally {
@@ -278,7 +281,7 @@ function DetailsCard({ a, onDone }: { a: Application; onDone: (a: Application) =
         : <span>{a.link}</span>}</p>}
       <label className="field"><span className="field__label">Notes <span className="subtle">(private)</span></span><textarea className="input" rows={3} maxLength={4000} value={form.notes} onChange={(e) => set("notes", e.target.value)} /></label>
       <InlineError error={error} />
-      <span className="row"><Button type="submit" size="sm" variant="primary" loading={busy}>Save details</Button>{saved && <span className="subtle" role="status">Saved.</span>}</span>
+      <span className="row"><Button type="submit" size="sm" variant="primary" loading={busy}>Save details</Button>{savedAs === JSON.stringify(form) && <span className="subtle" role="status">Saved.</span>}</span>
     </form>
   );
 }

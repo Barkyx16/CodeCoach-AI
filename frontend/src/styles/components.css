@@ -147,3 +147,10 @@
 /* Live password checklist */
 .password-rules { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: var(--text-xs); color: var(--color-text-subtle); }
 .password-rules__ok { color: var(--color-success); }
+
+/* Two versions of one record after a refused stale save (components/VersionConflict.tsx). */
+.version-conflict__versions { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3); }
+.version-conflict__field { margin-bottom: var(--space-2); }
+.version-conflict__label { font-weight: 600; margin: var(--space-1) 0; }
+.version-conflict__text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: var(--space-2); max-height: 220px; overflow: auto;
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface-sunken); font-family: var(--font-sans); font-size: var(--text-sm); }

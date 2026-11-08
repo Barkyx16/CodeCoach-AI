@@ -104,7 +104,8 @@ describe("whiteboard practice", () => {
       saves += 1;
       const body = (await request.json()) as { expected_revision: number; diagram: WhiteboardDraft["diagram"]; explanation: string };
       if (body.expected_revision === 0) {
-        return HttpResponse.json({ error: { code: "stale_revision", message: "Saved elsewhere.", details: { current_revision: 3 } } }, { status: 409 });
+        return HttpResponse.json({ error: { code: "stale_revision", message: "Saved elsewhere.",
+          details: { current_revision: 3, current: { ...empty, explanation: "From the other tab", revision: 3 } } } }, { status: 409 });
       }
       return HttpResponse.json({ ...empty, diagram: body.diagram, explanation: body.explanation, revision: 4 });
     }));
@@ -112,9 +113,12 @@ describe("whiteboard practice", () => {
     await screen.findByRole("heading", { level: 1, name: "Design a URL shortener" });
     await addComponent(user, "Gateway", "service");
     await user.click(screen.getByRole("button", { name: "Save draft" }));
-    expect(await screen.findByText(/This diagram was saved somewhere else \(now version 3\)/)).toBeInTheDocument();
+    const conflict = await screen.findByRole("region", { name: "Edit conflict" });
+    expect(conflict).toHaveTextContent("This diagram was saved in another tab or on another device (version 3");
+    expect(within(conflict).getByText("From the other tab")).toBeInTheDocument(); // the saved explanation, beside mine
+    expect(within(conflict).getAllByText(/Gateway/).length).toBeGreaterThan(0); // my diagram, in words
     expect(screen.getByLabelText("Name of n1")).toHaveValue("Gateway");
-    await user.click(screen.getByRole("button", { name: "Save mine as the newest" }));
+    await user.click(within(conflict).getByRole("button", { name: "Keep mine as the newest" }));
     expect(await screen.findByText("Saved to your account.")).toBeInTheDocument();
     expect(saves).toBe(2);
   });

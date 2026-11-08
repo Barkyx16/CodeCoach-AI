@@ -101,7 +101,7 @@ describe("the kit stays truthful when things change", () => {
         const body = (await request.json()) as Record<string, unknown>;
         bodies.push(body);
         if (body.expected_revision !== current.revision) {
-          return HttpResponse.json({ error: { code: "stale_revision", message: "This kit was saved somewhere else", request_id: "r", details: { current_revision: current.revision } } }, { status: 409 });
+          return HttpResponse.json({ error: { code: "stale_revision", message: "This kit was saved somewhere else", request_id: "r", details: { current_revision: current.revision, current } } }, { status: 409 });
         }
         current = kit({ ...(body as Partial<Kit>), saved: true, revision: current.revision + 1 });
         return HttpResponse.json(current);
@@ -114,29 +114,33 @@ describe("the kit stays truthful when things change", () => {
     await user.clear(notes);
     await user.type(notes, "Mine");
     await user.click(screen.getByRole("button", { name: "Save kit" }));
-    const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent(/saved somewhere else since you opened it/);
+    const conflict = await screen.findByRole("region", { name: "Edit conflict" });
+    expect(within(conflict).getByRole("alert")).toHaveTextContent("This kit was saved in another tab or on another device (version 3)");
+    // Both versions of what differs: this page's notes and the other tab's.
+    expect(within(conflict).getByText("Mine")).toBeInTheDocument();
+    expect(within(conflict).getByText("From the other tab")).toBeInTheDocument();
     expect(screen.getByLabelText("Private notes")).toHaveValue("Mine"); // nothing lost
     expect(bodies[0]!.expected_revision).toBe(2);
-    await user.click(within(alert).getByRole("button", { name: "Save mine over it" }));
+    await user.click(within(conflict).getByRole("button", { name: "Keep mine (replaces that version)" }));
     await waitFor(() => expect(bodies).toHaveLength(2));
     expect(bodies[1]).toMatchObject({ expected_revision: 3, notes: "Mine" }); // an explicit choice, against what's there now
     expect(await screen.findByText("Saved.")).toBeInTheDocument();
-    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByRole("region", { name: "Edit conflict" })).toBeNull();
   });
 
   it("discarding your edits loads the saved kit instead", async () => {
     asUser();
     server.use(
       http.get(KIT, () => HttpResponse.json(kit({ saved: true, revision: 3, notes: "From the other tab" }))),
-      http.put(KIT, () => HttpResponse.json({ error: { code: "stale_revision", message: "x", request_id: "r", details: { current_revision: 3 } } }, { status: 409 })),
+      http.put(KIT, () => HttpResponse.json({ error: { code: "stale_revision", message: "x", request_id: "r",
+        details: { current_revision: 3, current: kit({ saved: true, revision: 3, notes: "From the other tab" }) } } }, { status: 409 })),
     );
     server.use(http.get(KIT, () => HttpResponse.json(kit({ saved: true, revision: 2, notes: "Old" })), { once: true }));
     const { user } = renderApp(URL, { signedIn: true });
     const notes = await screen.findByLabelText("Private notes");
     await user.type(notes, " and mine");
     await user.click(screen.getByRole("button", { name: "Save kit" }));
-    await user.click(within(await screen.findByRole("alert")).getByRole("button", { name: "Discard mine and load the saved kit" }));
+    await user.click(within(await screen.findByRole("region", { name: "Edit conflict" })).getByRole("button", { name: "Use the saved version" }));
     await waitFor(() => expect(screen.getByLabelText("Private notes")).toHaveValue("From the other tab"));
     expect(screen.getByText(/Your unsaved changes were discarded/)).toBeInTheDocument();
   });
@@ -187,5 +191,48 @@ describe("the kit stays truthful when things change", () => {
     expect(pack).toHaveClass("print-pack--unsaved");
     expect(within(pack).getByText(/This kit has unsaved changes, so it isn't printed/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Print…" })).toBeDisabled();
+  });
+});
+
+describe("exact save state on the kit", () => {
+  const KIT = `${API}/api/v1/me/applications/a1/events/e1/kit`;
+
+  it("edits made while a save is on its way stay, and aren't called saved", async () => {
+    asUser();
+    let release!: () => void;
+    const answered = new Promise<void>((r) => { release = r; });
+    let current = kit({ saved: true, revision: 1, notes: "Old" });
+    server.use(
+      http.get(KIT, () => HttpResponse.json(current)),
+      http.put(KIT, async ({ request }) => {
+        const body = (await request.json()) as Partial<Kit>;
+        await answered;
+        current = kit({ ...body, saved: true, revision: current.revision + 1 });
+        return HttpResponse.json(current);
+      }),
+    );
+    const { user } = renderApp(URL, { signedIn: true });
+    const notes = await screen.findByLabelText("Private notes");
+    await user.clear(notes);
+    await user.type(notes, "First");
+    await user.click(screen.getByRole("button", { name: "Save kit" }));
+    await user.type(notes, " and more"); // typed while saving
+    release();
+    await waitFor(() => expect(screen.getByText("Unsaved changes")).toBeInTheDocument());
+    expect(screen.getByLabelText("Private notes")).toHaveValue("First and more");
+    expect(screen.queryByText("Saved.")).toBeNull();
+  });
+
+  it("in-app navigation asks before leaving unsaved kit edits, which live only on this page", async () => {
+    asUser();
+    server.use(http.get(KIT, () => HttpResponse.json(kit({ saved: true, revision: 1, notes: "Old" }))));
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const { user } = renderApp(URL, { signedIn: true });
+    const notes = await screen.findByLabelText("Private notes");
+    await user.type(notes, " and mine");
+    await user.click(screen.getByRole("link", { name: "Back to the application" }));
+    expect(confirm).toHaveBeenCalledWith(expect.stringMatching(/changes that aren't saved yet/));
+    expect(screen.getByLabelText("Private notes")).toHaveValue("Old and mine"); // stayed on the page
+    confirm.mockRestore();
   });
 });
