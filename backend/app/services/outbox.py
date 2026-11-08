@@ -38,7 +38,7 @@ from app.services.email import Email, EmailRejectedError, EmailSender
 
 logger = logging.getLogger("codecoach.outbox")
 
-KINDS = ("verify_email", "password_reset", "email_changed")
+KINDS = ("verify_email", "password_reset", "email_change_requested", "email_changed")
 FINISHED = ("accepted", "rejected", "skipped", "dropped", "failed")
 MAX_ATTEMPTS = 5
 BACKOFF = (timedelta(seconds=30), timedelta(minutes=2), timedelta(minutes=10), timedelta(minutes=30))
@@ -101,6 +101,10 @@ def _send(
     if job["kind"] == "password_reset":
         return password_reset.request_reset(
             session_factory, payload["email"], settings, sender, cooldown=first, raise_errors=True
+        )
+    if job["kind"] == "email_change_requested":
+        return email_verification.notify_change_requested(
+            sender, payload["current"], payload["requested"], settings, raise_errors=True
         )
     return email_verification.notify_email_changed(sender, payload["old"], payload["new"], raise_errors=True)
 

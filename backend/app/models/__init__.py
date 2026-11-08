@@ -157,6 +157,11 @@ class User(Base):
     last_login_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     # Set when the owner clicks the link sent to `email`; cleared whenever the email changes.
     email_verified_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    # A change of address the owner asked for (with their password) but hasn't confirmed yet: the
+    # code went to this address. Until it's confirmed, `email` stays the account's address for
+    # sign-in and recovery. A password reset cancels it. docs/EMAIL.md, "Changing the email".
+    pending_email: Mapped[str | None] = mapped_column(String(320), nullable=True)
+    pending_email_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     # The job they're preparing for: a slug from app.careers.CATALOG.
     career_track: Mapped[str] = mapped_column(
         String(64), default="software-engineer", server_default="software-engineer"

@@ -100,7 +100,9 @@ function VerifyByCode() {
       </div>
     );
   }
-  if (user.email_verified) {
+  // A pending change is confirmed by the new address; until then the account keeps its email.
+  const pending = user.pending_email ?? null;
+  if (user.email_verified && !pending) {
     return (
       <div className="card auth__card stack">
         <h1 className="page__title">Confirm your email</h1>
@@ -155,12 +157,17 @@ function VerifyByCode() {
 
   return (
     <form className="card auth__card stack" onSubmit={onSubmit} noValidate aria-labelledby="verify-title">
-      <h1 className="page__title" id="verify-title">Check your email</h1>
+      <h1 className="page__title" id="verify-title">{pending ? "Confirm your new email" : "Check your email"}</h1>
       <p className="muted">
-        A 6-digit code is on its way to <strong>{user.email}</strong>. It usually arrives within a minute (check
-        spam too). Enter it below, or click the link in that email. Each new code replaces the one before, so use
-        the newest email.
+        A 6-digit code is on its way to <strong>{pending ?? user.email}</strong>. It usually arrives within a minute
+        (check spam too). Enter it below, or click the link in that email. Each new code replaces the one before, so
+        use the newest email.
       </p>
+      {pending && (
+        <p className="muted" data-testid="pending-email-note">
+          Until you enter it, your account keeps using <strong>{user.email}</strong> to sign in and for notices.
+        </p>
+      )}
       <EmailNotSentNote what="code (and the link)" />
       <Field label="Verification code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]*"
         maxLength={6} required value={code} className="input code-input"
@@ -175,7 +182,9 @@ function VerifyByCode() {
         {resent && <span className="subtle" role="status">{resent}</span>}
         <InlineError error={resendError} />
         <span className="subtle">
-          Wrong address? <Link to="/settings">Change it in Settings</Link> (you'll need your password).
+          {pending
+            ? <>Wrong address? <Link to="/settings">Change or cancel it in Settings</Link>.</>
+            : <>Wrong address? <Link to="/settings">Change it in Settings</Link> (you'll need your password).</>}
         </span>
         <Link to={next} className="subtle">Do this later</Link>
       </div>

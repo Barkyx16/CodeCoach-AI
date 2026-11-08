@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 from app.config import Settings
 from app.errors import AppError
 from app.models import PasswordResetToken, User
+from app.services import email_verification
 from app.services import refresh as refresh_tokens
 from app.services.auth import hash_password
 from app.services.email import Email, EmailSender
@@ -104,17 +105,28 @@ def request_reset(
 
 
 def confirm_reset(db: Session, raw: str, new_password: str) -> None:
-    row = db.scalar(select(PasswordResetToken).where(PasswordResetToken.token_hash == _hash(raw)))
     now = datetime.now(UTC)
-    if row is None or row.used_at is not None or _aware(row.expires_at) <= now:
-        raise AppError(
-            "This reset link is invalid or has expired. Request a new one.", code="invalid_reset_token"
+    # Claimed with one conditional UPDATE: two requests with the same link can't both use it.
+    user_id = db.execute(
+        update(PasswordResetToken)
+        .where(
+            PasswordResetToken.token_hash == _hash(raw),
+            PasswordResetToken.used_at.is_(None),
+            PasswordResetToken.expires_at > now,
         )
-    user = db.get(User, row.user_id)
+        .values(used_at=now)
+        .returning(PasswordResetToken.user_id)
+        .execution_options(synchronize_session=False)
+    ).scalar_one_or_none()
+    user = db.get(User, user_id) if user_id else None
     if user is None:
+        db.rollback()
         raise AppError(
             "This reset link is invalid or has expired. Request a new one.", code="invalid_reset_token"
         )
+    # Resetting from the account's address proves control of it: a pending change of address
+    # (perhaps asked for by whoever had the password) is cancelled.
+    email_verification.drop_pending(db, user)
     user.password_hash = hash_password(new_password)
     user.token_version += 1  # every existing access token stops working
     refresh_tokens.revoke_all(db, user)  # and every refresh cookie

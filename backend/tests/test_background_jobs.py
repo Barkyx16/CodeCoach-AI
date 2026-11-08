@@ -155,24 +155,24 @@ def test_jobs_never_hold_a_link_or_code(mail_client):
     assert link not in stored
 
 
-def test_changing_email_tells_the_old_address_through_the_outbox(mail_client):
-    h = auth_headers(register(mail_client, email="ada@example.com"))
+def test_an_unverified_old_address_is_never_told_about_the_change(mail_client):
+    """A sign-up typo: the old address was never proven to be the owner's, so it gets nothing
+    (telling it would show a stranger the person's new address)."""
+    h = auth_headers(register(mail_client, email="ada@exmaple.com"))  # mistyped, never verified
     r = mail_client.post(
         "/api/v1/auth/email",
         headers=h,
-        json={"new_email": "ada.new@example.com", "password": "CorrectHorse42"},
+        json={"new_email": "ada@example.com", "password": "CorrectHorse42"},
     )
     assert r.status_code == 200, r.text
-    kinds = sorted((j.kind, j.status) for j in jobs(mail_client))
-    assert kinds == [
-        ("email_changed", "accepted"),
+    code = re.search(r"\b(\d{6})\b", mail_client.app.state.email_sender.sent[-1].subject).group(1)
+    done = mail_client.post("/api/v1/auth/verify-email/code", headers=h, json={"code": code}).json()
+    assert (done["email"], done["email_verified"]) == ("ada@example.com", True)
+    assert sorted((j.kind, j.status) for j in jobs(mail_client)) == [
         ("verify_email", "accepted"),
         ("verify_email", "accepted"),
     ]
-    assert {m.to for m in mail_client.app.state.email_sender.sent} == {
-        "ada@example.com",
-        "ada.new@example.com",
-    }
+    assert [m.to for m in mail_client.app.state.email_sender.sent] == ["ada@exmaple.com", "ada@example.com"]
 
 
 def test_housekeeping_runs_without_the_judge(make_client, monkeypatch):

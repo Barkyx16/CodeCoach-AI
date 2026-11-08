@@ -125,7 +125,9 @@ from the career catalog, so they're referenced by `(track, question_id)`, not a 
 | `code_hash`, `code_attempts` | varchar(64), integer | HMAC-SHA256 (server secret) of the 6-digit code; 5 wrong tries kill it |
 | `created_at`, `expires_at`, `used_at` | timestamptz | 48 h lifetime; superseded by any newer send |
 
-`users.email_verified_at` (timestamptz null) records verification and is cleared when the email changes.
+`users.email_verified_at` (timestamptz null) records verification. `users.pending_email` (varchar(320) null) and
+`users.pending_email_at` (timestamptz null) hold a requested new address until its code or link is used.
+The address then becomes `users.email`, verified at that moment. Migration `dd8a6dc39c8f`.
 
 ### `password_reset_tokens`
 | Column | Type | Notes |

@@ -145,6 +145,19 @@ describe("Email verification", () => {
   });
 });
 
+describe("Confirming a new email", () => {
+  it("asks for the code sent to the new address and says the old one still applies", async () => {
+    server.use(http.post(`${API}/api/v1/auth/refresh`, () =>
+      HttpResponse.json(tokenResponse({ user: { ...baseUser, pending_email: "new@example.com" } }))));
+    renderApp("/verify-email", { signedIn: true });
+    expect(await screen.findByRole("heading", { name: "Confirm your new email" })).toBeInTheDocument();
+    expect(screen.getByText("new@example.com")).toBeInTheDocument();
+    expect(screen.getByTestId("pending-email-note")).toHaveTextContent("keeps using ada@example.com");
+    expect(screen.queryByText(/is verified/)).not.toBeInTheDocument(); // not "done" while a change waits
+    expect(screen.getByRole("link", { name: "Change or cancel it in Settings" })).toHaveAttribute("href", "/settings");
+  });
+});
+
 describe("Settings: email and signing out", () => {
   it("shows the verification status and changes the email with the password", async () => {
     let body: unknown = null;
@@ -152,7 +165,8 @@ describe("Settings: email and signing out", () => {
       http.post(`${API}/api/v1/auth/refresh`, () => HttpResponse.json(tokenResponse({ user: unverified }))),
       http.post(`${API}/api/v1/auth/email`, async ({ request }) => {
         body = await request.json();
-        return HttpResponse.json({ ...unverified, email: "new@example.com" });
+        // The server keeps the current email until the new address confirms.
+        return HttpResponse.json({ ...unverified, pending_email: "new@example.com" });
       }),
     );
     const { user } = renderApp("/settings", { signedIn: true });
@@ -162,9 +176,33 @@ describe("Settings: email and signing out", () => {
     await user.type(card.getByLabelText("New email"), "new@example.com");
     await user.type(card.getByLabelText("Current password"), "CorrectHorse42");
     await user.click(card.getByRole("button", { name: "Change email" }));
-    expect(await card.findByText(/We sent a code to the new address/)).toBeInTheDocument();
+    expect(await card.findByText(/Code sent to the new address. Nothing changes until you enter it/)).toBeInTheDocument();
     expect(body).toEqual({ new_email: "new@example.com", password: "CorrectHorse42" });
-    expect(card.getByText("new@example.com")).toBeInTheDocument();
+    const pending = within(card.getByTestId("pending-email"));
+    expect(pending.getByText("new@example.com")).toBeInTheDocument();
+    expect(pending.getByText(/you sign in with ada@example.com/)).toBeInTheDocument();
+    expect(card.getByText("ada@example.com")).toBeInTheDocument(); // still the account's email
+  });
+
+  it("cancels a pending change", async () => {
+    const waiting = { ...baseUser, pending_email: "new@example.com" };
+    let cancelled = 0;
+    server.use(
+      http.post(`${API}/api/v1/auth/refresh`, () => HttpResponse.json(tokenResponse({ user: waiting }))),
+      http.delete(`${API}/api/v1/auth/email/pending`, () => {
+        cancelled += 1;
+        return HttpResponse.json({ ...waiting, pending_email: null });
+      }),
+    );
+    const { user } = renderApp("/settings", { signedIn: true });
+    const card = within(await screen.findByRole("form", { name: "Email" }));
+    expect(within(card.getByTestId("pending-email")).getByRole("link", { name: "Enter the code" }))
+      .toHaveAttribute("href", "/verify-email");
+    await user.click(card.getByRole("button", { name: "Cancel this change" }));
+    expect(await card.findByText(/Change cancelled/)).toBeInTheDocument();
+    expect(cancelled).toBe(1);
+    expect(card.queryByTestId("pending-email")).not.toBeInTheDocument();
+    expect(card.getByText("Verified")).toBeInTheDocument();
   });
 
   it("signs out of this device", async () => {

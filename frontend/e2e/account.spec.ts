@@ -37,19 +37,24 @@ test("sign up, verify with the emailed code, change email, sign out", async ({ p
   const emailCard = page.getByRole("form", { name: "Email" });
   await expect(emailCard.getByText("Verified", { exact: true })).toBeVisible();
 
-  // Change the email: needs the password, and the new address must be verified again.
+  // Change the email: needs the password, and nothing changes until the new address confirms.
   const newEmail = `changed-${Date.now()}@example.com`;
   await emailCard.getByLabel("New email").fill(newEmail);
   await emailCard.getByLabel("Current password", { exact: true }).fill("CorrectHorse42");
   await emailCard.getByRole("button", { name: "Change email" }).click();
-  await expect(emailCard.getByText("Not verified")).toBeVisible();
-  await expect(emailCard.getByText(newEmail)).toBeVisible();
-  await emailCard.getByRole("link", { name: "Enter the verification code" }).click();
+  const pending = emailCard.getByTestId("pending-email");
+  await expect(pending.getByText(newEmail)).toBeVisible();
+  await expect(emailCard.getByText(email, { exact: true })).toBeVisible(); // still the account's email
+  await expect(emailCard.getByText("Verified", { exact: true })).toBeVisible();
+  await pending.getByRole("link", { name: "Enter the code" }).click();
+  await expect(page.getByRole("heading", { name: "Confirm your new email" })).toBeVisible();
   await expect.poll(() => latestCodeFor(newEmail)).not.toBeNull();
   await page.getByLabel("Verification code").fill(latestCodeFor(newEmail)!);
   await page.getByRole("button", { name: "Verify email" }).click();
   await expect(page).toHaveURL(/\/settings$/);
   await expect(page.getByRole("form", { name: "Email" }).getByText("Verified", { exact: true })).toBeVisible();
+  await expect(page.getByRole("form", { name: "Email" }).getByText(newEmail, { exact: true })).toBeVisible();
+  await expect(page.getByTestId("pending-email")).toHaveCount(0);
 
   // Sign out of this device from Settings; signing in uses the new email.
   await page.getByRole("region", { name: "Sign out" }).getByRole("button", { name: "Sign out", exact: true }).click();

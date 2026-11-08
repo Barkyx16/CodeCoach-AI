@@ -192,9 +192,31 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Change your email (needs your password; the new address must be verified) */
+        /**
+         * Ask to change your email (needs your password); it changes once the new address confirms
+         * @description Nothing changes yet: the new address gets a code, and the account keeps its current
+         *     address (for sign-in and recovery) until that code or link is used. A verified current
+         *     address is warned at once, and a password reset from it cancels the change.
+         */
         post: operations["change_email_api_v1_auth_email_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/email/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Cancel a pending change of email (its codes and links stop working) */
+        delete: operations["cancel_email_change_api_v1_auth_email_pending_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -9871,6 +9893,11 @@ export interface components {
              * @default false
              */
             is_admin: boolean;
+            /**
+             * Pending Email
+             * @description A new address waiting to be confirmed with the code sent to it. Until then, `email` is still the account's address.
+             */
+            pending_email?: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -10657,6 +10684,35 @@ export interface operations {
             };
             /** @description Rate limit or AI budget exceeded */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    cancel_email_change_api_v1_auth_email_pending_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

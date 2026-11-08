@@ -192,7 +192,8 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 | POST | `/api/v1/auth/verify-email` | – | Confirm an email with the emailed link token |
 | POST | `/api/v1/auth/verify-email/code` | 🔒 | Confirm your email with the emailed 6-digit code |
 | POST | `/api/v1/auth/verify-email/resend` | 🔒 | Send a new code and link |
-| POST | `/api/v1/auth/email` | 🔒 | Change your email (needs your password) |
+| POST | `/api/v1/auth/email` | 🔒 | Change your email (needs your password; waits for the new address's code) |
+| DELETE | `/api/v1/auth/email/pending` | 🔒 | Cancel a pending change of email |
 | POST | `/api/v1/auth/logout-all` | 🔒 | Sign out of every device |
 | POST | `/api/v1/auth/password-reset` | – | Email a reset link (same answer for unknown emails) |
 | POST | `/api/v1/auth/password-reset/confirm` | – | Set a new password with a reset token |
@@ -317,8 +318,8 @@ attempt, hint, review and interview is kept. Returns a `TokenResponse` and a new
 cookie. `409 email_taken`, `409 not_a_guest`.
 
 #### Email verification
-New accounts (registration or guest upgrade) and changed emails get one email containing **both**
-a 6-digit code and a link (`APP_BASE_URL/verify-email#token=…`). `UserOut.email_verified` reports
+New accounts (registration or guest upgrade) and requested new emails get one email containing
+**both** a 6-digit code and a link (`APP_BASE_URL/verify-email#token=…`). `UserOut.email_verified` reports
 the state. Each send supersedes the previous code and link; at most one per minute per account.
 
 - `POST /api/v1/auth/verify-email/code` 🔒 `{"code": "123456"}` → `200 UserOut`. Five wrong codes
@@ -329,9 +330,16 @@ the state. Each send supersedes the previous code and link; at most one per minu
   account's email changed since it was sent.
 - `POST /api/v1/auth/verify-email/resend` 🔒 → `202`. `409 already_verified`, `409 not_applicable`
   (guests).
-- `POST /api/v1/auth/email` 🔒 `{"new_email": "…", "password": "…"}` → `200 UserOut` with
-  `email_verified: false`. Sends a code to the new address and a notice to the old one.
-  `401 invalid_credentials`, `409 email_taken`, `409 same_email`.
+- `POST /api/v1/auth/email` 🔒 `{"new_email": "…", "password": "…"}` → `200 UserOut`. Nothing
+  changes yet: `pending_email` holds the new address and a code and link go there. A verified
+  current address also gets a notice. The address changes when that code
+  (`/verify-email/code`, signed in) or link (`/verify-email`) is used, and the old address is told.
+  `401 invalid_credentials`, `409 email_taken`, `409 same_email` (which also cancels a pending
+  change). A new request replaces a pending one.
+- `DELETE /api/v1/auth/email/pending` 🔒 → `200 UserOut` with `pending_email: null`. Codes and links
+  sent to that address stop working. A password reset or change also cancels it.
+- Confirming a pending address that another account took meanwhile: `409 email_taken`, and the
+  change is cancelled.
 
 #### `POST /api/v1/auth/password-reset` → `202`
 ```json

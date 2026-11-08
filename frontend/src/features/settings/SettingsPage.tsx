@@ -322,38 +322,70 @@ function KeepProgressRow({ onUpgraded }: { onUpgraded(): void }) {
   );
 }
 
-/** Current email, whether it's verified, and changing it (needs the password). */
+/**
+ * Current email, whether it's verified, and changing it (needs the password). A change waits for
+ * the new address to confirm with its code: until then the account keeps its current email.
+ */
 function EmailRow() {
   const { user, setUser } = useAuth();
   const [newEmail, setNewEmail] = useState("");
   const [password, setPassword] = useState("");
   const form = useFormState();
+  const cancel = useFormState();
   const errors = fieldErrorsFrom(form.error) as Record<string, string | undefined>;
   if (!user) return null;
+  const pending = user.pending_email ?? null;
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
+    const notifyOld = user.email_verified;
     void form.run(async () => {
       setUser(await api.changeEmail({ new_email: newEmail, password }));
       setNewEmail("");
       setPassword("");
-    }, "Email changed. We sent a code to the new address, and a notice to the old one.");
+    }, notifyOld
+      ? "Code sent to the new address. Nothing changes until you enter it. We also told your current address."
+      : "Code sent to the new address. Nothing changes until you enter it.");
+  };
+  const onCancel = () => {
+    void cancel.run(async () => {
+      setUser(await api.cancelEmailChange());
+    }, "Change cancelled. Codes sent to that address no longer work.");
   };
   return (
     <form className="setting" onSubmit={onSubmit} aria-labelledby="email-title">
       <RowIntro icon="mail" id="email-title" title="Email">
-        Used to sign in and for account notices. Changing it needs your password.
+        Used to sign in and for account notices. Changing it needs your password and a code sent to the new
+        address.
       </RowIntro>
       <div className="setting__body">
         <div className="setting__current">
           <strong>{user.email}</strong>
           {user.email_verified ? <Badge tone="success">Verified</Badge> : <Badge tone="warning">Not verified</Badge>}
         </div>
-        {!user.email_verified && (
+        {!user.email_verified && !pending && (
           <p className="setting__note">
             Confirm it so we can reach you about your account.{" "}
             <Link to="/verify-email" state={{ next: "/settings" }}>Enter the verification code</Link>
           </p>
         )}
+        {pending && (
+          <div className="setting__note" data-testid="pending-email">
+            <p>
+              Changing to <strong>{pending}</strong> <Badge tone="warning">Waiting for the code</Badge>
+            </p>
+            <p className="subtle">
+              Until you enter the code we sent there, you sign in with {user.email}. A new request replaces this one.
+            </p>
+            <div className="setting__actions">
+              <Link className="btn btn--secondary btn--sm" to="/verify-email" state={{ next: "/settings" }}>
+                Enter the code
+              </Link>
+              <Button variant="ghost" size="sm" loading={cancel.busy} onClick={onCancel}>Cancel this change</Button>
+            </div>
+            <InlineError error={cancel.error} />
+          </div>
+        )}
+        {!pending && cancel.done && <Status>{cancel.done}</Status>}
         <div className="setting__pair">
           <Field label="New email" type="email" autoComplete="email" value={newEmail}
             onChange={(e) => setNewEmail(e.target.value)} error={errors.new_email} />
@@ -362,8 +394,10 @@ function EmailRow() {
         </div>
         {!errors.new_email && <InlineError error={form.error} />}
         <div className="setting__actions">
-          <Button type="submit" variant="secondary" loading={form.busy} disabled={!newEmail || !password}>Change email</Button>
-          {form.done && <Status>{form.done}</Status>}
+          <Button type="submit" variant="secondary" loading={form.busy} disabled={!newEmail || !password}>
+            {pending ? "Use a different new email" : "Change email"}
+          </Button>
+          {form.done && pending && <Status>{form.done}</Status>}
         </div>
       </div>
     </form>

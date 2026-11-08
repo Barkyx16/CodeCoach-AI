@@ -218,8 +218,10 @@ export const api = {
     apiRequest<User>("/api/v1/auth/verify-email/code", { method: "POST", body: { code } }),
   resendVerification: () =>
     apiRequest<{ status: string; message: string }>("/api/v1/auth/verify-email/resend", { method: "POST" }),
+  /** Asks to change the email. Nothing changes until the new address confirms with its code. */
   changeEmail: (body: { new_email: string; password: string }) =>
     apiRequest<User>("/api/v1/auth/email", { method: "POST", body }),
+  cancelEmailChange: () => apiRequest<User>("/api/v1/auth/email/pending", { method: "DELETE" }),
   /**
    * Exchange the HttpOnly refresh cookie for a new access token (and a rotated cookie). The
    * attempt key lets a lost response be recovered (see auth/refreshAttempt.ts).

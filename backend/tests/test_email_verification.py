@@ -104,7 +104,11 @@ def test_upgrading_a_guest_sends_a_verification_link(mail_client, outbox):
     assert [m["to"] for m in mails(outbox)] == ["grace@example.com"]
 
 
-def test_changing_email_needs_the_password_and_resets_verification(mail_client, outbox):
+def login_ok(c, email):
+    return c.post("/api/v1/auth/login", json={"email": email, "password": PASSWORD}).status_code == 200
+
+
+def test_changing_email_waits_for_the_new_address_and_warns_the_old_one(mail_client, outbox):
     tokens = register(mail_client)
     h = auth_headers(tokens)
     verify(mail_client, link_token(mails(outbox)[0]))
@@ -118,20 +122,25 @@ def test_changing_email_needs_the_password_and_resets_verification(mail_client, 
         "/api/v1/auth/email", headers=h, json={"new_email": "New@Example.com", "password": PASSWORD}
     )
     assert r.status_code == 200
-    assert r.json()["email"] == "new@example.com" and r.json()["email_verified"] is False
-
-    sent = mails(outbox)[1:]
-    notice = next(m for m in sent if m["to"] == "ada@example.com")
-    assert "changed to new@example.com" in notice["text"]  # the old address is told
-    new_link = next(m for m in sent if m["to"] == "new@example.com")
-    assert verify(mail_client, link_token(new_link)).json()["email_verified"] is True
-    # Sign-in now uses the new address.
-    assert (
-        mail_client.post(
-            "/api/v1/auth/login", json={"email": "new@example.com", "password": PASSWORD}
-        ).status_code
-        == 200
+    # Nothing has changed yet: the account keeps its verified address until the new one confirms.
+    assert (r.json()["email"], r.json()["email_verified"], r.json()["pending_email"]) == (
+        "ada@example.com",
+        True,
+        "new@example.com",
     )
+    assert login_ok(mail_client, "ada@example.com") and not login_ok(mail_client, "new@example.com")
+    sent = mails(outbox)[1:]
+    warning = next(m for m in sent if m["to"] == "ada@example.com")
+    assert (
+        "asked to change its email to new@example.com" in warning["text"]
+        and "reset your password" in warning["text"]
+    )
+    new_link = next(m for m in sent if m["to"] == "new@example.com")
+    done = verify(mail_client, link_token(new_link)).json()
+    assert (done["email"], done["email_verified"], done["pending_email"]) == ("new@example.com", True, None)
+    notice = [m for m in mails(outbox) if m["to"] == "ada@example.com"][-1]
+    assert "changed to new@example.com" in notice["text"]  # and then the old address is told
+    assert login_ok(mail_client, "new@example.com") and not login_ok(mail_client, "ada@example.com")
 
 
 def test_a_link_for_a_previous_address_stops_working(mail_client, outbox):

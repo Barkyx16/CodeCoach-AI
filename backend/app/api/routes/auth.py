@@ -312,9 +312,36 @@ def refresh(
     responses=error_responses(400, 422),
     summary="Confirm an email address with the emailed link (no sign-in needed)",
 )
-def verify_email(body: VerifyEmailRequest, request: Request, db: Session = Depends(get_db)) -> User:
+def verify_email(
+    body: VerifyEmailRequest,
+    request: Request,
+    background: BackgroundTasks,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> User:
     _throttle(request)
-    return email_verification.confirm(db, body.token)
+    return _after_confirm(request, background, db, settings, email_verification.confirm(db, body.token))
+
+
+def _after_confirm(
+    request: Request,
+    background: BackgroundTasks,
+    db: Session,
+    settings: Settings,
+    done: email_verification.Confirmed,
+) -> User:
+    """An email change just completed: tell the previous (verified) address."""
+    if done.notify_old and done.user.email:
+        _send_email(
+            request,
+            background,
+            db,
+            settings,
+            "email_changed",
+            user_id=done.user.id,
+            payload={"old": done.notify_old, "new": done.user.email},
+        )
+    return done.user
 
 
 @router.post(
@@ -326,12 +353,14 @@ def verify_email(body: VerifyEmailRequest, request: Request, db: Session = Depen
 def verify_email_code(
     body: VerifyCodeRequest,
     request: Request,
+    background: BackgroundTasks,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> User:
     _throttle(request)
-    return email_verification.confirm_code(db, user, body.code, settings)
+    done = email_verification.confirm_code(db, user, body.code, settings)
+    return _after_confirm(request, background, db, settings, done)
 
 
 @router.post(
@@ -351,7 +380,8 @@ def resend_verification(
     _throttle(request)  # the email itself is also limited per account (one a minute)
     if user.is_guest or not user.email:
         raise ConflictError("Guest accounts have no email to verify.", code="not_applicable")
-    if user.email_verified_at is not None:
+    address = email_verification.target_address(user)
+    if address is None:
         raise ConflictError("This email is already verified.", code="already_verified")
     wait = email_verification.cooldown_remaining(db, user)
     if wait > 0:
@@ -362,7 +392,7 @@ def resend_verification(
         )
     _send_email(request, background, db, settings, "verify_email", user_id=user.id)
     return AcceptedResponse(
-        message=f"A new code is on its way to {user.email}. It replaces the one before, so use the newest email."
+        message=f"A new code is on its way to {address}. It replaces the one before, so use the newest email."
     )
 
 
@@ -370,7 +400,7 @@ def resend_verification(
     "/email",
     response_model=UserOut,
     responses=_ERRORS,
-    summary="Change your email (needs your password; the new address must be verified)",
+    summary="Ask to change your email (needs your password); it changes once the new address confirms",
 )
 def change_email(
     body: ChangeEmailRequest,
@@ -380,28 +410,45 @@ def change_email(
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
 ) -> User:
+    """Nothing changes yet: the new address gets a code, and the account keeps its current
+    address (for sign-in and recovery) until that code or link is used. A verified current
+    address is warned at once, and a password reset from it cancels the change."""
     _throttle(request)
     if user.is_guest or not verify_password(user.password_hash, body.password):
         raise UnauthorizedError("Password is incorrect", code="invalid_credentials")
     new_email = body.new_email.lower()
     if new_email == user.email:
+        if user.pending_email:
+            email_verification.cancel_pending(db, user)
         raise ConflictError("That's already your email.", code="same_email")
     if db.scalar(select(User.id).where(User.email == new_email)):
         raise ConflictError("An account with this email already exists", code="email_taken")
-    old_email = user.email
-    user.email = new_email
-    user.email_verified_at = None  # outstanding links for the old address stop working
-    try:
-        db.commit()
-    except IntegrityError as exc:
-        db.rollback()
-        raise ConflictError("An account with this email already exists", code="email_taken") from exc
+    if user.pending_email and user.pending_email != new_email:
+        email_verification.drop_pending(db, user)  # the earlier request's codes stop working
+    user.pending_email, user.pending_email_at = new_email, datetime.now(UTC)
+    db.commit()
     _send_email(request, background, db, settings, "verify_email", user_id=user.id)
-    if old_email:
+    if user.email and user.email_verified_at is not None:
         _send_email(
-            request, background, db, settings, "email_changed", payload={"old": old_email, "new": new_email}
+            request,
+            background,
+            db,
+            settings,
+            "email_change_requested",
+            user_id=user.id,
+            payload={"current": user.email, "requested": new_email},
         )
     return user
+
+
+@router.delete(
+    "/email/pending",
+    response_model=UserOut,
+    responses=error_responses(401),
+    summary="Cancel a pending change of email (its codes and links stop working)",
+)
+def cancel_email_change(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> User:
+    return email_verification.cancel_pending(db, user)
 
 
 @router.post(
@@ -509,6 +556,9 @@ def change_password(
     if user.is_guest or not verify_password(user.password_hash, body.current_password):
         raise UnauthorizedError("Current password is incorrect", code="invalid_credentials")
     user.password_hash = hash_password(body.new_password)
+    # A pending change of address may have been asked for by whoever had the old password; its
+    # emailed link works signed out, so ending their session alone wouldn't stop it.
+    email_verification.drop_pending(db, user)
     user.token_version += 1  # other sessions end
     refresh_tokens.revoke_all(db, user)
     db.commit()

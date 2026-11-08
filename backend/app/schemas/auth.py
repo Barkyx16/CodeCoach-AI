@@ -135,6 +135,11 @@ class UserOut(APIModel):
     is_admin: bool = Field(
         default=False, description="Can triage content reports (granted from the command line)"
     )
+    pending_email: str | None = Field(
+        default=None,
+        description="A new address waiting to be confirmed with the code sent to it. Until then, "
+        "`email` is still the account's address.",
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -150,6 +155,7 @@ class UserOut(APIModel):
                 "email_verified": data.email_verified_at is not None,
                 "career_track": data.career_track or DEFAULT_TRACK,  # type: ignore[attr-defined]
                 "is_admin": bool(getattr(data, "is_admin", False)),
+                "pending_email": getattr(data, "pending_email", None),
             }
         return data
 

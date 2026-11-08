@@ -125,7 +125,52 @@ Rules enforced on the server:
 - Nothing in the app is restricted to verified accounts; verification is encouraged, not
   required ([SECURITY.md](SECURITY.md)). So nothing needs enforcing beyond the rules above.
 - Changing a mistyped address needs the signed-in account and its password (Settings). Knowing
-  an account's id is never enough.
+  an account's id is never enough. See "Changing the email" below.
+
+## Changing the email (and recovering an account)
+
+A change of address waits for the new address to confirm. Until then nothing about the account
+changes: it signs in with the current address, and password resets go there.
+
+| State | What's true | What the person sees (Settings, Email) |
+|---|---|---|
+| no change asked | `pending_email` is empty | the current address and its badge |
+| change asked | needs the password; `pending_email` holds the new address; a code and link go there; a **verified** current address gets a notice that names the new one and links to "reset your password" | "Changing to new@…, Waiting for the code", "Enter the code", "Cancel this change" |
+| confirmed | the right code (signed in) or link (any device) swaps the address, marks it verified, clears `pending_email`, and tells the old address it changed | the new address, verified |
+| cancelled | the person cancels, asks for a different address, a password reset or a password change happens, or the new address is taken by someone else before it confirms: `pending_email` is cleared and its codes and links stop working | the current address, unchanged |
+
+Rules enforced on the server (`tests/test_account_recovery.py`, `tests/test_email_verification.py`):
+- The address only changes when a code or link sent **to the new address** is used. A code sent
+  to an address that's no longer pending is refused.
+- A second request replaces the first: the first address's codes stop working.
+- The notice to the old address names the new one only if the old address was verified. An
+  unverified address may have been mistyped, so it might belong to someone else.
+- A password reset from the current address, or a password change in Settings, cancels a pending
+  change. The emailed link works without signing in, so ending sessions alone wouldn't stop
+  whoever asked for the change. A test without that rule saw the pending change survive a
+  password change.
+- If someone else signs up with the new address before it confirms, the change is cancelled with
+  `409 email_taken` and the account keeps its address.
+- Resending a code goes to the pending address, with the same one-a-minute limit.
+
+### Which sessions end
+
+| Event | Other devices | This device |
+|---|---|---|
+| password reset (emailed link) | signed out | (signed out; sign in with the new password) |
+| password change (Settings) | signed out | stays signed in with a fresh session |
+| "Sign out of all devices" | signed out | signed out |
+| email change confirmed | **stay signed in** | stays signed in |
+| change asked or cancelled | stay signed in | stays signed in |
+
+A confirmed email change keeps sessions because it proved control of both the account (password)
+and the new address (code). If someone else made the change, the old address got a notice when it
+was asked for, and again when it was confirmed. Its owner can then reset the password from the
+current address while the change is pending, which cancels it, or ask support afterwards. That
+second path is manual: there is no self-service "undo" link in the notice yet.
+
+Not covered: recovery when the person has lost both the password and access to the address.
+That needs a human check; the app has no support console for it.
 
 ## How sending works
 
