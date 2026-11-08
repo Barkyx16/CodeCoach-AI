@@ -108,6 +108,25 @@ _HTTP_CODES = {
 }
 
 
+# SQLSTATE classes that mean "try again": 08 connection exception, 40 transaction rollback
+# (deadlock, serialization), 53 insufficient resources (too many connections), 57 operator
+# intervention (query cancelled, admin shutdown, cannot connect now).
+_RETRYABLE_SQLSTATE = ("08", "40", "53", "57")
+
+
+def _retryable(exc: OperationalError) -> bool:
+    if getattr(exc, "connection_invalidated", False):
+        return True
+    orig = getattr(exc, "orig", None)
+    module = type(orig).__module__ if orig is not None else ""
+    if module.startswith("psycopg"):
+        sqlstate = getattr(orig, "sqlstate", None)
+        return sqlstate is None or sqlstate[:2] in _RETRYABLE_SQLSTATE  # None: refused before any SQL ran
+    if module.startswith("sqlite3"):
+        return "locked" in str(orig).lower()
+    return False
+
+
 def install_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     async def _app_error(request: Request, exc: AppError):
@@ -140,9 +159,11 @@ def install_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(OperationalError)
     async def _database_unavailable(request: Request, exc: OperationalError):
-        # The database is unreachable (restarting, failing over, network), or a statement was
-        # cancelled or timed out. Retryable, so say so instead of "unexpected error". The class
-        # alone is logged, never the statement or its values.
+        # Retryable database trouble (the server unreachable, restarting or out of connections, a
+        # statement cancelled or timed out, a deadlock): say "try again", not "unexpected error".
+        # Anything else (a missing table, bad SQL) is a bug and goes to the 500 handler below.
+        if not _retryable(exc):
+            raise exc
         logger.warning(
             "database unavailable: %s",
             type(getattr(exc, "orig", exc)).__name__,

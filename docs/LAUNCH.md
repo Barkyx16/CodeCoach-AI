@@ -89,8 +89,10 @@ PASS  delete the account: gone, can't sign in, the second account unaffected
 
 The first run found a real defect: during the database outage, a write got a bare 500
 ("unexpected error"). Database unavailability is now a retryable `503 database_unavailable`
-with `Retry-After: 5`, never with the database's own message (`test_storage.py`,
-`test_tracing.py`). The frontend already treats a 503 as "try again", not as a sign-out.
+with `Retry-After: 5`, never with the database's own message: a lost or refused connection, a
+cancelled or timed-out statement, a shutdown, a deadlock, or SQLite's "locked". A bug, such as
+a missing table, is still a 500 that gets logged and investigated (`test_storage.py`,
+`test_tracing.py`, `test_log_redaction.py`). The frontend already treats a 503 as "try again", not as a sign-out.
 
 What this rehearsal does **not** show:
 - **Real email.** The mail server is a local fake with a throwaway CA. Real delivery needs a

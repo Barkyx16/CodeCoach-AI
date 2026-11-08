@@ -551,3 +551,23 @@ def test_requests_while_the_database_is_unreachable_get_a_retryable_503(make_set
         assert r.status_code == 503 and r.json()["error"]["code"] == "database_unavailable"
         assert r.headers["Retry-After"] == "5"
         assert "127.0.0.1" not in r.text and "none" not in r.text  # no connection details
+
+
+def test_only_retryable_database_errors_become_a_503():
+    import sqlite3
+
+    import psycopg
+    from sqlalchemy.exc import OperationalError
+
+    from app.errors import _retryable
+
+    def op(orig: BaseException) -> OperationalError:
+        return OperationalError("SELECT 1", {}, orig)
+
+    assert _retryable(op(psycopg.OperationalError("connection refused")))  # before any SQL ran
+    assert _retryable(op(psycopg.errors.QueryCanceled("canceling statement due to statement timeout")))
+    assert _retryable(op(psycopg.errors.AdminShutdown("terminating connection")))
+    assert _retryable(op(psycopg.errors.DeadlockDetected("deadlock detected")))
+    assert _retryable(op(sqlite3.OperationalError("database is locked")))
+    assert not _retryable(op(sqlite3.OperationalError("no such table: notes")))  # a bug: 500
+    assert not _retryable(op(Exception("disk I/O error")))

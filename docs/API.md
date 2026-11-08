@@ -1380,7 +1380,7 @@ All configuration is environment variables (or a `.env` file; see
 | `DATABASE_URL` | `postgresql+psycopg://codecoach:codecoach@localhost:5432/codecoach` | SQLAlchemy URL. `sqlite:///./codecoach.db` works for a quick start. |
 | `AUTO_MIGRATE` | on outside production | Create tables and seed problems on startup. Off by default in production, which refuses `true` (run `alembic upgrade head` and `python -m app.cli seed`). |
 | `DB_POOL_SIZE` / `DB_MAX_OVERFLOW` | `5` / `10` | Database connections per process. Keep processes × (pool + overflow) under PostgreSQL's `max_connections` ([PERFORMANCE.md](PERFORMANCE.md#sizing)). |
-| `DB_POOL_TIMEOUT_SECONDS` | `10` | A request waiting longer for a connection gets `503 server_busy` with `Retry-After`. A database that can't be reached (or a cancelled or timed-out statement) gets `503 database_unavailable` with `Retry-After: 5`. |
+| `DB_POOL_TIMEOUT_SECONDS` | `10` | A request waiting longer for a connection gets `503 server_busy` with `Retry-After`. A database that can't be reached, a cancelled or timed-out statement, a shutdown or a deadlock gets `503 database_unavailable` with `Retry-After: 5` (other database errors stay 500). |
 | `SECRET_KEY` | insecure dev value | **Secret.** Signs access tokens and keys the email-code and refresh-recovery HMACs. Production refuses the dev value, placeholder text and repetitive strings. |
 | `SECRET_KEY_PREVIOUS` | (none) | **Secret.** Comma-separated keys being rotated out: accepted when checking, never used to sign ([SECURITY.md §7](SECURITY.md#7-secrets-rotation-and-the-database-role)). |
 | `ACCESS_TOKEN_TTL_MINUTES` | `15` | Access-token lifetime (5–1440). |
