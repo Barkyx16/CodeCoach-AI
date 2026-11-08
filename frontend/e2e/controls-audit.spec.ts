@@ -224,9 +224,10 @@ test("a signed-out pass that's secretly signed in is caught, not audited", async
 
 test("every control does something", async ({ page, context, browserName }, testInfo) => {
   test.skip(process.env.AUDIT !== "1", "the full audit is opt-in (~30 min): AUDIT=1");
-  // About 30 minutes on an idle machine for ~450 controls. A run sharing the machine with Docker
-  // builds took longer than a 30-minute limit, two pages short: the limit leaves room.
-  test.setTimeout(60 * 60_000);
+  // About 30 minutes on an idle machine for ~450 controls. Measured: a run sharing the machine
+  // with Docker builds overran a 30-minute limit; one sharing it with test suites took 54.7 min
+  // (8fd474e, complete). The limit leaves room for that.
+  test.setTimeout(75 * 60_000);
   const started = Date.now();
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   const rows: Row[] = [];
