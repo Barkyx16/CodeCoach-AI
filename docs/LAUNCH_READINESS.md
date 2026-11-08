@@ -1,4 +1,51 @@
-# Launch readiness (Volume 5): handoff
+# Launch readiness: handoff
+
+## Current status: the Volume 6 checkpoint (read this first)
+
+**Head of this checkpoint:** `8fd474e`, pushed. Later commits carry Volume 7 work (below). Everything below is keyed to a commit. A result from an older commit
+isn't counted as evidence for a newer one.
+
+**CI, completed runs only:**
+
+| Commit | Run | Result |
+|---|---|---|
+| `cab6094` | 229 (push) | all 7 jobs passed |
+| `6d9911b` | 231 (push) | **Docker job failed**: the real backup image's restore (`pg_restore` 17 into PostgreSQL 16). Fixed in `45c1485`. Its other jobs were cancelled when the next commit was pushed, so there's no full result for this commit. |
+| `a60edca` | 233 (push) | backend (SQLite, PostgreSQL with RLS, migrations, reference solutions, content gates), frontend, Docker (real backup image: restore passes), runner, dependency and secret scan: passed. End-to-end and sandbox: passed (run complete, all 7 jobs green). Its pull_request run (234) failed one frontend test on a cold lazy load; fixed in `bdd11c9` |
+| `bdd11c9` | 235 (push), 236 (pull_request) | all 7 jobs passed, both runs |
+| `8fd474e` | 239 (push), 240 (pull_request) | backend (SQLite, PostgreSQL with RLS, migrations, reference solutions, content gates), frontend, runner, dependency and secret scan: passed. **Docker failed**: the rehearsal's damaged-backup step wrote `x` over a byte that already was `x` (about 1 in 40 runs), so the copy wasn't damaged and its restore rightly succeeded. Fixed in `f92afb1`, and verified locally. The next push's run is the evidence for the head |
+
+**Volume 6, item by item:**
+
+| # | Item | Status | Evidence (commit · where) | Limits |
+|---|---|---|---|---|
+| 1 | CI on the exact commit; the Vite warning | done once the head's run is green (above) | `a60edca`: the warning reproduced, and `vite build --configLoader native` failed before the fix and builds after it; production build and budgets pass | — |
+| 2 | e2e servers identified and owned | done | `c77a4bb`: refuses a judge-disabled orphan (28 s) and a developer's unlabelled server (its database still had 0 users); tooling tests 37 (with later additions); CI's e2e and sandbox jobs run through the launcher (`d0c5848`) | ports are fixed per offset, not chosen automatically |
+| 3 | Controls audit, trustworthy | done | `d0c5848`: its self-test found that a do-nothing button always "passed" (focus moving onto the clicked button counted as an effect). Fixed. The self-tests now run in every e2e run. `8fd474e`: the full audit on a clean tree covered 15 page states and 444 controls (400 used, 14 already active, 13 disabled, 15 destructive skipped, 2 external links): **none without a visible effect, no console or network errors**, judge on, Chromium 153, 1440×900, 54.7 min. The run before it found one real dead control (the header's Create account on /register, fixed) and three effects the audit couldn't see (a disclosure, a self-dismissing note; the audit now counts them) | one browser and viewport; destructive controls skipped; visible effects, not correctness |
+| 4 | Real backup image restores | done in CI | `45c1485` (client pinned to 16), `9f437df` (a failed encryption keeps nothing). Run 233's Docker job restored the scheduled backup with the package-built image. The local rehearsal also starts the app on the restored copy (sign-in, own notes only) and refuses a damaged backup. | the local rehearsal's image has host-copied tools; only CI's is the real one |
+| 5 | Retention at the boundaries | done | `9f437df`: the future-date hole (5 missed nights looked OK) reproduced and fixed; 20 boundary tests | — |
+| 6 | Proxy trust boundary | done | `4ded096`, `a3c4f1e`: through Docker, separate limits per visitor and the per-account limit across addresses; with uvicorn's old default the same image fails | a load balancer or CDN hop is untested |
+| 7 | CSP from the browser | done | `1ef9662`: 14/14 checks in Chromium against the real nginx image; CI's e2e job runs it from the next push on | plain http locally; no CDN |
+| 8 | Email delivery status | **blocked on a provider** | `e246e15`: docs/EMAIL.md "Delivery status"; 47 email tests | no real email has been sent: inbox receipt is unverified |
+| 9 | Logs and artifacts | done | `66dd63c`: uvicorn's access log wrote visitor IPs (off in the image now); backup/restore errors gave raw tracebacks; an incomplete manifest gave a `KeyError`. All fixed, with canary tests. | finite tests, not a guarantee |
+| 10 | Handoff | this section | — | — |
+
+**Still needed from you:** a mail provider, then one test send to an inbox you own (EMAIL.md);
+a host and its scheduler for the backup job, with off-site storage (BACKUP.md). Nothing is
+deployed, and nothing will be without your say-so.
+
+## Volume 7 (recovery and experience), so far
+
+| # | Prompt | Status | Commits | Evidence | Limits |
+|---|---|---|---|---|---|
+| 1 | Checkpoint | done | this section, above | CI rows keyed by commit; the full controls audit on `8fd474e` | — |
+| 2 | Restore without replaying pending emails | done | `764d4d5`, `958136b` | restore holds unsent mail (`held`). `email-quarantine` lists by domain, releases or suppresses with a dry run. A rehearsal can't email the real people in it. Tests: 12 quarantine tests (SQLite and PostgreSQL with RLS); the real PostgreSQL restore test, with a negative control; the production compose rehearsal (held=2, untouched after the restored API ran, refusal, suppress) | SMTP has no idempotency: one leased mid-send may already have arrived (flagged, not hidden). No automatic release |
+| 3 | Interview resume across devices | done | `87125ac`, `0020052` | database constraints: one live interview, one turn per position. 409s with a Resume card; a stale message or answer refused and the text kept; one evaluation per close. Tests: 12 backend tests with barrier races and negative controls; 7 frontend; a two-context e2e with a stranger | no push between tabs: a tab learns on its next action or on focus |
+| 4 | Saved means saved; draft conflicts | done | `94df47d`, `3cada56`, `f688e41` | every `stale_revision` carries the saved version. A slow save never labels newer edits saved; sends don't wipe typing. Both versions are shown with explicit choices, and an older kept copy is compared first. Storage failures are said, with Copy. In-app navigation asks first. Tests: 5 backend, 9 new frontend, the two-context story conflict e2e | application notes stay last-write-wins; browser-only drafts (code editor) don't sync |
+| 5–10 | Verification journey, failed actions, deep links, support report, voice cues, portfolio demo | not started | — | — | — |
+
+## Volume 5 (the launch-readiness batch)
+
 
 Ten prompts, from "verification emails never arrive" to a launch preflight. Each section says:
 - what changed;
@@ -11,8 +58,6 @@ Ten prompts, from "verification emails never arrive" to a launch preflight. Each
 Nothing here was deployed, purchased, emailed for real or published. The DNS is unchanged, and
 authentication is still the app's own; no move to Clerk or Firebase.
 
-Pushed, with your go-ahead: everything up to `cab6094`. CI passed all 7 jobs on it (run 229, the
-push). The commits after it are local, awaiting your go-ahead (see "After the batch").
 
 ## Per prompt
 
