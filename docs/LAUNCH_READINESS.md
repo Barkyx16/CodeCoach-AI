@@ -2,7 +2,7 @@
 
 ## Current status: the Volume 6 checkpoint (read this first)
 
-**Head of this checkpoint:** `8fd474e`, pushed. Later commits carry Volume 7 work (below). Everything below is keyed to a commit. A result from an older commit
+**Head of this checkpoint:** `8fd474e`, pushed. Later commits carry Volume 7 work (below); the latest with a full CI result is `7331f6f`. Everything below is keyed to a commit. A result from an older commit
 isn't counted as evidence for a newer one.
 
 **CI, completed runs only:**
@@ -14,6 +14,8 @@ isn't counted as evidence for a newer one.
 | `a60edca` | 233 (push) | backend (SQLite, PostgreSQL with RLS, migrations, reference solutions, content gates), frontend, Docker (real backup image: restore passes), runner, dependency and secret scan: passed. End-to-end and sandbox: passed (run complete, all 7 jobs green). Its pull_request run (234) failed one frontend test on a cold lazy load; fixed in `bdd11c9` |
 | `bdd11c9` | 235 (push), 236 (pull_request) | all 7 jobs passed, both runs |
 | `8fd474e` | 239 (push), 240 (pull_request) | backend (SQLite, PostgreSQL with RLS, migrations, reference solutions, content gates), frontend, runner, dependency and secret scan: passed. **Docker failed**: the rehearsal's damaged-backup step wrote `x` over a byte that already was `x` (about 1 in 40 runs), so the copy wasn't damaged and its restore rightly succeeded. Fixed in `f92afb1`, and verified locally. The next push's run is the evidence for the head |
+| `4361ebd` | 241 (push) | all 7 jobs passed, including Docker with the rehearsal fix (`f92afb1`). Its pull_request run (242) was cancelled by the next push, before its backend job finished |
+| `7331f6f` | 259 (push), 260 (pull_request) | all 7 jobs passed, both runs: Volume 7 prompts 2 to 5 |
 
 **Volume 6, item by item:**
 
