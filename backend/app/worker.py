@@ -22,7 +22,9 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload, sessionmaker
+from sqlalchemy.orm.exc import StaleDataError
 
 from app import tracing
 from app.config import Settings, get_settings
@@ -181,7 +183,17 @@ class JudgeWorker:
                         user_id=sub.user_id, problem_id=sub.problem_id, event_type=ProgressEventType.SOLVED
                     )
                 )
-            db.commit()
+            try:
+                db.commit()
+            except (IntegrityError, StaleDataError):
+                # The submission went while it was being judged: its account was deleted. The
+                # result is discarded; nothing is written back for an account that's gone.
+                db.rollback()
+                step.outcome = "discarded"
+                logger.info(
+                    "submission %s disappeared while judging (account deleted): result discarded", sub_id
+                )
+                return True
             logger.info("judged submission %s -> %s", sub_id, verdict.status.value)
         return True
 

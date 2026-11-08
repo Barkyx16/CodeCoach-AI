@@ -7,6 +7,11 @@ progress event (opening a problem, submitting, asking for a hint, ...). Register
 never touched. Deleting the user removes everything else through ON DELETE CASCADE.
 
 Run it from cron with `python -m app.cli prune-guests`, or let the judge worker do it daily.
+
+Expired sign-in material goes too: refresh tokens, password-reset links and email codes are
+deleted a week after they expire (`purge_expired_tokens`). Until then a reused old token can still
+be recognised and refused, and nothing older than that is useful to anyone. Only hashes were ever
+stored, never the tokens themselves.
 """
 
 from __future__ import annotations
@@ -17,7 +22,7 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
-from app.models import ProgressEvent, RefreshToken, User
+from app.models import EmailVerificationToken, PasswordResetToken, ProgressEvent, RefreshToken, User
 
 logger = logging.getLogger("codecoach.retention")
 
@@ -63,3 +68,17 @@ def prune_inactive_guests(db: Session, older_than_days: int, now: datetime | Non
     if ids:
         logger.info("pruned inactive guest accounts", extra={"count": len(ids)})
     return len(ids)
+
+
+TOKEN_GRACE = timedelta(days=7)
+
+
+def purge_expired_tokens(db: Session, now: datetime | None = None) -> int:
+    """Delete sign-in sessions, reset links and email codes that expired more than a week ago.
+    Doesn't commit."""
+    cutoff = (now or datetime.now(UTC)) - TOKEN_GRACE
+    removed = 0
+    for model in (RefreshToken, PasswordResetToken, EmailVerificationToken):
+        result = db.execute(delete(model).where(model.expires_at < cutoff))
+        removed += int(getattr(result, "rowcount", 0) or 0)
+    return removed

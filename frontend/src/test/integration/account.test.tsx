@@ -232,6 +232,14 @@ describe("Settings: email and signing out", () => {
     confirm.mockRestore();
   });
 
+  it("says what's kept and for how long, including what deletion can't reach", async () => {
+    renderApp("/settings", { signedIn: true });
+    const row = within(await screen.findByRole("group", { name: "What we keep, and for how long" }));
+    expect(row.getByText(/removes it and everything in it at once/)).toBeInTheDocument();
+    expect(row.getByText(/Older server backups keep a copy until they expire/)).toBeInTheDocument();
+    expect(row.getByText(/cleared when you sign out here/)).toBeInTheDocument();
+  });
+
   it("still offers account deletion", async () => {
     renderApp("/settings", { signedIn: true });
     expect(await screen.findByRole("button", { name: "Delete my account" })).toBeDisabled(); // until confirmed

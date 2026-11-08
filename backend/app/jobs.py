@@ -28,7 +28,7 @@ from app.db import rls
 from app.services import outbox
 from app.services.email import EmailSender
 from app.services.rate_limit import purge_expired
-from app.services.retention import prune_inactive_guests
+from app.services.retention import prune_inactive_guests, purge_expired_tokens
 
 logger = logging.getLogger("codecoach.jobs")
 
@@ -54,6 +54,7 @@ def housekeeping(
     if daily:
         step("guests_deleted", lambda db: _prune_guests(db, settings.guest_retention_days))
         step("email_jobs_purged", lambda db: outbox.purge_finished(db))
+        step("expired_tokens_purged", lambda db: purge_expired_tokens(db))
     return done
 
 
