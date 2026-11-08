@@ -423,10 +423,11 @@ function CodeForm({ user, pending, status, statusUpdatedAt, refetch, next, onCon
       startCooldown(60);
       refetch();
     } catch (err) {
-      if (err instanceof ApiError && err.code === "resend_cooldown") {
-        // A code went out under a minute ago (perhaps from another tab): say so, and wait as asked.
+      if (err instanceof ApiError && err.status === 429) {
+        // A code went out under a minute ago (perhaps from another tab), or too many tries from
+        // this network: say so, and wait as long as the server asked.
         setResendNote(err.message);
-        startCooldown((err.details as { retry_after_seconds?: number } | null)?.retry_after_seconds ?? 60);
+        startCooldown(err.retryAfterSeconds ?? 60);
       } else if (err instanceof ApiError && err.code === "already_verified") {
         void api.me().then(setUser, () => {}); // confirmed elsewhere meanwhile: show that
       } else {

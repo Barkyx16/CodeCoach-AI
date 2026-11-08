@@ -1,16 +1,19 @@
 import { useId, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Group, Panel, Separator } from "react-resizable-panels";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
-import { useCapabilities, useContentMeta, useMySubmissions, useProblem, useSubmission, useSubmit } from "@/api/queries";
+import { queryKeys, useCapabilities, useContentMeta, useMySubmissions, useProblem, useSubmission, useSubmit } from "@/api/queries";
 import type { SubmissionCreate, SubmissionMode } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
+import { ActionError } from "@/components/ActionError";
 import { Button } from "@/components/Button";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { Tabs } from "@/components/Tabs";
 import { EditorPreferencesControls } from "@/features/settings/EditorPreferencesControls";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
+import { useRetryWait } from "@/hooks/useCountdown";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useOnline } from "@/hooks/useOnline";
 import { SaveOffline } from "@/features/offline/SaveOffline";
@@ -81,6 +84,10 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
   const draft = useDraft(problem.slug, problem.starter_code, draftScope);
   useLeaveWarning(draft.saveState === "error");
   const submit = useSubmit();
+  // The server asked for a wait (too many submissions, the judge busy): Run and Submit wait that
+  // long; the editor, the coach and the rest of the page don't.
+  const submitWait = useRetryWait(submit.error);
+  const queryClient = useQueryClient();
   const execution = useCapabilities().data?.execution;
   const content = useContentMeta("problem", problem.slug);
   const retired = content.data?.status === "retired";
@@ -123,13 +130,23 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
     } catch (e) {
       // Only a lost connection leaves it unknown whether the server got the request.
       setUnconfirmed(e instanceof ApiError && e.code === "network_error" ? body : null);
+      // The judge said it's down or busy: the banner above the editor should say so now, not
+      // whenever the page is next loaded.
+      if (e instanceof ApiError && ["judge_unavailable", "judge_busy", "execution_disabled"].includes(e.code)) {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.capabilities });
+      }
     }
   }
 
   async function handleSubmit(mode: SubmissionMode = "submit") {
     if (!online || retired) return; // the judge is on the server: nothing is "run" or "graded" offline
     if (!isAuthenticated) return goSignIn();
-    if (submit.isPending || judging) return;
+    if (submit.isPending || judging || submitWait > 0) return; // (the keyboard shortcut, too)
+    // Its outcome is unknown and the code hasn't changed: the same request again, with the same
+    // key, so pressing Submit (not only "Try again") can't make a second submission.
+    if (unconfirmed && unconfirmed.source_code === draft.code && (unconfirmed.mode ?? "submit") === mode) {
+      return send(unconfirmed);
+    }
     await send({ problem_slug: problem.slug, language: "java", source_code: draft.code, mode, client_request_id: newRequestId() });
   }
 
@@ -161,13 +178,13 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
         </Button>
         {canRun && (
           <Button size="sm" variant="secondary" loading={submit.isPending && pendingMode === "run"}
-            disabled={!online || retired || judging || (submit.isPending && pendingMode !== "run")} onClick={() => void handleSubmit("run")}
+            disabled={!online || retired || judging || submitWait > 0 || (submit.isPending && pendingMode !== "run")} onClick={() => void handleSubmit("run")}
             title="Run the public tests only (Ctrl/⌘ + ')">
             Run
           </Button>
         )}
         <Button size="sm" variant="primary" loading={submit.isPending && pendingMode === "submit"}
-          disabled={!online || retired || judging || (submit.isPending && pendingMode !== "submit")} onClick={() => void handleSubmit()}
+          disabled={!online || retired || judging || submitWait > 0 || (submit.isPending && pendingMode !== "submit")} onClick={() => void handleSubmit()}
           title={savedOnly ? "Save this attempt without a verdict (Ctrl/⌘ + Enter)" : "Submit (Ctrl/⌘ + Enter)"}
           aria-label={savedOnly ? "Save attempt" : undefined}>
           {savedOnly ? "Save attempt" : "Submit"} <Icon name="arrow" size={14} />
@@ -232,6 +249,12 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
         </div>
       )}
       {toolbar}
+      {/* A definite failure (not a lost connection: that's the banner above), next to the buttons.
+          The previous result stays in the results panel. */}
+      {submit.error && !unconfirmed && !submit.isPending && (
+        <ActionError error={submit.error} action={pendingMode === "run" ? "Your run" : "Your submission"}
+          onRetry={() => void handleSubmit(pendingMode)} />
+      )}
       {showSettings && <div id={settingsId} className="editor-options"><EditorPreferencesControls /></div>}
       <CodeEditor value={draft.code} onChange={(v) => { draft.setCode(v); setHighlightLine(null); }}
         onSubmit={() => void handleSubmit()} onRun={canRun ? () => void handleSubmit("run") : undefined} highlightLine={highlightLine} />
@@ -239,7 +262,7 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
   );
   const results = (
     <section className="panel-scroll" aria-label="Submission results" tabIndex={0}>
-      <SubmissionPanel submission={submission.data} error={submit.error ?? submission.error} onHighlightLine={jumpToLine} />
+      <SubmissionPanel submission={submission.data} error={submission.error} onHighlightLine={jumpToLine} />
     </section>
   );
   const coach = (

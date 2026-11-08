@@ -266,7 +266,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "X-Refresh-Attempt",
             "traceparent",
         ],
-        expose_headers=["X-Request-ID", "X-Trace-ID"],
+        # Retry-After: the browser shows how long to wait (a cross-origin page can only read the
+        # response headers listed here).
+        expose_headers=["X-Request-ID", "X-Trace-ID", "Retry-After"],
         max_age=600,
     )
 

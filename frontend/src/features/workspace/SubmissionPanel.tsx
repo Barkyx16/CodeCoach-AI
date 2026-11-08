@@ -38,7 +38,9 @@ interface SubmissionPanelProps {
 
 export function SubmissionPanel({ submission, error, onHighlightLine }: SubmissionPanelProps) {
   const now = useNow();
-  if (error) return <ErrorState error={error} />;
+  // Nothing to show yet: the error is all there is. With a result on screen, a failed refresh
+  // doesn't take it away (below).
+  if (error && !submission) return <ErrorState error={error} />;
   if (!submission) {
     return (
       <div className="results results--empty">
@@ -67,6 +69,11 @@ export function SubmissionPanel({ submission, error, onHighlightLine }: Submissi
         <span className="subtle">{isRun ? "Ran" : "Submitted"} {timeAgo(submission.created_at)}</span>
       </div>
       {statusText && <p className="subtle" role="status">{statusText}</p>}
+      {error != null && (
+        <p className="subtle" role="status">
+          We couldn't check for an update just now. This is the latest result we have; it updates when the connection is back.
+        </p>
+      )}
       {running && now - new Date(submission.created_at).getTime() > POLL_GIVE_UP_MS && (
         <p className="banner banner--warning" role="status">
           Still waiting after 15 minutes, so this page stopped checking. It will be judged when the judge catches up; reload the page to check again.

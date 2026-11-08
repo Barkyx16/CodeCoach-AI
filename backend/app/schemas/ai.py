@@ -24,6 +24,15 @@ class HintRequest(APIModel):
     problem_slug: str
     source_code: str = Field(default="", description="The learner's current draft")
     level: HintLevel = Field(description="1 nudge, 2 concept, 3 pseudocode, 4 full explanation")
+    client_request_id: str | None = Field(
+        default=None,
+        min_length=8,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9_-]+$",
+        description="One key per request: the same request sent again (its response was lost) gets the "
+        "first answer back, with no second provider call and no second use of the daily budget. The same "
+        "key for a different request is a 409 `idempotency_key_reused`.",
+    )
 
 
 class HintContent(BaseModel):
@@ -48,6 +57,15 @@ class ReviewRequest(APIModel):
     problem_slug: str
     source_code: str = Field(min_length=1)
     submission_id: str | None = None
+    client_request_id: str | None = Field(
+        default=None,
+        min_length=8,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9_-]+$",
+        description="One key per request: the same request sent again (its response was lost) gets the "
+        "first answer back, with no second provider call and no second use of the daily budget. The same "
+        "key for a different request is a 409 `idempotency_key_reused`.",
+    )
 
 
 class Complexity(BaseModel):

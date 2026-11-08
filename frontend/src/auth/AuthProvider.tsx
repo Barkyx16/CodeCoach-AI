@@ -78,6 +78,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // The server couldn't be reached to check the session (offline). Not "signed out": the last
   // account on this device, so its drafts stay visible; checked again when the network returns.
   const [offlineUser, setOfflineUser] = useState<DeviceUser | null>(null);
+  // The session ended by itself (expired or revoked), not by signing out: whose drafts were on
+  // screen. They stay on screen (they're on this device anyway) until someone signs in, so a
+  // learner whose session lapsed mid-answer doesn't see their work vanish.
+  const [lapsedUserId, setLapsedUserId] = useState<string | null>(null);
   const lastFailure = useRef<"network" | "rejected" | "superseded" | null>(null);
   // Changes whenever the session is replaced or ended (sign-in, sign-out). A refresh that started
   // before then must not bring its result back: a late response can't sign anyone back in.
@@ -91,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session]);
 
   const clear = useCallback((reason: string | null) => {
+    setLapsedUserId(reason !== null ? (sessionRef.current?.user.id ?? null) : null);
     epoch.current += 1;
     startAuthGeneration(); // a late 401 for this session's requests can't refresh or sign anyone in
     inFlight.current = null;
@@ -116,6 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSignedOutReason(null);
     setSignedOutDeliberately(false);
     setOfflineUser(null);
+    setLapsedUserId(null);
     rememberDeviceUser(next.user);
     forgetSessionData(queryClient);
     return next.user;
@@ -315,8 +321,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clear(null);
     },
     offlineUser,
-    draftScope: session?.user.id ?? offlineUser?.id ?? "anon",
-  }), [session, isRestoring, signedOutReason, signedOutDeliberately, adopt, clear, offlineUser]);
+    draftScope: session?.user.id ?? offlineUser?.id ?? lapsedUserId ?? "anon",
+  }), [session, isRestoring, signedOutReason, signedOutDeliberately, adopt, clear, offlineUser, lapsedUserId]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

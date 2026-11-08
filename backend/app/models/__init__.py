@@ -369,6 +369,7 @@ class AIInteraction(Base):
     __table_args__ = (
         Index("ix_ai_user_created", "user_id", "created_at"),
         Index("ix_ai_user_problem_action", "user_id", "problem_id", "action"),
+        UniqueConstraint("user_id", "client_request_id", name="uq_ai_interaction_request"),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
@@ -387,6 +388,9 @@ class AIInteraction(Base):
     # The structured feedback shown to the learner is kept so they can revisit it.
     # The prompt (which contains their code) is NOT stored: data minimization.
     response: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
+    # The request's key: the same hint or review asked again (its response was lost) gets this
+    # answer back, without a second provider call or a second use of the daily budget.
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
 
@@ -698,6 +702,7 @@ class ExperienceEntry(Base):
     unlinks its stories; it never deletes them. Every save is kept in `story_revisions`."""
 
     __tablename__ = "experience_entries"
+    __table_args__ = (UniqueConstraint("user_id", "client_request_id", name="uq_story_client_request"),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
@@ -728,6 +733,8 @@ class ExperienceEntry(Base):
     revision: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
     archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     requirement_ids: Mapped[list] = mapped_column(JSONType, default=list)
+    # The create's request key: the same create sent again (its response was lost) returns this story.
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, onupdate=utcnow)
 

@@ -160,8 +160,20 @@ Every non-2xx response has this shape:
 | 503 | `execution_disabled` | `mode: run` on a deployment without code execution (check `GET /capabilities` first) | Hide the Run button |
 | 422 | `validation_error` | Body or query failed validation. `details` is a list of `{loc, msg, type}` | Map `loc[-1]` to form fields |
 | 429 | `rate_limited` | Auth attempts or the daily AI budget exceeded (`details.retry_after_seconds` or `details.daily_limit`) | Show a cooldown |
+| 429 | `ai_request_in_progress` | Another of this account's AI requests is still running (`Retry-After: 2`) | Wait, then retry |
+| 409 | `idempotency_key_reused` | A `client_request_id` already used for a different request | (client bug) |
 | 500 | `internal_error` | Unexpected server error (logged with the request id) | Generic error + request id |
 | 503 | — | `/health/ready` only, when the database is unreachable or its schema is older than this code needs | — |
+
+**Waits.** A 429, and a 503 `server_busy` or `database_unavailable`, carry `Retry-After` in
+seconds. Where the error has one, `details.retry_after_seconds` gives the same wait more precisely.
+The header is exposed to browser pages on other origins (CORS `Access-Control-Expose-Headers`), so
+a page can count it down. A client should also accept the HTTP-date form, which proxies send. The
+503s from the judge (`judge_busy`, `judge_unavailable`, `execution_disabled`) carry no wait.
+
+**Lost responses.** A request with a `client_request_id` can be sent again after its response was
+lost, and it isn't done twice. Which writes are keyed and which aren't:
+[RECOVERY.md](RECOVERY.md).
 
 Validation error example (`GET /api/v1/problems?page=0`):
 
@@ -577,6 +589,16 @@ whichever provider (offline or Claude) produced them; `provider` says which one 
 Levels **unlock one at a time** per user and problem. Asking for level 3 before level 2
 returns `409 hint_locked` with `details.next_unlockable_level`. Re-asking an unlocked level is
 allowed.
+
+`client_request_id` (optional, 8–64 of `A-Za-z0-9_-`, the same on `/ai/review`):
+- One key per request. Sent again with the same key, because its response was lost, a request gets
+  the first answer back. There is no second provider call and no second use of the daily budget,
+  even if the budget has run out since.
+- The same key for a different action, problem or level is `409 idempotency_key_reused`.
+- Without a key (older clients), every request is a new one.
+
+A spent budget is `429 rate_limited` and another request still running is `429
+ai_request_in_progress`. Both carry `details.retry_after_seconds` and `Retry-After`.
 ```json
 {
   "level": 1,
@@ -1021,7 +1043,8 @@ Job-target examples (`/targets/{id}/experience`) are the same stories.
   `practice_count`, `preview`, `revision`). `q` matches every word across everything you wrote.
 - `POST /api/v1/me/stories` 🔒 `{title, track?, context?, situation, task, action, result,
   reflection, notes, evidence, competencies, tags, short_version, long_version, target_id?,
-  question_refs?}` → `201` the story. Up to 200 stories (`400 too_many_stories`); unknown career
+  question_refs?, client_request_id?}` → `201` the story. The same `client_request_id` again (a lost
+  response) returns the story the first request made, not a second one. Up to 200 stories (`400 too_many_stories`); unknown career
   `400 unknown_career`; a question ref that doesn't exist `400 unknown_question`; someone else's
   target `404`.
 - `GET /api/v1/me/stories/{id}` 🔒 → the story with `questions`, `practice` (answers that

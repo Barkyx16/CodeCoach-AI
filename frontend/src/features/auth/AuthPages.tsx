@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "@/auth/useAuth";
+import { ActionError } from "@/components/ActionError";
 import { Button } from "@/components/Button";
 import { Field } from "@/components/Field";
 import { PasswordChecklist } from "@/components/PasswordChecklist";
@@ -9,6 +10,8 @@ import { InlineError } from "@/components/States";
 
 import { fieldErrorsFrom } from "./fieldErrors";
 import { CareerSelect } from "@/features/careers/CareerSelect";
+import { useRetryWait } from "@/hooks/useCountdown";
+import { failureKind } from "@/lib/errors";
 import { safeReturnPath } from "@/lib/links";
 
 import { AuthLayout } from "./AuthLayout";
@@ -64,6 +67,10 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
+  // Too many tries: only Sign in waits (the server's time, counted down); the fields stay usable.
+  const wait = useRetryWait(error);
+  const fieldErrors = fieldErrorsFrom(error);
+  const generalError = Object.keys(fieldErrors).length ? null : error;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -86,12 +93,14 @@ export function LoginPage() {
         {notice ? <p className="banner banner--success" role="status">{notice}</p>
           : <p className="muted">Pick up where your last solution left off.</p>}
         <Field label="Email" type="email" autoComplete="email" required value={email}
-          onChange={(e) => setEmail(e.target.value)} />
+          onChange={(e) => setEmail(e.target.value)} error={fieldErrors.email} />
         <Field label="Password" type="password" autoComplete="current-password" required value={password}
-          onChange={(e) => setPassword(e.target.value)} />
+          onChange={(e) => setPassword(e.target.value)} error={fieldErrors.password} />
         <Link className="auth__forgot" to="/forgot-password">Forgot your password?</Link>
-        <InlineError error={error} />
-        <Button type="submit" variant="primary" loading={busy} disabled={!email || !password}>Sign in</Button>
+        {failureKind(generalError) === "busy" || failureKind(generalError) === "offline"
+          ? <ActionError error={generalError} action="Signing in" />
+          : <InlineError error={generalError} />}
+        <Button type="submit" variant="primary" loading={busy} disabled={!email || !password || wait > 0}>Sign in</Button>
         <div className="auth__alt">
           <span className="subtle">New here? <Link to="/register" state={carried}>Create an account</Link></span>
           <GuestButton />

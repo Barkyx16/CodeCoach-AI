@@ -38,13 +38,25 @@ export default function InterviewSessionPage() {
   const { id = "" } = useParams();
   const interview = useInterview(id);
   if (interview.isPending) return <LoadingState label="Loading interview…" />;
-  if (interview.isError) return <div className="page"><ErrorState error={interview.error} onRetry={() => interview.refetch()} /></div>;
+  // Nothing loaded: the error is all there is. Once the interview is on screen, a failed refresh
+  // (focus, the clock running out, the check after a dropped send) keeps it there, with a notice.
+  if (interview.isError && !interview.data) {
+    return <div className="page"><ErrorState error={interview.error} onRetry={() => interview.refetch()} /></div>;
+  }
   const iv = interview.data;
+  const stale = interview.isError && (
+    <div className="page page--notice">
+      <div className="banner banner--warning row" role="status">
+        <span>We couldn't check this interview for updates just now. This is how it was last loaded; what you type is kept.</span>
+        <Button size="sm" loading={interview.isFetching} onClick={() => void interview.refetch()}>Check again</Button>
+      </div>
+    </div>
+  );
   const live = iv.status === "in_progress";
-  if (!live) return <ReviewWorkspace iv={iv} />;
-  if (iv.kind === "questions") return <LiveRound key={iv.id} iv={iv} />;
+  if (!live) return <>{stale}<ReviewWorkspace iv={iv} /></>;
+  if (iv.kind === "questions") return <>{stale}<LiveRound key={iv.id} iv={iv} /></>;
   if (!iv.problem) return <div className="page"><ErrorState error={new Error("This interview's problem is no longer available.")} /></div>;
-  return <LiveInterview key={iv.id} iv={iv} problemSlug={iv.problem.slug} />;
+  return <>{stale}<LiveInterview key={iv.id} iv={iv} problemSlug={iv.problem.slug} /></>;
 }
 
 function LiveInterview({ iv, problemSlug }: { iv: Interview; problemSlug: string }) {

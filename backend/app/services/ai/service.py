@@ -11,6 +11,7 @@ from datetime import UTC, datetime, timedelta
 from typing import TypeVar
 
 from sqlalchemy import func, select, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app import tracing
@@ -30,10 +31,12 @@ from app.models import (
 from app.schemas.ai import (
     HINT_LEVEL_NAMES,
     AIUsage,
+    CodeReview,
     Complexity,
     ExplainFailureRequest,
     ExplainFailureResponse,
     FailureExplanation,
+    HintContent,
     HintRequest,
     HintResponse,
     ReviewRequest,
@@ -155,8 +158,68 @@ class CoachService:
             or 0
         )
 
+    def _replayed(
+        self, user: User, key: str | None, action: AIAction, problem: Problem, hint_level: int | None = None
+    ) -> AIInteraction | None:
+        """The interaction an earlier request with this key made, if any. Sent again because its
+        response was lost, a request gets that answer back: no provider call, no budget used."""
+        if not key:
+            return None
+        row = self.db.scalar(
+            select(AIInteraction).where(
+                AIInteraction.user_id == user.id, AIInteraction.client_request_id == key
+            )
+        )
+        if row is None:
+            return None
+        if row.action != action or row.problem_id != problem.id or row.hint_level != hint_level:
+            raise ConflictError(
+                "This request key was already used for a different coaching request.",
+                code="idempotency_key_reused",
+            )
+        return row
+
+    def _commit_or_replay(self, user: User, key: str | None) -> AIInteraction | None:
+        """Commit the new interaction. If the same key won a race meanwhile (two copies of one
+        request at once, where the per-user lock doesn't apply), return the one that was kept."""
+        try:
+            self.db.commit()
+        except IntegrityError:
+            self.db.rollback()
+            if not key:
+                raise
+            row = self.db.scalar(
+                select(AIInteraction).where(
+                    AIInteraction.user_id == user.id, AIInteraction.client_request_id == key
+                )
+            )
+            if row is None:
+                raise
+            return row
+        return None
+
+    def _hint_response(
+        self, problem: Problem, level: int, content: HintContent, provider: str
+    ) -> HintResponse:
+        max_level = len(problem.hints)
+        return HintResponse(
+            level=level,
+            level_name=HINT_LEVEL_NAMES[level],
+            content=content,
+            max_level=max_level,
+            next_level_available=level < max_level,
+            provider=provider,
+            grounded=True,
+        )
+
     def hint(self, user: User, req: HintRequest) -> HintResponse:
         problem = self._problem(req.problem_slug)
+        if (
+            done := self._replayed(user, req.client_request_id, AIAction.HINT, problem, req.level)
+        ) is not None:
+            return self._hint_response(
+                problem, req.level, HintContent.model_validate(done.response), done.provider
+            )
         max_level = len(problem.hints)
         if req.level > max_level:
             raise NotFoundError(f"This problem has {max_level} hint levels")
@@ -183,18 +246,20 @@ class CoachService:
             ),
         )
         result = self.call_with_fallback(lambda p: p.hint(ctx))
-        self.record_interaction(user, problem, AIAction.HINT, result, hint_level=req.level)
-        self._event(user, problem, ProgressEventType.HINT_USED)
-        self.db.commit()
-        return HintResponse(
-            level=req.level,
-            level_name=HINT_LEVEL_NAMES[req.level],
-            content=result.content,
-            max_level=max_level,
-            next_level_available=req.level < max_level,
-            provider=result.provider,
-            grounded=True,
+        self.record_interaction(
+            user,
+            problem,
+            AIAction.HINT,
+            result,
+            hint_level=req.level,
+            client_request_id=req.client_request_id,
         )
+        self._event(user, problem, ProgressEventType.HINT_USED)
+        if (kept := self._commit_or_replay(user, req.client_request_id)) is not None:
+            return self._hint_response(
+                problem, req.level, HintContent.model_validate(kept.response), kept.provider
+            )
+        return self._hint_response(problem, req.level, result.content, result.provider)
 
     def review(self, user: User, req: ReviewRequest) -> ReviewResponse:
         problem = self._problem(req.problem_slug)
@@ -211,10 +276,17 @@ class CoachService:
                 if submission.mode == SubmissionMode.RUN:
                     # Don't let the coach treat a public-tests-only run as a full verdict.
                     judge_status += " on public tests only (a Run; hidden tests were not executed)"
+        expected = problem.expected_complexity or {}
+        if (done := self._replayed(user, req.client_request_id, AIAction.REVIEW, problem)) is not None:
+            return ReviewResponse(
+                review=CodeReview.model_validate(done.response),
+                provider=done.provider,
+                judge_status=judge_status,
+                expected_complexity=Complexity(**expected) if expected else None,
+            )
         self.check_budget(user)
 
         code = sanitize_code(req.source_code, self.settings.ai_max_code_chars)
-        expected = problem.expected_complexity or {}
         ctx = ReviewContext(
             problem=problem_context(problem),
             code=code,
@@ -228,9 +300,17 @@ class CoachService:
             ),
         )
         result = self.call_with_fallback(lambda p: p.review(ctx))
-        self.record_interaction(user, problem, AIAction.REVIEW, result, submission_id=submission_id)
+        self.record_interaction(
+            user,
+            problem,
+            AIAction.REVIEW,
+            result,
+            submission_id=submission_id,
+            client_request_id=req.client_request_id,
+        )
         self._event(user, problem, ProgressEventType.REVIEW_REQUESTED)
-        self.db.commit()
+        if (kept := self._commit_or_replay(user, req.client_request_id)) is not None:
+            result = replace(result, content=CodeReview.model_validate(kept.response), provider=kept.provider)
         return ReviewResponse(
             review=result.content,
             provider=result.provider,
@@ -410,10 +490,12 @@ class CoachService:
         hint_level: int | None = None,
         submission_id: str | None = None,
         store_response: bool = True,
+        client_request_id: str | None = None,
     ) -> None:
         self.db.add(
             AIInteraction(
                 user_id=user.id,
+                client_request_id=client_request_id,
                 problem_id=problem.id,
                 submission_id=submission_id,
                 action=action,

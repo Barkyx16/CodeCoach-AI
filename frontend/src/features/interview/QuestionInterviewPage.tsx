@@ -4,9 +4,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import { useInterviewFormats, useStartInterview } from "@/api/queries";
 import type { Difficulty, InterviewFormatId } from "@/api/types";
+import { ActionError } from "@/components/ActionError";
+import { useRetryWait } from "@/hooks/useCountdown";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
-import { InlineError } from "@/components/States";
 import { titleCase } from "@/lib/format";
 import { usePracticeTrack } from "@/features/careers/practiceTrack";
 import { VoiceSetup } from "@/features/voice/VoiceSetup";
@@ -42,6 +43,8 @@ export function QuestionInterviewPage() {
     ? conflictInterview(start.error.details)
     : null;
   const activeId = conflict?.id ?? running?.id ?? null;
+  // Busy or out of AI budget: only Start waits, for as long as the server said.
+  const startWait = useRetryWait(start.error);
   const activeSummary = conflict ? conflict.summary : running;
 
   async function onSubmit(e: FormEvent) {
@@ -100,8 +103,9 @@ export function QuestionInterviewPage() {
               ))}
             </div>
           </fieldset>
-          {activeId ? <ResumeCard id={activeId} summary={activeSummary} alert={Boolean(conflict)} /> : <InlineError error={start.error} />}
-          <Button type="submit" variant="primary" loading={start.isPending} disabled={Boolean(activeId)}>Start interview</Button>
+          {activeId ? <ResumeCard id={activeId} summary={activeSummary} alert={Boolean(conflict)} />
+              : !start.isPending && <ActionError error={start.error} action="Starting the interview" repeatSafe />}
+          <Button type="submit" variant="primary" loading={start.isPending} disabled={Boolean(activeId) || startWait > 0}>Start interview</Button>
           <p className="subtle">Want to work on one question at a time? <Link to="/problems?view=questions">Browse all {role} questions</Link>.</p>
         </form>
       </div>

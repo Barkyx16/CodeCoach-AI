@@ -5,6 +5,8 @@ import { ApiError } from "@/api/client";
 import { useInterviews, useProblems, useStartInterview } from "@/api/queries";
 import type { InterviewSummary } from "@/api/types";
 import { Badge, DifficultyBadge } from "@/components/Badge";
+import { ActionError } from "@/components/ActionError";
+import { useRetryWait } from "@/hooks/useCountdown";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
@@ -30,6 +32,8 @@ export function InterviewStartPage() {
     ? conflictInterview(start.error.details)
     : null;
   const activeId = conflict?.id ?? running?.id ?? null;
+  // Busy or out of AI budget: only Start waits, for as long as the server said.
+  const startWait = useRetryWait(start.error);
   const activeSummary = conflict ? conflict.summary : running;
 
   async function onSubmit(e: FormEvent) {
@@ -78,8 +82,9 @@ export function InterviewStartPage() {
                 ))}
               </div>
             </fieldset>
-            {activeId ? <ResumeCard id={activeId} summary={activeSummary} alert={Boolean(conflict)} /> : <InlineError error={start.error} />}
-            <Button type="submit" variant="primary" loading={start.isPending} disabled={Boolean(activeId)}>Start interview <Icon name="arrow" size={16} /></Button>
+            {activeId ? <ResumeCard id={activeId} summary={activeSummary} alert={Boolean(conflict)} />
+              : !start.isPending && <ActionError error={start.error} action="Starting the interview" repeatSafe />}
+            <Button type="submit" variant="primary" loading={start.isPending} disabled={Boolean(activeId) || startWait > 0}>Start interview <Icon name="arrow" size={16} /></Button>
           </form>
         </Card>
 

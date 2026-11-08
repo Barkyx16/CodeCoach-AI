@@ -11,6 +11,7 @@ import re
 from datetime import UTC, datetime
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.careers import CATALOG
@@ -279,7 +280,17 @@ class Stories:
                 e.target_id = t.id
                 e.requirement_ids = []  # requirements belong to the target they came from
 
+    def _by_request(self, user: User, key: str) -> ExperienceEntry | None:
+        return self.db.scalar(
+            select(ExperienceEntry).where(
+                ExperienceEntry.user_id == user.id, ExperienceEntry.client_request_id == key
+            )
+        )
+
     def create(self, user: User, body: StoryCreate) -> StoryOut:
+        """A create repeated with the same `client_request_id` returns the story the first made."""
+        if body.client_request_id and (made := self._by_request(user, body.client_request_id)):
+            return self.get(user, made.id)
         n = (
             self.db.scalar(
                 select(func.count()).select_from(ExperienceEntry).where(ExperienceEntry.user_id == user.id)
@@ -291,10 +302,24 @@ class Stories:
                 f"Up to {MAX_STORIES} stories per account. Archive or delete some first.",
                 code="too_many_stories",
             )
-        e = ExperienceEntry(user_id=user.id, title="", track=user.career_track, revision=1)
+        e = ExperienceEntry(
+            user_id=user.id,
+            title="",
+            track=user.career_track,
+            revision=1,
+            client_request_id=body.client_request_id,
+        )
         self._apply(user, e, body)
         self.db.add(e)
-        self.db.flush()
+        try:
+            self.db.flush()
+        except IntegrityError:
+            # The same create, sent twice at the same moment: the other copy made the story.
+            self.db.rollback()
+            made = self._by_request(user, body.client_request_id) if body.client_request_id else None
+            if made is None:
+                raise
+            return self.get(user, made.id)
         record_revision(self.db, e, "created", bump=False)
         self.db.commit()
         return self.get(user, e.id)

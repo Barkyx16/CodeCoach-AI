@@ -88,13 +88,16 @@ describe("Problem workspace", () => {
     expect(screen.getByText(/never from the AI/)).toBeInTheDocument();
   });
 
-  it("shows the budget error when the daily AI limit is hit", async () => {
+  it("shows the budget error when the daily AI limit is hit, and how long until it resets", async () => {
     server.use(http.post(`${API}/api/v1/ai/hint`, () => HttpResponse.json({ error: { code: "rate_limited",
-      message: "You've used today's AI coaching budget.", request_id: null, details: { daily_limit: 50 } } }, { status: 429 })));
+      message: "You've used today's AI coaching budget.", request_id: null, details: { daily_limit: 50, retry_after_seconds: 7200 } } },
+    { status: 429, headers: { "Retry-After": "7200" } })));
     const { user } = renderApp("/problems/two-sum", { signedIn: true });
     await user.click(await screen.findByRole("button", { name: "Get a hint" }));
-    expect(await screen.findByText("You've used today's AI coaching budget.")).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent("The hint didn't go through. You've used today's AI coaching budget.");
+    expect(screen.getByText("You can try again in about 2 h.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Get a hint" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeDisabled();
   });
 
   it("asks signed-out users to sign in before using the coach", async () => {

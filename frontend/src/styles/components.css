@@ -154,3 +154,9 @@
 .version-conflict__label { font-weight: 600; margin: var(--space-1) 0; }
 .version-conflict__text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: var(--space-2); max-height: 220px; overflow: auto;
   border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface-sunken); font-family: var(--font-sans); font-size: var(--text-sm); }
+
+/* A failed action, next to its control: the message, then the wait and the way on. */
+.action-error { display: grid; gap: 8px; }
+.action-error__message { margin: 0; }
+.action-error__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.page.page--notice { padding-bottom: 0; }

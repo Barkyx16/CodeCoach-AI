@@ -12,23 +12,50 @@ import type { ErrorEnvelope } from "./types";
 
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
+/**
+ * Seconds to wait from a Retry-After header: either a number of seconds or an HTTP date
+ * (RFC 9110). Null when absent or unreadable; never negative.
+ */
+export function parseRetryAfter(value: string | null | undefined, now: number = Date.now()): number | null {
+  const v = (value ?? "").trim();
+  if (!v) return null;
+  if (/^\d+$/.test(v)) return Number(v);
+  if (!/[A-Za-z]/.test(v)) return null; // an HTTP date names its day and month; "-5" isn't one
+  const at = Date.parse(v);
+  return Number.isNaN(at) ? null : Math.max(0, Math.ceil((at - now) / 1000));
+}
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
   readonly details: unknown;
   readonly requestId: string | null;
+  /** How long the server asked us to wait before trying again (a 429 or 503), if it said. */
+  readonly retryAfterSeconds: number | null;
+  /** When this answer arrived (ms since the epoch): a wait counts from here. */
+  readonly receivedAt: number = Date.now();
 
-  constructor(status: number, code: string, message: string, details: unknown = null, requestId: string | null = null) {
+  constructor(status: number, code: string, message: string, details: unknown = null, requestId: string | null = null,
+    retryAfterSeconds: number | null = null) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
     this.details = details;
     this.requestId = requestId;
+    // The body's figure is the more precise one; the header is the standard one (and the only one
+    // a proxy or a server without our error envelope sends).
+    const fromBody = (details as { retry_after_seconds?: unknown } | null)?.retry_after_seconds;
+    this.retryAfterSeconds = typeof fromBody === "number" && fromBody >= 0 ? Math.ceil(fromBody) : retryAfterSeconds;
   }
 
   get isAuthError(): boolean {
     return this.status === 401;
+  }
+
+  /** When the server's wait is over (ms since the epoch), or null if it asked for none. */
+  get retryAt(): number | null {
+    return this.retryAfterSeconds === null ? null : this.receivedAt + this.retryAfterSeconds * 1000;
   }
 }
 
@@ -196,10 +223,12 @@ async function send<T>(path: string, options: RequestOptions, isRetry: boolean):
 
   if (!response.ok) {
     const requestId = response.headers.get("X-Request-ID");
+    const retryAfter = parseRetryAfter(response.headers.get("Retry-After"));
     const error = isErrorEnvelope(data)
       ? new ApiError(response.status, data.error.code, data.error.message, data.error.details ?? null,
-          data.error.request_id ?? requestId)
-      : new ApiError(response.status, "http_error", `Request failed with status ${response.status}`, null, requestId);
+          data.error.request_id ?? requestId, retryAfter)
+      : new ApiError(response.status, "http_error", `Request failed with status ${response.status}`, null, requestId,
+          retryAfter);
     if (error.status === 401 && token && !options.noRefresh) {
       if (sentIn !== generation) {
         // Sent in a session that has since ended or been replaced: not this session's 401.

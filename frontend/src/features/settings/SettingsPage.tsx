@@ -11,6 +11,8 @@ import { Field } from "@/components/Field";
 import { Icon, type IconName } from "@/components/Icon";
 import { PasswordChecklist } from "@/components/PasswordChecklist";
 import { InlineError } from "@/components/States";
+import { ActionError } from "@/components/ActionError";
+import { useRetryWait } from "@/hooks/useCountdown";
 import { fieldErrorsFrom } from "@/features/auth/fieldErrors";
 import { EditorAppearancePreview } from "./EditorAppearancePreview";
 import { CareerSelect } from "@/features/careers/CareerSelect";
@@ -598,6 +600,8 @@ function DataRow() {
     a.click();
     URL.revokeObjectURL(url);
   }, `Downloaded ${name}`);
+  // Too many exports in a short time: the button waits as long as the server said.
+  const exportWait = useRetryWait(form.error);
   return (
     <div className="setting" role="group" aria-labelledby="data-title">
       <RowIntro icon="download" id="data-title" title="Your data">
@@ -612,11 +616,11 @@ function DataRow() {
           points to; it can't be restored yet, so keep a standard download for that.
         </label>
         <div className="setting__actions">
-          <Button onClick={() => void download()} loading={form.busy}><Icon name="download" size={16} />Download my data</Button>
+          <Button onClick={() => void download()} loading={form.busy} disabled={exportWait > 0}><Icon name="download" size={16} />Download my data</Button>
           {form.done && <Status>{form.done}</Status>}
           <Link to="/settings/restore" className="btn btn--ghost btn--md">Restore from a backup</Link>
         </div>
-        <InlineError error={form.error} />
+        {!form.busy && <ActionError error={form.error} action="The download" />}
       </div>
     </div>
   );

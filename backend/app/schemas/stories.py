@@ -56,6 +56,14 @@ class StoryFields(APIModel):
 
 class StoryCreate(StoryFields):
     title: str = Field(min_length=1, max_length=120)
+    client_request_id: str | None = Field(
+        default=None,
+        min_length=8,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9_-]+$",
+        description="One key per new story: sending the same create again (its response was lost) "
+        "returns the story it made",
+    )
 
 
 class StoryUpdate(StoryFields):

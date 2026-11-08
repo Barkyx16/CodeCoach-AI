@@ -23033,6 +23033,21 @@
             ],
             "title": "Level",
             "description": "1 nudge, 2 concept, 3 pseudocode, 4 full explanation"
+          },
+          "client_request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 8,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Request Id",
+            "description": "One key per request: the same request sent again (its response was lost) gets the first answer back, with no second provider call and no second use of the daily budget. The same key for a different request is a 409 `idempotency_key_reused`."
           }
         },
         "type": "object",
@@ -29314,6 +29329,21 @@
               }
             ],
             "title": "Submission Id"
+          },
+          "client_request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 8,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Request Id",
+            "description": "One key per request: the same request sent again (its response was lost) gets the first answer back, with no second provider call and no second use of the daily budget. The same key for a different request is a 409 `idempotency_key_reused`."
           }
         },
         "type": "object",
@@ -31953,6 +31983,21 @@
             ],
             "title": "Question Refs",
             "description": "'track/question_id' links"
+          },
+          "client_request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 8,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Request Id",
+            "description": "One key per new story: sending the same create again (its response was lost) returns the story it made"
           }
         },
         "type": "object",

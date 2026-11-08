@@ -1,11 +1,12 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
-import { ApiError } from "@/api/client";
 import { useAIHistory, useAIUsage, useHint, useReview } from "@/api/queries";
 import type { CodeReview, HintLevel, HintResponse, ReviewResponse } from "@/api/types";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
-import { InlineError } from "@/components/States";
+import { ActionError } from "@/components/ActionError";
+import { useRetryWait } from "@/hooks/useCountdown";
+import { newRequestKey } from "@/lib/requestKey";
 import { Tabs } from "@/components/Tabs";
 import { FallbackNotice } from "@/components/FallbackNotice";
 
@@ -82,10 +83,18 @@ function HintLadder({ problemSlug, maxLevel, code }: { problemSlug: string; maxL
 
   const highest = hints.reduce((m, h) => Math.max(m, h.level), 0);
   const next = LEVELS.find((l) => l.level === highest + 1 && l.level <= maxLevel);
-  const budgetExhausted = hint.error instanceof ApiError && hint.error.code === "rate_limited";
+  // The server's wait (today's budget used up, or another request still running): only the hint
+  // button waits, with a countdown; the editor, Run and Submit stay usable.
+  const wait = useRetryWait(hint.error);
+  // One key per level until it's answered: pressing again after a lost response gets the first
+  // answer back, without a second AI call or a second use of the budget.
+  const keys = useRef(new Map<number, string>());
 
   async function request(level: HintLevel) {
-    const response = await hint.mutateAsync({ problem_slug: problemSlug, level, source_code: code });
+    const key = keys.current.get(level) ?? newRequestKey();
+    keys.current.set(level, key);
+    const response = await hint.mutateAsync({ problem_slug: problemSlug, level, source_code: code, client_request_id: key });
+    keys.current.delete(level);
     setFresh((f) => [...f.filter((h) => h.level !== response.level), response]);
   }
 
@@ -109,7 +118,7 @@ function HintLadder({ problemSlug, maxLevel, code }: { problemSlug: string; maxL
       </ol>
       {next ? (
         <div className="hint-next">
-          <Button variant={highest === 0 ? "primary" : "secondary"} loading={hint.isPending} disabled={budgetExhausted}
+          <Button variant={highest === 0 ? "primary" : "secondary"} loading={hint.isPending} disabled={wait > 0}
             onClick={() => void request(next.level).catch(() => undefined)}>
             {highest === 0 ? "Get a hint" : `Unlock level ${next.level}: ${next.name}`}
           </Button>
@@ -119,7 +128,10 @@ function HintLadder({ problemSlug, maxLevel, code }: { problemSlug: string; maxL
       ) : (
         hints.length > 0 && <p className="subtle">You've unlocked every hint for this problem.</p>
       )}
-      <InlineError error={hint.error} />
+      {!hint.isPending && (
+        <ActionError error={hint.error} action="The hint" repeatSafe
+          onRetry={next ? () => void request(next.level).catch(() => undefined) : undefined} />
+      )}
     </div>
   );
 }
@@ -131,22 +143,31 @@ function ReviewTab({ problemSlug, code, submissionId, onHighlightLine }: {
 }) {
   const review = useReview();
   const [result, setResult] = useState<ReviewResponse | null>(null);
+  const wait = useRetryWait(review.error);
+  // The same code, not answered yet (a lost response): the same key, so the server gives back the
+  // review it already made. Changed code, or "Review again" after an answer, is a new review.
+  const pending = useRef<{ code: string; key: string } | null>(null);
 
   async function run() {
     onHighlightLine(null);
-    setResult(await review.mutateAsync({ problem_slug: problemSlug, source_code: code, submission_id: submissionId }));
+    const key = pending.current?.code === code ? pending.current.key : newRequestKey();
+    pending.current = { code, key };
+    setResult(await review.mutateAsync({ problem_slug: problemSlug, source_code: code, submission_id: submissionId, client_request_id: key }));
+    pending.current = null;
   }
 
   return (
     <div className="review stack">
       <div className="row">
         <Button variant="primary" loading={review.isPending} onClick={() => void run().catch(() => undefined)}
-          disabled={!code.trim()}>
+          disabled={!code.trim() || wait > 0}>
           {result ? "Review again" : "Review my code"}
         </Button>
         <span className="subtle">Checks correctness risks, edge cases, complexity and readability.</span>
       </div>
-      <InlineError error={review.error} />
+      {!review.isPending && (
+        <ActionError error={review.error} action="The code review" repeatSafe onRetry={() => void run().catch(() => undefined)} />
+      )}
       {result && <ReviewResult data={result} onHighlightLine={onHighlightLine} />}
     </div>
   );

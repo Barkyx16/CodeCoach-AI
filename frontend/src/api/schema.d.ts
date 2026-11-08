@@ -5681,6 +5681,11 @@ export interface components {
              * @enum {integer}
              */
             level: 1 | 2 | 3 | 4;
+            /**
+             * Client Request Id
+             * @description One key per request: the same request sent again (its response was lost) gets the first answer back, with no second provider call and no second use of the daily budget. The same key for a different request is a 409 `idempotency_key_reused`.
+             */
+            client_request_id?: string | null;
         };
         /** HintResponse */
         HintResponse: {
@@ -8017,6 +8022,11 @@ export interface components {
             source_code: string;
             /** Submission Id */
             submission_id?: string | null;
+            /**
+             * Client Request Id
+             * @description One key per request: the same request sent again (its response was lost) gets the first answer back, with no second provider call and no second use of the daily budget. The same key for a different request is a 409 `idempotency_key_reused`.
+             */
+            client_request_id?: string | null;
         };
         /** ReviewResponse */
         ReviewResponse: {
@@ -9064,6 +9074,11 @@ export interface components {
              * @description 'track/question_id' links
              */
             question_refs?: string[] | null;
+            /**
+             * Client Request Id
+             * @description One key per new story: sending the same create again (its response was lost) returns the story it made
+             */
+            client_request_id?: string | null;
         };
         /** StoryOut */
         StoryOut: {
