@@ -235,6 +235,7 @@ ok: the saved note is in the restored copy
 ok: check-backups now reports when recovery was last rehearsed
 ok: the app runs on the restored copy as its app role: check-rls --strict, sign-in, own notes only, B's note 404
 ok: after the restored API ran its email loop, the held emails are untouched (no attempt made)
+ok: releasing a rehearsal's held emails over SMTP is refused (exit 1); the outbox is unchanged
 ok: email-quarantine lists them by domain only, a dry run changes nothing, suppress finishes them: dropped=2 (attempts 4)
 ok: a damaged backup is refused, and its target stays empty
 ok: no password in the backup or restore output

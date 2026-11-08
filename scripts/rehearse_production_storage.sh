@@ -253,8 +253,13 @@ q() { docker exec codecoach_rehearsal_restored_api python -m app.cli email-quara
 LISTING=$(q) || { echo "FAIL: email-quarantine"; echo "$LISTING"; exit 1; }
 must "email(s) held" "$LISTING"; must "@example.com" "$LISTING"
 if grep -q "rehearsal@\|rehearsal-b@" <<<"$LISTING"; then echo "FAIL: email-quarantine shows a full address"; exit 1; fi
+must "held by a rehearsal" "$LISTING"
+# A rehearsal's copy holds real people's addresses: releasing them over SMTP is refused.
+if REFUSED=$(q --release --kind verify_email --apply); then echo "FAIL: a rehearsal's held emails were released over SMTP"; exit 1; fi
+must "Not released" "$REFUSED"
 must "Would suppress" "$(q --suppress --kind verify_email)"
-[ "$(outbox_of codecoach_restored)" = "$HELD_AT_RESTORE" ] || { echo "FAIL: a dry run changed the outbox"; exit 1; }
+[ "$(outbox_of codecoach_restored)" = "$HELD_AT_RESTORE" ] || { echo "FAIL: a refusal or a dry run changed the outbox"; exit 1; }
+echo "ok: releasing a rehearsal's held emails over SMTP is refused (exit 1); the outbox is unchanged"
 must "Suppressed" "$(q --suppress --kind verify_email --apply)"
 AFTER=$(outbox_of codecoach_restored)
 grep -q 'dropped=' <<<"$AFTER" && ! grep -q 'held=' <<<"$AFTER" || { echo "FAIL: suppressing left: $AFTER"; exit 1; }

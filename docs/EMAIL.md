@@ -189,10 +189,12 @@ python -m app.cli email-retry --failed       # verification emails from the last
 A restored database brings back the outbox as it was at backup time. So `restore-database`
 **holds** every email that wasn't finished then (status `held`). No worker sends a held email,
 however many start or restart, and `preflight` blocks until each one is decided.
-`python -m app.cli email-quarantine` lists them by domain and says what releasing each would do.
+`python -m app.cli email-quarantine` lists them by domain. For each it shows what it was doing at
+backup time (one mid-send may already have arrived) and what releasing it would do.
 `--release` or `--suppress`, with `--kind` or `--job` and `--apply`, decides. A released
 verification or reset email gets a fresh code or link when it's sent; one too old for its kind is
-dropped instead. The procedure is in [BACKUP.md](BACKUP.md), "Restoring", and the tests are in
+dropped instead. A restore is a rehearsal unless `restore-database --recovery` says otherwise. A
+rehearsal's held emails can't be released over SMTP: they're real people's addresses. The procedure is in [BACKUP.md](BACKUP.md), "Restoring", and the tests are in
 `tests/test_restore_quarantine.py`.
 
 ### Sender domain: SPF, DKIM, DMARC

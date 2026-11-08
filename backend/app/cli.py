@@ -29,8 +29,10 @@ python -m app.cli grant-app-role ROLE  # as the table owner, after migrating: le
 python -m app.cli backup-database --out DIR --recipients FILE [--name NAME]
                               # encrypted full-database backup + manifest (docs/BACKUP.md); a
                               # --name backup (e.g. before an upgrade) is never pruned
-python -m app.cli restore-database DUMP.age --identity FILE
-                              # into RESTORE_DATABASE_URL, a separate EMPTY database; never the live one
+python -m app.cli restore-database DUMP.age --identity FILE [--recovery]
+                              # into RESTORE_DATABASE_URL, a separate EMPTY database; never the live one.
+                              # Holds the emails unsent at backup time. A rehearsal (the default)
+                              # can't release them over SMTP; --recovery: this copy will serve users
 python -m app.cli prune-backups --dir DIR [--keep-daily 7] [--keep-weekly 4] [--keep-monthly 3]
                               [--keep-within-hours 24] [--apply]
                               # which backups to keep (all from the 24 h before the newest, and the
@@ -164,7 +166,7 @@ def main(argv: list[str]) -> int:
         )
         return 0
     if command == "email-quarantine":
-        from app.services.email_ops import held_inventory, release_held, suppress_held
+        from app.services.email_ops import QuarantineRefused, held_inventory, release_held, suppress_held
         from app.services.outbox import KINDS
 
         action = "release" if "--release" in argv else "suppress" if "--suppress" in argv else None
@@ -188,13 +190,18 @@ def main(argv: list[str]) -> int:
                 print(f"{len(held_jobs)} email(s) held after a restore (none is sent until released):")
                 for held_row in held_jobs:
                     print(
-                        f"  {held_row['job']}  {held_row['kind']:<24} {held_row['age_hours']:>7} h old  to *@{held_row['to_domain']}"
-                        f"  attempts {held_row['attempts']}  on release: {held_row['on_release']}"
+                        f"  {held_row['job']}  {held_row['kind']:<22} {held_row['age_hours']:>7} h old  to *@{held_row['to_domain']}"
+                        f"  held by a {held_row['held_by']}, was {held_row['was']}, attempts {held_row['attempts']}"
+                        f"\n      on release: {held_row['on_release']}"
                     )
                 print("Then: --release or --suppress, with --kind or --job to choose, and --apply to do it.")
                 return 0
             if action == "release":
-                chosen = release_held(session, kind=kind, job_ids=job_ids, apply=apply)
+                try:
+                    chosen = release_held(session, settings, kind=kind, job_ids=job_ids, apply=apply)
+                except QuarantineRefused as exc:
+                    print(f"Not released: {exc}")
+                    return 1
             else:
                 chosen = suppress_held(session, kind=kind, job_ids=job_ids, apply=apply)
         verbs = {"release": ("Released", "Would release"), "suppress": ("Suppressed", "Would suppress")}[
@@ -321,9 +328,10 @@ def main(argv: list[str]) -> int:
         restore_target = os.environ.get("RESTORE_DATABASE_URL")
         if len(argv) < 3 or "--identity" not in argv or not restore_target:
             print(
-                "usage: RESTORE_DATABASE_URL=... python -m app.cli restore-database DUMP.age --identity FILE"
+                "usage: RESTORE_DATABASE_URL=... python -m app.cli restore-database DUMP.age --identity FILE [--recovery]"
             )
             print("(RESTORE_DATABASE_URL: a separate, empty database, connected as the table owner)")
+            print("(--recovery: this copy will serve users; without it, a rehearsal)")
             return 2
         try:
             restored = restore(
@@ -331,6 +339,7 @@ def main(argv: list[str]) -> int:
                 Path(argv[argv.index("--identity") + 1]),
                 restore_target,
                 live_url=os.environ.get("DATABASE_URL"),
+                purpose="recovery" if "--recovery" in argv else "rehearsal",
             )
         except BackupError as exc:
             print(f"Not restored: {exc}")
@@ -343,6 +352,11 @@ def main(argv: list[str]) -> int:
         )
         print("Timings: " + ", ".join(f"{k} {v:.2f} s" for k, v in restored.timings.items()))
         print(f"Schema: {restored.schema}.")
+        print(
+            "Purpose: recovery (this copy will serve users)."
+            if "--recovery" in argv
+            else "Purpose: rehearsal (its held emails can't be released over SMTP; pass --recovery for a real recovery)."
+        )
         for note in restored.notes:
             print(f"Next: {note}")
         print("Next: start the app against it and check sign-in (docs/BACKUP.md).")

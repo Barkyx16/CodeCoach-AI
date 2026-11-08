@@ -349,9 +349,14 @@ def restore(
     target_url: str,
     live_url: str | None = None,
     known_revisions: frozenset[str] | None = None,
+    purpose: str = "rehearsal",
 ) -> Restored:
     """Restore into `target_url`, a separate, empty database. Every check that can fail without
-    writing runs first."""
+    writing runs first. `purpose`: "rehearsal" (the default: a copy to inspect) or "recovery"
+    (this copy will serve users). Both hold the emails unsent at backup time; only a recovery's
+    can be released over SMTP (services/email_ops.py)."""
+    if purpose not in ("rehearsal", "recovery"):
+        raise BackupError("the purpose of a restore is rehearsal or recovery")
     from app.db import rls
 
     pg_restore, age = _need("pg_restore"), _need("age")
@@ -489,12 +494,12 @@ def restore(
             # held, not sent by the first worker that starts (email-quarantine decides).
             from app.services.email_ops import hold_unsent
 
-            held = hold_unsent(db)
+            held = hold_unsent(db, purpose)
     finally:
         check.dispose()
     if held:
         notes.append(
-            f"{held} email(s) unsent at backup time are held, not sent: review them with "
+            f"{held} email(s) unsent at backup time are held ({purpose}), not sent: review them with "
             "`python -m app.cli email-quarantine`, then release or suppress them (docs/BACKUP.md)"
         )
     if schema == "behind":
@@ -503,12 +508,14 @@ def restore(
         )
     timings["total"] = time.monotonic() - t0
     rows = sum(after["tables"].values())
-    if not _record_restore(dump_file, len(after["tables"]), rows, schema, held):
+    if not _record_restore(dump_file, len(after["tables"]), rows, schema, held, purpose):
         notes.append(f"couldn't record this rehearsal in {RESTORE_LOG} (the backup folder is read-only?)")
     return Restored(timings, len(after["tables"]), rows, schema, notes, held)
 
 
-def _record_restore(dump_file: Path, tables: int, rows: int, schema: str, held: int = 0) -> bool:
+def _record_restore(
+    dump_file: Path, tables: int, rows: int, schema: str, held: int = 0, purpose: str = "rehearsal"
+) -> bool:
     """Append this restore to the backup folder's log (no user data: names and counts)."""
     log = dump_file.parent / RESTORE_LOG
     try:
@@ -523,6 +530,7 @@ def _record_restore(dump_file: Path, tables: int, rows: int, schema: str, held: 
                 "rows": rows,
                 "schema": schema,
                 "held_emails": held,
+                "purpose": purpose,
             }
         )
         partial = log.with_name("." + log.name + ".partial")

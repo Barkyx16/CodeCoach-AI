@@ -292,7 +292,8 @@ def _jobs_checks(s: Settings, session_factory: Callable[[], Session]) -> list[Ch
             Check(
                 "outbox",
                 BLOCKED,
-                f"{held} emails held after a restore: review them with `email-quarantine`, then release or suppress them",
+                f"{held} emails held after a restore: review them with `email-quarantine`, then release or "
+                "suppress them (a rehearsal's can only be suppressed over SMTP)",
             )
         )
     elif stuck:

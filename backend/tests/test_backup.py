@@ -121,7 +121,7 @@ def test_a_backup_restores_into_a_separate_database_and_the_app_runs_on_it(
     assert "ada@example.com" not in (made.dump.parent / RESTORE_LOG).read_text()
     assert done.schema == "current" and done.rows == sum(manifest["tables"].values())
     # The unsent email is held on the copy, not sent by the first worker to start there.
-    assert done.held_emails == 1 and record["held_emails"] == 1
+    assert done.held_emails == 1 and record["held_emails"] == 1 and record["purpose"] == "rehearsal"
     assert any("1 email(s) unsent at backup time are held" in n for n in done.notes)
     copy = create_engine(empty_target)
     with copy.connect() as conn:

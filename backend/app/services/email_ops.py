@@ -1,6 +1,6 @@
 """Operator diagnostics for the email outbox, with redaction, and recovery after an outage.
 
-For whoever runs the server, through the CLI (`email-status`, `email-retry`). There's no web
+For whoever runs the server, through the CLI (`email-status`, `email-retry`, `email-quarantine`). There's no web
 route: reaching these needs shell access to the server, which is the authorization. Output names
 jobs, kinds, statuses, attempts, error classes or SMTP codes, the Message-ID (to match a provider's
 logs) and the account id. It never shows an address's local part, a subject, a code or a link.
@@ -14,13 +14,16 @@ nothing here pretends otherwise.
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import func, or_, select, update
+from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.orm import Session
 
 from app.models import EmailJob, User
+
+logger = logging.getLogger("codecoach.email_ops")
 
 
 def domain_of(address: str | None) -> str:
@@ -100,27 +103,82 @@ def requeue_failed(db: Session, *, within: timedelta, now: datetime | None = Non
 
 
 # --- After a restore: held emails ------------------------------------------------------------
-# A restored database brings back the outbox as it was at backup time. Its pending jobs may have
-# been sent since by the old server, or may no longer be wanted, and the restored app would send
-# them as soon as it started. So restore-database holds every unsent job (`held`): no worker
-# claims one (they claim `pending` and `sending` only), however many workers start or restart,
-# until an operator releases or suppresses it. A job never holds a usable code or link: one is
-# made when the email is actually sent, so releasing a verification email sends a fresh code. An
-# expired one is never revived. Restarts outside a restore don't hold anything.
+# A restored database brings back the outbox as it was at backup time. Its unfinished jobs may
+# have been sent since by the old server, or may no longer be wanted, and the restored app would
+# send them as soon as it started. So restore-database holds every unfinished job (`held`) before
+# anything can start on the copy: no worker claims one (they claim `pending` and `sending` only),
+# however many workers start or restart, until an operator releases or suppresses it.
+#
+# The hold records, in `last_error` (`held:<purpose>:<was>`):
+# - why: `rehearsal` (the default: a copy to inspect, whose addresses are real people's) or
+#   `recovery` (this copy will serve users);
+# - what the job was doing at backup time: `pending` (never tried), `retrying` (tried, failed, due
+#   again later), or `sending` (leased mid-send: the mail server may have taken it after the
+#   snapshot, so it may already have arrived).
+#
+# SMTP has no idempotency: resending a job reuses its Message-ID (`<codecoach.JOB_ID@domain>`), so
+# a recipient's mail client or a provider can tell it's the same message, but nothing guarantees it
+# arrives only once. A job never holds a usable code or link: one is made when the email is sent,
+# so releasing a verification email sends a fresh code, and an expired one is never revived.
+# Ordinary restarts hold nothing.
 
 HELD = "held"
+PURPOSES = ("rehearsal", "recovery")
 
 
-def hold_unsent(db: Session) -> int:
-    """Hold every job that hasn't finished (pending, retrying, or leased mid-send). Commits."""
-    result = db.execute(
-        update(EmailJob)
-        .where(EmailJob.status.in_(("pending", "sending")))
-        .values(status=HELD, last_error="held after a restore")
-        .execution_options(synchronize_session=False)
-    )
+class QuarantineRefused(Exception):
+    """A release that would email the real people in a rehearsal copy."""
+
+
+def hold_unsent(db: Session, purpose: str = "rehearsal") -> int:
+    """Hold every job that hasn't finished, recording why and what it was doing. Commits."""
+    if purpose not in PURPOSES:
+        raise ValueError(f"purpose must be one of {PURPOSES}")
+    states = {
+        "sending": EmailJob.status == "sending",
+        "retrying": and_(EmailJob.status == "pending", EmailJob.attempts > 0),
+        "pending": and_(EmailJob.status == "pending", EmailJob.attempts == 0),
+    }
+    held = 0
+    for was, which in states.items():
+        result = db.execute(
+            update(EmailJob)
+            .where(which)
+            .values(status=HELD, last_error=f"held:{purpose}:{was}")
+            .execution_options(synchronize_session=False)
+        )
+        held += int(getattr(result, "rowcount", 0) or 0)
     db.commit()
-    return int(getattr(result, "rowcount", 0) or 0)
+    if held:
+        logger.info("held unsent emails after a restore", extra={"count": held, "purpose": purpose})
+    return held
+
+
+def held_as(job: EmailJob) -> tuple[str, str]:
+    """(purpose, what it was doing at backup time). Unreadable markers count as a rehearsal."""
+    parts = (job.last_error or "").split(":")
+    if len(parts) == 3 and parts[0] == HELD and parts[1] in PURPOSES:
+        return parts[1], parts[2]
+    return "rehearsal", "unknown"
+
+
+def _on_release(job: EmailJob, user: User | None, too_old: bool, was: str) -> str:
+    """What releasing this job would do, by the outbox's own rules (services/outbox.py)."""
+    from app.services.email_verification import target_address
+
+    if too_old:
+        outcome = "dropped: older than its kind's limit, nothing goes out"
+    elif job.kind == "verify_email" and (user is None or target_address(user) is None):
+        outcome = "skipped: nothing to verify any more (verified, a guest, or the account is gone)"
+    elif job.kind == "verify_email":
+        outcome = "sent, with a fresh code and link made at send time"
+    elif job.kind == "password_reset":
+        outcome = "sent, with a fresh single-use link made at send time (if the account still exists)"
+    else:
+        outcome = "sent as queued (a notice, no code or link)"
+    if was == "sending" and not outcome.startswith(("dropped", "skipped")):
+        outcome += "; it was mid-send at backup time and may already have arrived (same Message-ID)"
+    return outcome
 
 
 def held_inventory(db: Session, settings: Any, now: datetime | None = None) -> list[dict[str, Any]]:
@@ -138,16 +196,12 @@ def held_inventory(db: Session, settings: Any, now: datetime | None = None) -> l
     for job, user in rows:
         created = job.created_at if job.created_at.tzinfo else job.created_at.replace(tzinfo=UTC)
         age = now - created
-        too_old = age > outbox._max_age(job.kind, settings)
+        purpose, was = held_as(job)
         row = _row(job, user)
         row["age_hours"] = round(age.total_seconds() / 3600, 1)
-        row["on_release"] = (
-            "dropped: too old to send (its kind's limit), nothing goes out"
-            if too_old
-            else "sent, with a fresh code or link made at send time"
-            if job.kind in ("verify_email", "password_reset")
-            else "sent as it was queued"
-        )
+        row["held_by"] = purpose
+        row["was"] = was
+        row["on_release"] = _on_release(job, user, age > outbox._max_age(job.kind, settings), was)
         out.append(row)
     return out
 
@@ -162,11 +216,29 @@ def _held(kind: str | None, job_ids: list[str] | None) -> list[Any]:
 
 
 def release_held(
-    db: Session, *, kind: str | None = None, job_ids: list[str] | None = None, apply: bool = False
+    db: Session,
+    settings: Any,
+    *,
+    kind: str | None = None,
+    job_ids: list[str] | None = None,
+    apply: bool = False,
 ) -> list[str]:
     """Let the chosen held jobs go out (they become due now). A dry run unless `apply`. Touches
-    only held jobs, so running it twice is harmless. Commits when applying."""
-    chosen = list(db.scalars(select(EmailJob.id).where(*_held(kind, job_ids))))
+    only held jobs, so running it twice is harmless. One statement: an interruption releases all
+    of them or none. Commits when applying.
+
+    Refused (QuarantineRefused, dry run included) for jobs a rehearsal held while email goes out
+    over SMTP: the addresses in a copy of production are real people's. A capture transport
+    (EMAIL_BACKEND=file or console) can rehearse a release."""
+    jobs = list(db.scalars(select(EmailJob).where(*_held(kind, job_ids))))
+    rehearsal = [j.id for j in jobs if held_as(j)[0] == "rehearsal"]
+    if rehearsal and settings.email_backend == "smtp":
+        raise QuarantineRefused(
+            f"{len(rehearsal)} of these were held by a restore rehearsal: releasing them would email "
+            "the real people in the backup. Suppress them, or rehearse a release with "
+            "EMAIL_BACKEND=file. For a real recovery, restore with --recovery."
+        )
+    chosen = [j.id for j in jobs]
     if apply and chosen:
         db.execute(
             update(EmailJob)
@@ -175,26 +247,34 @@ def release_held(
             .execution_options(synchronize_session=False)
         )
         db.commit()
+        logger.info(
+            "released held emails", extra={"count": len(chosen), "jobs": chosen, "kind": kind or "any"}
+        )
     return chosen
 
 
 def suppress_held(
     db: Session, *, kind: str | None = None, job_ids: list[str] | None = None, apply: bool = False
 ) -> list[str]:
-    """Never send the chosen held jobs: they're finished as `dropped`, their addresses cleared.
-    A dry run unless `apply`. Running it twice is harmless. Commits when applying."""
-    chosen = list(db.scalars(select(EmailJob.id).where(*_held(kind, job_ids))))
+    """Never send the chosen held jobs: they're finished as `dropped`, their addresses cleared, and
+    the decision kept on the job (`suppressed:<purpose>:<was>`). A dry run unless `apply`. Running
+    it twice is harmless. Commits when applying."""
+    jobs = list(db.scalars(select(EmailJob).where(*_held(kind, job_ids))))
+    chosen = [j.id for j in jobs]
     if apply and chosen:
-        db.execute(
-            update(EmailJob)
-            .where(*_held(kind, job_ids), EmailJob.id.in_(chosen))
-            .values(
-                status="dropped",
-                finished_at=datetime.now(UTC),
-                payload=None,
-                last_error="suppressed after a restore",
+        now = datetime.now(UTC)
+        for job in jobs:
+            purpose, was = held_as(job)
+            db.execute(
+                update(EmailJob)
+                .where(EmailJob.id == job.id, EmailJob.status == HELD)
+                .values(
+                    status="dropped", finished_at=now, payload=None, last_error=f"suppressed:{purpose}:{was}"
+                )
+                .execution_options(synchronize_session=False)
             )
-            .execution_options(synchronize_session=False)
-        )
         db.commit()
+        logger.info(
+            "suppressed held emails", extra={"count": len(chosen), "jobs": chosen, "kind": kind or "any"}
+        )
     return chosen
