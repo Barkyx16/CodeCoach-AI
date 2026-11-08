@@ -3,6 +3,31 @@
 CodeCoach sends three kinds of email: a 6-digit verification code (with a link) after sign-up,
 a password-reset link, and a notice to the old address when someone changes their email.
 
+## Delivery status (2026-11-08): what's proven, and what isn't
+
+| Question | Answer | Evidence |
+|---|---|---|
+| Why didn't the verification code arrive on your Mac? | A local run (`./dev.sh`) without mail settings uses the **console** backend: nothing is sent. The code is printed in the dev.sh window, in a block headed "EMAIL (not sent: this server has no mail server set up)", and the "Check your email" page says so. | `tests/test_email_dev.py` |
+| Is real sending implemented? | Yes: SMTP with a verified certificate (STARTTLS or implicit TLS), sign-in, a Message-ID per email. | `tests/test_email_transport.py` (against a local fake mail server with a throwaway CA) |
+| Are the stages kept apart? | Queued → sending → **accepted** (the mail server took it, which isn't an inbox) / rejected (permanent, never retried) / failed (after 5 attempts, with backoff). A worker restart delivers once; resends have a cooldown; codes expire, can't be reused, and five wrong ones kill a code. A send being accepted never verifies an account: only the code or link does. | the same file, plus `test_email_verification.py`, `test_email_delivery_problems.py`, `test_account_recovery.py`: **47 passed** on this tree |
+| Do codes or links leak into logs? | Not on any path tested: the logs carry the job, Message-ID, stage and error class, never the address, subject or code. | `test_logs_never_carry_the_address_subject_or_code` |
+| Is a provider configured here? | **No.** This sandbox has no provider account, and no credentials were requested or used. | — |
+| Has a real email reached an inbox? | **Unverified.** Nothing real has been sent. | needs the steps below |
+
+What closes the last two rows (your decisions; nothing here can do them):
+1. Choose a provider: any SMTP relay. [Sending real emails](#sending-real-emails) has the
+   settings, with a Gmail app password as the quickest way to test on your own computer. For
+   launch, verify a sender domain with an email service: DNS records (SPF, DKIM, DMARC), in
+   your DNS.
+2. Put its settings in the server's `deploy/.env.app` or your host's secret settings, never in a
+   chat or a commit: `EMAIL_BACKEND=smtp`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`,
+   `SMTP_USERNAME`, `SMTP_PASSWORD`, `EMAIL_FROM`.
+3. `python -m app.cli check-email --connect` (connects, TLS, signs in, sends nothing), then
+   `check-email --send-test you@your-domain` to **an inbox you own**. Check it arrived, and not
+   in spam.
+4. Sign up once through the real site with that address and use the code. Until then, "accepted
+   by the provider" is the most this code can claim.
+
 ## On your own computer (`./dev.sh`): nothing is sent
 
 Unless a mail server is set up, nothing leaves your computer. Each email is printed in the
