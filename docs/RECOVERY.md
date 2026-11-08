@@ -105,6 +105,9 @@ Nothing in the app cancels server work, and no page claims to.
   in. Before, the editor switched to the signed-out copy, and the work seemed to vanish.
 - **Sign-in.** A malformed email is marked on its field, not shown as "Request validation failed".
 - **Verification resend.** Any 429 counts down the server's wait, not only `resend_cooldown`.
+- **History filters.** Two changes in quick succession (a career, then an activity type) used to
+  keep only the second: each built on the URL of the last render. The full browser run caught it
+  on a loaded machine. Each change now builds on the latest one; a test fails on the old code.
 
 ## Tests
 

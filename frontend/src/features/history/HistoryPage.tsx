@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 
 import { useActivity, useActivityFacets } from "@/api/queries";
@@ -41,14 +41,23 @@ export function HistoryPage() {
   const facets = useActivityFacets(filters.career);
   const activity = useActivity({ ...filters, page_size: PAGE_SIZE });
 
+  // The filters as last set by this page: two changes in quick succession (a career, then a type)
+  // must build on each other, not each on the URL of the last render (the second used to drop
+  // the first). Synced back whenever the URL changes from elsewhere (Back, a link).
+  const latest = useRef(params);
+  useEffect(() => {
+    latest.current = params;
+  }, [params]);
+
   function update(patch: Record<string, string | undefined>, resetPage = true) {
-    const next = new URLSearchParams(params);
+    const next = new URLSearchParams(latest.current);
     for (const [k, v] of Object.entries(patch)) {
       if (v) next.set(k, v);
       else next.delete(k);
     }
     if (resetPage) next.delete("page");
     if ("career" in patch) next.delete("skill"); // skills belong to one career
+    latest.current = next;
     setParams(next, { replace: !("page" in patch) });
   }
   useEffect(() => {

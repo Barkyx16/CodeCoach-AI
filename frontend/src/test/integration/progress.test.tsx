@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
 import { nurseAnalytics, nurseAnswer, queuedSubmission, tokenResponse, user as baseUser } from "../fixtures";
@@ -28,6 +28,17 @@ describe("Unified History", () => {
     await user.selectOptions(screen.getByLabelText("Activity"), "interview");
     expect(router.state.location.search).toBe("?career=registered-nurse&type=interview");
     expect(await screen.findByText("1 activity match")).toBeInTheDocument();
+  });
+
+  it("two filter changes in quick succession both stay (the second used to drop the first)", async () => {
+    const { router } = renderApp("/history", { signedIn: true });
+    await screen.findByRole("option", { name: "Registered Nurse (2)" });
+    // Both before the page re-renders, as a fast hand (or a loaded machine) does.
+    act(() => {
+      fireEvent.change(screen.getByLabelText("Career"), { target: { value: "registered-nurse" } });
+      fireEvent.change(screen.getByLabelText("Activity"), { target: { value: "interview" } });
+    });
+    await waitFor(() => expect(router.state.location.search).toBe("?career=registered-nurse&type=interview"));
   });
 
   it("opens an item and the in-app Back returns to the same filtered list", async () => {
