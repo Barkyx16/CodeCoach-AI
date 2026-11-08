@@ -143,7 +143,7 @@ npm run api:check                         # generated API types match docs/opena
 npm test                                  # unit + integration tests (Vitest: the app with MSW, plus tooling tests)
 npm run build                             # production bundle
 PYTHON=../backend/.venv/bin/python npm run e2e   # Playwright: real browser + real backend
-AUDIT=1 E2E_JUDGE=1 npm run e2e -- e2e/controls-audit.spec.ts --project=desktop   # ~18 min: uses every control on every page
+AUDIT=1 E2E_JUDGE=1 npm run e2e -- e2e/controls-audit.spec.ts --project=desktop   # ~30 min: uses every control on every page
 ```
 How the e2e servers are owned (`scripts/e2e-run.mjs`, `e2e/global-setup.ts`):
 - **Only its own server.** A run refuses an API that isn't this suite's test server. That

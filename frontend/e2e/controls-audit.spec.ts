@@ -3,7 +3,7 @@ import { expect, test, type Page } from "./fixtures";
 // Audit: use every visible control on every page (fresh load each time) and check it does
 // something: navigation, a dialog, a request, a DOM change, a changed value, or a focus move.
 // Fails if any control does nothing or causes a console error or failed request. Slow (~15 min),
-// so it's opt-in:  AUDIT=1 E2E_JUDGE=1 npx playwright test e2e/controls-audit.spec.ts --project=desktop
+// so it's opt-in:  AUDIT=1 E2E_JUDGE=1 npm run e2e -- e2e/controls-audit.spec.ts --project=desktop
 // Writes test-results/controls-audit.json.
 // A control that's gone should fail in seconds, not wait out the whole run.
 test.use({ actionTimeout: 15_000 });
@@ -191,8 +191,10 @@ test("a signed-out pass that's secretly signed in is caught, not audited", async
 });
 
 test("every control does something", async ({ page, context, browserName }, testInfo) => {
-  test.skip(process.env.AUDIT !== "1", "the full audit is opt-in (~18 min): AUDIT=1");
-  test.setTimeout(30 * 60_000);
+  test.skip(process.env.AUDIT !== "1", "the full audit is opt-in (~30 min): AUDIT=1");
+  // About 30 minutes on an idle machine for ~450 controls. A run sharing the machine with Docker
+  // builds took longer than a 30-minute limit, two pages short: the limit leaves room.
+  test.setTimeout(60 * 60_000);
   const started = Date.now();
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   const rows: Row[] = [];

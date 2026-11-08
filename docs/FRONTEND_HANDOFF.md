@@ -226,7 +226,7 @@ accessible role and name**, not by CSS. Restyling is safe as long as you **don't
 real activity, then uses every visible button, link, tab, select, checkbox and radio on every page
 (15 page states, 325 controls) from a fresh load, and fails if any of them does nothing or causes
 a console error or failed request. Run it after a redesign:
-`AUDIT=1 E2E_JUDGE=1 npx playwright test e2e/controls-audit.spec.ts --project=desktop`.
+`AUDIT=1 E2E_JUDGE=1 npm run e2e -- e2e/controls-audit.spec.ts --project=desktop` (through the launcher, which owns the servers it starts).
 
 If copy changes are wanted, list them and engineering will update the tests in the same change.
 Run `npm test && npm run e2e` to check.
