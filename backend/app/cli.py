@@ -15,6 +15,10 @@ python -m app.cli check-rls [--strict]
                               # --strict also fails if this role owns tables or can create them
 python -m app.cli grant-app-role ROLE  # as the table owner, after migrating: let the ordinary app
                                        # role read and write rows (and nothing more)
+python -m app.cli backup-database --out DIR --recipients FILE
+                              # encrypted full-database backup + manifest (docs/BACKUP.md)
+python -m app.cli restore-database DUMP.age --identity FILE
+                              # into RESTORE_DATABASE_URL, a separate EMPTY database; never the live one
 python -m app.cli copy-database --from SQLITE_URL [--apply]
                               # optional: copy a development database into the freshly migrated
                               # DATABASE_URL; a dry run unless --apply (docs/STORAGE.md)
@@ -132,6 +136,61 @@ def main(argv: list[str]) -> int:
             print(f"Not granted: {exc}")
             return 1
         print(f"Granted row access (no ownership, no DDL, read-only migration ledger) to {argv[2]}.")
+        return 0
+    if command == "backup-database":
+        from app.db.backup import BackupError, backup
+
+        if "--out" not in argv or "--recipients" not in argv:
+            print("usage: python -m app.cli backup-database --out DIR --recipients FILE   (age public keys)")
+            return 2
+        try:
+            made = backup(
+                get_settings().database_url,
+                Path(argv[argv.index("--out") + 1]),
+                Path(argv[argv.index("--recipients") + 1]),
+            )
+        except BackupError as exc:
+            print(f"Backup failed: {exc}")
+            return 1
+        rows = sum(made.manifest_data["tables"].values())
+        print(
+            f"Backup written: {made.dump.name} ({made.dump.stat().st_size} bytes, encrypted) and {made.manifest.name}"
+        )
+        print(
+            f"{len(made.manifest_data['tables'])} tables, {rows} rows, schema {made.manifest_data['schema_revision']}"
+        )
+        print(f"Took {made.seconds:.2f} s. Not proof of recovery: rehearse a restore (docs/BACKUP.md).")
+        return 0
+    if command == "restore-database":
+        import os
+
+        from app.db.backup import BackupError, restore
+
+        restore_target = os.environ.get("RESTORE_DATABASE_URL")
+        if len(argv) < 3 or "--identity" not in argv or not restore_target:
+            print(
+                "usage: RESTORE_DATABASE_URL=... python -m app.cli restore-database DUMP.age --identity FILE"
+            )
+            print("(RESTORE_DATABASE_URL: a separate, empty database, connected as the table owner)")
+            return 2
+        try:
+            restored = restore(
+                Path(argv[2]),
+                Path(argv[argv.index("--identity") + 1]),
+                restore_target,
+                live_url=os.environ.get("DATABASE_URL"),
+            )
+        except BackupError as exc:
+            print(f"Not restored: {exc}")
+            return 1
+        print(
+            f"Restored {restored.tables} tables, {restored.rows} rows; counts and row-level security policies match."
+        )
+        print("Timings: " + ", ".join(f"{k} {v:.2f} s" for k, v in restored.timings.items()))
+        print(f"Schema: {restored.schema}.")
+        for note in restored.notes:
+            print(f"Next: {note}")
+        print("Next: start the app against it and check sign-in (docs/BACKUP.md).")
         return 0
     if command == "copy-database":
         import os

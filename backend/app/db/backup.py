@@ -1,0 +1,394 @@
+"""Operational database backups: the whole PostgreSQL database, encrypted, with a manifest, and
+a restore that only ever writes into a separate, empty database.
+
+This is NOT the per-account export (Settings → "Download your data", docs/BACKUP_FORMAT.md). That
+gives one person their own records. This is what you need when the server or its disk is lost:
+every account, the schema at its migration revision, sequences, row-level security policies and
+grants. docs/BACKUP.md is the runbook.
+
+A backup is two files with one name:
+- `NAME.dump.age`: `pg_dump --format=custom` output, encrypted with age to one or more
+  recipients (public keys). The machine making backups holds only public keys, so it can't
+  decrypt them. The private key (identity) lives somewhere else (docs/BACKUP.md).
+- `NAME.manifest.json`: plain JSON with no user data: when it was made, the migration revision,
+  the PostgreSQL version, row counts per table, the roles that own or were granted the tables,
+  and SHA-256 hashes of both the encrypted file and the plaintext dump.
+
+`restore()` refuses before writing anything when:
+- the encrypted file doesn't match its manifest (damaged or incomplete);
+- the identity file is missing;
+- decryption fails (wrong key, or tampering: age is authenticated);
+- the decrypted dump doesn't match the manifest;
+- the backup's schema is newer than this code;
+- the target is the live database, or isn't empty;
+- a role the backup needs doesn't exist on the target server.
+
+After restoring, it checks every table's row count against the manifest and confirms the RLS
+policies came back.
+
+Runs `pg_dump`, `pg_restore` and `age` as subprocesses; database URLs reach them through
+environment variables, never the command line, so passwords don't appear in process lists.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import tempfile
+import time
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+
+from sqlalchemy import create_engine, inspect, make_url, text
+from sqlalchemy.engine import Connection, Engine
+
+CHUNK = 1 << 20
+
+
+class BackupError(RuntimeError):
+    """A backup or restore refused or failed; the message says why, never with a secret in it."""
+
+
+def _libpq_env(url: str) -> dict[str, str]:
+    """The connection as libpq environment variables (PGHOST, PGPASSWORD, ...), for pg_dump and
+    pg_restore, so no password is ever an argument."""
+    u = make_url(url)
+    env = {
+        **os.environ,
+        "PGHOST": u.host or "localhost",
+        "PGPORT": str(u.port or 5432),
+        "PGDATABASE": u.database or "",
+    }
+    if u.username:
+        env["PGUSER"] = u.username
+    if u.password:
+        env["PGPASSWORD"] = u.password
+    return env
+
+
+def _need(tool: str) -> str:
+    path = shutil.which(tool)
+    if path is None:
+        raise BackupError(f"`{tool}` isn't installed on this machine (docs/BACKUP.md lists what's needed)")
+    return path
+
+
+def _sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        while chunk := f.read(CHUNK):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _inventory(engine: Engine) -> dict[str, Any]:
+    with engine.connect() as conn:
+        return _inventory_on(conn)
+
+
+def _inventory_on(conn: Connection) -> dict[str, Any]:
+    """What a restore must bring back: tables and their row counts, owners, grantees, policies,
+    the migration revision."""
+    tables = [
+        r[0]
+        for r in conn.execute(
+            text("SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename")
+        )
+    ]
+    counts = {t: conn.execute(text(f'SELECT count(*) FROM "{t}"')).scalar_one() for t in tables}
+    owners = sorted(
+        {
+            r[0]
+            for r in conn.execute(
+                text("SELECT DISTINCT tableowner FROM pg_tables WHERE schemaname = 'public'")
+            )
+        }
+    )
+    grantees = sorted(
+        {
+            r[0]
+            for r in conn.execute(
+                text(
+                    "SELECT DISTINCT grantee FROM information_schema.role_table_grants "
+                    "WHERE table_schema = 'public' AND grantee <> 'PUBLIC'"
+                )
+            )
+        }
+        - set(owners)
+    )
+    policies = conn.execute(text("SELECT count(*) FROM pg_policies WHERE schemaname = 'public'")).scalar_one()
+    revision = (
+        sorted(r[0] for r in conn.execute(text("SELECT version_num FROM alembic_version")))
+        if "alembic_version" in tables
+        else []
+    )
+    server = conn.execute(text("SHOW server_version")).scalar_one()
+    return {
+        "tables": counts,
+        "table_owners": owners,
+        "granted_roles": grantees,
+        "policies": policies,
+        "schema_revision": revision,
+        "server_version": server,
+    }
+
+
+class _Hash:
+    """SHA-256 of the plaintext dump as it streams past, and its size."""
+
+    def __init__(self) -> None:
+        self._h = hashlib.sha256()
+        self.plain_bytes = 0
+
+    def update(self, chunk: bytes) -> None:
+        self._h.update(chunk)
+        self.plain_bytes += len(chunk)
+
+    def hexdigest(self) -> str:
+        return self._h.hexdigest()
+
+
+def _dump_to(
+    pg_dump: str, age: str, database_url: str, recipients: Path, dump_file: Path, snapshot: str, plain: _Hash
+) -> None:
+    with dump_file.open("xb") as out:
+        encrypt = subprocess.Popen(
+            [age, "--encrypt", "-R", str(recipients)], stdin=subprocess.PIPE, stdout=out
+        )
+        # --enable-row-security: the tables FORCE row-level security, so a plain pg_dump as their
+        # owner is refused. With no RLS scope set the owner sees every row (db/rls.py).
+        dump = subprocess.Popen(
+            [pg_dump, "--format=custom", "--enable-row-security", "--no-password", f"--snapshot={snapshot}"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=_libpq_env(database_url),
+        )
+        assert dump.stdout and encrypt.stdin
+        while chunk := dump.stdout.read(CHUNK):
+            plain.update(chunk)
+            encrypt.stdin.write(chunk)
+        encrypt.stdin.close()
+        dump_err = dump.stderr.read().decode(errors="replace") if dump.stderr else ""
+        dump_rc, encrypt_rc = dump.wait(), encrypt.wait()
+    if dump_rc != 0 or encrypt_rc != 0:
+        dump_file.unlink(missing_ok=True)
+        detail = dump_err.strip().splitlines()[-1] if dump_err.strip() else f"age exited {encrypt_rc}"
+        raise BackupError(f"backup failed, nothing kept: {detail}")
+
+
+@dataclass
+class Backup:
+    dump: Path
+    manifest: Path
+    seconds: float
+    manifest_data: dict[str, Any] = field(default_factory=dict)
+
+
+def manifest_path(dump: Path) -> Path:
+    return dump.with_name(dump.name.removesuffix(".dump.age") + ".manifest.json")
+
+
+def backup(database_url: str, out_dir: Path, recipients_file: Path, name: str | None = None) -> Backup:
+    """Dump, encrypt to the recipients' public keys, and write the manifest. The plaintext dump
+    never touches the disk: pg_dump's output is hashed and fed to age as it streams."""
+    pg_dump, age = _need("pg_dump"), _need("age")
+    if not recipients_file.is_file():
+        raise BackupError("the recipients file (age public keys) doesn't exist")
+    started = time.monotonic()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    dump_file = out_dir / f"{name or 'codecoach-' + stamp}.dump.age"
+    if dump_file.exists():
+        raise BackupError(f"{dump_file.name} already exists: backups are never overwritten")
+    plain = _Hash()
+    # One snapshot for the manifest's counts and for pg_dump: the counts describe exactly what's
+    # in the dump, even while people keep writing.
+    engine = create_engine(database_url, isolation_level="REPEATABLE READ")
+    snapshot_conn = engine.connect()
+    try:
+        snapshot = snapshot_conn.execute(text("SELECT pg_export_snapshot()")).scalar_one()
+        inventory = _inventory_on(snapshot_conn)
+        _dump_to(pg_dump, age, database_url, recipients_file, dump_file, snapshot, plain)
+    finally:
+        snapshot_conn.close()
+        engine.dispose()
+    data = {
+        "format": "codecoach-backup/1",
+        "created_at": datetime.now(UTC).isoformat(),
+        "dump_file": dump_file.name,
+        "encrypted_sha256": _sha256(dump_file),
+        "plaintext_sha256": plain.hexdigest(),
+        "plaintext_bytes": plain.plain_bytes,
+        "pg_dump_version": subprocess.run(
+            [pg_dump, "--version"], capture_output=True, text=True
+        ).stdout.strip(),
+        **inventory,
+    }
+    manifest = manifest_path(dump_file)
+    manifest.write_text(json.dumps(data, indent=2) + "\n")
+    return Backup(dump_file, manifest, time.monotonic() - started, data)
+
+
+@dataclass
+class Restored:
+    timings: dict[str, float]
+    tables: int
+    rows: int
+    schema: str  # current | behind (migrate next) | ...
+    notes: list[str]
+
+
+def _check_target(target_url: str, live_url: str | None) -> Engine:
+    if live_url:
+        t, live = make_url(target_url), make_url(live_url)
+        if (t.host, t.port or 5432, t.database) == (live.host, live.port or 5432, live.database):
+            raise BackupError(
+                "the target is the live database (DATABASE_URL): restore into a separate, empty one"
+            )
+    engine = create_engine(target_url)
+    try:
+        if inspect(engine).get_table_names():
+            raise BackupError(
+                "the target database isn't empty: restore only into a new, empty database "
+                "(nothing is ever restored over existing data)"
+            )
+    except BackupError:
+        engine.dispose()
+        raise
+    return engine
+
+
+def restore(
+    dump_file: Path,
+    identity_file: Path,
+    target_url: str,
+    live_url: str | None = None,
+    known_revisions: frozenset[str] | None = None,
+) -> Restored:
+    """Restore into `target_url`, a separate, empty database. Every check that can fail without
+    writing runs first."""
+    from app.db import rls
+
+    pg_restore, age = _need("pg_restore"), _need("age")
+    timings: dict[str, float] = {}
+    notes: list[str] = []
+    t0 = time.monotonic()
+
+    manifest_file = manifest_path(dump_file)
+    if not dump_file.is_file() or not manifest_file.is_file():
+        raise BackupError("the backup is incomplete: the encrypted dump or its manifest is missing")
+    manifest = json.loads(manifest_file.read_text())
+    if manifest.get("format") != "codecoach-backup/1":
+        raise BackupError("not a CodeCoach backup manifest")
+    if _sha256(dump_file) != manifest["encrypted_sha256"]:
+        raise BackupError("the encrypted dump doesn't match its manifest: it's damaged or incomplete")
+    if not identity_file.is_file():
+        raise BackupError(
+            "the identity file (the age private key) is missing: without it nothing can be restored"
+        )
+
+    if known_revisions is None:
+        from app.api.routes.health import _revisions
+
+        found = _revisions()
+        known_revisions = found[1] if found else frozenset()
+    revision = set(manifest.get("schema_revision") or [])
+    if revision and not revision <= known_revisions:
+        raise BackupError(
+            "the backup's schema revision is newer than this code: restore it with the version of "
+            "CodeCoach that made it, then upgrade"
+        )
+
+    engine = _check_target(target_url, live_url)
+    try:
+        with engine.connect() as conn:
+            present = {r[0] for r in conn.execute(text("SELECT rolname FROM pg_roles"))}
+        missing_roles = [r for r in manifest["table_owners"] + manifest["granted_roles"] if r not in present]
+        if missing_roles:
+            raise BackupError(
+                "roles the backup needs don't exist on this server: "
+                + ", ".join(missing_roles)
+                + " (create them first: deploy/postgres-init/10-roles.sh, or CREATE ROLE ... NOSUPERUSER NOBYPASSRLS)"
+            )
+        timings["checks"] = time.monotonic() - t0
+
+        with tempfile.TemporaryDirectory(prefix="codecoach-restore-") as tmp:
+            os.chmod(tmp, 0o700)
+            plain = Path(tmp) / "dump"
+            t1 = time.monotonic()
+            with plain.open("xb") as out:
+                done = subprocess.run(
+                    [age, "--decrypt", "-i", str(identity_file)],
+                    stdin=dump_file.open("rb"),
+                    stdout=out,
+                    stderr=subprocess.PIPE,
+                )
+            if done.returncode != 0:
+                raise BackupError("decryption failed: wrong identity file, or the backup was altered")
+            if _sha256(plain) != manifest["plaintext_sha256"]:
+                raise BackupError("the decrypted dump doesn't match its manifest")
+            timings["decrypt"] = time.monotonic() - t1
+
+            t2 = time.monotonic()
+            restored = subprocess.run(
+                [
+                    pg_restore,
+                    "--exit-on-error",
+                    "--single-transaction",
+                    "--no-password",
+                    "--dbname",
+                    make_url(target_url).database or "",
+                    str(plain),
+                ],
+                env=_libpq_env(target_url),
+                capture_output=True,
+                text=True,
+            )
+            if restored.returncode != 0:
+                last = (
+                    restored.stderr.strip().splitlines()[-1]
+                    if restored.stderr.strip()
+                    else "pg_restore failed"
+                )
+                raise BackupError(f"restore failed and was rolled back (one transaction): {last}")
+            timings["restore"] = time.monotonic() - t2
+
+        t3 = time.monotonic()
+        database = make_url(target_url).database
+        with engine.begin() as conn:
+            for role in manifest["granted_roles"]:  # database-level CONNECT isn't part of a dump
+                conn.execute(text(f'GRANT CONNECT ON DATABASE "{database}" TO "{role}"'))
+        after = _inventory(engine)
+        short = {t: n for t, n in manifest["tables"].items() if after["tables"].get(t, -1) != n}
+        if short:
+            raise BackupError(f"row counts differ after the restore: {sorted(short)}")
+        if after["policies"] != manifest["policies"]:
+            raise BackupError("row-level security policies didn't all come back")
+        status = rls.rls_status(engine)
+        if status.get("missing"):
+            raise BackupError(f"row-level security is missing on: {status['missing']}")
+        timings["verify"] = time.monotonic() - t3
+    finally:
+        engine.dispose()
+
+    from sqlalchemy.orm import Session
+
+    from app.api.routes.health import schema_state
+
+    check = create_engine(target_url)
+    try:
+        with Session(bind=check) as db:
+            schema = schema_state(db)
+    finally:
+        check.dispose()
+    if schema == "behind":
+        notes.append(
+            "the backup's schema is older than this code: run `alembic upgrade head` on the restored copy"
+        )
+    timings["total"] = time.monotonic() - t0
+    return Restored(timings, len(after["tables"]), sum(after["tables"].values()), schema, notes)
