@@ -92,6 +92,9 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
                     http_span.outcome = "rejected"
         response.headers["X-Request-ID"] = request_id
         response.headers["X-Trace-ID"] = trace.trace_id
+        label = getattr(getattr(request.app.state, "settings", None), "instance_label", None)
+        if label:
+            response.headers["X-CodeCoach-Instance"] = label
         _log_request(request, request_id, trace.trace_id, response.status_code, start, metrics, template)
         return response
 

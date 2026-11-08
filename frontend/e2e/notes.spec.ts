@@ -1,4 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
+import { API_URL } from "./ports";
 import { navTo, chooseJob, expect, test, type Page } from "./fixtures";
 
 async function signUpNurse(page: Page, tag: string) {
@@ -57,7 +58,7 @@ test("capture in context, autosave, search, edit in two tabs, leave mid-save, un
   await page.getByLabel("Note", { exact: true }).fill("Edited in tab B, then left quickly");
   await navTo(page, "Notes");
   await expect(page.getByRole("heading", { name: "Your notes" })).toBeVisible();
-  await expect.poll(async () => (await page.request.get("http://localhost:8000/health")).ok()).toBe(true);
+  await expect.poll(async () => (await page.request.get(`${API_URL}/health`)).ok()).toBe(true);
   await page.goto(noteUrl);
   await expect(page.getByLabel("Note", { exact: true })).toHaveValue("Edited in tab B, then left quickly");
 

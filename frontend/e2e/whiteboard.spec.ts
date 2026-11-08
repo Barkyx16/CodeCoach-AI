@@ -1,4 +1,5 @@
 import { writeFileSync } from "node:fs";
+import { API_URL } from "./ports";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -157,7 +158,7 @@ test("the whiteboard works in the dark theme, and someone else's attempt stays p
   await expect(page.getByRole("region", { name: /Feedback on the attempt/ })).toBeVisible();
   await axe(page, "whiteboard with feedback, dark");
   // Straight to the API: signed out gets 401, and another account gets 404 (not even "forbidden").
-  const API = "http://localhost:8000";
+  const API = API_URL;
   expect((await request.get(`${API}/api/v1/me/whiteboard/attempts/${id}`)).status()).toBe(401);
   const other = await request.post(`${API}/api/v1/auth/register`, { data: { email: `wb-other-${Date.now()}@example.com`, password: "CorrectHorse42" } });
   const { access_token } = (await other.json()) as { access_token: string };

@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync } from "node:fs";
+import { API_URL, PREVIEW_URL } from "./ports";
 import { resolve } from "node:path";
 
 import AxeBuilder from "@axe-core/playwright";
@@ -49,7 +50,7 @@ async function saveForOffline(page: Page) {
 // Playwright's offline emulation doesn't reliably stop requests that a service worker passes
 // through to the network, so the API is also refused at the routing layer while "offline"
 // (a real offline device can't reach the server at all).
-const API = "http://localhost:8000/**";
+const API = `${API_URL}/**`;
 async function goOffline(context: BrowserContext, page: Page) {
   await context.route(API, (route) => route.abort("internetdisconnected"));
   await context.setOffline(true);
@@ -85,7 +86,7 @@ test("saved content and drafts work offline, uncached pages say so, and nothing 
   const cacheMap = await cachedUrls(page);
   const all = Object.values(cacheMap).flat();
   expect(all.length).toBeGreaterThan(10);
-  expect(all.filter((u) => u.includes("/api/") || u.startsWith("http://localhost:8000")), "no API response is cached").toEqual([]);
+  expect(all.filter((u) => u.includes("/api/") || u.startsWith(API_URL)), "no API response is cached").toEqual([]);
   const saved = await page.evaluate(async () => {
     const cache = await caches.open("codecoach-offline-v1");
     const out: string[] = [];
@@ -166,7 +167,7 @@ test("a note edited offline syncs on reconnect, and an edit made elsewhere becom
   await goOffline(context, page);
   await page.getByLabel("Note", { exact: true }).fill("Call early. Use SBAR. Document it.");
   await expect(page.locator(".note-status")).toContainText("Sync pending");
-  const otherDevice = await browser.newContext({ baseURL: "http://localhost:4173" });
+  const otherDevice = await browser.newContext({ baseURL: PREVIEW_URL });
   const other = await otherDevice.newPage();
   await other.goto("/login");
   await other.getByLabel("Email").fill(email);

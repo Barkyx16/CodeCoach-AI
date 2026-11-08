@@ -1,4 +1,5 @@
 import { navTo, chooseJob, expect, test, type BrowserContext, type Page, type Route } from "./fixtures";
+import { API_URL } from "./ports";
 
 // A refresh the server processed but whose answer the browser never got must not sign the user
 // out, and a refresh that answers after a deliberate sign-out must not sign them back in.
@@ -20,7 +21,7 @@ async function signUp(page: Page, tag: string) {
 }
 
 async function refreshCookie(context: BrowserContext) {
-  const cookie = (await context.cookies("http://localhost:8000/api/v1/auth/refresh")).find((c) => c.name === "cc_refresh");
+  const cookie = (await context.cookies(`${API_URL}/api/v1/auth/refresh`)).find((c) => c.name === "cc_refresh");
   expect(cookie, "the browser holds a refresh cookie").toBeDefined();
   return cookie!;
 }

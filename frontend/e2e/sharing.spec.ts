@@ -1,4 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
+import { API_URL } from "./ports";
 import { chooseJob, expect, test, type Page } from "./fixtures";
 
 // Sharing an answer with a reviewer, end to end against the real backend. The "reviewer" is a
@@ -113,7 +114,7 @@ test("share a chosen part of an answer, review it in another browser, then revok
   await reviewer.reload();
   await expect(reviewer.getByRole("heading", { level: 1, name: "This link was turned off" })).toBeVisible();
   await expect(reviewer.getByText("The SBAR part")).toHaveCount(0);
-  const api = await reviewer.request.post("http://localhost:8000/api/v1/shared/open", { data: { token } });
+  const api = await reviewer.request.post(`${API_URL}/api/v1/shared/open`, { data: { token } });
   expect(api.status()).toBe(410);
   expect(await api.text()).not.toContain("rapid response");
   expect(api.headers()["cache-control"] ?? "").not.toContain("max-age");

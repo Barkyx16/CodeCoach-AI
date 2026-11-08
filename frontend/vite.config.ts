@@ -100,10 +100,25 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    environment: "jsdom",
-    include: ["src/**/*.test.{ts,tsx}"],
-    setupFiles: ["./src/test/setup.ts"],
     css: false,
     restoreMocks: true,
+    projects: [
+      {
+        // The app: a browser-like DOM, and MSW standing in for the API.
+        extends: true,
+        test: {
+          name: "app",
+          environment: "jsdom",
+          include: ["src/**/*.test.{ts,tsx}"],
+          exclude: ["src/**/*.node.test.ts"],
+          setupFiles: ["./src/test/setup.ts"],
+        },
+      },
+      {
+        // Build and test tooling (real processes, real sockets): plain Node, no MSW.
+        extends: true,
+        test: { name: "tooling", environment: "node", include: ["src/**/*.node.test.ts"] },
+      },
+    ],
   },
 });

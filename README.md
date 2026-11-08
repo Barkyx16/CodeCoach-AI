@@ -140,11 +140,26 @@ pip-audit -r requirements.txt             # known-vulnerability scan
 cd frontend
 npm run lint && npm run typecheck         # ESLint + strict TypeScript
 npm run api:check                         # generated API types match docs/openapi.json
-npm test                                  # 523 unit + integration tests (Vitest, MSW)
+npm test                                  # unit + integration tests (Vitest: the app with MSW, plus tooling tests)
 npm run build                             # production bundle
 PYTHON=../backend/.venv/bin/python npm run e2e   # Playwright: real browser + real backend
-AUDIT=1 E2E_JUDGE=1 npx playwright test e2e/controls-audit.spec.ts --project=desktop   # ~15 min: uses every control on every page
+AUDIT=1 E2E_JUDGE=1 npm run e2e -- e2e/controls-audit.spec.ts --project=desktop   # ~18 min: uses every control on every page
 ```
+How the e2e servers are owned (`scripts/e2e-run.mjs`, `e2e/global-setup.ts`):
+- **Only its own server.** A run refuses an API that isn't this suite's test server. That
+  means no `X-CodeCoach-Instance: e2e` header (a developer's server, with real data), or a
+  judge setting that doesn't match `E2E_JUDGE` (e.g. an orphan from a run without the judge).
+  It says why in seconds and never stops that server: that's for whoever started it.
+- **Stops what it started**, and nothing else. Each server records its process group. On
+  success, failure, Ctrl+C, SIGTERM or `--max-minutes N`, the run stops exactly those groups,
+  never by name or port. A server whose launcher was killed outright stops itself within about
+  a second.
+- `npm run e2e:owned` lists recorded runs and their servers. `npm run e2e:stop -- <run id>`
+  stops a run whose launcher is gone. It refuses a run that's still going.
+- **Two runs at once:** `E2E_PORT_OFFSET=10 npm run e2e`. That gives other ports (API 8010,
+  runner 8110, web 5183, preview 4183) and its own database and outbox.
+- The exit status is Playwright's: 124 for the time limit, 130 for Ctrl+C. An interrupted or
+  timed-out run is reported as incomplete, never as passed.
 ```bash
 cd runner
 pytest -m "not sandbox"                   # runner unit tests

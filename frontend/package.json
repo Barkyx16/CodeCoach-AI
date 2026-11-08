@@ -13,7 +13,9 @@
     "test:watch": "vitest",
     "api:types": "openapi-typescript ../docs/openapi.json -o src/api/schema.d.ts",
     "api:check": "openapi-typescript ../docs/openapi.json -o /tmp/codecoach-schema.d.ts && diff -q /tmp/codecoach-schema.d.ts src/api/schema.d.ts",
-    "e2e": "playwright test",
+    "e2e": "node scripts/e2e-run.mjs",
+    "e2e:owned": "node scripts/e2e-run.mjs --list",
+    "e2e:stop": "node scripts/e2e-run.mjs --stop",
     "size:check": "node scripts/check-bundle-size.mjs"
   },
   "dependencies": {

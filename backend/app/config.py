@@ -164,6 +164,10 @@ class Settings(BaseSettings):
     # "smtp" sends them. Production must use smtp: the others would expose reset links.
     email_backend: Literal["console", "file", "smtp"] = "console"
     email_file_dir: str = "./outbox"
+    # A test server's label, sent as X-CodeCoach-Instance, so a test suite can tell its own server
+    # from a developer's or an orphan on the same port before using it. Not secret. Refused in
+    # production.
+    instance_label: str | None = None
     email_from: str = "CodeCoach AI <no-reply@localhost>"
     smtp_host: str | None = None
     smtp_port: int = 587
@@ -273,6 +277,8 @@ class Settings(BaseSettings):
             if len(old.get_secret_value()) < 32:
                 raise ValueError("Each SECRET_KEY_PREVIOUS key must be at least 32 characters")
         if self.environment == "production":
+            if self.instance_label:
+                raise ValueError("INSTANCE_LABEL is for test servers only; unset it in production")
             if self.signing_key == _INSECURE_DEFAULT_SECRET:
                 raise ValueError("SECRET_KEY must be set to a unique random value in production")
             for name, key in [("SECRET_KEY", self.signing_key)] + [

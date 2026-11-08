@@ -1402,6 +1402,7 @@ All configuration is environment variables (or a `.env` file; see
 | `RESPONSE_CACHE_TTL_SECONDS` | `60` | How long the public catalogue is cached per process and by browsers. `0` turns the in-process cache off. |
 | `APP_BASE_URL` | `http://localhost:5173` | Public web-app URL used in emailed links. Must be `https` in production. |
 | `EMAIL_BACKEND` | `console` | `console` (log), `file` (write to `EMAIL_FILE_DIR`, for tests) or `smtp`. Production requires `smtp`. |
+| `INSTANCE_LABEL` | — | A test server's label, sent as the `X-CodeCoach-Instance` header so a test suite can recognise its own server (the e2e suite sets `e2e`). Not secret. Refused in production. |
 | `EMAIL_FROM`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_STARTTLS` | –, –, `587`, –, –, `true` | SMTP delivery settings. |
 | `PASSWORD_RESET_TTL_MINUTES` | `30` | Lifetime of a reset link. |
 | `EMAIL_VERIFICATION_TTL_HOURS` | `48` | Lifetime of a verification code and link. |
