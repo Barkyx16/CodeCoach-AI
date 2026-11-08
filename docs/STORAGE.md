@@ -79,6 +79,15 @@ backup (profile "backup": not started by `up`; the host's scheduler runs it, as 
   settings come from `deploy/.env.app`. So the API container never holds the owner's or the
   superuser's password; the rehearsal checks its environment for both. Both files are
   gitignored; the `*.example` files name every setting without values.
+- **Client addresses.** A proxy on the host reaches the API through Docker's gateway
+  (172.x.0.1), never 127.0.0.1. With uvicorn's default, every visitor would share the gateway's
+  address and its sign-in rate limit: 10 a minute, for the whole site. This was found while
+  preparing this layout, before any deployment. The api service sets
+  `FORWARDED_ALLOW_IPS` to the private ranges, so the proxy's `X-Forwarded-For` is believed. A
+  direct client's isn't, and the port is published on 127.0.0.1 only. Narrow it in
+  `.env.production` if you like (`FORWARDED_ALLOW_IPS=172.18.0.1`). `tests/test_client_addresses.py`
+  feeds the compose file's value to uvicorn's own middleware; the rehearsal checks it through
+  Docker (step 2c).
 - **Checks:**
   - `python -m app.cli check-rls --strict` fails unless the connected role is the least-privilege
     app role.
@@ -173,6 +182,8 @@ ok: the built app is served
 ok: app routes fall back to the app (/dashboard)
 ok: the CSP allows exactly the API origin the build calls (PUBLIC_API_URL)
 ok: framing and sniffing blocked
+== 2c. client addresses through Docker's published port
+ok: the API sees the visitor's forwarded address, not Docker's gateway: rate limits are per visitor
 == 3. save work, then restart and recreate
 ok: after an API restart
 ok: after the database container was removed and recreated

@@ -1396,7 +1396,7 @@ All configuration is environment variables (or a `.env` file; see
 | `REFRESH_RATE_LIMIT_PER_MINUTE` | `60` | Session refreshes per address per minute (the app treats a 429 here as "try later", never as signed out). |
 | `EXPORTS_PER_HOUR` / `RESTORES_PER_HOUR` | `20` / `20` | Data exports, and backup checks or restores, per user per hour. |
 | `RATE_LIMIT_BACKEND` | `database` | `database`: counters shared by every API replica (sliding window, atomic upsert). `memory`: one process only. |
-| `FORWARDED_ALLOW_IPS` | `127.0.0.1` | (uvicorn) Proxies whose `X-Forwarded-For` is trusted. Set it to your load balancer's address, or every user shares the proxy's IP for rate limiting. Untrusted headers are ignored, so they can't be spoofed. |
+| `FORWARDED_ALLOW_IPS` | `127.0.0.1` | (uvicorn) Proxies whose `X-Forwarded-For` is trusted. Set it to your load balancer's address, or every user shares the proxy's IP for rate limiting. Untrusted headers are ignored, so they can't be spoofed. The production compose file sets the private ranges, because a proxy on the host reaches the container through Docker's gateway, never 127.0.0.1 ([STORAGE.md](STORAGE.md)). |
 | `GUEST_RETENTION_DAYS` | `30` | Guest accounts with no activity for this long are deleted with their data (background jobs, daily; or `python -m app.cli housekeeping` / `prune-guests`). `0` keeps them. |
 | `BACKGROUND_JOBS_IN_API` | `true` | Email retries and housekeeping in a thread in each API process (safe with any number of replicas). Off only if `python -m app.worker` runs them. |
 | `RESPONSE_CACHE_TTL_SECONDS` | `60` | How long the public catalogue is cached per process and by browsers. `0` turns the in-process cache off. |

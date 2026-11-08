@@ -17,6 +17,7 @@ its checks: it looks at this environment. docs/LAUNCH.md is the runbook around i
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, timedelta
@@ -70,6 +71,7 @@ def _settings_checks(s: Settings) -> list[Check]:
             else "present (names only): " + ", ".join(n for n, _ in secrets),
         )
     )
+    out.append(_client_address_check(os.environ.get("FORWARDED_ALLOW_IPS")))
     https = s.app_base_url.startswith("https://")
     out.append(
         Check(
@@ -81,6 +83,32 @@ def _settings_checks(s: Settings) -> list[Check]:
         )
     )
     return out
+
+
+def _client_address_check(trusted: str | None) -> Check:
+    """Rate limits are per client address. uvicorn believes X-Forwarded-For only from
+    FORWARDED_ALLOW_IPS (default 127.0.0.1). The value isn't printed: only whether it's set."""
+    if not trusted:
+        return Check(
+            "client addresses",
+            UNVERIFIED,
+            "FORWARDED_ALLOW_IPS isn't set, so only a proxy on 127.0.0.1 is believed. Behind any other proxy "
+            "(Docker's published ports included) every visitor shares the proxy's address and its sign-in "
+            "rate limit. Set it to the proxy's address; the production compose file does (docs/STORAGE.md)",
+        )
+    if "*" in [part.strip() for part in trusted.split(",")]:
+        return Check(
+            "client addresses",
+            UNVERIFIED,
+            "FORWARDED_ALLOW_IPS=*: any client's X-Forwarded-For is believed. Safe only if nothing but the "
+            "proxy can reach the API's port; otherwise a client can pick its own rate-limit address",
+        )
+    return Check(
+        "client addresses",
+        READY,
+        "FORWARDED_ALLOW_IPS is set (not shown), so client addresses come from the trusted proxy's "
+        "X-Forwarded-For",
+    )
 
 
 def _mail_checks(s: Settings, connect: bool) -> list[Check]:

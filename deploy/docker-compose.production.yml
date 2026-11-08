@@ -68,6 +68,13 @@ services:
       AUTO_MIGRATE: "false"
       # The app role: row access only. The owner's password is not in this container.
       DATABASE_URL: postgresql+psycopg://codecoach_app:${CODECOACH_APP_PASSWORD}@db:5432/codecoach
+      # Whose X-Forwarded-For to believe. A proxy on the host reaches this container through
+      # Docker's gateway (e.g. 172.18.0.1), never 127.0.0.1, so uvicorn's default would make every
+      # visitor share the gateway's address, and its sign-in rate limit (10 a minute, for everyone).
+      # Private ranges cover the gateway on any Docker network. That's safe here because the port
+      # below is published on 127.0.0.1 only: nothing outside this host can reach the API directly.
+      # Narrow it in .env.production if you like (e.g. FORWARDED_ALLOW_IPS=172.18.0.1).
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
     ports: ["127.0.0.1:8000:8000"]   # for the reverse proxy on this host
     healthcheck:
       # Ready = the database answers and its schema isn't behind this code (/health/ready).

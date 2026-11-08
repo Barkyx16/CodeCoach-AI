@@ -28,6 +28,7 @@ secret's value appears).
 | configuration | `ENVIRONMENT=production`, and every production guard passed while the settings loaded (secret strength, https, SMTP with TLS, no SQLite, no `AUTO_MIGRATE`, metrics token…) | blocked |
 | secrets | every secret the configuration needs is present (`SECRET_KEY`, SMTP, `METRICS_TOKEN`, and the AI key or runner token if those features are on) | blocked, naming the missing ones |
 | links | `APP_BASE_URL` is https | blocked |
+| client addresses | `FORWARDED_ALLOW_IPS` is set (value not shown), so rate limits see each visitor, not the proxy | unverified when unset or `*` |
 | mail transport | with `--connect-email`: connected, encrypted with a verified certificate, signed in | unverified without the flag; blocked on failure (error class only) |
 | mail delivery | never "ready" from here: a server accepting mail isn't an inbox | unverified: send one test, check inbox and spam, and the provider's SPF/DKIM/DMARC status |
 | database | PostgreSQL answers | blocked: SQLite or unreachable |

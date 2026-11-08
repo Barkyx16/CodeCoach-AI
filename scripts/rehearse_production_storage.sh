@@ -13,7 +13,8 @@
 #   1. db + migrate + api start: the migrate job (owner role) runs alembic, seed and grant-app-role;
 #      the API (app role) becomes ready.
 #   2. The API container holds the app role's password only, never the owner's or the superuser's,
-#      and `check-rls --strict` passes inside it.
+#      and `check-rls --strict` passes inside it. 2c: through Docker's published port, the API
+#      sees the visitor's forwarded address, not Docker's gateway.
 #   3. Saved work survives: an API restart, the database container being removed and recreated,
 #      and `docker compose down` followed by `up`.
 #   4. Readiness: 503 while the database is stopped, 200 again once it's back.
@@ -121,6 +122,16 @@ if [ -n "${WEB_IMAGE:-}" ]; then
   grep -qi "connect-src 'self' https://rehearsal.invalid;" <<<"$HEADERS" && echo "ok: the CSP allows exactly the API origin the build calls (PUBLIC_API_URL)"
   grep -qi "x-frame-options: DENY" <<<"$HEADERS" && grep -qi "x-content-type-options: nosniff" <<<"$HEADERS" && echo "ok: framing and sniffing blocked"
 fi
+
+step "2c. client addresses through Docker's published port"
+# A proxy on the host connects through Docker's gateway. The API must believe its X-Forwarded-For,
+# or every visitor shares the gateway's address and its sign-in rate limit.
+curl -s -o /dev/null -H 'X-Forwarded-For: 203.0.113.7' "http://127.0.0.1:$PORT/health"
+sleep 1
+if ! dc logs api 2>/dev/null | grep -q '203\.0\.113\.7'; then
+  echo "FAIL: the API didn't see the forwarded address; it sees:"; dc logs api 2>/dev/null | grep 'GET /health ' | tail -1; exit 1
+fi
+echo "ok: the API sees the visitor's forwarded address, not Docker's gateway: rate limits are per visitor"
 
 step "3. save work, then restart and recreate"
 TOKEN=$(curl -s -X POST "http://127.0.0.1:$PORT/api/v1/auth/register" -H 'Content-Type: application/json' \
