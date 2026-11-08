@@ -144,6 +144,10 @@ jobs:
         env:
           CI: "true"
           PYTHON: python
+      - name: The production web image's Content-Security-Policy, from the browser (bad URLs fail the build; real flows pass; foreign fetches and scripts are refused)
+        run: scripts/rehearse_web_csp.sh
+        env:
+          PYTHON: python
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
