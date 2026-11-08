@@ -30,7 +30,7 @@ built yet**. Nothing in the "designed" sections should be described as working.
 | Health endpoints | Reveal no versions or infrastructure details | `routes/health.py` | ✅ |
 | Container | Non-root user, slim base image, no secrets baked in | `backend/Dockerfile` | ✅ (built and run) |
 | Dependencies | Pinned versions, `pip-audit` and `npm audit --omit=dev` in CI, Dependabot for pip, npm and Actions | CI | ✅ |
-| Frontend headers | CSP (`script-src 'self'`, no third-party origins, `frame-ancestors 'none'`), `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options` on every response | `frontend/nginx.conf`, `security-headers.conf` | ✅ (verified in a browser, no CSP violations) |
+| Frontend headers | CSP (`script-src 'self'`, no third-party origins, `frame-ancestors 'none'`; `connect-src` is `'self'` plus the API origin the image was built for, written in at build time from `VITE_API_BASE_URL`), `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options` on every response | `frontend/nginx.conf`, `security-headers.conf`, `frontend/Dockerfile` | ✅ (verified in a browser, no CSP violations; the production compose rehearsal checks the header) |
 | XSS surface | React escapes output; Markdown is rendered without raw HTML; no `dangerouslySetInnerHTML`; no third-party scripts (Monaco is self-hosted) | `frontend/src` | — |
 
 ## 2. AI-specific safeguards
