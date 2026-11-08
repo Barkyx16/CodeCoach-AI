@@ -1,6 +1,9 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+
+import { ApiError } from "@/api/client";
+import { api } from "@/api/endpoints";
 
 import {
   queryKeys,
@@ -61,6 +64,19 @@ function LiveInterview({ iv, problemSlug }: { iv: Interview; problemSlug: string
   // message never appears twice (the cache update and clearing this state are separate steps).
   const [pending, setPending] = useState<{ text: string; baseline: number } | null>(null);
   const pendingText = pending && iv.turns.length === pending.baseline ? pending.text : null;
+  // Which candidate turns this tab sent (by position). Any other new one came from another tab or
+  // device: the page says so, and the unsent text here stays in the box. The server refuses a
+  // message written against an older transcript (409 interview_advanced), so nothing is appended
+  // out of context.
+  const [mine, setMine] = useState<ReadonlySet<number>>(() => new Set());
+  const [seenAtOpen] = useState(iv.turns.length);
+  const fromElsewhere = iv.turns.filter((t) => t.role === "candidate" && t.seq >= seenAtOpen && !mine.has(t.seq)).length;
+  const markMine = (seq: number, sent: boolean) =>
+    setMine((m) => { const next = new Set(m); if (sent) next.add(seq); else next.delete(seq); return next; });
+  const [acknowledged, setAcknowledged] = useState(0);
+  // A resend of the same text (after a lost response) keeps its request id: the server answers it
+  // with what it already did, instead of a second reply.
+  const request = useRef<{ text: string; id: string } | null>(null);
   const seconds = useCountdown(iv.deadline_at, true);
   const ready = iv.phase === null; // interviewer wrapped up
   const busy = send.isPending || finish.isPending || abandon.isPending;
@@ -82,13 +98,35 @@ function LiveInterview({ iv, problemSlug }: { iv: Interview; problemSlug: string
   async function onSend(source: AnswerSource = "typed"): Promise<boolean> {
     const text = message.trim();
     if (!text || !canSend) return false;
-    setPending({ text, baseline: iv.turns.length });
+    const baseline = iv.turns.length;
+    if (request.current?.text !== text) request.current = { text, id: requestId() };
+    setPending({ text, baseline });
     setMessage("");
+    markMine(baseline, true);
     try {
-      await send.mutateAsync({ message: text, code: draft.code, source });
+      await send.mutateAsync({ message: text, code: draft.code, source, after_seq: baseline, client_request_id: request.current.id });
+      request.current = null;
       clearStoredDraft(messageKey);
       return true;
-    } catch {
+    } catch (err) {
+      markMine(baseline, false);
+      if (err instanceof ApiError && err.code === "network_error") {
+        // The server may have taken it before the line dropped: look, rather than send it again.
+        const fresh = await queryClient
+          .fetchQuery({ queryKey: queryKeys.interview(iv.id), queryFn: () => api.interview(iv.id), staleTime: 0 })
+          .catch(() => null);
+        const landed = fresh?.turns.find((t) => t.seq === baseline && t.role === "candidate");
+        if (landed && landed.content.trim() === text) {
+          markMine(baseline, true);
+          request.current = null;
+          clearStoredDraft(messageKey);
+          send.reset();
+          return true;
+        }
+      }
+      if (err instanceof ApiError && err.code === "interview_advanced") {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.interview(iv.id) }); // show the latest
+      }
       setMessage(text); // give the text back (and save it again) so nothing is lost
       return false;
     } finally {
@@ -112,8 +150,11 @@ function LiveInterview({ iv, problemSlug }: { iv: Interview; problemSlug: string
             {formatClock(seconds)}
           </span>
           <FocusToggle />
+          <Link to="/interviews" className="btn btn--ghost btn--sm">Leave for now</Link>
           <Button size="sm" variant="ghost" loading={abandon.isPending} disabled={busy}
-            onClick={() => { if (window.confirm("End the interview now? You'll still get feedback.")) abandon.mutate(); }}>
+            onClick={() => {
+              if (window.confirm("End the interview for good? You'll get feedback on what you've covered so far. To come back to it later instead, choose Leave for now: the timer keeps running.")) abandon.mutate();
+            }}>
             End early
           </Button>
           <Button size="sm" variant={ready ? "primary" : "secondary"} loading={finish.isPending} disabled={busy}
@@ -126,6 +167,13 @@ function LiveInterview({ iv, problemSlug }: { iv: Interview; problemSlug: string
       <div className="interview__body">
         <section className="interview__chat" aria-label="Conversation">
           {iv.phase_guide && <p className="interview__guide subtle">Now: {iv.phase_guide}</p>}
+          <p className="subtle interview__leave-note">The timer keeps running on the server if you leave. Resume from any tab or device.</p>
+          {fromElsewhere > acknowledged && (
+            <div className="banner row" role="status">
+              <span>Updated from another tab or device: the latest is above. Your unsent text here is still in the box.</span>
+              <Button size="sm" variant="ghost" onClick={() => setAcknowledged(fromElsewhere)}>OK</Button>
+            </div>
+          )}
           <Transcript turns={iv.turns} pending={pendingText} />
           {prefs.captions && voice.speaking && voice.caption && (
             <p className="voice-caption"><span className="voice-caption__who">Interviewer:</span> {voice.caption}</p>
@@ -159,4 +207,10 @@ function LiveInterview({ iv, problemSlug }: { iv: Interview; problemSlug: string
       </div>
     </div>
   );
+}
+
+function requestId(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `msg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }

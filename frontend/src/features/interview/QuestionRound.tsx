@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ApiError } from "@/api/client";
 import { queryKeys, useAbandonInterview, useAnswerRoundQuestion, useCapabilities, useSkipRoundQuestion } from "@/api/queries";
@@ -10,7 +10,8 @@ import { Card } from "@/components/Card";
 import { Icon } from "@/components/Icon";
 import { InlineError } from "@/components/States";
 import { useOnline } from "@/hooks/useOnline";
-import { clearStoredDraft, useStoredDraft } from "@/hooks/useStoredDraft";
+import { clearStoredDraft, readStoredDraft, useStoredDraft } from "@/hooks/useStoredDraft";
+import { Link } from "react-router-dom";
 import { titleCase } from "@/lib/format";
 import { KIND_LABEL } from "@/features/careers/kinds";
 import { FocusToggle } from "@/features/display/FocusToggle";
@@ -59,12 +60,29 @@ export function LiveRound({ iv }: { iv: Interview }) {
   useEffect(() => {
     if (seconds === 0) void queryClient.invalidateQueries({ queryKey: queryKeys.interview(iv.id) });
   }, [seconds, iv.id, queryClient]);
-  // Someone answered in another tab, or a retry raced: refresh to the server's state.
+  // Someone answered in another tab or on another device, or a retry raced: refresh to the
+  // server's state. The text this tab didn't get to send is kept (below), never cleared.
   useEffect(() => {
-    if (error instanceof ApiError && error.code === "question_not_current") {
+    if (error instanceof ApiError && (error.code === "question_not_current" || error.code === "question_answered_elsewhere")) {
       void queryClient.invalidateQueries({ queryKey: queryKeys.interview(iv.id) });
     }
   }, [error, iv.id, queryClient]);
+  // The round moved past a question this tab still has unsent text for (answered or skipped
+  // elsewhere): show that text, with a way to copy it, until the learner dismisses it.
+  const [kept, setKept] = useState<{ index: number; text: string } | null>(null);
+  const sendingIndex = useRef<number | null>(null);
+  const shownIndex = useRef(index);
+  useEffect(() => {
+    const previous = shownIndex.current;
+    shownIndex.current = index;
+    if (previous === index || sendingIndex.current === previous) return;
+    const text = readStoredDraft(roundDraftKey(iv.id, previous)).trim();
+    if (text) setKept({ index: previous, text });
+  }, [index, iv.id]);
+  const dismissKept = () => {
+    if (kept) clearStoredDraft(roundDraftKey(iv.id, kept.index));
+    setKept(null);
+  };
   // A new question: move focus to it and, if chosen, have the interviewer read it.
   const prompt = current?.prompt;
   const { speak } = voice;
@@ -80,6 +98,7 @@ export function LiveRound({ iv }: { iv: Interview }) {
 
   async function submit(source: AnswerSource): Promise<boolean> {
     const key = roundDraftKey(iv.id, index);
+    sendingIndex.current = index;
     try {
       await tracedRoundAction("answer", iv.id, index, (traceparent) =>
         answer.mutateAsync({ question_index: index, answer: draft.trim(), source, traceparent }));
@@ -87,6 +106,8 @@ export function LiveRound({ iv }: { iv: Interview }) {
       return true;
     } catch {
       return false; // the draft is kept (stored) and the error is shown
+    } finally {
+      sendingIndex.current = null;
     }
   }
 
@@ -100,14 +121,27 @@ export function LiveRound({ iv }: { iv: Interview }) {
             <Icon name="clock" size={17} />{formatClock(seconds)}
           </span>
           <FocusToggle />
+          <Link to="/interviews/questions" className="btn btn--ghost btn--sm">Leave for now</Link>
           <Button size="sm" variant="ghost" disabled={busy}
-            onClick={() => { if (window.confirm("End the interview now? Unanswered questions stay unanswered.")) abandon.mutate(); }}>
+            onClick={() => {
+              if (window.confirm("End the interview for good? Unanswered questions stay unanswered. To come back to it later instead, choose Leave for now: the timer keeps running.")) abandon.mutate();
+            }}>
             End early
           </Button>
         </div>
       </div>
       <progress className="round-progress" max={iv.questions.length} value={index} aria-label={`Question ${index + 1} of ${iv.questions.length}`} />
-      <p className="subtle round__timer-note">The timer runs on the server and keeps going if you leave this page or your microphone stops. Your typed or spoken draft is saved in this browser.</p>
+      <p className="subtle round__timer-note">The timer runs on the server and keeps going if you leave this page or your microphone stops. Your typed or spoken draft is saved in this browser. Resume from any tab or device: the first answer the server gets for a question is the one kept.</p>
+      {kept && (
+        <section className="banner banner--warning stack-sm" role="region" aria-label={`Your unsent answer to question ${kept.index + 1}`}>
+          <p>Question {kept.index + 1} already has an answer (sent earlier, or from another tab or device), so this text wasn't sent. It's kept here until you dismiss it.</p>
+          <blockquote className="round__kept">{kept.text}</blockquote>
+          <div className="row">
+            <Button size="sm" variant="secondary" onClick={() => void navigator.clipboard?.writeText(kept.text).catch(() => undefined)}>Copy text</Button>
+            <Button size="sm" variant="ghost" onClick={dismissKept}>Dismiss</Button>
+          </div>
+        </section>
+      )}
 
       <div className="round__layout">
         {pending ? <FollowupTurn iv={iv} followup={pending} voice={voice} readAloud={prefs.readAloud} /> : current && (
@@ -134,6 +168,7 @@ export function LiveRound({ iv }: { iv: Interview }) {
           </Card>
 
           <VoiceComposer
+            key={index /* a new question (here or from another tab) remounts it: the microphone stops */}
             id="round-answer" label="Your answer" value={draft} onChange={setDraft} onSubmit={submit}
             submitting={answer.isPending} disabled={busy && !answer.isPending} maxLength={6000} onIgnored={() => reportIgnored("answer")}
             submitLabel={index + 1 === iv.questions.length ? "Finish interview" : "Next question"}

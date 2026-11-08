@@ -222,15 +222,21 @@ export function useRecommendations(limit = 5, enabled = true) {
 }
 
 export function useInterview(id: string) {
-  return useQuery({ queryKey: queryKeys.interview(id), queryFn: ({ signal }) => api.interview(id, signal) });
+  return useQuery({
+    queryKey: queryKeys.interview(id),
+    queryFn: ({ signal }) => api.interview(id, signal),
+    // A live interview may have moved on in another tab or on another device: look again on return.
+    refetchOnWindowFocus: (query) => query.state.data?.status === "in_progress",
+  });
 }
 
-export function useInterviews(params: { page?: number; page_size?: number }, enabled = true) {
+export function useInterviews(params: { page?: number; page_size?: number }, enabled = true, refetchOnWindowFocus = false) {
   return useQuery({
     queryKey: queryKeys.interviews(params),
     queryFn: () => api.interviews(params),
     enabled,
     placeholderData: keepPreviousData,
+    refetchOnWindowFocus,
   });
 }
 
@@ -254,7 +260,8 @@ function useInterviewMutation<V>(fn: (vars: V) => Promise<Interview>) {
 
 export const useStartInterview = () => useInterviewMutation((body: InterviewStart) => api.startInterview(body));
 export const useInterviewMessage = (id: string) =>
-  useInterviewMutation((body: { message: string; code?: string | null; source?: AnswerSource }) => api.interviewMessage(id, body));
+  useInterviewMutation((body: { message: string; code?: string | null; source?: AnswerSource; after_seq?: number; client_request_id?: string }) =>
+    api.interviewMessage(id, body));
 /** Round actions carry the W3C trace context of the learner's action (lib/trace.ts). */
 export const useAnswerRoundQuestion = (id: string) =>
   useInterviewMutation(({ traceparent, ...body }: { question_index: number; answer: string; source: AnswerSource; traceparent?: string }) =>

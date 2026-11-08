@@ -364,7 +364,7 @@ export const api = {
     apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}`, { signal }),
   interviews: (query: { page?: number; page_size?: number } = {}) =>
     apiRequest<Page<InterviewSummary>>("/api/v1/interviews", { query }),
-  interviewMessage: (id: string, body: { message: string; code?: string | null; source?: AnswerSource }) =>
+  interviewMessage: (id: string, body: { message: string; code?: string | null; source?: AnswerSource; after_seq?: number; client_request_id?: string }) =>
     apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/messages`, { method: "POST", body }),
   finishInterview: (id: string, code?: string | null) =>
     apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/finish`, { method: "POST", body: { code: code ?? null } }),

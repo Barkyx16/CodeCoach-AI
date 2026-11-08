@@ -12,7 +12,9 @@ import { timeAgo } from "@/lib/format";
 import { Icon } from "@/components/Icon";
 
 import { DIMENSION_LABELS, OVERALL_LABELS, PHASES } from "./phases";
-import { useActiveInterviewId } from "./useActiveInterview";
+import { ResumeCard } from "./ResumeCard";
+import { conflictInterview } from "./resumeContext";
+import { useActiveInterview } from "./useActiveInterview";
 
 const DURATIONS = [15, 30, 45];
 
@@ -22,11 +24,13 @@ export function InterviewStartPage() {
   const start = useStartInterview();
   const [slug, setSlug] = useState("");
   const [minutes, setMinutes] = useState(30);
-  const running = useActiveInterviewId();
-  const conflictId = start.error instanceof ApiError && start.error.code === "interview_in_progress"
-    ? (start.error.details as { interview_id?: string } | null)?.interview_id ?? null
+  const running = useActiveInterview();
+  // A Start refused because one is already live (another tab or device): that one, with context.
+  const conflict = start.error instanceof ApiError && start.error.code === "interview_in_progress"
+    ? conflictInterview(start.error.details)
     : null;
-  const activeId = conflictId ?? running;
+  const activeId = conflict?.id ?? running?.id ?? null;
+  const activeSummary = conflict ? conflict.summary : running;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -74,14 +78,7 @@ export function InterviewStartPage() {
                 ))}
               </div>
             </fieldset>
-            {activeId ? (
-              <div className="banner banner--warning" role={conflictId ? "alert" : "status"}>
-                You already have an interview in progress. <Link to={`/interviews/${activeId}`}>Resume it</Link>, or end it
-                there to start another.
-              </div>
-            ) : (
-              <InlineError error={start.error} />
-            )}
+            {activeId ? <ResumeCard id={activeId} summary={activeSummary} alert={Boolean(conflict)} /> : <InlineError error={start.error} />}
             <Button type="submit" variant="primary" loading={start.isPending} disabled={Boolean(activeId)}>Start interview <Icon name="arrow" size={16} /></Button>
           </form>
         </Card>
