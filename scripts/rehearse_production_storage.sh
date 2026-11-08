@@ -267,7 +267,11 @@ echo "ok: email-quarantine lists them by domain only, a dry run changes nothing,
 docker stop codecoach_rehearsal_restored_api >/dev/null 2>&1 || true
 
 # A damaged backup is refused before anything is written.
-bk --no-deps --entrypoint sh backup -c "cp '$NEWEST' /backups/codecoach-damaged.dump.age && cp '${NEWEST%.dump.age}.manifest.json' /backups/codecoach-damaged.manifest.json && printf 'x' | dd of=/backups/codecoach-damaged.dump.age bs=1 seek=100 conv=notrunc 2>/dev/null" 2>/dev/null
+# One byte is flipped (XOR), so the copy always differs. Writing a fixed character there used to
+# leave the file unchanged whenever that byte already was the character (1 in 64: the age
+# header there is base64), and CI run 239 "restored a damaged backup" that wasn't damaged.
+bk --no-deps --entrypoint sh backup -c "cp '$NEWEST' /backups/codecoach-damaged.dump.age && cp '${NEWEST%.dump.age}.manifest.json' /backups/codecoach-damaged.manifest.json && python -c \"p = '/backups/codecoach-damaged.dump.age'; b = bytearray(open(p, 'rb').read()); b[100] ^= 0xFF; open(p, 'wb').write(b)\" && ! cmp -s '$NEWEST' /backups/codecoach-damaged.dump.age" 2>/dev/null \
+  || { echo "FAIL: couldn't make a damaged copy that differs from the backup"; exit 1; }
 dc exec -T db createdb -U postgres -O codecoach_owner codecoach_restored_twice
 export RESTORE_DATABASE_URL="postgresql+psycopg://codecoach_owner:$OWNER@db:5432/codecoach_restored_twice"
 if DAMAGED=$(bk -e RESTORE_DATABASE_URL -v "$WORK/identity.txt:/run/identity.txt:ro" backup \
