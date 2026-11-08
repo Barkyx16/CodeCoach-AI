@@ -138,6 +138,18 @@ it worked, and a masked address. Before this change the link endpoint returned t
     first (axe), confirmed, still signed in as itself, its own email still pending. The first
     account's tab shows it confirmed.
 
+## Verified (locally, on `43731c8`)
+
+- Backend, the whole suite on SQLite: 2488 passed, 422 skipped (PostgreSQL-only), 2 expected
+  failures. On PostgreSQL 16, as an app role without RLS bypass: the verification, account recovery,
+  password reset and route access tests, 55 passed.
+- Frontend: lint, types, the API contract (`api:check`), 802/802 unit and integration tests, the
+  production build, and the bundle budgets (shell 211.5 KB, largest lazy chunk 674.5 KB of 700 KB,
+  gzipped).
+- Browser (Chromium, desktop, real API, file capture transport): the whole desktop suite, 88 passed
+  (3 judge tests skipped; CI's sandbox job runs them), including both new tests with axe.
+- Secret scan: no new findings.
+
 ## Limits
 
 - **Inbox receipt is unverified.** See the top of this page. "Sent to provider" is the most this code
