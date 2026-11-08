@@ -255,6 +255,18 @@ jobs:
         run: |
           docker run --rm -e RUNNER_TOKEN=x codecoach-api:ci python -c "import app.main, app.worker, app.cli"
       - run: docker build -t codecoach-web:ci frontend
+      - name: The backup image has pg_dump (at least the server's PostgreSQL 16) and age
+        run: |
+          docker build --target backup -t codecoach-backup:ci backend
+          docker run --rm codecoach-backup:ci sh -c '
+            v=$(pg_dump --version | grep -oE "[0-9]+" | head -1)
+            [ "$v" -ge 16 ] || { echo "pg_dump $v is older than the server (16)"; exit 1; }
+            pg_dump --version && age --version && python -m app.cli prune-backups --dir /backups'
+      - name: Production compose rehearsal (owner/app roles, restarts, readiness, web CSP, scheduled backup and restore)
+        run: |
+          docker build --build-arg VITE_API_BASE_URL=https://rehearsal.invalid -t codecoach-web:rehearsal frontend
+          IMAGE=codecoach-api:ci BACKUP_IMAGE=codecoach-backup:ci WEB_IMAGE=codecoach-web:rehearsal \
+            scripts/rehearse_production_storage.sh
       - run: docker build -t codecoach-runner:ci runner
       - run: docker run --rm codecoach-runner:ci python -c "import app.main"
       - run: docker build -t codecoach-java-sandbox:ci runner/sandbox-image

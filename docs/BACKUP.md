@@ -6,10 +6,11 @@ data", [BACKUP_FORMAT.md](BACKUP_FORMAT.md)). That export gives one person their
 It can't rebuild the database: no other accounts, no sign-in data, no schema, sequences or
 security policies.
 
-> Status: the tools and the procedure exist and were rehearsed on disposable databases on this
-> machine. **No backup schedule, off-site storage or production restore exists yet.** Those need
-> a host. A backup that was made, or even uploaded, isn't a recovery until a restore from it has
-> been rehearsed.
+> Status: the tools, the procedure and a scheduled backup job (the compose service `backup`)
+> exist, and were rehearsed on disposable databases on this machine. **Nothing is scheduled on a
+> real host, no backup is copied off-site, and no production restore has happened.** Those need
+> a host and a storage provider. A backup that was made, or even uploaded, isn't a recovery
+> until a restore from it has been rehearsed.
 
 ## What a backup contains
 
@@ -70,13 +71,56 @@ DATABASE_URL=postgresql+psycopg://codecoach_owner:…@host:5432/codecoach \
 - The plaintext never touches the disk: the dump is hashed and encrypted as it streams.
 - A backup never overwrites another.
 - A failed dump keeps nothing.
+- Before an upgrade or a risky change, make one by name: `--name pre-upgrade-20261108`. Pruning
+  never touches a named backup; delete it yourself when it's no longer needed.
 
-**Proposed schedule.** None is installed yet: pick it with the host.
-- Nightly, e.g. cron `17 3 * * *`.
-- Copied off the host to storage in a different account or region. A backup on the same disk
-  dies with it.
-- Kept 7 daily, 4 weekly and 3 monthly, then deleted.
-- Alert when a night's backup is missing.
+## Scheduling, retention and alerts
+
+The production compose file has a `backup` service. It isn't started by `up`; the host's
+scheduler runs it. Each run, as the table owner:
+1. makes a backup into the volume `codecoach_backups`, encrypted to the public keys in
+   `deploy/backup-recipients.txt` (the private key never comes to the server);
+2. prunes: `prune-backups --apply`;
+3. checks the newest: `check-backups`.
+
+Any step failing exits non-zero, and so does the run. The API container can't see the backups
+volume and never holds the owner's password.
+
+```bash
+# Once: the public key(s) on the server (from "Encryption and keys" above).
+cp recipients.txt deploy/backup-recipients.txt
+# Nightly, from the host's crontab (03:17 UTC; any quiet hour works):
+17 3 * * * cd /srv/codecoach && docker compose --env-file deploy/.env.production -f deploy/docker-compose.production.yml --profile backup run --rm -T backup >> /var/log/codecoach-backup.log 2>&1 || <your alert command>
+```
+
+`<your alert command>` is whatever the host offers: a mail command, a monitoring push, a chat
+webhook. None is configured: that depends on the host. A systemd timer works the same way, with
+`OnFailure=` for the alert.
+
+**Retention** (`prune-backups`; a dry run unless `--apply`):
+- the newest backup, and every backup made in the 24 hours before it (`--keep-within-hours`);
+- the newest of each of the last 7 days, 4 ISO weeks and 3 months that have a backup
+  (`--keep-daily`, `--keep-weekly`, `--keep-monthly`).
+
+It counts backups, not the calendar. If backups stop, nothing more expires while they're stopped.
+It only manages `codecoach-<UTC time>` pairs. A named backup, half a pair, or any other file is
+listed and left alone. A backup's dump is deleted before its manifest, so an interrupted prune
+never leaves something that looks complete.
+
+**Checks** (`check-backups --dir DIR [--max-age-hours 26] [--all]`, exit 1 on a problem):
+- the newest backup is under 26 hours old;
+- its manifest is readable;
+- the encrypted file's SHA-256 matches the manifest. A truncated or damaged copy fails.
+
+`--all` checks every backup's hash. Run it against an off-site copy after downloading it. It
+decrypts nothing, so passing isn't recovery: rehearse a restore monthly (below).
+
+**Off-site copies: not set up.** A backup on the server's disk survives a bad change or a dropped
+table, not a lost disk. Copy each new backup elsewhere (object storage in another account or
+region) with that provider's tool, e.g. `rclone copy` from the `codecoach_backups` volume after
+the nightly run. Give it its own lifecycle rule matching the retention above. The files are
+already encrypted, so the storage provider can't read them. This needs a provider account:
+your decision, not made here.
 
 ## Restoring
 
@@ -95,6 +139,17 @@ createdb -O codecoach_owner codecoach_restored            # as an admin
 RESTORE_DATABASE_URL=postgresql+psycopg://codecoach_owner:…@host:5432/codecoach_restored \
 DATABASE_URL=…the live database, so the tool can refuse it… \
   python -m app.cli restore-database codecoach-20261108T031700Z.dump.age --identity codecoach-backup-identity.txt
+```
+
+With the production compose layout, the backup service can do it. Bring the identity file to
+the server only for the restore, and remove it afterwards:
+
+```bash
+DC="docker compose --env-file deploy/.env.production -f deploy/docker-compose.production.yml"
+$DC exec db createdb -U postgres -O codecoach_owner codecoach_restored
+export RESTORE_DATABASE_URL=postgresql+psycopg://codecoach_owner:…@db:5432/codecoach_restored
+$DC --profile backup run --rm -T -e RESTORE_DATABASE_URL -v "$PWD/identity.txt:/run/identity.txt:ro" backup \
+  python -m app.cli restore-database /backups/codecoach-20261108T031700Z.dump.age --identity /run/identity.txt
 ```
 
 The restore:
@@ -121,7 +176,7 @@ written after the backup was taken is lost. That's the recovery point.
 
 | | Target (proposed) | Measured so far |
 |---|---|---|
-| Recovery point (data you can lose) | ≤ 24 h, with nightly backups | none: no schedule is running |
+| Recovery point (data you can lose) | ≤ 24 h, with nightly backups | none yet: the job exists, nothing schedules it on a real host |
 | Recovery time (until the app is back) | ≤ 2 h, including fetching the backup and checks | restore of 57,703 rows in 1.40 s (below); not measured at production size or over a network |
 
 Rehearsal on this machine (2026-11-08, PostgreSQL 16, `scripts/rehearse_backup.py`, 5,000
@@ -153,15 +208,40 @@ again at real size before relying on the 2-hour target.
 | Overwriting a backup; a dump that fails | refused; nothing kept |
 | The CLI prints neither password | pass |
 
+And the backup folder (`tests/test_backup_store.py`, plain files, runs everywhere):
+
+| Case | Result |
+|---|---|
+| 120 nightly backups → the newest, the last 7 nights, the newest of 4 weeks and of 3 months | pass |
+| Backups that stopped 40 days ago: the last 7 nights before they stopped are all kept | pass |
+| A second backup the same day survives; a named backup and stray files are never deleted | pass |
+| Dry run deletes nothing; `--apply` deletes exactly the plan, dump before manifest | pass |
+| Check: fresh and intact passes; 30 h old, truncated, unreadable manifest, empty folder fail | pass |
+| `--all` finds an older damaged backup that the default check skips | pass |
+
 All verified locally on PostgreSQL 16; in CI once pushed (`TEST_DATABASE_ADMIN_URL` is set
 there).
+
+The whole scheduled path ran in the production compose rehearsal
+(`scripts/rehearse_production_storage.sh`, step 5). Two runs of the `backup` service each backed
+up as the owner, pruned and checked. The API container had no backups volume. The newest backup
+restored into a separate database with a key the server never held, with the rehearsal's saved
+note in it, and no password appeared in any output. In this sandbox the image's `pg_dump` and
+`age` came from the host (`pg_dump` 16), because the package mirror isn't reachable from here.
+CI builds the real `backup` stage, whose Debian `pg_dump` is newer than the server, and runs the
+same rehearsal.
 
 ## Limits
 
 - **No continuous archiving (point-in-time recovery).** Up to a day of writes can be lost
   between nightly backups. A managed PostgreSQL usually offers PITR; turn it on when choosing
   one.
-- No schedule, off-site copy or alerting exists until there's a host.
+- Nothing schedules the backup job, copies backups off-site or sends an alert until there's a
+  host and a storage provider. The job, the cron line and the checks are ready.
+- The backup image's `pg_dump` comes from its Debian release, which may be a newer major version
+  than the server (supported: a newer `pg_dump` reads an older server). Restore with a
+  `pg_restore` at least as new as the `pg_dump_version` in the manifest. The backup image's own
+  `pg_restore` always is.
 - Deleted accounts stay in older backups until those expire (up to about 3 months with the
   proposed retention). A restore brings them back, so after a restore, delete again any
   account deleted after that backup was taken. [PRIVACY.md](PRIVACY.md) explains this to

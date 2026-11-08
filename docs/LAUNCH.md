@@ -114,7 +114,8 @@ What this rehearsal does **not** show:
 4. In the api container: `python -m app.cli preflight --connect-email`. Fix every **blocked**.
 5. Close each **unverified** with its evidence:
    - `check-email --send-test` to an inbox you own: arrives, not in spam;
-   - a backup, then a restore rehearsal ([BACKUP.md](BACKUP.md));
+   - the nightly backup job in the host's scheduler with an alert on failure, a first run, then
+     a restore rehearsal ([BACKUP.md](BACKUP.md) "Scheduling");
    - one AI hint if Claude is on;
    - `judge-check` if execution is on.
 6. Put an https proxy in front, sign up with a real account you own, and walk through sign-up,
@@ -136,5 +137,7 @@ What this rehearsal does **not** show:
    prepared and rehearsed locally only.
 2. **No mail provider**: no real email has been sent, SPF/DKIM/DMARC aren't set, and bounces are
    invisible until its webhooks are connected ([EMAIL.md](EMAIL.md)).
-3. **No backup schedule or off-site storage** ([BACKUP.md](BACKUP.md)).
+3. **No backup schedule on a host, and no off-site storage.** The backup job, its retention,
+   its check and the cron line are ready and rehearsed. Scheduling them needs the host, and
+   off-site copies need a storage provider ([BACKUP.md](BACKUP.md)).
 4. **CI** has not run on these commits: they're local until you approve a push.

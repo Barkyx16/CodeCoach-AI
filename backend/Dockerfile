@@ -9,12 +9,26 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-FROM python:3.12-slim AS runtime
+FROM python:3.12-slim AS app-base
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PATH="/opt/venv/bin:$PATH"
 RUN groupadd --system app && useradd --system --gid app --home /app app
 WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
 COPY --chown=app:app . .
+
+# The scheduled backup job (compose service `backup`, docs/BACKUP.md): the same app plus pg_dump
+# and age. Built only when asked for (`target: backup`); the API image below doesn't carry them.
+# pg_dump must be at least the server's major version; the manifest records which one ran.
+FROM app-base AS backup
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends postgresql-client age \
+ && rm -rf /var/lib/apt/lists/* \
+ && mkdir /backups && chown app:app /backups
+USER app
+CMD ["python", "-m", "app.cli", "check-backups", "--dir", "/backups"]
+
+# The API (the default target: the last stage).
+FROM app-base AS runtime
 USER app
 EXPOSE 8000
 HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \

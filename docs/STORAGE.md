@@ -43,7 +43,7 @@ stdout.
 | Database unreachable for a while | n/a | not lost; `/health/ready` answers 503 until it's back, then 200 |
 | A failed migration | n/a | nothing changes: PostgreSQL rolls the whole upgrade back |
 | Deleting `backend/codecoach.db` | **gone** | n/a |
-| `docker compose down -v`, `docker volume rm …` | n/a | **gone** |
+| `docker compose down -v`, `docker volume rm …` | n/a | **gone**, and `down -v` can delete the on-host backups volume (`codecoach_backups`) too |
 | Host disk lost | **gone** | **gone** unless backed up ([BACKUP.md](BACKUP.md)) |
 
 Routine start-up never deletes anything. `dev.sh`, both compose files, the init script and the
@@ -65,6 +65,8 @@ db (postgres:16, volume codecoach_pgdata, no published port)
 migrate (one-shot, as codecoach_owner)
  └─ alembic upgrade head → python -m app.cli seed → python -m app.cli grant-app-role codecoach_app
 api (as codecoach_app; starts only after migrate exits 0; healthy = /health/ready is 200)
+backup (profile "backup": not started by `up`; the host's scheduler runs it, as codecoach_owner)
+ └─ backup-database → prune-backups --apply → check-backups, into the volume codecoach_backups
 ```
 
 - **The owner** owns the tables. Only the migrate job connects as it.
@@ -86,7 +88,8 @@ api (as codecoach_app; starts only after migrate exits 0; healthy = /health/read
 ### Procedure
 
 First start, and every upgrade:
-1. Back up first if there's data ([BACKUP.md](BACKUP.md)).
+1. Back up first if there's data, by name so pruning keeps it ([BACKUP.md](BACKUP.md)):
+   `docker compose … --profile backup run --rm -T backup python -m app.cli backup-database --out /backups --recipients /run/codecoach/recipients.txt --name pre-upgrade-<date>`
 2. `docker compose --env-file deploy/.env.production -f deploy/docker-compose.production.yml up -d --build`
 3. `migrate` runs and exits. If it fails, the API keeps running the old containers or doesn't
    start: `docker compose … logs migrate`. A failed migration leaves the schema and the data as
@@ -153,7 +156,7 @@ Passwords keep working: they are stored as hashes. Codes and links signed with t
 | An older schema upgrades in place with data intact; a failed migration changes nothing; readiness goes 503 (behind) → 200 (current) | `test_an_older_schema_upgrades_in_place_and_a_failed_migration_changes_nothing` | verified locally on PostgreSQL 16 |
 | Readiness is 503 with an unreachable database and 200 once it answers | `test_readiness_is_503_while_the_database_is_unreachable_and_200_once_it_answers` | verified locally |
 | The copy moves accounts and work, refuses unsafe cases, and orders self-referencing rows | the `test_copy_*` tests, SQLite→SQLite and SQLite→PostgreSQL | verified locally |
-| The production compose: migrate job as owner, API as app role, no owner or superuser password in the API, data surviving an API restart, the database container recreated, and `down`/`up`; readiness following the database | `scripts/rehearse_production_storage.sh` on Docker in this sandbox | rehearsed locally (log below); **not a deployment** |
+| The production compose: migrate job as owner, API as app role, no owner or superuser password in the API, data surviving an API restart, the database container recreated, and `down`/`up`; readiness following the database; the scheduled backup job, and a restore of its newest backup into a separate database | `scripts/rehearse_production_storage.sh` on Docker in this sandbox, and in CI's Docker job once pushed | rehearsed locally (log below); **not a deployment** |
 
 Rehearsal output (2026-11-08, Docker 29.9 in this sandbox):
 
@@ -177,11 +180,19 @@ ok: after docker compose down and up (the volume is kept)
 == 4. readiness follows the database
 database stopped: /health/ready=503 /health=200
 database back: /health/ready=200
+== 5. the scheduled backup, then a restore into a separate database
+ok: two runs of the backup job: each backed up as the owner, pruned (kept 2) and checked
+ok: the API container has no backups volume
+ok: the newest backup restored into a separate database; row counts and policies match
+ok: the saved note is in the restored copy
+ok: no password in the backup or restore output
 ```
 
 One caveat about that run: the API and web images came from the repository's Dockerfiles plus
 two lines each that trust this sandbox's network proxy, for `pip` and `npm` (`IMAGE=…`,
-`WEB_IMAGE=…`). CI builds the unmodified Dockerfiles.
+`WEB_IMAGE=…`). The backup image's `pg_dump` 16 and `age` were copied from this machine
+(`BACKUP_IMAGE=…`), because Debian's package mirror isn't reachable from the sandbox. CI builds
+the unmodified Dockerfiles and runs the same rehearsal.
 
 The web step found a real production bug. The web image's Content-Security-Policy hard-coded
 `connect-src 'self' http://localhost:8000`, so a browser on the real site would have blocked

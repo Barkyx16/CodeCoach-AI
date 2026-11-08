@@ -51,3 +51,5 @@ backend/evals/reviews/out/
 # opening them consumes the sealed sets (backend/evals/sealed/ACCESS.md).
 backend/evals/sealed/results/
 deploy/.rehearsal.override.yml
+# Host-specific: the backup service's age public keys (not secret, but not this repository's).
+deploy/backup-recipients.txt

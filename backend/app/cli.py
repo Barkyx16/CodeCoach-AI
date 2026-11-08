@@ -22,10 +22,19 @@ python -m app.cli check-rls [--strict]
                               # --strict also fails if this role owns tables or can create them
 python -m app.cli grant-app-role ROLE  # as the table owner, after migrating: let the ordinary app
                                        # role read and write rows (and nothing more)
-python -m app.cli backup-database --out DIR --recipients FILE
-                              # encrypted full-database backup + manifest (docs/BACKUP.md)
+python -m app.cli backup-database --out DIR --recipients FILE [--name NAME]
+                              # encrypted full-database backup + manifest (docs/BACKUP.md); a
+                              # --name backup (e.g. before an upgrade) is never pruned
 python -m app.cli restore-database DUMP.age --identity FILE
                               # into RESTORE_DATABASE_URL, a separate EMPTY database; never the live one
+python -m app.cli prune-backups --dir DIR [--keep-daily 7] [--keep-weekly 4] [--keep-monthly 3]
+                              [--keep-within-hours 24] [--apply]
+                              # which backups to keep (all from the 24 h before the newest, and the
+                              # newest of each of the last N days, weeks, months that have one);
+                              # a dry run unless --apply
+python -m app.cli check-backups --dir DIR [--max-age-hours 26] [--all]
+                              # is the newest backup recent and intact (hash vs manifest)? exit 1 if
+                              # not, for a scheduler's alert; decrypts nothing
 python -m app.cli copy-database --from SQLITE_URL [--apply]
                               # optional: copy a development database into the freshly migrated
                               # DATABASE_URL; a dry run unless --apply (docs/STORAGE.md)
@@ -207,13 +216,23 @@ def main(argv: list[str]) -> int:
         from app.db.backup import BackupError, backup
 
         if "--out" not in argv or "--recipients" not in argv:
-            print("usage: python -m app.cli backup-database --out DIR --recipients FILE   (age public keys)")
+            print(
+                "usage: python -m app.cli backup-database --out DIR --recipients FILE [--name NAME]"
+                "   (age public keys)"
+            )
+            return 2
+        import re
+
+        backup_name = argv[argv.index("--name") + 1] if "--name" in argv else None
+        if backup_name is not None and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,79}", backup_name):
+            print("--name: letters, digits, '.', '_' and '-' only (up to 80), e.g. pre-upgrade-20261108")
             return 2
         try:
             made = backup(
                 get_settings().database_url,
                 Path(argv[argv.index("--out") + 1]),
                 Path(argv[argv.index("--recipients") + 1]),
+                name=backup_name,
             )
         except BackupError as exc:
             print(f"Backup failed: {exc}")
@@ -258,6 +277,75 @@ def main(argv: list[str]) -> int:
             print(f"Next: {note}")
         print("Next: start the app against it and check sign-in (docs/BACKUP.md).")
         return 0
+    if command == "prune-backups":
+        from datetime import timedelta
+
+        from app.db.backup_store import prune
+
+        if "--dir" not in argv:
+            print(
+                "usage: python -m app.cli prune-backups --dir DIR [--keep-daily 7] [--keep-weekly 4]"
+                " [--keep-monthly 3] [--keep-within-hours 24] [--apply]"
+            )
+            return 2
+
+        def keep(flag: str, default: int) -> int:
+            return int(argv[argv.index(flag) + 1]) if flag in argv else default
+
+        apply = "--apply" in argv
+        try:
+            prune_plan = prune(
+                Path(argv[argv.index("--dir") + 1]),
+                keep("--keep-daily", 7),
+                keep("--keep-weekly", 4),
+                keep("--keep-monthly", 3),
+                timedelta(hours=float(argv[argv.index("--keep-within-hours") + 1]))
+                if "--keep-within-hours" in argv
+                else timedelta(hours=24),
+                apply=apply,
+            )
+        except (FileNotFoundError, ValueError) as exc:
+            print(f"Not pruned: {exc}")
+            return 2
+        for kept, why in sorted(prune_plan.keep.items(), key=lambda kv: kv[0].stamp, reverse=True):
+            print(f"keep    {kept.name}  ({', '.join(why)})")
+        for gone in prune_plan.delete:
+            print(f"{'deleted' if apply else 'delete '} {gone.name}")
+        for half in prune_plan.incomplete:
+            print(f"left    {half.name}  (half a pair: not deleted; check it by hand)")
+        for path in prune_plan.other:
+            print(f"left    {path.name}  (not a backup this command made)")
+        verb = "Deleted" if apply else "Would delete"
+        print(
+            f"Kept {len(prune_plan.keep)}. {verb} {len(prune_plan.delete)}.{'' if apply else ' Dry run: pass --apply.'}"
+        )
+        return 0
+    if command == "check-backups":
+        from datetime import timedelta
+
+        from app.db.backup_store import check as check_backups
+
+        if "--dir" not in argv:
+            print("usage: python -m app.cli check-backups --dir DIR [--max-age-hours 26] [--all]")
+            return 2
+        hours = float(argv[argv.index("--max-age-hours") + 1]) if "--max-age-hours" in argv else 26.0
+        try:
+            backup_health = check_backups(
+                Path(argv[argv.index("--dir") + 1]), timedelta(hours=hours), verify_all="--all" in argv
+            )
+        except FileNotFoundError as exc:
+            print(f"FAIL  {exc}")
+            return 1
+        for note in backup_health.notes:
+            print(f"note  {note}")
+        for problem in backup_health.problems:
+            print(f"FAIL  {problem}")
+        if backup_health.ok:
+            print(
+                "OK    the newest backup is recent and matches its manifest."
+                " Not proof of recovery: rehearse a restore (docs/BACKUP.md)."
+            )
+        return 0 if backup_health.ok else 1
     if command == "copy-database":
         import os
 
