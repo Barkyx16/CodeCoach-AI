@@ -213,8 +213,12 @@ class EmailJob(Base):
         ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
     )
     payload: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
-    # pending → sending → sent | skipped (nothing to do) | dropped (too old) | failed (gave up)
+    # pending → sending → accepted (the mail server took it: not proof of delivery) | rejected (the
+    # mail server refused it for good) | skipped (nothing to send) | dropped (too old to be useful) |
+    # failed (gave up after every retry).
     status: Mapped[str] = mapped_column(String(12), default="pending")
+    # The Message-ID the email went out with: matches a provider's logs and events to this job.
+    message_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     next_attempt_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)

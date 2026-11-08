@@ -1412,6 +1412,9 @@ All configuration is environment variables (or a `.env` file; see
 | `EMBEDDED_WORKER` | `false` | Run the worker inside the API process (local dev and e2e only) |
 | `MAX_SOURCE_CHARS` | `20000` | Maximum submission size. |
 | `METRICS_ENABLED` | `true` | Serves Prometheus metrics at `/metrics`. |
+| `SMTP_SECURITY` | `starttls` | How the mail server connection is protected: `starttls`, `ssl` (implicit TLS) or `none` (refused in production). Certificates and hostnames are always verified. |
+| `SMTP_CA_BUNDLE` | (none) | A private CA to trust for the mail server (adds trust; never disables verification). |
+| `SMTP_TIMEOUT_SECONDS` | `10` | Per-attempt limit for talking to the mail server. |
 | `METRICS_TOKEN` | (none) | **Secret.** When set, `/metrics` needs `Authorization: Bearer <token>` (else 404). Required in production while metrics are on. |
 | `POSTGRES_PASSWORD` | `codecoach` | Used by `docker-compose.yml` only. |
 | `VITE_API_BASE_URL` | `http://localhost:8000` | Frontend build-time API URL. **Public**: never put secrets in `VITE_*`. |

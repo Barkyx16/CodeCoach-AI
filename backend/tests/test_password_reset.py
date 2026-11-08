@@ -2,6 +2,7 @@
 
 import json
 import re
+import ssl
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -173,8 +174,13 @@ def test_smtp_sender_uses_starttls_and_login(make_settings):
         def __exit__(self, *exc):
             return False
 
-        def starttls(self):
-            calls.append(("starttls",))
+        def starttls(self, context=None):
+            # The certificate and the hostname must both be checked (smtplib's default checks neither).
+            verified = context is not None and context.verify_mode == ssl.CERT_REQUIRED and context.check_hostname
+            calls.append(("starttls", verified))
+
+        def close(self):
+            calls.append(("close",))
 
         def login(self, user, password):
             calls.append(("login", user))
@@ -194,7 +200,7 @@ def test_smtp_sender_uses_starttls_and_login(make_settings):
     )  # type: ignore[arg-type]
     assert calls == [
         ("connect", "smtp.example.com", 587),
-        ("starttls",),
+        ("starttls", True),
         ("login", "u"),
         ("send", "ada@example.com", "Hi", "CodeCoach <no-reply@example.com>"),
     ]

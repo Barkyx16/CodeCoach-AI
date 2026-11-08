@@ -38,6 +38,7 @@ account, then create an app password at https://myaccount.google.com/apppassword
 EMAIL_BACKEND=smtp
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
+SMTP_SECURITY=starttls
 SMTP_USERNAME=your.address@gmail.com
 SMTP_PASSWORD=the-16-character-app-password
 EMAIL_FROM=CodeCoach AI <your.address@gmail.com>
@@ -55,6 +56,55 @@ come from `no-reply@yourdomain` and land in inboxes, not spam. Use the same sett
 with their host, port, username and password, and set `APP_BASE_URL` to the site's real `https://`
 address. Production refuses to start without SMTP or with a non-https `APP_BASE_URL`, so emailed
 links can't point anywhere else.
+
+### How the connection is protected
+
+`SMTP_SECURITY` chooses the mode:
+
+| Mode | Port | When to use it |
+|---|---|---|
+| `starttls` (default) | usually 587 | most providers |
+| `ssl` | usually 465 | providers that use implicit TLS |
+| `none` | | a local test server only. Production refuses it |
+
+In both encrypted modes the server's certificate **and** hostname are verified. Before
+2026-11-08, the STARTTLS path used Python's unverified default, which accepted any certificate; a
+test now shows the old call accepting a self-signed one. `SMTP_CA_BUNDLE` adds a private CA (for
+an internal relay). Nothing turns verification off. `SMTP_TIMEOUT_SECONDS` (10) bounds each
+attempt.
+
+Production also refuses:
+- `EMAIL_FROM` on `@localhost`;
+- `SMTP_SECURITY=none`;
+- any backend other than `smtp`.
+
+### Check it before you rely on it
+
+```bash
+python -m app.cli check-email                 # settings by name and presence only, never values
+python -m app.cli check-email --connect       # connect, verify TLS, sign in; sends nothing
+python -m app.cli check-email --send-test you@example.com   # sends ONE test email
+```
+
+`--send-test` reports at most "the mail server ACCEPTED the test email". That's not proof it
+arrived: check the inbox, and the spam folder.
+
+## What each stage means
+
+| Job status | Meaning | Known? |
+|---|---|---|
+| `pending` | queued; the first try runs right after the response, retries back off (30 s, 2, 10, 30 min) | yes |
+| `accepted` | the mail server answered 250: it **took** the message | yes |
+| delivered to the inbox | the receiving server stored it | **not known**: needs a provider's delivery events |
+| read | the person opened it | **not known**, and not tracked |
+| `rejected` | the mail server refused it for good (a 5xx, e.g. no such mailbox); not retried | yes |
+| `failed` | still failing after 5 attempts (an outage, a 4xx, a timeout, a bad SMTP password) | yes |
+| `dropped` | too old to be useful (a reset link past its 30 minutes) | yes |
+| `skipped` | nothing to send (already verified, no such account, or a duplicate within a minute) | yes |
+
+Each email carries a `Message-ID` (`<codecoach.JOB_ID@your-domain>`), stored on its job, so a
+provider's logs can be matched to the job. Logs name the job, its kind and an SMTP code or error
+class. They never contain an address, subject, code or link (`tests/test_email_transport.py`).
 
 ## How sending works
 

@@ -6,6 +6,9 @@ python -m app.cli prune-guests [--days N]   # delete guest accounts inactive for
                                             # (default GUEST_RETENTION_DAYS)
 python -m app.cli judge-check # prove the configured code judge works, end to end
 python -m app.cli housekeeping  # retry due emails and run every housekeeping step once, now
+python -m app.cli check-email [--connect] [--send-test ADDRESS]
+                              # email settings (names and presence only); --connect signs in to the
+                              # mail server without sending; --send-test sends ONE test email
 python -m app.cli check-export FILE.json  # read-only check of a version 2 export's ids and links
 python -m app.cli check-rls   # is PostgreSQL row-level security in force for this connection?
 python -m app.cli grant-admin EMAIL    # let a registered account triage content reports
@@ -65,6 +68,11 @@ def main(argv: list[str]) -> int:
             print(f"{i['rule']}: {i['path']}: {i['detail']}")
         print("No problems found." if not issues else f"{len(issues)} problem(s) found.")
         return 1 if issues else 0
+    if command == "check-email":
+        from app.services.email import check_email
+
+        send_to = argv[argv.index("--send-test") + 1] if "--send-test" in argv else None
+        return check_email(get_settings(), connect="--connect" in argv, send_to=send_to)
     if command == "housekeeping":
         from app.jobs import housekeeping
         from app.services import outbox

@@ -176,6 +176,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             with session_factory() as session:
                 seed_problems(session)
         rls.warn_if_not_enforced(engine)
+        if settings.email_backend != "smtp":
+            logger.warning(
+                "email is NOT sent: EMAIL_BACKEND=%s %s messages instead (docs/EMAIL.md)",
+                settings.email_backend,
+                "prints" if settings.email_backend == "console" else "saves",
+            )
         worker = None
         if settings.execution_enabled and settings.embedded_worker:
             worker = _start_embedded_worker(settings, session_factory, app.state.traces, app.state.metrics)

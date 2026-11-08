@@ -13,12 +13,18 @@ job due again after `LEASE`.
 Jobs hold what to send, never a usable secret: a verification code or reset link is created when
 the email is actually sent (by the same functions as before), so nothing in this table can sign
 anyone in. Addresses are cleared from a job once it's finished.
+
+Stages are kept apart on purpose: `pending` (queued) → `accepted` (the mail server answered 250).
+That is all an SMTP send can prove. Whether the receiving server delivered it, or anyone opened
+it, isn't known here: that needs a provider's delivery events (docs/EMAIL.md). A permanent refusal
+(a 5xx) is `rejected` at once, without retries.
 """
 
 from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
@@ -28,11 +34,12 @@ from sqlalchemy.orm import Session
 from app.config import Settings
 from app.models import EmailJob
 from app.services import email_verification, password_reset
-from app.services.email import EmailSender
+from app.services.email import Email, EmailRejectedError, EmailSender
 
 logger = logging.getLogger("codecoach.outbox")
 
 KINDS = ("verify_email", "password_reset", "email_changed")
+FINISHED = ("accepted", "rejected", "skipped", "dropped", "failed")
 MAX_ATTEMPTS = 5
 BACKOFF = (timedelta(seconds=30), timedelta(minutes=2), timedelta(minutes=10), timedelta(minutes=30))
 LEASE = timedelta(minutes=5)
@@ -64,10 +71,27 @@ def _max_age(kind: str, settings: Settings) -> timedelta:
     return timedelta(days=3)
 
 
+class _Stamped:
+    """Gives the email this job's Message-ID on its way to the real sender."""
+
+    def __init__(self, inner: EmailSender, message_id: str):
+        self.inner, self.message_id = inner, message_id
+
+    def send(self, email: Email) -> None:
+        self.inner.send(replace(email, message_id=self.message_id))
+
+
+def message_id_for(job_id: str, settings: Settings) -> str:
+    """One Message-ID per job: a provider's logs and events can be matched back to the job."""
+    from app.config import _address_domain
+
+    return f"<codecoach.{job_id}@{_address_domain(settings.email_from) or 'codecoach.invalid'}>"
+
+
 def _send(
     job: dict[str, Any], session_factory: Callable[[], Session], settings: Settings, sender: EmailSender
 ) -> bool:
-    """One attempt. True: sent; False: nothing to send. Raises if sending failed."""
+    """One attempt. True: the mail server accepted it; False: nothing to send. Raises if sending failed."""
     first = job["attempts"] == 1  # the once-a-minute dedupe applies to a request, not to its retries
     payload = job["payload"] or {}
     if job["kind"] == "verify_email":
@@ -82,8 +106,8 @@ def _send(
 
 
 def run(session_factory: Callable[[], Session], job_id: str, settings: Settings, sender: EmailSender) -> str:
-    """Claim and attempt one job if it's due. Returns what happened: sent, skipped, dropped,
-    retry, failed, or not_due (someone else has it, or it's finished)."""
+    """Claim and attempt one job if it's due. Returns what happened: accepted, rejected, skipped,
+    dropped, retry, failed, or not_due (someone else has it, or it's finished)."""
     now = _now()
     with session_factory() as db:
         claimed = db.execute(
@@ -103,15 +127,24 @@ def run(session_factory: Callable[[], Session], job_id: str, settings: Settings,
     if claimed is None:
         return "not_due"
     job = dict(claimed._mapping)
-    if now - _aware(job["created_at"]) > _max_age(job["kind"], settings):
+    kind = job["kind"]
+    if now - _aware(job["created_at"]) > _max_age(kind, settings):
         _finish(session_factory, job_id, "dropped")
         return "dropped"
+    message_id = message_id_for(job_id, settings)
+    # Logs name the job, its kind and an error class or SMTP code: never an address, subject or link.
     try:
-        sent = _send(job, session_factory, settings, sender)
+        sent = _send(job, session_factory, settings, _Stamped(sender, message_id))
+    except EmailRejectedError as exc:
+        logger.warning("email job %s (%s) refused by the mail server: %s", job_id, kind, exc)
+        _finish(session_factory, job_id, "rejected", f"EmailRejectedError: {exc}"[:80], message_id)
+        return "rejected"
     except Exception as exc:  # noqa: BLE001 - recorded on the job and retried; never shown to anyone
         error = type(exc).__name__[:80]
         if job["attempts"] >= MAX_ATTEMPTS:
-            logger.error("email job gave up", extra={"kind": job["kind"], "attempts": job["attempts"]})
+            logger.error(
+                "email job %s (%s) gave up after %d attempts: %s", job_id, kind, job["attempts"], error
+            )
             _finish(session_factory, job_id, "failed", error)
             return "failed"
         wait = BACKOFF[min(job["attempts"], len(BACKOFF)) - 1]
@@ -122,21 +155,29 @@ def run(session_factory: Callable[[], Session], job_id: str, settings: Settings,
                 .values(status="pending", next_attempt_at=_now() + wait, last_error=error)
             )
             db.commit()
-        logger.warning("email job will retry", extra={"kind": job["kind"], "attempts": job["attempts"]})
+        logger.warning(
+            "email job %s (%s) attempt %d failed (%s); will retry", job_id, kind, job["attempts"], error
+        )
         return "retry"
-    outcome = "sent" if sent else "skipped"
-    _finish(session_factory, job_id, outcome)
-    return outcome
+    if sent:
+        _finish(session_factory, job_id, "accepted", None, message_id)
+        return "accepted"
+    _finish(session_factory, job_id, "skipped")
+    return "skipped"
 
 
 def _finish(
-    session_factory: Callable[[], Session], job_id: str, status: str, error: str | None = None
+    session_factory: Callable[[], Session],
+    job_id: str,
+    status: str,
+    error: str | None = None,
+    message_id: str | None = None,
 ) -> None:
     with session_factory() as db:
         db.execute(
             update(EmailJob)
             .where(EmailJob.id == job_id)
-            .values(status=status, finished_at=_now(), payload=None, last_error=error)
+            .values(status=status, finished_at=_now(), payload=None, last_error=error, message_id=message_id)
         )
         db.commit()
 
@@ -162,9 +203,5 @@ def drain(
 def purge_finished(db: Session, now: datetime | None = None) -> int:
     """Delete finished jobs older than a week (their addresses were already cleared)."""
     cutoff = (now or _now()) - KEEP_FINISHED
-    result = db.execute(
-        delete(EmailJob).where(
-            EmailJob.status.in_(("sent", "skipped", "dropped", "failed")), EmailJob.finished_at < cutoff
-        )
-    )
+    result = db.execute(delete(EmailJob).where(EmailJob.status.in_(FINISHED), EmailJob.finished_at < cutoff))
     return int(cast(CursorResult[Any], result).rowcount or 0)

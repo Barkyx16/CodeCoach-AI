@@ -52,6 +52,14 @@ def weak_secret_reason(value: str) -> str | None:
     return None
 
 
+def _address_domain(address: str) -> str:
+    """The domain of an address like 'Name <user@example.com>' (lowercase; '' if there is none)."""
+    from email.utils import parseaddr
+
+    _, addr = parseaddr(address)
+    return addr.rpartition("@")[2].strip().lower() if "@" in addr else ""
+
+
 def default_db_password(url: str) -> bool:
     """True if DATABASE_URL uses one of the example passwords from this repository."""
     if url.startswith("sqlite"):
@@ -162,6 +170,13 @@ class Settings(BaseSettings):
     smtp_username: str | None = None
     smtp_password: SecretStr | None = None
     smtp_starttls: bool = True
+    # How the connection to the mail server is protected: "starttls" (usually port 587), "ssl"
+    # (implicit TLS, usually port 465) or "none" (a local test server only; production refuses it).
+    # Unset: starttls, or none if SMTP_STARTTLS=false. The server's certificate and hostname are
+    # always verified; SMTP_CA_BUNDLE only adds a private CA to trust (e.g. an internal relay).
+    smtp_security: Literal["starttls", "ssl", "none"] | None = None
+    smtp_ca_bundle: str | None = None
+    smtp_timeout_seconds: float = Field(default=10.0, gt=0, le=120)
     password_reset_ttl_minutes: int = Field(default=30, ge=5, le=24 * 60)
     email_verification_ttl_hours: int = Field(default=48, ge=1, le=24 * 14)
 
@@ -286,6 +301,16 @@ class Settings(BaseSettings):
                 )
             if "*" in self.cors_origins:
                 raise ValueError("CORS_ORIGINS must list explicit origins in production")
+            if self.email_backend == "smtp" and self.smtp_tls_mode == "none":
+                raise ValueError(
+                    "SMTP_SECURITY=none (or SMTP_STARTTLS=false) isn't allowed in production: emailed reset "
+                    "links would cross the network unencrypted. Use starttls or ssl"
+                )
+            if _address_domain(self.email_from) in ("", "localhost"):
+                raise ValueError(
+                    "EMAIL_FROM must be an address on a domain you send from, e.g. "
+                    "'CodeCoach AI <no-reply@example.com>' (not @localhost)"
+                )
             if self.email_backend != "smtp" or not self.smtp_host:
                 raise ValueError(
                     "Production needs EMAIL_BACKEND=smtp and SMTP_HOST (other backends expose reset links)"
@@ -309,6 +334,12 @@ class Settings(BaseSettings):
         if self.auto_migrate_setting is not None:
             return self.auto_migrate_setting
         return self.environment != "production"
+
+    @property
+    def smtp_tls_mode(self) -> str:
+        if self.smtp_security is not None:
+            return self.smtp_security
+        return "starttls" if self.smtp_starttls else "none"
 
     @property
     def signing_key(self) -> str:

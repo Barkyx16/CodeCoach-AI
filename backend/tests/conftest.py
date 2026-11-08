@@ -52,6 +52,7 @@ PRODUCTION_BASE: dict = {
     "email_backend": "smtp",
     "smtp_host": "smtp.example.com",
     "app_base_url": "https://app.example",
+    "email_from": "CodeCoach AI <no-reply@app.example>",
     "metrics_token": "metrics-synthetic-scrape-token-0123456789abcdef",
 }
 

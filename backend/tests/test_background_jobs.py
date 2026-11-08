@@ -59,7 +59,7 @@ def drain(c):
 def test_an_email_is_a_job_sent_right_after_the_response(mail_client):
     register(mail_client, email="ada@example.com")
     [job] = jobs(mail_client)
-    assert (job.kind, job.status, job.attempts) == ("verify_email", "sent", 1)
+    assert (job.kind, job.status, job.attempts) == ("verify_email", "accepted", 1)
     assert job.payload is None and job.finished_at is not None  # nothing kept once it's done
     [mail] = mail_client.app.state.email_sender.sent
     assert mail.to == "ada@example.com" and re.search(r"\b\d{6}\b", mail.subject)
@@ -74,7 +74,7 @@ def test_a_failed_send_is_retried_and_the_retry_still_works(mail_client):
     assert job.next_attempt_at.replace(tzinfo=UTC) > datetime.now(UTC)  # backing off
     assert mail.sent == [] and drain(mail_client) == {}  # not due yet: nothing happens
     make_due(mail_client)
-    assert drain(mail_client) == {"sent": 1}
+    assert drain(mail_client) == {"accepted": 1}
     # The retry wasn't swallowed by the once-a-minute dedupe, and its code works.
     code = re.search(r"\b(\d{6})\b", mail.sent[0].subject).group(1)
     r = mail_client.post("/api/v1/auth/verify-email/code", headers=auth_headers(data), json={"code": code})
@@ -117,7 +117,7 @@ def test_a_job_is_sent_once_however_many_processes_drain(mail_client):
         t.start()
     for t in threads:
         t.join()
-    assert sorted(results).count("sent") == 1 and len(mail.sent) == 1
+    assert sorted(results).count("accepted") == 1 and len(mail.sent) == 1
 
 
 def test_a_reset_link_that_would_arrive_expired_is_dropped(mail_client):
@@ -164,7 +164,7 @@ def test_changing_email_tells_the_old_address_through_the_outbox(mail_client):
     )
     assert r.status_code == 200, r.text
     kinds = sorted((j.kind, j.status) for j in jobs(mail_client))
-    assert kinds == [("email_changed", "sent"), ("verify_email", "sent"), ("verify_email", "sent")]
+    assert kinds == [("email_changed", "accepted"), ("verify_email", "accepted"), ("verify_email", "accepted")]
     assert {m.to for m in mail_client.app.state.email_sender.sent} == {
         "ada@example.com",
         "ada.new@example.com",
@@ -182,7 +182,7 @@ def test_housekeeping_runs_without_the_judge(make_client, monkeypatch):
         db.add(
             EmailJob(
                 kind="verify_email",
-                status="sent",
+                status="accepted",
                 created_at=datetime.now(UTC) - timedelta(days=30),
                 finished_at=datetime.now(UTC) - timedelta(days=30),
             )
@@ -205,7 +205,7 @@ def test_the_jobs_runner_retries_on_its_own_and_its_housekeeping_is_paced(mail_c
         mail_client.app.state.session_factory, mail_client.app.state.settings, mail, clock=lambda: now[0]
     )
     first = runner.run_once()
-    assert first["emails_sent"] == 1 and "rate_limit_counters_purged" in first and "guests_deleted" in first
+    assert first["emails_accepted"] == 1 and "rate_limit_counters_purged" in first and "guests_deleted" in first
     now[0] += 60  # a minute later: emails only; housekeeping waits its turn
     assert runner.run_once() == {}
     now[0] += 600
