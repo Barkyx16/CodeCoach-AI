@@ -14,6 +14,9 @@ python -m app.cli email-status [--recent N] [--job ID] [--message-id ID] [--acco
 python -m app.cli email-retry --failed [--hours N]
                               # after an outage: retry failed verification emails (default 24 h)
 python -m app.cli check-export FILE.json  # read-only check of a version 2 export's ids and links
+python -m app.cli preflight [--connect-email] [--backup-manifest FILE] [--json]
+                              # launch checks for THIS environment: ready / blocked / optional /
+                              # unverified, each with its reason (docs/LAUNCH.md); exit 1 if blocked
 python -m app.cli check-rls [--strict]
                               # is PostgreSQL row-level security in force for this connection?
                               # --strict also fails if this role owns tables or can create them
@@ -151,6 +154,15 @@ def main(argv: list[str]) -> int:
         done |= housekeeping(factory, settings, daily=True)
         print(json.dumps(done, indent=2))
         return 0
+    if command == "preflight":
+        from app.services.preflight import BLOCKED, render, run_preflight
+
+        manifest = Path(argv[argv.index("--backup-manifest") + 1]) if "--backup-manifest" in argv else None
+        checks = run_preflight(
+            get_settings(), connect_email="--connect-email" in argv, backup_manifest=manifest
+        )
+        print(render(checks, as_json="--json" in argv))
+        return 1 if any(c.status == BLOCKED for c in checks) else 0
     if command == "check-rls":
         from app.db.rls import rls_status
         from app.db.roles import engine_role_report, least_privilege_problems

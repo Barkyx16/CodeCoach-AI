@@ -53,12 +53,14 @@ class FakeSMTPServer:
     data_reply: str = "250 2.0.0 queued"
     auth_reply: str = "235 2.7.0 accepted"
     silent: bool = False  # accept the connection, never greet
+    port: int = 0  # 0: any free port; a fixed one lets a test bring "the same server" back after an outage
     messages: list[bytes] = field(default_factory=list)
     sessions: list[dict] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         self.sock = socket.socket()
-        self.sock.bind(("127.0.0.1", 0))
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.bind(("127.0.0.1", self.port))
         self.sock.listen(8)
         self.port = self.sock.getsockname()[1]
         self._stop = threading.Event()

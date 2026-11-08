@@ -184,7 +184,9 @@ def test_a_database_failure_is_categorised_without_leaking_the_error(client, mon
         headers={**h, "traceparent": TRACEPARENT},
         json={"question_index": 0, "answer": NURSE_ANSWER, "source": "typed"},
     )
-    assert r.status_code == 500
+    # A database failure is answered as retryable (503), never with the database's own words.
+    assert r.status_code == 503 and r.json()["error"]["code"] == "database_unavailable"
+    assert "disk I/O" not in r.text
     spans = {s["name"]: s for s in lookup(client, admin(client), TRACE).json()["spans"]}
     assert spans["db.commit"]["outcome"] == "db_error"
     assert spans["round.action"]["outcome"] == "db_error"

@@ -9,6 +9,7 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.exc import TimeoutError as SQLAlchemyTimeoutError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -135,6 +136,25 @@ def install_error_handlers(app: FastAPI) -> None:
             request, 503, "server_busy", "The server is very busy right now. Please try again in a moment."
         )
         response.headers["Retry-After"] = "2"
+        return response
+
+    @app.exception_handler(OperationalError)
+    async def _database_unavailable(request: Request, exc: OperationalError):
+        # The database is unreachable (restarting, failing over, network), or a statement was
+        # cancelled or timed out. Retryable, so say so instead of "unexpected error". The class
+        # alone is logged, never the statement or its values.
+        logger.warning(
+            "database unavailable: %s",
+            type(getattr(exc, "orig", exc)).__name__,
+            extra={"request_id": getattr(request.state, "request_id", None)},
+        )
+        response = _envelope(
+            request,
+            503,
+            "database_unavailable",
+            "We can't reach our database right now. Please try again in a moment.",
+        )
+        response.headers["Retry-After"] = "5"
         return response
 
     @app.exception_handler(Exception)

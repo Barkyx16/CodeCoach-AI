@@ -70,7 +70,9 @@ def people(c):
     maker = getattr(c, "setup", c)
     a, b = register(maker, email="ada@example.com"), register(maker, email="bea@example.com")
     for title in ("Ada 1", "Ada 2"):
-        assert maker.post("/api/v1/me/notes", headers=auth_headers(a), json={"title": title}).status_code == 201
+        assert (
+            maker.post("/api/v1/me/notes", headers=auth_headers(a), json={"title": title}).status_code == 201
+        )
     assert maker.post("/api/v1/me/notes", headers=auth_headers(b), json={"title": "Bea 1"}).status_code == 201
     return a, b
 

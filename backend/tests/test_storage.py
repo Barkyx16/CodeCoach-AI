@@ -540,3 +540,12 @@ def test_copy_from_sqlite_into_a_migrated_postgresql_database(rehearsal, make_se
     assert signed_in_notes(make_settings, rehearsal.admin, "ada@example.com") == ["ada@example.com's note"]
     source.dispose()
     target.dispose()
+
+
+def test_requests_while_the_database_is_unreachable_get_a_retryable_503(make_settings):
+    unreachable = "postgresql+psycopg://nobody:nothing@127.0.0.1:1/none?connect_timeout=1"
+    with TestClient(create_app(make_settings(database_url=unreachable, auto_migrate=False))) as client:
+        r = client.post("/api/v1/auth/login", json={"email": "ada@example.com", "password": PASSWORD})
+        assert r.status_code == 503 and r.json()["error"]["code"] == "database_unavailable"
+        assert r.headers["Retry-After"] == "5"
+        assert "nothing" not in r.text and "127.0.0.1" not in r.text  # no connection details
