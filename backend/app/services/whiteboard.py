@@ -94,7 +94,11 @@ class Whiteboard:
             raise ConflictError(
                 "This diagram was saved somewhere else since you opened it. Your changes are still on this page.",
                 code="stale_revision",
-                details={"current_revision": current},
+                # The saved version itself, so the page can show both and let the learner choose.
+                details={
+                    "current_revision": current,
+                    "current": self.draft(prompt_id).model_dump(mode="json"),
+                },
             )
         if row is None:
             row = WhiteboardDraft(
@@ -109,10 +113,11 @@ class Whiteboard:
             self.db.commit()
         except IntegrityError:  # two first saves at once: the other one created the draft
             self.db.rollback()
+            saved = self.draft(prompt_id)
             raise ConflictError(
                 "This diagram was saved somewhere else since you opened it. Your changes are still on this page.",
                 code="stale_revision",
-                details={"current_revision": 1},
+                details={"current_revision": saved.revision, "current": saved.model_dump(mode="json")},
             ) from None
         return self.draft(prompt_id)
 

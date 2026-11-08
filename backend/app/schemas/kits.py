@@ -50,7 +50,8 @@ class KitUpdate(APIModel):
         default=None,
         ge=0,
         description="The kit revision you loaded (0 if it was never saved). If the kit was saved since, "
-        "nothing is changed and the answer is 409 stale_revision with the current revision.",
+        "nothing is changed and the answer is 409 stale_revision with the current revision and the saved "
+        "kit (details.current), so both can be shown.",
     )
     reviewed_story_ids: list[str] | None = Field(
         default=None,

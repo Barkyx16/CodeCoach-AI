@@ -305,7 +305,11 @@ class Stories:
             raise ConflictError(
                 "This story changed since you opened it (maybe in another tab). Your edits weren't saved.",
                 code="stale_revision",
-                details={"current_revision": e.revision},
+                # The saved version itself, so the page can show both and let the learner choose.
+                details={
+                    "current_revision": e.revision,
+                    "current": self.get(user, e.id).model_dump(mode="json"),
+                },
             )
         before = snapshot(e)
         self._apply(user, e, body, clear_target=body.clear_target)
@@ -329,7 +333,10 @@ class Stories:
             raise ConflictError(
                 "This story changed since you opened it. Reload it, then restore.",
                 code="stale_revision",
-                details={"current_revision": e.revision},
+                details={
+                    "current_revision": e.revision,
+                    "current": self.get(user, e.id).model_dump(mode="json"),
+                },
             )
         old = self.db.scalar(
             select(StoryRevision).where(StoryRevision.story_id == e.id, StoryRevision.revision == revision)

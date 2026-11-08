@@ -50,7 +50,7 @@ def test_writing_editing_and_every_saved_version(client):
     assert edited.status_code == 200 and edited.json()["revision"] == 2
     # Another tab still holding revision 1 can't overwrite it.
     stale = patch(client, h, s["id"], expected_revision=1, title="Older tab")
-    assert stale.status_code == 409 and stale.json()["error"]["details"] == {"current_revision": 2}
+    assert stale.status_code == 409 and stale.json()["error"]["details"]["current_revision"] == 2
     # Saving nothing new doesn't make a revision.
     assert patch(client, h, s["id"], expected_revision=2, title=STORY["title"]).json()["revision"] == 2
 

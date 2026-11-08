@@ -252,14 +252,14 @@ class Kits:
             missing_stories=missing,
         )
 
-    def _stale(self, event_id: str) -> ConflictError:
+    def _stale(self, app_id: str, event_id: str) -> ConflictError:
         self.db.rollback()
-        kit = self.db.get(InterviewKit, event_id)
+        saved = self.get(app_id, event_id)
         return ConflictError(
             "This kit was saved somewhere else (maybe another tab) since you opened it. "
             "Your changes weren't saved; they're still on this page.",
             code="stale_revision",
-            details={"current_revision": kit.revision if kit is not None else 0},
+            details={"current_revision": saved.revision, "current": saved.model_dump(mode="json")},
         )
 
     def update(self, app_id: str, event_id: str, body: KitUpdate) -> KitOut:
@@ -271,7 +271,7 @@ class Kits:
                 "This kit was saved somewhere else (maybe another tab) since you opened it. "
                 "Your changes weren't saved; they're still on this page.",
                 code="stale_revision",
-                details={"current_revision": current.revision},
+                details={"current_revision": current.revision, "current": current.model_dump(mode="json")},
             )
         if kit is None:
             kit = InterviewKit(
@@ -328,11 +328,10 @@ class Kits:
         kit.story_revisions = self._story_revisions(kit, before, set(body.reviewed_story_ids or []))
         kit.event_when = when_key(ev)  # saved on this page, where a move is shown
         kit.updated_at = datetime.now(UTC)
-        key = ev.id  # read before the commit: after a failed flush the objects are expired
         try:
             self.db.commit()
         except (StaleDataError, IntegrityError):  # another save got there first
-            raise self._stale(key) from None
+            raise self._stale(app_id, event_id) from None
         return self.get(app_id, event_id)
 
     def _story_revisions(self, kit: InterviewKit, before: list[str], reviewed: set[str]) -> dict:

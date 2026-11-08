@@ -5032,7 +5032,7 @@ export interface components {
             requirement_ids?: string[];
             /**
              * Expected Revision
-             * @description The story revision you started from (ExperienceOut.revision). If the story changed since, 409 stale_revision. Optional for older clients, which keep last-write-wins.
+             * @description The story revision you started from (ExperienceOut.revision). If the story changed since, 409 stale_revision with the saved fields (details.current). Optional for older clients, which keep last-write-wins.
              */
             expected_revision?: number | null;
         };
@@ -6170,7 +6170,7 @@ export interface components {
             story_ids?: string[] | null;
             /**
              * Expected Revision
-             * @description The kit revision you loaded (0 if it was never saved). If the kit was saved since, nothing is changed and the answer is 409 stale_revision with the current revision.
+             * @description The kit revision you loaded (0 if it was never saved). If the kit was saved since, nothing is changed and the answer is 409 stale_revision with the current revision and the saved kit (details.current), so both can be shown.
              */
             expected_revision?: number | null;
             /**

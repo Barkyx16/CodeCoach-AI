@@ -116,7 +116,8 @@ class ExperienceEdit(ExperienceIn):
         default=None,
         ge=1,
         description="The story revision you started from (ExperienceOut.revision). If the story "
-        "changed since, 409 stale_revision. Optional for older clients, which keep last-write-wins.",
+        "changed since, 409 stale_revision with the saved fields (details.current). Optional for older "
+        "clients, which keep last-write-wins.",
     )
 
 

@@ -57,7 +57,7 @@ def test_an_empty_or_incomplete_reflection_is_fine_and_saves_are_revision_checke
     one = client.put(url, headers=h, json={"clear": "  Only this  ", "expected_revision": 0}).json()
     assert one["saved"] and one["clear"] == "Only this" and one["questions"] == [] and one["revision"] == 1
     stale = client.put(url, headers=h, json={"difficult": "x", "expected_revision": 0})
-    assert stale.status_code == 409 and stale.json()["error"]["details"] == {"current_revision": 1}
+    assert stale.status_code == 409 and stale.json()["error"]["details"]["current_revision"] == 1
     full = client.put(url, headers=h, json={**REFLECTION, "expected_revision": 1}).json()
     assert [o["kind"] for o in full["observations"]] == ["observed", "interpretation"]
     assert full["event_title"] == "Panel interview" and full["stage"] == "interviewing"

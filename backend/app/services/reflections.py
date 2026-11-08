@@ -365,7 +365,11 @@ class Reflections:
             raise ConflictError(
                 "This reflection was saved somewhere else since you opened it. Your text is still on this page.",
                 code="stale_revision",
-                details={"current_revision": current},
+                # The saved version itself, so the page can show both and let the learner choose.
+                details={
+                    "current_revision": current,
+                    "current": self.get(app_id, event_id).model_dump(mode="json"),
+                },
             )
         linked = set(r.story_ids if r else []) | set(app.story_ids or [])
         story_ids = []
@@ -408,10 +412,11 @@ class Reflections:
             self.db.commit()
         except IntegrityError:  # two first saves at once: the other one created the reflection
             self.db.rollback()
+            saved = self.get(app_id, event_id)
             raise ConflictError(
                 "This reflection was saved somewhere else since you opened it. Your text is still on this page.",
                 code="stale_revision",
-                details={"current_revision": 1},
+                details={"current_revision": saved.revision, "current": saved.model_dump(mode="json")},
             ) from None
         return self._out(app, ev, r)
 

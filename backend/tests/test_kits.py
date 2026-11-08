@@ -195,7 +195,9 @@ def test_a_stale_save_is_refused_and_changes_nothing(client):
     stale = client.put(url, headers=h, json={"notes": "Tab B", "expected_revision": 0})
     assert stale.status_code == 409
     assert stale.json()["error"]["code"] == "stale_revision"
-    assert stale.json()["error"]["details"] == {"current_revision": 1}
+    details = stale.json()["error"]["details"]
+    # The saved version comes back with the refusal, so the page can show both and let the learner choose.
+    assert details["current_revision"] == 1 and details["current"]["notes"] == "Tab A"
     assert client.get(url, headers=h).json()["notes"] == "Tab A"  # nothing overwritten
     # Reloading, then saving against the current revision, works.
     assert client.put(url, headers=h, json={"notes": "Tab B", "expected_revision": 1}).json()["revision"] == 2
@@ -222,7 +224,8 @@ def test_a_save_that_loses_a_race_is_a_conflict_not_a_lost_update(client, monkey
     r = client.put(url, headers=h, json={"notes": "This tab", "expected_revision": 1})
     monkeypatch.setattr(kits_service.Kits, "_story_revisions", real)
     assert r.status_code == 409 and r.json()["error"]["code"] == "stale_revision"
-    assert r.json()["error"]["details"] == {"current_revision": 2}
+    assert r.json()["error"]["details"]["current_revision"] == 2
+    assert r.json()["error"]["details"]["current"]["notes"] == "Other tab"
     assert client.get(url, headers=h).json()["notes"] == "Other tab"
 
 

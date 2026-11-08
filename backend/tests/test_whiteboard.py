@@ -52,7 +52,7 @@ def test_drafts_save_with_revisions_and_refuse_stale_writes(client):
     )
     assert one.status_code == 200 and one.json()["revision"] == 1
     stale = client.put(f"{URL}/{P}/draft", headers=h, json={"diagram": DIAGRAM, "expected_revision": 0})
-    assert stale.status_code == 409 and stale.json()["error"]["details"] == {"current_revision": 1}
+    assert stale.status_code == 409 and stale.json()["error"]["details"]["current_revision"] == 1
     assert client.get(f"{URL}/{P}/draft", headers=h).json()["diagram"]["nodes"][0]["label"] == "Browser"
     assert client.get(f"{URL}/nope/draft", headers=h).status_code == 404
 

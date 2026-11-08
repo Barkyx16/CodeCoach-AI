@@ -17,6 +17,7 @@ import re
 from collections import defaultdict
 from datetime import UTC, datetime
 
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -302,7 +303,7 @@ class RoleTargets:
             raise ConflictError(
                 "This story changed since you opened it (maybe in another tab). Your edits weren't saved.",
                 code="stale_revision",
-                details={"current_revision": e.revision},
+                details={"current_revision": e.revision, "current": jsonable_encoder(snapshot(e))},
             )
         before = snapshot(e)
         for k, v in self._experience_fields(t, body).items():
