@@ -185,6 +185,30 @@ def test_the_restore_refuses_before_writing_anything(source, empty_target, keys,
     subprocess.run(["age-keygen", "-o", str(other)], check=True, capture_output=True)
     refused(made.dump, key=other, match="decryption failed")
 
+    # A manifest missing a field (partial, or edited by hand): before, a raw KeyError.
+    refused(
+        variant("partial", original, {k: v for k, v in manifest.items() if k != "plaintext_sha256"}),
+        match="manifest is incomplete",
+    )
+
+    # Through the CLI, a wrong key's failure never echoes either private key.
+    import os
+
+    env = {**os.environ, "RESTORE_DATABASE_URL": empty_target, "DATABASE_URL": source.owner_url}
+    done = subprocess.run(
+        [os.sys.executable, "-m", "app.cli", "restore-database", str(made.dump), "--identity", str(other)],
+        cwd=Path(__file__).resolve().parents[1],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert done.returncode == 1 and "decryption failed" in done.stdout
+    for key_file in (other, identity):
+        secret_line = next(
+            line for line in key_file.read_text().splitlines() if line.startswith("AGE-SECRET-KEY")
+        )
+        assert secret_line not in done.stdout + done.stderr
+
     # A schema this code doesn't know (a backup from a newer version).
     refused(
         variant("newer", original, {**manifest, "schema_revision": ["ffffffffffff"]}),

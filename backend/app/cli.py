@@ -61,6 +61,15 @@ from app.db.session import make_engine, make_session_factory
 OPENAPI_PATH = Path(__file__).resolve().parents[2] / "docs" / "openapi.json"
 
 
+def _db_error(exc: Exception) -> str:
+    """The error class and the driver's first line: e.g. "OperationalError: connection to server
+    at "db", port 5432 failed: Connection refused". Never the URL, the SQL or its parameters
+    (SQLAlchemy's own text carries both)."""
+    orig = getattr(exc, "orig", None) or exc
+    first = str(orig).strip().splitlines()[0] if str(orig).strip() else ""
+    return f"{type(orig).__name__}: {first}" if first else type(orig).__name__
+
+
 def main(argv: list[str]) -> int:
     command = argv[1] if len(argv) > 1 else ""
     if command == "seed":
@@ -227,6 +236,8 @@ def main(argv: list[str]) -> int:
         if backup_name is not None and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,79}", backup_name):
             print("--name: letters, digits, '.', '_' and '-' only (up to 80), e.g. pre-upgrade-20261108")
             return 2
+        from sqlalchemy.exc import SQLAlchemyError
+
         try:
             made = backup(
                 get_settings().database_url,
@@ -236,6 +247,9 @@ def main(argv: list[str]) -> int:
             )
         except BackupError as exc:
             print(f"Backup failed: {exc}")
+            return 1
+        except SQLAlchemyError as exc:
+            print(f"Backup failed, nothing kept: the database couldn't be used ({_db_error(exc)})")
             return 1
         rows = sum(made.manifest_data["tables"].values())
         print(
@@ -248,6 +262,8 @@ def main(argv: list[str]) -> int:
         return 0
     if command == "restore-database":
         import os
+
+        from sqlalchemy.exc import SQLAlchemyError
 
         from app.db.backup import BackupError, restore
 
@@ -267,6 +283,9 @@ def main(argv: list[str]) -> int:
             )
         except BackupError as exc:
             print(f"Not restored: {exc}")
+            return 1
+        except SQLAlchemyError as exc:
+            print(f"Not restored: a database couldn't be used ({_db_error(exc)})")
             return 1
         print(
             f"Restored {restored.tables} tables, {restored.rows} rows; counts and row-level security policies match."

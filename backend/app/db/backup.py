@@ -361,9 +361,17 @@ def restore(
     manifest_file = manifest_path(dump_file)
     if not dump_file.is_file() or not manifest_file.is_file():
         raise BackupError("the backup is incomplete: the encrypted dump or its manifest is missing")
-    manifest = json.loads(manifest_file.read_text())
-    if manifest.get("format") != "codecoach-backup/1":
+    try:
+        manifest = json.loads(manifest_file.read_text())
+    except (OSError, ValueError):
+        raise BackupError("the manifest isn't readable JSON: the backup is damaged or incomplete") from None
+    if not isinstance(manifest, dict) or manifest.get("format") != "codecoach-backup/1":
         raise BackupError("not a CodeCoach backup manifest")
+    needed = ("encrypted_sha256", "plaintext_sha256", "tables", "table_owners", "granted_roles", "policies")
+    if missing := [k for k in needed if k not in manifest]:
+        raise BackupError(
+            f"the manifest is incomplete (no {', '.join(missing)}): the backup can't be checked, so it isn't restored"
+        )
     if _sha256(dump_file) != manifest["encrypted_sha256"]:
         raise BackupError("the encrypted dump doesn't match its manifest: it's damaged or incomplete")
     if not identity_file.is_file():

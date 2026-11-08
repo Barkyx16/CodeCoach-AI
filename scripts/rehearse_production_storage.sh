@@ -128,13 +128,8 @@ fi
 
 step "2c. client addresses through Docker's published port"
 # A proxy on the host connects through Docker's gateway. The API must believe its X-Forwarded-For,
-# or every visitor shares the gateway's address and its sign-in rate limit.
-curl -s -o /dev/null -H 'X-Forwarded-For: 203.0.113.7' "http://127.0.0.1:$PORT/health"
-sleep 1
-if ! dc logs api 2>/dev/null | grep -q '203\.0\.113\.7'; then
-  echo "FAIL: the API didn't see the forwarded address; it sees:"; dc logs api 2>/dev/null | grep 'GET /health ' | tail -1; exit 1
-fi
-echo "ok: the API sees the visitor's forwarded address, not Docker's gateway: rate limits are per visitor"
+# or every visitor shares the gateway's address and its sign-in rate limit. The proof is the
+# effect: separate limits for separate visitors (below). The API logs no visitor addresses at all.
 # The effect on real limits (synthetic documentation addresses, never a real service): one visitor
 # who uses up the sign-in limit (AUTH_RATE_LIMIT_PER_MINUTE=100 here) gets 429 with Retry-After,
 # while a second visitor still gets through.
@@ -154,6 +149,10 @@ echo "ok: visitor A is limited (429, Retry-After) while visitor B still signs in
 for i in $(seq 1 20); do login_as "198.51.100.$i" throttled@example.com >/dev/null; done
 [ "$(login_as 198.51.100.99 throttled@example.com)" = 429 ] || { echo "FAIL: the per-account limit didn't hold across addresses"; exit 1; }
 echo "ok: the per-account limit holds no matter how many addresses the attempts come from"
+if dc logs api 2>/dev/null | grep -qE '203\.0\.113\.|198\.51\.100\.'; then
+  echo "FAIL: a visitor's address is in the API's logs"; exit 1
+fi
+echo "ok: none of those visitors' addresses is in the API's logs"
 
 step "3. save work, then restart and recreate"
 TOKEN=$(curl -s -X POST "http://127.0.0.1:$PORT/api/v1/auth/register" -H 'Content-Type: application/json' \

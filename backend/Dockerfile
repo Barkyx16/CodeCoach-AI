@@ -43,4 +43,7 @@ HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \
 # Migrations run in the compose "migrate" service (or your deploy pipeline), not here.
 # Worker processes: WEB_CONCURRENCY (uvicorn reads it; default 1). Size the database pool with it
 # (docs/PERFORMANCE.md "Sizing"). Behind a proxy, set FORWARDED_ALLOW_IPS to its address.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+# --no-access-log: uvicorn's own access log writes every visitor's IP address and full path
+# (query string included) on every request. The app logs each request itself (method, route,
+# status, duration, request id), without addresses or query strings (docs/PRIVACY.md).
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--no-access-log"]

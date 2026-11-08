@@ -134,6 +134,23 @@ describe("an e2e run owns what it starts", { timeout: 30_000 }, () => {
     expect(readdirSync(dir)).toEqual([]);
   });
 
+  it("its records hold names and numbers only: no environment, no command line", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "e2e-owned-"));
+    const marker = `codecoach-e2e-test-${Math.random().toString(36).slice(2)}`;
+    process.env.E2E_CANARY_TOKEN = "CANARY-e2e-7f3a9-not-a-real-token"; // inherited by the launcher and servers
+    try {
+      const run = launch(dir, "sleep 300", marker);
+      await until(() => readdirSync(dir).some((f) => f.endsWith(".api.json")));
+      const written = readdirSync(dir).map((f) => readFileSync(join(dir, f), "utf8")).join("\n");
+      expect(written).not.toContain("CANARY-e2e");
+      expect(written).not.toContain(marker); // the server's command line isn't recorded either
+      run.child.kill("SIGTERM");
+      await run.exited;
+    } finally {
+      delete process.env.E2E_CANARY_TOKEN;
+    }
+  });
+
   it("won't stop a run that's still going", async () => {
     const dir = mkdtempSync(join(tmpdir(), "e2e-owned-"));
     const marker = `codecoach-e2e-test-${Math.random().toString(36).slice(2)}`;

@@ -22,7 +22,7 @@ is in [ROW_LEVEL_SECURITY.md](ROW_LEVEL_SECURITY.md) and [SECURITY.md](SECURITY.
 | Exports ("Download my data") | generated on request, **never stored** on the server | the downloaded file is yours | — |
 | AI coaching | built-in coach (default): nothing leaves the server. With Claude enabled (`AI_PROVIDER=anthropic`): the problem and your code, with secret-looking strings redacted, go to Anthropic's API under its data policy | we keep the feedback, never the prompt | feedback deleted at once; Anthropic's copy follows Anthropic's policy |
 | Emails sent to you | your mailbox; the mail provider's delivery logs | the provider's own retention (none chosen yet) | not recalled: an email that went can't be unsent |
-| Server logs | the host's log storage | the host's setting | not linked: logs carry request ids, paths, job ids and SMTP codes, never addresses, codes, links or content (`tests/test_email_transport.py`) |
+| Server logs | the host's log storage | the host's setting | not linked: the app logs each request's method, route path (no query string), status, duration and request id, plus job ids and SMTP codes. Never email addresses, IP addresses, codes, links, bodies or cookies. uvicorn's own access log, which writes each visitor's IP and full path, is **off in the production image** (`--no-access-log`); a local `./dev.sh` still prints it in your terminal |
 | Traces and metrics | API process memory (lost on restart), route templates only | until restart | not linked to content |
 | Server backups | encrypted files, off the server once a schedule exists ([BACKUP.md](BACKUP.md)) | proposed: up to ~3 months | **not erased from older backups**: they age out. A restore must re-delete accounts deleted after that backup |
 | Drafts in your browser (answers, code, notes, stories, whiteboards, reflections, drills, interviews) | this browser's storage | sent, or **cleared when you sign out** on this device (after a warning) | cleared on this device |
@@ -49,6 +49,26 @@ is in [ROW_LEVEL_SECURITY.md](ROW_LEVEL_SECURITY.md) and [SECURITY.md](SECURITY.
    - older server backups, until they expire;
    - files you downloaded.
 
+## Diagnostics and test artifacts
+
+What each place that collects diagnostics holds. "Synthetic" means test accounts and throwaway
+keys that work nowhere else.
+
+| Sink | Holds | Never holds | Kept | Checked by |
+|---|---|---|---|---|
+| App logs (production) | request id, trace id, method, route path, status, duration; job ids, Message-IDs, error classes | email or IP addresses, codes, links, bodies, cookies, answer text | the host's setting | `test_log_redaction.py`, `test_email_transport.py`; compose rehearsal step 2c (no visitor address in the API's logs) |
+| Command output (`preflight`, `check-email`, `email-status`, `backup-database`, `restore-database`, `prune`/`check-backups`) | setting names and presence, stages, file names, counts, the driver's first error line | setting values, database URLs, passwords, private keys | your terminal | `test_preflight.py`, `test_redaction_canaries.py` (canary passwords and values through the failure paths), `test_backup.py` (a wrong key's error never echoes either private key) |
+| Backup manifests, the restore log | table names, row counts, role names, hashes, times | user data | with the backups | `test_backup.py` |
+| e2e run records (`test-results/.e2e-owned`) | run id, server name, process group, start time | environment, command lines | until the run ends | `e2eRun.node.test.ts` (a canary in the environment never reaches them) |
+| e2e failure diagnostics (`[diag]` lines) | API paths, statuses, request ids, headings and alerts on screen | request or response bodies, form values, cookies, headers | CI job log | `frontend/e2e/fixtures.ts` |
+| Playwright traces and screenshots (CI artifact, **failures only**) | what the page showed and its network, including **synthetic** tokens and answers | real users' data: CI uses synthetic accounts and throwaway keys only | 7 days (`retention-days`), visible to people with access to the repository's Actions | the workflow file |
+| The e2e email folder (`backend/e2e-outbox`) | codes and links for synthetic accounts, for the tests to read | anything real | local; gitignored; never uploaded | `.gitignore`, CI's artifact path (frontend only) |
+| CI rehearsal output (compose, launch, CSP) | ok/FAIL lines, versions, counts | passwords, private keys | the CI job log | the rehearsal scripts fail if a password or `AGE-SECRET-KEY` appears in their output |
+
+If a real secret ever shows up in one of these: stop the thing printing it, rotate the secret
+(SECURITY.md), and remember that deleting a local file doesn't remove an uploaded artifact or a
+log line already shipped elsewhere.
+
 ## Checks
 
 | Claim | Test |
@@ -60,6 +80,8 @@ is in [ROW_LEVEL_SECURITY.md](ROW_LEVEL_SECURITY.md) and [SECURITY.md](SECURITY.
 | Sign-out clears every draft key the code uses | `frontend/src/test/integration/offline.test.tsx` (scans the source) |
 | Private responses aren't cached | `tests/test_http_cache.py` |
 | Logs carry no addresses, codes or links | `tests/test_email_transport.py::test_logs_never_carry_the_address_subject_or_code` |
+| The production image logs no visitor IP addresses | `backend/Dockerfile` (`--no-access-log`); compose rehearsal step 2c |
+| Failure output carries no configured value, password or private key | `tests/test_redaction_canaries.py`, `tests/test_backup.py` |
 
 ## Limits
 
