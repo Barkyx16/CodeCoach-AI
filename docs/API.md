@@ -701,6 +701,7 @@ All under `/api/v1/targets` 🔒 and scoped to the owner (another user's id is a
 - `POST /targets/{id}/extract` adds requirements found in the current description that aren't
   there yet. `POST /targets/{id}/requirements` adds one; `PATCH …/requirements/{rid}` corrects,
   re-maps (`skills` must be the career's), removes or restores.
+- `PUT /targets/{id}/experience/{eid}` takes an optional `expected_revision` (the story's revision, `ExperienceOut.revision`): if the story changed since, `409 stale_revision`, as in the story bank.
 - `POST|PUT|DELETE /targets/{id}/experience[/{eid}]`: your own examples, linkable only to this
   target's requirements. Targets, requirements and examples are in the data export and are
   deleted with the account.
@@ -766,8 +767,9 @@ All under `/api/v1/me/notes` 🔒; a note is only ever visible to its owner (any
 - `GET /me/notes?q=&career=&source_type=question|problem|lesson|interview&source_id=&tag=&status=active|archived|all`
   → `{items, total, page, page_size, tags, careers, pinned_limit}`; pinned notes first, then most
   recently updated. Search covers titles, text, reflections and tags.
-- `POST /me/notes {title, body, reflection, tags, source?: {type, id, track?, question_index?}, excerpt?, excerpt_kind?: quote|code}`
-  → `201`. The source must exist (interviews must be yours); its id, version (when one exists)
+- `POST /me/notes {title, body, reflection, tags, source?: {type, id, track?, question_index?}, excerpt?, excerpt_kind?: quote|code, client_request_id?}`
+  → `201`. A repeat with the same `client_request_id` (unique per account) returns the note the
+  first one made, so an autosave retry after a lost response creates nothing twice. The source must exist (interviews must be yours); its id, version (when one exists)
   and title are stored, and `excerpt` is a snapshot. Bounds: title 200, body 20,000, reflection
   5,000, excerpt 4,000 characters, 12 tags.
 - `GET|PATCH|DELETE /me/notes/{id}`. Text changes need `base_revision`; if the note changed since,
@@ -1378,7 +1380,7 @@ All configuration is environment variables (or a `.env` file; see
 | `DATABASE_URL` | `postgresql+psycopg://codecoach:codecoach@localhost:5432/codecoach` | SQLAlchemy URL. `sqlite:///./codecoach.db` works for a quick start. |
 | `AUTO_MIGRATE` | on outside production | Create tables and seed problems on startup. Off by default in production, which refuses `true` (run `alembic upgrade head` and `python -m app.cli seed`). |
 | `DB_POOL_SIZE` / `DB_MAX_OVERFLOW` | `5` / `10` | Database connections per process. Keep processes × (pool + overflow) under PostgreSQL's `max_connections` ([PERFORMANCE.md](PERFORMANCE.md#sizing)). |
-| `DB_POOL_TIMEOUT_SECONDS` | `10` | A request waiting longer for a connection gets `503 server_busy` with `Retry-After`. |
+| `DB_POOL_TIMEOUT_SECONDS` | `10` | A request waiting longer for a connection gets `503 server_busy` with `Retry-After`. A database that can't be reached (or a cancelled or timed-out statement) gets `503 database_unavailable` with `Retry-After: 5`. |
 | `SECRET_KEY` | insecure dev value | **Secret.** Signs access tokens and keys the email-code and refresh-recovery HMACs. Production refuses the dev value, placeholder text and repetitive strings. |
 | `SECRET_KEY_PREVIOUS` | (none) | **Secret.** Comma-separated keys being rotated out: accepted when checking, never used to sign ([SECURITY.md §7](SECURITY.md#7-secrets-rotation-and-the-database-role)). |
 | `ACCESS_TOKEN_TTL_MINUTES` | `15` | Access-token lifetime (5–1440). |

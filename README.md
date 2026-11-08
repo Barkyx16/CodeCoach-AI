@@ -184,6 +184,14 @@ Docker builds: [.github/workflows/ci.yml](.github/workflows/ci.yml).
 | [docs/AI_EVALUATION.md](docs/AI_EVALUATION.md) | How the AI coach is measured: datasets and provenance, reproducible runs, release gates, results (rubric v1 → v2), limitations |
 | [docs/EVAL_PROTOCOL.md](docs/EVAL_PROTOCOL.md) | The frozen evaluation protocol: set roles and exposure, sealed final set, duplicate checks, metrics with intervals, release rule, label review |
 | [docs/SECURITY.md](docs/SECURITY.md) | Implemented controls, AI safeguards, sandbox threat model and design |
+| [docs/LAUNCH_READINESS.md](docs/LAUNCH_READINESS.md) | Launch readiness: what each step changed, the defects found, how far each is verified, what's still needed |
+| [docs/LAUNCH.md](docs/LAUNCH.md) | The `preflight` command (ready / blocked / optional / unverified), the production-shaped rehearsal, the runbook |
+| [docs/EMAIL.md](docs/EMAIL.md) | Sending email for real: SMTP with verified TLS, delivery stages, verification, changing the address, diagnosing problems |
+| [docs/STORAGE.md](docs/STORAGE.md) | Where data lives in each setup, what survives what, the production database layout and roles |
+| [docs/PERSISTENCE.md](docs/PERSISTENCE.md) | Feature by feature: the saved record, browser-only drafts, what "Saved" means, conflicts |
+| [docs/ROW_LEVEL_SECURITY.md](docs/ROW_LEVEL_SECURITY.md) | Database-enforced isolation at runtime: roles, scopes, pooled connections, background work |
+| [docs/BACKUP.md](docs/BACKUP.md) | Encrypted server backups, isolated restores, recovery targets vs measured |
+| [docs/PRIVACY.md](docs/PRIVACY.md) | Where personal data goes, how long it stays, and what deletion does and can't reach |
 | [docs/FRONTEND_HANDOFF.md](docs/FRONTEND_HANDOFF.md) | Original frontend engineering handoff |
 | [docs/FRONTEND_PROGRESS.md](docs/FRONTEND_PROGRESS.md) | Premium frontend changes, architecture decisions, validation and development workflow |
 | [docs/openapi.json](docs/openapi.json) | Machine-readable API contract (kept in sync by a test) |
