@@ -81,3 +81,21 @@ html { scroll-padding-top: calc(var(--header-height) + 8px); scroll-padding-bott
 .state__message { align-items: center; }
 .state__actions { justify-content: center; }
 .state__report { width: 100%; display: flex; justify-content: center; }
+
+/* The portfolio demo's entry (Volume 7, prompt 10). */
+.landing__demo { margin: 0 auto var(--space-4); max-width: 72rem; }
+.demo-page__caps { display: grid; gap: var(--space-2); margin: 0; }
+.demo-page__caps div { display: grid; grid-template-columns: 12rem minmax(0, 1fr); gap: var(--space-3); }
+.demo-page__caps dt { font-weight: var(--weight-medium); }
+.demo-page__caps dd { margin: 0; }
+@media (max-width: 640px) { .demo-page__caps div { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+.demo-page__personas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--space-4); margin-top: var(--space-4); }
+.demo-page__steps { margin-top: var(--space-4); }
+.demo-steps { margin: 0; padding-left: 1.3em; display: grid; gap: var(--space-2); }
+.demo-persona__examples summary { cursor: pointer; font-weight: var(--weight-medium); min-height: 32px; display: flex; align-items: center; }
+.demo-example { border-top: 1px solid var(--color-border); padding-top: var(--space-3); margin-top: var(--space-3); }
+.demo-example__title { margin: 0; font-size: var(--text-base, 1rem); }
+.demo-example__label { margin: 0; font-size: var(--text-sm); color: var(--color-text-muted); }
+.demo-example__score { margin: 0; font-weight: var(--weight-medium); }
+.demo-example__answer { margin: 0; padding: var(--space-2) var(--space-3); border-left: 3px solid var(--color-border-strong); background: var(--color-surface-sunken); white-space: pre-wrap; }
+.demo-page__notes { margin-top: var(--space-4); padding-left: 1.2em; }

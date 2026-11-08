@@ -117,8 +117,12 @@ export function useTopics() {
 }
 
 /** What this deployment supports (e.g. whether code runs). Changes only on redeploy. */
-export function useCapabilities() {
-  return useQuery({ queryKey: queryKeys.capabilities, queryFn: api.capabilities, staleTime: Infinity });
+export function useDemo(enabled: boolean) {
+  return useQuery({ queryKey: ["demo"], queryFn: api.demo, enabled, staleTime: 5 * 60_000 });
+}
+
+export function useCapabilities(enabled = true) {
+  return useQuery({ queryKey: queryKeys.capabilities, queryFn: api.capabilities, staleTime: Infinity, enabled });
 }
 
 /**

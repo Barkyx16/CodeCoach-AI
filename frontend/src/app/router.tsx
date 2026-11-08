@@ -45,6 +45,7 @@ const RestorePage = lazy(() => import("@/features/settings/RestorePage").then((m
 const ShareComposerPage = lazy(() => import("@/features/sharing/ShareComposerPage").then((m) => ({ default: m.ShareComposerPage })));
 const ShareDetailPage = lazy(() => import("@/features/sharing/ShareDetailPage").then((m) => ({ default: m.ShareDetailPage })));
 const SharedPage = lazy(() => import("@/features/sharing/SharedPage").then((m) => ({ default: m.SharedPage })));
+const DemoPage = lazy(() => import("@/features/demo/DemoPage").then((m) => ({ default: m.DemoPage })));
 const SharesPage = lazy(() => import("@/features/sharing/SharesPage").then((m) => ({ default: m.SharesPage })));
 const AdminReportPage = lazy(() => import("@/features/admin/AdminReportPage").then((m) => ({ default: m.AdminReportPage })));
 const AdminReportsPage = lazy(() => import("@/features/admin/AdminReportsPage").then((m) => ({ default: m.AdminReportsPage })));
@@ -133,6 +134,8 @@ export const routes: RouteObject[] = [
       { path: "/help", element: <HelpPage /> },
       // Public: the report works signed out, offline and while the server is down.
       { path: "/help/report", element: <SupportReportPage /> },
+      // Public: the portfolio demo's entry (it says so when the server isn't a demo server).
+      { path: "/demo", element: <Suspense fallback={<LoadingState label="Loading the demo…" />}><DemoPage /></Suspense> },
       { path: "/stories", element: <RequireAuth><StoriesPage /></RequireAuth> },
       { path: "/applications", element: <RequireAuth><ApplicationsPage /></RequireAuth> },
       { path: "/schedule", element: <RequireAuth><SchedulePage /></RequireAuth> },

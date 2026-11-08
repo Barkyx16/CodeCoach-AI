@@ -45,7 +45,8 @@ describe("Problem workspace", () => {
       return HttpResponse.json(queuedSubmission, { status: 202 });
     }));
     const { user } = renderApp("/problems/two-sum", { signedIn: true });
-    await user.click(await screen.findByRole("button", { name: "Submit" }));
+    // No judge on this server: once the page knows, the button says what it will do.
+    await user.click(await screen.findByRole("button", { name: /^Save attempt/ }));
     expect(await screen.findByText("Saved, but not run yet.")).toBeInTheDocument();
     expect(screen.getByText("Queued")).toBeInTheDocument();
     expect(posted).toMatchObject({ problem_slug: "two-sum", language: "java" });
@@ -53,7 +54,7 @@ describe("Problem workspace", () => {
 
   it("sends signed-out users to login when they submit", async () => {
     const { user, router } = renderApp("/problems/two-sum");
-    await user.click(await screen.findByRole("button", { name: "Submit" }));
+    await user.click(await screen.findByRole("button", { name: /^Save attempt/ }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
   });
 

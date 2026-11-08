@@ -205,6 +205,7 @@ Docker builds: [.github/workflows/ci.yml](.github/workflows/ci.yml).
 | [docs/VERIFICATION_JOURNEY.md](docs/VERIFICATION_JOURNEY.md) | What the learner sees while confirming an email: masked address, honest delivery states, resend, links that don't work, other tabs |
 | [docs/INTERVIEW_CONTINUITY.md](docs/INTERVIEW_CONTINUITY.md) | One interview across tabs and devices: who wins a race, what the other tab is told, the limits |
 | [docs/NAVIGATION.md](docs/NAVIGATION.md) | Back, deep links and direct entry: what returns where, what survives a reload or a copied link |
+| [docs/DEMO.md](docs/DEMO.md) | The portfolio demo: the ten-minute walkthrough, running and resetting it safely, what's isolated and what's real, the evidence |
 | [docs/VOICE.md](docs/VOICE.md) | Voice in interviews and drills: what each browser offers, the controls, the transcript rules, recovery, the simulated engagement cue's limits, privacy |
 | [docs/SUPPORT_REPORT.md](docs/SUPPORT_REPORT.md) | The private support report: every field and what it helps diagnose, what's never in it, and what evidence stays unavailable |
 | [docs/RECOVERY.md](docs/RECOVERY.md) | When an action fails: the message and the way on, the server's waits, how a write whose answer was lost is reconciled, and what can't yet be retried safely |

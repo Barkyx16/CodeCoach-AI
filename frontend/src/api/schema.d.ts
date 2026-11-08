@@ -3021,6 +3021,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/demo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The demo's fictional sample learners and their example answers (demo servers only)
+         * @description A read-only sample, the same for every visitor; each visitor's own work is in their own
+         *     guest session. Only the sample learners' rows are read.
+         */
+        get: operations["demo_api_v1_demo_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/telemetry/ui": {
         parameters: {
             query?: never;
@@ -3899,6 +3920,12 @@ export interface components {
              * @default false
              */
             answer_request_keys: boolean;
+            /**
+             * Demo Mode
+             * @description A portfolio demo with fictional data (GET /api/v1/demo): visitors use guest sessions, and nothing that sends email is available.
+             * @default false
+             */
+            demo_mode: boolean;
         };
         /** CareerAnalytics */
         CareerAnalytics: {
@@ -4546,6 +4573,62 @@ export interface components {
              * @description `retrying` only: the next automatic try
              */
             next_try_at?: string | null;
+        };
+        /** DemoExample */
+        DemoExample: {
+            /** Question Id */
+            question_id: string;
+            /** Question Title */
+            question_title: string;
+            /** Answer */
+            answer: string;
+            /** Score */
+            score: number;
+            /** Rating */
+            rating: string;
+            /** Summary */
+            summary: string;
+            /**
+             * Answered At
+             * Format: date-time
+             */
+            answered_at: string;
+            /**
+             * Label
+             * @description Says what this is: an example written for the demo, and who graded it
+             */
+            label: string;
+        };
+        /** DemoOut */
+        DemoOut: {
+            /** Personas */
+            personas: components["schemas"]["DemoPersona"][];
+            /** Notes */
+            notes: string[];
+        };
+        /** DemoPersona */
+        DemoPersona: {
+            /** Key */
+            key: string;
+            /**
+             * Name
+             * @description A fictional learner's name
+             */
+            name: string;
+            /** Career Track */
+            career_track: string;
+            /** Career Title */
+            career_title: string;
+            /** Summary */
+            summary: string;
+            /** Start Question Id */
+            start_question_id: string;
+            /** Start Question Title */
+            start_question_title: string;
+            /** Problem Slug */
+            problem_slug?: string | null;
+            /** Examples */
+            examples: components["schemas"]["DemoExample"][];
         };
         /**
          * Difficulty
@@ -21606,6 +21689,40 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Capabilities"];
                 };
+            };
+        };
+    };
+    demo_api_v1_demo_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoOut"];
+                };
+            };
+            /** @description Not a demo server */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Demo not set up */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

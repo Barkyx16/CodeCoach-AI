@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, ScrollRestoration, useLocation, useNavigate } from "react-router-dom";
 
+import { useCapabilities } from "@/api/queries";
 import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/Button";
 import { BrandMark } from "@/components/BrandMark";
@@ -20,6 +21,9 @@ export function Layout() {
   const { user, isAuthenticated, isRestoring, logout, signedOutReason, offlineUser } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  // A demo server has no accounts to sign in to or create: its header offers the demo instead.
+  // Only a signed-out header needs to know.
+  const demoMode = useCapabilities(!isAuthenticated && !isRestoring).data?.demo_mode === true;
   const [openPath, setOpenPath] = useState<string | null>(null);
   const menuOpen = openPath === pathname;
   const headerRef = useRef<HTMLElement>(null);
@@ -166,6 +170,8 @@ export function Layout() {
             <span className="header__user" title="Offline: your sign-in will be checked when you're back online">
               <span className="badge">Offline</span> {offlineUser.display_name ?? (offlineUser.is_guest ? "Guest" : "")}
             </span>
+          ) : demoMode ? (
+            <NavLink to="/demo" className="btn btn--primary btn--sm" onClick={() => setOpenPath(null)}>Guided demo</NavLink>
           ) : (
             <>
               <NavLink to="/login" className="nav__link">Sign in</NavLink>

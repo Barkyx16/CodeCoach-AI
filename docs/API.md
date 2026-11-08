@@ -199,6 +199,7 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 | GET | `/health` | – | Liveness |
 | GET | `/health/ready` | – | Readiness (database check) |
 | GET | `/api/v1/capabilities` | – | What this deployment supports (code execution, AI provider) |
+| GET | `/api/v1/demo` | – | Demo servers only (404 otherwise): the fictional sample learners and their labelled example answers (docs/DEMO.md) |
 | POST | `/api/v1/auth/register` | – | Create account → token |
 | POST | `/api/v1/auth/login` | – | Log in → token |
 | POST | `/api/v1/auth/refresh` | cookie | New access token from the refresh cookie (rotates it) |
@@ -416,7 +417,7 @@ evaluations. Credentials (password hash, token version) are never included.
 
 ### Capabilities
 
-`GET /api/v1/capabilities` (public) → `{execution_enabled, ai_provider, execution, guest_retention_days}`.
+`GET /api/v1/capabilities` (public) → `{execution_enabled, ai_provider, execution, guest_retention_days, ui_telemetry, emails_delivered, answer_request_keys, demo_mode}`. On a demo server (`DEMO_MODE`), registration, guest upgrade, password reset, email change and verification emails answer 403 `demo_mode`.
 `execution` is `{state: ready|unavailable|not_configured, reason, message, run_available,
 submit_mode: judged|queued_until_available|saved_only, checked_at, setup_help}` from an
 authenticated runner probe (cached 15 s) plus a check that the queue is moving; `setup_help` is null

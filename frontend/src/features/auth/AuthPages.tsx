@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
+import { useCapabilities } from "@/api/queries";
 import { useAuth } from "@/auth/useAuth";
 import { ActionError } from "@/components/ActionError";
 import { Button } from "@/components/Button";
@@ -140,6 +141,21 @@ export function RegisterPage() {
 
   const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
+  const demoMode = useCapabilities().data?.demo_mode === true;
+
+  if (demoMode) {
+    // A demo server sends no email, so it creates no accounts (the server refuses them too).
+    return (
+      <AuthLayout>
+        <div className="card auth__card stack">
+          <h1 className="page__title">Accounts can't be created on this demo</h1>
+          <p className="muted">This is a demo server with fictional data, and it sends no email. Your demo session works
+            without an account, and only you can see it.</p>
+          <Link className="btn btn--primary btn--md" to="/demo">Go to the guided demo</Link>
+        </div>
+      </AuthLayout>
+    );
+  }
 
   return (
     <AuthLayout>

@@ -4,6 +4,9 @@ python -m app.cli seed        # upsert the curated problem library
 python -m app.cli openapi     # print the OpenAPI schema (JSON) to stdout
 python -m app.cli prune-guests [--days N]   # delete guest accounts inactive for N days
                                             # (default GUEST_RETENTION_DAYS)
+python -m app.cli demo-reset --confirm NAME  # reset a DEMO database to its fixed starting state:
+                              # shows the target, refuses anything that isn't a demo database
+                              # before changing it, prints the starting-state fingerprint
 python -m app.cli judge-check # prove the configured code judge works, end to end
 python -m app.cli housekeeping  # retry due emails and run every housekeeping step once, now
 python -m app.cli check-email [--connect] [--send-test ADDRESS]
@@ -89,6 +92,16 @@ def main(argv: list[str]) -> int:
         OPENAPI_PATH.write_text(json.dumps(create_app().openapi(), indent=2) + "\n")
         print(f"Wrote {OPENAPI_PATH}")
         return 0
+    if command == "demo-reset":
+        from app.demo import run_reset
+
+        settings = get_settings()
+        confirm = (
+            argv[argv.index("--confirm") + 1]
+            if "--confirm" in argv and argv.index("--confirm") + 1 < len(argv)
+            else None
+        )
+        return run_reset(settings, make_engine(settings.database_url), confirm)
     if command == "prune-guests":
         from app.services.retention import prune_inactive_guests
 

@@ -128,6 +128,10 @@ class Settings(BaseSettings):
     # Secure cookies need HTTPS. Unset means: secure in production, not in development/tests.
     refresh_cookie_secure: bool | None = None
     allow_guest_sessions: bool = True
+    # A portfolio demo (docs/DEMO.md): visitors use their own guest sessions; creating accounts,
+    # upgrading a guest, password resets, email changes and verification emails are refused, so
+    # this server never sends email. Its database is a demo database: python -m app.cli demo-reset.
+    demo_mode: bool = False
     # Guest (demo) accounts with no activity for this many days are deleted with their data
     # (python -m app.cli prune-guests, or daily by the judge worker). 0 keeps them forever.
     guest_retention_days: int = Field(default=30, ge=0)

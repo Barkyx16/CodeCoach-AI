@@ -146,7 +146,9 @@ def test_capabilities_say_whether_runs_work(client, make_client):
         "ui_telemetry",
         "answer_request_keys",  # Durable Saves brief 05: keyed answer saves are kept once
         "emails_delivered",  # false only on a development server that prints emails instead
+        "demo_mode",  # Volume 7 prompt 10: a portfolio demo server (docs/DEMO.md)
     }
+    assert caps["demo_mode"] is False
     assert caps["answer_request_keys"] is True
     assert (
         caps["execution_enabled"] is False

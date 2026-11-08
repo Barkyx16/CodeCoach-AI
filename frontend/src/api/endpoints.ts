@@ -20,6 +20,7 @@ import type {
   ApplicationUpdate,
   Bookmark,
   Capabilities,
+  DemoOut,
   Career,
   CareerAnalytics,
   CheckResult,
@@ -305,6 +306,8 @@ export const api = {
   publicProblem: (slug: string) => apiRequest<ProblemDetail>(`/api/v1/problems/${encodeURIComponent(slug)}`, { auth: false }),
 
   capabilities: () => apiRequest<Capabilities>("/api/v1/capabilities"),
+  /** The portfolio demo's fictional sample (404 unless the server runs the demo). */
+  demo: () => apiRequest<DemoOut>("/api/v1/demo"),
 
   // submissions
   submit: (body: SubmissionCreate) => apiRequest<Submission>("/api/v1/submissions", { method: "POST", body }),

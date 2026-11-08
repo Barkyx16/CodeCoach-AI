@@ -36,6 +36,7 @@ Thumbs.db
 
 # E2E artifacts (screenshots used in docs are copied to docs/screenshots)
 frontend/e2e/screenshots/
+frontend/e2e-demo/screenshots/
 backend/e2e.db*
 # E2E_PORT_OFFSET runs get their own database and outbox
 backend/e2e-*.db*
@@ -44,6 +45,8 @@ runner/.pytest_cache/
 # Password-reset emails written by the e2e backend
 backend/e2e-outbox/
 backend/e2e-outbox-*/
+backend/e2e-demo-outbox-*/
+backend/e2e-demo-fingerprint-*.txt
 backend/outbox/
 
 # Generated label-review packets (python -m evals.review_packet)

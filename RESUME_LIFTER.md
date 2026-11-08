@@ -45,7 +45,7 @@ The "Session log" at the bottom tracks exactly what that is.
 
 - Designed and built **CodeCoach AI**, a full-stack Java interview-practice platform
   (Python/FastAPI, PostgreSQL, SQLAlchemy/Alembic, Docker, GitHub Actions), with
-  **30 documented REST endpoints** and an OpenAPI contract kept in sync by automated tests.
+  **212 documented API operations** and an OpenAPI contract kept in sync by automated tests.
 - Built an **AI coaching layer** with progressive, server-enforced hint disclosure and
   schema-validated code reviews, behind a provider-agnostic interface with automatic fallback,
   secret redaction, prompt-injection framing and per-user daily cost budgets.
@@ -65,8 +65,8 @@ The "Session log" at the bottom tracks exactly what that is.
   attempt) so every API replica shares one budget, verified with concurrent writers on
   PostgreSQL and against a live server with and without a trusted proxy.
 - Implemented **JWT authentication** with Argon2id hashing, token revocation, brute-force
-  rate limiting and ownership-based authorization, covered by **120+ pytest tests** that run
-  against both SQLite and PostgreSQL in CI.
+  rate limiting and ownership-based authorization, covered by **about 2,500 pytest tests** that run
+  on SQLite and again on PostgreSQL with row-level security enforced, in CI.
 - Built a library of **300 Java problems (100 easy, 100 medium, 100 hard) with 2,391 public and
   hidden test cases**, where every expected output is produced by two independent implementations
   (a deliberately simple Python model and an optimal Java reference) that must agree on hand-picked
@@ -104,15 +104,29 @@ The "Session log" at the bottom tracks exactly what that is.
 - Turned one-off accessibility checks into an **automated WCAG 2.1 AA gate** (axe-core in
   Playwright, 11 screens on desktop and mobile, plus real judged results) that runs in CI. It
   immediately caught a label-in-name bug the manual sample missed.
-- Wrote a **browser audit that uses every one of the app's 325 controls** on 15 page states
-  and fails if any does nothing or causes an error; it found a judge bug that blamed learners for
-  infrastructure failures.
+- Wrote a **browser audit that uses every one of the app's controls** (444 on 15 page states in
+  its latest full run) and fails if any does nothing or causes an error; it found a judge bug that
+  blamed learners for infrastructure failures, and a dead "Create account" button.
 - Built a **React + TypeScript** frontend (Vite, TanStack Query, Monaco editor) with a
   resizable three-panel workspace, autosaved drafts, a progress dashboard and a mobile layout,
   with API types **generated from the OpenAPI contract** so frontend and backend can't drift.
-- Wrote **60 frontend unit and integration tests** (Vitest + MSW) and **Playwright end-to-end
-  tests** that drive a real browser against the real backend; served the production build
-  from unprivileged nginx with a **strict Content-Security-Policy**.
+- Wrote **about 890 frontend unit and integration tests** (Vitest + MSW) and **about 95 Playwright
+  end-to-end tests** that drive a real browser against the real backend; served the production
+  build from unprivileged nginx with a **strict Content-Security-Policy**.
+- Made **failed actions recoverable without doing anything twice**: hints, reviews, submissions,
+  answers and new stories carry a request key, so retrying after a lost reply returns the saved
+  result instead of a second charge or record. Shown by a browser test that lets the server finish
+  and then drops the reply.
+- Made **a mock interview survive tabs, devices and reloads**: database constraints allow one live
+  interview and one answer per question; a stale tab gets a 409 with a way to resume, never a
+  silent overwrite. Tested with concurrent requests and with two browser contexts.
+- Built a **private support report** from a strict allowlist (no answers, messages, tokens or full
+  user agent), previewed exactly as copied or downloaded; 7 deliberate privacy regressions are each
+  caught by its tests.
+- Built a **repeatable portfolio demo**: per-visitor guest sessions, fictional sample learners
+  with labelled example answers, no email, and a reset that refuses any database that isn't a
+  demo before changing it. Reset twice from a fresh database gives the same fingerprint, checked
+  before every browser run of the demo on desktop and a phone.
 
 *Add after they're built and measured, never before:* runner throughput or latency,
 p50/p95 API latency under load, AI hint-quality evaluation scores, frontend test coverage.
@@ -769,6 +783,14 @@ These are moments where the obvious path was wrong and a deliberate decision was
 
 ## 7. How to demo it in an interview (5 minutes)
 
+**Without a Linux judge (any laptop):** run the portfolio demo (docs/DEMO.md). Reset the demo
+database (`python -m app.cli demo-reset --confirm codecoach-demo.db`), start the API with
+`DEMO_MODE=true`, open `/demo`. It says what's live and what isn't (no judge, the built-in
+coach). Pick the nurse: answer a question, start an interview, answer one question, reload, and
+it resumes. Then show the dashboard. Open a second browser: that visitor sees none of it.
+
+**With the judge (Linux + gVisor):**
+
 1. `EXECUTION_ENABLED=true RUNNER_TOKEN=$(openssl rand -hex 32) docker compose --profile judge up --build`
    (on a Linux machine with gVisor), then open `http://localhost:3000`.
 2. Click **Try it now**: a guest session opens *Two Sum* in the three-panel workspace.
@@ -786,6 +808,18 @@ These are moments where the obvious path was wrong and a deliberate decision was
    brute-force idea and it asks for better; then finish and walk through the rubric evidence.
 8. **Dashboard**: stats, heatmap, topic bars, and the recommendation reasons.
 9. Show the GitHub Actions run, especially the **sandbox** job attacking gVisor with hostile code.
+
+## 8. Case study: four problems, what changed, the evidence
+
+| Problem | What changed | Evidence | Known limit |
+|---|---|---|---|
+| A reply lost on a flaky connection made a retry charge the AI budget twice or save a second answer | every write that costs or creates something carries a client key; a resend returns the saved result | backend race tests on SQLite and PostgreSQL; a browser test that drops real replies (`e2e/recovery.spec.ts`) | keys live in page memory: a reload starts a new one |
+| Two tabs could both answer the same interview question | one live interview and one turn per position, enforced by the database; the loser gets a 409 and a Resume card | barrier-synchronised race tests; a two-context browser test (`e2e/interview-continuity.spec.ts`) | a tab learns only on its next action or on focus |
+| One learner reading another's data | owner checks on every route, plus PostgreSQL row-level security that denies by default | a route-walking test that calls every endpoint as a second user; the demo's two-visitor test in the API and the browser | a passing suite shows the cases it covers, not that no leak exists |
+| Restoring a backup could re-send old emails to real people | a restored database holds unsent mail until an operator releases or suppresses it | the PostgreSQL restore test with a negative control; the production compose rehearsal | SMTP has no idempotency: a message mid-send at backup time may already have arrived |
+
+Numbers in this document come from the runs recorded in docs/LAUNCH_READINESS.md (commit, command
+and result). Performance figures are from docs/PERFORMANCE.md and that machine.
 
 ---
 

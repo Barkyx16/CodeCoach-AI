@@ -16460,6 +16460,34 @@
         }
       }
     },
+    "/api/v1/demo": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "The demo's fictional sample learners and their example answers (demo servers only)",
+        "description": "A read-only sample, the same for every visitor; each visitor's own work is in their own\nguest session. Only the sample learners' rows are read.",
+        "operationId": "demo_api_v1_demo_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not a demo server"
+          },
+          "503": {
+            "description": "Demo not set up"
+          }
+        }
+      }
+    },
     "/api/v1/telemetry/ui": {
       "post": {
         "tags": [
@@ -18825,6 +18853,12 @@
             "title": "Answer Request Keys",
             "description": "Career answers accept `client_request_id`, and this server keeps at most one saved answer per account and key (a resend returns the saved answer). Absent or false (older servers): a key is ignored, so it promises nothing.",
             "default": false
+          },
+          "demo_mode": {
+            "type": "boolean",
+            "title": "Demo Mode",
+            "description": "A portfolio demo with fictional data (GET /api/v1/demo): visitors use guest sessions, and nothing that sends email is available.",
+            "default": false
           }
         },
         "type": "object",
@@ -20386,6 +20420,143 @@
           "state"
         ],
         "title": "DeliveryOut"
+      },
+      "DemoExample": {
+        "properties": {
+          "question_id": {
+            "type": "string",
+            "title": "Question Id"
+          },
+          "question_title": {
+            "type": "string",
+            "title": "Question Title"
+          },
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          },
+          "score": {
+            "type": "integer",
+            "title": "Score"
+          },
+          "rating": {
+            "type": "string",
+            "title": "Rating"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "answered_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Answered At"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "Says what this is: an example written for the demo, and who graded it"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question_id",
+          "question_title",
+          "answer",
+          "score",
+          "rating",
+          "summary",
+          "answered_at",
+          "label"
+        ],
+        "title": "DemoExample"
+      },
+      "DemoOut": {
+        "properties": {
+          "personas": {
+            "items": {
+              "$ref": "#/components/schemas/DemoPersona"
+            },
+            "type": "array",
+            "title": "Personas"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "personas",
+          "notes"
+        ],
+        "title": "DemoOut"
+      },
+      "DemoPersona": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "A fictional learner's name"
+          },
+          "career_track": {
+            "type": "string",
+            "title": "Career Track"
+          },
+          "career_title": {
+            "type": "string",
+            "title": "Career Title"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "start_question_id": {
+            "type": "string",
+            "title": "Start Question Id"
+          },
+          "start_question_title": {
+            "type": "string",
+            "title": "Start Question Title"
+          },
+          "problem_slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Problem Slug"
+          },
+          "examples": {
+            "items": {
+              "$ref": "#/components/schemas/DemoExample"
+            },
+            "type": "array",
+            "title": "Examples"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "name",
+          "career_track",
+          "career_title",
+          "summary",
+          "start_question_id",
+          "start_question_title",
+          "examples"
+        ],
+        "title": "DemoPersona"
       },
       "Difficulty": {
         "type": "string",

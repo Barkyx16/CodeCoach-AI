@@ -26,6 +26,10 @@ function serveSequence(states: Submission[]) {
 }
 
 async function submitTwoSum() {
+  // These submissions are judged, so this server has a judge (the button says Submit).
+  server.use(http.get(`${API}/api/v1/capabilities`, () => HttpResponse.json({
+    execution_enabled: true, ai_provider: "offline", execution: executionStatus("ready"), guest_retention_days: 30,
+  })));
   const ctx = renderApp("/problems/two-sum", { signedIn: true });
   await ctx.user.click(await ctx.findByRole("button", { name: "Submit" }));
   return ctx;

@@ -72,6 +72,18 @@ def _check_account_failures(request: Request, email: str) -> None:
         )
 
 
+DEMO_REFUSAL = (
+    "This is a demo with fictional data: accounts can't be created or changed here and no email is sent. "
+    "Your demo session works without one."
+)
+
+
+def refuse_in_demo(request: Request) -> None:
+    """On a demo server (DEMO_MODE), the routes that create accounts or send email are refused."""
+    if request.app.state.settings.demo_mode:
+        raise ForbiddenError(DEMO_REFUSAL, code="demo_mode")
+
+
 def _send_email(
     request: Request,
     background: BackgroundTasks,
@@ -83,7 +95,10 @@ def _send_email(
     payload: dict | None = None,
 ) -> None:
     """Record the email as a durable job, then try it right after the response. If that try
-    fails (or this process stops first), the background jobs loop retries it (services/outbox.py)."""
+    fails (or this process stops first), the background jobs loop retries it (services/outbox.py).
+    A demo server never sends email: the routes refuse first, and this refuses again."""
+    if settings.demo_mode:
+        raise ForbiddenError(DEMO_REFUSAL, code="demo_mode")
     job = outbox.enqueue(db, kind, user_id=user_id, payload=payload)
     db.commit()
     background.add_task(
@@ -133,6 +148,7 @@ def _start_session(db: Session, user: User, response: Response, settings: Settin
 
 @router.post(
     "/register",
+    dependencies=[Depends(refuse_in_demo)],
     status_code=status.HTTP_201_CREATED,
     response_model=TokenResponse,
     responses=_ERRORS,
@@ -224,6 +240,7 @@ def guest(
 
 @router.post(
     "/upgrade",
+    dependencies=[Depends(refuse_in_demo)],
     response_model=TokenResponse,
     responses=_ERRORS,
     summary="Turn the current guest account into a full account, keeping all of its data",
@@ -403,6 +420,7 @@ def verify_email_code(
 
 @router.post(
     "/verify-email/resend",
+    dependencies=[Depends(refuse_in_demo)],
     status_code=status.HTTP_202_ACCEPTED,
     response_model=AcceptedResponse,
     responses=_ERRORS,
@@ -437,6 +455,7 @@ def resend_verification(
 
 @router.post(
     "/email",
+    dependencies=[Depends(refuse_in_demo)],
     response_model=UserOut,
     responses=_ERRORS,
     summary="Ask to change your email (needs your password); it changes once the new address confirms",
@@ -492,6 +511,7 @@ def cancel_email_change(user: User = Depends(get_current_user), db: Session = De
 
 @router.post(
     "/password-reset",
+    dependencies=[Depends(refuse_in_demo)],
     status_code=status.HTTP_202_ACCEPTED,
     response_model=AcceptedResponse,
     responses=error_responses(422, 429),
