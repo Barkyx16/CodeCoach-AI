@@ -118,7 +118,7 @@ test("save a drill, put it in a collection and on the schedule; works at 320px l
   await page.goto("/drills/clarify");
   await page.getByRole("button", { name: "Bookmark", exact: true }).click();
   await expect(page.getByRole("button", { name: "Bookmarked" })).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("combobox", { name: /^Add to a collection/ }).selectOption({ label: "New collection…" });
+  // No collections yet, so there's no picker: just the new collection's name.
   await page.getByLabel("New collection name").fill("Between interviews");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await expect(page.getByRole("link", { name: "Between interviews" })).toBeVisible();

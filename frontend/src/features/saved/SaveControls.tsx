@@ -61,14 +61,17 @@ export function SaveControls({ item, title }: { item: SavedItemRef; title: strin
         </p>
       )}
       <form className="stack-sm" onSubmit={add}>
-        <label className="field">
-          <span className="field__label">Add to a collection</span>
-          <select className="input" value={chosen} onChange={(e) => { setTarget(e.target.value); setMessage(""); setError(null); }}
-            disabled={collections.isPending}>
-            {list.map((c) => <option key={c.id} value={c.id} disabled={Boolean(c.contains)}>{c.name}{c.contains ? " (already added)" : ""}</option>)}
-            <option value={NEW}>New collection…</option>
-          </select>
-        </label>
+        {/* With no collections yet there's nothing to choose: just name the new one. */}
+        {(collections.isPending || list.length > 0) && (
+          <label className="field">
+            <span className="field__label">Add to a collection</span>
+            <select className="input" value={chosen} onChange={(e) => { setTarget(e.target.value); setMessage(""); setError(null); }}
+              disabled={collections.isPending}>
+              {list.map((c) => <option key={c.id} value={c.id} disabled={Boolean(c.contains)}>{c.name}{c.contains ? " (already added)" : ""}</option>)}
+              <option value={NEW}>New collection…</option>
+            </select>
+          </label>
+        )}
         {chosen === NEW && (
           <label className="field">
             <span className="field__label">New collection name</span>

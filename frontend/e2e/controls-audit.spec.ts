@@ -7,6 +7,8 @@ import { expect, test, type Page } from "./fixtures";
 // Writes test-results/controls-audit.json.
 test.skip(process.env.AUDIT !== "1", "set AUDIT=1");
 test.setTimeout(30 * 60_000);
+// A control that's gone should fail in seconds, not wait out the 30 minutes.
+test.use({ actionTimeout: 15_000 });
 
 type Row = { page: string; control: string; effect: string[]; errors: string[] };
 
@@ -40,7 +42,12 @@ async function audit(page: Page, url: string, rows: Row[], skip: RegExp, signedO
   await settle(page);
   const total = await page.locator(CONTROLS).count();
   for (let i = 0; i < total; i++) {
-    if (signedOut) await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+    // Signed out means no session at all: storage AND the refresh cookie, which a "Try it now"
+    // or sign-up click on an earlier control would otherwise leave behind.
+    if (signedOut) {
+      await page.context().clearCookies();
+      await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+    }
     await page.goto(url);
     await settle(page);
     if ((await page.locator(CONTROLS).count()) <= i) break;
@@ -128,6 +135,7 @@ test("every control does something", async ({ page, context }) => {
   for (const url of ["/", "/login", "/register", "/problems", "/problems/two-sum", "/no-such-page"]) {
     await audit(page, url, rows, /Sign out|Delete/i, true);
   }
+  await page.context().clearCookies();
   await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
 
   // Sign in as a guest and create real activity so every page has content.

@@ -62,7 +62,7 @@ export function SavedPage() {
         {collections.isPending ? <LoadingState label="Loading collections…" />
           : collections.isError ? <ErrorState error={collections.error} onRetry={() => void collections.refetch()} />
           : collections.data.length === 0 ? (
-            <p className="subtle">No collections yet. Create one here, or use “Add to a collection” on any question.</p>
+            <p className="subtle">No collections yet. Create one here, or use “Save for later” on any question.</p>
           ) : (
             <ul className="saved-list">
               {collections.data.map((c) => (

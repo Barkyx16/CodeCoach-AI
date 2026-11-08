@@ -87,7 +87,8 @@ describe("Collections and the practice queue", () => {
     asNurse();
     const { user } = renderApp("/careers/registered-nurse/questions/e-time-0", { signedIn: true });
     const save = await screen.findByRole("region", { name: "Save for later" });
-    await within(save).findByRole("option", { name: "New collection…" });
+    // No collections yet: no picker with one choice, just the new collection's name.
+    await waitFor(() => expect(within(save).queryByRole("combobox")).not.toBeInTheDocument());
     await user.type(within(save).getByLabelText("New collection name"), "Night shift prep");
     await user.click(within(save).getByRole("button", { name: "Add" }));
     expect(await within(save).findByText("Added to “Night shift prep”.")).toBeInTheDocument();
