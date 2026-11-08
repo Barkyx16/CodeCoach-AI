@@ -14,8 +14,10 @@ function keys(): string[] {
   }
 }
 
-/** Keys that hold this account's private work. Round drafts are keyed by interview, which only
- * its owner can open; they're cleared with whoever signs out on this device. */
+/** Keys that hold this account's private work. Interview round, chat and retry drafts are keyed
+ * by the interview (only its owner can open it), not the account; they're cleared with whoever
+ * signs out on this device. Every unsent-text draft in the app must be listed here (a test lists
+ * the prefixes the features use). */
 export function localWorkKeys(userId: string): string[] {
   const prefixes = [
     `codecoach.answer.${userId}.`,
@@ -24,7 +26,12 @@ export function localWorkKeys(userId: string): string[] {
     `note-capture:${userId}:`,
     `learn-draft:${userId}:`,
     `story-draft:${userId}:`,
+    `whiteboard-draft:${userId}:`,
+    `reflection-draft:${userId}:`,
+    `drill-draft:${userId}:`,
     "codecoach.round.",
+    "codecoach.interview-message.",
+    "codecoach.retry.",
   ];
   return keys().filter((k) => prefixes.some((p) => k.startsWith(p)));
 }

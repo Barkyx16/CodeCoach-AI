@@ -79,13 +79,19 @@ Nothing is ever graded, judged or scored on the device, and a draft is never sho
 | --- | --- | --- |
 | App shell and built files | Cache Storage `codecoach-shell-<version>`, `codecoach-assets-<version>` | Replaced on each update |
 | Saved public lessons, questions, problems | Cache Storage `codecoach-offline-v1` | When you remove them, or when they're retired |
-| Answer, code, lesson-exercise and interview-round drafts; note recovery copies | localStorage, keyed by account | Sent and cleared, or **deleted when you sign out** (after a warning if any are unsent) |
+| Answer, code, lesson-exercise, drill, story, whiteboard and reflection drafts; note recovery copies | localStorage, keyed by account | Sent and cleared, or **deleted when you sign out** (after a warning if any are unsent) |
+| Interview round, follow-up, chat and retry drafts | localStorage, keyed by interview (only its owner can open it) | Sent and cleared, or deleted when anyone signs out on this device |
 | Which account last used the device | localStorage `codecoach.device-user.v1` | On sign-out |
 | Display, editor and voice preferences | localStorage | Kept: device settings, not account data |
 
-Drafts are keyed by account, so another account signing in on the same device never sees
-them. Signing out deletes the signed-out account's drafts from the device; public saved pages
-stay (they're not personal).
+Account drafts are keyed by account, so another account signing in on the same device never
+sees them. Interview drafts are keyed by an interview only its owner can open. Signing out
+deletes them all from the device; public saved pages stay (they're not personal).
+
+Until 2026-11-08, drill, whiteboard, reflection, interview-chat and retry drafts weren't on that
+list: they outlived a sign-out. A test now scans the source for draft-like keys and fails if one
+isn't cleared. Drafts written while signed out (`…anon…`) belong to no account and stay. The
+feature-by-feature picture: [PERSISTENCE.md](PERSISTENCE.md).
 
 ## Checks
 

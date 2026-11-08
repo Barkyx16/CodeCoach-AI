@@ -153,11 +153,36 @@ describe("signing out on a shared device", () => {
     const mine = {
       "codecoach.answer.me.registered-nurse.q": "a", "codecoach.draft.v1.me.two-sum": "code", "note-draft:me:new": "{}",
       "note-capture:me:question:q": "{}", "learn-draft:me:u": "x", "codecoach.round.iv1.0": "round",
+      "story-draft:me:new": "{}", "whiteboard-draft:me:p1": "{}", "reflection-draft:me:e1": "{}",
+      "drill-draft:me:d1": "words", "codecoach.interview-message.iv2": "hi", "codecoach.retry.r1.0": "again",
     };
     for (const [k, v] of Object.entries({ ...keep, ...mine })) localStorage.setItem(k, v);
-    expect(countLocalWork("me")).toBe(6);
+    expect(countLocalWork("me")).toBe(12);
     clearLocalWork("me");
     expect(Object.keys(localStorage).sort()).toEqual(Object.keys(keep).sort());
+  });
+
+  it("covers every key the app's source uses for unsent text", async () => {
+    // Every storage key in the source that looks like private work (draft, round, retry, message,
+    // answer, capture), as the literal text before its first ${...}. A new one that sign-out
+    // doesn't clear would outlive the account on a shared device.
+    const { localWorkKeys } = await import("@/auth/localWork");
+    const sources = import.meta.glob(["/src/**/*.{ts,tsx}", "!/src/**/*.test.{ts,tsx}", "!/src/test/**"], {
+      query: "?raw", import: "default", eager: true,
+    }) as Record<string, string>;
+    const prefixes = new Set<string>();
+    for (const text of Object.values(sources)) {
+      for (const m of text.matchAll(/`([a-z][\w.-]*(?:draft|round|retry|message|answer|capture)[\w.-]*[:.])\$\{/g)) {
+        if (m[1]) prefixes.add(m[1]);
+      }
+    }
+    expect(prefixes.size).toBeGreaterThanOrEqual(10); // the scan finds the known ones
+    for (const prefix of prefixes) {
+      const sample = `${prefix}me${prefix.endsWith(":") ? ":" : "."}x`;
+      localStorage.clear();
+      localStorage.setItem(sample, "unsent");
+      expect(localWorkKeys("me"), `${prefix} isn't cleared on sign-out`).toContain(sample);
+    }
   });
 
   it("warns before signing out when unsent drafts would be deleted", async () => {

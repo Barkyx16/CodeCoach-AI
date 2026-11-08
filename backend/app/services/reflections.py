@@ -13,9 +13,11 @@ import re
 from datetime import UTC, datetime
 
 from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.careers.questions import get_question, is_retired, questions_for
+from app.db.locking import lock_for_update
 from app.errors import AppError, ConflictError, NotFoundError
 from app.models import (
     Application,
@@ -357,7 +359,7 @@ class Reflections:
 
     def save(self, app_id: str, event_id: str, body: ReflectionIn) -> ReflectionOut:
         app, ev = self._event(app_id, event_id)
-        r = self._row(ev.id)
+        r = lock_for_update(self.db, self._row(ev.id))
         current = r.revision if r else 0
         if body.expected_revision != current:
             raise ConflictError(
@@ -402,7 +404,15 @@ class Reflections:
         r.story_ids = story_ids
         r.revision = current + 1
         r.updated_at = datetime.now(UTC)
-        self.db.commit()
+        try:
+            self.db.commit()
+        except IntegrityError:  # two first saves at once: the other one created the reflection
+            self.db.rollback()
+            raise ConflictError(
+                "This reflection was saved somewhere else since you opened it. Your text is still on this page.",
+                code="stale_revision",
+                details={"current_revision": 1},
+            ) from None
         return self._out(app, ev, r)
 
     def suggest(self, app_id: str, event_id: str) -> ReflectionOut:

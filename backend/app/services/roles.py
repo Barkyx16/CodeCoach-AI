@@ -24,7 +24,8 @@ from app.careers import CATALOG
 from app.careers.eligibility import feedback_eligibility
 from app.careers.questions import get_question, questions_for
 from app.careers.skills import career_skills, questions_by_skill
-from app.errors import AppError, NotFoundError
+from app.db.locking import lock_for_update
+from app.errors import AppError, ConflictError, NotFoundError
 from app.models import (
     ExperienceEntry,
     PracticeAnswer,
@@ -40,6 +41,7 @@ from app.schemas.roadmap import RoundStart
 from app.schemas.roles import (
     AttemptOut,
     Coverage,
+    ExperienceEdit,
     ExperienceIn,
     ExperienceOut,
     PracticeLink,
@@ -292,9 +294,16 @@ class RoleTargets:
         self.db.commit()
         return self.get(user, t.id)
 
-    def patch_experience(self, user: User, target_id: str, entry_id: str, body: ExperienceIn) -> TargetOut:
+    def patch_experience(self, user: User, target_id: str, entry_id: str, body: ExperienceEdit) -> TargetOut:
         t = self._load(user, target_id)
-        e = self._entry(user, t, entry_id)
+        # The same row as a story in the story bank, so the same rule: a stale revision is refused.
+        e = lock_for_update(self.db, self._entry(user, t, entry_id))
+        if body.expected_revision is not None and body.expected_revision != e.revision:
+            raise ConflictError(
+                "This story changed since you opened it (maybe in another tab). Your edits weren't saved.",
+                code="stale_revision",
+                details={"current_revision": e.revision},
+            )
         before = snapshot(e)
         for k, v in self._experience_fields(t, body).items():
             setattr(e, k, v)
@@ -630,6 +639,7 @@ class RoleTargets:
                     action=e.action,
                     result=e.result,
                     requirement_ids=list(e.requirement_ids),
+                    revision=e.revision,
                     created_at=e.created_at,
                     updated_at=e.updated_at,
                 )

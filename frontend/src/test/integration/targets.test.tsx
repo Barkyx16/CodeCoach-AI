@@ -60,7 +60,7 @@ function targetServer() {
     }),
     http.post(`${API}/api/v1/targets/t-1/experience`, async ({ request }) => {
       const body = await record(request, "experience");
-      target = { ...target, experience: [{ id: "x-1", created_at: now, updated_at: now, situation: "", action: "", result: "", requirement_ids: [], ...(body as object), title: String(body.title) }] };
+      target = { ...target, experience: [{ id: "x-1", revision: 1, created_at: now, updated_at: now, situation: "", action: "", result: "", requirement_ids: [], ...(body as object), title: String(body.title) }] };
       return HttpResponse.json(target);
     }),
     http.post(`${API}/api/v1/interviews`, async ({ request }) => { await record(request, "interview"); return HttpResponse.json({ id: "round-t" }, { status: 201 }); }),

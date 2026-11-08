@@ -35,6 +35,7 @@ import type {
   Drill,
   DrillAttempt,
   DrillAttemptIn,
+  ExperienceEdit,
   ExperienceInput,
   ExplainFailureResponse,
   ExploreResult,
@@ -338,7 +339,7 @@ export const api = {
     apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}/requirements/${encodeURIComponent(rid)}`, { method: "PATCH", body }),
   addExperience: (id: string, body: ExperienceInput) =>
     apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}/experience`, { method: "POST", body }),
-  editExperience: (id: string, eid: string, body: ExperienceInput) =>
+  editExperience: (id: string, eid: string, body: ExperienceEdit) =>
     apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}/experience/${encodeURIComponent(eid)}`, { method: "PUT", body }),
   deleteExperience: (id: string, eid: string) =>
     apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}/experience/${encodeURIComponent(eid)}`, { method: "DELETE" }),

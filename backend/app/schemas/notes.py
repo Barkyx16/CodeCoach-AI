@@ -37,6 +37,13 @@ class NoteIn(APIModel):
         default=None, max_length=MAX_EXCERPT, description="A snapshot, not a live reference"
     )
     excerpt_kind: Literal["quote", "code"] | None = None
+    client_request_id: str | None = Field(
+        default=None,
+        min_length=8,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9_-]+$",
+        description="One key per new note: sending the same create again returns the note it made",
+    )
 
 
 class NotePatch(APIModel):

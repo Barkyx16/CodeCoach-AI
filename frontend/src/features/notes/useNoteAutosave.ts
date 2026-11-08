@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { newRequestKey } from "@/lib/requestKey";
+
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
 import type { Note, NoteInput } from "@/api/types";
@@ -62,6 +64,8 @@ export function useNoteAutosave({ initial, createWith, draftKey, onSaved, delayM
   const serverRef = useRef(server);
   const conflictRef = useRef<Note | null>(null);
   const timer = useRef<number | undefined>(undefined);
+  // One key for this editor's create: a retry after a lost response returns the same note.
+  const createKey = useRef(newRequestKey());
   const inflight = useRef(false);
   const again = useRef(false);
   const savedCb = useRef(onSaved);
@@ -94,7 +98,7 @@ export function useNoteAutosave({ initial, createWith, draftKey, onSaved, delayM
         try {
           const result = s
             ? await api.updateNote(s.id, { base_revision: s.revision, title: f.title, body: f.body, reflection: f.reflection, tags: f.tags })
-            : await api.createNote({ ...createWith, ...f });
+            : await api.createNote({ ...createWith, ...f, client_request_id: createKey.current });
           serverRef.current = result;
           setServer(result);
           savedCb.current?.(result);
@@ -156,7 +160,7 @@ export function useNoteAutosave({ initial, createWith, draftKey, onSaved, delayM
           .then((n) => { serverRef.current = n; clearDraft(draftKey); })
           .catch(() => { /* the draft stays in this browser for recovery */ });
       } else if (!s && !empty(f)) {
-        void api.createNote({ ...createWith, ...f }).then(() => clearDraft(draftKey)).catch(() => {});
+        void api.createNote({ ...createWith, ...f, client_request_id: createKey.current }).then(() => clearDraft(draftKey)).catch(() => {});
       }
     };
     window.addEventListener("pagehide", flush);

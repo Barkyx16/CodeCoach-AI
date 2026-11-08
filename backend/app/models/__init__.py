@@ -855,7 +855,11 @@ class Note(Base):
     newer text is never silently replaced. `deleted_at` gives a short undo window before purge."""
 
     __tablename__ = "notes"
-    __table_args__ = (Index("ix_notes_user_updated", "user_id", "updated_at"),)
+    __table_args__ = (
+        Index("ix_notes_user_updated", "user_id", "updated_at"),
+        # A create sent twice (a lost response, then autosave's retry) makes one note, not two.
+        UniqueConstraint("user_id", "client_request_id", name="uq_note_client_request"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
@@ -877,6 +881,7 @@ class Note(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     deleted_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
 
 class ScenarioAttempt(Base):

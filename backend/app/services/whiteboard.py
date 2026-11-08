@@ -6,8 +6,10 @@ import re
 from datetime import UTC, datetime
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.db.locking import lock_for_update
 from app.errors import AppError, ConflictError, NotFoundError
 from app.models import User, WhiteboardAttempt, WhiteboardDraft
 from app.schemas.whiteboard import (
@@ -86,7 +88,7 @@ class Whiteboard:
 
     def save_draft(self, prompt_id: str, body: WhiteboardDraftIn) -> WhiteboardDraftOut:
         self._prompt(prompt_id)
-        row = self.db.get(WhiteboardDraft, (self.user.id, prompt_id))
+        row = lock_for_update(self.db, self.db.get(WhiteboardDraft, (self.user.id, prompt_id)))
         current = row.revision if row else 0
         if body.expected_revision != current:
             raise ConflictError(
@@ -103,7 +105,15 @@ class Whiteboard:
         row.explanation = body.explanation.strip()
         row.revision = current + 1
         row.updated_at = datetime.now(UTC)
-        self.db.commit()
+        try:
+            self.db.commit()
+        except IntegrityError:  # two first saves at once: the other one created the draft
+            self.db.rollback()
+            raise ConflictError(
+                "This diagram was saved somewhere else since you opened it. Your changes are still on this page.",
+                code="stale_revision",
+                details={"current_revision": 1},
+            ) from None
         return self.draft(prompt_id)
 
     def attempt(self, prompt_id: str, body: WhiteboardAttemptIn) -> WhiteboardAttemptOut:

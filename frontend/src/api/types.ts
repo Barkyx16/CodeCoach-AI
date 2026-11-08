@@ -91,6 +91,7 @@ export type Requirement = S["RequirementOut"];
 export type RequirementInput = S["RequirementIn"];
 export type RequirementPatch = S["RequirementPatch"];
 export type ExperienceInput = S["ExperienceIn"];
+export type ExperienceEdit = S["ExperienceEdit"];
 export type Experience = S["ExperienceOut"];
 export type InterviewReview = S["InterviewReview"];
 export type ReviewEntry = S["ReviewItem"];

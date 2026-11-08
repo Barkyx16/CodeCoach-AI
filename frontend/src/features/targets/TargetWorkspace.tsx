@@ -280,7 +280,8 @@ function ExperienceSection({ t }: { t: Target }) {
 
 function ExperienceForm({ t, entry, onDone }: { t: Target; entry: Experience | null; onDone: () => void }) {
   const [form, setForm] = useState(entry ? { title: entry.title, situation: entry.situation ?? "", action: entry.action ?? "", result: entry.result ?? "", requirement_ids: entry.requirement_ids ?? [] } : EMPTY);
-  const save = useTargetMutation((body: typeof form) => entry ? api.editExperience(t.id, entry.id, body) : api.addExperience(t.id, body));
+  // An edit names the story revision it started from, so an older tab can't overwrite newer work (409).
+  const save = useTargetMutation((body: typeof form) => entry ? api.editExperience(t.id, entry.id, { ...body, expected_revision: entry.revision }) : api.addExperience(t.id, body));
   const remove = useTargetMutation(() => api.deleteExperience(t.id, entry!.id));
   const field = (k: "title" | "situation" | "action" | "result", label: string, rows = 0) => (
     <label className="field"><span className="field__label">{label}</span>

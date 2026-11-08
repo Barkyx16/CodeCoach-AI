@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from app.careers import CATALOG
 from app.careers.eligibility import feedback_eligibility
 from app.careers.questions import get_question, is_retired
+from app.db.locking import lock_for_update
 from app.errors import AppError, ConflictError, NotFoundError
 from app.models import ExperienceEntry, PracticeAnswer, RoleTarget, StoryRevision, User
 from app.schemas.stories import (
@@ -299,7 +300,7 @@ class Stories:
         return self.get(user, e.id)
 
     def update(self, user: User, story_id: str, body: StoryUpdate) -> StoryOut:
-        e = self._get(user, story_id)
+        e = lock_for_update(self.db, self._get(user, story_id))
         if body.expected_revision != e.revision:
             raise ConflictError(
                 "This story changed since you opened it (maybe in another tab). Your edits weren't saved.",
@@ -323,7 +324,7 @@ class Stories:
         return self.get(user, e.id)
 
     def restore(self, user: User, story_id: str, revision: int, expected_revision: int) -> StoryOut:
-        e = self._get(user, story_id)
+        e = lock_for_update(self.db, self._get(user, story_id))
         if expected_revision != e.revision:
             raise ConflictError(
                 "This story changed since you opened it. Reload it, then restore.",

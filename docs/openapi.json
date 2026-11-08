@@ -16233,7 +16233,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ExperienceIn"
+                "$ref": "#/components/schemas/ExperienceEdit"
               }
             }
           }
@@ -21516,6 +21516,60 @@
         ],
         "title": "ExerciseOut"
       },
+      "ExperienceEdit": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "situation": {
+            "type": "string",
+            "maxLength": 1500,
+            "title": "Situation",
+            "default": ""
+          },
+          "action": {
+            "type": "string",
+            "maxLength": 1500,
+            "title": "Action",
+            "default": ""
+          },
+          "result": {
+            "type": "string",
+            "maxLength": 1500,
+            "title": "Result",
+            "default": ""
+          },
+          "requirement_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Requirement Ids"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Revision",
+            "description": "The story revision you started from (ExperienceOut.revision). If the story changed since, 409 stale_revision. Optional for older clients, which keep last-write-wins."
+          }
+        },
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "ExperienceEdit"
+      },
       "ExperienceIn": {
         "properties": {
           "title": {
@@ -21594,6 +21648,12 @@
           "id": {
             "type": "string",
             "title": "Id"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision",
+            "description": "This example is a story in the story bank: its revision there",
+            "default": 1
           },
           "created_at": {
             "type": "string",
@@ -24746,6 +24806,21 @@
               }
             ],
             "title": "Excerpt Kind"
+          },
+          "client_request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 8,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Request Id",
+            "description": "One key per new note: sending the same create again returns the note it made"
           }
         },
         "type": "object",

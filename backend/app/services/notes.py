@@ -20,10 +20,12 @@ from collections import Counter
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import delete, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.careers import CATALOG
 from app.careers.questions import get_question
+from app.db.locking import lock_for_update
 from app.errors import AppError, ConflictError, NotFoundError
 from app.learn import get_unit
 from app.models import Note, PracticeSession, Problem, User
@@ -235,7 +237,10 @@ class Notebook:
 
     def create(self, user: User, body: NoteIn, *, commit: bool = True) -> NoteOut:
         """With commit=False the note joins the caller's transaction (flushed, not committed), so it
-        is saved together with whatever the caller saves, or not at all."""
+        is saved together with whatever the caller saves, or not at all. A create repeated with the
+        same `client_request_id` returns the note the first one made."""
+        if body.client_request_id and (made := self._by_request(user, body.client_request_id)):
+            return self.out(made)
         count = self.db.scalar(select(func.count()).select_from(Note).where(Note.user_id == user.id)) or 0
         if count >= MAX_NOTES:
             raise AppError(f"You can keep up to {MAX_NOTES} notes.", code="too_many_notes")
@@ -251,12 +256,26 @@ class Notebook:
         if body.source is not None:
             n.source_type = body.source.type
             n.source_id, n.source_track, n.source_version, n.source_title = self._resolve(user, body.source)
+        n.client_request_id = body.client_request_id
         self.db.add(n)
-        if commit:
-            self.db.commit()
-        else:
-            self.db.flush()
+        try:
+            if commit:
+                self.db.commit()
+            else:
+                self.db.flush()
+        except IntegrityError:
+            if not commit or not body.client_request_id:
+                raise  # inside a caller's transaction, the caller decides what to do
+            # The same create, sent twice at the same moment: the other copy made the note.
+            self.db.rollback()
+            made = self._by_request(user, body.client_request_id)
+            if made is None:
+                raise
+            return self.out(made)
         return self.out(n)
+
+    def _by_request(self, user: User, key: str) -> Note | None:
+        return self.db.scalar(select(Note).where(Note.user_id == user.id, Note.client_request_id == key))
 
     def update(self, user: User, note_id: str, patch: NotePatch) -> NoteOut:
         n = self._note(user, note_id)
@@ -270,6 +289,7 @@ class Notebook:
         if text:
             if patch.base_revision is None:
                 raise AppError("Send base_revision with text changes.", code="base_revision_required")
+            lock_for_update(self.db, n)  # a save sent at the same moment waits, then sees the new revision
             if patch.base_revision != n.revision:
                 raise ConflictError(
                     "This note was changed somewhere else since you started editing.",

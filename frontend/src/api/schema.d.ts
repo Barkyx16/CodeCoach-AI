@@ -5009,6 +5009,33 @@ export interface components {
             /** Solution Language */
             solution_language: string | null;
         };
+        /** ExperienceEdit */
+        ExperienceEdit: {
+            /** Title */
+            title: string;
+            /**
+             * Situation
+             * @default
+             */
+            situation: string;
+            /**
+             * Action
+             * @default
+             */
+            action: string;
+            /**
+             * Result
+             * @default
+             */
+            result: string;
+            /** Requirement Ids */
+            requirement_ids?: string[];
+            /**
+             * Expected Revision
+             * @description The story revision you started from (ExperienceOut.revision). If the story changed since, 409 stale_revision. Optional for older clients, which keep last-write-wins.
+             */
+            expected_revision?: number | null;
+        };
         /** ExperienceIn */
         ExperienceIn: {
             /** Title */
@@ -5054,6 +5081,12 @@ export interface components {
             requirement_ids?: string[];
             /** Id */
             id: string;
+            /**
+             * Revision
+             * @description This example is a story in the story bank: its revision there
+             * @default 1
+             */
+            revision: number;
             /**
              * Created At
              * Format: date-time
@@ -6296,6 +6329,11 @@ export interface components {
             excerpt?: string | null;
             /** Excerpt Kind */
             excerpt_kind?: ("quote" | "code") | null;
+            /**
+             * Client Request Id
+             * @description One key per new note: sending the same create again returns the note it made
+             */
+            client_request_id?: string | null;
         };
         /** NoteOut */
         NoteOut: {
@@ -21223,7 +21261,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ExperienceIn"];
+                "application/json": components["schemas"]["ExperienceEdit"];
             };
         };
         responses: {

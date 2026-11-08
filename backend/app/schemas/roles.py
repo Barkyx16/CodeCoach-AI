@@ -111,8 +111,20 @@ class ExperienceIn(APIModel):
     requirement_ids: list[str] = Field(default_factory=list, max_length=20)
 
 
+class ExperienceEdit(ExperienceIn):
+    expected_revision: int | None = Field(
+        default=None,
+        ge=1,
+        description="The story revision you started from (ExperienceOut.revision). If the story "
+        "changed since, 409 stale_revision. Optional for older clients, which keep last-write-wins.",
+    )
+
+
 class ExperienceOut(ExperienceIn):
     id: str
+    revision: int = Field(
+        default=1, description="This example is a story in the story bank: its revision there"
+    )
     created_at: datetime
     updated_at: datetime
 

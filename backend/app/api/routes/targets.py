@@ -5,6 +5,7 @@ from app.api.deps import get_current_user, get_db
 from app.models import User
 from app.schemas.common import error_responses
 from app.schemas.roles import (
+    ExperienceEdit,
     ExperienceIn,
     RequirementIn,
     RequirementPatch,
@@ -150,7 +151,7 @@ def add_experience(
 def edit_experience(
     target_id: str,
     entry_id: str,
-    body: ExperienceIn,
+    body: ExperienceEdit,
     request: Request,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
