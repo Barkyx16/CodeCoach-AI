@@ -274,6 +274,7 @@ function ConfirmEmail({ user }: { user: User }) {
   const { setUser, logout } = useAuth();
   const navigate = useNavigate();
   const { asked, next } = useNext(user.id);
+  const returnBack = (useLocation().state as { returnBack?: unknown } | null)?.returnBack === true;
   // A pending change is confirmed by the new address; until then the account keeps its email.
   const pending = user.pending_email ?? null;
   const waiting = !user.email_verified || !!pending;
@@ -313,7 +314,10 @@ function ConfirmEmail({ user }: { user: User }) {
         setUser(verified);
         announceVerified(verified.id);
         forgetVerifyNext();
-        navigate(next, { replace: true });
+        // Opened from Settings (the previous page): go back to it, rather than adding a second
+        // copy of it on top (Back then seemed to do nothing). Otherwise, on to `next`.
+        if (returnBack && asked === next) navigate(-1);
+        else navigate(next, { replace: true });
       }}
       onSignOut={async () => {
         await logout();

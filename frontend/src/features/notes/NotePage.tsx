@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
 import { useNote } from "@/api/queries";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { formatDateTime, timeAgo } from "@/lib/format";
 import { CodeBlock } from "@/features/learn/UnitParts";
 
@@ -35,15 +36,21 @@ function NoteScreen({ note }: { note: Note | null }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
   const editor = useNoteAutosave({
     initial: note,
     draftKey: `note-draft:${user?.id ?? "anon"}:${note?.id ?? "new"}`,
     onSaved: (n) => {
       qc.setQueryData(["me", "note", n.id], n);
       void qc.invalidateQueries({ queryKey: ["me", "notes"] });
-      if (!note) navigate(`/notes/${n.id}`, { replace: true });
+      // The new note's own address, keeping where it was opened from ("Back to your notebook",
+      // with its filters): the first autosave used to drop it.
+      if (!note) navigate(`/notes/${n.id}`, { replace: true, state: location.state });
     },
   });
+  // Text that's neither on the server nor kept in this browser (storage refused it), or caught
+  // in a conflict: leaving would lose it, so leaving asks first.
+  useLeaveWarning(!editor.kept && ["unsaved", "error", "pending", "offline", "conflict"].includes(editor.state));
   const current = editor.server;
   const [flagError, setFlagError] = useState<unknown>(null);
   const [points, setPoints] = useState<KeyPoints | null>(null);

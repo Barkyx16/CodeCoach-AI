@@ -36,7 +36,9 @@ export function QueueBar({ item }: { item: SavedItemRef }) {
       qc.setQueryData(["me", "collection", c.id], fresh);
       void qc.invalidateQueries({ queryKey: ["me", "collections"] });
       const nextHref = next ? queueHref(fresh, fresh.item_list[index + 1]!) : null;
-      navigate(nextHref ?? queuePage, { state: { from: queuePage, fromLabel: "Back to the queue" } });
+      // The next item says "Back to the queue" and opens the queue (not the item before it). The
+      // last one goes to the queue itself, which shows its own way back to the collection.
+      navigate(nextHref ?? queuePage, nextHref ? { state: { from: queuePage, fromLabel: "Back to the queue", backVia: "link" } } : undefined);
     } catch (err) {
       setError(err);
     } finally {

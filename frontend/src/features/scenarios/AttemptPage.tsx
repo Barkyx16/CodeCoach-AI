@@ -11,6 +11,7 @@ import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { externalHref } from "@/lib/links";
 
 const QUALITY: Record<NonNullable<ScenarioStep["quality"]>, { label: string; tone: string }> = {
@@ -33,6 +34,8 @@ function Player({ attempt: a }: { attempt: ScenarioAttempt }) {
   const navigate = useNavigate();
   const [choice, setChoice] = useState("");
   const [text, setText] = useState("");
+  // A written response is only in this page until it's sent: leaving asks first.
+  useLeaveWarning(text.trim().length > 0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const currentHeading = useRef<HTMLHeadingElement>(null);

@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useId, useRef, useState, type FormEvent } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
@@ -14,7 +14,7 @@ import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { VersionConflict } from "@/components/VersionConflict";
 import { CareerSelect } from "@/features/careers/CareerSelect";
-import { useLeaveWarning } from "@/hooks/useLeaveWarning";
+import { allowLeaveAfterSave, useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { savedVersion } from "@/lib/conflict";
 import { formatDateTime, timeAgo } from "@/lib/format";
 
@@ -50,6 +50,7 @@ export function StoryEditorPage() {
 function Editor({ story }: { story: Story | null }) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const qc = useQueryClient();
   const targets = useTargets();
   const formId = useId();
@@ -112,10 +113,17 @@ function Editor({ story }: { story: Story | null }) {
         pendingCreate.current = { form: sent, key: k };
         next = await api.createStory({ ...toBody(sent), client_request_id: k });
         pendingCreate.current = null;
-        window.localStorage.removeItem(key);
+        try {
+          window.localStorage.removeItem(key);
+        } catch {
+          /* storage blocked: there was no local copy to remove */
+        }
         qc.setQueryData(["me", "story", next.id], next);
         void qc.invalidateQueries({ queryKey: ["me", "stories"] });
-        navigate(`/stories/${next.id}`, { replace: true });
+        // Saved: open it at its own address without asking about "unsaved" changes (they're on
+        // the server now), and keep where the editor was opened from.
+        allowLeaveAfterSave();
+        navigate(`/stories/${next.id}`, { replace: true, state: location.state });
         return;
       }
       const from = over ? fromStory(over) : base;

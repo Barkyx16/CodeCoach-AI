@@ -10,6 +10,7 @@ import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
+import { useReturnHere } from "@/hooks/useReturnHere";
 import { useScrollMemory } from "@/hooks/useScrollMemory";
 
 import { browserTimeZone, dueLabel, formatDay, todayIn } from "./dates";
@@ -27,6 +28,7 @@ const SORTS: { key: SortKey; label: string }[] = [
 
 /** Your applications as a board (by stage) or a sortable list. View, filters and sort live in the URL. */
 export function ApplicationsPage() {
+  const back = useReturnHere("Back to your applications");
   const [params, setParams] = useSearchParams();
   const view = params.get("view") === "list" ? "list" : "board";
   const stage = (params.get("stage") ?? "") as ApplicationStage | "";
@@ -101,7 +103,7 @@ export function ApplicationsPage() {
           <p className="subtle">Dates are in your time zone ({browserTimeZone()}).</p>
           <ul className="mini-list">
             {upcoming.map((a) => (
-              <li key={a.id}><Link to={`/applications/${a.id}`}>{a.role_title}, {a.employer}</Link>: {a.next_action} <span className="subtle">· {dueLabel(a.next_action_due!, today)} ({formatDay(a.next_action_due!)})</span></li>
+              <li key={a.id}><Link to={`/applications/${a.id}`} state={back}>{a.role_title}, {a.employer}</Link>: {a.next_action} <span className="subtle">· {dueLabel(a.next_action_due!, today)} ({formatDay(a.next_action_due!)})</span></li>
             ))}
           </ul>
         </Card>
@@ -161,16 +163,17 @@ function MoveMenu({ a, onMove }: { a: ApplicationSummary; onMove: (a: Applicatio
 }
 
 function AppCard({ a, today, onMove }: { a: ApplicationSummary; today: string; onMove: (a: ApplicationSummary, to: ApplicationStage) => void }) {
+  const back = useReturnHere("Back to your applications");
   return (
     <li className="app-card" draggable onDragStart={(e: DragEvent) => { e.dataTransfer.setData("text/plain", a.id); e.dataTransfer.effectAllowed = "move"; }}>
-      <Link to={`/applications/${a.id}`} className="app-card__title">{a.role_title}</Link>
+      <Link to={`/applications/${a.id}`} className="app-card__title" state={back}>{a.role_title}</Link>
       <span className="subtle">{a.employer}</span>
       {a.next_action && <span className="app-card__next">{a.next_action}{a.next_action_due ? <span className="subtle"> · {dueLabel(a.next_action_due, today)}</span> : null}</span>}
       {a.next_event && (
         <span className="subtle">
           Next: {a.next_event.title}{a.next_event.on_date ? ` · ${formatDay(a.next_event.on_date)}` : ""}
           {a.next_event.on_date && !a.next_event.local_time ? " (time not known)" : a.next_event.local_time ? `, ${a.next_event.local_time}` : ""}
-          {" · "}<Link to={`/applications/${a.id}/events/${a.next_event.id}/kit`} state={{ from: "/applications", fromLabel: "Back to your applications" }}
+          {" · "}<Link to={`/applications/${a.id}/events/${a.next_event.id}/kit`} state={back}
             aria-label={`Prepare for ${a.next_event.title} (${a.employer})`}>Prepare</Link>
         </span>
       )}
@@ -209,6 +212,7 @@ function List({ apps, today, sort, dir, onSort, onMove }: {
   apps: ApplicationSummary[]; today: string; sort: SortKey; dir: "asc" | "desc"; onSort: (k: SortKey) => void;
   onMove: (a: ApplicationSummary, to: ApplicationStage) => void;
 }) {
+  const back = useReturnHere("Back to your applications");
   return (
     <div className="table-scroll" tabIndex={0} role="region" aria-label="Applications list">
       <table className="app-table">
@@ -227,7 +231,7 @@ function List({ apps, today, sort, dir, onSort, onMove }: {
         <tbody>
           {apps.map((a) => (
             <tr key={a.id}>
-              <td><Link to={`/applications/${a.id}`}>{a.role_title}</Link></td>
+              <td><Link to={`/applications/${a.id}`} state={back}>{a.role_title}</Link></td>
               <td>{a.employer}</td>
               <td><Badge>{STAGE_LABEL[a.stage]}</Badge></td>
               <td>{a.applied_on ? formatDay(a.applied_on) : <span className="subtle">Not recorded</span>}</td>

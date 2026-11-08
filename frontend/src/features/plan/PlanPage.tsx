@@ -27,7 +27,7 @@ export function PlanPage() {
         </div>
         <div className="row">
           <Link to="/reviews" className="btn btn--ghost btn--md">Review queue</Link>
-          <Link to="/plan/goals" className="btn btn--secondary btn--md">{p.goals_saved ? "Edit goals" : "Set goals"}</Link>
+          <Link to="/plan/goals" state={{ from: "/plan", fromLabel: "Back to your plan" }} className="btn btn--secondary btn--md">{p.goals_saved ? "Edit goals" : "Set goals"}</Link>
           <Link to="/dashboard" className="btn btn--primary btn--md">Today</Link>
         </div>
       </div>

@@ -6,6 +6,7 @@ import type { Goals, GoalsInput } from "@/api/types";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { useCameFrom } from "@/hooks/useCameFrom";
 
 const EXPERIENCE = [
   { id: "new", label: "New to the field", hint: "Starting with easy questions" },
@@ -28,6 +29,8 @@ export function GoalsPage() {
 
 function GoalsForm({ goals }: { goals: Goals }) {
   const navigate = useNavigate();
+  const came = useCameFrom();
+  const returnTo = came?.from ?? "/dashboard";
   const save = useSaveGoals();
   const [form, setForm] = useState<GoalsInput>({
     track: goals.track, specialty: goals.specialty ?? "", experience: goals.experience ?? null,
@@ -47,7 +50,9 @@ function GoalsForm({ goals }: { goals: Goals }) {
     };
     try {
       await save.mutateAsync(body);
-      navigate("/dashboard");
+      // Back where the goals were opened from (the plan, or the dashboard by default), not always
+      // the dashboard. Replace: Back from there shouldn't reopen the saved form.
+      navigate(returnTo, { replace: Boolean(came) });
     } catch {
       /* shown below */
     }
@@ -146,7 +151,7 @@ function GoalsForm({ goals }: { goals: Goals }) {
         <InlineError error={save.error} />
         <div className="row">
           <Button type="submit" variant="primary" loading={save.isPending}>Save goals</Button>
-          <Link to="/dashboard" className="btn btn--ghost btn--md">Cancel</Link>
+          <Link to={returnTo} className="btn btn--ghost btn--md">Cancel</Link>
         </div>
       </form>
     </div>

@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useMemo } from "react";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 
 import { useProblemCounts, useProblems, useProgress, useRecommendations, useTopics } from "@/api/queries";
 import type { Difficulty, Progress } from "@/api/types";
@@ -9,6 +9,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useScrollMemory } from "@/hooks/useScrollMemory";
 import { Icon } from "@/components/Icon";
 import { Tabs } from "@/components/Tabs";
 import { PracticeBar } from "@/features/careers/PracticeBar";
@@ -16,6 +17,8 @@ import { PracticeBar } from "@/features/careers/PracticeBar";
 /** Each tab starts with a short list; "View more" grows it. */
 const FIRST_PAGE = 5;
 const MORE_STEP = 10;
+/** A hand-edited ?shown= can't ask for an unbounded page. */
+const MAX_SHOWN = 200;
 const DIFFICULTIES = [
   { id: "easy", label: "Easy" },
   { id: "medium", label: "Medium" },
@@ -44,10 +47,11 @@ export function ProblemListPage() {
   const topic = params.get("topic") ?? "";
   const search = params.get("q") ?? "";
   const q = useDebouncedValue(search.trim(), 300);
-  // How many rows the open tab shows. Resets whenever the tab, topic or search changes.
-  const [shown, setShown] = useState({ key: "", count: FIRST_PAGE });
-  const viewKey = `${difficulty}|${topic}|${q}`;
-  const visible = shown.key === viewKey ? shown.count : FIRST_PAGE;
+  // How many rows the open tab shows ("View more"), in the URL too, so coming back from a problem
+  // (or reloading) shows the same rows. Any other change (tab, topic, search) starts again.
+  const shownParam = Number(params.get("shown"));
+  const visible = Number.isInteger(shownParam) && shownParam > FIRST_PAGE ? Math.min(shownParam, MAX_SHOWN) : FIRST_PAGE;
+  const location = useLocation();
 
   // Keep the URL as the source of truth so filtered views are shareable and survive refresh.
   function update(next: Record<string, string>) {
@@ -57,10 +61,12 @@ export function ProblemListPage() {
       else merged.delete(k);
     }
     merged.delete("page");
+    if (!("shown" in next)) merged.delete("shown");
     setParams(merged, { replace: true });
   }
 
   const problems = useProblems({ difficulty, topic, q, page: 1, page_size: visible });
+  useScrollMemory(Boolean(problems.data) && !problems.isPlaceholderData);
   const counts = useProblemCounts({ topic, q });
   const topics = useTopics();
   const progress = useProgress(isAuthenticated);
@@ -157,7 +163,8 @@ export function ProblemListPage() {
                     const status = statusBySlug.get(p.slug) ?? "not_started";
                     return (
                       <li key={p.slug}>
-                        <Link to={`/problems/${p.slug}`} className="problem-row">
+                        <Link to={`/problems/${p.slug}`} className="problem-row"
+                          state={{ from: location.pathname + location.search, fromLabel: "Back to coding problems" }}>
                           <span className={`problem-row__status problem-row__status--${status}`}
                             title={STATUS_ICON[status].label} aria-label={STATUS_ICON[status].label}>
                             {STATUS_ICON[status].icon}
@@ -180,7 +187,7 @@ export function ProblemListPage() {
                   <span className="subtle">Showing {problems.data.items.length} of {total}</span>
                   {problems.data.items.length < total && (
                     <Button size="sm" loading={problems.isFetching}
-                      onClick={() => setShown({ key: viewKey, count: visible + MORE_STEP })}>
+                      onClick={() => update({ shown: String(visible + MORE_STEP) })}>
                       View more
                     </Button>
                   )}

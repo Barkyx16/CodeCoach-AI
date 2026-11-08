@@ -41,12 +41,16 @@ export function ReviewWorkspace({ iv }: { iv: Interview }) {
     screenChanged(iv.id, `results:${state}`); // the round's last action is on screen
   }, [iv.id, iv.status, state]);
   if (review.isPending) return <LoadingState label="Loading your review…" />;
-  if (review.isError) return <div className="page"><BackLink /><ErrorState error={review.error} onRetry={() => void review.refetch()} /></div>;
+  if (review.isError) return <div className="page"><BackLink fallback={ALL_INTERVIEWS} /><ErrorState error={review.error} onRetry={() => void review.refetch()} /></div>;
   return <Review iv={iv} r={review.data} />;
 }
 
+/** Opened directly (a bookmark, a new tab, the link in History's export): somewhere useful. */
+const ALL_INTERVIEWS = { to: "/history?type=interview", label: "All your interviews" };
+
 function Review({ iv, r }: { iv: Interview; r: InterviewReview }) {
   const [params, setParams] = useSearchParams();
+  const location = useLocation();
   const [showAll, setShowAll] = useState(false);
   const items = r.items;
   const selectedKey = params.get("item") ?? items[0]?.key ?? "";
@@ -57,7 +61,8 @@ function Review({ iv, r }: { iv: Interview; r: InterviewReview }) {
     const line = key === "code" ? /Line (\d+)/.exec(label)?.[1] : undefined;
     if (line) next.set("line", line);
     else next.delete("line");
-    setParams(next, { replace: true });
+    // Keep where this page was opened from: choosing an item mustn't drop "Back to History".
+    setParams(next, { replace: true, state: location.state });
     if (key === "code") document.getElementById("review-code")?.scrollIntoView?.({ block: "start" });
     else document.getElementById("review-detail")?.focus();
   };
@@ -71,7 +76,7 @@ function Review({ iv, r }: { iv: Interview; r: InterviewReview }) {
 
   return (
     <div className="page review">
-      <BackLink />
+      <BackLink fallback={ALL_INTERVIEWS} />
       <div className="page__header">
         <div>
           <p className="eyebrow">{isRound ? "MOCK INTERVIEW" : "CODING INTERVIEW"} · {r.status_label.toUpperCase()}</p>

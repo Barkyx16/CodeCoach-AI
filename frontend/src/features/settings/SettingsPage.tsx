@@ -54,7 +54,7 @@ export function SettingsPage() {
       {upgraded && (
         <p className="banner banner--success settings__banner" role="status">
           Your account is ready. Everything you did as a guest is saved, and you can sign in from any device.{" "}
-          <Link to="/verify-email" state={{ next: "/settings" }}>Enter the code we emailed you</Link> to confirm your email.
+          <Link to="/verify-email" state={{ next: "/settings", returnBack: true }}>Enter the code we emailed you</Link> to confirm your email.
         </p>
       )}
       <div className="settings__layout">
@@ -368,7 +368,7 @@ function EmailRow() {
         {!user.email_verified && !pending && (
           <p className="setting__note">
             Confirm it so we can reach you about your account.{" "}
-            <Link to="/verify-email" state={{ next: "/settings" }}>Enter the verification code</Link>
+            <Link to="/verify-email" state={{ next: "/settings", returnBack: true }}>Enter the verification code</Link>
           </p>
         )}
         {pending && (
@@ -380,7 +380,7 @@ function EmailRow() {
               Until you enter the code we sent there, you sign in with {user.email}. A new request replaces this one.
             </p>
             <div className="setting__actions">
-              <Link className="btn btn--secondary btn--sm" to="/verify-email" state={{ next: "/settings" }}>
+              <Link className="btn btn--secondary btn--sm" to="/verify-email" state={{ next: "/settings", returnBack: true }}>
                 Enter the code
               </Link>
               <Button variant="ghost" size="sm" loading={cancel.busy} onClick={onCancel}>Cancel this change</Button>

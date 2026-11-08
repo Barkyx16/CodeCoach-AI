@@ -155,6 +155,11 @@ describe("Collections and the practice queue", () => {
     await waitFor(() => expect(screen.getByRole("region", { name: "Practice queue" })).toHaveTextContent("item 2 of 2"));
     expect(store.collections[0]!.item_list[0]!.queue_done).toBe(true);
     expect(store.collections[0]!.queue_position).toBe(1);
+    // "Back to the queue" opens the queue, not the item before this one (it used to step back).
+    const back = screen.getAllByRole("link", { name: "Back to the queue" });
+    for (const link of back) expect(link).toHaveAttribute("href", "/saved/collections/c-1/practice");
+    await user.click(back[0]!);
+    await waitFor(() => expect(router.state.location.pathname).toBe("/saved/collections/c-1/practice"));
   });
 
   it("shows a retired item as unavailable with a way to remove it, never a substitute", async () => {

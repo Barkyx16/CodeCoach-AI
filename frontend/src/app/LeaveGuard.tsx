@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useBlocker } from "react-router-dom";
 
-import { hasUnretainedWork } from "@/hooks/useLeaveWarning";
+import { hasUnretainedWork, takeLeaveAfterSave } from "@/hooks/useLeaveWarning";
 
 /**
  * In-app navigation asks first when a page has work that leaving would lose: the same pages and
@@ -11,7 +11,7 @@ import { hasUnretainedWork } from "@/hooks/useLeaveWarning";
  */
 export function LeaveGuard() {
   const blocker = useBlocker(({ currentLocation, nextLocation }) =>
-    currentLocation.pathname !== nextLocation.pathname && hasUnretainedWork());
+    currentLocation.pathname !== nextLocation.pathname && !takeLeaveAfterSave() && hasUnretainedWork());
   useEffect(() => {
     if (blocker.state !== "blocked") return;
     if (window.confirm("This page has changes that aren't saved yet, and leaving would lose them. Leave anyway?")) blocker.proceed();

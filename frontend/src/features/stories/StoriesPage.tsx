@@ -6,6 +6,8 @@ import type { Competency, StorySummary } from "@/api/types";
 import { Badge } from "@/components/Badge";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useReturnHere } from "@/hooks/useReturnHere";
+import { useScrollMemory } from "@/hooks/useScrollMemory";
 import { timeAgo } from "@/lib/format";
 
 import { COMPETENCIES, COMPETENCY_LABEL, SECTION_LABEL } from "./labels";
@@ -19,6 +21,7 @@ export function StoriesPage() {
   // The search runs on the server over everything you wrote; typing doesn't send a request per key.
   const deferredQ = useDebouncedValue(q.trim(), 300);
   const stories = useStories({ archived, q: deferredQ, competency });
+  useScrollMemory(Boolean(stories.data) && !stories.isPlaceholderData);
   const filtering = !!deferredQ || !!competency;
   const searchId = useId();
 
@@ -80,9 +83,10 @@ export function StoriesPage() {
 }
 
 function StoryRow({ s }: { s: StorySummary }) {
+  const back = useReturnHere("Back to your stories");
   return (
     <li className="card story-list__item stack-sm">
-      <h2 className="section-title"><Link to={`/stories/${s.id}`}>{s.title}</Link></h2>
+      <h2 className="section-title"><Link to={`/stories/${s.id}`} state={back}>{s.title}</Link></h2>
       {s.preview && <p className="subtle story-list__preview">{s.preview}</p>}
       <p className="row">
         {s.competencies.map((c) => <Badge key={c}>{COMPETENCY_LABEL[c]}</Badge>)}

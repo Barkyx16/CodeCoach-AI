@@ -43,7 +43,7 @@ export function LearnPage() {
         </p>
       )}
       {c.units.length === 0 ? (
-        <EmptyState title={`No lessons for ${c.career_title} yet`} action={<Link className="btn btn--secondary btn--md" to="/problems?view=questions">Practice questions instead</Link>}>
+        <EmptyState title={`No lessons for ${c.career_title} yet`} action={<Link className="btn btn--secondary btn--md" to={`/problems?career=${track}&view=questions`}>Practice questions instead</Link>}>
           Practice questions and the plan still work for this career.
         </EmptyState>
       ) : (

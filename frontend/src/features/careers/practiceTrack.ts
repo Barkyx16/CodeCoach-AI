@@ -9,14 +9,18 @@ export const DEFAULT_TRACK = "software-engineer";
 export const EXPLORER_KEYS = ["q", "difficulty", "kind", "skill", "status", "sort", "shown"];
 
 /**
- * Which career the practice pages show: the signed-in user's own track, or (signed out) the
- * `?career=` in the URL. Changing it saves to the profile when signed in.
+ * Which career the practice pages show: the `?career=` in the URL when it names a known career (a
+ * breadcrumb like "Registered Nurse questions", or a copied link, opens that career's library, for
+ * anyone), else the signed-in user's own track, else the default. An unknown or removed career
+ * falls back to the user's own. Changing it saves to the profile when signed in.
  */
 export function usePracticeTrack() {
   const { user, setUser } = useAuth();
   const [params, setParams] = useSearchParams();
   const careers = useCareers();
-  const track = user?.career_track || params.get("career") || DEFAULT_TRACK;
+  const asked = params.get("career");
+  const known = asked && (!careers.data || careers.data.some((c) => c.slug === asked)) ? asked : null;
+  const track = known || user?.career_track || DEFAULT_TRACK;
   const career = careers.data?.find((c) => c.slug === track);
 
   async function setTrack(slug: string) {

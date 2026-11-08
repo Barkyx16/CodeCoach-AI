@@ -7,6 +7,7 @@ import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useScrollMemory } from "@/hooks/useScrollMemory";
 import { formatDateTime, timeAgo } from "@/lib/format";
 
 import { PAGE_SIZE, filtersFromParams, hasFilters } from "./historyState";
@@ -40,6 +41,8 @@ export function HistoryPage() {
   const q = useDebouncedValue(search.trim(), 300);
   const facets = useActivityFacets(filters.career);
   const activity = useActivity({ ...filters, page_size: PAGE_SIZE });
+  // Back from an item: the same scroll position, and focus on the item it came back from.
+  useScrollMemory(Boolean(activity.data) && !activity.isPlaceholderData);
 
   // The filters as last set by this page: two changes in quick succession (a career, then a type)
   // must build on each other, not each on the URL of the last render (the second used to drop

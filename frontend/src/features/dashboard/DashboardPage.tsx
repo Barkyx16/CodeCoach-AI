@@ -86,7 +86,7 @@ function CodingDashboard() {
       <div className="dashboard__layout">
         <div className="dashboard__col">
           <Card className="stack">
-            <div className="section-heading"><h2 className="section-title">Up next</h2><Link to="/problems">All problems <span aria-hidden="true">→</span></Link></div>
+            <div className="section-heading"><h2 className="section-title">Up next</h2><Link to="/problems">Practice library <span aria-hidden="true">→</span></Link></div>
             {recs.isPending ? <LoadingState /> : recs.isError ? <ErrorState error={recs.error} /> : (
               <ul className="rec-list">
                 {recs.data.slice(0, 3).map((r) => (
