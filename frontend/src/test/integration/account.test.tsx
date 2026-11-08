@@ -101,6 +101,36 @@ describe("Email verification", () => {
     }
   });
 
+  it("shows the server's cooldown on Send a new code, and says why", async () => {
+    server.use(
+      http.post(`${API}/api/v1/auth/refresh`, () => HttpResponse.json(tokenResponse({ user: unverified }))),
+      http.post(`${API}/api/v1/auth/verify-email/resend`, () => HttpResponse.json({ error: {
+        code: "resend_cooldown", message: "A code was sent less than a minute ago. You can ask for another in 42 seconds.",
+        request_id: "r", details: { retry_after_seconds: 42 } } }, { status: 429, headers: { "Retry-After": "42" } })),
+    );
+    const { user } = renderApp("/verify-email", { signedIn: true });
+    expect(await screen.findByText(/is on its way to/)).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Send a new code" }));
+    expect(await screen.findByText(/less than a minute ago/)).toBeInTheDocument();
+    const waiting = screen.getByRole("button", { name: /Send a new code \(in \d+ s\)/ });
+    expect(waiting).toBeDisabled();
+    expect(Number(/in (\d+) s/.exec(waiting.textContent ?? "")![1])).toBeGreaterThan(40);
+    expect(screen.getByRole("link", { name: "Change it in Settings" })).toHaveAttribute("href", "/settings");
+  });
+
+  it("says when a code was replaced by a newer one", async () => {
+    server.use(
+      http.post(`${API}/api/v1/auth/refresh`, () => HttpResponse.json(tokenResponse({ user: unverified }))),
+      http.post(`${API}/api/v1/auth/verify-email/code`, () => HttpResponse.json({ error: {
+        code: "superseded_verification_code", message: "That code was replaced by a newer one. Use the code in the newest email.",
+        request_id: "r", details: { attempts_left: 4 } } }, { status: 400 })),
+    );
+    const { user } = renderApp("/verify-email", { signedIn: true });
+    await user.type(await screen.findByLabelText(/Verification code/), "123456");
+    await user.click(screen.getByRole("button", { name: "Verify email" }));
+    expect(await screen.findByText("That code was replaced by a newer one. Use the code in the newest email. 4 tries left.")).toBeInTheDocument();
+  });
+
   it("verifies from the emailed link even when signed out, and removes the token from the URL", async () => {
     let body: unknown = null;
     server.use(http.post(`${API}/api/v1/auth/verify-email`, async ({ request }) => {

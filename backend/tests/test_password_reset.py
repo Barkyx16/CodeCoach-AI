@@ -176,7 +176,9 @@ def test_smtp_sender_uses_starttls_and_login(make_settings):
 
         def starttls(self, context=None):
             # The certificate and the hostname must both be checked (smtplib's default checks neither).
-            verified = context is not None and context.verify_mode == ssl.CERT_REQUIRED and context.check_hostname
+            verified = (
+                context is not None and context.verify_mode == ssl.CERT_REQUIRED and context.check_hostname
+            )
             calls.append(("starttls", verified))
 
         def close(self):

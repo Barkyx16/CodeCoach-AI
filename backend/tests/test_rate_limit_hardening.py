@@ -33,7 +33,12 @@ def test_every_429_carries_a_retry_after_header(make_client):
     assert_retry_after(c.post("/api/v1/auth/guest"))
 
 
-def test_resending_verification_is_limited_per_address(make_client):
+def test_resending_verification_is_limited_per_address(make_client, monkeypatch):
+    from datetime import timedelta
+
+    from app.services import email_verification
+
+    monkeypatch.setattr(email_verification, "RESEND_COOLDOWN", timedelta(0))  # test the per-address limit
     c = make_client(auth_rate_limit_per_minute=2)
     h = auth_headers(register(c, email="resend@example.com"))  # 1 of 2
     assert c.post("/api/v1/auth/verify-email/resend", headers=h).status_code == 202  # 2 of 2

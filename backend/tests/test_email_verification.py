@@ -72,10 +72,13 @@ def test_resend_respects_cooldown_and_supersedes_old_links(mail_client, outbox, 
     h = auth_headers(register(mail_client))
     first = link_token(mails(outbox)[0])
     r = mail_client.post("/api/v1/auth/verify-email/resend", headers=h)
-    assert r.status_code == 202 and "ada@example.com" in r.json()["message"]
-    assert len(mails(outbox)) == 1  # within the cooldown: no second email
+    # Within the cooldown: says so, with the time left (it used to answer "sent" and send nothing).
+    assert r.status_code == 429 and r.json()["error"]["code"] == "resend_cooldown"
+    assert 1 <= int(r.headers["Retry-After"]) <= 60 and "seconds" in r.json()["error"]["message"]
+    assert len(mails(outbox)) == 1  # no second email
     monkeypatch.setattr(email_verification, "RESEND_COOLDOWN", timedelta(0))
-    mail_client.post("/api/v1/auth/verify-email/resend", headers=h)
+    r = mail_client.post("/api/v1/auth/verify-email/resend", headers=h)
+    assert r.status_code == 202 and "on its way to ada@example.com" in r.json()["message"]
     second = link_token(mails(outbox)[1])
     assert verify(mail_client, first).status_code == 400  # superseded
     assert verify(mail_client, second).status_code == 200
@@ -207,3 +210,52 @@ def test_code_format_is_validated(mail_client):
         mail_client.post("/api/v1/auth/verify-email/code", headers=h, json={"code": "12ab56"}).status_code
         == 422
     )
+
+
+def test_a_replaced_code_says_so_and_the_newest_works(mail_client, outbox, monkeypatch):
+    h = auth_headers(register(mail_client))
+    old = code_from(mails(outbox)[0])
+    monkeypatch.setattr(email_verification, "RESEND_COOLDOWN", timedelta(0))
+    mail_client.post("/api/v1/auth/verify-email/resend", headers=h)
+    new = code_from(mails(outbox)[1])
+    if old == new:  # a 1-in-a-million coincidence would make the case below meaningless
+        return
+    r = mail_client.post("/api/v1/auth/verify-email/code", headers=h, json={"code": old})
+    assert r.status_code == 400 and r.json()["error"]["code"] == "superseded_verification_code"
+    assert r.json()["error"]["details"]["attempts_left"] == 4  # it still counts as a guess
+    ok = mail_client.post("/api/v1/auth/verify-email/code", headers=h, json={"code": new})
+    assert ok.status_code == 200 and ok.json()["email_verified"] is True
+    # Using it again: already verified, nothing to do.
+    assert (
+        mail_client.post("/api/v1/auth/verify-email/code", headers=h, json={"code": new}).status_code == 200
+    )
+
+
+def test_parallel_wrong_guesses_get_no_more_than_five_tries(mail_client, outbox):
+    import threading
+
+    h = auth_headers(register(mail_client))
+    right = code_from(mails(outbox)[0])
+    wrong = f"{(int(right) + 1) % 1_000_000:06d}"
+    counted: list[int] = []  # attempts_left from each answer that counted a wrong guess
+
+    def guess() -> None:
+        r = mail_client.post("/api/v1/auth/verify-email/code", headers=h, json={"code": wrong})
+        assert r.status_code == 400
+        left = (r.json()["error"]["details"] or {}).get("attempts_left")
+        if left is not None:
+            counted.append(left)
+
+    threads = [threading.Thread(target=guess) for _ in range(12)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    # At most 4 answers say "N tries left" (4, 3, 2, 1, each once); the 5th wrong guess kills the code.
+    assert sorted(counted) == sorted(set(counted)) and len(counted) <= 4 and min(counted, default=1) >= 1
+    with mail_client.app.state.session_factory() as db:
+        row = db.scalars(select(EmailVerificationToken)).one()
+        assert row.code_attempts <= 5 and row.used_at is not None
+    # The right code no longer works either: ask for a new one.
+    r = mail_client.post("/api/v1/auth/verify-email/code", headers=h, json={"code": right})
+    assert r.status_code == 400

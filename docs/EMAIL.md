@@ -106,6 +106,27 @@ Each email carries a `Message-ID` (`<codecoach.JOB_ID@your-domain>`), stored on 
 provider's logs can be matched to the job. Logs name the job, its kind and an SMTP code or error
 class. They never contain an address, subject, code or link (`tests/test_email_transport.py`).
 
+## Verification: the states
+
+| State | What's true | What the person sees |
+|---|---|---|
+| unverified, code on its way | a job is queued; when it runs, a fresh code and link are made and sent | "A 6-digit code is on its way to …", "Send a new code", and "Wrong address? Change it in Settings" |
+| code issued | one live code per address: HMAC-hashed with the server key, 48 hours, at most 5 guesses | the same page survives a refresh (it reads the signed-in account, nothing local) |
+| resend | allowed once a minute per account (`429 resend_cooldown` with `Retry-After` before that); a new code replaces every older one | the button counts down; an older code typed later is answered "replaced by a newer one" |
+| verified | set only by the server, after a correct code or a valid link | "verified" appears only after the server says so |
+
+Rules enforced on the server:
+- A code or link works once. Each is claimed with one conditional database update, so two
+  parallel requests can't both use it.
+- Wrong guesses are counted the same way, before the code is compared, so parallel guesses can't
+  share a count. Before 2026-11-08 they could: a test against the old code saw "4 tries left"
+  twice.
+- An address that changed since a link was sent makes that link invalid.
+- Nothing in the app is restricted to verified accounts; verification is encouraged, not
+  required ([SECURITY.md](SECURITY.md)). So nothing needs enforcing beyond the rules above.
+- Changing a mistyped address needs the signed-in account and its password (Settings). Knowing
+  an account's id is never enough.
+
 ## How sending works
 
 Emails are saved as jobs before they're sent, then retried with backoff if the mail server is

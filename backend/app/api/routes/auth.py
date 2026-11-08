@@ -353,8 +353,17 @@ def resend_verification(
         raise ConflictError("Guest accounts have no email to verify.", code="not_applicable")
     if user.email_verified_at is not None:
         raise ConflictError("This email is already verified.", code="already_verified")
+    wait = email_verification.cooldown_remaining(db, user)
+    if wait > 0:
+        raise RateLimitedError.wait(
+            f"A code was sent less than a minute ago. You can ask for another in {int(wait) + 1} seconds.",
+            wait,
+            code="resend_cooldown",
+        )
     _send_email(request, background, db, settings, "verify_email", user_id=user.id)
-    return AcceptedResponse(message=f"We've sent a new verification link to {user.email}.")
+    return AcceptedResponse(
+        message=f"A new code is on its way to {user.email}. It replaces the one before, so use the newest email."
+    )
 
 
 @router.post(

@@ -76,6 +76,19 @@ function VerifyByCode() {
   const [busy, setBusy] = useState(false);
   const [resent, setResent] = useState<string | null>(null);
   const [resendError, setResendError] = useState<unknown>(null);
+  // The server's resend cooldown: "Send a new code" waits until then, with a visible countdown.
+  const [waitUntil, setWaitUntil] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (waitUntil === null) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [waitUntil]);
+  const secondsLeft = waitUntil === null ? 0 : Math.max(0, Math.ceil((waitUntil - now) / 1000));
+  const startCooldown = (seconds: number) => {
+    setNow(Date.now());
+    setWaitUntil(Date.now() + seconds * 1000);
+  };
 
   if (isRestoring) return <LoadingState label="Loading…" />;
   if (!user || user.is_guest || !user.email) {
@@ -118,7 +131,14 @@ function VerifyByCode() {
       setResent((await api.resendVerification()).message);
       setCode("");
       setError(null);
+      startCooldown(60);
     } catch (err) {
+      if (err instanceof ApiError && err.code === "resend_cooldown") {
+        // A code went out under a minute ago: say so, and wait as long as the server asks.
+        setResent(err.message);
+        startCooldown((err.details as { retry_after_seconds?: number } | null)?.retry_after_seconds ?? 60);
+        return;
+      }
       setResendError(err);
     }
   }
@@ -126,24 +146,37 @@ function VerifyByCode() {
   const attemptsLeft = error instanceof ApiError
     ? (error.details as { attempts_left?: number } | null)?.attempts_left
     : undefined;
+  const tries = attemptsLeft === undefined ? "" : `${attemptsLeft} ${attemptsLeft === 1 ? "try" : "tries"} left.`;
+  const codeError = attemptsLeft === undefined
+    ? undefined
+    : error instanceof ApiError && error.code === "superseded_verification_code"
+      ? `${error.message} ${tries}`
+      : `That code isn't right. ${tries}`;
 
   return (
     <form className="card auth__card stack" onSubmit={onSubmit} noValidate aria-labelledby="verify-title">
       <h1 className="page__title" id="verify-title">Check your email</h1>
       <p className="muted">
-        We sent a 6-digit code to <strong>{user.email}</strong>. Enter it below, or click the link in that email.
+        A 6-digit code is on its way to <strong>{user.email}</strong>. It usually arrives within a minute (check
+        spam too). Enter it below, or click the link in that email. Each new code replaces the one before, so use
+        the newest email.
       </p>
       <EmailNotSentNote what="code (and the link)" />
       <Field label="Verification code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]*"
         maxLength={6} required value={code} className="input code-input"
         onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-        error={attemptsLeft !== undefined ? `That code isn't right. ${attemptsLeft} ${attemptsLeft === 1 ? "try" : "tries"} left.` : undefined} />
+        error={codeError} />
       {attemptsLeft === undefined && <InlineError error={error} />}
       <Button type="submit" variant="primary" loading={busy} disabled={code.length !== 6}>Verify email</Button>
       <div className="auth__alt">
-        <Button variant="ghost" onClick={() => void resend()}>Send a new code</Button>
+        <Button variant="ghost" onClick={() => void resend()} disabled={secondsLeft > 0}>
+          {secondsLeft > 0 ? `Send a new code (in ${secondsLeft} s)` : "Send a new code"}
+        </Button>
         {resent && <span className="subtle" role="status">{resent}</span>}
         <InlineError error={resendError} />
+        <span className="subtle">
+          Wrong address? <Link to="/settings">Change it in Settings</Link> (you'll need your password).
+        </span>
         <Link to={next} className="subtle">Do this later</Link>
       </div>
     </form>

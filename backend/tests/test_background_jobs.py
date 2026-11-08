@@ -164,7 +164,11 @@ def test_changing_email_tells_the_old_address_through_the_outbox(mail_client):
     )
     assert r.status_code == 200, r.text
     kinds = sorted((j.kind, j.status) for j in jobs(mail_client))
-    assert kinds == [("email_changed", "accepted"), ("verify_email", "accepted"), ("verify_email", "accepted")]
+    assert kinds == [
+        ("email_changed", "accepted"),
+        ("verify_email", "accepted"),
+        ("verify_email", "accepted"),
+    ]
     assert {m.to for m in mail_client.app.state.email_sender.sent} == {
         "ada@example.com",
         "ada.new@example.com",
@@ -205,7 +209,9 @@ def test_the_jobs_runner_retries_on_its_own_and_its_housekeeping_is_paced(mail_c
         mail_client.app.state.session_factory, mail_client.app.state.settings, mail, clock=lambda: now[0]
     )
     first = runner.run_once()
-    assert first["emails_accepted"] == 1 and "rate_limit_counters_purged" in first and "guests_deleted" in first
+    assert (
+        first["emails_accepted"] == 1 and "rate_limit_counters_purged" in first and "guests_deleted" in first
+    )
     now[0] += 60  # a minute later: emails only; housekeeping waits its turn
     assert runner.run_once() == {}
     now[0] += 600
