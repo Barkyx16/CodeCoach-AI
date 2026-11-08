@@ -51,10 +51,18 @@ def test_registration_sends_a_link_that_verifies_the_email(mail_client, outbox):
         "is your CodeCoach AI verification code"
     )
     r = verify(mail_client, link_token(mail))
-    assert r.status_code == 200 and r.json()["email_verified"] is True
+    # Signed out: told it worked, with the address masked, and nothing else about the account.
+    assert r.status_code == 200 and r.json() == {
+        "status": "verified",
+        "account": "signed_out",
+        "email_masked": "a•••@e•••.com",
+        "changed_email": False,
+        "user": None,
+    }
     assert me(mail_client, auth_headers(tokens))["email_verified"] is True
     again = verify(mail_client, link_token(mail))
     assert again.status_code == 400 and again.json()["error"]["code"] == "invalid_verification_token"
+    assert again.json()["error"]["details"] == {"reason": "already_verified", "account": "signed_out"}
 
 
 def test_links_expire_and_hashes_only_are_stored(mail_client, outbox):
@@ -65,7 +73,8 @@ def test_links_expire_and_hashes_only_are_stored(mail_client, outbox):
         assert row.token_hash != token and len(row.token_hash) == 64
         row.expires_at = datetime.now(UTC) - timedelta(seconds=1)
         db.commit()
-    assert verify(mail_client, token).json()["error"]["code"] == "invalid_verification_token"
+    error = verify(mail_client, token).json()["error"]
+    assert error["code"] == "invalid_verification_token" and error["details"]["reason"] == "expired"
 
 
 def test_resend_respects_cooldown_and_supersedes_old_links(mail_client, outbox, monkeypatch):
@@ -78,7 +87,7 @@ def test_resend_respects_cooldown_and_supersedes_old_links(mail_client, outbox, 
     assert len(mails(outbox)) == 1  # no second email
     monkeypatch.setattr(email_verification, "RESEND_COOLDOWN", timedelta(0))
     r = mail_client.post("/api/v1/auth/verify-email/resend", headers=h)
-    assert r.status_code == 202 and "on its way to ada@example.com" in r.json()["message"]
+    assert r.status_code == 202 and "on its way to a•••@example.com" in r.json()["message"]
     second = link_token(mails(outbox)[1])
     assert verify(mail_client, first).status_code == 400  # superseded
     assert verify(mail_client, second).status_code == 200
@@ -136,7 +145,8 @@ def test_changing_email_waits_for_the_new_address_and_warns_the_old_one(mail_cli
         and "reset your password" in warning["text"]
     )
     new_link = next(m for m in sent if m["to"] == "new@example.com")
-    done = verify(mail_client, link_token(new_link)).json()
+    assert verify(mail_client, link_token(new_link)).json()["changed_email"] is True
+    done = me(mail_client, h)
     assert (done["email"], done["email_verified"], done["pending_email"]) == ("new@example.com", True, None)
     notice = [m for m in mails(outbox) if m["to"] == "ada@example.com"][-1]
     assert "changed to new@example.com" in notice["text"]  # and then the old address is told
@@ -149,7 +159,9 @@ def test_a_link_for_a_previous_address_stops_working(mail_client, outbox):
     mail_client.post(
         "/api/v1/auth/email", headers=h, json={"new_email": "new@example.com", "password": PASSWORD}
     )
-    assert verify(mail_client, old_link).json()["error"]["code"] == "invalid_verification_token"
+    error = verify(mail_client, old_link).json()["error"]
+    # The code for the new address replaced it (only the newest email works).
+    assert error["code"] == "invalid_verification_token" and error["details"]["reason"] == "superseded"
 
 
 def test_change_email_rules(mail_client):

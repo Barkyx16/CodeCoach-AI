@@ -191,7 +191,8 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 | POST | `/api/v1/auth/login` | – | Log in → token |
 | POST | `/api/v1/auth/refresh` | cookie | New access token from the refresh cookie (rotates it) |
 | POST | `/api/v1/auth/upgrade` | 🔒 | Turn the current guest into a full account, keeping its data |
-| POST | `/api/v1/auth/verify-email` | – | Confirm an email with the emailed link token |
+| POST | `/api/v1/auth/verify-email` | – | Confirm an email with the emailed link token (says why a link doesn't work) |
+| GET | `/api/v1/auth/verify-email/status` | 🔒 | Where your code went (masked), what became of the email, when you can resend |
 | POST | `/api/v1/auth/verify-email/code` | 🔒 | Confirm your email with the emailed 6-digit code |
 | POST | `/api/v1/auth/verify-email/resend` | 🔒 | Send a new code and link |
 | POST | `/api/v1/auth/email` | 🔒 | Change your email (needs your password; waits for the new address's code) |
@@ -327,11 +328,33 @@ the state. Each send supersedes the previous code and link; at most one per minu
 - `POST /api/v1/auth/verify-email/code` 🔒 `{"code": "123456"}` → `200 UserOut`. Five wrong codes
   kill that code (`400 too_many_attempts`); otherwise `400 invalid_verification_code` with
   `details.attempts_left`. Codes are stored as HMAC-SHA256 keyed with the server secret.
-- `POST /api/v1/auth/verify-email` `{"token": "…"}` → `200 UserOut` (no sign-in needed, so the link
-  works on another device). `400 invalid_verification_token` if used, superseded, expired, or the
-  account's email changed since it was sent.
-- `POST /api/v1/auth/verify-email/resend` 🔒 → `202`. `409 already_verified`, `409 not_applicable`
-  (guests).
+- `POST /api/v1/auth/verify-email` `{"token": "…", "other_account_ok": false}` → `200 VerifyLinkOut`
+  (no sign-in needed, so the link works on another device). Send the session's bearer token if
+  there is one:
+  - the account's own session gets `{"account": "this", "user": UserOut, …}`. Anyone else gets
+    `account` (`signed_out` or `other`), `email_masked` and `changed_email`, nothing more about the
+    account. (Before Volume 7 this returned `UserOut` to anyone holding the link.)
+  - A link that can't be used: `400 invalid_verification_token`, with `details.reason` one of
+    `malformed`, `unknown`, `expired`, `superseded` (a newer email replaced it), `already_verified`,
+    `address_changed` (the change it was for was cancelled or replaced), or `stopped` (too many wrong
+    codes). `details.account` says whose link it was: `this`, `other`, `signed_out`, or `unknown`.
+    Only the holder of the link (a 256-bit secret) can ask, so this reveals nothing about other
+    accounts.
+  - A usable link for a different account than the signed-in one: `409
+    verification_link_other_account` with `details.link_for` (masked), and nothing changes. Sent
+    again with `other_account_ok: true`, it confirms that account's address. This session is
+    unchanged, and gets no details of that account.
+- `GET /api/v1/auth/verify-email/status` 🔒 → `VerificationStatusOut`, for the signed-in owner only:
+  - `state`: `pending`, `verified`, or `not_applicable` (guests). `address_masked` (`a•••e@example.com`:
+    the domain shows, so a typo there is visible). `changing_email`.
+  - `delivery.state`: what became of the latest email, in terms the outbox can back up: `queued`,
+    `retrying` (with `next_try_at`), `sent_to_provider` (the mail server accepted it, which isn't proof
+    of inbox delivery), `kept_locally` (a development server printed or saved it), `failed`, or
+    `unknown` (no record). There is no "delivered". No SMTP code, host or error class is included.
+  - `transport` (`smtp`, `console`, `file`). `code_expires_at` and `code_tries_left`, for the newest
+    code, null when none works. `resend_available_in_seconds`, the server's cooldown.
+- `POST /api/v1/auth/verify-email/resend` 🔒 → `202`, with the address masked in `message`. `429
+  resend_cooldown` (with `Retry-After`), `409 already_verified`, `409 not_applicable` (guests).
 - `POST /api/v1/auth/email` 🔒 `{"new_email": "…", "password": "…"}` → `200 UserOut`. Nothing
   changes yet: `pending_email` holds the new address and a code and link go there. A verified
   current address also gets a notice. The address changes when that code

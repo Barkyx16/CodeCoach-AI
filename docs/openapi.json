@@ -455,6 +455,7 @@
           "auth"
         ],
         "summary": "Confirm an email address with the emailed link (no sign-in needed)",
+        "description": "Works signed out. A link that can't be used is a 400 `invalid_verification_token` whose\n`details.reason` says why (malformed, unknown, expired, superseded, already_verified,\naddress_changed, stopped) and `details.account` whose link it was (this, other, signed_out,\nunknown). Signed in as a different account than the link's: 409\n`verification_link_other_account` and nothing changes, unless `other_account_ok`.",
         "operationId": "verify_email_api_v1_auth_verify_email_post",
         "requestBody": {
           "content": {
@@ -472,13 +473,23 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserOut"
+                  "$ref": "#/components/schemas/VerifyLinkOut"
                 }
               }
             }
           },
           "400": {
             "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
             "content": {
               "application/json": {
                 "schema": {
@@ -496,8 +507,60 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           }
-        }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/verify-email/status": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Where your code was sent (masked), what became of the email, and when you can resend",
+        "description": "For the signed-in owner only. Delivery states are what the outbox can back up: a mail\nserver accepting an email (`sent_to_provider`) isn't proof that it reached an inbox.",
+        "operationId": "verification_status_api_v1_auth_verify_email_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationStatusOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/v1/auth/verify-email/code": {
@@ -20264,6 +20327,66 @@
         ],
         "title": "DeletedOut"
       },
+      "DeliveryOut": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "retrying",
+              "sent_to_provider",
+              "kept_locally",
+              "failed",
+              "unknown"
+            ],
+            "title": "State",
+            "description": "What became of the latest email. `sent_to_provider`: the mail server accepted it, which isn't proof it reached an inbox. `kept_locally`: a development server printed or saved it instead of sending it. `retrying`: a try failed; it's retried automatically."
+          },
+          "requested_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested At"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At",
+            "description": "When it was sent, or given up on"
+          },
+          "next_try_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Try At",
+            "description": "`retrying` only: the next automatic try"
+          }
+        },
+        "type": "object",
+        "required": [
+          "state"
+        ],
+        "title": "DeliveryOut"
+      },
       "Difficulty": {
         "type": "string",
         "enum": [
@@ -34474,6 +34597,103 @@
         ],
         "title": "ValidationError"
       },
+      "VerificationStatusOut": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "verified",
+              "pending",
+              "not_applicable"
+            ],
+            "title": "State"
+          },
+          "changing_email": {
+            "type": "boolean",
+            "title": "Changing Email",
+            "description": "The code confirms a new address (a change of email)"
+          },
+          "address_masked": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address Masked",
+            "description": "Where codes go, masked: the domain is shown"
+          },
+          "delivery": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeliveryOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`pending` only"
+          },
+          "transport": {
+            "type": "string",
+            "enum": [
+              "console",
+              "file",
+              "smtp"
+            ],
+            "title": "Transport",
+            "description": "How this server sends email: `smtp` sends; `console` and `file` (development and tests) keep it on the server's computer"
+          },
+          "link_ttl_hours": {
+            "type": "integer",
+            "title": "Link Ttl Hours"
+          },
+          "code_expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code Expires At",
+            "description": "When the newest code and link stop working; null if none works now"
+          },
+          "code_tries_left": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code Tries Left"
+          },
+          "resend_available_in_seconds": {
+            "type": "integer",
+            "title": "Resend Available In Seconds",
+            "description": "0 when a new code can be sent now"
+          }
+        },
+        "type": "object",
+        "required": [
+          "state",
+          "changing_email",
+          "address_masked",
+          "delivery",
+          "transport",
+          "link_ttl_hours",
+          "code_expires_at",
+          "code_tries_left",
+          "resend_available_in_seconds"
+        ],
+        "title": "VerificationStatusOut"
+      },
       "VerifyCodeRequest": {
         "properties": {
           "code": {
@@ -34494,8 +34714,14 @@
           "token": {
             "type": "string",
             "maxLength": 200,
-            "minLength": 20,
+            "minLength": 1,
             "title": "Token"
+          },
+          "other_account_ok": {
+            "type": "boolean",
+            "title": "Other Account Ok",
+            "description": "Signed in as a different account than the link's: use the link anyway (it confirms that account's address; this session stays as it is). Without it, such a request gets 409 `verification_link_other_account` and nothing changes.",
+            "default": false
           }
         },
         "type": "object",
@@ -34503,6 +34729,55 @@
           "token"
         ],
         "title": "VerifyEmailRequest"
+      },
+      "VerifyLinkOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "verified",
+            "title": "Status",
+            "default": "verified"
+          },
+          "account": {
+            "type": "string",
+            "enum": [
+              "this",
+              "other",
+              "signed_out"
+            ],
+            "title": "Account",
+            "description": "Whose link, relative to the session that sent it: `this` account, an `other` one (sent with `other_account_ok`), or `signed_out`."
+          },
+          "email_masked": {
+            "type": "string",
+            "title": "Email Masked",
+            "description": "The address confirmed, masked (a\u2022\u2022\u2022e@example.com)"
+          },
+          "changed_email": {
+            "type": "boolean",
+            "title": "Changed Email",
+            "description": "It confirmed a new address: the account's email changed"
+          },
+          "user": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The account, only when `account` is `this`"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account",
+          "email_masked",
+          "changed_email"
+        ],
+        "title": "VerifyLinkOut",
+        "description": "A link confirmed an address. Only the account's own signed-in session gets the account back:\nanyone else holding the link learns that it worked, and a masked address, nothing more."
       },
       "WhiteboardAttemptIn": {
         "properties": {

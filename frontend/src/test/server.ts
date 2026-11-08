@@ -10,7 +10,7 @@ import { learnHandlers } from "./learn";
 import { noteHandlers } from "./notes";
 import { scenarioHandlers } from "./scenarios";
 import { reviewFor } from "./review";
-import { activityFacets, activityItems, careers, executionStatus, nurseFormats, hint, makePlan, nurseAnalytics, nurseGoals, nurseAnswer, nurseQuestions, page, problems, progress, queuedSubmission, review, tokenResponse, twoSum, user } from "./fixtures";
+import { activityFacets, activityItems, careers, executionStatus, nurseFormats, hint, makePlan, nurseAnalytics, nurseGoals, nurseAnswer, nurseQuestions, page, problems, progress, queuedSubmission, review, tokenResponse, twoSum, user, verificationStatus } from "./fixtures";
 
 export const API = "http://localhost:8000";
 
@@ -85,6 +85,7 @@ export const handlers = [
     ? HttpResponse.json(tokenResponse())
     : HttpResponse.json({ error: { code: "invalid_refresh", message: "Please sign in again.", request_id: "r", details: null } }, { status: 401 }))),
   http.get(`${API}/api/v1/auth/me`, () => HttpResponse.json(user)),
+  http.get(`${API}/api/v1/auth/verify-email/status`, () => HttpResponse.json(verificationStatus())),
   http.post(`${API}/api/v1/submissions`, () => HttpResponse.json(queuedSubmission, { status: 202 })),
   http.get(`${API}/api/v1/submissions/:id`, () => HttpResponse.json(queuedSubmission)),
   http.get(`${API}/api/v1/me/submissions`, () => HttpResponse.json(page([{ id: "sub-1", problem_slug: "two-sum", problem_title: "Two Sum", mode: "submit", status: "QUEUED", created_at: new Date().toISOString(), duration_ms: null }]))),

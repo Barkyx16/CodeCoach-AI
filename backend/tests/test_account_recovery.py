@@ -127,7 +127,7 @@ def test_resend_goes_to_the_pending_address(c, outbox, monkeypatch):
     assert c.post("/api/v1/auth/verify-email/resend", headers=h).status_code == 429  # cooldown applies
     monkeypatch.setattr(email_verification, "RESEND_COOLDOWN", timedelta(0))
     r = c.post("/api/v1/auth/verify-email/resend", headers=h)
-    assert r.status_code == 202 and "new@example.com" in r.json()["message"]
+    assert r.status_code == 202 and "n•••@example.com" in r.json()["message"]  # masked
     assert len(mails(outbox, "new@example.com")) == 2
 
 

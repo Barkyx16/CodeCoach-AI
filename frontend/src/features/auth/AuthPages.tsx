@@ -9,14 +9,22 @@ import { InlineError } from "@/components/States";
 
 import { fieldErrorsFrom } from "./fieldErrors";
 import { CareerSelect } from "@/features/careers/CareerSelect";
+import { safeReturnPath } from "@/lib/links";
 
 import { AuthLayout } from "./AuthLayout";
 
 /** After signing in: back to the page that asked for it (e.g. a problem), else `fallback`: the
- * dashboard for returning accounts, the optional welcome for new ones. */
+ * dashboard for returning accounts, the optional welcome for new ones. Only an in-app path counts
+ * (never another site, or a sign-in screen that would loop). */
 function useRedirectTarget(fallback = "/dashboard"): string {
   const location = useLocation();
-  return (location.state as { from?: string } | null)?.from ?? fallback;
+  return safeReturnPath((location.state as { from?: unknown } | null)?.from, fallback);
+}
+
+/** Router state that carries the page the learner was going to between Sign in and Create account. */
+function useCarriedFrom(): { from: string } | undefined {
+  const from = safeReturnPath((useLocation().state as { from?: unknown } | null)?.from, "");
+  return from ? { from } : undefined;
 }
 
 function GuestButton() {
@@ -48,6 +56,7 @@ function GuestButton() {
 
 export function LoginPage() {
   const { login } = useAuth();
+  const carried = useCarriedFrom();
   const notice = (useLocation().state as { notice?: string } | null)?.notice ?? null;
   const navigate = useNavigate();
   const target = useRedirectTarget();
@@ -84,7 +93,7 @@ export function LoginPage() {
         <InlineError error={error} />
         <Button type="submit" variant="primary" loading={busy} disabled={!email || !password}>Sign in</Button>
         <div className="auth__alt">
-          <span className="subtle">New here? <Link to="/register">Create an account</Link></span>
+          <span className="subtle">New here? <Link to="/register" state={carried}>Create an account</Link></span>
           <GuestButton />
         </div>
       </form>
@@ -94,6 +103,7 @@ export function LoginPage() {
 
 export function RegisterPage() {
   const { register } = useAuth();
+  const carried = useCarriedFrom();
   const navigate = useNavigate();
   const target = useRedirectTarget("/welcome");
   const [form, setForm] = useState({ display_name: "", email: "", password: "", career_track: "" });
@@ -142,7 +152,7 @@ export function RegisterPage() {
           Create account
         </Button>
         <div className="auth__alt">
-          <span className="subtle">Have an account? <Link to="/login">Sign in</Link></span>
+          <span className="subtle">Have an account? <Link to="/login" state={carried}>Sign in</Link></span>
           <GuestButton />
         </div>
       </form>

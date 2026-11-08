@@ -11,6 +11,8 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
+import math
+import re
 import secrets
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -23,7 +25,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.errors import AppError, ConflictError
-from app.models import EmailVerificationToken, User
+from app.models import EmailJob, EmailVerificationToken, User
 from app.services.email import Email, EmailSender
 
 logger = logging.getLogger("codecoach.email_verification")
@@ -240,29 +242,227 @@ def _complete(db: Session, user: User, address: str, now: datetime) -> Confirmed
     raise AppError(INVALID, code="invalid_verification_token")
 
 
-def confirm(db: Session, raw: str) -> Confirmed:
-    """Verify with the emailed link (works signed out). Claimed atomically: a link works once."""
+# A link's token is `secrets.token_urlsafe(32)`: 43 URL-safe characters. Anything else was cut
+# short or changed on the way (mail apps sometimes break long links).
+_TOKEN_SHAPE = re.compile(r"[A-Za-z0-9_-]{43}")
+
+# Why a link didn't work, in the learner's terms. Only someone holding the link (a 256-bit secret)
+# can ask, so saying which of these it is reveals nothing about anyone else's account.
+LINK_REASONS = {
+    "malformed": (
+        "This link is incomplete. Mail apps sometimes break long links: open it from the email again, "
+        "or enter the 6-digit code from the same email instead."
+    ),
+    "unknown": (
+        "This link isn't one we recognise. It may be incomplete, or from an account that no longer exists. "
+        "Open the newest email from CodeCoach AI, or send a new one."
+    ),
+    "expired": "This link has expired: links work for {hours} hours. Send a new one.",
+    "superseded": (
+        "A newer email replaced this link. Only the newest email's link and code work, so use that one."
+    ),
+    "already_verified": "This email is already confirmed. There's nothing more to do.",
+    "address_changed": (
+        "This link was for an address that's no longer waiting to be confirmed (the change was "
+        "cancelled or replaced), so it can't be used."
+    ),
+    "stopped": "This link no longer works: too many wrong codes were tried with it. Send a new one.",
+}
+
+
+def mask_address(address: str, *, show_domain: bool = True) -> str:
+    """`ada.lovelace@example.com` → `a•••e@example.com` (or `a•••e@e•••.com`). Enough to recognise
+    your own address, or spot a mistyped domain, without showing it whole to whoever sees the screen."""
+    local, _, domain = address.partition("@")
+    masked = local[:1] + "•••" + (local[-1] if len(local) >= 5 else "")
+    if not show_domain:
+        tld = domain.rsplit(".", 1)[-1] if "." in domain else ""
+        domain = domain[:1] + "•••" + (f".{tld}" if tld else "")
+    return f"{masked}@{domain}"
+
+
+def _link_error(reason: str, account: str, settings_hours: int | None = None) -> AppError:
+    message = LINK_REASONS[reason].format(hours=settings_hours or "")
+    return AppError(
+        message, code="invalid_verification_token", details={"reason": reason, "account": account}
+    )
+
+
+def _why_unusable(db: Session, row: EmailVerificationToken, user: User, now: datetime) -> str | None:
+    """Why this link can't be used now, or None if it can."""
+    if row.email == user.email and user.email_verified_at is not None:
+        return "already_verified"  # used already, or a duplicate of one that was
+    if row.email not in (user.email, user.pending_email):
+        return "address_changed"
+    if row.used_at is not None:
+        newer = db.scalar(
+            select(EmailVerificationToken.id)
+            .where(
+                EmailVerificationToken.user_id == user.id,
+                EmailVerificationToken.created_at > row.created_at,
+            )
+            .limit(1)
+        )
+        return "superseded" if newer else "stopped"
+    if _aware(row.expires_at) <= now:
+        return "expired"
+    return None
+
+
+@dataclass
+class LinkConfirmed(Confirmed):
+    # Did this confirm a new address (a change of email), rather than the account's current one?
+    changed_email: bool = False
+
+
+def confirm(
+    db: Session,
+    raw: str,
+    *,
+    caller: User | None = None,
+    other_account_ok: bool = False,
+    ttl_hours: int | None = None,
+) -> LinkConfirmed:
+    """Verify with the emailed link (works signed out). Claimed atomically: a link works once.
+
+    A link that can't be used says why (`details.reason`). A usable link for a different account
+    than the signed-in `caller` isn't used unless the caller says so (`other_account_ok`): someone
+    signed in as one account, opening another's link, is asked first (409)."""
     now = datetime.now(UTC)
+    if not _TOKEN_SHAPE.fullmatch(raw):
+        raise _link_error("malformed", _relation(caller, None))
+    row = db.scalar(select(EmailVerificationToken).where(EmailVerificationToken.token_hash == _hash(raw)))
+    user = db.get(User, row.user_id) if row is not None else None
+    if row is None or user is None:
+        db.rollback()
+        raise _link_error("unknown", _relation(caller, None))
+    account = _relation(caller, user)
+    reason = _why_unusable(db, row, user, now)
+    if reason is not None:
+        db.rollback()
+        raise _link_error(reason, account, ttl_hours)
+    if account == "other" and not other_account_ok:
+        db.rollback()
+        raise ConflictError(
+            "This link is for a different account than the one you're signed in to. Nothing was changed.",
+            code="verification_link_other_account",
+            details={"account": "other", "link_for": mask_address(row.email, show_domain=False)},
+        )
     claimed = db.execute(
         update(EmailVerificationToken)
         .where(
-            EmailVerificationToken.token_hash == _hash(raw),
+            EmailVerificationToken.id == row.id,
             EmailVerificationToken.used_at.is_(None),
             EmailVerificationToken.expires_at > now,
         )
         .values(used_at=now)
-        .returning(EmailVerificationToken.user_id, EmailVerificationToken.email)
         .execution_options(synchronize_session=False)
-    ).one_or_none()
-    if claimed is None:
+    )
+    if cast(CursorResult[Any], claimed).rowcount != 1:
+        # Used or replaced by a parallel request a moment ago: say what it is now.
         db.rollback()
-        raise AppError(INVALID, code="invalid_verification_token")
-    user = db.get(User, claimed.user_id)
-    # The address this link was for must still be the account's address or its pending change.
-    if user is None or claimed.email not in (user.email, user.pending_email):
-        db.rollback()
-        raise AppError(INVALID, code="invalid_verification_token")
-    return _complete(db, user, claimed.email, now)
+        db.refresh(user)
+        db.refresh(row)
+        raise _link_error(_why_unusable(db, row, user, now) or "stopped", account, ttl_hours)
+    changing = row.email != user.email
+    done = _complete(db, user, row.email, now)
+    return LinkConfirmed(done.user, done.notify_old, changed_email=changing)
+
+
+def _relation(caller: User | None, owner: User | None) -> str:
+    """Whose link, relative to whoever sent it: `this` account, an `other` one, `signed_out`, or
+    `unknown` (signed in, but the link names no account)."""
+    if caller is None:
+        return "signed_out"
+    if owner is None:
+        return "unknown"  # no account to compare with (the link is incomplete or unknown)
+    return "this" if owner.id == caller.id else "other"
+
+
+def delivery_status(db: Session, user: User, address: str, settings: Settings) -> dict[str, Any]:
+    """What became of the latest verification email to `address`, in terms the outbox can back up:
+    queued (waiting or being sent), retrying (a try failed; it's tried again automatically),
+    sent_to_provider (the mail server accepted it, which isn't proof it reached an inbox),
+    kept_locally (a development server printed or saved it instead of sending), failed (given up,
+    refused, or too old to send), or unknown (no record, e.g. older than the outbox keeps)."""
+    tokens = db.execute(
+        select(EmailVerificationToken.email, EmailVerificationToken.created_at).where(
+            EmailVerificationToken.user_id == user.id
+        )
+    ).all()
+    for_address = [_aware(t.created_at) for t in tokens if t.email == address]
+    latest_for_address = max(for_address, default=None)
+    jobs = db.scalars(
+        select(EmailJob)
+        .where(EmailJob.user_id == user.id, EmailJob.kind == "verify_email", EmailJob.status != "skipped")
+        .order_by(EmailJob.created_at.desc())
+        .limit(20)
+    ).all()
+    slack = timedelta(seconds=1)
+    for job in jobs:
+        requested = _aware(job.created_at)
+        if job.status in ("pending", "sending", "held"):
+            # Not finished: it goes to whichever address is waiting when it's sent, which is this one.
+            retrying = job.status == "pending" and job.attempts > 0
+            return {
+                "state": "retrying" if retrying else "queued",
+                "requested_at": requested,
+                "updated_at": None,
+                "next_try_at": _aware(job.next_attempt_at) if retrying else None,
+            }
+        finished = _aware(job.finished_at or job.created_at)
+        made = [t for t in tokens if requested - slack <= _aware(t.created_at) <= finished + slack]
+        if made and not any(t.email == address for t in made):
+            continue  # this one went to another address (a change that was cancelled or replaced)
+        if not made and latest_for_address is not None and requested < latest_for_address:
+            continue  # nothing was made, and a later email to this address exists
+        if job.status == "accepted":
+            state = "sent_to_provider" if settings.email_backend == "smtp" else "kept_locally"
+        else:  # rejected, failed, dropped
+            state = "failed"
+        return {"state": state, "requested_at": requested, "updated_at": finished, "next_try_at": None}
+    return {"state": "unknown", "requested_at": None, "updated_at": None, "next_try_at": None}
+
+
+def status(db: Session, user: User, settings: Settings) -> dict[str, Any]:
+    """Everything the "Check your email" page shows: for the signed-in owner only."""
+    base: dict[str, Any] = {
+        "transport": settings.email_backend,
+        "link_ttl_hours": settings.email_verification_ttl_hours,
+        "changing_email": False,
+        "address_masked": None,
+        "delivery": None,
+        "code_expires_at": None,
+        "code_tries_left": None,
+        "resend_available_in_seconds": 0,
+    }
+    address = target_address(user)
+    if user.is_guest or not user.email:
+        return {**base, "state": "not_applicable"}
+    if address is None:
+        return {**base, "state": "verified", "address_masked": mask_address(user.email)}
+    now = datetime.now(UTC)
+    newest = db.scalar(
+        select(EmailVerificationToken)
+        .where(
+            EmailVerificationToken.user_id == user.id,
+            EmailVerificationToken.email == address,
+            EmailVerificationToken.used_at.is_(None),
+            EmailVerificationToken.expires_at > now,
+        )
+        .order_by(EmailVerificationToken.created_at.desc())
+        .limit(1)
+    )
+    return {
+        **base,
+        "state": "pending",
+        "changing_email": address == user.pending_email,
+        "address_masked": mask_address(address),
+        "delivery": delivery_status(db, user, address, settings),
+        "code_expires_at": _aware(newest.expires_at) if newest else None,
+        "code_tries_left": MAX_CODE_ATTEMPTS - newest.code_attempts if newest else None,
+        "resend_available_in_seconds": math.ceil(cooldown_remaining(db, user, now)),
+    }
 
 
 def _superseded(

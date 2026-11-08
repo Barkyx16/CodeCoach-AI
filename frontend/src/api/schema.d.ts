@@ -141,8 +141,36 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Confirm an email address with the emailed link (no sign-in needed) */
+        /**
+         * Confirm an email address with the emailed link (no sign-in needed)
+         * @description Works signed out. A link that can't be used is a 400 `invalid_verification_token` whose
+         *     `details.reason` says why (malformed, unknown, expired, superseded, already_verified,
+         *     address_changed, stopped) and `details.account` whose link it was (this, other, signed_out,
+         *     unknown). Signed in as a different account than the link's: 409
+         *     `verification_link_other_account` and nothing changes, unless `other_account_ok`.
+         */
         post: operations["verify_email_api_v1_auth_verify_email_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/verify-email/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Where your code was sent (masked), what became of the email, and when you can resend
+         * @description For the signed-in owner only. Delivery states are what the outbox can back up: a mail
+         *     server accepting an email (`sent_to_provider`) isn't proof that it reached an inbox.
+         */
+        get: operations["verification_status_api_v1_auth_verify_email_status_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4497,6 +4525,27 @@ export interface components {
              * Format: date-time
              */
             restorable_until: string;
+        };
+        /** DeliveryOut */
+        DeliveryOut: {
+            /**
+             * State
+             * @description What became of the latest email. `sent_to_provider`: the mail server accepted it, which isn't proof it reached an inbox. `kept_locally`: a development server printed or saved it instead of sending it. `retrying`: a try failed; it's retried automatically.
+             * @enum {string}
+             */
+            state: "queued" | "retrying" | "sent_to_provider" | "kept_locally" | "failed" | "unknown";
+            /** Requested At */
+            requested_at?: string | null;
+            /**
+             * Updated At
+             * @description When it was sent, or given up on
+             */
+            updated_at?: string | null;
+            /**
+             * Next Try At
+             * @description `retrying` only: the next automatic try
+             */
+            next_try_at?: string | null;
         };
         /**
          * Difficulty
@@ -9980,6 +10029,46 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /** VerificationStatusOut */
+        VerificationStatusOut: {
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "verified" | "pending" | "not_applicable";
+            /**
+             * Changing Email
+             * @description The code confirms a new address (a change of email)
+             */
+            changing_email: boolean;
+            /**
+             * Address Masked
+             * @description Where codes go, masked: the domain is shown
+             */
+            address_masked: string | null;
+            /** @description `pending` only */
+            delivery: components["schemas"]["DeliveryOut"] | null;
+            /**
+             * Transport
+             * @description How this server sends email: `smtp` sends; `console` and `file` (development and tests) keep it on the server's computer
+             * @enum {string}
+             */
+            transport: "console" | "file" | "smtp";
+            /** Link Ttl Hours */
+            link_ttl_hours: number;
+            /**
+             * Code Expires At
+             * @description When the newest code and link stop working; null if none works now
+             */
+            code_expires_at: string | null;
+            /** Code Tries Left */
+            code_tries_left: number | null;
+            /**
+             * Resend Available In Seconds
+             * @description 0 when a new code can be sent now
+             */
+            resend_available_in_seconds: number;
+        };
         /** VerifyCodeRequest */
         VerifyCodeRequest: {
             /**
@@ -9992,6 +10081,43 @@ export interface components {
         VerifyEmailRequest: {
             /** Token */
             token: string;
+            /**
+             * Other Account Ok
+             * @description Signed in as a different account than the link's: use the link anyway (it confirms that account's address; this session stays as it is). Without it, such a request gets 409 `verification_link_other_account` and nothing changes.
+             * @default false
+             */
+            other_account_ok: boolean;
+        };
+        /**
+         * VerifyLinkOut
+         * @description A link confirmed an address. Only the account's own signed-in session gets the account back:
+         *     anyone else holding the link learns that it worked, and a masked address, nothing more.
+         */
+        VerifyLinkOut: {
+            /**
+             * Status
+             * @default verified
+             * @constant
+             */
+            status: "verified";
+            /**
+             * Account
+             * @description Whose link, relative to the session that sent it: `this` account, an `other` one (sent with `other_account_ok`), or `signed_out`.
+             * @enum {string}
+             */
+            account: "this" | "other" | "signed_out";
+            /**
+             * Email Masked
+             * @description The address confirmed, masked (a•••e@example.com)
+             */
+            email_masked: string;
+            /**
+             * Changed Email
+             * @description It confirmed a new address: the account's email changed
+             */
+            changed_email: boolean;
+            /** @description The account, only when `account` is `this` */
+            user?: components["schemas"]["UserOut"] | null;
         };
         /** WhiteboardAttemptIn */
         WhiteboardAttemptIn: {
@@ -10562,7 +10688,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserOut"];
+                    "application/json": components["schemas"]["VerifyLinkOut"];
                 };
             };
             /** @description Bad request */
@@ -10574,8 +10700,55 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Request validation failed */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    verification_status_api_v1_auth_verify_email_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationStatusOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

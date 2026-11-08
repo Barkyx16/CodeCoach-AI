@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
-import { tokenResponse, user as baseUser } from "../fixtures";
+import { tokenResponse, user as baseUser, verificationStatus } from "../fixtures";
 import { chooseCareer } from "../careerPicker";
 import { renderApp } from "../render";
 import { API, cookieJar, server } from "../server";
@@ -54,7 +54,10 @@ describe("Email verification", () => {
     await user.click(within(screen.getByRole("main")).getByRole("button", { name: "Create account" }));
 
     expect(await screen.findByRole("heading", { name: "Check your email" })).toBeInTheDocument();
-    expect(screen.getByText("ada@example.com")).toBeInTheDocument();
+    // Masked on screen (the domain shows, to spot a typo there); the whole address on request.
+    await waitFor(() => expect(screen.getByTestId("verify-destination")).toHaveTextContent("a•••@example.com"));
+    await user.click(screen.getByRole("button", { name: "Show full address" }));
+    expect(screen.getByTestId("verify-destination")).toHaveTextContent("ada@example.com");
     const code = screen.getByLabelText("Verification code");
     expect(code).toHaveAttribute("autocomplete", "one-time-code");
     await user.type(code, "65ab4321"); // letters are dropped, length capped at 6
@@ -109,7 +112,7 @@ describe("Email verification", () => {
         request_id: "r", details: { retry_after_seconds: 42 } } }, { status: 429, headers: { "Retry-After": "42" } })),
     );
     const { user } = renderApp("/verify-email", { signedIn: true });
-    expect(await screen.findByText(/is on its way to/)).toBeInTheDocument();
+    expect(await screen.findByText(/We send a 6-digit code to/)).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: "Send a new code" }));
     expect(await screen.findByText(/less than a minute ago/)).toBeInTheDocument();
     const waiting = screen.getByRole("button", { name: /Send a new code \(in \d+ s\)/ });
@@ -135,11 +138,12 @@ describe("Email verification", () => {
     let body: unknown = null;
     server.use(http.post(`${API}/api/v1/auth/verify-email`, async ({ request }) => {
       body = await request.json();
-      return HttpResponse.json(baseUser);
+      return HttpResponse.json({ status: "verified", account: "signed_out", email_masked: "a•••@e•••.com", changed_email: false, user: null });
     }));
     window.history.replaceState(null, "", `/verify-email#token=${"v".repeat(43)}`);
     renderApp("/verify-email");
-    expect(await screen.findByText("Your email is verified. Thanks!")).toBeInTheDocument();
+    expect(await screen.findByText("a•••@e•••.com is confirmed. Thanks!")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Sign in to continue" })).toHaveAttribute("href", "/login");
     expect(body).toEqual({ token: "v".repeat(43) });
     expect(window.location.hash).toBe("");
   });
@@ -147,11 +151,15 @@ describe("Email verification", () => {
 
 describe("Confirming a new email", () => {
   it("asks for the code sent to the new address and says the old one still applies", async () => {
-    server.use(http.post(`${API}/api/v1/auth/refresh`, () =>
-      HttpResponse.json(tokenResponse({ user: { ...baseUser, pending_email: "new@example.com" } }))));
+    server.use(
+      http.post(`${API}/api/v1/auth/refresh`, () =>
+        HttpResponse.json(tokenResponse({ user: { ...baseUser, pending_email: "new@example.com" } }))),
+      http.get(`${API}/api/v1/auth/verify-email/status`, () =>
+        HttpResponse.json(verificationStatus({ changing_email: true, address_masked: "n•••@example.com" }))),
+    );
     renderApp("/verify-email", { signedIn: true });
     expect(await screen.findByRole("heading", { name: "Confirm your new email" })).toBeInTheDocument();
-    expect(screen.getByText("new@example.com")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId("verify-destination")).toHaveTextContent("n•••@example.com"));
     expect(screen.getByTestId("pending-email-note")).toHaveTextContent("keeps using ada@example.com");
     expect(screen.queryByText(/is verified/)).not.toBeInTheDocument(); // not "done" while a change waits
     expect(screen.getByRole("link", { name: "Change or cancel it in Settings" })).toHaveAttribute("href", "/settings");

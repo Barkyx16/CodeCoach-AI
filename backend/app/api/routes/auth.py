@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, get_db, get_settings_dep
+from app.api.deps import get_current_user, get_db, get_optional_user, get_settings_dep
 from app.careers import DEFAULT_TRACK
 from app.config import Settings
 from app.errors import (
@@ -32,8 +32,10 @@ from app.schemas.auth import (
     UpdateProfileRequest,
     UpgradeGuestRequest,
     UserOut,
+    VerificationStatusOut,
     VerifyCodeRequest,
     VerifyEmailRequest,
+    VerifyLinkOut,
 )
 from app.schemas.common import error_responses
 from app.services import email_verification, outbox, password_reset
@@ -308,19 +310,55 @@ def refresh(
 
 @router.post(
     "/verify-email",
-    response_model=UserOut,
-    responses=error_responses(400, 422),
+    response_model=VerifyLinkOut,
+    responses=error_responses(400, 409, 422, 429),
     summary="Confirm an email address with the emailed link (no sign-in needed)",
 )
 def verify_email(
     body: VerifyEmailRequest,
     request: Request,
     background: BackgroundTasks,
+    caller: User | None = Depends(get_optional_user),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
-) -> User:
+) -> VerifyLinkOut:
+    """Works signed out. A link that can't be used is a 400 `invalid_verification_token` whose
+    `details.reason` says why (malformed, unknown, expired, superseded, already_verified,
+    address_changed, stopped) and `details.account` whose link it was (this, other, signed_out,
+    unknown). Signed in as a different account than the link's: 409
+    `verification_link_other_account` and nothing changes, unless `other_account_ok`."""
     _throttle(request)
-    return _after_confirm(request, background, db, settings, email_verification.confirm(db, body.token))
+    done = email_verification.confirm(
+        db,
+        body.token,
+        caller=caller,
+        other_account_ok=body.other_account_ok,
+        ttl_hours=settings.email_verification_ttl_hours,
+    )
+    user = _after_confirm(request, background, db, settings, done)
+    mine = caller is not None and caller.id == user.id
+    return VerifyLinkOut(
+        account="this" if mine else ("other" if caller is not None else "signed_out"),
+        email_masked=email_verification.mask_address(user.email or "", show_domain=mine),
+        changed_email=done.changed_email,
+        user=UserOut.model_validate(user) if mine else None,
+    )
+
+
+@router.get(
+    "/verify-email/status",
+    response_model=VerificationStatusOut,
+    responses=error_responses(401),
+    summary="Where your code was sent (masked), what became of the email, and when you can resend",
+)
+def verification_status(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+) -> VerificationStatusOut:
+    """For the signed-in owner only. Delivery states are what the outbox can back up: a mail
+    server accepting an email (`sent_to_provider`) isn't proof that it reached an inbox."""
+    return VerificationStatusOut.model_validate(email_verification.status(db, user, settings))
 
 
 def _after_confirm(
@@ -392,7 +430,8 @@ def resend_verification(
         )
     _send_email(request, background, db, settings, "verify_email", user_id=user.id)
     return AcceptedResponse(
-        message=f"A new code is on its way to {address}. It replaces the one before, so use the newest email."
+        message=f"A new code is on its way to {email_verification.mask_address(address)}. It replaces the one "
+        "before: only the newest email's code and link work."
     )
 
 

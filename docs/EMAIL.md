@@ -228,10 +228,28 @@ Until then, the outbox's own statuses are the whole truth the app has.
 
 | State | What's true | What the person sees |
 |---|---|---|
-| unverified, code on its way | a job is queued; when it runs, a fresh code and link are made and sent | "A 6-digit code is on its way to …", "Send a new code", and "Wrong address? Change it in Settings" |
+| unverified, code on its way | a job is queued; when it runs, a fresh code and link are made and sent | where the code goes, masked ("We send a 6-digit code to a•••e@example.com", Show full address), what became of the latest email (below), "Send a new code", and help for when it doesn't arrive |
 | code issued | one live code per address: HMAC-hashed with the server key, 48 hours, at most 5 guesses | the same page survives a refresh (it reads the signed-in account, nothing local) |
 | resend | allowed once a minute per account (`429 resend_cooldown` with `Retry-After` before that); a new code replaces every older one | the button counts down; an older code typed later is answered "replaced by a newer one" |
 | verified | set only by the server, after a correct code or a valid link | "verified" appears only after the server says so |
+
+What the "Check your email" page says about the latest email comes from
+`GET /api/v1/auth/verify-email/status` (owner only), in the outbox's own terms:
+
+| `delivery.state` | Said to the learner |
+|---|---|
+| `queued` | "Sending it now". The page looks again every few seconds until it changes |
+| `retrying` | "Not sent yet: the first try didn't go through. It's tried again automatically", with the next try's time |
+| `sent_to_provider` | "Sent at 10:42: our mail server handed it to your email provider. We can't see whether it has reached your inbox." |
+| `kept_locally` | "Not emailed": printed in the `./dev.sh` window (console), or saved under `EMAIL_FILE_DIR` (file) |
+| `failed` | "We couldn't send it. Send a new code; if that doesn't arrive either, try again later." |
+| `unknown` | "We have no record of the latest email" (older than the outbox keeps) |
+
+No page says "delivered": nothing here can know it. No SMTP code, host or error class reaches the
+learner; those stay in `email-status` and the logs. A link that doesn't work says why (expired, a
+newer email replaced it, already used, cut short, an earlier request, too many wrong codes). A
+link for another account, opened while signed in, asks first. The details, tests and limits are in
+[VERIFICATION_JOURNEY.md](VERIFICATION_JOURNEY.md).
 
 Rules enforced on the server:
 - A code or link works once. Each is claimed with one conditional database update, so two

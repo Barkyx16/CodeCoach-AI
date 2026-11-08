@@ -202,6 +202,8 @@ Docker builds: [.github/workflows/ci.yml](.github/workflows/ci.yml).
 | [docs/LAUNCH_READINESS.md](docs/LAUNCH_READINESS.md) | Launch readiness: what each step changed, the defects found, how far each is verified, what's still needed |
 | [docs/LAUNCH.md](docs/LAUNCH.md) | The `preflight` command (ready / blocked / optional / unverified), the production-shaped rehearsal, the runbook |
 | [docs/EMAIL.md](docs/EMAIL.md) | Sending email for real: SMTP with verified TLS, delivery stages, verification, changing the address, diagnosing problems |
+| [docs/VERIFICATION_JOURNEY.md](docs/VERIFICATION_JOURNEY.md) | What the learner sees while confirming an email: masked address, honest delivery states, resend, links that don't work, other tabs |
+| [docs/INTERVIEW_CONTINUITY.md](docs/INTERVIEW_CONTINUITY.md) | One interview across tabs and devices: who wins a race, what the other tab is told, the limits |
 | [docs/STORAGE.md](docs/STORAGE.md) | Where data lives in each setup, what survives what, the production database layout and roles |
 | [docs/PERSISTENCE.md](docs/PERSISTENCE.md) | Feature by feature: the saved record, browser-only drafts, what "Saved" means, conflicts |
 | [docs/ROW_LEVEL_SECURITY.md](docs/ROW_LEVEL_SECURITY.md) | Database-enforced isolation at runtime: roles, scopes, pooled connections, background work |

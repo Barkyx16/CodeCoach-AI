@@ -61,6 +61,11 @@
 .auth__story li::before { content: '✓'; margin-right: 12px; color: var(--color-link); }
 .auth__card { width: 100%; max-width: 460px; padding: 32px; gap: 22px; }
 .auth__alt { display: grid; gap: 16px; text-align: center; border-top: 1px solid var(--color-border); padding-top: 20px; }
+/* "Check your email": the delivery line, and the help that reads as a list, not centred lines. */
+.verify-delivery { margin: 0; }
+.verify-help { text-align: start; }
+.verify-help summary { cursor: pointer; text-align: center; }
+.verify-help ul { margin: 12px 0 0; padding-inline-start: 20px; display: grid; gap: 8px; color: var(--color-text-muted); font-size: var(--text-sm); }
 .guest-access { display: grid; gap: 8px; }
 @media (max-width: 800px) {
   .landing { padding: 0 20px; }

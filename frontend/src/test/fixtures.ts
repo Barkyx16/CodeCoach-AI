@@ -7,9 +7,24 @@ import type {
   CareerAnalytics,
   Career,
   InterviewAnswer,
-  QuestionSummary, HintResponse, Page, ProblemDetail, ProblemSummary, Progress, ReviewResponse, Submission, TokenResponse, User } from "@/api/types";
+  QuestionSummary, HintResponse, Page, ProblemDetail, ProblemSummary, Progress, ReviewResponse, Submission, TokenResponse, User, VerificationStatus } from "@/api/types";
 
 export const user: User = { id: "u-1", email: "ada@example.com", display_name: "Ada", is_guest: false, created_at: "2026-11-01T08:00:00Z", email_verified: true, career_track: "software-engineer", is_admin: false };
+
+/** A pending account's "Check your email" facts: sent to the provider, a code that works for 48 h. */
+export const verificationStatus = (overrides: Partial<VerificationStatus> = {}): VerificationStatus => ({
+  state: "pending",
+  changing_email: false,
+  address_masked: "a•••@example.com",
+  delivery: { state: "sent_to_provider", requested_at: new Date(Date.now() - 60_000).toISOString(),
+    updated_at: new Date(Date.now() - 59_000).toISOString(), next_try_at: null },
+  transport: "smtp",
+  link_ttl_hours: 48,
+  code_expires_at: new Date(Date.now() + 47 * 3600_000).toISOString(),
+  code_tries_left: 5,
+  resend_available_in_seconds: 0,
+  ...overrides,
+});
 
 export const tokenResponse = (overrides: Partial<TokenResponse> = {}): TokenResponse => ({
   access_token: "test-token",

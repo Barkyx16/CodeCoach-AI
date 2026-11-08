@@ -23,6 +23,9 @@ export type Example = S["Example"];
 
 export type TokenResponse = S["TokenResponse"];
 export type User = S["UserOut"];
+export type VerifyLinkResult = S["VerifyLinkOut"];
+export type VerificationStatus = S["VerificationStatusOut"];
+export type DeliveryState = S["DeliveryOut"]["state"];
 export type RegisterRequest = S["RegisterRequest"];
 export type LoginRequest = S["LoginRequest"];
 

@@ -21,6 +21,7 @@ export const queryKeys = {
   answers: (track: string, id: string) => ["careers", track, "answers", id] as const,
   trackProgress: (track: string) => ["careers", track, "progress"] as const,
   capabilities: ["capabilities"] as const,
+  verificationStatus: (userId: string) => ["verification-status", userId] as const,
   problem: (slug: string) => ["problem", slug] as const,
   submission: (id: string) => ["submission", id] as const,
   mySubmissions: (params: object) => ["me", "submissions", params] as const,
@@ -118,6 +119,26 @@ export function useTopics() {
 /** What this deployment supports (e.g. whether code runs). Changes only on redeploy. */
 export function useCapabilities() {
   return useQuery({ queryKey: queryKeys.capabilities, queryFn: api.capabilities, staleTime: Infinity });
+}
+
+/**
+ * The "Check your email" page's facts, from the server. Looked at again when the tab gets focus
+ * (confirmed on another device) and, while an email is still waiting to go out, every few seconds,
+ * so "Sending" turns into what actually happened.
+ */
+export function useVerificationStatus(userId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.verificationStatus(userId ?? "none"),
+    queryFn: () => api.verificationStatus(),
+    enabled: enabled && !!userId,
+    refetchOnWindowFocus: true,
+    refetchInterval: (query) => {
+      const state = query.state.data?.delivery?.state;
+      // Queued for more than about two minutes (no worker running?): look less often.
+      if (state === "queued") return query.state.dataUpdateCount > 40 ? 15_000 : 3000;
+      return state === "retrying" ? 15_000 : false;
+    },
+  });
 }
 
 export function useProblem(slug: string, enabled = true) {

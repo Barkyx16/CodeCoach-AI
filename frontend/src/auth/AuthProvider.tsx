@@ -8,6 +8,7 @@ import { diag } from "@/lib/diagnostics";
 
 import { AuthContext, type AuthContextValue } from "./context";
 import { forgetDeviceUser, readDeviceUser, rememberDeviceUser, type DeviceUser } from "./deviceUser";
+import { verifiedElsewhere } from "./emailVerified";
 import { clearLocalWork } from "./localWork";
 import { forgetPendingSignOut, rememberPendingSignOut, signOutPending } from "./pendingSignOut";
 import { beginAttempt, dropAttempt, forgetAttempts, RACE_RETRY_MS, settleAttempt, withRefreshLock } from "./refreshAttempt";
@@ -235,6 +236,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.addEventListener("online", onOnline);
     return () => window.removeEventListener("online", onOnline);
   }, [offlineUser, refreshNow, clear]);
+
+  // Another tab in this browser confirmed this account's email: refresh the account here too, so
+  // "Check your email" (or Settings) moves on without a reload. Other devices see it on focus.
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      const id = verifiedElsewhere(event);
+      if (!id || sessionRef.current?.user.id !== id) return;
+      void queryClient.invalidateQueries({ queryKey: ["verification-status"] });
+      api.me().then((user) => {
+        setSession((current) => {
+          if (!current || current.user.id !== user.id) return current;
+          const next = { ...current, user };
+          sessionRef.current = next;
+          return next;
+        });
+      }, () => {});
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [queryClient]);
 
   // Refresh a minute before the access token expires, so requests never wait on it.
   useEffect(() => {

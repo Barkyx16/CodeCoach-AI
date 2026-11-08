@@ -133,6 +133,8 @@ import type {
   UnitLink,
   UnitProgress,
   User,
+  VerificationStatus,
+  VerifyLinkResult,
   WhiteboardAttempt,
   WhiteboardAttemptIn,
   WhiteboardAttemptSummary,
@@ -213,8 +215,15 @@ export const api = {
     method: "POST", auth: false, noRefresh: true, headers: { Authorization: `Bearer ${accessToken}` },
   }),
   logoutAll: () => apiRequest<void>("/api/v1/auth/logout-all", { method: "POST" }),
-  verifyEmailLink: (token: string) =>
-    apiRequest<User>("/api/v1/auth/verify-email", { method: "POST", body: { token }, auth: false }),
+  /** Works signed out. Sent with this tab's session if there is one, so the server can tell the
+   * owner's own tab (which gets the account back) from someone signed in as another account (asked
+   * first: 409 `verification_link_other_account`, unless `otherAccountOk`). */
+  verifyEmailLink: (token: string, otherAccountOk = false) =>
+    apiRequest<VerifyLinkResult>("/api/v1/auth/verify-email", {
+      method: "POST", body: otherAccountOk ? { token, other_account_ok: true } : { token },
+    }),
+  /** Where the code went (masked), what became of the email, and when a new one can be sent. */
+  verificationStatus: () => apiRequest<VerificationStatus>("/api/v1/auth/verify-email/status"),
   verifyEmailCode: (code: string) =>
     apiRequest<User>("/api/v1/auth/verify-email/code", { method: "POST", body: { code } }),
   resendVerification: () =>
