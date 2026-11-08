@@ -60,8 +60,13 @@ grep 'public key' codecoach-backup-identity.txt | cut -d' ' -f4 > recipients.txt
 Run it as the table owner (or a superuser) so it sees every row. The tables FORCE row-level
 security, so a plain `pg_dump` as their owner is refused: the tool passes
 `--enable-row-security`, and with no RLS scope the owner sees everything
-([ROW_LEVEL_SECURITY.md](ROW_LEVEL_SECURITY.md)). Needs `pg_dump` (same major version as the
-server, or newer) and `age`.
+([ROW_LEVEL_SECURITY.md](ROW_LEVEL_SECURITY.md)). Needs `age`, and a `pg_dump` of **exactly the
+server's major version**. The command refuses any other `pg_dump`, before writing anything. A
+newer `pg_dump` can read the server, but its archive can't be read by the server's own
+`pg_restore`, and a newer `pg_restore` can't restore into the older server. So that backup could
+only ever be restored into a newer PostgreSQL. The `backup` image pins its client tools to the
+server's major (`PG_MAJOR` in `backend/Dockerfile`, checked against the compose file by a test
+and by CI).
 
 ```bash
 DATABASE_URL=postgresql+psycopg://codecoach_owner:…@host:5432/codecoach \
@@ -207,6 +212,8 @@ again at real size before relying on the 2-hour target.
 | The live database, or any non-empty target | refused |
 | Overwriting a backup; a dump that fails | refused; nothing kept |
 | The CLI prints neither password | pass |
+| A `pg_dump` whose major version isn't the server's | refused; nothing written |
+| A `pg_restore` older than the backup's `pg_dump`, or newer than the target server | refused; target untouched |
 
 And the backup folder (`tests/test_backup_store.py`, plain files, runs everywhere):
 
@@ -228,8 +235,20 @@ up as the owner, pruned and checked. The API container had no backups volume. Th
 restored into a separate database with a key the server never held, with the rehearsal's saved
 note in it, and no password appeared in any output. In this sandbox the image's `pg_dump` and
 `age` came from the host (`pg_dump` 16), because the package mirror isn't reachable from here.
-CI builds the real `backup` stage, whose Debian `pg_dump` is newer than the server, and runs the
-same rehearsal.
+CI builds the real `backup` stage and runs the same rehearsal.
+
+CI's first run of it found a real defect. The stage installed Debian's `postgresql-client`,
+which is version 17. Its backups of the 16 server succeeded, but the restore failed with
+`unrecognized configuration parameter "transaction_timeout"`. Reproduced here with PostgreSQL
+17's tools: `pg_restore` 17 can't restore into 16, and `pg_restore` 16 can't read a `pg_dump` 17
+archive (`unsupported version (1.16) in file header`). Every backup it made could only have
+been restored into PostgreSQL 17 or newer. Now:
+- the image installs the 16 client from PostgreSQL's own apt repository;
+- `backup-database` refuses a mismatched `pg_dump`;
+- `restore-database` refuses a `pg_restore` that can't read the backup, or that is newer than
+  the target server.
+
+All before writing anything (`tests/test_backup.py`).
 
 ## Limits
 
@@ -238,10 +257,9 @@ same rehearsal.
   one.
 - Nothing schedules the backup job, copies backups off-site or sends an alert until there's a
   host and a storage provider. The job, the cron line and the checks are ready.
-- The backup image's `pg_dump` comes from its Debian release, which may be a newer major version
-  than the server (supported: a newer `pg_dump` reads an older server). Restore with a
-  `pg_restore` at least as new as the `pg_dump_version` in the manifest. The backup image's own
-  `pg_restore` always is.
+- Upgrading PostgreSQL to a new major version means changing `PG_MAJOR` with the server image
+  (a test fails until both match). Restore older backups with the `pg_restore` of the version
+  that made them (the manifest's `pg_dump_version`) into a server of that version, then upgrade.
 - Deleted accounts stay in older backups until those expire (up to about 3 months with the
   proposed retention). A restore brings them back, so after a restore, delete again any
   account deleted after that backup was taken. [PRIVACY.md](PRIVACY.md) explains this to

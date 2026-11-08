@@ -18,10 +18,17 @@ COPY --chown=app:app . .
 
 # The scheduled backup job (compose service `backup`, docs/BACKUP.md): the same app plus pg_dump
 # and age. Built only when asked for (`target: backup`); the API image below doesn't carry them.
-# pg_dump must be at least the server's major version; the manifest records which one ran.
+# The client tools must be the SERVER's major version (PG_MAJOR = the compose file's postgres:16).
+# Debian's own postgresql-client is a newer major: its backups of a 16 server could only be restored
+# into 17 or newer, and its pg_restore can't restore into 16 (CI's rehearsal caught exactly that).
+# So they come from PostgreSQL's own apt repository, pinned to that major.
 FROM app-base AS backup
+ARG PG_MAJOR=16
 RUN apt-get update \
- && apt-get install -y --no-install-recommends postgresql-client age \
+ && apt-get install -y --no-install-recommends ca-certificates postgresql-common \
+ && /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y \
+ && apt-get install -y --no-install-recommends "postgresql-client-${PG_MAJOR}" age \
+ && ln -s "/usr/lib/postgresql/${PG_MAJOR}/bin/pg_dump" "/usr/lib/postgresql/${PG_MAJOR}/bin/pg_restore" /usr/local/bin/ \
  && rm -rf /var/lib/apt/lists/* \
  && mkdir /backups && chown app:app /backups
 USER app

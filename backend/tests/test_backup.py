@@ -189,6 +189,22 @@ def test_the_restore_refuses_before_writing_anything(source, empty_target, keys,
         match="roles",
     )
 
+    # Versions (CI's rehearsal found this with Debian's pg_restore 17 and a PostgreSQL 16 server):
+    # a pg_restore older than the backup's pg_dump can't read it, and a newer one than the target
+    # server sends settings it doesn't know. Both refused before writing anything.
+    refused(
+        variant("from-17", original, {**manifest, "pg_dump_version": "pg_dump (PostgreSQL) 99.1"}),
+        match="made with pg_dump 99",
+    )
+    import app.db.backup as backup_module
+
+    real_major = backup_module._tool_major
+    try:
+        backup_module._tool_major = lambda tool: 99  # a pg_restore newer than the server
+        refused(made.dump, match="pg_restore 99 can't restore into PostgreSQL")
+    finally:
+        backup_module._tool_major = real_major
+
     # Never over the live database, never over one that has data.
     with pytest.raises(BackupError, match="live database"):
         restore(made.dump, identity, source.owner_url, live_url=source.owner_url)
@@ -209,6 +225,18 @@ def test_a_backup_never_overwrites_one_and_a_failed_dump_keeps_nothing(source, k
     with pytest.raises(Exception):  # noqa: B017 - connection refused before anything is written
         backup(broken, tmp_path / "c", recipients)
     assert not list((tmp_path / "c").glob("*.dump.age"))
+
+
+def test_a_pg_dump_that_doesnt_match_the_server_is_refused_before_anything_is_written(
+    source, keys, tmp_path, monkeypatch
+):
+    """Its backup could only ever be restored into a newer PostgreSQL, found out on the worst day."""
+    import app.db.backup as backup_module
+
+    monkeypatch.setattr(backup_module, "_tool_major", lambda tool: 99)
+    with pytest.raises(BackupError, match="pg_dump 99 doesn't match the server's PostgreSQL"):
+        backup(source.owner_url, tmp_path / "b", keys[0])
+    assert not list((tmp_path / "b").glob("*"))
 
 
 def test_the_cli_says_what_happened_and_prints_no_secrets(source, empty_target, keys, tmp_path):

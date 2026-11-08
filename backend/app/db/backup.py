@@ -14,12 +14,19 @@ A backup is two files with one name:
   the PostgreSQL version, row counts per table, the roles that own or were granted the tables,
   and SHA-256 hashes of both the encrypted file and the plaintext dump.
 
+Versions: `pg_dump` must be the server's major version. A newer one dumps fine, but its archive can't
+be read by the server's own `pg_restore`. And a newer `pg_restore` can't restore into the older server:
+it sends settings that server doesn't know. So a mismatched backup could only ever be restored into a
+newer PostgreSQL. `backup()` refuses a mismatch before writing anything, rather than leaving it to be
+found on the day of a restore.
+
 `restore()` refuses before writing anything when:
 - the encrypted file doesn't match its manifest (damaged or incomplete);
 - the identity file is missing;
 - decryption fails (wrong key, or tampering: age is authenticated);
 - the decrypted dump doesn't match the manifest;
 - the backup's schema is newer than this code;
+- `pg_restore` is older than the `pg_dump` that made the backup, or newer than the target server;
 - the target is the live database, or isn't empty;
 - a role the backup needs doesn't exist on the target server.
 
@@ -35,6 +42,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -76,6 +84,24 @@ def _need(tool: str) -> str:
     if path is None:
         raise BackupError(f"`{tool}` isn't installed on this machine (docs/BACKUP.md lists what's needed)")
     return path
+
+
+def major_of(version_output: str) -> int | None:
+    """The major version in `pg_dump --version` style output, e.g. "pg_dump (PostgreSQL) 16.4 (Debian …)"."""
+    m = re.search(r"\(PostgreSQL\)\s+(\d+)", version_output)
+    return int(m.group(1)) if m else None
+
+
+def _tool_major(tool: str) -> int:
+    out = subprocess.run([tool, "--version"], capture_output=True, text=True).stdout
+    major = major_of(out)
+    if major is None:
+        raise BackupError(f"couldn't tell which version `{Path(tool).name}` is")
+    return major
+
+
+def _server_major(conn: Connection) -> int:
+    return int(conn.execute(text("SHOW server_version_num")).scalar_one()) // 10000
 
 
 def _sha256(path: Path) -> str:
@@ -211,6 +237,13 @@ def backup(database_url: str, out_dir: Path, recipients_file: Path, name: str | 
     engine = create_engine(database_url, isolation_level="REPEATABLE READ")
     snapshot_conn = engine.connect()
     try:
+        server_major, dump_major = _server_major(snapshot_conn), _tool_major(pg_dump)
+        if dump_major != server_major:
+            raise BackupError(
+                f"pg_dump {dump_major} doesn't match the server's PostgreSQL {server_major}: a backup it made "
+                f"could only be restored into PostgreSQL {dump_major} or newer. Use pg_dump {server_major} "
+                "(docs/BACKUP.md)"
+            )
         snapshot = snapshot_conn.execute(text("SELECT pg_export_snapshot()")).scalar_one()
         inventory = _inventory_on(snapshot_conn)
         _dump_to(pg_dump, age, database_url, recipients_file, dump_file, snapshot, plain)
@@ -308,6 +341,19 @@ def restore(
     try:
         with engine.connect() as conn:
             present = {r[0] for r in conn.execute(text("SELECT rolname FROM pg_roles"))}
+            target_major = _server_major(conn)
+        restore_major = _tool_major(pg_restore)
+        made_with = major_of(manifest.get("pg_dump_version", ""))
+        if made_with is not None and restore_major < made_with:
+            raise BackupError(
+                f"this backup was made with pg_dump {made_with}, which pg_restore {restore_major} can't "
+                f"read: restore it with pg_restore {made_with} (into PostgreSQL {made_with} or newer)"
+            )
+        if restore_major > target_major:
+            raise BackupError(
+                f"pg_restore {restore_major} can't restore into PostgreSQL {target_major} (it sends settings "
+                f"{target_major} doesn't know): use pg_restore {target_major}"
+            )
         missing_roles = [r for r in manifest["table_owners"] + manifest["granted_roles"] if r not in present]
         if missing_roles:
             raise BackupError(

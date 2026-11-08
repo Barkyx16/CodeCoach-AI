@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 from datetime import UTC, datetime, timedelta
@@ -15,6 +16,7 @@ from pathlib import Path
 
 import pytest
 
+from app.db.backup import major_of
 from app.db.backup_store import check, prune, retention, scan
 
 BACKEND = Path(__file__).resolve().parents[1]
@@ -201,3 +203,19 @@ def test_the_commands_exit_nonzero_for_a_scheduler_and_dry_run_by_default(tmp_pa
     # A hand-made name is checked before anything connects or writes.
     bad = cli("backup-database", "--out", str(tmp_path), "--recipients", "r.txt", "--name", "../escape")
     assert bad.returncode == 2 and "--name" in bad.stdout
+
+
+def test_versions_are_read_from_the_tools_own_output():
+    assert major_of("pg_dump (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)") == 16
+    assert major_of("pg_restore (PostgreSQL) 17.6 (Debian 17.6-0+deb13u1)") == 17
+    assert major_of("pg_dump (PostgreSQL) 16.4 (Debian 16.4-1.pgdg130+1)") == 16
+    assert major_of("not a version") is None
+
+
+def test_the_backup_image_pins_the_compose_servers_major_version():
+    """Debian's postgresql-client is a newer major than the server: its backups of a 16 server
+    could only be restored into 17 or newer. The image pins the server's major instead."""
+    root = BACKEND.parent
+    server = re.search(r"image: postgres:(\d+)", (root / "deploy/docker-compose.production.yml").read_text())
+    pinned = re.search(r"ARG PG_MAJOR=(\d+)", (root / "backend/Dockerfile").read_text())
+    assert server and pinned and server.group(1) == pinned.group(1)
