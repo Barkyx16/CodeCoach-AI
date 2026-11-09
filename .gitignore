@@ -45,6 +45,7 @@ runner/.pytest_cache/
 # Password-reset emails written by the e2e backend
 backend/e2e-outbox/
 backend/e2e-outbox-*/
+backend/e2e-access*.log
 backend/e2e-demo-outbox-*/
 backend/e2e-demo-fingerprint-*.txt
 backend/outbox/

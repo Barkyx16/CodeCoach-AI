@@ -262,7 +262,8 @@ export const api = {
   deleteAccount: (body: { password?: string; confirm: string }) =>
     apiRequest<void>("/api/v1/auth/me", { method: "DELETE", body }),
   exportData: (version: 1 | 2 = 1) =>
-    apiRequest<Record<string, unknown>>(version === 2 ? "/api/v1/me/export?version=2" : "/api/v1/me/export"),
+    // Everything the account holds: allowed longer than an ordinary read.
+    apiRequest<Record<string, unknown>>(version === 2 ? "/api/v1/me/export?version=2" : "/api/v1/me/export", { readDeadlineMs: 120_000 }),
   previewRestore: (fileText: string) => apiRequest<RestorePreview>("/api/v1/me/restore/preview", { method: "POST", rawBody: fileText }),
   applyRestore: (fileText: string, categories: string[]) =>
     apiRequest<RestoreBatch>(`/api/v1/me/restore?${categories.map((c) => `categories=${encodeURIComponent(c)}`).join("&")}`, { method: "POST", rawBody: fileText }),

@@ -5,6 +5,7 @@ export function describeError(error: unknown): { title: string; message: string;
   if (error instanceof ApiError) {
     const titles: Record<string, string> = {
       network_error: "You're offline or the server is unreachable",
+      read_timeout: "The server is taking too long",
       not_found: "Not found",
       rate_limited: "Slow down a little",
       account_throttled: "Too many tries",

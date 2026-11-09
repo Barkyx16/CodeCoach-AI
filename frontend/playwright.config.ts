@@ -63,7 +63,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       env: {
         E2E_OWNED_NAME: "api",
-        E2E_OWNED_COMMAND: `${python} -c "import pathlib, shutil; pathlib.Path('e2e${suffix}.db').unlink(missing_ok=True); shutil.rmtree('e2e-outbox${suffix}', ignore_errors=True)" && ${python} -m uvicorn app.main:app --port ${PORTS.api}`,
+        E2E_OWNED_COMMAND: `${python} -c "import pathlib, shutil; pathlib.Path('e2e${suffix}.db').unlink(missing_ok=True); pathlib.Path('e2e-access${suffix}.log').unlink(missing_ok=True); shutil.rmtree('e2e-outbox${suffix}', ignore_errors=True)" && ${python} -m uvicorn app.main:app --port ${PORTS.api}`,
         // Tells e2e/global-setup.ts this is the suite's own server (never a developer's).
         INSTANCE_LABEL,
         DATABASE_URL: `sqlite:///./e2e${suffix}.db`,
@@ -77,6 +77,8 @@ export default defineConfig({
         // Every test runs from 127.0.0.1 and every page load refreshes the session.
         REFRESH_RATE_LIMIT_PER_MINUTE: "10000",
         LOG_LEVEL: "WARNING",
+        // Each request's start and finish, for the failure diagnostics (Volume 9, prompt 9).
+        ACCESS_LOG_FILE: `./e2e-access${suffix}.log`,
         ...(judge
           ? { EXECUTION_ENABLED: "true", EMBEDDED_WORKER: "true", RUNNER_URL,
               RUNNER_TOKEN: runnerToken, WORKER_POLL_INTERVAL_S: "0.2" }

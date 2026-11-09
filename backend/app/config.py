@@ -100,6 +100,11 @@ class Settings(BaseSettings):
     app_name: str = "CodeCoach AI"
     environment: Literal["development", "test", "production"] = "development"
     log_level: str = "INFO"
+    access_log_file: str | None = Field(
+        default=None,
+        description="Local diagnostics only: also write each request's start and finish (method, path, "
+        "status, duration, request id; no bodies, headers or query strings) to this file. Off by default.",
+    )
 
     # PostgreSQL is the primary database (docker compose starts one). For a zero-dependency
     # local run you may set DATABASE_URL=sqlite:///./codecoach.db

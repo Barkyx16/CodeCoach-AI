@@ -11,7 +11,11 @@
  * - what the page showed: URL, headings, alerts and status messages, busy or disabled buttons.
  * It never records request or response bodies, form field values, cookies or headers.
  */
+import { readFileSync } from "node:fs";
+
 import { test as base, type Page, type Request } from "@playwright/test";
+
+import { ACCESS_LOG } from "./ports";
 
 export * from "@playwright/test";
 
@@ -54,6 +58,33 @@ async function appEvents(page: Page): Promise<string[]> {
   } catch (error) {
     return [`(app breadcrumbs unavailable: ${String(error).slice(0, 120)})`];
   }
+}
+
+/**
+ * From the suite API's access log: requests it started during this test (since `since`) and never
+ * finished, so a browser request still waiting can be told apart: never reached the server, or
+ * reached it and stuck there (Volume 9, prompt 9). Method, path and request id only.
+ */
+function serverOpen(since: number): string[] {
+  let text: string;
+  try {
+    text = readFileSync(ACCESS_LOG, "utf8");
+  } catch {
+    return ["(the API's access log isn't available)"];
+  }
+  const started = new Map<string, { at: number; line: string }>();
+  for (const raw of text.split("\n")) {
+    let entry: { msg?: string; request_id?: string; method?: string; path?: string; at?: number };
+    try { entry = JSON.parse(raw); } catch { continue; }
+    if (!entry.request_id || typeof entry.at !== "number" || entry.at * 1000 < since) continue;
+    if (entry.msg === "request_started") {
+      started.set(entry.request_id, { at: entry.at, line: `${entry.method} ${entry.path} (started +${((entry.at * 1000 - since) / 1000).toFixed(1)}s, rid=${entry.request_id})` });
+    } else if (entry.msg === "request") {
+      started.delete(entry.request_id);
+    }
+  }
+  const open = [...started.values()].map((v) => v.line);
+  return open.length ? open : ["(none: every request that reached the server was answered)"];
 }
 
 export const test = base.extend<{ failureDiagnostics: void }>({
@@ -100,6 +131,7 @@ export const test = base.extend<{ failureDiagnostics: void }>({
       const body = [
         "== network and console (last lines) ==", ...lines.slice(-MAX_LINES),
         "== requests still waiting ==", ...(pending.length ? pending : ["(none)"]),
+        "== API requests the server started during this test and hasn't finished ==", ...serverOpen(started),
       ];
       for (const [i, p] of pages.entries()) {
         const tab = pages.length === 1 ? "" : ` (tab ${i + 1}${p.isClosed() ? ", closed" : ""})`;

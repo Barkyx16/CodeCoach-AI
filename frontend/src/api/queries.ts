@@ -38,6 +38,8 @@ export function shouldRetry(failureCount: number, error: unknown): boolean {
   if (error instanceof ApiError && error.status >= 400 && error.status < 500) return false;
   // Known to be offline: say so now rather than after a series of retries.
   if (error instanceof ApiError && error.code === "network_error" && typeof navigator !== "undefined" && !navigator.onLine) return false;
+  // A read that ran out of time is tried once more, so the wait stays bounded (about a minute).
+  if (error instanceof ApiError && error.code === "read_timeout") return failureCount < 1;
   return failureCount < 2;
 }
 

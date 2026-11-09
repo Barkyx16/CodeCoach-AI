@@ -40,6 +40,30 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(payload)
 
 
+class _AccessFileFormatter(JsonFormatter):
+    def format(self, record: logging.LogRecord) -> str:
+        payload = json.loads(super().format(record))
+        payload["at"] = round(record.created, 3)
+        return json.dumps(payload)
+
+
+def configure_access_file(path: str | None) -> None:
+    """Local diagnostics only (Volume 9, prompt 9): also write each request's start and finish
+    (method, path without the query, status, duration, request id; never a body, a header or a
+    query string) to `path`. A request that never finishes then shows as started and not finished,
+    so a test that saw a read hang can tell whether it reached the server. Off unless configured;
+    the browser test launcher turns it on for its own server. While on, these lines go only to the
+    file."""
+    if not path or any(getattr(h, "_codecoach_access_file", False) for h in access_log.handlers):
+        return
+    handler = logging.FileHandler(path, encoding="utf-8")
+    handler.setFormatter(_AccessFileFormatter())
+    handler._codecoach_access_file = True  # type: ignore[attr-defined]
+    access_log.addHandler(handler)
+    access_log.setLevel(logging.DEBUG)
+    access_log.propagate = False
+
+
 def configure_logging(level: int = logging.INFO) -> None:
     root = logging.getLogger("codecoach")
     if root.handlers:
@@ -63,6 +87,11 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         incoming = request.headers.get("X-Request-ID", "")
         request_id = incoming if _SAFE_REQUEST_ID.match(incoming) else uuid.uuid4().hex
         request.state.request_id = request_id
+        if access_log.isEnabledFor(logging.DEBUG):
+            access_log.debug(
+                "request_started",
+                extra={"request_id": request_id, "method": request.method, "path": request.url.path},
+            )
         parent = tracing.parse_traceparent(request.headers.get("traceparent"))
         metrics = getattr(request.app.state, "metrics", None)
         store = getattr(request.app.state, "traces", None)

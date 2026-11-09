@@ -18,3 +18,7 @@ export const WEB_URL = `http://localhost:${PORTS.web}`;
 export const PREVIEW_URL = `http://localhost:${PORTS.preview}`;
 /** The label this suite's API answers with (X-CodeCoach-Instance). Anything else isn't ours. */
 export const INSTANCE_LABEL = "e2e";
+/** The suite API's access log (start and finish of each request), read by the failure diagnostics
+ * to tell a read that never reached the server from one the server never finished. Relative to
+ * frontend/; the API writes it from backend/. */
+export const ACCESS_LOG = `../backend/e2e-access${offset ? `-${offset}` : ""}.log`;

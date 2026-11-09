@@ -141,6 +141,8 @@ export interface RequestOptions {
   rawBody?: string;
   /** Return the body as text (for files such as .ics) instead of parsing JSON. */
   raw?: boolean;
+  /** A GET's deadline in ms, when the default (READ_DEADLINE_MS) is too short (a full export). */
+  readDeadlineMs?: number;
   headers?: Record<string, string>;
   /** W3C trace context of the user action this request belongs to (lib/trace.ts). */
   traceparent?: string;
@@ -179,6 +181,35 @@ export async function serverReachable(timeoutMs = 5000): Promise<boolean> {
   }
 }
 
+/**
+ * How long a read (a GET) may wait for the whole answer before it's given up as a temporary
+ * failure: ApiError("read_timeout"), shown with Try again (Volume 9, prompt 9). Without it, a read
+ * that never answered left its page loading for good. Only reads: a write's outcome would then be
+ * unknown, and Volume 8 handles uncertain writes with request keys. A deadline bounds the wait;
+ * it doesn't explain why an answer was slow.
+ */
+export const READ_DEADLINE_MS = 30_000;
+let readDeadline = READ_DEADLINE_MS;
+/** Tests only: a shorter read deadline (null restores the real one). */
+export function setReadDeadlineForTests(ms: number | null): void {
+  readDeadline = ms ?? READ_DEADLINE_MS;
+}
+
+/** Aborted when either is (AbortSignal.any where the browser has it). */
+function eitherSignal(a: AbortSignal | undefined, b: AbortSignal): AbortSignal {
+  if (!a) return b;
+  const any = (AbortSignal as unknown as { any?: (signals: AbortSignal[]) => AbortSignal }).any;
+  if (typeof any === "function") return any([a, b]);
+  const both = new AbortController();
+  const abort = () => both.abort();
+  if (a.aborted || b.aborted) both.abort();
+  else {
+    a.addEventListener("abort", abort, { once: true });
+    b.addEventListener("abort", abort, { once: true });
+  }
+  return both.signal;
+}
+
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   return send<T>(path, options, false);
 }
@@ -194,78 +225,99 @@ async function send<T>(path: string, options: RequestOptions, isRetry: boolean):
 
   const started = performance.now();
   const where = { method, path: diagPath(path), retry: isRetry };
-  let response: Response;
+  // A read's deadline covers the whole answer, body included; a write has none.
+  const deadline = method === "GET" ? new AbortController() : null;
+  const timer = deadline ? setTimeout(() => deadline.abort(), options.readDeadlineMs ?? readDeadline) : undefined;
+  const timedOut = () => Boolean(deadline?.signal.aborted) && !signal?.aborted;
+  const timeout = () => {
+    diag("http", { ...where, status: 0, outcome: "timeout", ms: Math.round(performance.now() - started) });
+    recordFailure({ method, path, status: 0, code: "read_timeout", request_id: null });
+    return new ApiError(0, "read_timeout", "The server is taking too long to answer. Try again.");
+  };
   try {
-    response = await fetch(buildUrl(path, query), {
-      method,
-      headers,
-      body: options.rawBody ?? (body === undefined ? undefined : JSON.stringify(body)),
-      signal,
-      keepalive: options.keepalive,
-      // The refresh cookie is path-scoped to /api/v1/auth; only those calls need credentials.
-      credentials: path.startsWith(AUTH_PATH) ? "include" : "same-origin",
-    });
-  } catch (cause) {
-    const aborted = cause instanceof DOMException && cause.name === "AbortError";
-    diag("http", { ...where, status: 0, outcome: aborted ? "aborted" : "network_error", ms: Math.round(performance.now() - started) });
-    if (aborted) throw cause;
-    recordFailure({ method, path, status: 0, code: "network_error", request_id: null });
-    throw new ApiError(0, "network_error", "Can't reach the CodeCoach server. Check your connection and try again.");
-  }
-  diag("http", {
-    ...where, status: response.status, ms: Math.round(performance.now() - started), requestId: response.headers.get("X-Request-ID"),
-    traceId: response.headers.get("X-Trace-ID"),
-  });
-
-  if (response.ok && token && sentIn !== generation) {
-    // Sent with the token of a session that has since ended or been replaced: what it brings back
-    // belongs to that session. (The server may still have done the work; only delivery stops.)
-    diag("auth", { event: "stale_response", path: diagPath(path) });
-    throw new ApiError(0, "session_changed", "This was sent before you signed in or out, so it was set aside.");
-  }
-  if (response.status === 204) return undefined as T;
-
-  const text = await response.text();
-  if (options.raw && response.ok) return text as T;
-  let data: unknown = null;
-  if (text) {
+    let response: Response;
     try {
-      data = JSON.parse(text);
-    } catch {
-      data = null;
+      response = await fetch(buildUrl(path, query), {
+        method,
+        headers,
+        body: options.rawBody ?? (body === undefined ? undefined : JSON.stringify(body)),
+        signal: deadline ? eitherSignal(signal, deadline.signal) : signal,
+        keepalive: options.keepalive,
+        // The refresh cookie is path-scoped to /api/v1/auth; only those calls need credentials.
+        credentials: path.startsWith(AUTH_PATH) ? "include" : "same-origin",
+      });
+    } catch (cause) {
+      if (timedOut()) throw timeout();
+      // The caller's own cancel (its signal says so, whichever realm the error came from).
+      const aborted = Boolean(signal?.aborted) || (cause instanceof DOMException && cause.name === "AbortError");
+      diag("http", { ...where, status: 0, outcome: aborted ? "aborted" : "network_error", ms: Math.round(performance.now() - started) });
+      if (aborted) throw signal?.aborted && signal.reason !== undefined ? signal.reason : cause;
+      recordFailure({ method, path, status: 0, code: "network_error", request_id: null });
+      throw new ApiError(0, "network_error", "Can't reach the CodeCoach server. Check your connection and try again.");
     }
-  }
+    diag("http", {
+      ...where, status: response.status, ms: Math.round(performance.now() - started), requestId: response.headers.get("X-Request-ID"),
+      traceId: response.headers.get("X-Trace-ID"),
+    });
 
-  if (!response.ok) {
-    const requestId = response.headers.get("X-Request-ID");
-    const retryAfter = parseRetryAfter(response.headers.get("Retry-After"), Date.now(), response.headers.get("Date"));
-    // A refused session check is how "signed out" is learned, not a failure (the report says signed out).
-    if (!(response.status === 401 && path.startsWith("/api/v1/auth/refresh"))) {
-      recordFailure({ method, path, status: response.status, code: isErrorEnvelope(data) ? data.error.code : "http_error",
-        request_id: (isErrorEnvelope(data) ? data.error.request_id : null) ?? requestId });
+    if (response.ok && token && sentIn !== generation) {
+      // Sent with the token of a session that has since ended or been replaced: what it brings back
+      // belongs to that session. (The server may still have done the work; only delivery stops.)
+      diag("auth", { event: "stale_response", path: diagPath(path) });
+      throw new ApiError(0, "session_changed", "This was sent before you signed in or out, so it was set aside.");
     }
-    const error = isErrorEnvelope(data)
-      ? new ApiError(response.status, data.error.code, data.error.message, data.error.details ?? null,
-          data.error.request_id ?? requestId, retryAfter)
-      : new ApiError(response.status, "http_error", `Request failed with status ${response.status}`, null, requestId,
-          retryAfter);
-    if (error.status === 401 && token && !options.noRefresh) {
-      if (sentIn !== generation) {
-        // Sent in a session that has since ended or been replaced: not this session's 401.
-        diag("auth", { event: "stale_401", path: diagPath(path) });
-        throw error;
-      }
-      // The access token expired or was revoked: try the refresh cookie once, then retry. If the
-      // refresh couldn't reach the server, that network error is thrown instead (still signed in).
-      if (!isRetry && !path.startsWith(AUTH_PATH) && (await refreshToken())) {
-        if (sentIn === generation) return send<T>(path, options, true);
-        diag("auth", { event: "stale_401", path: diagPath(path) });
-        throw error;
-      }
-      // Only the session this request was sent in can end because of it.
-      if (sentIn === generation) onUnauthorized(error);
+    if (response.status === 204) return undefined as T;
+
+    let text: string;
+    try {
+      text = await response.text();
+    } catch (cause) {
+      if (timedOut()) throw timeout();
+      throw cause;
     }
-    throw error;
+    if (options.raw && response.ok) return text as T;
+    let data: unknown = null;
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = null;
+      }
+    }
+
+    if (!response.ok) {
+      const requestId = response.headers.get("X-Request-ID");
+      const retryAfter = parseRetryAfter(response.headers.get("Retry-After"), Date.now(), response.headers.get("Date"));
+      // A refused session check is how "signed out" is learned, not a failure (the report says signed out).
+      if (!(response.status === 401 && path.startsWith("/api/v1/auth/refresh"))) {
+        recordFailure({ method, path, status: response.status, code: isErrorEnvelope(data) ? data.error.code : "http_error",
+          request_id: (isErrorEnvelope(data) ? data.error.request_id : null) ?? requestId });
+      }
+      const error = isErrorEnvelope(data)
+        ? new ApiError(response.status, data.error.code, data.error.message, data.error.details ?? null,
+            data.error.request_id ?? requestId, retryAfter)
+        : new ApiError(response.status, "http_error", `Request failed with status ${response.status}`, null, requestId,
+            retryAfter);
+      if (error.status === 401 && token && !options.noRefresh) {
+        if (sentIn !== generation) {
+          // Sent in a session that has since ended or been replaced: not this session's 401.
+          diag("auth", { event: "stale_401", path: diagPath(path) });
+          throw error;
+        }
+        // The access token expired or was revoked: try the refresh cookie once, then retry. If the
+        // refresh couldn't reach the server, that network error is thrown instead (still signed in).
+        if (!isRetry && !path.startsWith(AUTH_PATH) && (await refreshToken())) {
+          if (sentIn === generation) return send<T>(path, options, true);
+          diag("auth", { event: "stale_401", path: diagPath(path) });
+          throw error;
+        }
+        // Only the session this request was sent in can end because of it.
+        if (sentIn === generation) onUnauthorized(error);
+      }
+      throw error;
+    }
+    return data as T;
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
   }
-  return data as T;
 }

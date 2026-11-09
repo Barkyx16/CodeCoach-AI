@@ -50,7 +50,7 @@ from app.errors import NotFoundError, install_error_handlers
 from app.http_cache import CacheMiddleware, ResponseCache
 from app.jobs import JobsRunner
 from app.metrics import Metrics
-from app.observability import RequestContextMiddleware, configure_logging
+from app.observability import RequestContextMiddleware, configure_access_file, configure_logging
 from app.services.ai.service import build_provider
 from app.services.email import build_email_sender
 from app.services.judge.backends import build_backend
@@ -156,6 +156,7 @@ def _start_embedded_worker(settings: Settings, session_factory, traces=None, met
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(getattr(logging, settings.log_level.upper(), logging.INFO))
+    configure_access_file(settings.access_log_file)
 
     engine = make_engine(
         settings.database_url,

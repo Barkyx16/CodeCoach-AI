@@ -213,6 +213,52 @@ breadcrumb that goes back, or a reload. It restores by the item, not by pixels:
   entry; a copied URL carries only the public filters. Signing out here clears them
   (`clearListMemory`), so the next account's Back starts at the top.
 
+### The 63-second stall (Volume 9, prompt 9)
+
+**The observation (8 Nov, 20:19-20:23 UTC, unchanged).** Running navigation, explore and progress
+specs together (desktop, one worker, a fresh API and Vite dev server), the fifth test,
+`progress.spec.ts:72` ("non-coding: answer, find it in History…"), failed after 2.0 minutes. From
+its diagnostics (`e2e-v707.log`, kept): everything until 2.5 s into the test answered in 1-54 ms;
+at 2.5 s the answer was sent (201), its follow-up reads answered, and the test called
+`page.goto("/dashboard")`. After that nothing was recorded for about 60 s: no response, no failed
+request, no navigation (the dashboard document never committed). `GET /api/v1/me/onboarding` and
+`GET /api/v1/me/notes` were still waiting 63,150 ms later, when the test timeout ended it; the goto
+then reported `net::ERR_ABORTED`, the page couldn't be read (`page.evaluate: Test ended`), and
+tearing down the diagnostics hit the timeout too. The traces were overwritten by the next run.
+
+**What was checked, and how:**
+
+- *A leave prompt holding the navigation.* Ruled out: replaying the test's own steps against the
+  real API, the question page arms no `beforeunload` (its unsent answer is kept on the device
+  instead), before or after the answer is sent, and the same `goto` completed in 356 ms.
+- *The dev server reloading (changed sources, re-optimised dependencies).* Ruled out for that run:
+  the run was in the foreground with no file changes during it (just before it, the browser spec
+  itself was written, which the dev server doesn't serve, and the source files a negative control
+  had swapped were already restored; each run starts its own Vite), and Vite printed nothing (it
+  reports reloads in this output).
+- *The API stuck.* Not established either way: the browser-test API ran at WARNING, so its access
+  log (which writes on completion only) was silent for every request, slow or not.
+- What the timeline does show: a document request to the dev server and two reads to the API (two
+  different servers) all stopped together, from the same page, at the same moment. That fits the
+  page itself being stuck (its main thread busy or blocked) better than either server; it isn't
+  proof.
+
+**What changed:**
+
+- *Reads have a deadline* (`READ_DEADLINE_MS`, 30 s, `api/client.ts`): a GET that hasn't
+  answered by then, body included, becomes "The server is taking too long" with Try again, retried
+  once on its own (so at most about a minute), instead of loading forever. Writes have none: their
+  outcome would be unknown (Volume 8). A caller's own cancel stays a cancel. A full account export
+  is allowed two minutes. This bounds waiting; it does not explain or fix the stall.
+- *The browser tests' API writes each request's start and finish* (`ACCESS_LOG_FILE`, off by
+  default; method, path, status, duration, request id; no query strings, headers or bodies), and a
+  failed test's diagnostics now list "API requests the server started during this test and hasn't
+  finished". Next time, a read still waiting in the browser and absent there never reached the
+  server; one listed there reached it and stuck.
+
+**Still unresolved:** what stopped the page, and whether the two reads ever reached the API. The
+new tests establish the deadline and recovery behaviour, not the cause.
+
 ## Tests
 
 - `frontend/src/test/integration/returnPaths.test.tsx` (12):
@@ -231,6 +277,14 @@ breadcrumb that goes back, or a reload. It restores by the item, not by pixels:
   and expired copies; a refused write with Copy your work; another account; another tab's newer
   copy; a posting saved again since; details and notes typed while saving keep their copy.
   6 negative controls, each caught (one test strengthened after its control was missed).
+- `readDeadline.test.tsx` (8): a read that never answers becomes `read_timeout`, also when its body
+  stalls after the headers; a write is never given up; a caller's cancel stays a cancel; a read in
+  time is untouched; a note whose read hangs shows Try again, which then loads it; a stalled side
+  read leaves the answer being written intact and sendable; leaving a page while its read hangs
+  shows no error on the next one. `backend/tests/test_access_log_file.py` (2): start and finish
+  with the same request id and no query string or header, and off by default. 5 negative controls,
+  each caught (one test rewritten after a miss: the mock server holds a response until its body is
+  complete, so the stalled body is now a direct fetch stand-in).
 - `listRestore.test.tsx` (5): the opened note focused again after one was added; a deleted one's
   neighbour focused, with the announcement, and the note not shown; an emptied list focuses the
   main region; scrolling during the reload leaves the page alone; signing out clears this tab's list
@@ -309,6 +363,7 @@ breadcrumb that goes back, or a reload. It restores by the item, not by pixels:
 - **The browse line is on the public pages listed.** A single question or problem page names its
   career in its heading and breadcrumb instead. Drills, the plan and Today follow the learner's
   own career only and take no `?career=`.
-- **An unexplained hang, seen once.** One run of the related browser specs hung two API reads for
-  63 s, and then the next navigation was aborted. It didn't reproduce in four more runs of that test
-  (two alone, two with the same specs), and the server logged nothing. It's recorded here, not explained.
+- **An unexplained hang, seen once (still unexplained; see "The 63-second stall" below).** One run
+  of the related browser specs hung two API reads for 63 s, and then the next navigation was aborted.
+  It didn't reproduce in four more runs of that test (two alone, two with the same specs), and the
+  server logged nothing. It's recorded here, not explained.
