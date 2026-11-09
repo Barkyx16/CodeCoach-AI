@@ -66,25 +66,19 @@ jobs:
           # their own codecoach_rehearsal_* databases and roles (owner/app split, upgrades, copy).
           TEST_DATABASE_ADMIN_URL: postgresql+psycopg://codecoach:codecoach@localhost:5432/codecoach_test
         run: pytest
+      # On a database the check makes and drops itself (never the test database): upgrade from the
+      # previous revision with records in place, models match, the latest step down and up, base
+      # and back. It exits nonzero on any failed step, and prints MIGRATIONS-OK only after all.
       - name: Migrations apply cleanly and match the models
-        env:
-          DATABASE_URL: postgresql+psycopg://codecoach:codecoach@localhost:5432/codecoach_test
-        run: |
-          python - <<'PY'
-          from sqlalchemy import create_engine, text
-          e = create_engine("postgresql+psycopg://codecoach:codecoach@localhost:5432/codecoach_test")
-          with e.begin() as c:
-              c.execute(text("DROP SCHEMA public CASCADE; CREATE SCHEMA public;"))
-          PY
-          alembic upgrade head
-          alembic check
-          alembic downgrade base
+        run: python scripts/check_migrations.py --admin-url postgresql+psycopg://codecoach:codecoach@localhost:5432/postgres
       - name: Reference solutions pass every seeded test
         run: python scripts/verify_reference_solutions.py
       - name: Content quality gates (questions, corrections, lessons, scenarios, problems)
         env:
-          DATABASE_URL: postgresql+psycopg://codecoach:codecoach@localhost:5432/codecoach_test
+          DATABASE_URL: postgresql+psycopg://codecoach:codecoach@localhost:5432/codecoach_content_check
+          PGPASSWORD: codecoach
         run: |
+          createdb -h localhost -U codecoach codecoach_content_check
           alembic upgrade head
           python -m app.cli seed
           python -m app.cli validate-content

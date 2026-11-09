@@ -2,7 +2,10 @@
 # Run the repository's checks against one fixed revision, in a clean worktree, so edits made while
 # the checks run can't leak into them (Verification brief 02).
 #
-#   scripts/verify_revision.sh REV OUT_DIR [--pg DATABASE_URL] [--e2e]
+#   scripts/verify_revision.sh REV OUT_DIR [--pg DATABASE_URL] [--pg-admin ADMIN_URL] [--e2e]
+#
+# --pg-admin also runs the migration check (backend/scripts/check_migrations.py) on a database it
+# makes and drops itself, and gives the PostgreSQL suite its storage rehearsals.
 #
 # OUT_DIR must be outside the repository: it receives the worktree (OUT_DIR/tree), one log per
 # step and summary.txt (revision, tool versions, each step's exit code). The main checkout's
@@ -14,10 +17,12 @@ REV=${1:?revision}
 OUT=${2:?output directory}
 shift 2
 PG=""
+PG_ADMIN=""
 E2E=0
 while [ $# -gt 0 ]; do
   case $1 in
     --pg) PG=$2; shift 2 ;;
+    --pg-admin) PG_ADMIN=$2; shift 2 ;;
     --e2e) E2E=1; shift ;;
     *) echo "unknown option $1" >&2; exit 2 ;;
   esac
@@ -49,6 +54,11 @@ PY="$ROOT/backend/.venv/bin/python"
   else
     echo "postgres:  not run"
   fi
+  if [ -n "$PG_ADMIN" ]; then
+    echo "migrations: checked on a disposable database (admin $(echo "$PG_ADMIN" | sed -E 's#//([^:/@]+):[^@]*@#//\1:***@#'))"
+  else
+    echo "migrations: not run (no --pg-admin)"
+  fi
   echo "started:   $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 } >"$OUT/summary.txt"
 B="cd '$TREE/backend' &&"
@@ -57,7 +67,10 @@ run_sh backend-lint "$B '$PY' -m ruff check . && '$PY' -m ruff format --check ."
 run_sh backend-types "$B '$PY' -m mypy app evals"
 run_sh backend-sqlite "$B TEST_DATABASE_URL= '$PY' -m pytest -q -p no:cacheprovider"
 if [ -n "$PG" ]; then
-  run_sh backend-pg "$B TEST_DATABASE_URL='$PG' '$PY' -m pytest -q -p no:cacheprovider"
+  run_sh backend-pg "$B TEST_DATABASE_URL='$PG' TEST_DATABASE_ADMIN_URL='$PG_ADMIN' '$PY' -m pytest -q -p no:cacheprovider"
+fi
+if [ -n "$PG_ADMIN" ]; then
+  run_sh migrations "$B '$PY' scripts/check_migrations.py --admin-url '$PG_ADMIN'"
 fi
 run_sh frontend-lint "$F npm run -s lint"
 run_sh frontend-types "$F npm run -s typecheck"

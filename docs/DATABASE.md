@@ -424,5 +424,37 @@ alembic check                                         # CI: fails if models and 
 alembic downgrade -1                                  # roll back one
 python -m app.cli seed                                # upsert problems (idempotent)
 ```
-CI applies every migration on a clean PostgreSQL, runs `alembic check`, then downgrades to
-base, so every migration is proven reversible.
+### Checking migrations (Volume 8, prompt 9)
+
+```bash
+cd backend
+python scripts/check_migrations.py --admin-url postgresql+psycopg://ADMIN@localhost:5432/postgres
+```
+
+It runs on a database it makes itself (`codecoach_migcheck_<8 hex>`) and drops it at the end,
+also when a step fails or the run is interrupted; it refuses any other database name before
+changing anything (exit 2). Steps: upgrade to the previous revision; write a user and a note;
+upgrade to head and check both are intact; `alembic check` on a fresh connection that reports the
+server version, database and role it really used; step the latest migration down and up, records
+intact; downgrade to base and upgrade the whole chain from empty. Every child's exit status is
+checked directly (no shell, no pipeline): a failing step prints its last 30 lines with passwords
+masked, and the run exits 1. `MIGRATIONS-OK` is printed only after every step exited 0. CI runs
+exactly this (`ci.yml`, "Migrations apply cleanly"); `scripts/verify_revision.sh --pg-admin` too.
+
+Don't run migration commands against the test database: the suite makes its tables with
+`create_all`, and its readiness tests read "unmanaged" from there. If an `alembic_version` table
+is found in `TEST_DATABASE_URL`'s database (left by such a run, or by a readiness test that was
+killed before its cleanup), the suite stops at the start and says so (exit 4) instead of failing
+a readiness test for the wrong reason. It doesn't drop the table itself. The content gates in CI
+use a database of their own too (`codecoach_content_check`), instead of whatever the migration
+step left behind.
+
+PostgreSQL only: the migrations alter constraints, which SQLite can't, so on SQLite (local
+development, the default test run) the app makes its tables with `create_all`. No migration in
+the chain is irreversible; each downgrade is exercised by the check above. If one ever has to be
+(data that can't be rebuilt), its downgrade should say so and this check should stop at it,
+rather than pretend to a symmetry that doesn't exist.
+
+Earlier checks in this repository's history were run by hand as `alembic … | tail -1`, whose
+status is `tail`'s: a failed upgrade could still be followed by a success line. Those lines in
+older commit messages are only as good as that; the check above replaces them.

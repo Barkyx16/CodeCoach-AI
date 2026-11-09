@@ -27,6 +27,33 @@ if TEST_DATABASE_URL and "test" not in (make_url(TEST_DATABASE_URL).database or 
     )
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _test_database_has_no_migration_state() -> None:
+    """The suite makes its tables with create_all, and the readiness tests read the schema state
+    from there ("unmanaged"). An alembic_version table left in the shared test database (a
+    migration run pointed at it, or a readiness test killed before its cleanup) would read as
+    "readiness is broken". Stop with the actual reason instead; the suite doesn't drop tables it
+    didn't make. Migration checks use databases of their own (scripts/check_migrations.py)."""
+    if not TEST_DATABASE_URL:
+        return
+    from sqlalchemy import inspect
+
+    engine = create_engine(TEST_DATABASE_URL)
+    try:
+        with engine.connect() as c:
+            leftover = inspect(c).has_table("alembic_version")
+    finally:
+        engine.dispose()
+    if leftover:
+        pytest.exit(
+            f"{make_url(TEST_DATABASE_URL).database} has an alembic_version table: migration state left by "
+            "a migration run pointed at the test database, or an interrupted readiness test. Drop it "
+            "(DROP TABLE alembic_version) or use another test database; run migration checks with "
+            "scripts/check_migrations.py, which makes its own.",
+            returncode=4,
+        )
+
+
 @pytest.fixture(autouse=True)
 def _fresh_content_state() -> Iterator[None]:
     """Corrections and retirements are cached per process; never let one test's leak into the next."""
