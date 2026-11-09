@@ -138,6 +138,8 @@ test("the debugging lab: the faulty starter fails on its reproduction case, and 
 test("test design: ordinary cases tell no faulty version apart; one boundary case does, judged in the sandbox", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: /try it now/i }).click();
+  // The guest session exists once the welcome offers a problem; navigating sooner can abort it.
+  await expect(page.getByRole("button", { name: "Start this problem" })).toBeVisible();
   await page.goto("/test-design/tests-count-in-range");
   const fill = async (i: number, nums: string, lo: string, hi: string, expected: string) => {
     await page.getByLabel(/^nums/).nth(i).fill(nums);
