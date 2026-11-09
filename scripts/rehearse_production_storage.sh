@@ -137,8 +137,17 @@ login_as() {  # $1 = forwarded address, $2 = email; prints the status code
   curl -s -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:$PORT/api/v1/auth/login" -H "X-Forwarded-For: $1" \
     -H 'Content-Type: application/json' -d "{\"email\":\"$2\",\"password\":\"wrong-password\"}"
 }
-for i in $(seq 1 100); do login_as 203.0.113.10 "visitor-a-$i@example.com" >/dev/null; done
-[ "$(login_as 203.0.113.10 visitor-a-x@example.com)" = 429 ] || { echo "FAIL: visitor A wasn't limited"; exit 1; }
+# The limit is a sliding-window estimate: the previous minute's count is weighed by how much of it
+# is still inside the last 60 s. A burst that straddles a minute boundary is estimated a little
+# low, so the refusal can come a few attempts after the 100th (CI run 276 met that at 03:32:00).
+# So: the first 100 must all be let through (the limit isn't lower), and a 429 must come within
+# the next 10 (it holds).
+for i in $(seq 1 100); do
+  [ "$(login_as 203.0.113.10 "visitor-a-$i@example.com")" = 401 ] || { echo "FAIL: visitor A was limited before 100 attempts ($i)"; exit 1; }
+done
+limited=""
+for i in $(seq 1 10); do [ "$(login_as 203.0.113.10 "visitor-a-x$i@example.com")" = 429 ] && { limited=1; break; }; done
+[ -n "$limited" ] || { echo "FAIL: visitor A wasn't limited"; exit 1; }
 curl -s -D - -o /dev/null -X POST "http://127.0.0.1:$PORT/api/v1/auth/login" -H 'X-Forwarded-For: 203.0.113.10' \
   -H 'Content-Type: application/json' -d '{"email":"a@example.com","password":"x"}' | grep -qi '^retry-after:' \
   || { echo "FAIL: the 429 has no Retry-After"; exit 1; }

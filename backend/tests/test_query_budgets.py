@@ -13,6 +13,7 @@ from sqlalchemy import event
 
 from app.careers.answers import graded_answer
 from app.careers.questions import questions_for
+from app.content import state as content_state
 from tests.conftest import auth_headers, register
 
 TRACK = "registered-nurse"
@@ -78,6 +79,12 @@ def learner(client, email, answers):
 
 def measure(client, headers, method, path):
     client.request(method, path, headers=headers)  # first view may create things (a plan)
+    # The process-wide snapshot of corrections and retirements reloads when it's over
+    # content_state.MAX_AGE_S old: two statements, once per 5 s per process, not per request. Fresh
+    # now, so the request below counts only its own. (Without this the count depended on timing:
+    # on a slow runner the reload fell inside one measurement and not the other; CI run 276.)
+    with client.app.state.session_factory() as db:
+        content_state.refresh(db, force=True)
     with statements(client) as seen:
         r = client.request(method, path, headers=headers)
     assert r.status_code == 200, r.text
