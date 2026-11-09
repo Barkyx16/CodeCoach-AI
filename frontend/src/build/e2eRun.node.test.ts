@@ -164,3 +164,96 @@ describe("an e2e run owns what it starts", { timeout: 30_000 }, () => {
     await until(() => pidsWith(marker).length === 0);
   });
 });
+
+/**
+ * Provenance (Volume 9, prompt 10): a run names the commit it tested and whether its runtime
+ * inputs differed, and a run whose inputs changed while it ran is "contaminated" (exit 3), not a
+ * pass. Each case uses a throwaway git repository as the source, so the real tree is never read
+ * or touched, and a stand-in for Playwright.
+ */
+describe("an e2e run says which source it tested", { timeout: 30_000 }, () => {
+  function repo(): string {
+    const root = mkdtempSync(join(tmpdir(), "e2e-source-"));
+    const run = (...a: string[]) => execFileSync("git", a, { cwd: root, stdio: "pipe" });
+    execFileSync("mkdir", ["-p", join(root, "frontend/src"), join(root, "frontend/e2e/screenshots")]);
+    writeFileSync(join(root, "frontend/src/app.ts"), "export const v = 1;\n");
+    writeFileSync(join(root, ".gitignore"), "frontend/e2e/screenshots/\n");
+    run("init", "-q");
+    run("-c", "user.email=t@example.com", "-c", "user.name=t", "add", ".");
+    run("-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-q", "-m", "synthetic");
+    return root;
+  }
+  async function runIn(root: string, then: string) {
+    const owned = mkdtempSync(join(tmpdir(), "e2e-owned-"));
+    const out = mkdtempSync(join(tmpdir(), "e2e-prov-"));
+    const child = spawn("node", [LAUNCHER], {
+      cwd: root,
+      env: { ...process.env, E2E_OWNED_DIR: owned, E2E_SOURCE_ROOT: root, E2E_PROVENANCE_DIR: out, E2E_PLAYWRIGHT_CMD: then },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    children.push(child);
+    let stderr = "";
+    child.stderr?.on("data", (d) => { stderr += String(d); });
+    const code = await new Promise<number | null>((r) => child.on("exit", (c) => r(c)));
+    const commit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+    return { code, stderr, commit, record: JSON.parse(readFileSync(join(out, "e2e-provenance.json"), "utf8")) };
+  }
+
+  it("names an unchanged commit, and a pass is a pass", async () => {
+    const root = repo();
+    const r = await runIn(root, "exit 0");
+    expect(r.code).toBe(0);
+    expect(r.stderr).toContain(`candidate: ${r.commit.slice(0, 7)}, runtime inputs unchanged from the commit`);
+    expect(r.record).toMatchObject({ commit: r.commit, differs_at_start: [], changed_during_run: [], outcome: "passed", exit: 0 });
+  });
+
+  it("a source file changed during the run makes it contaminated (exit 3), and the change is left as it is", async () => {
+    const root = repo();
+    const r = await runIn(root, "sleep 0.3; echo 'export const v = 2;' > frontend/src/app.ts; exit 0");
+    expect(r.code).toBe(3);
+    expect(r.stderr).toMatch(/CONTAMINATED: 1 runtime file\(s\) changed during the run \(frontend\/src\/app\.ts\)/);
+    expect(r.record).toMatchObject({ changed_during_run: ["frontend/src/app.ts"], outcome: "contaminated (passed)", exit: 3 });
+    expect(readFileSync(join(root, "frontend/src/app.ts"), "utf8")).toBe("export const v = 2;\n"); // nothing reset
+  });
+
+  it("if the source can't be checked at the end, the run isn't reported as unchanged (exit 3)", async () => {
+    const root = repo();
+    const r = await runIn(root, "printf x > .git/index; exit 0"); // git can no longer list the files
+    expect(r.code).toBe(3);
+    expect(r.stderr).toMatch(/UNVERIFIED: the source couldn't be checked at the end \(.+\): these results can't be tied to [0-9a-f]{7}/);
+    expect(r.record).toMatchObject({ changed_during_run: null, outcome: "unverified (passed)", exit: 3 });
+  });
+
+  it("an edit made before the run is named, not called contaminated, and stays", async () => {
+    const root = repo();
+    writeFileSync(join(root, "frontend/src/app.ts"), "export const v = 3; // work in progress\n");
+    writeFileSync(join(root, "frontend/src/new.ts"), "export const w = 1;\n");
+    const r = await runIn(root, "exit 1");
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/plus 2 changed runtime file\(s\) \(frontend\/src\/app\.ts, frontend\/src\/new\.ts\): results describe this working tree, not that commit/);
+    expect(r.record).toMatchObject({ differs_at_start: ["frontend/src/app.ts", "frontend/src/new.ts"], changed_during_run: [], outcome: "failed" });
+    expect(readFileSync(join(root, "frontend/src/app.ts"), "utf8")).toContain("work in progress");
+  });
+
+  it("a pass with skipped tests says so and names them: three judge skips aren't a full real-sandbox pass", async () => {
+    const root = repo();
+    const report = JSON.stringify({
+      stats: { expected: 90, unexpected: 0, flaky: 0, skipped: 1 },
+      suites: [{ title: "judge.spec.ts", specs: [{ title: "a real verdict", file: "judge.spec.ts", line: 9,
+        tests: [{ projectName: "desktop", status: "skipped", annotations: [{ type: "skip", description: "needs E2E_JUDGE=1" }] }] }] }],
+    });
+    const r = await runIn(root, `printf '%s' '${report}' > "$E2E_RESULTS_FILE"; exit 0`);
+    expect(r.code).toBe(0);
+    expect(r.stderr).toContain("tests: 90 passed, 0 failed, 0 flaky, 1 skipped; real judge off (judge tests skip)");
+    expect(r.stderr).toContain("skipped: [desktop] judge.spec.ts:9 a real verdict (needs E2E_JUDGE=1)");
+    expect(r.record).toMatchObject({ outcome: "passed, 1 skipped", exit: 0, real_judge: false, tests: { passed: 90, skipped: 1 } });
+    expect(r.record.tests.skipped_tests).toEqual(["[desktop] judge.spec.ts:9 a real verdict (needs E2E_JUDGE=1)"]);
+  });
+
+  it("generated files git ignores (screenshots) don't count as source changes", async () => {
+    const root = repo();
+    const r = await runIn(root, "echo png > frontend/e2e/screenshots/shot.png; exit 0");
+    expect(r.code).toBe(0);
+    expect(r.record.changed_during_run).toEqual([]);
+  });
+});

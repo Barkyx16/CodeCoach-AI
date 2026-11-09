@@ -107,3 +107,80 @@ such by the summary, and is never presented as the code jobs passing on that SHA
 A timing failure is a finding, not something to retry away: no blanket retries, larger timeouts
 or skipped coverage. After a fix, the evidence is the complete suite on the fixed revision, not
 a few isolated reruns of the test that failed.
+
+## Test inventory and browser candidates
+
+Two checks from Volume 9, prompt 10, for two mistakes that happened: four navigation tests
+overwritten by new ones in the same file (the total went up, so a count didn't notice), and a
+browser run served from a tree that was being edited while it ran.
+
+### Which tests exist: `scripts/test_inventory.py`
+
+```bash
+python scripts/test_inventory.py since origin/main            # that ref's tests vs this tree's
+python scripts/test_inventory.py since origin/main --accept accepted.txt
+python scripts/test_inventory.py collect --out after.txt      # or two saved inventories:
+python scripts/test_inventory.py compare before.txt after.txt
+```
+
+An inventory is one line per test, `runner<TAB>file<TAB>test`, from each runner's own collection:
+`vitest list --json --staticParse=false` (each file's collection is run, so an `it.each` table is
+one line per case, exactly the tests a run executes: 1012 when this was added, the number `vitest run` counted),
+`playwright test --list --reporter=json` (a line per project) and `pytest --collect-only -q`.
+Plus a line for each test file on disk (by its name: `*.test.ts(x)`, `e2e/*.spec.ts`,
+`tests/test_*.py`) that no runner collected. `since REF` collects REF in a temporary checkout
+that shares this tree's installed dependencies, and removes only that checkout.
+
+The comparison lists what was added, what may have been renamed (a removed test and an added one
+in the same file with titles at least 80% alike) and what was removed. **It fails** (exit 1) on a
+removed test or an uncollected file, unless an `--accept` file lists it (one identity per line, or
+`file<TAB>path` for a whole file; `#` comments): that's how a deliberate removal or merge is
+reviewed. A rename is listed under "renamed (review these)" and doesn't fail. **There's no count
+gate**: more tests can still hide removed ones, and merging tests can lower the count for good
+reasons. Vitest's default static listing isn't used: it lists an `it.each` table as one `%s`
+entry (696 entries for 1011 tests when measured) and listed a helper call as a test.
+
+What it can't see: a test whose body was emptied or weakened (the name stays), a test skipped at
+run time (`test.skip(condition)` is still collected), a renamed test whose title changed by more
+than the threshold (it shows as one removed and one added, so it fails until accepted), and test
+files named outside those patterns. It isn't run by CI: run it before pushing, or in review.
+
+### Which source a browser run tested: `scripts/e2e-run.mjs`
+
+At the start the launcher prints the commit and the runtime inputs that differ from it (tracked
+or not: `frontend/src`, `frontend/e2e`, `frontend/public`, `index.html`, the Vite, Playwright,
+TypeScript and npm files, `backend/app`, `backend/requirements.txt`), and hashes them. At the end
+it hashes them again. Then it prints, and writes to `test-results/e2e-provenance.json`:
+
+| Outcome | Meaning | Exit |
+|---|---|---|
+| `passed` | every test ran and passed | 0 |
+| `passed, N skipped` | passed, with N not run; they're named (without `E2E_JUDGE=1` the real-judge tests skip, so this isn't a full real-sandbox pass) | 0 |
+| `failed` | a test failed | Playwright's |
+| `canceled` / `timed-out` | Ctrl+C or a signal / `--max-minutes`: incomplete | 128+N / 124 |
+| `contaminated (…)` | a runtime input changed during the run: the results describe neither the commit nor the tree it started with | 3 |
+| `unverified (…)` | the inputs couldn't be listed again at the end (git failed): nothing can be said about the source, so it isn't called unchanged | 3 |
+
+"Candidate: <sha>, runtime inputs unchanged from the commit" plus `passed` is a pass of that
+commit. "<sha> plus N changed runtime file(s)" is a pass of that working tree, not of the commit.
+Files git ignores (screenshots, logs, the e2e databases and outboxes) aren't inputs, so a run's
+own output doesn't count. The launcher only reads: it never resets, cleans or stops anything to
+make a tree look clean.
+
+For a run worth recording, test the commit in its own checkout:
+
+```bash
+git worktree add --detach ../cc-candidate <sha>
+ln -s "$PWD/frontend/node_modules" ../cc-candidate/frontend/node_modules
+cd ../cc-candidate/frontend && E2E_PORT_OFFSET=20 PYTHON=<repo>/backend/.venv/bin/python npm run e2e
+cd - && git worktree remove ../cc-candidate   # after removing the symlink
+```
+
+What it can't prove: the hashes are taken at the start and the end, so a file changed and put back
+during the run looks unchanged; in the demonstration below, one of four runs with a line added
+mid-run reported no change, and the cause wasn't found (the next three caught it; a failed end
+check, one possible cause, now says so instead of passing silently); the dev server serves files as it reads them, so this is about
+the files, not proof of every byte Vite served; dependencies inside `node_modules` and the Python
+environment aren't hashed (the lockfiles are); and a run started outside the launcher
+(`npx playwright test`) records nothing. The demonstrations are in LAUNCH_READINESS.md, Volume 9 row 10.
+

@@ -160,6 +160,15 @@ How the e2e servers are owned (`scripts/e2e-run.mjs`, `e2e/global-setup.ts`):
   runner 8110, web 5183, preview 4183) and its own database and outbox.
 - The exit status is Playwright's: 124 for the time limit, 130 for Ctrl+C. An interrupted or
   timed-out run is reported as incomplete, never as passed.
+- **Which source it tested.** A run names its commit and any runtime file that differs from it,
+  and checks those files again at the end: if one changed while it ran, it says CONTAMINATED and
+  exits 3, whatever the tests did. It also says how many tests passed, failed and were skipped,
+  and names the skipped ones (`test-results/e2e-provenance.json`). For a long run, test a commit
+  in its own checkout (`git worktree add`) so editing here can't change what's being served.
+  [docs/CI.md](docs/CI.md#test-inventory-and-browser-candidates) has the details and the limits.
+- **Tests that went missing:** `python scripts/test_inventory.py since origin/main` compares the
+  tests each runner collects on that ref with this tree's, and fails on removed tests or test
+  files no runner collects; renames are listed for review.
 ```bash
 cd runner
 pytest -m "not sandbox"                   # runner unit tests

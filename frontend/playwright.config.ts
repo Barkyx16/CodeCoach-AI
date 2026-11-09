@@ -24,7 +24,12 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   fullyParallel: false,
   workers: 1,
-  reporter: process.env.CI ? "github" : "list",
+  // The launcher (scripts/e2e-run.mjs) also asks for Playwright's own results as JSON, to say how
+  // many passed, failed and were skipped, and which, next to the source the run tested.
+  reporter: [
+    [process.env.CI ? "github" : "list"],
+    ...(process.env.E2E_RESULTS_FILE ? [["json", { outputFile: process.env.E2E_RESULTS_FILE }] as [string, unknown]] : []),
+  ],
   // Refuses to run against an API that isn't this suite's test server (e2e/global-setup.ts).
   globalSetup: "./e2e/global-setup.ts",
   use: {
