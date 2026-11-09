@@ -27,7 +27,8 @@ nowhere or to another career.
 | State | Where it lives | Survives reload | Survives a copied link |
 |---|---|---|---|
 | List filters, search, sort, tab, page; coding list's "View more" (`shown`) | the URL query | yes | yes |
-| Career being browsed (`?career=`) | the URL query | yes | yes; access is still checked: it only chooses a public library |
+| Career being browsed (`?career=`) | the URL query | yes | yes; access is still checked: it only chooses public content |
+| The learner's own career (plan, goals, dashboard, analytics) | the account (changed only in Settings) | yes | no: a link never changes it |
 | "Back to …" (where a page was opened from) | the router's history state | yes, in the same tab (browsers keep it) | no: a copied link shows the page's fallback instead |
 | Scroll position and the item to refocus | this tab's sessionStorage, per history entry | yes, in the same tab | no |
 | Where the learner was going before signing in or confirming an email | router state; for a link opened in a new tab, this browser's storage, per account (see VERIFICATION_JOURNEY.md) | yes | no |
@@ -131,6 +132,41 @@ When the server refuses a save of these four forms with a validation error (422
   validation failed" isn't shown next to field errors. The form stays unsaved: its browser copy
   and its leave warning are unchanged.
 
+### Browsing a career, and the learner's own career (Volume 9, prompt 4)
+
+Two different things, kept apart:
+
+- **The career being browsed** decides what a public page shows: the library (questions or coding
+  problems), lessons, scenarios and the mock interview setup. It's `?career=` in the URL when it
+  names a known career, for anyone, signed in or not; otherwise the learner's own career;
+  otherwise Software Engineer. One resolver reads it (`useBrowseCareer`,
+  `features/careers/practiceTrack.ts`): trimmed and lower-cased (`?career=Barista` is barista),
+  and anything that can't be a career slug (`../admin`, 65 characters) is treated as unknown. An
+  unknown or removed career falls back to the learner's own and says so in one line ("There's no
+  career called “not-a-job” here, so these are Registered Nurse interview questions."); nothing is
+  requested from the server for it. The parameter only chooses public content: it gives no access
+  to anyone's records, and the server checks access as before.
+- **The learner's own career** is what their plan, goals, dashboard and analytics follow. It
+  changes only in Settings (Career, Save career), which then updates the pages that depend on it.
+  Opening a link, choosing a career in the library, copying a URL or pressing Back never changes
+  it. Until this prompt, choosing a career in the library's selector saved it to the profile;
+  that selector ("Show practice for") now only browses (the URL changes; choosing your own career
+  goes back to your own library).
+
+When a signed-in learner is shown another career, one line under the page's heading says so:
+"Viewing Software Engineer coding problems. Your plan and progress follow your own career,
+Registered Nurse. Back to Registered Nurse interview questions · Change my career". The mock
+interview pages add what a round started there is saved as ("…saved to your history as a
+Registered Nurse interview."). Nothing is shown on the learner's own career, and nothing for a
+signed-out visitor, whose page heading already names the career.
+
+Links within a browse context keep it: the library's coding/questions switch, the coding library's
+"Try a mock interview", the lessons' and interview page's "branching scenario", the interview
+page's "Browse all … questions", an empty scenarios list's "Try a mock interview". The breadcrumbs
+fixed earlier (a question's "Registered Nurse questions", a problem's "Coding problems") are
+unchanged. Personal pages (History, Analytics, Notes) have their own `career` filter over the
+learner's own records; it isn't a browse context.
+
 ## Tests
 
 - `frontend/src/test/integration/returnPaths.test.tsx` (12):
@@ -149,6 +185,13 @@ When the server refuses a save of these four forms with a validation error (422
   and expired copies; a refused write with Copy your work; another account; another tab's newer
   copy; a posting saved again since; details and notes typed while saving keep their copy.
   6 negative controls, each caught (one test strengthened after its control was missed).
+- `browseCareer.test.tsx` (8): the parameter read the same way (case, spaces, malformed); a
+  nurse browsing coding (the line, Change my career, the switch and interview links keeping the
+  career, back to their own questions, nothing saved); choosing careers in the library (URL only,
+  never the profile or the goals); unknown, differently cased and malformed values; signed out
+  (a copied link, an unknown value); lessons for another career and an unknown one (no request
+  for it); a mock interview for another career; a deliberate change in Settings. `careers.test.tsx`:
+  choosing a job in the library no longer saves it. 6 negative controls, each caught.
 - `fieldErrors.test.tsx` (8): the wording of each common refusal and the server's own sentence;
   errors tied to the form's fields, the first per field, the rest in the summary; a refused goals
   save (errors beside two fields, linked by `aria-describedby`, the summary focused, the field's
@@ -190,6 +233,9 @@ When the server refuses a save of these four forms with a validation error (422
 - **The browser checks some values first.** Required fields, lengths, link and date formats stop
   a save before it's sent, with the browser's own message; field errors cover what only the
   server checks, and what reaches it anyway.
+- **The browse line is on the public pages listed.** A single question or problem page names its
+  career in its heading and breadcrumb instead. Drills, the plan and Today follow the learner's
+  own career only and take no `?career=`.
 - **An unexplained hang, seen once.** One run of the related browser specs hung two API reads for
   63 s, and then the next navigation was aborted. It didn't reproduce in four more runs of that test
   (two alone, two with the same specs), and the server logged nothing. It's recorded here, not explained.

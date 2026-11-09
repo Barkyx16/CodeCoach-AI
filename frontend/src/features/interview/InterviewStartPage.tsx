@@ -12,6 +12,7 @@ import { Card } from "@/components/Card";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
 import { timeAgo } from "@/lib/format";
 import { Icon } from "@/components/Icon";
+import { BrowseNote } from "@/features/careers/BrowseNote";
 
 import { DIMENSION_LABELS, OVERALL_LABELS, PHASES } from "./phases";
 import { ResumeCard } from "./ResumeCard";
@@ -53,6 +54,7 @@ export function InterviewStartPage() {
           <p className="eyebrow">THINK CLEARLY. EXPLAIN CONFIDENTLY.</p>
           <h1 className="page__title">Mock interview</h1>
           <p className="page__subtitle">A timed, realistic coding interview with an AI interviewer, then rubric feedback.</p>
+          <BrowseNote what="coding interviews" back="/interviews" backWhat="mock interviews" scope="A round you start here is saved to your history as a coding interview." />
           <p className="subtle">Or practise decisions in a <Link to="/scenarios">branching scenario</Link>.</p>
         </div>
       </div>

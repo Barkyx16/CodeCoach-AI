@@ -33,16 +33,17 @@ describe("Career practice", () => {
     expect(await screen.findByRole("heading", { name: "Software Engineer interview questions" })).toBeInTheDocument();
   });
 
-  it("changing the job saves it to the profile", async () => {
+  it("choosing another job in the library shows it without changing the profile (Settings does that)", async () => {
     let body: unknown = null;
     server.use(http.patch(`${API}/api/v1/auth/me`, async ({ request }) => {
       body = await request.json();
       return HttpResponse.json(nurse);
     }));
-    const { user } = renderApp("/problems", { signedIn: true });
-    await chooseCareer(user, await screen.findByLabelText("Practicing for"), "registered-nurse");
+    const { user, router } = renderApp("/problems", { signedIn: true });
+    await chooseCareer(user, await screen.findByLabelText("Show practice for"), "registered-nurse");
     expect(await screen.findByRole("heading", { name: "Registered Nurse interview questions" })).toBeInTheDocument();
-    expect(body).toEqual({ career_track: "registered-nurse" });
+    expect(router.state.location.search).toBe("?career=registered-nurse");
+    expect(body).toBeNull();
   });
 
   it("signed-out visitors can browse any job's questions from the URL", async () => {

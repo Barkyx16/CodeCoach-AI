@@ -1,20 +1,26 @@
-import { Link, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 import { useLearnCatalog, useMyLearn } from "@/api/queries";
 import { useAuth } from "@/auth/useAuth";
 import { Badge } from "@/components/Badge";
 import { Icon } from "@/components/Icon";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
-import { DEFAULT_TRACK } from "@/features/careers/practiceTrack";
+import { BrowseNote } from "@/features/careers/BrowseNote";
+import { useBrowseCareer, withCareer } from "@/features/careers/practiceTrack";
 
 import { statusLabel } from "./progress";
 
 /** Learn mode: short units for the chosen career, with honest coverage. `?career=` browses another
  * career without changing your profile. */
 export function LearnPage() {
-  const { user, isAuthenticated } = useAuth();
-  const [params] = useSearchParams();
-  const track = params.get("career") || user?.career_track || DEFAULT_TRACK;
+  const { track, keep, pending } = useBrowseCareer();
+  // A career in the link is checked against the list first: nothing is asked for one that isn't there.
+  if (pending) return <LoadingState label="Loading lessons…" />;
+  return <LearnCatalog track={track} keep={keep} />;
+}
+
+function LearnCatalog({ track, keep }: { track: string; keep: string }) {
+  const { isAuthenticated } = useAuth();
   const catalog = useLearnCatalog(track);
   const mine = useMyLearn(track, isAuthenticated);
 
@@ -30,7 +36,8 @@ export function LearnPage() {
           <p className="eyebrow">LEARN</p>
           <h1 className="page__title">{c.career_title} lessons</h1>
           <p className="page__subtitle">Short units that teach a skill before you're tested on it: an explanation, a worked example, common mistakes, a guided exercise and a quick check.</p>
-          <p className="subtle">Or practise decisions in a <Link to="/scenarios">branching scenario</Link>.</p>
+          <p className="subtle">Or practise decisions in a <Link to={withCareer("/scenarios", keep)}>branching scenario</Link>.</p>
+          <BrowseNote what="lessons" back="/learn" />
         </div>
       </div>
       <p className="banner banner--info">{c.coverage_note}</p>

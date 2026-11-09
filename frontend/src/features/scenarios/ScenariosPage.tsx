@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
 import { useScenario, useScenarioAttempts, useScenarios } from "@/api/queries";
@@ -11,7 +11,8 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Icon } from "@/components/Icon";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
-import { DEFAULT_TRACK } from "@/features/careers/practiceTrack";
+import { BrowseNote } from "@/features/careers/BrowseNote";
+import { useBrowseCareer, withCareer } from "@/features/careers/practiceTrack";
 import { timeAgo } from "@/lib/format";
 import { externalHref } from "@/lib/links";
 
@@ -28,9 +29,13 @@ function Facts({ s }: { s: ScenarioSummary }) {
 
 /** Scenarios for a career, with honest coverage. `?career=` browses another career. */
 export function ScenariosPage() {
-  const { user } = useAuth();
-  const [params] = useSearchParams();
-  const track = params.get("career") || user?.career_track || DEFAULT_TRACK;
+  const { track, keep, pending } = useBrowseCareer();
+  // A career in the link is checked against the list first: nothing is asked for one that isn't there.
+  if (pending) return <LoadingState label="Loading scenarios…" />;
+  return <ScenarioCatalog track={track} keep={keep} />;
+}
+
+function ScenarioCatalog({ track, keep }: { track: string; keep: string }) {
   const catalog = useScenarios(track);
   if (catalog.isPending) return <LoadingState label="Loading scenarios…" />;
   if (catalog.isError) return <div className="page"><ErrorState error={catalog.error} onRetry={() => void catalog.refetch()} /></div>;
@@ -43,6 +48,7 @@ export function ScenariosPage() {
           <p className="eyebrow">SCENARIOS</p>
           <h1 className="page__title">{c.career_title} scenarios</h1>
           <p className="page__subtitle">Fictional situations where your choices change what happens next, with a debrief on the path you took.</p>
+          <BrowseNote what="scenarios" back="/scenarios" />
         </div>
       </div>
       <p className="banner banner--info">{c.coverage_note}</p>
@@ -50,7 +56,7 @@ export function ScenariosPage() {
         <p className="subtle">Also available: {others.map((o, i) => <span key={o.track}>{i > 0 && " · "}<Link to={`/scenarios?career=${o.track}`}>{o.title} ({o.scenarios})</Link></span>)}</p>
       )}
       {c.scenarios.length === 0 ? (
-        <EmptyState title={`No scenarios for ${c.career_title} yet`} action={<Link className="btn btn--secondary btn--md" to="/interviews">Try a mock interview</Link>}>
+        <EmptyState title={`No scenarios for ${c.career_title} yet`} action={<Link className="btn btn--secondary btn--md" to={withCareer("/interviews", keep)}>Try a mock interview</Link>}>
           Mock interviews and practice questions still cover this career.
         </EmptyState>
       ) : (

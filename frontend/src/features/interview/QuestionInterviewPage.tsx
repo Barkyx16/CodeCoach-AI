@@ -9,7 +9,8 @@ import { useRetryWait } from "@/hooks/useCountdown";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { titleCase } from "@/lib/format";
-import { usePracticeTrack } from "@/features/careers/practiceTrack";
+import { BrowseNote } from "@/features/careers/BrowseNote";
+import { usePracticeTrack, withCareer } from "@/features/careers/practiceTrack";
 import { VoiceSetup } from "@/features/voice/VoiceSetup";
 
 import { FormatPicker } from "./FormatPicker";
@@ -26,7 +27,7 @@ const DURATIONS = [10, 15, 20];
  * session (/interviews/:id): it survives reloads, keeps a real deadline and appears in history.
  */
 export function QuestionInterviewPage() {
-  const { track, career } = usePracticeTrack();
+  const { track, career, keep } = usePracticeTrack();
   const navigate = useNavigate();
   const start = useStartInterview();
   const [prefs, setPrefs] = useVoicePrefs();
@@ -64,7 +65,8 @@ export function QuestionInterviewPage() {
           <p className="eyebrow">MOCK INTERVIEW</p>
           <h1 className="page__title">{role} interview</h1>
           <p className="page__subtitle">Five questions from {role} interviews, one at a time, the way an interviewer would ask them.</p>
-          <p className="subtle">Or practise decisions in a <Link to="/scenarios">branching scenario</Link>.</p>
+          <p className="subtle">Or practise decisions in a <Link to={withCareer("/scenarios", keep)}>branching scenario</Link>.</p>
+          <BrowseNote what="mock interviews" back="/interviews" scope={`A round you start here is saved to your history as a ${role} interview.`} />
         </div>
       </div>
       <div className="interview-start__grid">
@@ -106,7 +108,7 @@ export function QuestionInterviewPage() {
           {activeId ? <ResumeCard id={activeId} summary={activeSummary} alert={Boolean(conflict)} />
               : !start.isPending && <ActionError error={start.error} action="Starting the interview" repeatSafe />}
           <Button type="submit" variant="primary" loading={start.isPending} disabled={Boolean(activeId) || startWait > 0}>Start interview</Button>
-          <p className="subtle">Want to work on one question at a time? <Link to="/problems?view=questions">Browse all {role} questions</Link>.</p>
+          <p className="subtle">Want to work on one question at a time? <Link to={withCareer("/problems?view=questions", keep)}>Browse all {role} questions</Link>.</p>
         </form>
       </div>
       <VoiceSetup prefs={prefs} onChange={setPrefs} />

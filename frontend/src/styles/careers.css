@@ -2,6 +2,7 @@
 .practice-bar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 16px; }
 .practice-bar .career-select { flex: 1 1 260px; max-width: 360px; }
 .practice-bar .field__label { font-size: 0.75rem; color: var(--color-text-muted); }
+.practice-bar .browse-note { flex-basis: 100%; margin: 0; }
 .practice-switch { display: inline-flex; padding: 3px; gap: 2px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
 .practice-switch a { padding: 7px 14px; border-radius: 7px; color: var(--color-text-muted); font-size: 0.8125rem; font-weight: 500; text-decoration: none; }
 .practice-switch a:hover { color: var(--color-text); background: var(--color-surface-raised); }
