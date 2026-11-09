@@ -57,7 +57,12 @@ test("prep follows a rescheduled interview only when confirmed; a draft and a li
   const add = page.getByRole("form", { name: "Add to schedule" });
   await add.getByLabel("Date").fill("2026-12-13");
   await add.getByLabel("Start time").fill("18:00");
+  // Wait for the server to have it: going to another page straight after the click could cancel
+  // the request (an isolated full run once loaded the week before the entry existed).
+  const created = page.waitForResponse((r) => r.url().endsWith("/api/v1/me/schedule") && r.request().method() === "POST");
   await add.getByRole("button", { name: "Add to schedule" }).click();
+  expect((await created).status()).toBe(201);
+  await expect(page.getByText(/^Added “Prepare: Panel interview/)).toBeVisible();
   await page.goto("/schedule?week=2026-12-13");
   const entry = page.locator(".schedule-entry").filter({ hasText: "Prepare: Panel interview" });
   await expect(entry.getByText(/A fixed time: it stays here if the interview moves/)).toBeVisible();

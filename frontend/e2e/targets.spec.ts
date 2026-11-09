@@ -53,7 +53,10 @@ test("a nurse turns a posting into a workspace, corrects it, practises, and star
   const meds = page.getByRole("article", { name: "Administer medications and monitor patient responses" });
   await meds.getByRole("button", { name: "Correct" }).click();
   await meds.getByLabel("Requirement").fill("Give medications safely and monitor responses");
+  // Reload only once the server has it (reloading straight after the click could cancel the save).
+  const corrected = page.waitForResponse((r) => /\/requirements\//.test(r.url()) && r.request().method() === "PATCH");
   await meds.getByRole("button", { name: "Save" }).click();
+  expect((await corrected).ok()).toBe(true);
   await page.reload();
   await expect(page.getByRole("article", { name: "Give medications safely and monitor responses" })).toBeVisible();
 
