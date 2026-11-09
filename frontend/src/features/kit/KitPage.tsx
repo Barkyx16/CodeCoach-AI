@@ -11,6 +11,8 @@ import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { PrivateUnavailable } from "@/components/Unavailable";
+import { isGone } from "@/lib/errors";
 import { VersionConflict } from "@/components/VersionConflict";
 import { describeWhen } from "@/features/applications/dates";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
@@ -29,6 +31,7 @@ export function KitPage() {
   const { id = "", eventId = "" } = useParams();
   const kit = useKit(id, eventId);
   if (kit.isPending) return <LoadingState label="Loading your interview kit…" />;
+  if (kit.isError && isGone(kit.error)) return <PrivateUnavailable what="interview kit" list={{ to: "/applications", label: "Your applications" }} />;
   if (kit.isError) return <div className="page"><ErrorState error={kit.error} onRetry={() => void kit.refetch()} /></div>;
   // The editor keeps the learner's edits; the event's logistics (read live by the server) come from
   // the latest fetch, so a reschedule made elsewhere shows here without losing unsaved edits.

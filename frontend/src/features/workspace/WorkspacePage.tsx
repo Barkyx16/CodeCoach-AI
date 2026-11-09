@@ -29,7 +29,7 @@ import { CodeEditor } from "./CodeEditor";
 import { ProblemStatement } from "./ProblemStatement";
 import { SubmissionPanel } from "./SubmissionPanel";
 import { useDraft, type SaveState } from "./useDraft";
-import { WorkspaceFrame } from "./WorkspaceFrame";
+import { CODING_LIBRARY, WorkspaceFrame } from "./WorkspaceFrame";
 import { Icon } from "@/components/Icon";
 import { LearnLinks } from "@/features/learn/LearnLinks";
 import { NoteCapture } from "@/features/notes/NoteCapture";
@@ -58,7 +58,7 @@ export default function WorkspacePage() {
       return (
         <div className="page">
           <EmptyState pageTitle title="This problem isn't available"
-            action={<Link className="btn btn--primary btn--md" to="/problems">Browse coding problems</Link>}>
+            action={<Link className="btn btn--primary btn--md" to={CODING_LIBRARY}>Browse coding problems</Link>}>
             <p>The link may be mistyped, or the problem may have been removed from the library.</p>
           </EmptyState>
         </div>

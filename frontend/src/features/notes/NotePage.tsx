@@ -11,6 +11,8 @@ import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { PrivateUnavailable } from "@/components/Unavailable";
+import { isGone } from "@/lib/errors";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { formatDateTime, timeAgo } from "@/lib/format";
 import { CodeBlock } from "@/features/learn/UnitParts";
@@ -31,6 +33,7 @@ export function NotePage() {
 function ExistingNote({ id }: { id: string }) {
   const note = useNote(id);
   if (note.isPending) return <LoadingState label="Loading note…" />;
+  if (note.isError && isGone(note.error)) return <PrivateUnavailable what="note" list={{ to: "/notes", label: "Your notebook" }} />;
   if (note.isError) return <div className="page"><BackLink fallback={{ to: "/notes", label: "Your notebook" }} /><ErrorState error={note.error} onRetry={() => void note.refetch()} /></div>;
   return <NoteScreen key={note.data.id} note={note.data} />;
 }

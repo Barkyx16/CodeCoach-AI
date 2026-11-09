@@ -15,6 +15,8 @@ import { BackLink } from "@/components/BackLink";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { PrivateUnavailable } from "@/components/Unavailable";
+import { isGone } from "@/lib/errors";
 import { VersionConflict } from "@/components/VersionConflict";
 import { CareerSelect } from "@/features/careers/CareerSelect";
 import { allowLeaveAfterSave, useLeaveWarning } from "@/hooks/useLeaveWarning";
@@ -46,6 +48,7 @@ export function StoryEditorPage() {
   const { id } = useParams();
   const story = useStory(id);
   if (id && story.isPending) return <LoadingState label="Loading the story…" />;
+  if (id && story.isError && isGone(story.error)) return <PrivateUnavailable what="story" list={{ to: "/stories", label: "Your stories" }} />;
   if (id && story.isError) return <div className="page"><ErrorState error={story.error} onRetry={() => void story.refetch()} /></div>;
   return <Editor key={id ?? "new"} story={id ? story.data! : null} />;
 }

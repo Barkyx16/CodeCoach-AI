@@ -18,6 +18,8 @@ import { useAuth } from "@/auth/useAuth";
 import { DifficultyBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { PrivateUnavailable } from "@/components/Unavailable";
+import { isGone } from "@/lib/errors";
 import { FocusToggle } from "@/features/display/FocusToggle";
 import { CodeEditor } from "@/features/workspace/CodeEditor";
 import { useDraft } from "@/features/workspace/useDraft";
@@ -40,6 +42,9 @@ export default function InterviewSessionPage() {
   if (interview.isPending) return <LoadingState label="Loading interview…" />;
   // Nothing loaded: the error is all there is. Once the interview is on screen, a failed refresh
   // (focus, the clock running out, the check after a dropped send) keeps it there, with a notice.
+  if (interview.isError && !interview.data && isGone(interview.error)) {
+    return <PrivateUnavailable what="interview" list={{ to: "/history?type=interview", label: "All your interviews" }} />;
+  }
   if (interview.isError && !interview.data) {
     return <div className="page"><ErrorState error={interview.error} onRetry={() => interview.refetch()} /></div>;
   }

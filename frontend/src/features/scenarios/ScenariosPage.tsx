@@ -11,6 +11,8 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Icon } from "@/components/Icon";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
+import { UnavailableState } from "@/components/Unavailable";
+import { isGone } from "@/lib/errors";
 import { BrowseNote } from "@/features/careers/BrowseNote";
 import { useBrowseCareer, withCareer } from "@/features/careers/practiceTrack";
 import { timeAgo } from "@/lib/format";
@@ -84,6 +86,13 @@ export function ScenarioBriefing() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   if (scenario.isPending) return <LoadingState label="Loading scenario…" />;
+  if (scenario.isError && isGone(scenario.error)) {
+    return (
+      <UnavailableState title="This scenario isn't available" actions={[{ to: "/scenarios", label: "Browse scenarios" }]}>
+        <p>The link may be mistyped, or the scenario may have been removed. Attempts you made at it stay in your history.</p>
+      </UnavailableState>
+    );
+  }
   if (scenario.isError) return <div className="page"><ErrorState error={scenario.error} onRetry={() => void scenario.refetch()} /></div>;
   const s = scenario.data;
   const ongoing = attempts.data?.find((a) => a.status === "in_progress" && a.mode === "assessed" && !a.retired);

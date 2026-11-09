@@ -132,7 +132,7 @@ test("track an application from saved to interviewing, with history, events, lin
   const stranger = await other.newPage();
   await signUpNurse(stranger);
   await stranger.goto(url);
-  await expect(stranger.getByText(/Application not found/)).toBeVisible();
+  await expect(stranger.getByRole("heading", { level: 1, name: "This application isn't available" })).toBeVisible(); // the same words as a deleted one
   await other.close();
 
   // Archive: out of the board, kept in the archive.

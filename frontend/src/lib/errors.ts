@@ -64,3 +64,13 @@ export function formatWait(seconds: number): string {
   const m = Math.round((s % 3600) / 60);
   return m ? `about ${h} h ${m} min` : `about ${h} h`;
 }
+
+/**
+ * A link that leads nowhere (Volume 9, prompt 5; NAVIGATION.md "Links that lead nowhere"): the
+ * server said the record isn't there for this account (404; or 403, treated the same). A retry
+ * can't help; a way forward can. Anything else (offline, busy, a server error) is temporary and
+ * keeps the page's Try again.
+ */
+export function isGone(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 404 || error.status === 403);
+}

@@ -160,10 +160,13 @@ describe("Notebook", () => {
     expect(noteStore.notes[0]!.body).toBe("Next time I should escalate earlier.");
   });
 
-  it("another account's note is simply not found", async () => {
+  it("another account's note is simply not available, in the same words as a deleted one", async () => {
     asNurse();
     renderApp("/notes/someone-elses", { signedIn: true });
-    expect(await screen.findByText("Note not found")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "This note isn't available" })).toBeInTheDocument();
+    expect(screen.getByText(/It may have been deleted, the link may be mistyped, or it may belong to a different account/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Your notebook" })).toHaveAttribute("href", "/notes");
+    expect(document.body).not.toHaveTextContent("someone-elses");
   });
 });
 

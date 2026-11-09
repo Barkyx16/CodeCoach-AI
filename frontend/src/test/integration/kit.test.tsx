@@ -78,11 +78,13 @@ describe("the interview-day kit", () => {
     expect(printSpy).toHaveBeenCalled();
   });
 
-  it("is a plain not-found for someone else's interview", async () => {
+  it("is the same generic answer for someone else's interview", async () => {
     asUser();
     server.use(http.get(`${API}/api/v1/me/applications/a1/events/e1/kit`, () => HttpResponse.json({ error: { code: "not_found", message: "Interview not found", request_id: "r" } }, { status: 404 })));
     renderApp(URL, { signedIn: true });
-    expect(await screen.findByText(/Interview not found/)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "This interview kit isn't available" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Your applications" })).toHaveAttribute("href", "/applications");
+    expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
   });
 });
 

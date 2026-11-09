@@ -49,7 +49,7 @@ describe("A link to a question that isn't there", () => {
       HttpResponse.json({ error: { code: "not_found", message: "Problem not found", request_id: "r", details: null } }, { status: 404 })));
     renderApp("/problems/no-such-problem", { signedIn: true });
     expect(await screen.findByRole("heading", { level: 1, name: "This problem isn't available" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Browse coding problems" })).toHaveAttribute("href", "/problems");
+    expect(screen.getByRole("link", { name: "Browse coding problems" })).toHaveAttribute("href", "/problems?career=software-engineer"); // coding, whatever the account's career
     expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
   });
 });

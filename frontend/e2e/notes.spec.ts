@@ -79,7 +79,7 @@ test("capture in context, autosave, search, edit in two tabs, leave mid-save, un
   const page2 = await stranger.newPage();
   await signUpNurse(page2, "stranger");
   await page2.goto(noteUrl);
-  await expect(page2.getByText("Note not found")).toBeVisible();
+  await expect(page2.getByRole("heading", { level: 1, name: "This note isn't available" })).toBeVisible(); // the same words as a deleted one
   await stranger.close();
 
   // Delete with undo.

@@ -11,6 +11,8 @@ import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { PrivateUnavailable } from "@/components/Unavailable";
+import { isGone } from "@/lib/errors";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { externalHref } from "@/lib/links";
 
@@ -25,6 +27,7 @@ export function AttemptPage() {
   const { attemptId = "" } = useParams();
   const attempt = useScenarioAttempt(attemptId);
   if (attempt.isPending) return <LoadingState label="Loading your attempt…" />;
+  if (attempt.isError && isGone(attempt.error)) return <PrivateUnavailable what="scenario attempt" list={{ to: "/scenarios", label: "Scenarios" }} />;
   if (attempt.isError) return <div className="page"><BackLink fallback={{ to: "/scenarios", label: "Scenarios" }} /><ErrorState error={attempt.error} onRetry={() => void attempt.refetch()} /></div>;
   return <Player attempt={attempt.data} />;
 }

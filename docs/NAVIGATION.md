@@ -167,6 +167,27 @@ fixed earlier (a question's "Registered Nurse questions", a problem's "Coding pr
 unchanged. Personal pages (History, Analytics, Notes) have their own `career` filter over the
 learner's own records; it isn't a browse context.
 
+### Links that lead nowhere (Volume 9, prompt 5)
+
+A copied link or bookmark opened directly uses the page's normal way back (its fallback); that
+isn't a broken link. When the record itself can't be shown, the page says so calmly: a short
+heading, one sentence, and a few working destinations (`components/Unavailable.tsx`;
+`isGone` in `lib/errors.ts` decides).
+
+| What the server said | What the learner sees | Can it be told apart safely? |
+|---|---|---|
+| A private record (note, application, story, interview, its kit or reflection, a retry, a submission, saved feedback, a scenario attempt): 404, or 403 | "This note isn't available. It may have been deleted, the link may be mistyped, or it may belong to a different account. Nothing was changed." The learner's own list of that kind (Your notebook, Your applications, All your interviews…) and the dashboard. No Try again | no, on purpose: the server answers 404 for a deleted record, one that never existed and another account's alike, and the page uses the same words for all three (a 403 too). No id, title or server wording is shown |
+| Public content removed from the library (a question, coding problem, scenario, lesson): 404 | "This question isn't available", with that career's questions; a problem leads to coding problems (`/problems?career=software-engineer`, coding even for a nurse); a scenario or lesson to its library, saying a lesson has no direct replacement and a scenario's attempts stay in history | yes: public content isn't private |
+| A retired question (still in the library, marked retired) | the question itself, readable, with why it was retired; it isn't graded any more; past answers keep their recorded version and scores; the breadcrumb leads to its career's questions | yes |
+| A scenario attempt whose scenario changed or was retired | the attempt, with its recorded scenario and debrief, marked retired | yes |
+| Offline, busy, a server error | the page's error with Try again, which loads the record when the server answers; never "isn't available" | – |
+| Signed out (or the session ended) | sign in first, back to the same link afterwards, where access is checked again for that account: a different account sees the generic words above, not a loop | – |
+
+Examples. A bookmarked interview that's no longer there: "This interview isn't available", with
+All your interviews (History, interviews only) and Dashboard. A retired nursing question: the
+question, "This question is retired, so it isn't graded any more", the reason, past answers as
+they were, and the breadcrumb "Registered Nurse questions".
+
 ## Tests
 
 - `frontend/src/test/integration/returnPaths.test.tsx` (12):
@@ -185,6 +206,18 @@ learner's own records; it isn't a browse context.
   and expired copies; a refused write with Copy your work; another account; another tab's newer
   copy; a posting saved again since; details and notes typed while saving keep their copy.
   6 negative controls, each caught (one test strengthened after its control was missed).
+- `deadLinks.test.tsx` (7): a bookmarked interview that isn't there (generic words, All your
+  interviews, Dashboard, no retry, no id, no server wording); deleted, never there, another
+  account's and a 403 read exactly the same; each kind's own list (applications, stories,
+  reflections); a temporary failure keeps Try again, which loads it; a removed scenario and lesson
+  lead to their library; a retired question stays readable and leads to its career's questions;
+  a signed-out visitor signs in and the link is rechecked, with no loop. Updated to the new
+  behaviour: notes, kit, workspace and learner-journey tests. 4 negative controls, each caught.
+- Browser, `e2e/dead-links.spec.ts`, real API, fresh browser contexts: another account's note and a
+  mistyped id read the same and show nothing of the owner's; a signed-out visitor is sent to sign
+  in; a bookmarked interview leads to All your interviews; a busy read keeps Try again, which then
+  loads; a removed scenario, lesson and problem lead to their libraries. The stranger checks in
+  applications, kit, notes, persistence and stories now expect the generic heading.
 - `browseCareer.test.tsx` (8): the parameter read the same way (case, spaces, malformed); a
   nurse browsing coding (the line, Change my career, the switch and interview links keeping the
   career, back to their own questions, nothing saved); choosing careers in the library (URL only,

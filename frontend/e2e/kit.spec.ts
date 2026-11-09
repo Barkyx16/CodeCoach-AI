@@ -93,7 +93,7 @@ test("prepare an interview day, keep it, and print only what was chosen", async 
   const stranger = await other.newPage();
   await signUpNurse(stranger);
   await stranger.goto(url);
-  await expect(stranger.getByText(/Interview not found/)).toBeVisible();
+  await expect(stranger.getByRole("heading", { level: 1, name: "This interview kit isn't available" })).toBeVisible(); // the same words as a deleted one
   await other.close();
 
   // Back to the application it came from.

@@ -5,6 +5,8 @@ import type { AnswerSource, Comparison } from "@/api/types";
 import { BackLink } from "@/components/BackLink";
 import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { PrivateUnavailable } from "@/components/Unavailable";
+import { isGone } from "@/lib/errors";
 import { clearStoredDraft, useStoredDraft } from "@/hooks/useStoredDraft";
 import { useInterviewerVoice } from "@/features/voice/useInterviewerVoice";
 import { VoiceComposer } from "@/features/voice/VoiceComposer";
@@ -21,6 +23,7 @@ export function RetryPage() {
   const [prefs] = useVoicePrefs();
   const voice = useInterviewerVoice(prefs);
   if (comparison.isPending) return <LoadingState label="Loading the question…" />;
+  if (comparison.isError && isGone(comparison.error)) return <PrivateUnavailable what="answer" list={{ to: "/history?type=interview", label: "All your interviews" }} />;
   if (comparison.isError) return <div className="page"><BackLink fallback={{ to: `/interviews/${id}`, label: "Back to the review" }} /><ErrorState error={comparison.error} onRetry={() => void comparison.refetch()} /></div>;
   const c = comparison.data;
 

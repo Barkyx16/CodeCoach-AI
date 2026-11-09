@@ -9,6 +9,8 @@ import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { PrivateUnavailable } from "@/components/Unavailable";
+import { isGone } from "@/lib/errors";
 import { readStoredDraft } from "@/hooks/useStoredDraft";
 import { diag } from "@/lib/diagnostics";
 import { formatDateTime, titleCase } from "@/lib/format";
@@ -41,6 +43,7 @@ export function ReviewWorkspace({ iv }: { iv: Interview }) {
     screenChanged(iv.id, `results:${state}`); // the round's last action is on screen
   }, [iv.id, iv.status, state]);
   if (review.isPending) return <LoadingState label="Loading your review…" />;
+  if (review.isError && isGone(review.error)) return <PrivateUnavailable what="interview" list={ALL_INTERVIEWS} />;
   if (review.isError) return <div className="page"><BackLink fallback={ALL_INTERVIEWS} /><ErrorState error={review.error} onRetry={() => void review.refetch()} /></div>;
   return <Review iv={iv} r={review.data} />;
 }

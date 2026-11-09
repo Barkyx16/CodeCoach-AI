@@ -13,6 +13,8 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { CopyWork } from "@/components/CopyWork";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { PrivateUnavailable } from "@/components/Unavailable";
+import { isGone } from "@/lib/errors";
 import { VersionConflict } from "@/components/VersionConflict";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { recoveredSave, savedVersion } from "@/lib/conflict";
@@ -34,6 +36,7 @@ export function ReflectionPage() {
   const { id = "", eventId = "" } = useParams();
   const reflection = useReflection(id, eventId);
   if (reflection.isPending) return <LoadingState label="Loading your reflection…" />;
+  if (reflection.isError && isGone(reflection.error)) return <PrivateUnavailable what="reflection" list={{ to: "/reflections", label: "Your reflections" }} />;
   if (reflection.isError) return <div className="page"><ErrorState error={reflection.error} onRetry={() => void reflection.refetch()} /></div>;
   return <Editor key={eventId} initial={reflection.data} />;
 }

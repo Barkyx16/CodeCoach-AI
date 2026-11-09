@@ -7,6 +7,8 @@ import { Badge, StatusBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorState, LoadingState } from "@/components/States";
+import { PrivateUnavailable } from "@/components/Unavailable";
+import { isGone } from "@/lib/errors";
 import { formatDateTime } from "@/lib/format";
 import { ReviewResult } from "@/features/workspace/CoachPanel";
 import { FailureExplanationView } from "@/features/workspace/FailureExplanation";
@@ -17,6 +19,7 @@ export function SubmissionDetailPage() {
   const navigate = useNavigate();
   const q = useSubmission(id);
   if (q.isPending) return <LoadingState label="Loading submission…" />;
+  if (q.isError && isGone(q.error)) return <PrivateUnavailable what="submission" list={{ to: "/history?type=code_submission", label: "All submissions" }} />;
   if (q.isError) return <div className="page"><BackLink fallback={{ to: "/history", label: "History" }} /><ErrorState error={q.error} onRetry={() => q.refetch()} /></div>;
   const s = q.data;
   const judged = s.is_terminal && s.status !== "QUEUED" && s.status !== "RUNNING";
@@ -63,6 +66,7 @@ export function CoachingDetailPage() {
   const { id = "" } = useParams();
   const q = useAIHistoryItem(id);
   if (q.isPending) return <LoadingState label="Loading feedback…" />;
+  if (q.isError && isGone(q.error)) return <PrivateUnavailable what="feedback" list={{ to: "/history", label: "History" }} />;
   if (q.isError) return <div className="page"><BackLink fallback={{ to: "/history", label: "History" }} /><ErrorState error={q.error} onRetry={() => q.refetch()} /></div>;
   const item = q.data;
   const response = (item.response ?? {}) as Record<string, unknown>;

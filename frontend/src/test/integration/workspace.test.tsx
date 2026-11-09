@@ -17,7 +17,7 @@ describe("Problem workspace", () => {
   it("shows a friendly not-found state with a way back", async () => {
     renderApp("/problems/does-not-exist");
     expect(await screen.findByRole("heading", { level: 1, name: "This problem isn't available" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Browse coding problems" })).toHaveAttribute("href", "/problems");
+    expect(screen.getByRole("link", { name: "Browse coding problems" })).toHaveAttribute("href", "/problems?career=software-engineer"); // coding, whatever the account's career
   });
 
   it("autosaves the draft and restores it", async () => {

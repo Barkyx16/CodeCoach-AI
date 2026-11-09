@@ -11,6 +11,8 @@ import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { PrivateUnavailable } from "@/components/Unavailable";
+import { isGone } from "@/lib/errors";
 import { formatDateTime } from "@/lib/format";
 
 import { browserTimeZone, describeWhen } from "./dates";
@@ -34,6 +36,7 @@ export function ApplicationPage() {
   const { id = "" } = useParams();
   const app = useApplication(id);
   if (app.isPending) return <LoadingState label="Loading the application…" />;
+  if (app.isError && isGone(app.error)) return <PrivateUnavailable what="application" list={{ to: "/applications", label: "Your applications" }} />;
   if (app.isError) return <div className="page"><ErrorState error={app.error} onRetry={() => void app.refetch()} /></div>;
   return <Detail key={app.data.id} a={app.data} />;
 }

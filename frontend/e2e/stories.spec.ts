@@ -112,7 +112,7 @@ test("one story, from a job target to the story bank to practice, with every ver
   stranger.on("dialog", (d) => void d.accept());
   await signUpNurse(stranger);
   await stranger.goto(storyUrl);
-  await expect(stranger.getByText(/Story not found|couldn't be found|not found/i).first()).toBeVisible();
+  await expect(stranger.getByRole("heading", { level: 1, name: "This story isn't available" })).toBeVisible(); // the same words as a deleted one
   await stranger.goto("/stories");
   await expect(stranger.getByText("No stories yet")).toBeVisible();
   await other.close();

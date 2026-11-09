@@ -11,6 +11,8 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Icon } from "@/components/Icon";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { UnavailableState } from "@/components/Unavailable";
+import { isGone } from "@/lib/errors";
 import { NoteCapture } from "@/features/notes/NoteCapture";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { timeAgo } from "@/lib/format";
@@ -74,6 +76,13 @@ export function UnitPage() {
   }, [unit.data, p]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (unit.isPending) return <LoadingState label="Loading the unit…" />;
+  if (unit.isError && isGone(unit.error)) {
+    return (
+      <UnavailableState title="This lesson isn't available" actions={[{ to: "/learn", label: "Browse lessons" }]}>
+        <p>The link may be mistyped, or the lesson may have been removed. There's no direct replacement for it.</p>
+      </UnavailableState>
+    );
+  }
   if (unit.isError) return <div className="page"><ErrorState error={unit.error} onRetry={() => void unit.refetch()} /></div>;
   const u = unit.data;
   const older = p ? p.versions_used.filter((v) => v < u.version) : [];

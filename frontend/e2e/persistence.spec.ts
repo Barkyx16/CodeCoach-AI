@@ -75,7 +75,7 @@ test("two devices, one account, and a stranger: what syncs, what stays, what's h
   await strangerPage.goto("/notes");
   await expect(strangerPage.getByRole("link", { name: "Written on device one" })).toHaveCount(0);
   await strangerPage.goto(noteUrl);
-  await expect(strangerPage.getByText("Note not found")).toBeVisible();
+  await expect(strangerPage.getByRole("heading", { level: 1, name: "This note isn't available" })).toBeVisible(); // the same words as a deleted one
   await strangerPage.goto(QUESTION);
   await expect(strangerPage.getByLabel("Your answer", { exact: true })).toHaveValue("");
 
