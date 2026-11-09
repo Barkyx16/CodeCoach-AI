@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
@@ -24,6 +24,8 @@ import { useRequestKey } from "@/lib/requestKey";
 import { recoveredSave } from "@/lib/conflict";
 import { useAuth } from "@/auth/useAuth";
 import { VersionConflict } from "@/components/VersionConflict";
+import { FormDraftOffer, FormDraftStatus } from "@/components/FormDraftNotice";
+import { formDraftKey, isTextForm, useFormDraft } from "@/hooks/useFormDraft";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 
 export function ApplicationPage() {
@@ -263,6 +265,10 @@ function DetailsCard({ a, onDone }: { a: Application; onDone: (a: Application) =
   const { user } = useAuth();
   const draftKey = notesDraftKey(user?.id ?? "anon", a.id);
   const [form, setForm] = useState({ role_title: a.role_title, employer: a.employer, link: a.link ?? "", applied_on: a.applied_on ?? "", next_action: a.next_action, next_action_due: a.next_action_due ?? "", notes: a.notes });
+  // The form as it is now, for code that runs after a save's reply: `form` there is what it was
+  // when Save was pressed, so "typed while saving" has to be read from here.
+  const latest = useRef(form);
+  useEffect(() => { latest.current = form; }, [form]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   // What the server last accepted: "Saved." only while the form still says exactly that, so a slow
@@ -286,6 +292,13 @@ function DetailsCard({ a, onDone }: { a: Application; onDone: (a: Application) =
   const [acceptedFields, setAcceptedFields] = useState(() => fieldsOf(form));
   const fieldsDirty = fieldsOf(form) !== acceptedFields;
   useLeaveWarning(notesDirty || fieldsDirty, "this application's details");
+  type Fields = Omit<typeof form, "notes">;
+  const fieldsOnly = ({ notes: _notes, ...rest }: typeof form): Fields => rest;
+  const fieldsDraft = useFormDraft<Fields>({
+    storageKey: formDraftKey(user?.id ?? "anon", "application", a.id), form: fieldsOnly(form),
+    baseline: JSON.parse(acceptedFields) as Fields, base: a.updated_at, enabled: Boolean(user),
+    isForm: (v): v is Fields => isTextForm(v, ["role_title", "employer", "link", "applied_on", "next_action", "next_action_due"]),
+  });
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
   function setNotes(v: string) {
     set("notes", v);
@@ -327,11 +340,12 @@ function DetailsCard({ a, onDone }: { a: Application; onDone: (a: Application) =
       }
       onDone(next);
       setAcceptedFields(fieldsOf(sentForm));
+      fieldsDraft.accepted(fieldsOnly(sentForm), fieldsOnly(latest.current));
       setNotesSaved({ text: next.notes, revision: next.notes_revision });
       setConflict(null);
       setEarlierSave(null);
       setSavedAs(sent);
-      if (form.notes === sentForm.notes) clearDraft(); // typed while saving: that text stays kept
+      if (latest.current.notes === sentForm.notes) clearDraft(); // typed while saving: that text stays kept
       setRecovered(null);
     } catch (err) {
       if (err instanceof ApiError && err.code === "notes_conflict") {
@@ -392,6 +406,13 @@ function DetailsCard({ a, onDone }: { a: Application; onDone: (a: Application) =
       <label className="field"><span className="field__label">Notes <span className="subtle">(private)</span></span><textarea className="input" rows={3} maxLength={4000} value={form.notes} onChange={(e) => setNotes(e.target.value)} /></label>
       {notesDirty && !kept && <p className="subtle">This browser can't keep a copy of unsaved notes: save them, or copy them somewhere safe.</p>}
       <InlineError error={error} />
+      {fieldsDraft.offer && (
+        <FormDraftOffer what="this application's details" at={fieldsDraft.offer.at} onDiscard={fieldsDraft.discard}
+          newer={fieldsDraft.offer.base !== a.updated_at ? "This application was saved again after this copy was made. Restoring puts this copy in the form; saving it replaces those details." : null}
+          onRestore={() => { const d = fieldsDraft.restore(); if (d) setForm((f) => ({ ...f, ...d.form })); }} />
+      )}
+      <FormDraftStatus changed={fieldsDirty} kept={fieldsDraft.kept} competing={fieldsDraft.competing}
+        copyText={() => [form.role_title, form.employer, form.link, form.next_action].filter(Boolean).join("\n")} />
       <span className="row"><Button type="submit" size="sm" variant="primary" loading={busy}>Save details</Button>{savedAs === JSON.stringify(form) && <span className="subtle" role="status">Saved.</span>}</span>
     </form>
   );

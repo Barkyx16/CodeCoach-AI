@@ -172,7 +172,7 @@ describe("signing out on a shared device", () => {
     }) as Record<string, string>;
     const prefixes = new Set<string>();
     for (const text of Object.values(sources)) {
-      for (const m of text.matchAll(/`([a-z][\w.-]*(?:draft|round|retry|message|answer|capture)[\w.-]*[:.])\$\{/g)) {
+      for (const m of text.matchAll(/`([a-z][\w.-]*(?:draft|round|retry|message|answer|capture|notes)[\w.-]*[:.])\$\{/g)) {
         if (m[1]) prefixes.add(m[1]);
       }
     }

@@ -11,6 +11,9 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Icon } from "@/components/Icon";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { useAuth } from "@/auth/useAuth";
+import { FormDraftOffer, FormDraftStatus } from "@/components/FormDraftNotice";
+import { formDraftKey, isTextForm, useFormDraft } from "@/hooks/useFormDraft";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { formatDateTime } from "@/lib/format";
 
@@ -327,16 +330,30 @@ function SourceSection({ t }: { t: Target }) {
   useEffect(() => { current.current = form; }, [form]);
   const dirty = editing && JSON.stringify(form) !== JSON.stringify(saved);
   useLeaveWarning(dirty, "the job posting");
+  const { user } = useAuth();
+  const draft = useFormDraft<typeof saved>({
+    storageKey: formDraftKey(user?.id ?? "anon", "posting", t.id), form: editing ? form : saved, baseline: saved, base: t.updated_at,
+    isForm: (v): v is typeof saved => isTextForm(v, ["title", "employer", "description", "interview_date", "notes"]),
+    enabled: Boolean(user),
+  });
   return (
     <Card className="stack">
       <h2 className="section-title">The posting</h2>
+      {draft.offer && (
+        <FormDraftOffer what="this posting" at={draft.offer.at} onDiscard={draft.discard}
+          newer={draft.offer.base !== t.updated_at ? "The posting was saved again after this copy was made (in another tab or on another device). Restoring puts this copy in the editor; saving it replaces what's saved now." : null}
+          onRestore={() => { const d = draft.restore(); if (d) { setForm(d.form); setEditing(true); } }} />
+      )}
       {editing ? (
         <form className="stack" aria-label="Edit the posting" onSubmit={(e) => {
           e.preventDefault();
           const sent = JSON.stringify(form);
           // Closes only when nothing was typed while saving; otherwise the newer text stays open.
           update.mutate({ title: form.title, employer: form.employer || null, description: form.description, interview_date: form.interview_date || null, notes: form.notes || null },
-            { onSuccess: () => { if (JSON.stringify(current.current) === sent) setEditing(false); } });
+            { onSuccess: () => {
+              draft.accepted(JSON.parse(sent) as typeof saved, current.current);
+              if (JSON.stringify(current.current) === sent) setEditing(false);
+            } });
         }}>
           <label className="field"><span className="field__label">Role title</span><input className="input" required maxLength={120} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
           <label className="field"><span className="field__label">Employer</span><input className="input" maxLength={120} value={form.employer} onChange={(e) => setForm({ ...form, employer: e.target.value })} /></label>
@@ -345,6 +362,7 @@ function SourceSection({ t }: { t: Target }) {
           <label className="field"><span className="field__label">Job description</span><textarea className="input target-jd" rows={10} maxLength={20000} required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
           <p className="subtle">Saving keeps your requirements, edits and every attempt. Lines you remove are flagged on their requirement; use "Find requirements again" to add new ones.</p>
           <InlineError error={update.error} />
+          <FormDraftStatus changed={dirty} kept={draft.kept} competing={draft.competing} copyText={() => [form.title, form.employer, form.description, form.notes].filter(Boolean).join("\n\n")} />
           <div className="row"><Button type="submit" variant="primary" loading={update.isPending}>Save</Button><Button type="button" variant="ghost" onClick={() => { setForm(saved); setEditing(false); }}>Cancel</Button></div>
         </form>
       ) : (

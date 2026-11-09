@@ -8,6 +8,9 @@ import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { useCameFrom } from "@/hooks/useCameFrom";
 import { allowLeaveAfterSave, useLeaveWarning } from "@/hooks/useLeaveWarning";
+import { formDraftKey, useFormDraft } from "@/hooks/useFormDraft";
+import { useAuth } from "@/auth/useAuth";
+import { FormDraftOffer, FormDraftStatus } from "@/components/FormDraftNotice";
 
 const EXPERIENCE = [
   { id: "new", label: "New to the field", hint: "Starting with easy questions" },
@@ -47,6 +50,12 @@ function GoalsForm({ goals }: { goals: Goals }) {
   useEffect(() => { current.current = form; }, [form]);
   const dirty = JSON.stringify(form) !== accepted;
   useLeaveWarning(dirty, "your goals");
+  // A copy kept in this browser while unsaved, offered back after a reload (Volume 9, prompt 2).
+  const { user } = useAuth();
+  const draft = useFormDraft<GoalsInput>({
+    storageKey: formDraftKey(user?.id ?? "anon", "goals", goals.track), form, baseline: JSON.parse(accepted) as GoalsInput,
+    base: null, isForm: isGoalsForm, enabled: Boolean(user),
+  });
   const set = (patch: Partial<GoalsInput>) => setForm((f) => ({ ...f, ...patch }));
   const toggle = <T,>(list: T[], value: T) => (list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
   const focus = form.focus_areas ?? [];
@@ -61,6 +70,7 @@ function GoalsForm({ goals }: { goals: Goals }) {
     try {
       await save.mutateAsync(body);
       setAccepted(sent);
+      draft.accepted(JSON.parse(sent) as GoalsInput, current.current);
       if (JSON.stringify(current.current) !== sent) {
         // Changed while saving: what was sent is saved; the newer choices stay, still unsaved.
         setSavedMore(true);
@@ -85,6 +95,10 @@ function GoalsForm({ goals }: { goals: Goals }) {
           <p className="page__subtitle">All optional. Your plan uses what you share; changing it later keeps everything you've practised.</p>
         </div>
       </div>
+      {draft.offer && (
+        <FormDraftOffer what="your goals" at={draft.offer.at} onDiscard={draft.discard}
+          onRestore={() => { const d = draft.restore(); if (d) setForm({ ...d.form, track: goals.track }); }} />
+      )}
       <form className="stack" onSubmit={onSubmit} aria-label="Your goals">
         <Card className="stack">
           <p className="subtle">Career: <strong>{goals.career_title}</strong> (<Link to="/settings#account">change in Settings</Link>)</p>
@@ -167,6 +181,8 @@ function GoalsForm({ goals }: { goals: Goals }) {
           )}
         </Card>
         <InlineError error={save.error} />
+        <FormDraftStatus changed={dirty} kept={draft.kept} competing={draft.competing}
+          copyText={() => [form.specialty, ...(form.focus_areas ?? [])].filter(Boolean).join("\n")} />
         {savedMore && dirty && <p className="subtle" role="status">Saved what you had when you pressed Save. You changed more since: save again to keep those changes.</p>}
         <div className="row">
           <Button type="submit" variant="primary" loading={save.isPending}>Save goals</Button>
@@ -175,4 +191,12 @@ function GoalsForm({ goals }: { goals: Goals }) {
       </form>
     </div>
   );
+}
+
+/** A stored goals copy is usable only if it still has the form's shape. */
+function isGoalsForm(v: unknown): v is GoalsInput {
+  if (!v || typeof v !== "object") return false;
+  const f = v as Record<string, unknown>;
+  return typeof f.track === "string" && (f.focus_areas === undefined || Array.isArray(f.focus_areas))
+    && (f.formats === undefined || Array.isArray(f.formats));
 }

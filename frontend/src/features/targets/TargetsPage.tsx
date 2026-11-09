@@ -11,6 +11,8 @@ import { Card } from "@/components/Card";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
 import { CareerSelect } from "@/features/careers/CareerSelect";
 import { DEFAULT_TRACK } from "@/features/careers/practiceTrack";
+import { FormDraftOffer, FormDraftStatus } from "@/components/FormDraftNotice";
+import { formDraftKey, isTextForm, useFormDraft } from "@/hooks/useFormDraft";
 import { allowLeaveAfterSave, useLeaveWarning } from "@/hooks/useLeaveWarning";
 
 const MAX_DESCRIPTION = 20_000;
@@ -80,13 +82,20 @@ function NewTarget({ onCancel }: { onCancel: () => void }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const create = useTargetMutation(api.createTarget);
-  const [form, setForm] = useState({
+  const [empty] = useState(() => ({
     title: "", employer: "", description: "", track: user?.career_track || DEFAULT_TRACK, interview_date: "", notes: "",
-  });
+  }));
+  const [form, setForm] = useState(empty);
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
   // Anything typed (the job chosen by default isn't typing) is lost by leaving: ask first.
   const typed = [form.title, form.employer, form.description, form.interview_date, form.notes].some((v) => v.trim());
   useLeaveWarning(typed, "the new target job");
+  // Kept in this browser while unfinished; offered back after a reload (Volume 9, prompt 2).
+  const draft = useFormDraft<typeof empty>({
+    storageKey: formDraftKey(user?.id ?? "anon", "target", "new"), form, baseline: empty, base: null,
+    isForm: (v): v is typeof empty => isTextForm(v, ["title", "employer", "description", "track", "interview_date", "notes"]),
+    enabled: Boolean(user),
+  });
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -95,6 +104,7 @@ function NewTarget({ onCancel }: { onCancel: () => void }) {
         title: form.title, employer: form.employer || null, description: form.description, track: form.track,
         interview_date: form.interview_date || null, notes: form.notes || null,
       });
+      draft.accepted(form, form); // made: its copy goes
       allowLeaveAfterSave(); // the one move this save allows: to the target it made
       navigate(`/targets/${t.id}`);
     } catch {
@@ -104,6 +114,10 @@ function NewTarget({ onCancel }: { onCancel: () => void }) {
 
   return (
     <Card className="stack new-target">
+      {draft.offer && (
+        <FormDraftOffer what="a new target job" at={draft.offer.at} onDiscard={draft.discard}
+          onRestore={() => { const d = draft.restore(); if (d) setForm(d.form); }} />
+      )}
       <form className="stack" onSubmit={onSubmit} aria-labelledby="new-target-title">
         <h2 className="section-title" id="new-target-title">New target role</h2>
         <div className="goals-page__row">
@@ -126,6 +140,7 @@ function NewTarget({ onCancel }: { onCancel: () => void }) {
             <input className="input" maxLength={2000} value={form.notes} onChange={(e) => set("notes")(e.target.value)} /></label>
         </div>
         <InlineError error={create.error} />
+        <FormDraftStatus changed={typed} kept={draft.kept} competing={draft.competing} copyText={() => [form.title, form.employer, form.description, form.notes].filter(Boolean).join("\n\n")} />
         <div className="row">
           <Button type="submit" variant="primary" loading={create.isPending} disabled={!form.title.trim() || !form.description.trim()}>Find requirements</Button>
           <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>

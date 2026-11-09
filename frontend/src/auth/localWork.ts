@@ -29,6 +29,8 @@ export function localWorkKeys(userId: string): string[] {
     `whiteboard-draft:${userId}:`,
     `reflection-draft:${userId}:`,
     `drill-draft:${userId}:`,
+    `form-draft:${userId}:`,
+    `codecoach.appnotes.v1.${userId}.`,
     "codecoach.round.",
     "codecoach.interview-message.",
     "codecoach.retry.",
