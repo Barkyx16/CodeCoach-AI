@@ -12,6 +12,7 @@ import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { formatDateTime } from "@/lib/format";
+import { dropCopy, useCopySince, writeCopy } from "@/lib/deviceCopies";
 
 type Kind = "strength" | "gap";
 interface Mark { kind: Kind; reason: string }
@@ -37,6 +38,7 @@ export function CompareSamplesPage() {
 function Compare({ lesson }: { lesson: ComparisonLesson }) {
   const { user } = useAuth();
   const draftKey = `compare-draft:${user?.id ?? "anon"}:${lesson.id}:v${lesson.version}`;
+  const since = useCopySince(draftKey); // a copy removed from "Your data" after this opened isn't written back
   const [restored] = useState<Draft | null>(() => {
     try { return JSON.parse(localStorage.getItem(draftKey) ?? "null") as Draft | null; } catch { return null; }
   });
@@ -56,11 +58,10 @@ function Compare({ lesson }: { lesson: ComparisonLesson }) {
   useLeaveWarning(marked.length > 0 && !result);
 
   useEffect(() => {
-    try {
-      if (marked.length || choice) localStorage.setItem(draftKey, JSON.stringify({ marks, choice }));
-      else localStorage.removeItem(draftKey);
-    } catch { /* blocked: they last as long as the page */ }
-  }, [marks, choice, draftKey, marked.length]);
+    // Blocked, full or removed on purpose: they last as long as the page.
+    if (marked.length || choice) writeCopy(draftKey, JSON.stringify({ marks, choice }), since);
+    else dropCopy(draftKey);
+  }, [marks, choice, draftKey, marked.length, since]);
   useEffect(() => {
     if (!focusAfter.current) return;
     document.getElementById(focusAfter.current)?.focus();

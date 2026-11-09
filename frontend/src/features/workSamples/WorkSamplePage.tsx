@@ -15,6 +15,7 @@ import { VersionConflict } from "@/components/VersionConflict";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { recoveredSave, savedVersion } from "@/lib/conflict";
 import { formatDateTime, timeAgo } from "@/lib/format";
+import { useCopySince, writeCopy } from "@/lib/deviceCopies";
 import { useRequestKey } from "@/lib/requestKey";
 
 import { Debrief } from "./Debrief";
@@ -37,6 +38,7 @@ function Writer({ brief, initial }: { brief: WorkSampleBrief; initial: WorkSampl
   const { user } = useAuth();
   const qc = useQueryClient();
   const localKey = `work-sample-draft:${user?.id ?? "anon"}:${brief.id}`;
+  const since = useCopySince(localKey); // a copy removed from "Your data" after this opened isn't written back
   const sectionDefs = brief.sections.length ? brief.sections : [{ id: "message", label: "Your message", hint: "" }];
   const [sections, setSections] = useState<Sections>(initial.sections);
   const [saved, setSaved] = useState({ fp: fp(initial.sections), revision: initial.revision });
@@ -65,11 +67,10 @@ function Writer({ brief, initial }: { brief: WorkSampleBrief; initial: WorkSampl
 
   useEffect(() => {
     if (dirty && !recovery) {
-      let ok = true;
-      try { localStorage.setItem(localKey, JSON.stringify({ sections, base: saved.revision })); } catch { ok = false; }
+      const ok = writeCopy(localKey, JSON.stringify({ sections, base: saved.revision }), since);
       queueMicrotask(() => setKeptHere(ok));
     }
-  }, [sections, dirty, recovery, localKey, saved.revision]);
+  }, [sections, dirty, recovery, localKey, saved.revision, since]);
   useEffect(() => {
     if (!focusAfter.current) return;
     document.getElementById(focusAfter.current)?.focus();

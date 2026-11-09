@@ -17,6 +17,7 @@ import { VersionConflict } from "@/components/VersionConflict";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { recoveredSave, savedVersion } from "@/lib/conflict";
 import { formatArgs, formatDateTime, formatValue, timeAgo } from "@/lib/format";
+import { useCopySince, writeCopy } from "@/lib/deviceCopies";
 import { useRequestKey } from "@/lib/requestKey";
 
 import { CodeView, ComparisonView, ReferenceView } from "./Comparison";
@@ -65,6 +66,7 @@ function Review({ exercise, initial }: { exercise: ReviewExercise; initial: Revi
   const { user } = useAuth();
   const qc = useQueryClient();
   const localKey = `code-review-draft:${user?.id ?? "anon"}:${exercise.slug}`;
+  const since = useCopySince(localKey); // a copy removed from "Your data" after this opened isn't written back
   const codeLines = exercise.code.split("\n");
   const [work, setWork] = useState<Work>(() => fromDraft(initial));
   const [saved, setSaved] = useState({ fp: fingerprint(fromDraft(initial)), revision: initial.revision });
@@ -97,11 +99,10 @@ function Review({ exercise, initial }: { exercise: ReviewExercise; initial: Revi
   // Unsaved work is also kept on this device, so a closed tab or a crash loses nothing.
   useEffect(() => {
     if (dirty && !recovery) {
-      let ok = true;
-      try { localStorage.setItem(localKey, JSON.stringify({ ...work, base: saved.revision })); } catch { ok = false; }
+      const ok = writeCopy(localKey, JSON.stringify({ ...work, base: saved.revision }), since);
       queueMicrotask(() => setKeptHere(ok));
     }
-  }, [work, dirty, recovery, localKey, saved.revision]);
+  }, [work, dirty, recovery, localKey, saved.revision, since]);
   useEffect(() => {
     if (!focusAfter.current) return;
     document.getElementById(focusAfter.current)?.focus();

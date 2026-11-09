@@ -17,6 +17,7 @@ import { VersionConflict } from "@/components/VersionConflict";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { recoveredSave, savedVersion } from "@/lib/conflict";
 import { formatDateTime, timeAgo } from "@/lib/format";
+import { useCopySince, writeCopy } from "@/lib/deviceCopies";
 import { useRequestKey } from "@/lib/requestKey";
 
 import { Canvas } from "./Canvas";
@@ -46,6 +47,7 @@ function Editor({ prompt, initial }: { prompt: WhiteboardPrompt; initial: Whiteb
   const qc = useQueryClient();
   const localKey = `whiteboard-draft:${user?.id ?? "anon"}:${prompt.id}`;
   const [start] = useState(() => normalize(initial.diagram));
+  const since = useCopySince(localKey); // a copy removed from "Your data" after this opened isn't written back
   const [h, dispatch] = useReducer(history, { past: [], present: start, future: [] });
   const [explanation, setExplanation] = useState(initial.explanation);
   const [saved, setSaved] = useState({ diagram: start, explanation: initial.explanation, revision: initial.revision });
@@ -82,11 +84,10 @@ function Editor({ prompt, initial }: { prompt: WhiteboardPrompt; initial: Whiteb
   // Unsaved work is also kept on this device, so a closed tab or a crash loses nothing.
   useEffect(() => {
     if (dirty && !recovery) {
-      let ok = true;
-      try { localStorage.setItem(localKey, JSON.stringify({ diagram: d, explanation, base: saved.revision })); } catch { ok = false; }
-      queueMicrotask(() => setKeptHere(ok)); // blocked or full: the page says the copy wasn't kept
+      const ok = writeCopy(localKey, JSON.stringify({ diagram: d, explanation, base: saved.revision }), since);
+      queueMicrotask(() => setKeptHere(ok)); // blocked, full or removed on purpose: the page says the copy wasn't kept
     }
-  }, [d, explanation, dirty, recovery, localKey, saved.revision]);
+  }, [d, explanation, dirty, recovery, localKey, saved.revision, since]);
   const words = (explanation.match(/\w+/g) ?? []).length;
   const base = fit(d);
   const view = { x: base.x, y: base.y, w: base.w / zoom, h: base.h / zoom };

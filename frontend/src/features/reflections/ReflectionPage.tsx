@@ -20,6 +20,7 @@ import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { recoveredSave, savedVersion } from "@/lib/conflict";
 import { useRequestKey } from "@/lib/requestKey";
 import { formatDateTime, timeAgo } from "@/lib/format";
+import { useCopySince, writeCopy } from "@/lib/deviceCopies";
 
 import { ListField } from "./ListField";
 import { OUTCOME_LABEL, STAGE_FOR, STAGE_LABEL } from "./labels";
@@ -48,6 +49,7 @@ function Editor({ initial }: { initial: Reflection }) {
   const { pathname } = useLocation();
   const qc = useQueryClient();
   const key = `reflection-draft:${user?.id ?? "anon"}:${initial.event_id}`;
+  const since = useCopySince(key); // a copy removed from "Your data" after this opened isn't written back
   const [r, setR] = useState(initial);
   const [draft, setDraft] = useState<Draft>(() => fromReflection(initial));
   // A copy kept on this device, and the saved version it was written against (null: an older copy
@@ -81,14 +83,10 @@ function Editor({ initial }: { initial: Reflection }) {
   // Unsaved words are kept on this device until saved, so a failed save or a closed tab loses nothing.
   useEffect(() => {
     if (!dirty || recovery) return;
-    let ok = true;
-    try {
-      localStorage.setItem(key, JSON.stringify({ draft, base: r.revision }));
-    } catch {
-      ok = false; // private mode or full: the text exists only on this page now, and the page says so
-    }
+    // Private mode, full or removed on purpose: the text exists only on this page now, and the page says so.
+    const ok = writeCopy(key, JSON.stringify({ draft, base: r.revision }), since);
     queueMicrotask(() => setKeptHere(ok)); // storage answered: report it (not a render-time update)
-  }, [draft, dirty, recovery, key, r.revision]);
+  }, [draft, dirty, recovery, key, r.revision, since]);
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => {
     setStatus(""); // "Saved" was about the text before this edit

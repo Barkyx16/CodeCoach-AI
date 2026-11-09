@@ -200,6 +200,11 @@ export const HELP_TOPICS: HelpTopic[] = [
         links: [{ to: "/settings", label: "Settings" }],
       },
       {
+        q: "What's kept on this device, and can I remove it without losing saved work?",
+        a: "Your data (Settings, Privacy & data) lists what's waiting in this browser for your account: answers and code not sent yet, unsaved changes to saved work, and short records of actions waiting for a reply. Each says whether it exists only here or your account keeps the last saved version. Choose the ones to remove and review them first; only those go, from this browser only, and your account, your sign-in and everything else stay. A page open in another tab won't put a removed copy back. The same page counts what's saved to your account without opening any of it, and says where your words go when they're processed, including what isn't known about outside services.",
+        links: [{ to: "/settings/data", label: "Your data" }],
+      },
+      {
         q: "What's a guest session?",
         a: "A temporary account with no email or password. It works like any account, but guest accounts are deleted after a period without activity. Create an account from Settings to keep everything you've done.",
       },

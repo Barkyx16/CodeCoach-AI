@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useCopySince, writeCopy } from "@/lib/deviceCopies";
+
 /**
  * A browser copy of an unfinished form (Volume 9, prompt 2; NAVIGATION.md "Unfinished forms").
  *
@@ -88,6 +90,8 @@ export function useFormDraft<T>({ storageKey, form, baseline, base, isForm, enab
   const [kept, setKept] = useState(true);
   const [competing, setCompeting] = useState(false);
   const changed = JSON.stringify(form) !== JSON.stringify(baseline);
+  // A copy removed from "Your data" after this form opened it isn't written back (lib/deviceCopies).
+  const since = useCopySince(storageKey);
 
   useEffect(() => {
     if (!enabled || offer) return; // an undecided copy is never written over
@@ -108,16 +112,15 @@ export function useFormDraft<T>({ storageKey, form, baseline, base, isForm, enab
         setKept(false);
         return;
       }
-      try {
-        window.localStorage.setItem(storageKey, text);
+      if (writeCopy(storageKey, text, since)) {
         lastWrite.current = at;
         setKept(true);
-      } catch {
-        setKept(false);
+      } else {
+        setKept(false); // private mode, full, or removed on purpose: this text is on this page only
       }
     }, WRITE_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [enabled, offer, storageKey, form, base, changed, isForm]);
+  }, [enabled, offer, storageKey, form, base, changed, isForm, since]);
 
   /** The copy, to put in the form; the caller compares `base` with what the server has now. */
   const restore = useCallback((): FormDraft<T> | null => {

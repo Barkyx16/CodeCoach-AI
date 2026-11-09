@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type DragEvent, type FormEvent } from "rea
 
 import type { PlannedTask, ScenarioNode, ScenarioPlan, ScenarioStep, ScenarioTask } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
+import { dropCopy, useCopySince, writeCopy } from "@/lib/deviceCopies";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 
@@ -33,6 +34,7 @@ export function QueueStep({ attemptId, node, busy, onSend }: {
 }) {
   const { user } = useAuth();
   const key = `scenario-queue-draft:${user?.id ?? "anon"}:${attemptId}:${node.id}`;
+  const since = useCopySince(key); // a copy removed from "Your data" after this opened isn't written back
   const tasks = node.tasks ?? [];
   const [restored] = useState<Draft | null>(() => {
     try {
@@ -52,8 +54,8 @@ export function QueueStep({ attemptId, node, busy, onSend }: {
 
   useEffect(() => {
     if (!touched.current) return;
-    try { localStorage.setItem(key, JSON.stringify({ order, text })); } catch { /* blocked: it lasts as long as the page */ }
-  }, [key, order, text]);
+    writeCopy(key, JSON.stringify({ order, text }), since); // blocked or removed on purpose: it lasts as long as the page
+  }, [key, order, text, since]);
   useEffect(() => {
     if (!focusAfter.current) return;
     document.getElementById(focusAfter.current)?.focus();
@@ -85,7 +87,7 @@ export function QueueStep({ attemptId, node, busy, onSend }: {
     e.preventDefault();
     if (words(text) < MIN_WORDS) { setStatus("Say what you'd do first and why, in a sentence or two."); return; }
     if (await onSend({ order, text })) {
-      try { localStorage.removeItem(key); } catch { /* nothing to clear */ }
+      dropCopy(key);
     }
   }
 

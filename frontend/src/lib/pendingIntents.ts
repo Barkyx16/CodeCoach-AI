@@ -114,6 +114,22 @@ export function forgetIntent(userId: string | null | undefined, kind: IntentKind
   write(userId, store);
 }
 
+/** This account's unresolved actions on this device, newest first ("Your data" lists them). */
+export function listIntents(userId: string): PendingIntent[] {
+  return Object.values(read(userId)).sort((a, b) => b.sentAt - a.sentAt);
+}
+
+/**
+ * Remove chosen records on purpose ("Your data"). The actions themselves aren't touched: one still
+ * in flight finishes as it would, but after a reload the page can no longer ask what it made.
+ * False when this browser refused the change.
+ */
+export function forgetIntents(userId: string, chosen: { kind: IntentKind; target: string }[]): boolean {
+  const store = read(userId);
+  for (const c of chosen) delete store[slot(c.kind, c.target)];
+  return write(userId, store);
+}
+
 /** A deliberate sign-out: this account's records go, with their metadata. */
 export function forgetAllIntents(userId: string | null | undefined): void {
   if (!userId) return;

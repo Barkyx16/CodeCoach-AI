@@ -83,11 +83,15 @@ Nothing is ever graded, judged or scored on the device, and a draft is never sho
 | Unfinished goals, new target job, job posting and application details (Volume 9, prompt 2) | localStorage `form-draft:<account>:…`, at most 60,000 characters, 14 days | Saved and cleared, discarded, or **deleted when you sign out**. A session that ends by itself keeps them for that account |
 | Interview round, follow-up, chat and retry drafts | localStorage, keyed by interview (only its owner can open it) | Sent and cleared, or deleted when anyone signs out on this device |
 | Which account last used the device | localStorage `codecoach.device-user.v1` | On sign-out |
+| Actions waiting for a reply (kind, target, request key, a fingerprint; no content) | localStorage `codecoach.pending.v1.<account>` | Resolved, after 24 hours, chosen on Your data, or on sign-out |
+| Which copies were removed on purpose from Your data (key, number, time; no content) | localStorage `codecoach.removed.v2` | Over a day old when the next removal is recorded; the list on sign-out ([YOUR_DATA.md](YOUR_DATA.md)) |
 | Display, editor and voice preferences | localStorage | Kept: device settings, not account data |
 
 Account drafts are keyed by account, so another account signing in on the same device never
 sees them. Interview drafts are keyed by an interview only its owner can open. Signing out
-deletes them all from the device; public saved pages stay (they're not personal).
+deletes them all from the device; public saved pages stay (they're not personal). Any of them can
+also be removed one by one from **Your data** (`/settings/data`), and a page still open with a
+removed copy doesn't write it back ([YOUR_DATA.md](YOUR_DATA.md)).
 
 Until 2026-11-08, drill, whiteboard, reflection, interview-chat and retry drafts weren't on that
 list: they outlived a sign-out. A test now scans the source for draft-like keys and fails if one

@@ -16,6 +16,7 @@ import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { savedVersion } from "@/lib/conflict";
 import { isGone } from "@/lib/errors";
 import { timeAgo } from "@/lib/format";
+import { dropCopy, useCopySince, writeCopy } from "@/lib/deviceCopies";
 import { useRequestKey } from "@/lib/requestKey";
 
 import { Figures } from "./Figures";
@@ -48,6 +49,7 @@ function Workspace({ saved }: { saved: OfferComparison }) {
   const { user } = useAuth();
   const apps = useApplications();
   const deviceKey = `offer-compare-draft:${user?.id ?? "anon"}:${saved.id}`;
+  const since = useCopySince(deviceKey); // a copy removed from "Your data" after this opened isn't written back
   const [doc, setDoc] = useState<ComparisonDoc>(saved.doc);
   const [base, setBase] = useState(saved.revision);
   const [onDevice] = useState<{ doc: ComparisonDoc; base: number } | null>(() => {
@@ -71,11 +73,10 @@ function Workspace({ saved }: { saved: OfferComparison }) {
   useLeaveWarning(dirty);
 
   useEffect(() => {
-    try {
-      if (dirty) localStorage.setItem(deviceKey, JSON.stringify({ doc, base }));
-      else localStorage.removeItem(deviceKey);
-    } catch { /* blocked: the changes last as long as the page */ }
-  }, [doc, base, dirty, deviceKey]);
+    // Blocked, full or removed on purpose: the changes last as long as the page.
+    if (dirty) writeCopy(deviceKey, JSON.stringify({ doc, base }), since);
+    else dropCopy(deviceKey);
+  }, [doc, base, dirty, deviceKey, since]);
   useEffect(() => {
     if (!dirty) return;
     const t = window.setTimeout(() => {

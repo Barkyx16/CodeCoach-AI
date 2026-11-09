@@ -14,6 +14,7 @@ import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { PrivateUnavailable } from "@/components/Unavailable";
 import { isGone } from "@/lib/errors";
 import { formatDateTime } from "@/lib/format";
+import { dropCopy, useCopySince, writeCopy } from "@/lib/deviceCopies";
 
 import { browserTimeZone, describeWhen } from "./dates";
 import { ScheduleLink } from "@/features/schedule/ScheduleLink";
@@ -272,6 +273,7 @@ function readNotesDraft(key: string): { notes: string; base: number } | null {
 function DetailsCard({ a, onDone }: { a: Application; onDone: (a: Application) => void }) {
   const { user } = useAuth();
   const draftKey = notesDraftKey(user?.id ?? "anon", a.id);
+  const since = useCopySince(draftKey); // a copy removed from "Your data" after this opened isn't written back
   const [form, setForm] = useState({ role_title: a.role_title, employer: a.employer, link: a.link ?? "", applied_on: a.applied_on ?? "", next_action: a.next_action, next_action_due: a.next_action_due ?? "", notes: a.notes });
   // The form as it is now, for code that runs after a save's reply: `form` there is what it was
   // when Save was pressed, so "typed while saving" has to be read from here.
@@ -315,16 +317,15 @@ function DetailsCard({ a, onDone }: { a: Application; onDone: (a: Application) =
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
   function setNotes(v: string) {
     set("notes", v);
-    try {
-      if (v !== notesSaved.text) window.localStorage.setItem(draftKey, JSON.stringify({ notes: v, base: notesSaved.revision }));
-      else window.localStorage.removeItem(draftKey);
+    // Private mode, full or removed on purpose: the text is on this page only.
+    if (v !== notesSaved.text) setKept(writeCopy(draftKey, JSON.stringify({ notes: v, base: notesSaved.revision }), since));
+    else {
+      dropCopy(draftKey);
       setKept(true);
-    } catch {
-      setKept(v === notesSaved.text); // private mode or full: the text is on this page only
     }
   }
   function clearDraft() {
-    try { window.localStorage.removeItem(draftKey); } catch { /* nothing kept */ }
+    dropCopy(draftKey);
   }
 
   async function submit(e?: FormEvent, over?: number) {

@@ -13947,6 +13947,42 @@
         }
       }
     },
+    "/api/v1/me/data-summary": {
+      "get": {
+        "tags": [
+          "privacy"
+        ],
+        "summary": "What's saved to your account, as counts",
+        "operationId": "summary_api_v1_me_data_summary_get",
+        "responses": {
+          "200": {
+            "description": "One count per kind of record you have; no content, titles or amounts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataSummaryOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/me/schedule": {
       "get": {
         "tags": [
@@ -23569,6 +23605,69 @@
           "text"
         ],
         "title": "CriterionLevel"
+      },
+      "DataCategoryOut": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "group": {
+            "type": "string",
+            "enum": [
+              "work",
+              "sharing",
+              "account"
+            ],
+            "title": "Group",
+            "description": "Your work; sharing and reports; your account and sign-in"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Count",
+            "description": "How many rows of yours; nothing's content is read to count them"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "group",
+          "label",
+          "count"
+        ],
+        "title": "DataCategoryOut"
+      },
+      "DataSummaryOut": {
+        "properties": {
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/DataCategoryOut"
+            },
+            "type": "array",
+            "title": "Categories"
+          }
+        },
+        "type": "object",
+        "required": [
+          "categories"
+        ],
+        "title": "DataSummaryOut"
       },
       "DayCount": {
         "properties": {
@@ -42097,6 +42196,10 @@
     {
       "name": "offer-comparisons",
       "description": "A private workspace comparing offers you enter by hand: pay with its basis and currency, guaranteed and conditional amounts kept apart, your own factors and optional weights, every figure with its formula. No tax, equity or market estimates; nothing changes an application."
+    },
+    {
+      "name": "privacy",
+      "description": "What's saved to your account, as counts per kind of record: no content is read to count them. Copies on your device are listed by the browser; export and deletion are under auth and progress."
     },
     {
       "name": "backup",

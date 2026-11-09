@@ -22,6 +22,7 @@ import { CareerSelect } from "@/features/careers/CareerSelect";
 import { allowLeaveAfterSave, useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { recoveredSave, savedVersion } from "@/lib/conflict";
 import { formatDateTime, timeAgo } from "@/lib/format";
+import { dropCopy, useCopySince, writeCopy } from "@/lib/deviceCopies";
 
 import { COMPETENCIES, COMPETENCY_LABEL, CONTEXT_LABEL, SECTION_LABEL, SECTION_PROMPT, SECTIONS } from "./labels";
 import { RevisionsPanel } from "./RevisionsPanel";
@@ -61,6 +62,7 @@ function Editor({ story }: { story: Story | null }) {
   const targets = useTargets();
   const formId = useId();
   const key = storyDraftKey(user?.id ?? "anon", story?.id ?? "new");
+  const since = useCopySince(key); // a copy removed from "Your data" after this opened isn't written back
   const [saved, setSaved] = useState<Story | null>(story);
   const base = saved ? fromStory(saved) : emptyForm(user?.career_track ?? "");
   const [form, setFormState] = useState<StoryForm>(base);
@@ -91,12 +93,10 @@ function Editor({ story }: { story: Story | null }) {
   function keep(next: StoryForm) {
     if (recovery) return; // don't overwrite a copy the learner hasn't decided about yet
     const changed = !sameForm(next, base);
-    try {
-      if (changed) window.localStorage.setItem(key, JSON.stringify({ form: next, base: saved?.revision ?? null, at: new Date().toISOString() }));
-      else window.localStorage.removeItem(key);
+    if (changed) setKept(writeCopy(key, JSON.stringify({ form: next, base: saved?.revision ?? null, at: new Date().toISOString() }), since));
+    else {
+      dropCopy(key);
       setKept(true);
-    } catch {
-      setKept(!changed);
     }
   }
   const edit = (next: StoryForm) => {

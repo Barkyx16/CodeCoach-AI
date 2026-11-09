@@ -3,10 +3,12 @@
  * drafts and note recovery copies. Signing out deletes the signed-out account's copies (after a
  * warning when there are any), so the next person on a shared device can't read them. Device
  * preferences (display, editor, voice) and public "Saved for offline" copies are kept: they
- * aren't account data. See docs/OFFLINE.md.
+ * aren't account data. See docs/OFFLINE.md, and docs/YOUR_DATA.md for "Your data", which lists
+ * these copies and removes the ones the learner picks.
  */
 
 import { recentKey } from "@/app/commands";
+import { forgetRemovals, readCopy } from "@/lib/deviceCopies";
 
 function keys(): string[] {
   try {
@@ -16,47 +18,47 @@ function keys(): string[] {
   }
 }
 
+/** Where each kind of copy's key starts. Interview-keyed kinds don't name the account: only the
+ * interview's owner can open them. What each kind is, for "Your data", is in
+ * features/privacy/copyKinds.ts (loaded with that page, not with every page). Every unsent-text
+ * draft in the app must be listed here (a test lists the prefixes the features use). */
+export const COPY_PREFIXES: { id: string; prefix: (userId: string) => string; interview?: boolean }[] = [
+  { id: "answer", prefix: (u) => `codecoach.answer.${u}.` },
+  { id: "code", prefix: (u) => `codecoach.draft.v1.${u}.` },
+  { id: "note", prefix: (u) => `note-draft:${u}:` },
+  { id: "note-capture", prefix: (u) => `note-capture:${u}:` },
+  { id: "learn", prefix: (u) => `learn-draft:${u}:` },
+  { id: "story", prefix: (u) => `story-draft:${u}:` },
+  { id: "whiteboard", prefix: (u) => `whiteboard-draft:${u}:` },
+  { id: "reflection", prefix: (u) => `reflection-draft:${u}:` },
+  { id: "drill", prefix: (u) => `drill-draft:${u}:` },
+  { id: "form", prefix: (u) => `form-draft:${u}:` },
+  { id: "debug-notes", prefix: (u) => `debug-notes:${u}:` },
+  { id: "code-review", prefix: (u) => `code-review-draft:${u}:` },
+  { id: "test-design", prefix: (u) => `test-design-draft:${u}:` },
+  { id: "work-sample", prefix: (u) => `work-sample-draft:${u}:` },
+  { id: "compare", prefix: (u) => `compare-draft:${u}:` },
+  { id: "queue", prefix: (u) => `scenario-queue-draft:${u}:` },
+  { id: "offer-rehearsal", prefix: (u) => `offer-rehearsal-draft:${u}:` },
+  { id: "offer-compare", prefix: (u) => `offer-compare-draft:${u}:` },
+  { id: "application-notes", prefix: (u) => `codecoach.appnotes.v1.${u}.` },
+  { id: "round", prefix: () => "codecoach.round.", interview: true },
+  { id: "interview-message", prefix: () => "codecoach.interview-message.", interview: true },
+  { id: "retry", prefix: () => "codecoach.retry.", interview: true },
+];
+
+
 /** Keys that hold this account's private work. Interview round, chat and retry drafts are keyed
  * by the interview (only its owner can open it), not the account; they're cleared with whoever
- * signs out on this device. Every unsent-text draft in the app must be listed here (a test lists
- * the prefixes the features use). */
+ * signs out on this device. */
 export function localWorkKeys(userId: string): string[] {
-  const prefixes = [
-    `codecoach.answer.${userId}.`,
-    `codecoach.draft.v1.${userId}.`,
-    `note-draft:${userId}:`,
-    `note-capture:${userId}:`,
-    `learn-draft:${userId}:`,
-    `story-draft:${userId}:`,
-    `whiteboard-draft:${userId}:`,
-    `reflection-draft:${userId}:`,
-    `drill-draft:${userId}:`,
-    `form-draft:${userId}:`,
-    `debug-notes:${userId}:`,
-    `code-review-draft:${userId}:`,
-    `test-design-draft:${userId}:`,
-    `work-sample-draft:${userId}:`,
-    `compare-draft:${userId}:`,
-    `scenario-queue-draft:${userId}:`,
-    `offer-rehearsal-draft:${userId}:`,
-    `offer-compare-draft:${userId}:`,
-    `codecoach.appnotes.v1.${userId}.`,
-    "codecoach.round.",
-    "codecoach.interview-message.",
-    "codecoach.retry.",
-  ];
+  const prefixes = COPY_PREFIXES.map((k) => k.prefix(userId));
   return keys().filter((k) => prefixes.some((p) => k.startsWith(p)));
 }
 
 /** How many unsent items this account has on this device (empty values don't count). */
 export function countLocalWork(userId: string): number {
-  return localWorkKeys(userId).filter((k) => {
-    try {
-      return Boolean(window.localStorage.getItem(k)?.trim());
-    } catch {
-      return false;
-    }
-  }).length;
+  return localWorkKeys(userId).filter((k) => Boolean(readCopy(k)?.trim())).length;
 }
 
 export function clearLocalWork(userId: string): void {
@@ -69,6 +71,7 @@ export function clearLocalWork(userId: string): void {
       /* storage blocked: nothing was kept */
     }
   }
+  forgetRemovals(); // which copies were removed on purpose: ids and times, for this account's pages
   clearListMemory();
 }
 

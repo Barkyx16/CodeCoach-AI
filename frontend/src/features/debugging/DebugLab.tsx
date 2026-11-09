@@ -6,6 +6,7 @@ import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/Button";
 import { ErrorState } from "@/components/States";
 import { formatArgs, formatValue } from "@/lib/format";
+import { dropCopy, useCopySince, writeCopy } from "@/lib/deviceCopies";
 
 import { changedHunks, lineDiff } from "./lineDiff";
 import { debugNotesKey } from "./notesKey";
@@ -79,16 +80,16 @@ function readNotes(key: string | null): Notes {
 function InvestigationNotes({ slug }: { slug: string }) {
   const { user, isAuthenticated } = useAuth();
   const key = isAuthenticated && user ? debugNotesKey(user.id, slug) : null;
+  const since = useCopySince(key ?? ""); // a copy removed from "Your data" after this opened isn't written back
   const [notes, setNotes] = useState<Notes>(() => readNotes(key));
   const ids = useId();
   const update = (field: keyof Notes, value: string) => {
     const next = { ...notes, [field]: value };
     setNotes(next);
     if (!key) return;
-    try {
-      if (Object.values(next).some((v) => v?.trim())) window.localStorage.setItem(key, JSON.stringify(next));
-      else window.localStorage.removeItem(key);
-    } catch { /* storage blocked: they last as long as the page */ }
+    // Blocked or removed on purpose: they last as long as the page.
+    if (Object.values(next).some((v) => v?.trim())) writeCopy(key, JSON.stringify(next), since);
+    else dropCopy(key);
   };
   return (
     <details className="debug-notes">

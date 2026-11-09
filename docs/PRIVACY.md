@@ -30,6 +30,15 @@ is in [ROW_LEVEL_SECURITY.md](ROW_LEVEL_SECURITY.md) and [SECURITY.md](SECURITY.
 | Spoken answers (dictation) | **no audio reaches CodeCoach.** The browser transcribes: Chrome and Edge send the speech to the browser maker's speech service, under the browser's terms; Safari may do it on the device. Only the text you send is stored, as an answer ([VOICE.md](VOICE.md)) | as the answer | as the answer |
 | Private pages and API responses | never cached: `Cache-Control: no-store` on every private response; only the public catalogue is cacheable (`tests/test_http_cache.py`) | — | — |
 
+## Seeing it, and clearing this device
+
+**Settings → Privacy & data → See your data** (`/settings/data`, [YOUR_DATA.md](YOUR_DATA.md)) shows
+this map for one account: counts of what's saved to the account (`GET /api/v1/me/data-summary`, one
+`COUNT(*)` per table, no content read), this account's copies in this browser with whether each
+exists only here or is unsaved changes to something saved, and where words go when they're
+processed, saying what isn't known about outside services. Chosen device copies can be removed
+there; nothing on the server changes, and export and deletion stay in Settings.
+
 ## Deletion, step by step
 
 `DELETE /api/v1/auth/me` (Settings → Danger zone: your password plus typing DELETE):
@@ -77,6 +86,8 @@ log line already shipped elsewhere.
 | Deletion removes every row of yours and nothing of anyone else's | `tests/test_account.py::test_delete_removes_every_row_and_nothing_else` |
 | A deleted owner's share links stop working; feedback you gave stays anonymised | `tests/test_shares.py::test_export_and_account_deletion` |
 | Exports contain only your records, and no keys, tokens or credentials | `tests/test_export_v2.py` (other accounts' ids absent; `password`, `refresh_token`, `access_token`, `token_version`, `client_request_id` absent) |
+| The data summary counts only your rows, reads no content, and covers every table holding a learner's rows | `tests/test_data_summary.py` |
+| Removing a device copy removes only that key, and a page still open doesn't write it back | `src/lib/deviceCopies.test.tsx`, `src/test/integration/yourData.test.tsx`, `e2e/your-data.spec.ts` |
 | Late email and judge work recreate nothing; expired sign-in material is purged | `tests/test_privacy_lifecycle.py` |
 | Sign-out clears every draft key the code uses | `frontend/src/test/integration/offline.test.tsx` (scans the source) |
 | Private responses aren't cached | `tests/test_http_cache.py` |

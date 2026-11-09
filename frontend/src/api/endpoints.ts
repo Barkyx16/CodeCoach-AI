@@ -159,6 +159,7 @@ import type {
   OfferCard,
   OfferComparison,
   OfferComparisonSummary,
+  DataSummary,
   OfferCaseSummary,
   OfferPhase,
   OfferRehearsal,
@@ -685,6 +686,8 @@ export const api = {
 
   // private offer comparisons (terms entered by hand; nothing is sent)
   offerComparisons: () => apiRequest<OfferComparisonSummary[]>("/api/v1/me/offer-comparisons"),
+  // What's saved to the account, as counts (docs/YOUR_DATA.md)
+  dataSummary: () => apiRequest<DataSummary>("/api/v1/me/data-summary"),
   createOfferComparison: (body: { title?: string; example?: boolean }) =>
     apiRequest<OfferComparison>("/api/v1/me/offer-comparisons", { method: "POST", body }),
   offerComparison: (id: string) => apiRequest<OfferComparison>(`/api/v1/me/offer-comparisons/${encodeURIComponent(id)}`),

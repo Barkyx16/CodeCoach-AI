@@ -13,6 +13,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { formatArgs, formatDateTime, formatValue } from "@/lib/format";
+import { useCopySince, writeCopy } from "@/lib/deviceCopies";
 import { useRequestKey } from "@/lib/requestKey";
 
 import { type CaseRow, draftKey, LABELS, newRow, parseRow, rowFrom, signatureText } from "./cases";
@@ -39,6 +40,7 @@ function Designer({ ex }: { ex: TestDesignExercise }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const key = draftKey(user?.id ?? "anon", ex.slug);
+  const since = useCopySince(key); // a copy removed from "Your data" after this opened isn't written back
   const [restored] = useState(() => readDraft(key));
   const [rows, setRows] = useState<CaseRow[]>(() => restored ?? [newRow(ex)]);
   const [showErrors, setShowErrors] = useState(false);
@@ -56,8 +58,8 @@ function Designer({ ex }: { ex: TestDesignExercise }) {
 
   // Cases not yet run are kept on this device, so a reload or a closed tab loses nothing.
   useEffect(() => {
-    try { localStorage.setItem(key, JSON.stringify(rows)); } catch { /* blocked: they last as long as the page */ }
-  }, [rows, key]);
+    writeCopy(key, JSON.stringify(rows), since); // blocked or removed on purpose: they last as long as the page
+  }, [rows, key, since]);
   useEffect(() => {
     if (!focusAfter.current) return;
     document.getElementById(focusAfter.current)?.focus();

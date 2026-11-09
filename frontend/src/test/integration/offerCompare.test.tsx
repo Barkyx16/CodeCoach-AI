@@ -9,6 +9,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
 import type { ComparisonDoc, OfferComparison } from "@/api/types";
+import { removeCopies } from "@/lib/deviceCopies";
 
 import { user as baseUser } from "../fixtures";
 import { renderApp } from "../render";
@@ -127,6 +128,25 @@ describe("offer comparisons", () => {
     expect(screen.getAllByLabelText("Bonus conditions")[1]).toHaveValue("Not described");
     await second.user.click(screen.getByRole("checkbox", { name: "Hide amounts on screen" }));
     expect(document.querySelector(".oc-page")).toHaveClass("is-hidden");
+  });
+
+  it("a copy removed from Your data in another tab isn't written back by this open page; reopening keeps a new one", async () => {
+    serve();
+    const first = renderApp("/offers/compare/cmp-1", { signedIn: true });
+    const conditions = async () => (await screen.findAllByLabelText("Bonus conditions"))[1]!;
+    await first.user.type(await conditions(), "Kept");
+    expect(JSON.parse(localStorage.getItem(KEY)!).doc.offers[1].bonus_note).toBe("Kept");
+    removeCopies([KEY]); // "Your data", in another tab
+    await first.user.type(await conditions(), " and more"); // the effect runs again with new text
+    await first.user.click(screen.getByRole("checkbox", { name: "Hide amounts on screen" })); // and re-renders
+    expect(localStorage.getItem(KEY)).toBeNull();
+    expect(await conditions()).toHaveValue("Kept and more"); // still on the page, not lost
+    first.unmount();
+    serve();
+    const second = renderApp("/offers/compare/cmp-1", { signedIn: true });
+    expect(screen.queryByRole("region", { name: "Unsaved changes" })).not.toBeInTheDocument();
+    await second.user.type(await conditions(), "New");
+    expect(JSON.parse(localStorage.getItem(KEY)!).doc.offers[1].bonus_note).toBe("New");
   });
 
   it("Copy as text shows exactly what it copies; text is text; an application is linked without being touched", async () => {

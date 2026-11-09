@@ -420,3 +420,12 @@ fieldset.field { border: none; padding: 0; margin: 0; }
 .oc-preview { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 20rem; overflow: auto; margin: 0; }
 .oc-page.is-hidden .oc-amount, .oc-page.is-hidden .oc-money, .oc-page.is-hidden .oc-preview { filter: blur(6px); }
 .oc-title .input { font-size: 1.25rem; font-weight: 600; }
+
+/* Your data (features/privacy): what's on this device, chosen and removed precisely; counts of
+ * what's on the account; where words go. Nothing's content is shown. */
+.yd-groups { border: 0; margin: 0; padding: 0; min-width: 0; }
+.yd-list, .yd-counts, .yd-processing { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-2); }
+.yd-item { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-1) var(--space-3); }
+.yd-item .checkbox { min-width: 0; overflow-wrap: anywhere; }
+.yd-count { display: inline-block; min-width: 2.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.yd-review { border: 1px solid var(--color-border); }

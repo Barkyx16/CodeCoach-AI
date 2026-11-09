@@ -94,6 +94,8 @@ const SPECS: ((c: CommandContext) => Spec)[] = [
   (c) => ({ id: "triage", label: "Triage reports", detail: "Reports about questions (admin)", to: "/admin/reports", section: "Your library", aliases: ["admin", "reports"], when: () => c.signedIn && c.isAdmin }),
   // Account
   () => ({ id: "settings", label: "Settings", detail: "Account, career, display and data", to: "/settings", section: "Account", aliases: ["account", "preferences", "career", "theme", "export"], when: signedIn }),
+  () => ({ id: "your-data", label: "Your data", detail: "What's stored, where, and clearing this device", to: "/settings/data", section: "Account",
+    aliases: ["privacy", "data", "storage", "clear drafts", "device data", "what's stored"], when: signedIn }),
   () => ({ id: "restore", label: "Restore from a backup", detail: "Preview a backup file first; nothing is added until you confirm", to: "/settings/restore", section: "Account", aliases: ["import", "backup"], when: signedIn }),
   () => ({ id: "help", label: "Help", detail: "How things work, and keyboard shortcuts", to: "/help", section: "Account", aliases: ["guide", "faq", "shortcuts"] }),
   (c) => ({ id: "sign-in", label: "Sign in", detail: "To an account you already have", to: "/login", section: "Account", aliases: ["log in", "login"], when: () => !c.signedIn && !c.demoMode }),

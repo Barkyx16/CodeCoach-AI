@@ -2713,6 +2713,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/data-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What's saved to your account, as counts */
+        get: operations["summary_api_v1_me_data_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/schedule": {
         parameters: {
             query?: never;
@@ -5293,6 +5310,31 @@ export interface components {
             level: "not_yet" | "there";
             /** Text */
             text: string;
+        };
+        /** DataCategoryOut */
+        DataCategoryOut: {
+            /** Key */
+            key: string;
+            /**
+             * Group
+             * @description Your work; sharing and reports; your account and sign-in
+             * @enum {string}
+             */
+            group: "work" | "sharing" | "account";
+            /** Label */
+            label: string;
+            /**
+             * Count
+             * @description How many rows of yours; nothing's content is read to count them
+             */
+            count: number;
+            /** Note */
+            note?: string | null;
+        };
+        /** DataSummaryOut */
+        DataSummaryOut: {
+            /** Categories */
+            categories: components["schemas"]["DataCategoryOut"][];
         };
         /** DayCount */
         DayCount: {
@@ -22143,6 +22185,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    summary_api_v1_me_data_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One count per kind of record you have; no content, titles or amounts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataSummaryOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

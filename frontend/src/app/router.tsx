@@ -42,6 +42,7 @@ const AnalyticsPage = lazy(() => import("@/features/analytics/AnalyticsPage"));
 // history's offline notice) stay in it: a lazy page is only cached once it has been opened online.
 const SettingsPage = lazy(() => import("@/features/settings/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 const RestorePage = lazy(() => import("@/features/settings/RestorePage").then((m) => ({ default: m.RestorePage })));
+const YourDataPage = lazy(() => import("@/features/privacy/YourDataPage").then((m) => ({ default: m.YourDataPage })));
 const ShareComposerPage = lazy(() => import("@/features/sharing/ShareComposerPage").then((m) => ({ default: m.ShareComposerPage })));
 const ShareDetailPage = lazy(() => import("@/features/sharing/ShareDetailPage").then((m) => ({ default: m.ShareDetailPage })));
 const SharedPage = lazy(() => import("@/features/sharing/SharedPage").then((m) => ({ default: m.SharedPage })));
@@ -154,6 +155,7 @@ export const routes: RouteObject[] = [
       { path: "/whiteboard", element: <RequireAuth><WhiteboardPage /></RequireAuth> },
       { path: "/drills", element: <RequireAuth><DrillsPage /></RequireAuth> },
       { path: "/settings/restore", element: <RequireAuth><RestorePage /></RequireAuth> },
+      { path: "/settings/data", element: <RequireAuth><YourDataPage /></RequireAuth> },
       { path: "/reflections", element: <RequireAuth><ReflectionsPage /></RequireAuth> },
       { path: "/applications/:id/events/:eventId/reflection", element: <RequireAuth><ReflectionPage /></RequireAuth> },
       { path: "/drills/:id", element: <RequireAuth><DrillPage /></RequireAuth> },

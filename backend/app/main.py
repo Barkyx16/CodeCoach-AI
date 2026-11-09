@@ -20,6 +20,7 @@ from app.api.routes import (
     code_reviews,
     comparisons,
     content,
+    data_summary,
     drills,
     explore,
     health,
@@ -151,6 +152,11 @@ TAGS = [
         "description": "A private workspace comparing offers you enter by hand: pay with its basis and currency, "
         "guaranteed and conditional amounts kept apart, your own factors and optional weights, every figure with "
         "its formula. No tax, equity or market estimates; nothing changes an application.",
+    },
+    {
+        "name": "privacy",
+        "description": "What's saved to your account, as counts per kind of record: no content is read to count "
+        "them. Copies on your device are listed by the browser; export and deletion are under auth and progress.",
     },
     {
         "name": "backup",
@@ -339,6 +345,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         comparisons.router,
         offers.router,
         offer_comparisons.router,
+        data_summary.router,
         schedule.router,
         submissions.router,
         ai.router,

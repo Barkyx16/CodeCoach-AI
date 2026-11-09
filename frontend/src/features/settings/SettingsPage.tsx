@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
 import { useAIUsage, useCapabilities, useMyReports, useShares } from "@/api/queries";
@@ -19,6 +19,8 @@ import { CareerSelect } from "@/features/careers/CareerSelect";
 import { DisplayControls } from "@/features/display/DisplayControls";
 import { VoiceSettings } from "@/features/voice/VoiceSettings";
 
+import { RETENTION_POINTS } from "@/features/privacy/retention";
+import { countLocalWork } from "@/auth/localWork";
 import { DeviceRows } from "./DeviceSection";
 import { EditorPreferencesControls } from "./EditorPreferencesControls";
 
@@ -41,6 +43,11 @@ const SECTIONS: { id: string; label: string; icon: IconName }[] = [
 export function SettingsPage() {
   const { user } = useAuth();
   const [upgraded, setUpgraded] = useState(false);
+  // A link to a section (/settings#danger, from "Your data"): go there and move focus to its heading.
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash) jumpTo(decodeURIComponent(hash.slice(1)));
+  }, [hash]);
   if (!user) return null;
   return (
     <div className="page settings">
@@ -105,6 +112,7 @@ export function SettingsPage() {
             <DeviceRows />
           </Section>
           <Section id="privacy" title="Privacy & data" description="What the AI coach sees, and a copy of everything we store.">
+            <YourDataRow userId={user.id} />
             <AIPrivacyRow />
             <RetentionRow />
             <SharedRow />
@@ -520,16 +528,6 @@ function AIPrivacyRow() {
   );
 }
 
-// What the code actually does (docs/PRIVACY.md). Keep these in step with it: no promise beyond it.
-const RETENTION_POINTS = [
-  "Your work stays on our server until you delete it or your account. Deleted notes can be undone for 10 minutes.",
-  "Deleting your account removes it and everything in it at once, and any share links stop working.",
-  "Older server backups keep a copy until they expire (up to about 3 months). Emails already sent can't be recalled.",
-  "Sign-in sessions and emailed codes expire, and are deleted a week after that.",
-  "Guest accounts are deleted after 30 days without use.",
-  "Drafts in this browser are cleared when you sign out here. Display and editor settings stay on this device.",
-];
-
 function RetentionRow() {
   return (
     <div className="setting" role="group" aria-labelledby="retention-title">
@@ -540,6 +538,24 @@ function RetentionRow() {
         <ul className="privacy-points">
           {RETENTION_POINTS.map((point) => <li key={point}><Icon name="check" size={15} />{point}</li>)}
         </ul>
+      </div>
+    </div>
+  );
+}
+
+/** Everything stored, in one place: what's on the account, what's on this device, where words go. */
+function YourDataRow({ userId }: { userId: string }) {
+  const [here] = useState(() => countLocalWork(userId));
+  return (
+    <div className="setting" role="group" aria-labelledby="your-data-title">
+      <RowIntro icon="shield" id="your-data-title" title="What's stored, and where">
+        What your account keeps, the copies on this device (and removing the ones you choose), and where your words go when they're processed.
+      </RowIntro>
+      <div className="setting__body setting__body--center">
+        <div className="setting__actions">
+          <Link className="btn btn--secondary btn--md" to="/settings/data">See your data</Link>
+          <span className="subtle">{here === 0 ? "No unsent copies on this device" : `${here} unsent ${here === 1 ? "copy" : "copies"} on this device`}</span>
+        </div>
       </div>
     </div>
   );

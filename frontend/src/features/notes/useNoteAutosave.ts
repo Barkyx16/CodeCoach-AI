@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { recoveredSave } from "@/lib/conflict";
+import { dropCopy, readCopy, useCopySince, writeCopy } from "@/lib/deviceCopies";
 import { findIntent, fingerprint, forgetIntent, keyForIntent } from "@/lib/pendingIntents";
 import { newRequestKey } from "@/lib/requestKey";
 
@@ -48,24 +49,20 @@ const copyTitle = (f: NoteFields) => `${f.title.trim() || "Untitled note"} (my v
 
 function readDraft(key: string): StoredDraft | null {
   try {
-    const raw = window.localStorage.getItem(key);
+    const raw = readCopy(key);
     return raw ? (JSON.parse(raw) as StoredDraft) : null;
   } catch {
     return null;
   }
 }
-/** False when this browser couldn't keep the copy (private mode, storage full): the page then
- * says so, instead of claiming the text is kept on this device. */
-function writeDraft(key: string, d: StoredDraft): boolean {
-  try {
-    window.localStorage.setItem(key, JSON.stringify(d));
-    return true;
-  } catch {
-    return false;
-  }
+/** False when this browser couldn't keep the copy (private mode, storage full) or the learner
+ * removed it from "Your data" after this editor opened it: the page then says so, instead of
+ * claiming the text is kept on this device. */
+function writeDraft(key: string, d: StoredDraft, since: number): boolean {
+  return writeCopy(key, JSON.stringify(d), since);
 }
 function clearDraft(key: string) {
-  try { window.localStorage.removeItem(key); } catch { /* nothing stored */ }
+  dropCopy(key);
 }
 
 /**
@@ -82,6 +79,7 @@ export function useNoteAutosave({ initial, createWith, draftKey, onSaved, delayM
   delayMs?: number;
 }) {
   const [fields, setFields] = useState<NoteFields>(initial ? pick(initial) : EMPTY_FIELDS);
+  const since = useCopySince(draftKey);
   const [server, setServer] = useState<Note | null>(initial);
   const [state, setState] = useState<SaveState>(initial ? "saved" : "idle");
   const [error, setError] = useState<unknown>(null);
@@ -192,12 +190,12 @@ export function useNoteAutosave({ initial, createWith, draftKey, onSaved, delayM
     const next = { ...fieldsRef.current, ...patch };
     fieldsRef.current = next;
     setFields(next);
-    setKept(writeDraft(draftKey, { fields: next, base: serverRef.current?.revision ?? null, at: new Date().toISOString() }));
+    setKept(writeDraft(draftKey, { fields: next, base: serverRef.current?.revision ?? null, at: new Date().toISOString() }, since));
     if (conflictRef.current) return;
     setState("unsaved");
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => void save(), delayMs);
-  }, [delayMs, draftKey, save]);
+  }, [delayMs, draftKey, save, since]);
 
   // Back online: send a pending edit once. A new note waits for the learner (see SaveState).
   useEffect(() => {

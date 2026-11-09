@@ -773,6 +773,11 @@ export function useOfferComparisons() {
   return useQuery({ queryKey: ["me", "offer-comparisons"], queryFn: api.offerComparisons });
 }
 
+/** What's saved to the account, as counts: fetched fresh each time the page opens. */
+export function useDataSummary() {
+  return useQuery({ queryKey: ["me", "data-summary"], queryFn: api.dataSummary, staleTime: 0 });
+}
+
 export function useOfferComparison(id: string) {
   return useQuery({ queryKey: ["me", "offer-comparison", id], queryFn: () => api.offerComparison(id) });
 }

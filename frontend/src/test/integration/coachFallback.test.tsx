@@ -12,7 +12,7 @@ describe("Coaching fallback", () => {
   it("a hint from the built-in coach after Claude failed says so", async () => {
     server.use(http.post(`${API}/api/v1/ai/hint`, () => HttpResponse.json({ ...hint(1), provider: "offline (fallback)" })));
     const { user } = renderApp("/problems/two-sum", { signedIn: true });
-    await user.click(await screen.findByRole("button", { name: "Get a hint" }));
+    await user.click(await screen.findByRole("button", { name: "Get a hint" }, { timeout: 3000 })); // the workspace is a large lazy page
     expect(await screen.findByText("Hint text for level 1")).toBeInTheDocument();
     const notice = screen.getByText(/Claude couldn.t give a usable answer this time/);
     expect(notice).toHaveAttribute("role", "status");
@@ -21,7 +21,7 @@ describe("Coaching fallback", () => {
   it("a hint Claude gave carries no such notice", async () => {
     server.use(http.post(`${API}/api/v1/ai/hint`, () => HttpResponse.json({ ...hint(1), provider: "anthropic" })));
     const { user } = renderApp("/problems/two-sum", { signedIn: true });
-    await user.click(await screen.findByRole("button", { name: "Get a hint" }));
+    await user.click(await screen.findByRole("button", { name: "Get a hint" }, { timeout: 3000 })); // the workspace is a large lazy page
     expect(await screen.findByText("Hint text for level 1")).toBeInTheDocument();
     expect(screen.queryByText(/Claude couldn't give a usable answer/)).not.toBeInTheDocument();
   });
