@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
@@ -30,12 +30,24 @@ export function StoryPicker({ track, questionId, draft, setDraft, storyId, setSt
   const listId = useId();
   const [linkError, setLinkError] = useState<unknown>(null);
   const ref = `${track}/${questionId}`;
+  // Choosing a story replaces the list (and the radio that had focus) with the story's panel: focus
+  // moves there, instead of falling back to the page.
+  const justChose = useRef(false);
+  const chosenRegion = useRef<HTMLDivElement>(null);
+  const showingChosen = !!(storyId && chosen.data);
+  useEffect(() => {
+    if (showingChosen && justChose.current) {
+      justChose.current = false;
+      chosenRegion.current?.focus();
+    }
+  }, [showingChosen]);
 
   if (storyId && chosen.data) {
     const s = chosen.data;
     const linked = s.questions.some((q) => q.ref === ref);
     return (
-      <div className="story-picker story-picker--chosen stack-sm" role="region" aria-label="Story you're practising">
+      <div className="story-picker story-picker--chosen stack-sm" role="region" aria-label="Story you're practising"
+        ref={chosenRegion} tabIndex={-1}>
         <p><strong>Practising your story:</strong> <Link to={`/stories/${s.id}`}>{s.title}</Link></p>
         <p className="subtle">Your answer is saved as a separate practice and points to this story. The story isn't changed.</p>
         <span className="row">
@@ -76,7 +88,7 @@ export function StoryPicker({ track, questionId, draft, setDraft, storyId, setSt
               {stories.data.map((s) => (
                 <li key={s.id}>
                   <label className="checkbox">
-                    <input type="radio" name={`${listId}-story`} onChange={() => setStoryId(s.id)} />
+                    <input type="radio" name={`${listId}-story`} onChange={() => { justChose.current = true; setStoryId(s.id); }} />
                     <span>{s.title}{s.competencies.length > 0 && <span className="subtle"> · {s.competencies.map((c) => COMPETENCY_LABEL[c]).join(", ")}</span>}</span>
                   </label>
                 </li>

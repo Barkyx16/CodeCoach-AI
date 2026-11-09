@@ -187,6 +187,8 @@ describe("practising with a story", () => {
     await user.click(await screen.findByText("Practise with one of your stories"));
     await user.click(await screen.findByRole("radio", { name: /Two call lights at once/ }));
     expect(await screen.findByText(/The story isn't changed/)).toBeInTheDocument();
+    // The list (and the radio that had focus) is replaced by the story's panel: focus moves there.
+    await waitFor(() => expect(screen.getByRole("region", { name: "Story you're practising" })).toHaveFocus());
     await user.click(screen.getByRole("button", { name: "Start my answer from this story" }));
     const box = screen.getByRole("textbox", { name: "Your answer" });
     expect((box as HTMLTextAreaElement).value).toContain("I checked who was at higher risk");

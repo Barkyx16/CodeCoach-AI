@@ -84,7 +84,11 @@ test("one story, from a job target to the story bank to practice, with every ver
   // Practise it: a separate answer; the story stays at version 4.
   await page.goto("/careers/registered-nurse/questions/m-pressure-0");
   await page.getByText("Practise with one of your stories").click();
-  await page.getByRole("radio", { name: /Two call lights at once/ }).check();
+  // Choosing a story replaces the list with the story's panel, so the radio is gone the moment it's
+  // chosen: click it and wait for the panel (`check()` re-reads a radio that no longer exists, and
+  // timed out whenever the story was already cached; CI run 273).
+  await page.getByRole("radio", { name: /Two call lights at once/ }).click();
+  await expect(page.getByRole("region", { name: "Story you're practising" })).toBeFocused();
   await page.getByRole("button", { name: "Start my answer from this story" }).click();
   await expect(page.getByRole("textbox", { name: "Your answer" })).toHaveValue(/I checked who was at higher risk first/);
   await page.getByRole("button", { name: "Link this question to the story" }).click();
