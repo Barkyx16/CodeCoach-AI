@@ -430,3 +430,42 @@ def test_debugging_exercise_in_the_real_judge(judge, slug):
     assert fixed["status"] == "PASSED", fixed
     assert fixed["result"]["hidden_passed"] == fixed["result"]["hidden_total"] > 0
     assert fixed["starting_code"] == seed["starter_code"]
+
+
+def test_test_design_in_the_real_judge(judge):
+    """Test design (Volume 10, prompt 4) through API -> worker -> runner -> gVisor: the reference
+    and every faulty version run in one sandbox job, and the report is read off its outputs. Five
+    ordinary cases tell no version apart; one boundary case tells two apart; a case whose expected
+    output disagrees with the specification counts against nothing."""
+    c, h = judge.client, judge.headers
+    c.app.state.execution_health.probe = lambda: True
+    worker = JudgeWorker(
+        c.app.state.session_factory, HttpRunner(c.app.state.settings.runner_url, TOKEN), c.app.state.settings
+    )
+
+    def run(cases: list[dict]) -> dict:
+        made = c.post("/api/v1/me/test-design/tests-count-in-range/runs", json={"cases": cases}, headers=h)
+        assert made.status_code == 202, made.text
+        assert worker.process_one()
+        return c.get(f"/api/v1/me/test-design/runs/{made.json()['id']}", headers=h).json()
+
+    ordinary = [
+        {"input": {"nums": [1, 5, 9], "lo": 2, "hi": 8}, "expected": 1},
+        {"input": {"nums": [3, 40], "lo": 0, "hi": 10}, "expected": 1},
+        {"input": {"nums": [10, 20, 30], "lo": 15, "hi": 25}, "expected": 1},
+        {"input": {"nums": [-3, 0, 3], "lo": -10, "hi": -1}, "expected": 1},
+        {"input": {"nums": [7], "lo": 0, "hi": 5}, "expected": 0},
+    ]
+    first = run(ordinary)
+    assert first["status"] == "done", first
+    assert (first["report"]["caught"], first["report"]["total"]) == (0, 4)
+    second = run(
+        [
+            {"input": {"nums": [3, 7], "lo": 1, "hi": 7}, "expected": 2, "label": "boundary"},
+            {"input": {"nums": [3, 7], "lo": 0, "hi": 9}, "expected": 5},
+        ]
+    )
+    rep = second["report"]
+    assert rep["cases"][0]["distinguishes"] == ["A", "C"]
+    assert rep["cases"][1]["status"] == "disagrees" and rep["cases"][1]["reference_output"] == "2"
+    assert rep["caught"] == 2

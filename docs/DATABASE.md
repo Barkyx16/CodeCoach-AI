@@ -315,6 +315,15 @@ The exercises are files (`backend/app/seed/reviews`, docs/CODE_REVIEW_PRACTICE.m
   and exercise: `exercise_version`, `snapshot` (JSON: the code and the authored review compared
   with), `findings`, `summary`, `feedback` (JSON), `after_reveal`, `created_at`. Never updated.
 
+### Test design
+The exercises are files (`backend/app/seed/testdesign`, docs/TEST_DESIGN.md), not rows.
+- `test_design_runs`: each set of cases a learner sent (cascade with the account), indexed by user
+  and exercise and by status: `exercise_version`, `cases` (JSON: input, expected, label, note),
+  `status` (queued | running | done | not_run | failed), `status_detail`, `attempts`,
+  `judge_started_at`, `report` (JSON, read off the sandbox's outputs), `client_request_id` (unique
+  per user), `trace_id`, `created_at`, `judged_at`. Claimed by the judge worker like submissions,
+  so not under row-level security; every request-side lookup filters by user.
+
 ### Restores
 - `import_batches`: one per restore (cascade with the account): `file_sha256` (to recognise the
   same file; the file itself isn't stored), `export_version`, `categories`, `status`
@@ -423,6 +432,7 @@ The exercises are files (`backend/app/seed/reviews`, docs/CODE_REVIEW_PRACTICE.m
 | `76e9a3e567dc` interview reflections | Adds `interview_reflections` (one per event) and `reflection_actions`. New tables, cascading with the event, application and user; round-tripped on PostgreSQL |
 | `9fa5ab598fa5` restores | Adds `import_batches` and `imported_records`. New tables, cascading with the user; round-tripped on PostgreSQL |
 | `5b7e2c9d4a10` code-review practice | Adds `code_review_drafts` (one per user and exercise) and `code_review_attempts`, both cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
+| `8e4b1d7c2f60` test design runs | Adds `test_design_runs`, cascading with the user; not under row-level security (claimed by the judge worker, like submissions) |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

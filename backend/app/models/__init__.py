@@ -1393,6 +1393,38 @@ class CodeReviewAttempt(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
 
+class TestDesignRun(Base):
+    """One set of test cases a learner ran against a test-design exercise's reference and faulty
+    versions (docs/TEST_DESIGN.md). Queued like a submission and run by the judge worker in the
+    same sandbox; the cases, the exercise version and the report are kept as they were. Not under
+    row-level security, like `submissions`: the worker reads and updates queued runs across
+    learners. Every request-side lookup filters by user."""
+
+    __tablename__ = "test_design_runs"
+    __test__ = False  # stop pytest trying to collect this class
+    __table_args__ = (
+        Index("ix_test_design_user_exercise", "user_id", "exercise_slug"),
+        Index("ix_test_design_status", "status", "created_at"),
+        UniqueConstraint("user_id", "client_request_id", name="uq_test_design_client_request"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    exercise_slug: Mapped[str] = mapped_column(String(64))
+    exercise_version: Mapped[int] = mapped_column(Integer)
+    cases: Mapped[list] = mapped_column(JSONType)
+    # queued | running | done | not_run (no judge on this server) | failed (the judge kept failing)
+    status: Mapped[str] = mapped_column(String(16))
+    status_detail: Mapped[str] = mapped_column(Text, default="")
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    judge_started_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    report: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    trace_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    judged_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+
+
 class DrillAttempt(Base):
     """One go at a communication drill: the words sent (typed, or a transcript the learner checked
     and edited), how they were given, and the feedback. Attempts are never changed afterwards."""

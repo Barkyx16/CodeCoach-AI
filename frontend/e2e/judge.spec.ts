@@ -134,3 +134,27 @@ test("the debugging lab: the faulty starter fails on its reproduction case, and 
   await expect(debrief).toContainText("nums = [4, 8, 3], limit = 5: now passes");
   await expect(debrief.getByRole("heading", { name: "Why it happened" })).toBeVisible();
 });
+
+test("test design: ordinary cases tell no faulty version apart; one boundary case does, judged in the sandbox", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /try it now/i }).click();
+  await page.goto("/test-design/tests-count-in-range");
+  const fill = async (i: number, nums: string, lo: string, hi: string, expected: string) => {
+    await page.getByLabel(/^nums/).nth(i).fill(nums);
+    await page.getByLabel(/^lo/).nth(i).fill(lo);
+    await page.getByLabel(/^hi/).nth(i).fill(hi);
+    await page.getByLabel("Expected output").nth(i).fill(expected);
+  };
+  await fill(0, "1, 5, 9", "2", "8", "1");
+  await page.getByRole("button", { name: "Add a case" }).click();
+  await fill(1, "3, 40", "0", "10", "1");
+  await page.getByRole("button", { name: "Run my cases" }).click();
+  const shows = page.getByRole("region", { name: "What your cases show" });
+  await expect(shows).toContainText("Your cases tell 0 of the 4 authored faulty versions apart", { timeout: 60_000 });
+
+  await page.getByRole("button", { name: "Remove case 2" }).click();
+  await fill(0, "3, 7", "1", "7", "2");
+  await page.getByRole("button", { name: "Run my cases" }).click();
+  await expect(shows).toContainText("Your cases tell 2 of the 4 authored faulty versions apart", { timeout: 60_000 });
+  await expect(page.getByRole("region", { name: "The faulty versions" })).toContainText("Version A: Leaves out values equal to hi. Told apart by case 1.");
+});

@@ -27,6 +27,7 @@ const PATTERNS: [RegExp, string][] = [
   [/^\/whiteboard\/[^/]+$/, "Whiteboard"],
   [/^\/code-reviews\/attempts\/[^/]+$/, "Your code review"],
   [/^\/code-reviews\/[^/]+$/, "Code review"],
+  [/^\/test-design\/[^/]+$/, "Test design"],
   [/^\/drills\/[^/]+$/, "Drill"],
   [/^\/applications\/[^/]+$/, "Application"],
   [/^\/shares\/[^/]+$/, "Shared answer and feedback"],

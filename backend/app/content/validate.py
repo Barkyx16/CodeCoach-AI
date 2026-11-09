@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import shutil
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -40,6 +41,7 @@ PROBLEMS_DIR = BACKEND_DIR / "app" / "seed" / "problems"
 DEBUGGING_DIR = BACKEND_DIR / "app" / "seed" / "debugging"
 REFERENCE_DIR = BACKEND_DIR / "app" / "seed" / "reference"
 REVIEWS_DIR = BACKEND_DIR / "app" / "seed" / "reviews"
+TEST_DESIGN_DIR = BACKEND_DIR / "app" / "seed" / "testdesign"
 
 
 @dataclass
@@ -340,6 +342,96 @@ def _reviews(report: Report, problems: dict[str, dict]) -> dict[str, dict]:
     return seeds
 
 
+_TD_TEXT = ("title", "summary", "spec", "review_status")
+_VARIANT_TEXT = ("id", "title", "defect", "gap")
+
+
+def _code_shape(code: object) -> str | None:
+    """The reference and each faulty version become one class each in a shared file."""
+    text = str(code or "")
+    if len(re.findall(r"\bclass\s+Solution\b", text)) != 1:
+        return "needs exactly one `class Solution`"
+    if re.search(r"^\s*(import|package)\b|\bpublic\s+class\b", text, re.M):
+        return "can't use import, package or a public class (it shares a file with the others)"
+    return None
+
+
+def _test_design(report: Report) -> None:
+    """Test-design exercises (app/seed/testdesign; docs/TEST_DESIGN.md). Running them is the
+    reference check's job; this checks the shape, so a broken fixture is refused before a learner
+    sees it."""
+    from app.testdesign import case_errors, parse, supported_signature
+
+    seen: set[str] = set()
+    for path in sorted(TEST_DESIGN_DIR.glob("*.json")):
+        where = f"test design file {path.name}"
+        try:
+            data = json.loads(path.read_text())
+        except json.JSONDecodeError as exc:
+            report.errors.append(f"{where}: invalid JSON ({exc})")
+            continue
+        slug = str(data.get("slug", ""))
+        if not slug.startswith("tests-"):
+            report.errors.append(f"{where}: a test design exercise's slug starts with 'tests-'")
+            continue
+        if slug in seen:
+            report.errors.append(f"{where}: duplicate slug {slug!r}")
+            continue
+        seen.add(slug)
+        here = f"test design {slug}"
+        if not isinstance(data.get("version"), int) or data["version"] < 1:
+            report.errors.append(f"{here}: version must be a positive whole number")
+        missing = [k for k in _TD_TEXT if not str(data.get(k) or "").strip()]
+        if missing:
+            report.errors.append(f"{here}: missing {missing}")
+        if not supported_signature(data.get("signature") or {}):
+            report.errors.append(
+                f"{here}: the one supported shape is int[] then up to two int, returning int or boolean"
+            )
+            continue
+        lim = data.get("limits") or {}
+        if not all(
+            isinstance(lim.get(k), int) for k in ("max_cases", "max_length", "min_value", "max_value")
+        ) or not (
+            1 <= lim["max_cases"] <= 20
+            and 1 <= lim["max_length"] <= 50
+            and lim["min_value"] < lim["max_value"]
+        ):
+            report.errors.append(
+                f"{here}: limits must be whole numbers: max_cases 1-20, max_length 1-50, min_value < max_value"
+            )
+            continue
+        if problem := _code_shape(data.get("reference")):
+            report.errors.append(f"{here}: the reference {problem}")
+        variants = data.get("variants") or []
+        if len(variants) < 2:
+            report.errors.append(f"{here}: needs at least two faulty versions")
+        ids = [str(v.get("id")) for v in variants]
+        if len(set(ids)) != len(ids):
+            report.errors.append(f"{here}: faulty version ids must be unique")
+        try:
+            ex = parse(data)
+        except (KeyError, TypeError, ValueError) as exc:
+            report.errors.append(f"{here}: malformed ({exc.__class__.__name__}: {exc})")
+            continue
+        dummy = True if ex.returns == "boolean" else 0
+        for i, e in enumerate(ex.examples, 1):
+            if errs := case_errors(ex, e.get("input"), e.get("expected")):
+                report.errors.append(f"{here}: example {i}: {errs[0]}")
+        if not ex.examples:
+            report.errors.append(f"{here}: needs at least one example")
+        for v in variants:
+            at = f"{here} faulty version {v.get('id', '?')}"
+            gaps = [k for k in _VARIANT_TEXT if not str(v.get(k) or "").strip()]
+            if gaps:
+                report.errors.append(f"{at}: missing {gaps}")
+            if problem := _code_shape(v.get("code")):
+                report.errors.append(f"{at}: {problem}")
+            if errs := case_errors(ex, v.get("witness"), dummy):
+                report.errors.append(f"{at}: witness: {errs[0]}")
+    report.counts["test design exercises"] = len(seen)
+
+
 def _load_reference_checker():
     spec = importlib.util.spec_from_file_location(
         "verify_reference", BACKEND_DIR / "scripts" / "verify_reference_solutions.py"
@@ -347,7 +439,12 @@ def _load_reference_checker():
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    return module.check_problem, module.check_debug_exercise, module.check_review_exercise
+    return (
+        module.check_problem,
+        module.check_debug_exercise,
+        module.check_review_exercise,
+        module.check_test_design_exercise,
+    )
 
 
 def run(db: Session | None, *, run_reference: bool = False, record: bool = False) -> Report:
@@ -356,6 +453,7 @@ def run(db: Session | None, *, run_reference: bool = False, record: bool = False
     seeds = _problems(report)
     seeds |= _debugging(report, seeds)
     reviews = _reviews(report, seeds)
+    _test_design(report)
     retired: set[tuple[str, str]] = set()
     if db is not None:
         _db_content(db, report, set(seeds))
@@ -370,10 +468,13 @@ def run(db: Session | None, *, run_reference: bool = False, record: bool = False
         if shutil.which("javac") is None or shutil.which("java") is None:
             report.warnings.append("reference solutions not run: no local JDK (javac/java) found")
         else:
-            check, check_debug, check_review = _load_reference_checker()
+            check, check_debug, check_review, check_design = _load_reference_checker()
             for slug, review in reviews.items():
                 if failures := check_review(review["_path"]):
                     report.errors.append(f"review {slug}: " + "; ".join(failures)[:2000])
+            for path in sorted(TEST_DESIGN_DIR.glob("*.json")):
+                if failures := check_design(path):
+                    report.errors.append(f"test design {path.stem}: " + "; ".join(failures)[:2000])
             for slug in seeds:
                 failures = (check_debug if seeds[slug].get("kind") == "debug" else check)(
                     seeds[slug]["_path"]

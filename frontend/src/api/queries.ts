@@ -769,6 +769,28 @@ export function useWhiteboardPrompts() {
   return useQuery({ queryKey: ["me", "whiteboard", "prompts"], queryFn: api.whiteboardPrompts, staleTime: 5 * 60_000 });
 }
 
+export function useTestDesigns() {
+  return useQuery({ queryKey: ["test-design"], queryFn: api.testDesigns, staleTime: 5 * 60_000 });
+}
+
+export function useTestDesign(slug: string) {
+  return useQuery({ queryKey: ["test-design", slug], queryFn: () => api.testDesign(slug), staleTime: 60_000 });
+}
+
+export function useTestRuns(slug: string) {
+  return useQuery({ queryKey: ["me", "test-design", "runs", slug], queryFn: () => api.testRuns(slug), staleTime: 0 });
+}
+
+/** One run, polled while the judge still has it. */
+export function useTestRun(id: string | null) {
+  return useQuery({
+    queryKey: ["me", "test-design", "run", id],
+    queryFn: () => api.testRun(id ?? ""),
+    enabled: id != null,
+    refetchInterval: (q) => (q.state.data && ["queued", "running"].includes(q.state.data.status) ? 1000 : false),
+  });
+}
+
 export function useReviewExercises() {
   return useQuery({ queryKey: ["code-reviews"], queryFn: api.reviewExercises, staleTime: 5 * 60_000 });
 }

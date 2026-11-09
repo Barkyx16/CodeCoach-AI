@@ -2280,6 +2280,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/test-design": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Test design exercises */
+        get: operations["exercises_api_v1_test_design_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/test-design/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One exercise: the specification, its input shape and limits (not the faulty versions) */
+        get: operations["exercise_api_v1_test_design__slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/test-design/{slug}/variants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The authored faulty versions and their defects (shown when the learner asks) */
+        get: operations["variants_api_v1_test_design__slug__variants_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/test-design/{slug}/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your runs of this exercise */
+        get: operations["runs_api_v1_me_test_design__slug__runs_get"];
+        put?: never;
+        /** Run your cases (asynchronous; poll the run). Without a judge they're saved as not run */
+        post: operations["start_run_api_v1_me_test_design__slug__runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/test-design/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One run: its cases, exercise version and report */
+        get: operations["get_run_api_v1_me_test_design_runs__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/schedule": {
         parameters: {
             query?: never;
@@ -10273,6 +10359,177 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** TestCaseIn */
+        TestCaseIn: {
+            /** Input */
+            input: {
+                [key: string]: unknown;
+            };
+            /**
+             * Expected
+             * @description The output the specification calls for, as you read it
+             */
+            expected: unknown;
+            /** Label */
+            label?: ("boundary" | "equivalence" | "edge" | "other") | null;
+            /**
+             * Note
+             * @description What the case covers, in your words
+             * @default
+             */
+            note: string;
+        };
+        /** TestDesignExample */
+        TestDesignExample: {
+            /** Input */
+            input: {
+                [key: string]: unknown;
+            };
+            /** Expected */
+            expected: unknown;
+        };
+        /**
+         * TestDesignExercise
+         * @description What the learner sees before running anything: the specification, its shape and limits,
+         *     and how many faulty versions there are. Not the versions or their defects.
+         */
+        TestDesignExercise: {
+            /** Slug */
+            slug: string;
+            /** Version */
+            version: number;
+            /** Title */
+            title: string;
+            /** Summary */
+            summary: string;
+            /** Spec */
+            spec: string;
+            /** Method */
+            method: string;
+            /** Params */
+            params: components["schemas"]["TestDesignParam"][];
+            /**
+             * Returns
+             * @enum {string}
+             */
+            returns: "int" | "boolean";
+            limits: components["schemas"]["TestDesignLimits"];
+            /** Examples */
+            examples: components["schemas"]["TestDesignExample"][];
+            /** Variant Count */
+            variant_count: number;
+            /** Review Status */
+            review_status: string;
+            /**
+             * Execution Enabled
+             * @description False: cases can be written and saved, but not run here
+             */
+            execution_enabled: boolean;
+        };
+        /** TestDesignLimits */
+        TestDesignLimits: {
+            /** Max Cases */
+            max_cases: number;
+            /** Max Length */
+            max_length: number;
+            /** Min Value */
+            min_value: number;
+            /** Max Value */
+            max_value: number;
+        };
+        /** TestDesignParam */
+        TestDesignParam: {
+            /** Name */
+            name: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "int[]" | "int";
+        };
+        /** TestDesignRunIn */
+        TestDesignRunIn: {
+            /** Cases */
+            cases: components["schemas"]["TestCaseIn"][];
+            /** Client Request Id */
+            client_request_id?: string | null;
+        };
+        /** TestDesignRunOut */
+        TestDesignRunOut: {
+            /** Id */
+            id: string;
+            /** Slug */
+            slug: string;
+            /** Exercise Version */
+            exercise_version: number;
+            /** Current Version */
+            current_version: number | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "done" | "not_run" | "failed";
+            /** Status Detail */
+            status_detail: string;
+            /** Cases */
+            cases: {
+                [key: string]: unknown;
+            }[];
+            /** Report */
+            report: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Judged At */
+            judged_at: string | null;
+        };
+        /** TestDesignRunSummary */
+        TestDesignRunSummary: {
+            /** Id */
+            id: string;
+            /** Exercise Version */
+            exercise_version: number;
+            /** Status */
+            status: string;
+            /** Cases */
+            cases: number;
+            /** Caught */
+            caught: number | null;
+            /** Total */
+            total: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** TestDesignSummary */
+        TestDesignSummary: {
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+            /** Summary */
+            summary: string;
+            /** Variant Count */
+            variant_count: number;
+        };
+        /** TestDesignVariant */
+        TestDesignVariant: {
+            /**
+             * Key
+             * @description A, B, C…: how the run reports name it
+             */
+            key: string;
+            /** Title */
+            title: string;
+            /** Defect */
+            defect: string;
         };
         /** TodayOut */
         TodayOut: {
@@ -19064,6 +19321,284 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReviewAttemptOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    exercises_api_v1_test_design_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestDesignSummary"][];
+                };
+            };
+        };
+    };
+    exercise_api_v1_test_design__slug__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestDesignExercise"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    variants_api_v1_test_design__slug__variants_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestDesignVariant"][];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    runs_api_v1_me_test_design__slug__runs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestDesignRunSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_run_api_v1_me_test_design__slug__runs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestDesignRunIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestDesignRunOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Temporarily unavailable (e.g. the judge queue is full). Retry-After is sent only when the server can justify a wait (for the judge's full queue: from its recent completions); none means no credible wait is known */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_run_api_v1_me_test_design_runs__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestDesignRunOut"];
                 };
             };
             /** @description Missing, invalid, expired or revoked access token */

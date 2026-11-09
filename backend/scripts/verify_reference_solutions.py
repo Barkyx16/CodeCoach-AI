@@ -29,6 +29,8 @@ PROBLEMS_DIR = BACKEND_DIR / "app" / "seed" / "problems"
 REFERENCE_DIR = BACKEND_DIR / "app" / "seed" / "reference"
 DEBUGGING_DIR = BACKEND_DIR / "app" / "seed" / "debugging"
 REVIEWS_DIR = BACKEND_DIR / "app" / "seed" / "reviews"
+TEST_DESIGN_DIR = BACKEND_DIR / "app" / "seed" / "testdesign"
+FUZZ_CASES = 200
 
 
 def java_available() -> bool:
@@ -193,6 +195,136 @@ def check_review_exercise(review_file: Path, timeout_s: float = 30.0) -> list[st
     return failures
 
 
+def run_files(files: dict[str, str], timeout_s: float = 60.0) -> tuple[str | None, str, str, bool]:
+    """Compile and run Main with the local JDK. Returns (compile error, stdout, nonce, timed out)."""
+    nonce = secrets.token_hex(16)
+    with tempfile.TemporaryDirectory(prefix="cc-td-") as tmp:
+        work = Path(tmp)
+        for name, text in files.items():
+            (work / name).write_text(text)
+        compiled = subprocess.run(
+            ["javac", "-d", str(work), *[str(work / n) for n in files]],
+            capture_output=True,
+            text=True,
+            timeout=timeout_s,
+            check=False,
+        )
+        if compiled.returncode != 0:
+            return compiled.stderr[:2000], "", nonce, False
+        try:
+            ran = subprocess.run(
+                ["java", "-cp", str(work), "Main"],
+                input=nonce + "\n",
+                capture_output=True,
+                text=True,
+                timeout=timeout_s,
+                check=False,
+            )
+        except subprocess.TimeoutExpired:
+            return None, "", nonce, True
+    return None, ran.stdout, nonce, False
+
+
+def _fuzz_inputs(ex, count: int) -> list[dict]:
+    """Inputs within the exercise's limits: the edges (empty, one value, full length, extreme
+    values) and seeded random ones, so the check is reproducible."""
+    import random
+
+    rng = random.Random(f"{ex.slug}:{ex.version}")
+    lim = ex.limits
+    array_name = ex.params[0]["name"]
+    ints = [p["name"] for p in ex.params[1:]]
+
+    def one(length: int, lo: int, hi: int) -> dict:
+        case = {array_name: [rng.randint(lo, hi) for _ in range(length)]}
+        for name in ints:
+            case[name] = rng.randint(lo, hi)
+        return case
+
+    small = (-5, 5)  # small values make repeats and bound hits likely
+    inputs = [one(0, *small), one(1, *small), one(lim.max_length, lim.min_value, lim.max_value)]
+    inputs.append({array_name: [lim.min_value, lim.max_value], **dict.fromkeys(ints, lim.max_value)})
+    while len(inputs) < count:
+        span = small if rng.random() < 0.7 else (lim.min_value, lim.max_value)
+        inputs.append(one(rng.randint(0, lim.max_length), *span))
+    return inputs
+
+
+def check_test_design_exercise(path: Path, timeout_s: float = 60.0) -> list[str]:
+    """A test-design exercise (app/seed/testdesign; docs/TEST_DESIGN.md) is sound when, run with a
+    real JDK through the same multi-implementation driver the judge uses:
+    - the reference and every faulty version compile and finish on every input below (no hang);
+    - the reference returns each example's expected output, and never throws on the examples, the
+      witnesses or FUZZ_CASES seeded inputs within the limits (so it can decide any valid case);
+    - each faulty version differs from the reference on its own witness case (its defect shows);
+    - the examples don't already tell every faulty version apart (something is left to find).
+    Expected outputs come only from running the reference. Returns failures (empty means sound)."""
+    from app.services.judge.harness import outputs_match, parse_driver_output
+    from app.testdesign import build_sources, case_errors, parse
+
+    ex = parse(json.loads(path.read_text()))
+    slug = ex.slug
+    examples = [e["input"] for e in ex.examples]
+    witnesses = [v.witness for v in ex.variants]
+    inputs = examples + witnesses + _fuzz_inputs(ex, FUZZ_CASES)
+    dummy = True if ex.returns == "boolean" else 0
+    failures = [
+        f"{slug}: input {case} is outside the limits: {errs}"
+        for case in examples + witnesses
+        if (errs := case_errors(ex, case, dummy))
+    ]
+    files, n_impl = build_sources(ex, inputs)
+    error, stdout, nonce, timed_out = run_files(files, timeout_s)
+    if error is not None:
+        return [*failures, f"{slug}: the reference or a faulty version doesn't compile\n{error}"]
+    if timed_out:
+        return [*failures, f"{slug}: an implementation didn't finish within {timeout_s} s (a hang?)"]
+    out = parse_driver_output(stdout, nonce)
+    n = len(inputs)
+    names = ["reference"] + [v.id for v in ex.variants]
+
+    def result(impl: int, i: int) -> dict | None:
+        return out.get(impl * n + i)
+
+    for k, name in enumerate(names):
+        missing = [i for i in range(n) if result(k, i) is None]
+        if missing:
+            failures.append(
+                f"{slug}: {name} gave no result for {len(missing)} inputs (first: {inputs[missing[0]]})"
+            )
+    for i, case in enumerate(inputs):
+        ref = result(0, i)
+        if ref is not None and not ref.get("ok"):
+            failures.append(f"{slug}: the reference throws {ref.get('exception')} on {case}")
+    for i, e in enumerate(ex.examples):
+        ref = result(0, i)
+        if ref is not None and ref.get("ok") and not outputs_match(e["expected"], ref.get("output")):
+            failures.append(
+                f"{slug}: example {i + 1} expects {e['expected']!r}, but the reference returns {ref.get('output')!r}"
+            )
+
+    def differs(k: int, i: int) -> bool:
+        a, b = result(0, i), result(k, i)
+        if a is None or b is None:
+            return False
+        if bool(a.get("ok")) != bool(b.get("ok")):
+            return True
+        if a.get("ok"):
+            return not outputs_match(a.get("output"), b.get("output"))
+        return a.get("exception") != b.get("exception")
+
+    for k, v in enumerate(ex.variants, start=1):
+        if not differs(k, len(examples) + k - 1):
+            failures.append(
+                f"{slug}: faulty version {v.id} gives the reference's answer on its own witness {v.witness}"
+            )
+    if all(any(differs(k, i) for i in range(len(examples))) for k in range(1, n_impl)):
+        failures.append(
+            f"{slug}: the examples already tell every faulty version apart; nothing is left to find"
+        )
+    return failures
+
+
 _BATCH_RUNNER = r"""
 import java.io.*;
 import java.nio.file.*;
@@ -343,6 +475,17 @@ def main() -> int:
         return 1
     print(
         f"All {len(reviews)} review exercises: each authored review matches what the code does on the tests."
+    )
+    designs = sorted(TEST_DESIGN_DIR.glob("*.json"))
+    for path in designs:
+        failures = check_test_design_exercise(path)
+        print(f"{path.stem:40s} {'ok' if not failures else f'{len(failures)} failure(s)'}")
+        all_failures.extend(failures)
+    if all_failures:
+        print("\n".join(all_failures))
+        return 1
+    print(
+        f"All {len(designs)} test design exercises: examples match the reference, each faulty version shows its defect."
     )
     return 0
 

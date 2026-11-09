@@ -169,17 +169,24 @@ __CALLS__
 """
 
 
-def build_driver(signature: dict, test_inputs: list[dict]) -> str:
-    """Return Main.java source that calls Solution.<method> once per test input."""
+def build_driver(signature: dict, test_inputs: list[dict], targets: list[str] | None = None) -> str:
+    """Return Main.java source that calls Solution.<method> once per test input. `targets`, if
+    given, names the class to call for each input instead (test design runs the reference and its
+    faulty versions, as classes in one Solution.java, through the same driver)."""
     method = signature["method"]
     params = signature["params"]
     for t in [p["type"] for p in params] + [signature["returns"]]:
         if t not in SUPPORTED_TYPES:
             raise UnsupportedTypeError(f"unsupported Java type: {t}")
+    if targets is not None and len(targets) != len(test_inputs):
+        raise ValueError("one target class per input")
     calls = []
     for index, case_input in enumerate(test_inputs):
         args = ", ".join(java_literal(case_input[p["name"]], p["type"]) for p in params)
-        calls.append(f"        run(out, prefix, {index}, () -> new Solution().{method}({args}));")
+        cls = targets[index] if targets is not None else "Solution"
+        if not cls.isidentifier():
+            raise ValueError(f"not a Java class name: {cls!r}")
+        calls.append(f"        run(out, prefix, {index}, () -> new {cls}().{method}({args}));")
     return (
         _DRIVER_TEMPLATE.replace("__CALLS__", "\n".join(calls))
         .replace("__MAX_MESSAGE__", str(MAX_MESSAGE_CHARS))

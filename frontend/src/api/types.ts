@@ -230,6 +230,27 @@ export type ReviewReferenceFinding = S["ReviewReferenceFinding"];
 export type ReviewAttemptIn = S["ReviewAttemptIn"];
 export type ReviewAttempt = S["ReviewAttemptOut"];
 export type ReviewAttemptSummary = S["ReviewAttemptSummary"];
+export type TestDesignSummary = S["TestDesignSummary"];
+export type TestDesignExercise = S["TestDesignExercise"];
+export type TestDesignVariant = S["TestDesignVariant"];
+export type TestCaseIn = S["TestCaseIn"];
+export type TestDesignRunIn = S["TestDesignRunIn"];
+export type TestDesignRun = S["TestDesignRunOut"];
+export type TestDesignRunSummary = S["TestDesignRunSummary"];
+/** A run's report (app/testdesign/report.py): read off the sandbox's outputs. */
+export interface TestDesignReport {
+  report_version: number;
+  cases: {
+    case: number; label: string | null; label_text?: string; reference_output: string;
+    status: "counted" | "duplicate" | "disagrees" | "not_finished" | "reference_failed";
+    distinguishes: string[]; new: string[]; notes: string[];
+  }[];
+  variants: { key: string; caught_by: number[]; title: string | null }[];
+  caught: number;
+  total: number;
+  summary: string[];
+  gap: { variant: string; hint: string } | null;
+}
 /** The comparison stored with an attempt (app/reviews/feedback.py). */
 export interface ReviewFeedback {
   rubric_version: number;

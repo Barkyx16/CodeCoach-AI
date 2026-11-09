@@ -66,6 +66,7 @@ const DrillPage = lazy(() => import("@/features/drills/DrillPage").then((m) => (
 const DrillsPage = lazy(() => import("@/features/drills/DrillsPage").then((m) => ({ default: m.DrillsPage })));
 const ReflectionPage = lazy(() => import("@/features/reflections/ReflectionPage").then((m) => ({ default: m.ReflectionPage })));
 const ReflectionsPage = lazy(() => import("@/features/reflections/ReflectionsPage").then((m) => ({ default: m.ReflectionsPage })));
+const TestDesignPage = lazy(() => import("@/features/testDesign/TestDesignPage").then((m) => ({ default: m.TestDesignPage })));
 const ReviewPage = lazy(() => import("@/features/codeReview/ReviewPage").then((m) => ({ default: m.ReviewPage })));
 const ReviewAttemptPage = lazy(() => import("@/features/codeReview/ReviewAttemptPage").then((m) => ({ default: m.ReviewAttemptPage })));
 const WhiteboardEditorPage = lazy(() => import("@/features/whiteboard/WhiteboardEditor").then((m) => ({ default: m.WhiteboardEditorPage })));
@@ -150,6 +151,7 @@ export const routes: RouteObject[] = [
       { path: "/whiteboard/:promptId", element: <RequireAuth><WhiteboardEditorPage /></RequireAuth> },
       { path: "/code-reviews/attempts/:attemptId", element: <RequireAuth><ReviewAttemptPage /></RequireAuth> },
       { path: "/code-reviews/:slug", element: <RequireAuth><ReviewPage /></RequireAuth> },
+      { path: "/test-design/:slug", element: <RequireAuth><TestDesignPage /></RequireAuth> },
       { path: "/applications/:id", element: <RequireAuth><ApplicationPage /></RequireAuth> },
       { path: "/applications/:id/events/:eventId/kit", element: <RequireAuth><KitPage /></RequireAuth> },
       { path: "/stories/new", element: <RequireAuth><StoryEditorPage /></RequireAuth> },

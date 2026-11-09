@@ -40,6 +40,7 @@ from app.api.routes import (
     submissions,
     targets,
     telemetry,
+    test_design,
     whiteboard,
 )
 from app.config import Settings, get_settings
@@ -120,6 +121,11 @@ TAGS = [
         "name": "code reviews",
         "description": "Review someone else's code (synthetic snippets for existing problems), then compare with an "
         "authored review: defects shown by public tests, preferences labelled as such, comparison by location only.",
+    },
+    {
+        "name": "test design",
+        "description": "Propose test cases for a small specification and see, from a real sandbox run, which authored "
+        "faulty versions they tell apart from the reference. Coverage counts only those versions.",
     },
     {
         "name": "backup",
@@ -303,6 +309,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         drills.router,
         whiteboard.router,
         code_reviews.router,
+        test_design.router,
         schedule.router,
         submissions.router,
         ai.router,

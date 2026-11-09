@@ -88,6 +88,7 @@ Also, from earlier work:
 | Finished-email purge | worker | none | denied |
 | Guest clean-up (daily) | worker, plus **maintenance** for one read | reads each guest's latest progress-event time; deletes users, whose rows go by cascade | `rls.maintenance(db, "guest clean-up: …")`: read-only, logged with its reason, then back to worker |
 | Judge worker: claim and judge a submission | worker | submissions aren't covered | denied |
+| Judge worker: claim and run a test-design run | worker | `test_design_runs` isn't covered (like submissions) | denied |
 | Judge worker: record "solved" | worker, bound to the submitter | writes one progress event for that learner | `rls.bind_user(db, sub.user_id)` |
 | CLI (`prune-guests`, `check-answers`, `grant-admin`, …), migrations, seed | none | as each needs | operator: run deliberately, with operator or owner credentials, never from a request |
 
@@ -111,8 +112,8 @@ access to it.
   record. The write-route walk (`test_another_account_changes_nothing_of_yours_on_any_write_route`)
   is what guards that, not RLS.
 - Not covered, deliberately (reasons in `app/db/rls.py`): submissions and execution results,
-  sign-in tokens, shares (the recipient reads a snapshot, never the owner's rows), and content
-  triage.
+  test-design runs (queued for the worker like submissions), sign-in tokens, shares (the recipient
+  reads a snapshot, never the owner's rows), and content triage.
 
 ## Limits
 

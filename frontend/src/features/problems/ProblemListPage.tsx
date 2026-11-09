@@ -96,6 +96,7 @@ export function ProblemListPage() {
           </p>
           <p><Link to="/problems?view=debugging">Debugging lab: fix programs with a known bug</Link></p>
           <p><Link to="/problems?view=code-review">Code review: review someone else's code</Link></p>
+          <p><Link to="/problems?view=test-design">Test design: write cases that find bugs</Link></p>
         </div>
         <div className="library-badge"><Icon name="code" size={18} /><span>Java, one problem at a time.</span></div>
       </div>

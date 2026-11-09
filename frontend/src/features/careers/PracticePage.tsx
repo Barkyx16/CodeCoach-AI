@@ -4,13 +4,15 @@ import { useAuth } from "@/auth/useAuth";
 import { LoadingState } from "@/components/States";
 import { ReviewList } from "@/features/codeReview/ReviewList";
 import { DebugLabList } from "@/features/debugging/DebugLabList";
+import { TestDesignList } from "@/features/testDesign/TestDesignList";
 import { ProblemListPage } from "@/features/problems/ProblemListPage";
 
 import { DEFAULT_TRACK, usePracticeTrack } from "./practiceTrack";
 import { QuestionLibrary } from "./QuestionLibrary";
 
 /** /problems: coding problems for jobs that have them (unless ?view=questions, ?view=debugging for
- * the debugging lab, or ?view=code-review for code-review practice), interview questions otherwise. */
+ * the debugging lab, ?view=code-review for code-review practice, ?view=test-design for test design),
+ * interview questions otherwise. */
 export function PracticePage() {
   const { isRestoring } = useAuth();
   const { track, career, careersLoading } = usePracticeTrack();
@@ -21,5 +23,6 @@ export function PracticePage() {
   const hasCoding = career ? career.has_coding : track === DEFAULT_TRACK;
   if (hasCoding && params.get("view") === "debugging") return <DebugLabList />;
   if (hasCoding && params.get("view") === "code-review") return <ReviewList />;
+  if (hasCoding && params.get("view") === "test-design") return <TestDesignList />;
   return hasCoding && params.get("view") !== "questions" ? <ProblemListPage /> : <QuestionLibrary />;
 }

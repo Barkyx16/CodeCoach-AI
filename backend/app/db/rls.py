@@ -29,8 +29,10 @@ checks count across learners inside a learner's request); the sign-in tokens (lo
 before the user is known); `shares`/`share_feedback` (read by the recipient); content triage tables
 (admin); `create_intents` (looked up by a browser's anchor before the user is known, like the sign-in
 tokens); `update_receipts` (no content, only ids, revision numbers and a digest; purged across
-learners by housekeeping, which runs in the worker scope; every lookup filters by user); and child
-tables without a `user_id` column (reached through a covered parent).
+learners by housekeeping, which runs in the worker scope; every lookup filters by user);
+`test_design_runs` (queued and claimed by the judge worker across learners, like submissions; every
+request-side lookup filters by user); and child tables without a `user_id` column (reached through
+a covered parent).
 """
 
 from __future__ import annotations

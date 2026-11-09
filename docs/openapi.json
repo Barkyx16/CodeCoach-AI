@@ -11866,6 +11866,382 @@
         }
       }
     },
+    "/api/v1/test-design": {
+      "get": {
+        "tags": [
+          "test design"
+        ],
+        "summary": "Test design exercises",
+        "operationId": "exercises_api_v1_test_design_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TestDesignSummary"
+                  },
+                  "type": "array",
+                  "title": "Response Exercises Api V1 Test Design Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/test-design/{slug}": {
+      "get": {
+        "tags": [
+          "test design"
+        ],
+        "summary": "One exercise: the specification, its input shape and limits (not the faulty versions)",
+        "operationId": "exercise_api_v1_test_design__slug__get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestDesignExercise"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/test-design/{slug}/variants": {
+      "get": {
+        "tags": [
+          "test design"
+        ],
+        "summary": "The authored faulty versions and their defects (shown when the learner asks)",
+        "operationId": "variants_api_v1_test_design__slug__variants_get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TestDesignVariant"
+                  },
+                  "title": "Response Variants Api V1 Test Design  Slug  Variants Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/test-design/{slug}/runs": {
+      "post": {
+        "tags": [
+          "test design"
+        ],
+        "summary": "Run your cases (asynchronous; poll the run). Without a judge they're saved as not run",
+        "operationId": "start_run_api_v1_me_test_design__slug__runs_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestDesignRunIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestDesignRunOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Temporarily unavailable (e.g. the judge queue is full). Retry-After is sent only when the server can justify a wait (for the judge's full queue: from its recent completions); none means no credible wait is known",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "test design"
+        ],
+        "summary": "Your runs of this exercise",
+        "operationId": "runs_api_v1_me_test_design__slug__runs_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TestDesignRunSummary"
+                  },
+                  "title": "Response Runs Api V1 Me Test Design  Slug  Runs Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/test-design/runs/{run_id}": {
+      "get": {
+        "tags": [
+          "test design"
+        ],
+        "summary": "One run: its cases, exercise version and report",
+        "operationId": "get_run_api_v1_me_test_design_runs__run_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestDesignRunOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/schedule": {
       "get": {
         "tags": [
@@ -35429,6 +35805,435 @@
         ],
         "title": "TargetSummary"
       },
+      "TestCaseIn": {
+        "properties": {
+          "input": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Input"
+          },
+          "expected": {
+            "title": "Expected",
+            "description": "The output the specification calls for, as you read it"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "boundary",
+                  "equivalence",
+                  "edge",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Note",
+            "description": "What the case covers, in your words",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "input",
+          "expected"
+        ],
+        "title": "TestCaseIn"
+      },
+      "TestDesignExample": {
+        "properties": {
+          "input": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Input"
+          },
+          "expected": {
+            "title": "Expected"
+          }
+        },
+        "type": "object",
+        "required": [
+          "input",
+          "expected"
+        ],
+        "title": "TestDesignExample"
+      },
+      "TestDesignExercise": {
+        "properties": {
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "spec": {
+            "type": "string",
+            "title": "Spec"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "params": {
+            "items": {
+              "$ref": "#/components/schemas/TestDesignParam"
+            },
+            "type": "array",
+            "title": "Params"
+          },
+          "returns": {
+            "type": "string",
+            "enum": [
+              "int",
+              "boolean"
+            ],
+            "title": "Returns"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/TestDesignLimits"
+          },
+          "examples": {
+            "items": {
+              "$ref": "#/components/schemas/TestDesignExample"
+            },
+            "type": "array",
+            "title": "Examples"
+          },
+          "variant_count": {
+            "type": "integer",
+            "title": "Variant Count"
+          },
+          "review_status": {
+            "type": "string",
+            "title": "Review Status"
+          },
+          "execution_enabled": {
+            "type": "boolean",
+            "title": "Execution Enabled",
+            "description": "False: cases can be written and saved, but not run here"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slug",
+          "version",
+          "title",
+          "summary",
+          "spec",
+          "method",
+          "params",
+          "returns",
+          "limits",
+          "examples",
+          "variant_count",
+          "review_status",
+          "execution_enabled"
+        ],
+        "title": "TestDesignExercise",
+        "description": "What the learner sees before running anything: the specification, its shape and limits,\nand how many faulty versions there are. Not the versions or their defects."
+      },
+      "TestDesignLimits": {
+        "properties": {
+          "max_cases": {
+            "type": "integer",
+            "title": "Max Cases"
+          },
+          "max_length": {
+            "type": "integer",
+            "title": "Max Length"
+          },
+          "min_value": {
+            "type": "integer",
+            "title": "Min Value"
+          },
+          "max_value": {
+            "type": "integer",
+            "title": "Max Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "max_cases",
+          "max_length",
+          "min_value",
+          "max_value"
+        ],
+        "title": "TestDesignLimits"
+      },
+      "TestDesignParam": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "int[]",
+              "int"
+            ],
+            "title": "Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "type"
+        ],
+        "title": "TestDesignParam"
+      },
+      "TestDesignRunIn": {
+        "properties": {
+          "cases": {
+            "items": {
+              "$ref": "#/components/schemas/TestCaseIn"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Cases"
+          },
+          "client_request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 8
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Request Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cases"
+        ],
+        "title": "TestDesignRunIn"
+      },
+      "TestDesignRunOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "exercise_version": {
+            "type": "integer",
+            "title": "Exercise Version"
+          },
+          "current_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Version"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "done",
+              "not_run",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "status_detail": {
+            "type": "string",
+            "title": "Status Detail"
+          },
+          "cases": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Cases"
+          },
+          "report": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Report"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "judged_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Judged At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "exercise_version",
+          "current_version",
+          "status",
+          "status_detail",
+          "cases",
+          "report",
+          "created_at",
+          "judged_at"
+        ],
+        "title": "TestDesignRunOut"
+      },
+      "TestDesignRunSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "exercise_version": {
+            "type": "integer",
+            "title": "Exercise Version"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "cases": {
+            "type": "integer",
+            "title": "Cases"
+          },
+          "caught": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Caught"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "exercise_version",
+          "status",
+          "cases",
+          "caught",
+          "total",
+          "created_at"
+        ],
+        "title": "TestDesignRunSummary"
+      },
+      "TestDesignSummary": {
+        "properties": {
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "variant_count": {
+            "type": "integer",
+            "title": "Variant Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slug",
+          "title",
+          "summary",
+          "variant_count"
+        ],
+        "title": "TestDesignSummary"
+      },
+      "TestDesignVariant": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "A, B, C\u2026: how the run reports name it"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "defect": {
+            "type": "string",
+            "title": "Defect"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "title",
+          "defect"
+        ],
+        "title": "TestDesignVariant"
+      },
       "TodayOut": {
         "properties": {
           "minutes_available": {
@@ -37409,6 +38214,10 @@
     {
       "name": "code reviews",
       "description": "Review someone else's code (synthetic snippets for existing problems), then compare with an authored review: defects shown by public tests, preferences labelled as such, comparison by location only."
+    },
+    {
+      "name": "test design",
+      "description": "Propose test cases for a small specification and see, from a real sandbox run, which authored faulty versions they tell apart from the reference. Coverage counts only those versions."
     },
     {
       "name": "backup",

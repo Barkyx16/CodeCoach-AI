@@ -147,6 +147,12 @@ import type {
   ReviewExercise,
   ReviewExerciseSummary,
   ReviewReference,
+  TestDesignExercise,
+  TestDesignRun,
+  TestDesignRunIn,
+  TestDesignRunSummary,
+  TestDesignSummary,
+  TestDesignVariant,
   WhiteboardAttemptIn,
   WhiteboardAttemptSummary,
   WhiteboardDiagram,
@@ -592,6 +598,15 @@ export const api = {
     apiRequest<ReviewAttempt>(`/api/v1/me/code-reviews/${encodeURIComponent(slug)}/attempts`, { method: "POST", body }),
   reviewAttempts: (slug: string) => apiRequest<ReviewAttemptSummary[]>(`/api/v1/me/code-reviews/${encodeURIComponent(slug)}/attempts`),
   reviewAttempt: (id: string) => apiRequest<ReviewAttempt>(`/api/v1/me/code-reviews/attempts/${encodeURIComponent(id)}`),
+
+  // test design (the exercises and their faulty versions are public; your runs are yours)
+  testDesigns: () => apiRequest<TestDesignSummary[]>("/api/v1/test-design", { auth: false }),
+  testDesign: (slug: string) => apiRequest<TestDesignExercise>(`/api/v1/test-design/${encodeURIComponent(slug)}`, { auth: false }),
+  testDesignVariants: (slug: string) => apiRequest<TestDesignVariant[]>(`/api/v1/test-design/${encodeURIComponent(slug)}/variants`, { auth: false }),
+  startTestRun: (slug: string, body: TestDesignRunIn) =>
+    apiRequest<TestDesignRun>(`/api/v1/me/test-design/${encodeURIComponent(slug)}/runs`, { method: "POST", body }),
+  testRuns: (slug: string) => apiRequest<TestDesignRunSummary[]>(`/api/v1/me/test-design/${encodeURIComponent(slug)}/runs`),
+  testRun: (id: string) => apiRequest<TestDesignRun>(`/api/v1/me/test-design/runs/${encodeURIComponent(id)}`),
 
   // interview-day kits
   kit: (appId: string, eventId: string) => apiRequest<Kit>(`/api/v1/me/applications/${encodeURIComponent(appId)}/events/${encodeURIComponent(eventId)}/kit`),

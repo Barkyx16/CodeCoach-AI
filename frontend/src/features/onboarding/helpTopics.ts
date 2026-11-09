@@ -116,6 +116,17 @@ export const HELP_TOPICS: HelpTopic[] = [
     ],
   },
   {
+    id: "test-design",
+    title: "Test design",
+    items: [
+      {
+        q: "What's test design practice?",
+        a: "A small specification with a trusted reference implementation and a few faulty versions, each with one known defect. You write test cases (inputs and the output the specification calls for), run them, and the report says which faulty versions each case tells apart from the reference. The answer always comes from running the reference, never from your expected output or from AI: a case whose expected output disagrees with the specification isn't counted against anything. Coverage counts only these written-for-practice versions, not every possible bug, and the exercises are separate from the coding problems' hidden tests. Without a judge on the server your cases are saved but not run. It's for careers with coding practice.",
+        links: [{ to: "/problems?view=test-design", label: "Test design" }],
+      },
+    ],
+  },
+  {
     id: "getting-around",
     title: "Getting around",
     items: [

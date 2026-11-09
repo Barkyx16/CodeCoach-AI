@@ -33,6 +33,7 @@ from app.db.session import make_engine, make_session_factory
 from app.metrics import Metrics
 from app.models import ProgressEvent, ProgressEventType, Submission, SubmissionMode, SubmissionStatus
 from app.observability import configure_logging
+from app.services import test_design_judge
 from app.services.judge.judge import STATUS_DETAIL, JudgeInfrastructureError, judge_submission
 from app.services.judge.runner_client import HttpRunner, Runner, RunnerUnavailable
 
@@ -121,7 +122,7 @@ class JudgeWorker:
                 self._retry_or_fail(sub, "worker stopped while judging")
                 step.set(result="requeued" if sub.status == SubmissionStatus.QUEUED else "failed")
         db.commit()
-        return len(stale)
+        return len(stale) + test_design_judge.recover_stale(db, self.settings)
 
     def _retry_or_fail(self, sub: Submission, reason: str) -> None:
         if sub.attempts < self.settings.judge_max_attempts:
@@ -137,11 +138,12 @@ class JudgeWorker:
     # --- main loop ----------------------------------------------------------------------
 
     def process_one(self) -> bool:
-        """Judge at most one submission. Returns True if a job was processed."""
+        """Judge at most one submission, or else one test-design run. Returns True if a job was
+        processed. Submissions go first: they're what a learner is waiting on in the editor."""
         with self.session_factory() as db:
             sub = self.claim(db)
             if sub is None:
-                return False
+                return self._process_test_design(db)
             sub_id, trace_id, attempt, language = sub.id, sub.trace_id, sub.attempts, sub.language
             waited = (sub.judge_started_at or _now()) - _as_utc(sub.created_at)
         with (
@@ -155,6 +157,21 @@ class JudgeWorker:
             ) as step,
         ):
             return self._judge(db, sub_id, step)
+
+    def _process_test_design(self, db: Session) -> bool:
+        run = test_design_judge.claim(db)
+        if run is None:
+            return False
+        run_id, trace_id, attempt = run.id, run.trace_id, run.attempts
+        with (
+            self.session_factory() as job_db,
+            self._trace(trace_id),
+            tracing.span("judge.test_design", attempt=attempt) as step,
+        ):
+            status = test_design_judge.execute(job_db, run_id, self.runner, self.settings)
+            step.set(result=status)
+            logger.info("test design run %s -> %s", run_id, status)
+        return True
 
     def _judge(self, db: Session, sub_id: str, step: tracing.Span) -> bool:
         sub = db.scalar(
