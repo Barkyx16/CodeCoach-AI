@@ -94,6 +94,16 @@ export const HELP_TOPICS: HelpTopic[] = [
     ],
   },
   {
+    id: "getting-around",
+    title: "Getting around",
+    items: [
+      {
+        q: "Is there a quick way to open a page?",
+        a: "Press Ctrl+K (Cmd+K on a Mac), or the Go to button in the header. Type part of a page's name, like \"notes\", \"plan\" or \"interview\", move with the arrow keys and press Enter; Esc closes it and puts you back where you were. It lists pages you can open right now, for your career; it opens pages only (it doesn't start, send or delete anything), and a page with unsaved changes still asks before you leave it. Inside the code editor, Ctrl+K belongs to the editor. It finds pages, not what's in your notes or answers. What you type stays in your browser; the last few pages you opened from it are kept on this device for your account and removed when you sign out.",
+      },
+    ],
+  },
+  {
     id: "history",
     title: "Finding your history",
     items: [

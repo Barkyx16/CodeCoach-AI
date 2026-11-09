@@ -10,6 +10,9 @@ import { countLocalWork } from "@/auth/localWork";
 import { noteLocation } from "@/lib/documentEntry";
 
 import { AppStatus } from "./AppStatus";
+import { CommandPalette } from "./CommandPalette";
+import { isPaletteShortcut } from "./commands";
+import { Icon } from "@/components/Icon";
 import { LeaveGuard } from "./LeaveGuard";
 import { Reminders } from "@/features/schedule/Reminders";
 import { TourFinishReconciler } from "@/features/onboarding/TourFinishReconciler";
@@ -62,6 +65,22 @@ export function Layout() {
       document.documentElement.removeAttribute("data-focus");
     };
   }, [focusOn, focusMode]);
+  // The command palette (Ctrl+K or Cmd+K, or the "Go to" button): what opened it gets focus back.
+  const [palette, setPalette] = useState<{ opener: HTMLElement | null } | null>(null);
+  const openPalette = useCallback(() => {
+    setPalette((open) => open ?? { opener: document.activeElement instanceof HTMLElement ? document.activeElement : null });
+  }, []);
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || !isPaletteShortcut(event)) return;
+      event.preventDefault(); // the browser's own Ctrl+K (its search box)
+      setOpenPath(null);
+      openPalette();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [openPalette]);
+  const shortcutLabel = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? "⌘K" : "Ctrl K";
   const navClass = ({ isActive }: { isActive: boolean }) => `nav__link${isActive ? " nav__link--active" : ""}`;
   const navGroups = useMemo<NavGroup[]>(() => {
     const signedIn = isAuthenticated;
@@ -145,6 +164,12 @@ export function Layout() {
           <BrandMark />
           <span className="brand__name">CodeCoach AI</span>
         </NavLink>
+        <button type="button" className="palette-button btn btn--secondary btn--sm" aria-haspopup="dialog"
+          aria-keyshortcuts="Control+K Meta+K" onClick={() => { setOpenPath(null); openPalette(); }}>
+          <Icon name="search" size={16} aria-hidden="true" />
+          <span>Go to…</span>
+          <kbd className="palette-button__keys" aria-hidden="true">{shortcutLabel}</kbd>
+        </button>
         <button className="menu-toggle btn btn--ghost btn--md" type="button" ref={toggleRef}
           aria-expanded={menuOpen}
           aria-controls="primary-navigation" onClick={() => setOpenPath(menuOpen ? null : pathname)}>
@@ -188,6 +213,9 @@ export function Layout() {
         </div>
         </div>
       </header>
+      )}
+      {palette && (
+        <CommandPalette opener={palette.opener} onClose={() => setPalette(null)} onGo={(to) => navigate(to)} />
       )}
       <AppStatus />
       <LeaveGuard />

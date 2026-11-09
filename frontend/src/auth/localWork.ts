@@ -6,6 +6,8 @@
  * aren't account data. See docs/OFFLINE.md.
  */
 
+import { recentKey } from "@/app/commands";
+
 function keys(): string[] {
   try {
     return Array.from({ length: window.localStorage.length }, (_, i) => window.localStorage.key(i) ?? "");
@@ -50,7 +52,9 @@ export function countLocalWork(userId: string): number {
 }
 
 export function clearLocalWork(userId: string): void {
-  for (const k of localWorkKeys(userId)) {
+  // Also the pages this account last opened from the command palette (ids only, not counted as
+  // unsent work above): the next person on this device doesn't inherit them.
+  for (const k of [...localWorkKeys(userId), recentKey(userId)]) {
     try {
       window.localStorage.removeItem(k);
     } catch {

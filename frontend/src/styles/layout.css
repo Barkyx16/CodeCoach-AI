@@ -105,3 +105,32 @@
 .focus-toggle__box { width: 0.75rem; height: 0.75rem; flex-shrink: 0; border: 1.5px solid currentColor; border-radius: 3px; }
 .focus-toggle[aria-pressed="true"] { color: var(--color-text); border-color: var(--color-link); background: var(--color-primary-soft); }
 .focus-toggle[aria-pressed="true"] .focus-toggle__box { background: var(--color-link); border-color: var(--color-link); }
+
+/* Command palette (app/CommandPalette.tsx): the "Go to" button and the dialog. */
+.palette-button { gap: var(--space-2); flex-shrink: 0; color: var(--color-text-muted); }
+.palette-button__keys { font-size: var(--text-xs); }
+@media (max-width: 1100px) {
+  .palette-button { margin-left: auto; min-height: 44px; }
+  .palette-button ~ .menu-toggle { margin-left: 0; }
+}
+.palette { width: min(640px, calc(100vw - 24px)); max-height: min(72vh, 600px); margin: 10vh auto auto; padding: 0; border: 1px solid var(--color-border-strong); border-radius: var(--radius-lg); background: var(--color-surface); color: var(--color-text); box-shadow: var(--shadow-md); }
+.palette::backdrop { background: rgba(8, 6, 16, 0.6); }
+.palette__panel { display: flex; flex-direction: column; gap: var(--space-3); max-height: inherit; padding: var(--space-4); }
+.palette__top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.palette__label { font-weight: var(--weight-semibold); }
+.palette__input { width: 100%; }
+.palette__list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.palette__group + .palette__group { margin-top: var(--space-2); }
+.palette__group-title { padding: var(--space-2) var(--space-3) var(--space-1); font-size: var(--text-xs); font-weight: var(--weight-semibold); letter-spacing: .08em; text-transform: uppercase; color: var(--color-text-subtle); }
+.palette__option { display: grid; gap: 2px; align-content: center; min-height: 44px; padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); cursor: pointer; }
+.palette__option--active { background: var(--color-primary-soft); outline: 2px solid var(--color-link); outline-offset: -2px; }
+.palette__option-label { font-weight: var(--weight-medium); }
+.palette__option-detail { font-size: var(--text-sm); color: var(--color-text-muted); }
+.palette__option--unavailable { cursor: default; }
+.palette__option--unavailable .palette__option-label { color: var(--color-text-muted); }
+.palette__empty { padding: var(--space-2) var(--space-3); }
+.palette__empty p { margin: 0 0 var(--space-1); }
+.palette__hint { display: flex; flex-wrap: wrap; gap: var(--space-4); margin: 0; font-size: var(--text-xs); }
+@media (max-width: 640px) { .palette { margin-top: var(--space-3); max-height: calc(100dvh - 24px); } }
+/* Keyboard hints only where there's likely a keyboard (after the rules above, so it wins). */
+@media (hover: none), (max-width: 640px) { .palette-button__keys, .palette__hint { display: none; } }

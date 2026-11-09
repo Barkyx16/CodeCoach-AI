@@ -259,6 +259,34 @@ tearing down the diagnostics hit the timeout too. The traces were overwritten by
 **Still unresolved:** what stopped the page, and whether the two reads ever reached the API. The
 new tests establish the deadline and recovery behaviour, not the cause.
 
+### Command palette (Volume 10, prompt 1)
+
+Ctrl+K (Cmd+K on a Mac) or the header's **Go to…** button opens a dialog for going to a page by
+typing. `app/commands.ts` is the list; `app/CommandPalette.tsx` the dialog.
+
+- **What it lists:** pages that exist in the router, for this visitor: signed out, the public ones
+  (library, lessons, help, sign in, create account); signed in, practice, progress, job search,
+  library and account pages; triage only for admins. A coding career gets "Coding problems", the
+  questions view and the whiteboard; any other career gets "Interview questions" and no coding
+  tools. On a server that doesn't run code, "Coding problems" says attempts are saved, not judged;
+  on a demo server "Create account" says why it can't open and the guided demo is offered. The list
+  only labels: each page and the API still decide access.
+- **What it does:** opens a page, through the router, after closing itself. Nothing is started,
+  submitted, sent, recorded or deleted; "Write a new story" opens an empty editor and "Restore from a
+  backup" its preview. A page with unsaved changes asks first (the app's leave guard), and staying
+  keeps the typing.
+- **Keyboard:** the field is a combobox over a listbox (`aria-activedescendant`); arrows move and
+  wrap, Enter opens, Escape or Close (or a click on the backdrop) closes. Focus goes back to what
+  opened it; after a navigation the new page's main region takes it. A polite status gives the
+  number of matches or "No page matches". It's a native modal `<dialog>`: the page behind is inert.
+- **Not stolen:** Ctrl+K inside the code editor (its own two-key shortcuts start with it), and any
+  key while an input method is composing text.
+- **Search:** labels and a few aliases, by the start of a word, in the browser. The text typed isn't
+  sent, logged or kept. Not searched: note bodies, answers, record titles.
+- **Recent pages:** the last five command ids used, per account, in this browser
+  (`palette-recent:<account>`), shown first when the field is empty; never a record's title. Signing
+  out removes them; another account never reads them.
+
 ## Tests
 
 - `frontend/src/test/integration/returnPaths.test.tsx` (12):
