@@ -31,6 +31,10 @@ export function FormDraftOffer({ what, at, newer, onRestore, onDiscard }: {
 /**
  * Where unsaved changes are: kept on this device, or only on this page (the browser refused the
  * copy, or another tab has a newer one). Never "saved". Copy your work when they're on the page only.
+ *
+ * Always on the page, empty while nothing has changed (Volume 9, prompt 8): its line doesn't push
+ * Save down when typing starts, and a screen reader hears each change of state. The mark beside
+ * the words is decoration; the words say the state.
  */
 export function FormDraftStatus({ changed, kept, competing, copyText }: {
   changed: boolean;
@@ -39,30 +43,36 @@ export function FormDraftStatus({ changed, kept, competing, copyText }: {
   copyText: () => string;
 }) {
   const [copied, setCopied] = useState<"yes" | "no" | null>(null);
-  if (!changed) return null;
   const onPageOnly = !kept || competing;
+  const tone = !changed ? "" : onPageOnly ? " form-state--page-only" : " form-state--local";
   return (
-    <span className="subtle" role="status">
-      {competing
-        ? "Another tab of this browser has a newer copy of this form, kept as it was. These changes are on this page only: save them, or copy your work."
-        : onPageOnly
-          ? "Unsaved changes, and this browser can't keep a copy: save them, or copy your work."
-          : "Unsaved changes, kept on this device."}
-      {onPageOnly && (
+    <p className={`form-state${tone}`} role="status">
+      {changed && (
         <>
-          {" "}
-          <Button size="sm" variant="ghost" onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(copyText());
-              setCopied("yes");
-            } catch {
-              setCopied("no");
-            }
-          }}>Copy your work</Button>
-          {copied === "yes" && " Copied."}
-          {copied === "no" && " This browser didn't allow copying: select the text and copy it yourself."}
+          <span className="form-state__mark" aria-hidden="true" />
+          <span>
+            {competing
+              ? "Another tab of this browser has a newer copy of this form, kept as it was. These changes are on this page only: save them, or copy your work."
+              : onPageOnly
+                ? "Unsaved changes, and this browser can't keep a copy: save them, or copy your work."
+                : "Unsaved changes, kept on this device."}
+          </span>
+          {onPageOnly && (
+            <span className="form-state__action">
+              <Button size="sm" variant="ghost" onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(copyText());
+                  setCopied("yes");
+                } catch {
+                  setCopied("no");
+                }
+              }}>Copy your work</Button>
+              {copied === "yes" && " Copied."}
+              {copied === "no" && " This browser didn't allow copying: select the text and copy it yourself."}
+            </span>
+          )}
         </>
       )}
-    </span>
+    </p>
   );
 }

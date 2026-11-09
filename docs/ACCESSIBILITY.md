@@ -148,6 +148,24 @@ Not checked here: a real phone with its on-screen keyboard open (the visual view
 bars, safe areas), iOS Safari, and Android Chrome on a device. Only viewport emulation was
 available; no layout depends on a keyboard height or pins controls to the bottom of the screen.
 
+### Form status and errors (Volume 9, prompt 8)
+
+On the editing pages, each state of a form's changes now looks different as well as reading
+differently, and the most useful text is no longer the smallest:
+
+- **Where changes are** (`FormDraftStatus`, the application's "Saved."): one line with a small mark
+  and the words. Muted for "Unsaved changes, kept on this device.", warning colour for changes on
+  this page only (with Copy your work), success colour for "Saved.". The words carry the state; the
+  colour and mark only help scanning. The line is always on the page (empty until something
+  changes), so Save no longer jumps down on the first keystroke (it moved by a line; measured now:
+  1 px), and a screen reader hears each change of state from one steady live region.
+- **Field errors** are 14 px and medium weight (they were 12 px), still in the danger colour and
+  linked to their field. Measured contrast against their backgrounds: 7.2:1 (light) and 7.4:1
+  (dark); "Saved." 6.6:1 and 9.9:1; "Unsaved changes…" 10.1:1 and 9.8:1.
+- Nothing about saving changed: the same states, the same words, the same moments. Before/after:
+  `docs/screenshots/v9-08/`. The coding workspace's own save indicator (`.save-state`) is separate
+  and unchanged.
+
 ### Not checked
 
 - **No screen reader was used.** None is installed in this environment (no NVDA, JAWS,

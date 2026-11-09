@@ -431,7 +431,7 @@ function DetailsCard({ a, onDone }: { a: Application; onDone: (a: Application) =
       <FormDraftStatus changed={fieldsDirty} kept={fieldsDraft.kept} competing={fieldsDraft.competing}
         copyText={() => [form.role_title, form.employer, form.link, form.next_action].filter(Boolean).join("\n")} />
       {fieldErrors.other.length > 0 && <p className="field__error" role="alert">{fieldErrors.other.join(" ")}</p>}
-      <span className="row"><Button type="submit" size="sm" variant="primary" loading={busy}>Save details</Button>{savedAs === JSON.stringify(form) && <span className="subtle" role="status">Saved.</span>}</span>
+      <span className="row"><Button type="submit" size="sm" variant="primary" loading={busy}>Save details</Button>{savedAs === JSON.stringify(form) && <span className="form-state form-state--saved" role="status"><span className="form-state__mark" aria-hidden="true" />Saved.</span>}</span>
     </form>
   );
 }
