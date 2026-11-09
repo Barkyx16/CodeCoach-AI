@@ -111,6 +111,9 @@ could say it about text the server never got.
   kept, instead of pretending ("Not saved: storage unavailable").
 - Drafts written while signed out (`…anon…` keys) aren't tied to an account and aren't cleared
   by a sign-out.
+- A session that ends by itself (expiry, sign out everywhere) isn't a sign-out: that account's
+  drafts and pending-action records stay in this browser, locked to it, until it signs in again
+  (or signs out here). RECOVERY.md "When a session ends" has the whole policy.
 - Interview round, chat and retry drafts are keyed by the interview, not the account. Only the
   interview's owner can open it, so they never load into another account's form, and they're
   cleared at any sign-out on the device.

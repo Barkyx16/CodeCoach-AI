@@ -8,7 +8,7 @@ import { diag } from "@/lib/diagnostics";
 import { forgetAllIntents } from "@/lib/pendingIntents";
 
 import { AuthContext, type AuthContextValue } from "./context";
-import { forgetDeviceUser, readDeviceUser, rememberDeviceUser, type DeviceUser } from "./deviceUser";
+import { DEVICE_USER_KEY, forgetDeviceUser, readDeviceUser, rememberDeviceUser, type DeviceUser } from "./deviceUser";
 import { verifiedElsewhere } from "./emailVerified";
 import { clearLocalWork } from "./localWork";
 import { forgetPendingSignOut, rememberPendingSignOut, signOutPending } from "./pendingSignOut";
@@ -267,6 +267,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("storage", onStorage);
   }, [queryClient]);
 
+  // This tab's session ended by itself, and another tab of this browser has since signed in: the
+  // cookie works again, so check once (one refresh, never a loop: only a changed record fires
+  // this). The same account carries on with the work on screen; another account sees its own,
+  // since drafts and pending actions are kept per account (Volume 8, prompt 8).
+  useEffect(() => {
+    if (!signedOutReason) return;
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== DEVICE_USER_KEY || !event.newValue || sessionRef.current) return;
+      void refreshNow().then((token) => {
+        if (!token) return;
+        setSignedOutReason(null);
+        setLapsedUserId(null);
+        forgetSessionData(queryClient); // anything fetched while signed out is fetched again
+      });
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [signedOutReason, refreshNow, queryClient]);
+
   // Refresh a minute before the access token expires, so requests never wait on it.
   useEffect(() => {
     if (!session) return;
@@ -279,13 +298,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(timer);
   }, [session, refreshNow, clear]);
 
-  /**
-   * A guest start or registration whose reply may be lost (Volume 8, prompt 6). This browser first
-   * gets an anchor (an HttpOnly cookie scripts can't read). If the reply is lost, the session cookie
-   * may still have arrived: a refresh says so. If not, the same request once more: the anchor lets
-   * the server find the account it made (a registration needs the same password too), so no second
-   * guest or "email taken". Still no answer: the outcome is unknown, and the page says so plainly.
-   */
   /** Create a guest or an account when its reply may be lost (Volume 8, prompt 6; RECOVERY.md).
    * The server first gives this browser an HttpOnly anchor; a resend from here then finds what the
    * lost request made instead of making another. If the reply's session cookie did arrive, that

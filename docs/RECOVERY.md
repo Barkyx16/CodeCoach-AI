@@ -553,6 +553,64 @@ Tests:
   the over-a-day test was strengthened after its first control was missed (its value was also
   refused by the length check).
 
+## When a session ends (Volume 8, prompt 8)
+
+A session can end two ways, and they're kept apart:
+
+| | A session that ended by itself (expired, or revoked elsewhere: sign out everywhere, a password change) | A deliberate sign-out on this device |
+|---|---|---|
+| Work on screen | Stays. Public pages (a coding problem, a career question) keep showing it; account-only pages go to sign-in, and their unsaved text is still in this browser | Gone, after a warning if anything is unsent |
+| Unsaved drafts in this browser | Kept, under that account. Shown only when that account is signed in here again | Deleted (OFFLINE.md lists every kind) |
+| Unresolved actions (prompt 1's records) | Kept, under that account, for the same 24 hours | Deleted |
+| Saving to an account | Nothing is saved to an account until someone signs in; the banner says so | — |
+| What the banner says | "Your session ended. Please sign in again.", what's kept and for whom (it names nobody), and **Sign in again**, which comes back to this page | Nothing: going home is the answer |
+
+- **Signing in again as the same account:** the page reloads its data as that account. Drafts
+  come back as they were (the editors that compare against a saved revision still do, so a story
+  or note changed elsewhere meanwhile is compared, not overwritten). Unresolved actions are
+  checked with a read; nothing is sent again, and no hint, review, submission or transcription
+  restarts because a session was renewed. The microphone never starts by itself.
+- **Signing in as another account:** that account sees its own drafts or the starter content.
+  Nothing of the earlier account's is shown, checked, sent, attached or moved, because drafts and
+  action records are kept per account and read only for the account signed in. The earlier
+  account's copies stay where they were, locked to it.
+- **Another tab signs in** while this tab's session had ended: this tab checks once (one refresh,
+  when the device's record changes) and carries on as whoever is now signed in on this browser,
+  with the same per-account rules.
+- **Storage unavailable:** the banner says this browser can't keep a copy, and to copy anything
+  needed before leaving the page.
+- **Failed sign-in, unverified account:** the sign-in page shows its usual answer; the banner
+  stays until a sign-in succeeds; nothing loops. The return path is the existing validated one:
+  the page's own path, never its text.
+
+Example, same account. Ada has unsaved code in Two Sum and a submission whose reply was lost.
+She signs out everywhere from her phone. Back on the laptop, her next request (asking for a
+hint) finds the session ended: the code stays, the banner offers Sign in again. She signs in,
+comes back to Two Sum, her code is there, and the page says "Your submission from 21:04
+arrived" (one read of its key). Nothing was sent twice; the hint isn't asked again by itself.
+
+Example, another account. Same start, but Bea signs in at the laptop. Two Sum shows Bea's own
+code (the starter); no lookup of Ada's key is made as Bea. Ada's code and her pending record stay
+in this browser under Ada's account. If Bea signs out and Ada signs in later, Ada's code is
+there.
+
+Limits: copies kept under an account that isn't signed in are still in this browser's storage,
+readable by anyone with access to this browser's files or developer tools. They aren't
+encrypted, and nothing here promises otherwise. They're deleted when that account signs out
+here, or with the browser's site data. A deliberate sign-out, or storage the browser cleared,
+can't be undone by the app. An account-only page that was open when the session ended can't
+keep its form on screen (its data belongs to the account), so its unsaved text is offered back
+after signing in as that account.
+
+Tests:
+- `frontend/src/test/integration/sessionLapse.test.tsx` (4): the same account back, with a
+  failed sign-in first; another account; another tab signing in; storage that can't keep copies.
+- `frontend/e2e/session-lapse.spec.ts` (2, real API: the session revoked by sign out
+  everywhere): the same account back with its code and no repeated hint; another account sees
+  its own code, the earlier account's stays locked and returns after it signs in again.
+- Negative controls: 4, each caught (no sign-in link; no cross-tab check; a lapse that forgets
+  pending actions; the lapsed account's draft scope outliving the next sign-in).
+
 ## Limits
 
 - Updates sent without a key (an older page), or retried after their receipt expired (7 days),

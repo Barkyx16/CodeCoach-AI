@@ -79,7 +79,7 @@ Nothing is ever graded, judged or scored on the device, and a draft is never sho
 | --- | --- | --- |
 | App shell and built files | Cache Storage `codecoach-shell-<version>`, `codecoach-assets-<version>` | Replaced on each update |
 | Saved public lessons, questions, problems | Cache Storage `codecoach-offline-v1` | When you remove them, or when they're retired |
-| Answer, code, lesson-exercise, drill, story, whiteboard and reflection drafts; note recovery copies | localStorage, keyed by account | Sent and cleared, or **deleted when you sign out** (after a warning if any are unsent) |
+| Answer, code, lesson-exercise, drill, story, whiteboard and reflection drafts; note recovery copies | localStorage, keyed by account | Sent and cleared, or **deleted when you sign out** (after a warning if any are unsent). A session that ends by itself keeps them for that account (RECOVERY.md) |
 | Interview round, follow-up, chat and retry drafts | localStorage, keyed by interview (only its owner can open it) | Sent and cleared, or deleted when anyone signs out on this device |
 | Which account last used the device | localStorage `codecoach.device-user.v1` | On sign-out |
 | Display, editor and voice preferences | localStorage | Kept: device settings, not account data |

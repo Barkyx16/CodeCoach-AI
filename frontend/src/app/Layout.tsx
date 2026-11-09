@@ -16,6 +16,7 @@ import { PlanReturn } from "@/features/plan/PlanReturn";
 import { MainNav, type NavGroup } from "./MainNav";
 import { NAV_ICONS } from "./navIcons";
 import { RouteAccessibility } from "./RouteAccessibility";
+import { SessionEndedBanner } from "./SessionEndedBanner";
 
 export function Layout() {
   const { user, isAuthenticated, isRestoring, logout, signedOutReason, offlineUser } = useAuth();
@@ -187,9 +188,7 @@ export function Layout() {
       <LeaveGuard />
       <Reminders />
       {isAuthenticated && <TourFinishReconciler />}
-      {signedOutReason && !isAuthenticated && (
-        <div className="banner banner--warning app__banner" role="status">{signedOutReason}</div>
-      )}
+      {signedOutReason && !isAuthenticated && <SessionEndedBanner reason={signedOutReason} />}
       <main id="main" className="app__main" tabIndex={-1}>
         <FocusModeContext.Provider value={focusMode}>
           {isAuthenticated && <PlanReturn />}
