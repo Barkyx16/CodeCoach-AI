@@ -107,6 +107,8 @@ test("the debugging lab: the faulty starter fails on its reproduction case, and 
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto("/");
   await page.getByRole("button", { name: /try it now/i }).click();
+  // The guest session exists once the welcome offers a problem; navigating sooner can abort it.
+  await expect(page.getByRole("button", { name: "Start this problem" })).toBeVisible();
   await page.goto("/problems/debug-count-at-most");
   await expect(page.locator(".monaco-editor")).toBeVisible();
   await expect(page.getByRole("region", { name: "Fix the bug" })).toBeVisible();

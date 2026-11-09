@@ -19,6 +19,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 
+from app.db import rls
 from app.db.backup import BackupError, backup, restore
 from app.main import create_app
 from app.models import EmailJob
@@ -106,7 +107,8 @@ def test_a_backup_restores_into_a_separate_database_and_the_app_runs_on_it(
     manifest = made.manifest_data
     assert manifest["tables"]["users"] == 2 and manifest["tables"]["notes"] == 4
     assert manifest["table_owners"] == [source.owner] and source.app in manifest["granted_roles"]
-    assert manifest["policies"] == 60  # 30 learner tables x (owner-only + maintenance read)
+    # Every learner table has two policies (owner-only + maintenance read); the list grows with features.
+    assert manifest["policies"] == 2 * len(rls.PROTECTED_TABLES)
     assert b"ada@example.com" not in made.dump.read_bytes()  # encrypted, not just compressed
     assert "ada@example.com" not in made.manifest.read_text()  # the manifest holds no user data
 

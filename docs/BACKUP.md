@@ -19,7 +19,7 @@ security policies.
 | Every table's rows (accounts, password hashes, all learning work, queued emails, sign-in sessions) | yes: `pg_dump --format=custom`, snapshot-consistent | `pg_restore` in one transaction |
 | Schema, indexes, constraints, the migration revision (`alembic_version`) | yes | restored; readiness then compares it with the code |
 | Sequences (integer ids) | yes, with their current values | restored |
-| Row-level security: `ENABLE`/`FORCE`, both policies on all 30 learner tables | yes | restored; the restore counts the policies against the manifest |
+| Row-level security: `ENABLE`/`FORCE`, both policies on every learner table in `db/rls.py` (`PROTECTED_TABLES`) | yes | restored; the restore counts the policies against the manifest |
 | Table ownership and grants to the app role | yes | restored, **if the roles exist first** (the restore refuses otherwise) |
 | The roles themselves, and their passwords | **no**: roles are server-wide, not part of one database | `deploy/postgres-init/10-roles.sh`, or `CREATE ROLE … NOSUPERUSER NOBYPASSRLS` with new passwords |
 | `CONNECT` on the database for the app role | **no** (a database-level grant) | the restore re-grants it to every role the manifest lists |

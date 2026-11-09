@@ -163,24 +163,45 @@ def test_a_failing_step_fails_the_run_and_its_database_is_still_dropped():
     assert not still_exists(made_by(lines))
 
 
+def _make_what_the_head_migration_adds(conn) -> str:
+    """At the previous revision, create one thing the head migration adds (a table, else a column),
+    so its real upgrade fails. Found by comparing the models with the database, so it follows
+    whichever migration is the head; returns the name to look for in the failure."""
+    import app.models  # noqa: F401  (every model registered on Base.metadata)
+    from app.db.session import Base
+
+    present = inspect(conn)
+    existing = set(present.get_table_names())
+    for table in sorted(Base.metadata.tables):
+        if table not in existing:
+            conn.execute(text(f'CREATE TABLE "{table}" (id varchar(36) PRIMARY KEY)'))
+            return table
+    for table in sorted(Base.metadata.tables):
+        have = {c["name"] for c in present.get_columns(table)}
+        for column in Base.metadata.tables[table].columns:
+            if column.name not in have:
+                conn.execute(text(f'ALTER TABLE "{table}" ADD COLUMN "{column.name}" text'))
+                return column.name
+    raise AssertionError("the head migration adds no table or column: sabotage it some other way")
+
+
 @needs_admin
 def test_a_real_migration_failure_fails_the_run_and_cleans_up():
-    """The head migration creates create_intents: make it exist already, and the real alembic fails."""
+    """Something the head migration creates already exists, so the real alembic fails."""
     lines: list[str] = []
-    sabotaged = {"done": False}
+    sabotaged: dict[str, str] = {}
 
     def sabotage_then_run(args, env):
-        if list(args)[-1] == "head" and not sabotaged["done"]:
-            sabotaged["done"] = True
+        if list(args)[-1] == "head" and not sabotaged:
             engine = create_engine(env["DATABASE_URL"])
             with engine.begin() as c:
-                c.execute(text("CREATE TABLE create_intents (id varchar(36) PRIMARY KEY)"))
+                sabotaged["name"] = _make_what_the_head_migration_adds(c)
             engine.dispose()
         return cm.run_child(args, env)
 
     assert cm.check(maintenance_url(), runner=sabotage_then_run, log=lines.append) == 1
     failed = next(x for x in lines if x.startswith("FAIL:"))
-    assert failed.startswith("FAIL: upgrade to head") and "create_intents" in failed
+    assert failed.startswith("FAIL: upgrade to head") and sabotaged["name"] in failed, failed
     assert cm.MARKER not in lines and not still_exists(made_by(lines))
 
 
