@@ -1413,6 +1413,32 @@ class ComparisonAttempt(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
 
+class OfferRehearsal(Base):
+    """A rehearsal of an offer conversation (docs/OFFER_REHEARSAL.md): a snapshot of the fictional
+    fact card it was run on, the goals the learner wrote (kept apart from the card), every turn
+    (the learner's, typed or spoken, and the counterpart's authored replies), and the debrief. A
+    different approach is a new row naming the one it follows; nothing here touches an
+    application or a real offer."""
+
+    __tablename__ = "offer_rehearsals"
+    __table_args__ = (Index("ix_offer_rehearsal_user_case", "user_id", "case_id"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    case_id: Mapped[str] = mapped_column(String(64))
+    case_version: Mapped[int] = mapped_column(Integer)
+    snapshot: Mapped[dict] = mapped_column(JSONType)
+    goals: Mapped[list] = mapped_column(JSONType, default=list)
+    status: Mapped[str] = mapped_column(String(12), default="in_progress")  # in_progress | completed
+    phase: Mapped[str] = mapped_column(String(12), default="clarify")  # clarify | request | respond
+    turns: Mapped[list] = mapped_column(JSONType, default=list)
+    parent_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    debrief: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    completed_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+
+
 class WorkSampleDraft(Base):
     """A work sample in progress for one brief (docs/WORK_SAMPLES.md): the text of each section,
     saved against a revision like the other long-form editors."""

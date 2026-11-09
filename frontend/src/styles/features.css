@@ -384,3 +384,22 @@ fieldset.field { border: none; padding: 0; margin: 0; }
 .cmp-quote { margin: 0; padding-left: var(--space-3); border-left: 3px solid var(--color-border); font-style: italic; }
 .cmp-quote-inline { font-style: italic; margin-right: var(--space-1); }
 .cmp-results { margin: 0; padding: 0; list-style: none; }
+
+/* Offer rehearsals (features/offers): the card beside the conversation; who said what in words. */
+.offers-layout { display: grid; gap: var(--space-4); align-items: start; grid-template-columns: minmax(0, 1fr); }
+.offers-layout > * { min-width: 0; }
+@media (min-width: 1000px) { .offers-layout { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); } .offers-side { position: sticky; top: var(--space-4); } }
+.offer-terms { margin: 0; display: grid; gap: var(--space-2); }
+.offer-term { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: var(--space-2); }
+.offer-term dt { font-weight: 600; }
+.offer-term dd { margin: 0; overflow-wrap: anywhere; }
+.offer-unknown { color: var(--color-text-muted); }
+.offer-phases { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
+.offer-phases .is-current { font-weight: 700; text-decoration: underline; text-underline-offset: 4px; }
+.offer-transcript { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-3); }
+.offer-turn { display: grid; gap: var(--space-1); padding: var(--space-2) var(--space-3); border-left: 3px solid var(--color-border); }
+.offer-turn--learner { border-left-color: var(--color-primary, currentColor); }
+.offer-turn__who { font-weight: 600; font-size: 0.875rem; }
+.offer-text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
+.offer-actions { flex-wrap: wrap; }
+.offer-facts { flex-wrap: wrap; }

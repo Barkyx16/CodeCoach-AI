@@ -155,6 +155,11 @@ import type {
   TestDesignVariant,
   WorkSampleAttempt,
   ComparisonAttempt,
+  OfferCard,
+  OfferCaseSummary,
+  OfferPhase,
+  OfferRehearsal,
+  OfferRehearsalSummary,
   ComparisonAttemptSummary,
   ComparisonExplanation,
   ComparisonLesson,
@@ -661,6 +666,19 @@ export const api = {
   // ...and the reviewer's side: the link secret goes in the body, never in a URL.
   openShared: (token: string) => apiRequest<RecipientView>("/api/v1/shared/open", { method: "POST", body: { token } }),
   sendFeedback: (body: FeedbackInput) => apiRequest<FeedbackReceipt>("/api/v1/shared/feedback", { method: "POST", body }),
+
+  // offer-conversation rehearsals (fictional cards, an authored counterpart; nothing is sent)
+  offerCases: () => apiRequest<OfferCaseSummary[]>("/api/v1/offer-rehearsals/cases", { auth: false }),
+  offerCase: (id: string) => apiRequest<OfferCard>(`/api/v1/offer-rehearsals/cases/${encodeURIComponent(id)}`, { auth: false }),
+  startOfferRehearsal: (body: { case_id: string; goals: string[]; parent_id?: string | null }) =>
+    apiRequest<OfferRehearsal>("/api/v1/me/offer-rehearsals", { method: "POST", body }),
+  offerRehearsals: () => apiRequest<OfferRehearsalSummary[]>("/api/v1/me/offer-rehearsals"),
+  offerRehearsal: (id: string) => apiRequest<OfferRehearsal>(`/api/v1/me/offer-rehearsals/${encodeURIComponent(id)}`),
+  offerTurn: (id: string, body: { text: string; source: AnswerSource; after_seq: number; client_request_id: string }) =>
+    apiRequest<OfferRehearsal>(`/api/v1/me/offer-rehearsals/${encodeURIComponent(id)}/turns`, { method: "POST", body }),
+  offerAdvance: (id: string, fromPhase: OfferPhase) =>
+    apiRequest<OfferRehearsal>(`/api/v1/me/offer-rehearsals/${encodeURIComponent(id)}/phase`, { method: "POST", body: { from_phase: fromPhase } }),
+  offerFinish: (id: string) => apiRequest<OfferRehearsal>(`/api/v1/me/offer-rehearsals/${encodeURIComponent(id)}/finish`, { method: "POST" }),
 
   // branching scenarios
   scenarios: (track: string) => apiRequest<ScenarioCatalog>("/api/v1/scenarios", { query: { track }, auth: false }),

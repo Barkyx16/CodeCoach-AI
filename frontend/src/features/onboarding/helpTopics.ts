@@ -149,6 +149,17 @@ export const HELP_TOPICS: HelpTopic[] = [
     ],
   },
   {
+    id: "offer-rehearsal",
+    title: "Rehearse an offer conversation",
+    items: [
+      {
+        q: "What does the offer rehearsal practise, and what can't it tell me?",
+        a: "It practises three parts of an offer conversation with a made-up offer: asking about terms the offer leaves unclear, making a request with a reason, and answering a counteroffer, including asking for time or declining. You can type or speak, stop at any point, and try a different approach later; your earlier rehearsal is kept. The other person is a script, not AI: it only states what the fictional card says, says when something is unknown, and never agrees to anything. The debrief shows your request with the card's own arithmetic, the terms still unknown, anything you said that the card doesn't support, and one thing to try next. It can't predict what a real employer would offer, and it doesn't give salary, tax or legal advice. Nothing is sent to anyone and no application changes.",
+        links: [{ to: "/offers", label: "Offer conversations" }],
+      },
+    ],
+  },
+  {
     id: "getting-around",
     title: "Getting around",
     items: [

@@ -40,6 +40,8 @@ PUBLIC = {
     ("GET", "/api/v1/comparisons"),
     ("GET", "/api/v1/comparisons/{lesson_id}"),
     ("GET", "/api/v1/comparisons/{lesson_id}/explanation"),
+    ("GET", "/api/v1/offer-rehearsals/cases"),
+    ("GET", "/api/v1/offer-rehearsals/cases/{case_id}"),
     ("GET", "/api/v1/careers"),
     ("GET", "/api/v1/careers/{slug}/questions"),
     ("GET", "/api/v1/careers/{slug}/questions/counts"),
@@ -193,6 +195,7 @@ PUBLIC_PARAMS = {
     "scenario_id",
     "brief_id",
     "lesson_id",
+    "case_id",
 }
 # GET routes with record ids this walk doesn't make; each has its own cross-account test.
 NOT_WALKED = {
@@ -203,6 +206,7 @@ NOT_WALKED = {
     "/api/v1/me/test-design/runs/{run_id}": "test_test_design.py",
     "/api/v1/me/work-samples/attempts/{attempt_id}": "test_work_samples.py",
     "/api/v1/me/comparisons/attempts/{attempt_id}": "test_comparisons.py",
+    "/api/v1/me/offer-rehearsals/{rehearsal_id}": "test_offer_rehearsals.py",
 }
 
 

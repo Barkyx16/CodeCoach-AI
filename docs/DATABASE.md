@@ -340,6 +340,14 @@ marks live only on the device; there's no server draft.
   against), `selections` (JSON: sample, sentence, the quoted text, strength or gap, the reason),
   `choice` (an answer id or null), `feedback` (JSON), `revealed_early`, `created_at`. Never updated.
 
+### Offer rehearsals
+The cases are code (`backend/app/offers`, docs/OFFER_REHEARSAL.md), not rows.
+- `offer_rehearsals`: each rehearsal (cascade with the account), indexed by user and case: `case_version`,
+  `snapshot` (JSON: the fictional card as shown), `goals` (JSON: what the learner wrote, kept apart),
+  `status`, `phase`, `turns` (JSON: who, which part, the text, typed or spoken, request key), `parent_id`
+  (the rehearsal a different approach follows), `debrief` (JSON), `created_at`, `updated_at`,
+  `completed_at`.
+
 ### Restores
 - `import_batches`: one per restore (cascade with the account): `file_sha256` (to recognise the
   same file; the file itself isn't stored), `export_version`, `categories`, `status`
@@ -451,6 +459,7 @@ marks live only on the device; there's no server draft.
 | `8e4b1d7c2f60` test design runs | Adds `test_design_runs`, cascading with the user; not under row-level security (claimed by the judge worker, like submissions) |
 | `c4a9e2f71b35` work samples | Adds `work_sample_drafts` and `work_sample_attempts`, cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
 | `e7b3c1d9a842` comparison attempts | Adds `comparison_attempts`, cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
+| `f2c8a6d4b913` offer rehearsals | Adds `offer_rehearsals`, cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

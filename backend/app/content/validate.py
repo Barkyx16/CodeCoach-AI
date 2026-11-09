@@ -595,6 +595,16 @@ def _load_reference_checker():
     )
 
 
+def _offers(report: Report) -> None:
+    """Offer-rehearsal cases (app/offers; docs/OFFER_REHEARSAL.md): unique terms, at least one unknown
+    term, a counteroffer on a stated amount, aliases in the form messages are matched in."""
+    from app.offers import CASES, check
+
+    for case in CASES:
+        for problem in check(case):
+            report.errors.append(f"offer case {case.id}: {problem}")
+
+
 def run(db: Session | None, *, run_reference: bool = False, record: bool = False) -> Report:
     report = Report()
     _questions(report)
@@ -604,6 +614,7 @@ def run(db: Session | None, *, run_reference: bool = False, record: bool = False
     _test_design(report)
     _work_samples(report)
     _comparisons(report)
+    _offers(report)
     retired: set[tuple[str, str]] = set()
     if db is not None:
         _db_content(db, report, set(seeds))

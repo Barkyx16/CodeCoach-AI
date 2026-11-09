@@ -2539,6 +2539,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/offer-rehearsals/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fictional offer cases to rehearse */
+        get: operations["cases_api_v1_offer_rehearsals_cases_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/offer-rehearsals/cases/{case_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A fictional fact card */
+        get: operations["case_api_v1_offer_rehearsals_cases__case_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/offer-rehearsals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your rehearsals */
+        get: operations["mine_api_v1_me_offer_rehearsals_get"];
+        put?: never;
+        /** Start (or resume) a rehearsal; with parent_id, a different approach */
+        post: operations["start_api_v1_me_offer_rehearsals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/offer-rehearsals/{rehearsal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A rehearsal */
+        get: operations["one_api_v1_me_offer_rehearsals__rehearsal_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/offer-rehearsals/{rehearsal_id}/turns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Say something; the counterpart answers from the card */
+        post: operations["turn_api_v1_me_offer_rehearsals__rehearsal_id__turns_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/offer-rehearsals/{rehearsal_id}/phase": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move on to the next part */
+        post: operations["advance_api_v1_me_offer_rehearsals__rehearsal_id__phase_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/offer-rehearsals/{rehearsal_id}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop and see the debrief (at any point) */
+        post: operations["finish_api_v1_me_offer_rehearsals__rehearsal_id__finish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/schedule": {
         parameters: {
             query?: never;
@@ -7360,6 +7480,210 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /**
+         * OfferCard
+         * @description A fictional fact card: everything here is made up and labelled so.
+         */
+        OfferCard: {
+            /** Id */
+            id: string;
+            /** Version */
+            version: number;
+            /** Title */
+            title: string;
+            /** Role */
+            role: string;
+            /** Employer */
+            employer: string;
+            /** Counterpart */
+            counterpart: string;
+            /** Currency */
+            currency: string | null;
+            /** Terms */
+            terms: components["schemas"]["OfferTermOut"][];
+            /** Phases */
+            phases: components["schemas"]["OfferPhaseOut"][];
+            /** Review Status */
+            review_status: string;
+        };
+        /** OfferCaseSummary */
+        OfferCaseSummary: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Role */
+            role: string;
+            /** Employer */
+            employer: string;
+        };
+        /** OfferPhaseIn */
+        OfferPhaseIn: {
+            /**
+             * From Phase
+             * @enum {string}
+             */
+            from_phase: "clarify" | "request" | "respond";
+        };
+        /** OfferPhaseOut */
+        OfferPhaseOut: {
+            /**
+             * Id
+             * @enum {string}
+             */
+            id: "clarify" | "request" | "respond";
+            /** Title */
+            title: string;
+        };
+        /** OfferRehearsalIn */
+        OfferRehearsalIn: {
+            /** Case Id */
+            case_id: string;
+            /**
+             * Goals
+             * @description What you want from the conversation, in your words
+             */
+            goals?: string[];
+            /**
+             * Parent Id
+             * @description A different approach to this rehearsal
+             */
+            parent_id?: string | null;
+        };
+        /** OfferRehearsalOut */
+        OfferRehearsalOut: {
+            /** Id */
+            id: string;
+            /** Case Id */
+            case_id: string;
+            /** Case Version */
+            case_version: number;
+            /**
+             * Current Version
+             * @description The card's version now; differs when it was edited since
+             */
+            current_version: number | null;
+            /** @description The card as it was when this rehearsal started */
+            card: components["schemas"]["OfferCard"];
+            /** Goals */
+            goals: string[];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "in_progress" | "completed";
+            /**
+             * Phase
+             * @enum {string}
+             */
+            phase: "clarify" | "request" | "respond";
+            /** Turns */
+            turns: components["schemas"]["OfferTurnOut"][];
+            /** Turns Left In Phase */
+            turns_left_in_phase: number;
+            /** Parent Id */
+            parent_id: string | null;
+            /**
+             * Mode
+             * @description Which counterpart ran: authored responses, never AI here
+             */
+            mode: string;
+            /** Debrief */
+            debrief: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Completed At */
+            completed_at: string | null;
+        };
+        /** OfferRehearsalSummary */
+        OfferRehearsalSummary: {
+            /** Id */
+            id: string;
+            /** Case Id */
+            case_id: string;
+            /** Title */
+            title: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "in_progress" | "completed";
+            /** Outcome */
+            outcome: string | null;
+            /** Parent Id */
+            parent_id: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Completed At */
+            completed_at: string | null;
+        };
+        /** OfferTermOut */
+        OfferTermOut: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /**
+             * Value
+             * @description As the card states it; null: the offer doesn't say (unknown)
+             */
+            value: string | null;
+        };
+        /** OfferTurnIn */
+        OfferTurnIn: {
+            /** Text */
+            text: string;
+            /**
+             * Source
+             * @default typed
+             * @enum {string}
+             */
+            source: "typed" | "voice" | "mixed";
+            /**
+             * After Seq
+             * @description The last turn you saw; a newer one means another tab moved on
+             */
+            after_seq: number;
+            /** Client Request Id */
+            client_request_id?: string | null;
+        };
+        /** OfferTurnOut */
+        OfferTurnOut: {
+            /** Seq */
+            seq: number;
+            /**
+             * Speaker
+             * @enum {string}
+             */
+            speaker: "learner" | "counterpart";
+            /**
+             * Phase
+             * @enum {string}
+             */
+            phase: "clarify" | "request" | "respond";
+            /** Text */
+            text: string;
+            /** Source */
+            source?: ("typed" | "voice" | "mixed") | null;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
         };
         /** OnboardingOut */
         OnboardingOut: {
@@ -20836,6 +21160,386 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ComparisonAttemptOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cases_api_v1_offer_rehearsals_cases_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferCaseSummary"][];
+                };
+            };
+        };
+    };
+    case_api_v1_offer_rehearsals_cases__case_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferCard"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mine_api_v1_me_offer_rehearsals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferRehearsalSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    start_api_v1_me_offer_rehearsals_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferRehearsalIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferRehearsalOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    one_api_v1_me_offer_rehearsals__rehearsal_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rehearsal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferRehearsalOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turn_api_v1_me_offer_rehearsals__rehearsal_id__turns_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rehearsal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferTurnIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferRehearsalOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    advance_api_v1_me_offer_rehearsals__rehearsal_id__phase_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rehearsal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferPhaseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferRehearsalOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    finish_api_v1_me_offer_rehearsals__rehearsal_id__finish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rehearsal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferRehearsalOut"];
                 };
             };
             /** @description Missing, invalid, expired or revoked access token */

@@ -29,6 +29,7 @@ from app.api.routes import (
     me,
     meta,
     notes,
+    offers,
     onboarding,
     plan,
     problems,
@@ -138,6 +139,11 @@ TAGS = [
         "name": "comparisons",
         "description": "Compare authored sample answers: mark excerpts as strengths or gaps with a reason, then reveal "
         "an explanation tied to the rubric. Fictional samples written for teaching.",
+    },
+    {
+        "name": "offer-rehearsals",
+        "description": "Rehearse an offer conversation (clarify the terms, make a reasoned request, respond to a "
+        "counteroffer) against a fictional fact card and an authored counterpart. Nothing is sent to anyone.",
     },
     {
         "name": "backup",
@@ -324,6 +330,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         test_design.router,
         work_samples.router,
         comparisons.router,
+        offers.router,
         schedule.router,
         submissions.router,
         ai.router,

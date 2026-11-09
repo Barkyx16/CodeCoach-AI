@@ -8,6 +8,7 @@ const FORMATS: { to: string; title: string; detail: string; icon: IconName; codi
   { to: "/scenarios", title: "Branching scenarios", detail: "Choose what to do and see what follows", icon: "list" },
   { to: "/work-samples", title: "Work samples", detail: "Write a short piece of work from a brief", icon: "book" },
   { to: "/compare", title: "Compare sample answers", detail: "Mark what makes an answer useful, then see why", icon: "list" },
+  { to: "/offers", title: "Rehearse an offer conversation", detail: "Clarify, ask with a reason, answer a counteroffer", icon: "list" },
   { to: "/learn", title: "Short lessons", detail: "A few minutes, with guided help", icon: "book" },
 ];
 

@@ -165,6 +165,32 @@ export type ScenarioDetail = S["ScenarioDetail"];
 export type ScenarioAttempt = S["ScenarioAttemptOut"];
 export type ScenarioAttemptSummary = S["ScenarioAttemptSummary"];
 export type ScenarioStep = S["StepOut"];
+export type OfferCaseSummary = S["OfferCaseSummary"];
+export type OfferCard = S["OfferCard"];
+export type OfferRehearsal = S["OfferRehearsalOut"];
+export type OfferRehearsalSummary = S["OfferRehearsalSummary"];
+export type OfferTurn = S["OfferTurnOut"];
+export type OfferPhase = OfferRehearsal["phase"];
+/** The debrief of an offer rehearsal (app/offers/talk.py). */
+export interface OfferDebrief {
+  mode: string;
+  facts: { label: string; value: string | null }[];
+  goals: string[];
+  request: { quote: string; term: string; amount: string | null; reasons: boolean; specific: boolean;
+    arithmetic: { offered: string; requested: string; difference: string; per_week: string | null } | null } | null;
+  counteroffer: { text: string; arithmetic: { from: string; to: string; difference: string } | null };
+  facts_used: { label: string; value: string | null }[];
+  unresolved: { label: string; asked: boolean }[];
+  claims: { kind: "mismatch" | "unsupported"; quote: string; note: string }[];
+  pressure: boolean;
+  outcome: "accept" | "decline" | "time" | "counter" | "unclear" | null;
+  criteria: { id: string; label: string; met: boolean; note: string }[];
+  improvement: string;
+  phases_reached: string[];
+  method: string;
+  disclaimer: string;
+  no_tax: string;
+}
 export type ScenarioNode = S["NodeView"];
 export type ScenarioTask = S["TaskOut"];
 export type ScenarioPlan = S["QueuePlanOut"];

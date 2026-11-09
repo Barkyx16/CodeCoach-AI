@@ -769,6 +769,22 @@ export function useWhiteboardPrompts() {
   return useQuery({ queryKey: ["me", "whiteboard", "prompts"], queryFn: api.whiteboardPrompts, staleTime: 5 * 60_000 });
 }
 
+export function useOfferCases() {
+  return useQuery({ queryKey: ["offer-cases"], queryFn: api.offerCases, staleTime: 5 * 60_000 });
+}
+
+export function useOfferCase(id: string) {
+  return useQuery({ queryKey: ["offer-cases", id], queryFn: () => api.offerCase(id), staleTime: 5 * 60_000 });
+}
+
+export function useOfferRehearsals() {
+  return useQuery({ queryKey: ["me", "offer-rehearsals"], queryFn: api.offerRehearsals });
+}
+
+export function useOfferRehearsal(id: string) {
+  return useQuery({ queryKey: ["me", "offer-rehearsal", id], queryFn: () => api.offerRehearsal(id) });
+}
+
 export function useSampleLessons() {
   return useQuery({ queryKey: ["sample-lessons"], queryFn: api.sampleLessons, staleTime: 5 * 60_000 });
 }

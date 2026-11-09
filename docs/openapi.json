@@ -13058,6 +13058,515 @@
         }
       }
     },
+    "/api/v1/offer-rehearsals/cases": {
+      "get": {
+        "tags": [
+          "offer-rehearsals"
+        ],
+        "summary": "Fictional offer cases to rehearse",
+        "operationId": "cases_api_v1_offer_rehearsals_cases_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OfferCaseSummary"
+                  },
+                  "type": "array",
+                  "title": "Response Cases Api V1 Offer Rehearsals Cases Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/offer-rehearsals/cases/{case_id}": {
+      "get": {
+        "tags": [
+          "offer-rehearsals"
+        ],
+        "summary": "A fictional fact card",
+        "operationId": "case_api_v1_offer_rehearsals_cases__case_id__get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferCard"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/offer-rehearsals": {
+      "get": {
+        "tags": [
+          "offer-rehearsals"
+        ],
+        "summary": "Your rehearsals",
+        "operationId": "mine_api_v1_me_offer_rehearsals_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OfferRehearsalSummary"
+                  },
+                  "type": "array",
+                  "title": "Response Mine Api V1 Me Offer Rehearsals Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "offer-rehearsals"
+        ],
+        "summary": "Start (or resume) a rehearsal; with parent_id, a different approach",
+        "operationId": "start_api_v1_me_offer_rehearsals_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferRehearsalIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferRehearsalOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/offer-rehearsals/{rehearsal_id}": {
+      "get": {
+        "tags": [
+          "offer-rehearsals"
+        ],
+        "summary": "A rehearsal",
+        "operationId": "one_api_v1_me_offer_rehearsals__rehearsal_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rehearsal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rehearsal Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferRehearsalOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/offer-rehearsals/{rehearsal_id}/turns": {
+      "post": {
+        "tags": [
+          "offer-rehearsals"
+        ],
+        "summary": "Say something; the counterpart answers from the card",
+        "operationId": "turn_api_v1_me_offer_rehearsals__rehearsal_id__turns_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rehearsal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rehearsal Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferTurnIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferRehearsalOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/offer-rehearsals/{rehearsal_id}/phase": {
+      "post": {
+        "tags": [
+          "offer-rehearsals"
+        ],
+        "summary": "Move on to the next part",
+        "operationId": "advance_api_v1_me_offer_rehearsals__rehearsal_id__phase_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rehearsal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rehearsal Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferPhaseIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferRehearsalOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/offer-rehearsals/{rehearsal_id}/finish": {
+      "post": {
+        "tags": [
+          "offer-rehearsals"
+        ],
+        "summary": "Stop and see the debrief (at any point)",
+        "operationId": "finish_api_v1_me_offer_rehearsals__rehearsal_id__finish_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rehearsal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rehearsal Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferRehearsalOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/schedule": {
       "get": {
         "tags": [
@@ -28267,6 +28776,528 @@
         ],
         "title": "NoteSummary"
       },
+      "OfferCard": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "employer": {
+            "type": "string",
+            "title": "Employer"
+          },
+          "counterpart": {
+            "type": "string",
+            "title": "Counterpart"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "terms": {
+            "items": {
+              "$ref": "#/components/schemas/OfferTermOut"
+            },
+            "type": "array",
+            "title": "Terms"
+          },
+          "phases": {
+            "items": {
+              "$ref": "#/components/schemas/OfferPhaseOut"
+            },
+            "type": "array",
+            "title": "Phases"
+          },
+          "review_status": {
+            "type": "string",
+            "title": "Review Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "version",
+          "title",
+          "role",
+          "employer",
+          "counterpart",
+          "currency",
+          "terms",
+          "phases",
+          "review_status"
+        ],
+        "title": "OfferCard",
+        "description": "A fictional fact card: everything here is made up and labelled so."
+      },
+      "OfferCaseSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "employer": {
+            "type": "string",
+            "title": "Employer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "role",
+          "employer"
+        ],
+        "title": "OfferCaseSummary"
+      },
+      "OfferPhaseIn": {
+        "properties": {
+          "from_phase": {
+            "type": "string",
+            "enum": [
+              "clarify",
+              "request",
+              "respond"
+            ],
+            "title": "From Phase"
+          }
+        },
+        "type": "object",
+        "required": [
+          "from_phase"
+        ],
+        "title": "OfferPhaseIn"
+      },
+      "OfferPhaseOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "clarify",
+              "request",
+              "respond"
+            ],
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title"
+        ],
+        "title": "OfferPhaseOut"
+      },
+      "OfferRehearsalIn": {
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "maxLength": 64,
+            "title": "Case Id"
+          },
+          "goals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "title": "Goals",
+            "description": "What you want from the conversation, in your words"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 36
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id",
+            "description": "A different approach to this rehearsal"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_id"
+        ],
+        "title": "OfferRehearsalIn"
+      },
+      "OfferRehearsalOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "case_version": {
+            "type": "integer",
+            "title": "Case Version"
+          },
+          "current_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Version",
+            "description": "The card's version now; differs when it was edited since"
+          },
+          "card": {
+            "$ref": "#/components/schemas/OfferCard",
+            "description": "The card as it was when this rehearsal started"
+          },
+          "goals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Goals"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "in_progress",
+              "completed"
+            ],
+            "title": "Status"
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "clarify",
+              "request",
+              "respond"
+            ],
+            "title": "Phase"
+          },
+          "turns": {
+            "items": {
+              "$ref": "#/components/schemas/OfferTurnOut"
+            },
+            "type": "array",
+            "title": "Turns"
+          },
+          "turns_left_in_phase": {
+            "type": "integer",
+            "title": "Turns Left In Phase"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode",
+            "description": "Which counterpart ran: authored responses, never AI here"
+          },
+          "debrief": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Debrief"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "case_id",
+          "case_version",
+          "current_version",
+          "card",
+          "goals",
+          "status",
+          "phase",
+          "turns",
+          "turns_left_in_phase",
+          "parent_id",
+          "mode",
+          "debrief",
+          "created_at",
+          "updated_at",
+          "completed_at"
+        ],
+        "title": "OfferRehearsalOut"
+      },
+      "OfferRehearsalSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "in_progress",
+              "completed"
+            ],
+            "title": "Status"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "case_id",
+          "title",
+          "status",
+          "outcome",
+          "parent_id",
+          "created_at",
+          "completed_at"
+        ],
+        "title": "OfferRehearsalSummary"
+      },
+      "OfferTermOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "As the card states it; null: the offer doesn't say (unknown)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "value"
+        ],
+        "title": "OfferTermOut"
+      },
+      "OfferTurnIn": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Text"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "typed",
+              "voice",
+              "mixed"
+            ],
+            "title": "Source",
+            "default": "typed"
+          },
+          "after_seq": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "After Seq",
+            "description": "The last turn you saw; a newer one means another tab moved on"
+          },
+          "client_request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Request Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "after_seq"
+        ],
+        "title": "OfferTurnIn"
+      },
+      "OfferTurnOut": {
+        "properties": {
+          "seq": {
+            "type": "integer",
+            "title": "Seq"
+          },
+          "speaker": {
+            "type": "string",
+            "enum": [
+              "learner",
+              "counterpart"
+            ],
+            "title": "Speaker"
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "clarify",
+              "request",
+              "respond"
+            ],
+            "title": "Phase"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "typed",
+                  "voice",
+                  "mixed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "seq",
+          "speaker",
+          "phase",
+          "text",
+          "at"
+        ],
+        "title": "OfferTurnOut"
+      },
       "OnboardingOut": {
         "properties": {
           "tour_status": {
@@ -40156,6 +41187,10 @@
     {
       "name": "comparisons",
       "description": "Compare authored sample answers: mark excerpts as strengths or gaps with a reason, then reveal an explanation tied to the rubric. Fictional samples written for teaching."
+    },
+    {
+      "name": "offer-rehearsals",
+      "description": "Rehearse an offer conversation (clarify the terms, make a reasoned request, respond to a counteroffer) against a fictional fact card and an authored counterpart. Nothing is sent to anyone."
     },
     {
       "name": "backup",
