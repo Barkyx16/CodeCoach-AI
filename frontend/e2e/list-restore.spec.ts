@@ -101,11 +101,18 @@ test("Back to the notebook after notes were added above, after the note was dele
   // scroll it. (A wheel sent before the page was there scrolled the note, a full run once showed.)
   await reloading;
   await expect(page.locator(".notes-list")).toBeVisible();
-  await page.mouse.wheel(0, -200);
+  // mouse.wheel returns before the page has handled the event. Wait until it has (the page moved),
+  // and only then let the reload answer: releasing at once raced the handler, and on CI's slower
+  // runner the answer won (run 287), so the restore ran as if nobody had scrolled.
+  const before = await page.evaluate(() => window.scrollY);
+  await page.mouse.wheel(0, before > 300 ? -300 : 300);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).not.toBe(before);
+  const scrolled = await page.evaluate(() => window.scrollY);
   release();
   await expect(page.locator(".notes-list")).toBeVisible();
   await page.waitForTimeout(300); // a restore would have happened by now
   expect(await focusedHref(page)).toBeNull();
+  expect(Math.abs((await page.evaluate(() => window.scrollY)) - scrolled)).toBeLessThan(5); // not snapped back
   await page.unroute(/\/api\/v1\/me\/notes\?/);
 
   // A direct visit is a new context: the top of the page, nothing focused in the list.
