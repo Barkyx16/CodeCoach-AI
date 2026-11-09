@@ -7,7 +7,9 @@ import { api } from "@/api/endpoints";
 import { useStory, useTargets } from "@/api/queries";
 import type { Competency, Story, StoryContext, StorySection } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
-import { newRequestKey } from "@/lib/requestKey";
+import { fingerprint, forgetIntent, keyForIntent } from "@/lib/pendingIntents";
+import { EarlierActionNotice } from "@/features/recovery/EarlierActionNotice";
+import { useEarlierAction } from "@/features/recovery/useEarlierAction";
 import { BackLink } from "@/components/BackLink";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
@@ -72,7 +74,8 @@ function Editor({ story }: { story: Story | null }) {
   // A refused stale save: the version saved elsewhere, shown beside this page's.
   const [conflict, setConflict] = useState<Story | null>(null);
   const [notice, setNotice] = useState("");
-  const pendingCreate = useRef<{ form: StoryForm; key: string } | null>(null);
+  // A create sent before a reload whose answer never came: the server says what it made (Volume 8, prompt 1).
+  const earlier = useEarlierAction("story", saved ? null : "new");
   const dirty = !sameForm(form, base);
   useLeaveWarning(dirty && !kept);
 
@@ -107,12 +110,18 @@ function Editor({ story }: { story: Story | null }) {
     try {
       let next: Story;
       if (!saved) {
-        // The same form as a create whose answer never came: the same key, so the server returns
-        // the story it may already have made instead of a second one. Edited since, it's a new create.
-        const k = pendingCreate.current && sameForm(pendingCreate.current.form, sent) ? pendingCreate.current.key : newRequestKey();
-        pendingCreate.current = { form: sent, key: k };
-        next = await api.createStory({ ...toBody(sent), client_request_id: k });
-        pendingCreate.current = null;
+        // The same form as a create whose answer never came (even before a reload, or in another
+        // tab): the same key, so the server returns the story it may already have made instead of
+        // a second one. Edited since, it's a new create. The key is written down before sending.
+        if (earlier.status !== "none") earlier.dismiss();
+        const k = keyForIntent(user!.id, "story", "new", fingerprint(JSON.stringify(toBody(sent)))).key;
+        try {
+          next = await api.createStory({ ...toBody(sent), client_request_id: k });
+        } catch (err) {
+          if (!(err instanceof ApiError && err.code === "network_error")) forgetIntent(user?.id, "story", "new", k);
+          throw err;
+        }
+        forgetIntent(user?.id, "story", "new", k);
         try {
           window.localStorage.removeItem(key);
         } catch {
@@ -223,6 +232,10 @@ function Editor({ story }: { story: Story | null }) {
       )}
 
       <div className="story-editor__layout">
+        <EarlierActionNotice earlier={earlier} noun="story"
+          found={earlier.status === "found"
+            ? <>It was saved once, not twice. <Link to={`/stories/${earlier.outcome.id}`} state={location.state}>Open the saved story</Link>; what's on this page is still your draft.</>
+            : null} />
         <form id={formId} className="stack" onSubmit={(e) => void save(e)}>
           <Card className="stack-sm">
             <p className="subtle story-editor__privacy">

@@ -1,6 +1,7 @@
 /** One function per backend endpoint. See docs/API.md for behavior and error codes. */
 import { apiRequest } from "./client";
 import type {
+  RequestOutcome,
   ActivityFacets,
   ActivityItem,
   ActivityStatus,
@@ -370,6 +371,8 @@ export const api = {
     apiRequest<CareerAnalytics>(`/api/v1/me/careers/${encodeURIComponent(track)}/analytics`, { query: { since } }),
   resume: () => apiRequest<ResumeOut>("/api/v1/me/resume"),
   aiHistoryItem: (id: string) => apiRequest<AIHistoryItem>(`/api/v1/me/ai-history/${encodeURIComponent(id)}`),
+  /** What a request sent with this key made, if anything (read-only; 404: no record). */
+  requestOutcome: (key: string) => apiRequest<RequestOutcome>(`/api/v1/me/requests/${encodeURIComponent(key)}`),
   // mock interviews
   startInterview: (body: InterviewStart) => apiRequest<Interview>("/api/v1/interviews", { method: "POST", body }),
   interview: (id: string, signal?: AbortSignal) =>

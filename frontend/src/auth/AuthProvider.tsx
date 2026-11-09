@@ -5,6 +5,7 @@ import { ApiError, configureAuth, serverReachable, startAuthGeneration } from "@
 import { api } from "@/api/endpoints";
 import type { TokenResponse, User } from "@/api/types";
 import { diag } from "@/lib/diagnostics";
+import { forgetAllIntents } from "@/lib/pendingIntents";
 
 import { AuthContext, type AuthContextValue } from "./context";
 import { forgetDeviceUser, readDeviceUser, rememberDeviceUser, type DeviceUser } from "./deviceUser";
@@ -96,6 +97,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clear = useCallback((reason: string | null) => {
     setLapsedUserId(reason !== null ? (sessionRef.current?.user.id ?? null) : null);
+    // Signing out on purpose removes this account's unresolved-action records (what, where and
+    // when) from the device. A session that merely lapsed keeps them for the same account's return.
+    if (reason === null) forgetAllIntents(sessionRef.current?.user.id);
     epoch.current += 1;
     startAuthGeneration(); // a late 401 for this session's requests can't refresh or sign anyone in
     inFlight.current = null;

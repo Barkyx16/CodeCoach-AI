@@ -1,7 +1,9 @@
 from datetime import UTC, date, datetime
+from typing import Literal
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Path, Query, Request
 from fastapi.responses import JSONResponse
+from pydantic import Field
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
@@ -16,7 +18,7 @@ from app.schemas.activity import (
     CareerAnalytics,
     ResumeOut,
 )
-from app.schemas.common import Page, error_responses
+from app.schemas.common import APIModel, Page, error_responses
 from app.schemas.progress import ProgressOut, Recommendation
 from app.services.account import export_user_data
 from app.services.activity import ActivityFilters, ActivityService
@@ -157,3 +159,96 @@ def resume(
     request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> ResumeOut:
     return _activity(request, db).resume(user)
+
+
+class RequestOutcome(APIModel):
+    """What a request sent with this key made, if anything (Volume 8, prompt 1)."""
+
+    kind: Literal["submission", "run", "hint", "review", "explain", "story", "answer", "note"]
+    state: Literal["done", "pending"] = Field(
+        description="pending: a submission still queued or being judged"
+    )
+    id: str = Field(description="The record it made: a submission, AI interaction, story, answer or note id")
+    created_at: datetime
+    problem_slug: str | None = None
+    hint_level: int | None = None
+
+
+@router.get(
+    "/requests/{key}",
+    response_model=RequestOutcome,
+    summary="What a request you sent with this key made (read-only)",
+    responses=error_responses(401, 404, 422),
+)
+def request_outcome(
+    key: str = Path(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$"),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> RequestOutcome:
+    """A page that lost a reply, then was reloaded, asks here before offering to send again: did
+    the request arrive, and what did it make? Only your own records are searched. It reads and
+    never creates; 404 means the server has no record (it never arrived, or what it made has been
+    deleted since). The key is never permission for anything: it only finds your own record."""
+    from sqlalchemy import select
+
+    from app.models import (
+        AIAction,
+        AIInteraction,
+        ExperienceEntry,
+        Note,
+        PracticeAnswer,
+        Problem,
+        Submission,
+        SubmissionMode,
+        SubmissionStatus,
+    )
+
+    sub = db.scalar(
+        select(Submission).where(Submission.user_id == user.id, Submission.client_request_id == key)
+    )
+    if sub is not None:
+        slug = db.scalar(select(Problem.slug).where(Problem.id == sub.problem_id))
+        running = sub.status in (SubmissionStatus.QUEUED, SubmissionStatus.RUNNING)
+        return RequestOutcome(
+            kind="run" if sub.mode == SubmissionMode.RUN else "submission",
+            state="pending" if running else "done",
+            id=sub.id,
+            created_at=sub.created_at,
+            problem_slug=slug,
+        )
+    ai = db.scalar(
+        select(AIInteraction).where(AIInteraction.user_id == user.id, AIInteraction.client_request_id == key)
+    )
+    if ai is not None:
+        kind: Literal["hint", "review", "explain"] = (
+            "hint" if ai.action == AIAction.HINT else "review" if ai.action == AIAction.REVIEW else "explain"
+        )
+        return RequestOutcome(
+            kind=kind,
+            state="done",
+            id=ai.id,
+            created_at=ai.created_at,
+            problem_slug=db.scalar(select(Problem.slug).where(Problem.id == ai.problem_id)),
+            hint_level=ai.hint_level,
+        )
+    story = db.scalar(
+        select(ExperienceEntry).where(
+            ExperienceEntry.user_id == user.id, ExperienceEntry.client_request_id == key
+        )
+    )
+    if story is not None:
+        return RequestOutcome(kind="story", state="done", id=story.id, created_at=story.created_at)
+    answer = db.scalar(
+        select(PracticeAnswer).where(
+            PracticeAnswer.user_id == user.id, PracticeAnswer.client_request_id == key
+        )
+    )
+    if answer is not None:
+        return RequestOutcome(kind="answer", state="done", id=answer.id, created_at=answer.created_at)
+    note = db.scalar(select(Note).where(Note.user_id == user.id, Note.client_request_id == key))
+    if note is not None:
+        return RequestOutcome(kind="note", state="done", id=note.id, created_at=note.created_at)
+    raise NotFoundError(
+        "The server has no record of this request: it never arrived, or what it made has since been deleted.",
+        code="request_not_found",
+    )

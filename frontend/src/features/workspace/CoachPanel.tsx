@@ -1,12 +1,17 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { useAIHistory, useAIUsage, useHint, useReview } from "@/api/queries";
 import type { CodeReview, HintLevel, HintResponse, ReviewResponse } from "@/api/types";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { ActionError } from "@/components/ActionError";
+import { ApiError } from "@/api/client";
+import { useAuth } from "@/auth/useAuth";
+import { EarlierActionNotice } from "@/features/recovery/EarlierActionNotice";
+import { useEarlierAction } from "@/features/recovery/useEarlierAction";
 import { useRetryWait } from "@/hooks/useCountdown";
-import { newRequestKey } from "@/lib/requestKey";
+import { fingerprint, forgetIntent, keyForIntent, type IntentKind } from "@/lib/pendingIntents";
 import { Tabs } from "@/components/Tabs";
 import { FallbackNotice } from "@/components/FallbackNotice";
 
@@ -86,20 +91,23 @@ function HintLadder({ problemSlug, maxLevel, code }: { problemSlug: string; maxL
   // The server's wait (today's budget used up, or another request still running): only the hint
   // button waits, with a countdown; the editor, Run and Submit stay usable.
   const wait = useRetryWait(hint.error);
-  // One key per level until it's answered: pressing again after a lost response gets the first
-  // answer back, without a second AI call or a second use of the budget.
-  const keys = useRef(new Map<number, string>());
+  const { user } = useAuth();
+  // One key per level until it's answered, kept in this browser (Volume 8, prompt 1): pressing
+  // again after a lost response, even after a reload or from another tab, gets the first answer
+  // back, without a second AI call or a second use of the budget.
+  const earlier = useEarlierAction("hint", problemSlug);
 
   async function request(level: HintLevel) {
-    const key = keys.current.get(level) ?? newRequestKey();
-    keys.current.set(level, key);
-    const response = await hint.mutateAsync({ problem_slug: problemSlug, level, source_code: code, client_request_id: key });
-    keys.current.delete(level);
+    if (earlier.status !== "none") earlier.dismiss();
+    const response = await keyed(user?.id, "hint", problemSlug, fingerprint(problemSlug, level), (key) =>
+      hint.mutateAsync({ problem_slug: problemSlug, level, source_code: code, client_request_id: key }));
     setFresh((f) => [...f.filter((h) => h.level !== response.level), response]);
   }
 
   return (
     <div className="hints stack">
+      <EarlierActionNotice earlier={earlier} noun="hint request"
+        found={<>{earlier.status === "found" && earlier.outcome.hint_level ? `The level ${earlier.outcome.hint_level} hint is below.` : "It's below."} It wasn't asked for again.</>} />
       {hints.length === 0 && !history.isPending && (
         <p className="muted">Stuck? Hints unlock one level at a time, so you only see as much as you need.</p>
       )}
@@ -144,16 +152,17 @@ function ReviewTab({ problemSlug, code, submissionId, onHighlightLine }: {
   const review = useReview();
   const [result, setResult] = useState<ReviewResponse | null>(null);
   const wait = useRetryWait(review.error);
-  // The same code, not answered yet (a lost response): the same key, so the server gives back the
-  // review it already made. Changed code, or "Review again" after an answer, is a new review.
-  const pending = useRef<{ code: string; key: string } | null>(null);
+  const { user } = useAuth();
+  // The same code, not answered yet (a lost response, even across a reload): the same key, so the
+  // server gives back the review it already made. Changed code, or "Review again" after an answer,
+  // is a new review.
+  const earlier = useEarlierAction("review", problemSlug);
 
   async function run() {
     onHighlightLine(null);
-    const key = pending.current?.code === code ? pending.current.key : newRequestKey();
-    pending.current = { code, key };
-    setResult(await review.mutateAsync({ problem_slug: problemSlug, source_code: code, submission_id: submissionId, client_request_id: key }));
-    pending.current = null;
+    if (earlier.status !== "none") earlier.dismiss();
+    setResult(await keyed(user?.id, "review", problemSlug, fingerprint(problemSlug, code), (key) =>
+      review.mutateAsync({ problem_slug: problemSlug, source_code: code, submission_id: submissionId, client_request_id: key })));
   }
 
   return (
@@ -165,6 +174,9 @@ function ReviewTab({ problemSlug, code, submissionId, onHighlightLine }: {
         </Button>
         <span className="subtle">Checks correctness risks, edge cases, complexity and readability.</span>
       </div>
+      <EarlierActionNotice earlier={earlier} noun="code review"
+        found={earlier.status === "found"
+          ? <>It wasn't asked for again. <Link to={`/history/coaching/${earlier.outcome.id}`}>Open that review</Link>.</> : null} />
       {!review.isPending && (
         <ActionError error={review.error} action="The code review" repeatSafe onRetry={() => void run().catch(() => undefined)} />
       )}
@@ -230,4 +242,23 @@ export function ReviewResult({ data, onHighlightLine }: { data: ReviewResponse; 
       <p className="subtle">{data.disclaimer}</p>
     </div>
   );
+}
+
+/**
+ * Send a keyed AI request whose key is kept in this browser until it's answered: written before
+ * sending (so a reload can check it), forgotten once there's a definite answer, kept when no reply
+ * came back (the same request again reuses it).
+ */
+async function keyed<T>(userId: string | undefined, kind: IntentKind, target: string, print: string,
+  send: (key: string) => Promise<T>): Promise<T> {
+  if (!userId) throw new Error("not signed in");
+  const { key } = keyForIntent(userId, kind, target, print);
+  try {
+    const result = await send(key);
+    forgetIntent(userId, kind, target, key);
+    return result;
+  } catch (e) {
+    if (!(e instanceof ApiError && e.code === "network_error")) forgetIntent(userId, kind, target, key);
+    throw e;
+  }
 }

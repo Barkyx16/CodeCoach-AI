@@ -125,8 +125,16 @@ def seed(client, h):
     ids["story_id"] = client.post(
         "/api/v1/me/stories",
         headers=h,
-        json={"title": f"Story {SECRET}", "situation": SECRET, "task": "t", "action": "a", "result": "r"},
+        json={
+            "title": f"Story {SECRET}",
+            "situation": SECRET,
+            "task": "t",
+            "action": "a",
+            "result": "r",
+            "client_request_id": "walk-story-key-01",
+        },
     ).json()["id"]
+    ids["key"] = "walk-story-key-01"  # GET /me/requests/{key}: another account finds nothing by it
     ids["entry_id"] = client.post(
         "/api/v1/me/schedule",
         headers=h,

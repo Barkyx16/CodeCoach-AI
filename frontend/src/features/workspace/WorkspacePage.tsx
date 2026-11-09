@@ -33,14 +33,10 @@ import { LearnLinks } from "@/features/learn/LearnLinks";
 import { NoteCapture } from "@/features/notes/NoteCapture";
 import { QueueBar } from "@/features/saved/QueueBar";
 import { SaveControls } from "@/features/saved/SaveControls";
+import { EarlierActionNotice } from "@/features/recovery/EarlierActionNotice";
+import { useEarlierAction } from "@/features/recovery/useEarlierAction";
+import { fingerprint, forgetIntent, keyForIntent } from "@/lib/pendingIntents";
 
-function newRequestId(): string {
-  try {
-    return crypto.randomUUID();
-  } catch {
-    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
-  }
-}
 
 // Drafts live on this device until submitted: the labels say so (a draft is never "submitted").
 // Kept short: the toolbar must fit on one line beside the buttons.
@@ -77,7 +73,7 @@ export default function WorkspacePage() {
 }
 
 function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProblem>["data"]> }) {
-  const { isAuthenticated, draftScope } = useAuth();
+  const { isAuthenticated, draftScope, user } = useAuth();
   const online = useOnline();
   const navigate = useNavigate();
   const isNarrow = useMediaQuery("(max-width: 900px)");
@@ -99,7 +95,10 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
   const latest = useMySubmissions({ problem_slug: problem.slug, page: 1, page_size: 1 }, isAuthenticated);
   const pendingLatest = latest.data?.items[0];
   const resumable = pendingLatest && (pendingLatest.status === "QUEUED" || pendingLatest.status === "RUNNING") ? pendingLatest.id : null;
-  const submissionId = chosenId ?? resumable;
+  // A submission sent before a reload whose reply never came: the server says what it made (Volume 8, prompt 1).
+  const earlier = useEarlierAction("submission", isAuthenticated ? problem.slug : null);
+  const earlierId = earlier.status === "found" ? earlier.outcome.id : null;
+  const submissionId = chosenId ?? earlierId ?? resumable;
   const submission = useSubmission(submissionId);
   // A request that failed in the network keeps its id, so "Try again" can't create a duplicate.
   const [unconfirmed, setUnconfirmed] = useState<SubmissionCreate | null>(null);
@@ -124,12 +123,16 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
     setPendingMode(body.mode ?? "submit");
     try {
       const created = await submit.mutateAsync(body);
+      forgetIntent(user?.id, "submission", problem.slug, body.client_request_id ?? undefined);
       setUnconfirmed(null);
       setSubmissionId(created.id);
       if (isNarrow) setMobileTab("code");
     } catch (e) {
-      // Only a lost connection leaves it unknown whether the server got the request.
-      setUnconfirmed(e instanceof ApiError && e.code === "network_error" ? body : null);
+      // Only a lost connection leaves it unknown whether the server got the request. Any other
+      // answer is definite: nothing is pending, so the record of it goes.
+      const lost = e instanceof ApiError && e.code === "network_error";
+      setUnconfirmed(lost ? body : null);
+      if (!lost) forgetIntent(user?.id, "submission", problem.slug, body.client_request_id ?? undefined);
       // The judge said it's down or busy: the banner above the editor should say so now, not
       // whenever the page is next loaded.
       if (e instanceof ApiError && ["judge_unavailable", "judge_busy", "execution_disabled"].includes(e.code)) {
@@ -147,7 +150,11 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
     if (unconfirmed && unconfirmed.source_code === draft.code && (unconfirmed.mode ?? "submit") === mode) {
       return send(unconfirmed);
     }
-    await send({ problem_slug: problem.slug, language: "java", source_code: draft.code, mode, client_request_id: newRequestId() });
+    if (earlier.status !== "none") earlier.dismiss(); // a new action: the earlier one's notice has done its job
+    // Written down before sending: the same code and mode reuses an unresolved key (from before a
+    // reload, or another tab), so the server makes it once; changed code is a new submission.
+    const { key } = keyForIntent(user!.id, "submission", problem.slug, fingerprint(problem.slug, mode, draft.code));
+    await send({ problem_slug: problem.slug, language: "java", source_code: draft.code, mode, client_request_id: key });
   }
 
   function jumpToLine(line: number | null) {
@@ -249,6 +256,11 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
         </div>
       )}
       {toolbar}
+      <EarlierActionNotice earlier={earlier} noun={earlier.status === "found" && earlier.outcome.kind === "run" ? "run" : "submission"}
+        found={<>{earlier.status === "found" && earlier.outcome.state === "pending" ? "It's saved; its status is below." : "Its result is below."}</>}
+        changed={earlier.status !== "none"
+          && ![fingerprint(problem.slug, "submit", draft.code), fingerprint(problem.slug, "run", draft.code)].includes(earlier.intent.fingerprint)
+          ? "The code in the editor has changed since you sent it. Your current code is kept as your draft." : null} />
       {/* A definite failure (not a lost connection: that's the banner above), next to the buttons.
           The previous result stays in the results panel. */}
       {submit.error && !unconfirmed && !submit.isPending && (

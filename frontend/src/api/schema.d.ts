@@ -2743,6 +2743,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/requests/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What a request you sent with this key made (read-only)
+         * @description A page that lost a reply, then was reloaded, asks here before offering to send again: did
+         *     the request arrive, and what did it make? Only your own records are searched. It reads and
+         *     never creates; 404 means the server has no record (it never arrived, or what it made has been
+         *     deleted since). The key is never permission for anything: it only finds your own record.
+         */
+        get: operations["request_outcome_api_v1_me_requests__key__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/goals": {
         parameters: {
             query?: never;
@@ -7699,6 +7722,37 @@ export interface components {
              * @description Only what you reviewed and chose to attach
              */
             excerpt?: string | null;
+        };
+        /**
+         * RequestOutcome
+         * @description What a request sent with this key made, if anything (Volume 8, prompt 1).
+         */
+        RequestOutcome: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "submission" | "run" | "hint" | "review" | "explain" | "story" | "answer" | "note";
+            /**
+             * State
+             * @description pending: a submission still queued or being judged
+             * @enum {string}
+             */
+            state: "done" | "pending";
+            /**
+             * Id
+             * @description The record it made: a submission, AI interaction, story, answer or note id
+             */
+            id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Problem Slug */
+            problem_slug?: string | null;
+            /** Hint Level */
+            hint_level?: number | null;
         };
         /** RequirementIn */
         RequirementIn: {
@@ -20478,6 +20532,55 @@ export interface operations {
             };
             /** @description Missing, invalid, expired or revoked access token */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    request_outcome_api_v1_me_requests__key__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestOutcome"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

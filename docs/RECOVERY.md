@@ -143,14 +143,73 @@ Nothing in the app cancels server work, and no page claims to.
   - Submit again returns the same submission id;
   - Try again returns the same hint, and the budget counter drops by one.
 
+## After a reload (Volume 8, prompt 1)
+
+A key used to live only in the page's memory, so a lost reply followed by a reload could do the
+same thing twice. Now, for the actions below, the key is written to this browser **before** the
+request is sent. After a reload the page asks the server what that key made, and shows it; it
+doesn't send again.
+
+- **What's kept:** the account id, the kind of action, its target (a problem's slug, or "new" for a
+  story), the key, a fingerprint of exactly what was sent, and the time. Never the content (code
+  and story text stay in their own draft storage) and never a credential. It's stored under
+  `codecoach.pending.v1.<account id>` in this browser.
+- **How long:** until the action is resolved (answered, refused, or checked after a reload), and at
+  most 24 hours; at most 20 records per account, oldest first out. A deliberate sign-out deletes
+  the account's records. A session that lapsed keeps them for the same account; another account
+  never reads them.
+- **The check is a read.** `GET /api/v1/me/requests/{key}` searches only the caller's own
+  submissions, AI requests, stories, answers and notes. It says what the key made (and whether a
+  submission is still queued) or 404, "no record". A key is never permission for anything.
+- **What the learner sees** (`EarlierActionNotice`):
+  - "Your submission from 21:04 arrived. Its result is below."
+  - "The submission you sent at 21:04 never arrived. … Sending now is a new submission."
+  - "Couldn't check … It may have arrived. Sending the same thing again is safe", with **Check
+    again**.
+  - When the code in the editor differs from what was sent, it says so. The current code stays
+    the draft; nothing old is replayed under it.
+- **Same content, same key, across tabs.** Pressing the button again with unchanged content, from
+  this tab after a reload or from another tab, reuses the stored key, so the server makes it once.
+  Changed content is a new intent with a new key.
+- **Nothing costly starts by itself.** A reload only reads. A hint, review or submission is sent
+  again only when the learner presses its button.
+
+| Action | Survives a reload | Result shown after a reload |
+|---|---|---|
+| Submit and Run | yes | the submission's result (or "saved, not run yet") in the results panel |
+| Hint | yes | the hint in the ladder (from saved history), charged once |
+| Code review | yes | a link to the saved review in History |
+| New story | yes | a link to the saved story; the page keeps the draft |
+| Career answer, interview answer or message, note, drill, story update | **not yet**: their keys still live in the page | — |
+
+Tests:
+- `frontend/src/lib/pendingIntents.test.ts` (5): one key per intent across tabs, changed content,
+  no content kept, per account, expiry and bound, storage refused.
+- `frontend/src/test/integration/durableActions.test.tsx` (6):
+  - submission found;
+  - never arrived;
+  - can't check, then checked, with the changed-code note;
+  - hint found and charged once;
+  - story found;
+  - another account doesn't check, and sign-out removes the record.
+- `backend/tests/test_request_outcome.py` (4) and the cross-account route walk.
+- In the browser against the real API, `frontend/e2e/durable-actions.spec.ts`: a submission and a
+  hint whose replies are dropped, a reload, the same records, one charge, and a second reload that
+  asks nothing.
+
 ## Limits
 
 - The updates listed above still read a lost-then-retried save as a conflict.
 - Waits come from the server. A proxy that rate-limits without `Retry-After` gives no countdown,
   only the message.
 - The judge's 503s carry no `Retry-After`, so there's no countdown for them.
-- Keys live in the page's memory. A lost answer followed by a reload starts a new key: the
-  submission or hint may then be done twice. History shows both.
+- Submissions, hints, reviews and new stories keep their key across a reload (above). The other
+  keyed actions still keep it in the page's memory: a lost answer followed by a reload starts a
+  new key, and may be done twice. History shows both.
+- The browser record needs local storage. When this browser refuses it (some private modes), the
+  key lives in the page only, as before.
+- The server keeps the evidence as long as the record exists. If what a key made was deleted
+  (account or guest clean-up), the check says "no record", which is then all anyone can know.
 - On SQLite (local development), two copies of the same AI request at the same instant can both
   reach the provider. The database keeps one answer, and both get it. PostgreSQL's per-account
   lock prevents the second call.

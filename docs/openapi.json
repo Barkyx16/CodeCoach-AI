@@ -14813,6 +14813,77 @@
         ]
       }
     },
+    "/api/v1/me/requests/{key}": {
+      "get": {
+        "tags": [
+          "progress"
+        ],
+        "summary": "What a request you sent with this key made (read-only)",
+        "description": "A page that lost a reply, then was reloaded, asks here before offering to send again: did\nthe request arrive, and what did it make? Only your own records are searched. It reads and\nnever creates; 404 means the server has no record (it never arrived, or what it made has been\ndeleted since). The key is never permission for anything: it only finds your own record.",
+        "operationId": "request_outcome_api_v1_me_requests__key__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "title": "Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestOutcome"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/goals": {
       "get": {
         "tags": [
@@ -28399,6 +28470,74 @@
           "category"
         ],
         "title": "ReportIn"
+      },
+      "RequestOutcome": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "submission",
+              "run",
+              "hint",
+              "review",
+              "explain",
+              "story",
+              "answer",
+              "note"
+            ],
+            "title": "Kind"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "done",
+              "pending"
+            ],
+            "title": "State",
+            "description": "pending: a submission still queued or being judged"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "The record it made: a submission, AI interaction, story, answer or note id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "problem_slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Problem Slug"
+          },
+          "hint_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hint Level"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "state",
+          "id",
+          "created_at"
+        ],
+        "title": "RequestOutcome",
+        "description": "What a request sent with this key made, if anything (Volume 8, prompt 1)."
       },
       "RequirementIn": {
         "properties": {
