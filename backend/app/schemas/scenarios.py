@@ -25,8 +25,9 @@ class ScenarioSummary(APIModel):
     validated: bool = Field(
         description="Always false: no scenario has been validated by an outside professional body"
     )
-    decisions: int = Field(description="How many choices the longest path asks for")
+    decisions: int = Field(description="How many choices (and queues to order) the longest path asks for")
     endings: int
+    queue: bool = Field(default=False, description="It asks you to order a work queue")
     review: ReviewOut
 
 
@@ -54,19 +55,52 @@ class OptionOut(APIModel):
     label: str
 
 
+class TaskOut(APIModel):
+    """A task in a work queue, as the case states it. Dependencies and hard deadlines are in its facts."""
+
+    id: str
+    title: str
+    facts: list[str]
+    minutes: int
+    due: str | None = None
+    due_is_hard: bool = False
+    consequence: str | None = None
+
+
+class PlannedTask(APIModel):
+    id: str
+    title: str
+    start: str
+    finish: str
+    due: str | None = None
+    late: bool = Field(description="It finishes after the time the case gives for it")
+
+
+class Violation(APIModel):
+    kind: Literal["dependency", "deadline"]
+    text: str
+
+
+class StrategyOut(APIModel):
+    label: str
+    explanation: str
+
+
 class NodeView(APIModel):
     """The node the learner is on. Choice quality and feedback are only revealed after choosing."""
 
     id: str
-    kind: Literal["info", "choice", "written"]
+    kind: Literal["info", "choice", "written", "prioritize"]
     title: str
     text: str
     options: list[OptionOut]
+    clock: str | None = Field(default=None, description="Prioritize: when the queue starts (HH:MM)")
+    tasks: list[TaskOut] = Field(default_factory=list, description="Prioritize: in the case's own order")
 
 
 class StepOut(APIModel):
     node_id: str
-    kind: Literal["info", "choice", "written"]
+    kind: Literal["info", "choice", "written", "prioritize"]
     title: str
     text: str
     choice_id: str | None = None
@@ -76,6 +110,18 @@ class StepOut(APIModel):
     response: str | None = None
     covered: list[str] = Field(default_factory=list)
     missing: list[str] = Field(default_factory=list)
+    plan: list[PlannedTask] = Field(
+        default_factory=list, description="Prioritize: your order, with the case's times"
+    )
+    violations: list[Violation] = Field(
+        default_factory=list, description="Prioritize: hard constraints it breaks"
+    )
+    follows: list[StrategyOut] = Field(
+        default_factory=list, description="Prioritize: strategies your order follows"
+    )
+    others: list[StrategyOut] = Field(
+        default_factory=list, description="Prioritize: other reasonable strategies"
+    )
     at: datetime
 
 
@@ -102,6 +148,25 @@ class WrittenOut(APIModel):
     missing: list[str]
 
 
+class QueuePlanOut(APIModel):
+    """One ordered queue, judged on what the case had said by then."""
+
+    step_index: int
+    title: str
+    clock: str
+    known: list[TaskOut] = Field(description="The tasks and facts as they stood when you ordered them")
+    learned_before: list[str] = Field(
+        description="New information shown earlier in this attempt (titles of info steps since the start)"
+    )
+    plan: list[PlannedTask]
+    violations: list[Violation]
+    follows: list[StrategyOut]
+    others: list[StrategyOut]
+    response: str
+    covered: list[str]
+    missing: list[str]
+
+
 class Debrief(APIModel):
     outcome: str
     ending_title: str
@@ -111,6 +176,7 @@ class Debrief(APIModel):
     decisions: list[DecisionOut]
     strengths: list[str]
     written: list[WrittenOut]
+    plans: list[QueuePlanOut] = Field(default_factory=list)
     references: list[ReferenceOut]
     feedback_source: str
     disclaimer: str
@@ -158,3 +224,6 @@ class StepIn(APIModel):
     node_id: str = Field(max_length=64, description="The node you're answering (must be the current one)")
     choice_id: str | None = Field(default=None, max_length=64)
     text: str | None = Field(default=None, max_length=2000)
+    order: list[str] | None = Field(
+        default=None, max_length=8, description="Prioritize: every task id once, in your order"
+    )

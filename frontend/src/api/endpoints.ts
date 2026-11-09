@@ -669,7 +669,7 @@ export const api = {
     apiRequest<ScenarioAttempt>(`/api/v1/me/scenarios/${encodeURIComponent(id)}/attempts`, { method: "POST", body }),
   scenarioAttempts: (scenarioId?: string) => apiRequest<ScenarioAttemptSummary[]>("/api/v1/me/scenario-attempts", { query: { scenario_id: scenarioId } }),
   scenarioAttempt: (id: string) => apiRequest<ScenarioAttempt>(`/api/v1/me/scenario-attempts/${encodeURIComponent(id)}`),
-  scenarioStep: (id: string, body: { node_id: string; choice_id?: string; text?: string }) =>
+  scenarioStep: (id: string, body: { node_id: string; choice_id?: string; text?: string; order?: string[] }) =>
     apiRequest<ScenarioAttempt>(`/api/v1/me/scenario-attempts/${encodeURIComponent(id)}/steps`, { method: "POST", body }),
 
   // progress

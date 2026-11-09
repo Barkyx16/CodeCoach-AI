@@ -43,7 +43,7 @@ def step(client, h, attempt, **body):
 
 
 def test_every_shipped_scenario_validates_and_reaches_its_required_endings():
-    assert set(sc.SCENARIO_INDEX) == {RN, SE}
+    assert set(sc.SCENARIO_INDEX) == {RN, SE, "it-morning-queue", "logistics-dispatch-queue"}
     for s in sc.SCENARIO_INDEX.values():
         validate(s)
         assert s.required_endings and all(s.node(e).kind == "ending" for e in s.required_endings)

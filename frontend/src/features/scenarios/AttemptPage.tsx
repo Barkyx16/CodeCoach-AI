@@ -16,6 +16,8 @@ import { isGone } from "@/lib/errors";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { externalHref } from "@/lib/links";
 
+import { QueuePlans, QueueRecord, QueueStep } from "./QueueStep";
+
 const QUALITY: Record<NonNullable<ScenarioStep["quality"]>, { label: string; tone: string }> = {
   strong: { label: "Strong decision", tone: "success" },
   acceptable: { label: "Acceptable", tone: "info" },
@@ -52,8 +54,8 @@ function Player({ attempt: a }: { attempt: ScenarioAttempt }) {
     (a.debrief ? debriefHeading.current : currentHeading.current)?.focus();
   }, [a.current?.id, a.debrief]);
 
-  async function send(body: { choice_id?: string; text?: string }) {
-    if (!cur) return;
+  async function send(body: { choice_id?: string; text?: string; order?: string[] }): Promise<boolean> {
+    if (!cur) return false;
     setBusy(true);
     setError(null);
     try {
@@ -63,11 +65,13 @@ function Player({ attempt: a }: { attempt: ScenarioAttempt }) {
       void qc.invalidateQueries({ queryKey: ["me", "scenario-attempts"] });
       setChoice("");
       setText("");
+      return true;
     } catch (e) {
       setError(e);
       if (e instanceof ApiError && (e.code === "stale_step" || e.code === "scenario_updated")) {
         void qc.invalidateQueries({ queryKey: ["me", "scenario-attempt", a.id] });
       }
+      return false;
     } finally {
       setBusy(false);
     }
@@ -117,6 +121,7 @@ function Player({ attempt: a }: { attempt: ScenarioAttempt }) {
                 <p className="subtle"><strong>Decision rule:</strong> {st.feedback}</p>
               </div>
             )}
+            {st.kind === "prioritize" && <QueueRecord step={st} />}
             {st.kind === "written" && (
               <div className="scenario-decision">
                 <blockquote className="note-quote">{st.response}</blockquote>
@@ -147,6 +152,7 @@ function Player({ attempt: a }: { attempt: ScenarioAttempt }) {
               <span className="row"><Button type="submit" variant="primary" loading={busy} disabled={!choice} aria-describedby="final-note">Confirm this decision</Button></span>
             </form>
           )}
+          {cur.kind === "prioritize" && <QueueStep key={cur.id} attemptId={a.id} node={cur} busy={busy} onSend={(b) => send(b)} />}
           {cur.kind === "written" && (
             <form className="stack-sm" onSubmit={(e: FormEvent) => { e.preventDefault(); void send({ text }); }}>
               <label className="field">
@@ -175,7 +181,13 @@ function Player({ attempt: a }: { attempt: ScenarioAttempt }) {
             <h3 className="section-title">Your path</h3>
             <ol className="learn-walkthrough">{a.debrief.path.map((p, i) => <li key={i}>{p}</li>)}</ol>
           </Card>
-          <Card className="stack-sm">
+          {a.debrief.plans && a.debrief.plans.length > 0 && (
+            <section className="stack-sm" aria-labelledby="debrief-plans">
+              <h3 className="section-title" id="debrief-plans">Your plans</h3>
+              <QueuePlans plans={a.debrief.plans} />
+            </section>
+          )}
+          {a.debrief.decisions.length > 0 && <Card className="stack-sm">
             <h3 className="section-title">Key decisions</h3>
             {a.debrief.decisions.map((d) => (
               <div key={d.step_index} className="stack-sm scenario-decision">
@@ -189,7 +201,7 @@ function Player({ attempt: a }: { attempt: ScenarioAttempt }) {
                 )}
               </div>
             ))}
-          </Card>
+          </Card>}
           {a.debrief.strengths.length > 0 && (
             <Card className="stack-sm">
               <h3 className="section-title">Strengths in this attempt</h3>

@@ -22656,6 +22656,13 @@
             "type": "array",
             "title": "Written"
           },
+          "plans": {
+            "items": {
+              "$ref": "#/components/schemas/QueuePlanOut"
+            },
+            "type": "array",
+            "title": "Plans"
+          },
           "references": {
             "items": {
               "$ref": "#/components/schemas/ReferenceOut"
@@ -27731,7 +27738,8 @@
             "enum": [
               "info",
               "choice",
-              "written"
+              "written",
+              "prioritize"
             ],
             "title": "Kind"
           },
@@ -27749,6 +27757,26 @@
             },
             "type": "array",
             "title": "Options"
+          },
+          "clock": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clock",
+            "description": "Prioritize: when the queue starts (HH:MM)"
+          },
+          "tasks": {
+            "items": {
+              "$ref": "#/components/schemas/TaskOut"
+            },
+            "type": "array",
+            "title": "Tasks",
+            "description": "Prioritize: in the case's own order"
           }
         },
         "type": "object",
@@ -29045,6 +29073,51 @@
         ],
         "title": "PlanProgress"
       },
+      "PlannedTask": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "start": {
+            "type": "string",
+            "title": "Start"
+          },
+          "finish": {
+            "type": "string",
+            "title": "Finish"
+          },
+          "due": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due"
+          },
+          "late": {
+            "type": "boolean",
+            "title": "Late",
+            "description": "It finishes after the time the case gives for it"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "start",
+          "finish",
+          "late"
+        ],
+        "title": "PlannedTask"
+      },
       "PracticeAction": {
         "properties": {
           "label": {
@@ -30092,6 +30165,101 @@
           "position"
         ],
         "title": "QueueIn"
+      },
+      "QueuePlanOut": {
+        "properties": {
+          "step_index": {
+            "type": "integer",
+            "title": "Step Index"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "clock": {
+            "type": "string",
+            "title": "Clock"
+          },
+          "known": {
+            "items": {
+              "$ref": "#/components/schemas/TaskOut"
+            },
+            "type": "array",
+            "title": "Known",
+            "description": "The tasks and facts as they stood when you ordered them"
+          },
+          "learned_before": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Learned Before",
+            "description": "New information shown earlier in this attempt (titles of info steps since the start)"
+          },
+          "plan": {
+            "items": {
+              "$ref": "#/components/schemas/PlannedTask"
+            },
+            "type": "array",
+            "title": "Plan"
+          },
+          "violations": {
+            "items": {
+              "$ref": "#/components/schemas/Violation"
+            },
+            "type": "array",
+            "title": "Violations"
+          },
+          "follows": {
+            "items": {
+              "$ref": "#/components/schemas/StrategyOut"
+            },
+            "type": "array",
+            "title": "Follows"
+          },
+          "others": {
+            "items": {
+              "$ref": "#/components/schemas/StrategyOut"
+            },
+            "type": "array",
+            "title": "Others"
+          },
+          "response": {
+            "type": "string",
+            "title": "Response"
+          },
+          "covered": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Covered"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing"
+          }
+        },
+        "type": "object",
+        "required": [
+          "step_index",
+          "title",
+          "clock",
+          "known",
+          "learned_before",
+          "plan",
+          "violations",
+          "follows",
+          "others",
+          "response",
+          "covered",
+          "missing"
+        ],
+        "title": "QueuePlanOut",
+        "description": "One ordered queue, judged on what the case had said by then."
       },
       "RecipientView": {
         "properties": {
@@ -33565,11 +33733,17 @@
           "decisions": {
             "type": "integer",
             "title": "Decisions",
-            "description": "How many choices the longest path asks for"
+            "description": "How many choices (and queues to order) the longest path asks for"
           },
           "endings": {
             "type": "integer",
             "title": "Endings"
+          },
+          "queue": {
+            "type": "boolean",
+            "title": "Queue",
+            "description": "It asks you to order a work queue",
+            "default": false
           },
           "review": {
             "$ref": "#/components/schemas/ReviewOut"
@@ -33661,11 +33835,17 @@
           "decisions": {
             "type": "integer",
             "title": "Decisions",
-            "description": "How many choices the longest path asks for"
+            "description": "How many choices (and queues to order) the longest path asks for"
           },
           "endings": {
             "type": "integer",
             "title": "Endings"
+          },
+          "queue": {
+            "type": "boolean",
+            "title": "Queue",
+            "description": "It asks you to order a work queue",
+            "default": false
           },
           "review": {
             "$ref": "#/components/schemas/ReviewOut"
@@ -35058,6 +35238,22 @@
               }
             ],
             "title": "Text"
+          },
+          "order": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 8
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order",
+            "description": "Prioritize: every task id once, in your order"
           }
         },
         "type": "object",
@@ -35077,7 +35273,8 @@
             "enum": [
               "info",
               "choice",
-              "written"
+              "written",
+              "prioritize"
             ],
             "title": "Kind"
           },
@@ -35163,6 +35360,38 @@
             },
             "type": "array",
             "title": "Missing"
+          },
+          "plan": {
+            "items": {
+              "$ref": "#/components/schemas/PlannedTask"
+            },
+            "type": "array",
+            "title": "Plan",
+            "description": "Prioritize: your order, with the case's times"
+          },
+          "violations": {
+            "items": {
+              "$ref": "#/components/schemas/Violation"
+            },
+            "type": "array",
+            "title": "Violations",
+            "description": "Prioritize: hard constraints it breaks"
+          },
+          "follows": {
+            "items": {
+              "$ref": "#/components/schemas/StrategyOut"
+            },
+            "type": "array",
+            "title": "Follows",
+            "description": "Prioritize: strategies your order follows"
+          },
+          "others": {
+            "items": {
+              "$ref": "#/components/schemas/StrategyOut"
+            },
+            "type": "array",
+            "title": "Others",
+            "description": "Prioritize: other reasonable strategies"
           },
           "at": {
             "type": "string",
@@ -36336,6 +36565,24 @@
         ],
         "title": "StoryUpdate"
       },
+      "StrategyOut": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "explanation"
+        ],
+        "title": "StrategyOut"
+      },
       "SubmissionCreate": {
         "properties": {
           "problem_slug": {
@@ -36994,6 +37241,65 @@
           "updated_at"
         ],
         "title": "TargetSummary"
+      },
+      "TaskOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "facts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Facts"
+          },
+          "minutes": {
+            "type": "integer",
+            "title": "Minutes"
+          },
+          "due": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due"
+          },
+          "due_is_hard": {
+            "type": "boolean",
+            "title": "Due Is Hard",
+            "default": false
+          },
+          "consequence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consequence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "facts",
+          "minutes"
+        ],
+        "title": "TaskOut",
+        "description": "A task in a work queue, as the case states it. Dependencies and hard deadlines are in its facts."
       },
       "TestCaseIn": {
         "properties": {
@@ -38838,6 +39144,28 @@
         ],
         "title": "VerifyLinkOut",
         "description": "A link confirmed an address. Only the account's own signed-in session gets the account back:\nanyone else holding the link learns that it worked, and a masked address, nothing more."
+      },
+      "Violation": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "dependency",
+              "deadline"
+            ],
+            "title": "Kind"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "text"
+        ],
+        "title": "Violation"
       },
       "WhiteboardAttemptIn": {
         "properties": {

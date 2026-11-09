@@ -22,7 +22,8 @@ function Facts({ s }: { s: ScenarioSummary }) {
   return (
     <p className="row scenario-facts">
       <span className="subtle"><Icon name="clock" size={13} /> about {s.minutes} min (author's estimate)</span>
-      <span className="subtle">{s.decisions} decisions · {s.endings} possible endings</span>
+      <span className="subtle">{s.decisions} {s.queue ? (s.decisions === 1 ? "queue to order" : "plans to order") : "decisions"} · {s.endings} possible {s.endings === 1 ? "ending" : "endings"}</span>
+      {s.queue && <Badge tone="info">Work queue: order several tasks</Badge>}
       <span className="subtle">Version {s.version}</span>
       {s.regulated && <Badge tone="warning">Not clinically validated</Badge>}
     </p>

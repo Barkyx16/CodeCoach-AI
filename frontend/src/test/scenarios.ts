@@ -20,7 +20,7 @@ const GRAPH: Graph = {
 export const scenarioSummary: ScenarioSummary = {
   id: "rn-two-patients", track: "registered-nurse", career_title: "Registered Nurse", title: "Two call lights at once",
   role: "Medical-surgical nurse", objective: "Decide who to see first.", minutes: 7, scope: "Fictional, not clinically validated.",
-  version: 1, regulated: true, validated: false, decisions: 1, endings: 2,
+  version: 1, regulated: true, validated: false, decisions: 1, endings: 2, queue: false,
   review: { status: "author_reviewed", by: "CodeCoach project author", on: "2026-11-03", note: "Not reviewed by a nurse educator." },
 };
 

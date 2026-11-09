@@ -5113,6 +5113,8 @@ export interface components {
             strengths: string[];
             /** Written */
             written: components["schemas"]["WrittenOut"][];
+            /** Plans */
+            plans?: components["schemas"]["QueuePlanOut"][];
             /** References */
             references: components["schemas"]["ReferenceOut"][];
             /** Feedback Source */
@@ -7184,13 +7186,23 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "info" | "choice" | "written";
+            kind: "info" | "choice" | "written" | "prioritize";
             /** Title */
             title: string;
             /** Text */
             text: string;
             /** Options */
             options: components["schemas"]["OptionOut"][];
+            /**
+             * Clock
+             * @description Prioritize: when the queue starts (HH:MM)
+             */
+            clock?: string | null;
+            /**
+             * Tasks
+             * @description Prioritize: in the case's own order
+             */
+            tasks?: components["schemas"]["TaskOut"][];
         };
         /** NoteIn */
         NoteIn: {
@@ -7662,6 +7674,24 @@ export interface components {
             /** Open In Plan */
             open_in_plan: number;
         };
+        /** PlannedTask */
+        PlannedTask: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Start */
+            start: string;
+            /** Finish */
+            finish: string;
+            /** Due */
+            due?: string | null;
+            /**
+             * Late
+             * @description It finishes after the time the case gives for it
+             */
+            late: boolean;
+        };
         /** PracticeAction */
         PracticeAction: {
             /** Label */
@@ -8053,6 +8083,42 @@ export interface components {
         QueueIn: {
             /** Position */
             position: number;
+        };
+        /**
+         * QueuePlanOut
+         * @description One ordered queue, judged on what the case had said by then.
+         */
+        QueuePlanOut: {
+            /** Step Index */
+            step_index: number;
+            /** Title */
+            title: string;
+            /** Clock */
+            clock: string;
+            /**
+             * Known
+             * @description The tasks and facts as they stood when you ordered them
+             */
+            known: components["schemas"]["TaskOut"][];
+            /**
+             * Learned Before
+             * @description New information shown earlier in this attempt (titles of info steps since the start)
+             */
+            learned_before: string[];
+            /** Plan */
+            plan: components["schemas"]["PlannedTask"][];
+            /** Violations */
+            violations: components["schemas"]["Violation"][];
+            /** Follows */
+            follows: components["schemas"]["StrategyOut"][];
+            /** Others */
+            others: components["schemas"]["StrategyOut"][];
+            /** Response */
+            response: string;
+            /** Covered */
+            covered: string[];
+            /** Missing */
+            missing: string[];
         };
         /** RecipientView */
         RecipientView: {
@@ -9412,11 +9478,17 @@ export interface components {
             validated: boolean;
             /**
              * Decisions
-             * @description How many choices the longest path asks for
+             * @description How many choices (and queues to order) the longest path asks for
              */
             decisions: number;
             /** Endings */
             endings: number;
+            /**
+             * Queue
+             * @description It asks you to order a work queue
+             * @default false
+             */
+            queue: boolean;
             review: components["schemas"]["ReviewOut"];
             /** References */
             references: components["schemas"]["ReferenceOut"][];
@@ -9455,11 +9527,17 @@ export interface components {
             validated: boolean;
             /**
              * Decisions
-             * @description How many choices the longest path asks for
+             * @description How many choices (and queues to order) the longest path asks for
              */
             decisions: number;
             /** Endings */
             endings: number;
+            /**
+             * Queue
+             * @description It asks you to order a work queue
+             * @default false
+             */
+            queue: boolean;
             review: components["schemas"]["ReviewOut"];
         };
         /**
@@ -10057,6 +10135,11 @@ export interface components {
             choice_id?: string | null;
             /** Text */
             text?: string | null;
+            /**
+             * Order
+             * @description Prioritize: every task id once, in your order
+             */
+            order?: string[] | null;
         };
         /** StepOut */
         StepOut: {
@@ -10066,7 +10149,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "info" | "choice" | "written";
+            kind: "info" | "choice" | "written" | "prioritize";
             /** Title */
             title: string;
             /** Text */
@@ -10088,6 +10171,26 @@ export interface components {
             covered?: string[];
             /** Missing */
             missing?: string[];
+            /**
+             * Plan
+             * @description Prioritize: your order, with the case's times
+             */
+            plan?: components["schemas"]["PlannedTask"][];
+            /**
+             * Violations
+             * @description Prioritize: hard constraints it breaks
+             */
+            violations?: components["schemas"]["Violation"][];
+            /**
+             * Follows
+             * @description Prioritize: strategies your order follows
+             */
+            follows?: components["schemas"]["StrategyOut"][];
+            /**
+             * Others
+             * @description Prioritize: other reasonable strategies
+             */
+            others?: components["schemas"]["StrategyOut"][];
             /**
              * At
              * Format: date-time
@@ -10453,6 +10556,13 @@ export interface components {
              */
             clear_target: boolean;
         };
+        /** StrategyOut */
+        StrategyOut: {
+            /** Label */
+            label: string;
+            /** Explanation */
+            explanation: string;
+        };
         /** SubmissionCreate */
         SubmissionCreate: {
             /** Problem Slug */
@@ -10684,6 +10794,29 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /**
+         * TaskOut
+         * @description A task in a work queue, as the case states it. Dependencies and hard deadlines are in its facts.
+         */
+        TaskOut: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Facts */
+            facts: string[];
+            /** Minutes */
+            minutes: number;
+            /** Due */
+            due?: string | null;
+            /**
+             * Due Is Hard
+             * @default false
+             */
+            due_is_hard: boolean;
+            /** Consequence */
+            consequence?: string | null;
         };
         /** TestCaseIn */
         TestCaseIn: {
@@ -11431,6 +11564,16 @@ export interface components {
             changed_email: boolean;
             /** @description The account, only when `account` is `this` */
             user?: components["schemas"]["UserOut"] | null;
+        };
+        /** Violation */
+        Violation: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "dependency" | "deadline";
+            /** Text */
+            text: string;
         };
         /** WhiteboardAttemptIn */
         WhiteboardAttemptIn: {

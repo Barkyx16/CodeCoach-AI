@@ -19,3 +19,22 @@
   .scenario-brief { grid-template-columns: minmax(0, 1fr); }
   .scenario-brief dd { margin-bottom: var(--space-2); }
 }
+
+/* Work queues (features/scenarios/QueueStep): ordered task cards with keyboard controls; times
+ * and constraints are words, never colour alone. */
+.queue-list { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-3); }
+.queue-task { min-width: 0; }
+.queue-task.is-dragging { opacity: 0.6; }
+.queue-task__head { flex-wrap: wrap; align-items: baseline; gap: var(--space-2); }
+.queue-task__pos { font-weight: 700; min-width: 1.5em; }
+.queue-task__title { margin: 0; font-size: 1rem; overflow-wrap: anywhere; }
+.queue-task__facts { margin: 0; }
+.queue-task__facts li, .queue-text { overflow-wrap: anywhere; }
+.queue-task__controls { flex-wrap: wrap; gap: var(--space-2); }
+.queue-task__position { gap: var(--space-1); align-items: center; }
+.queue-timer { flex-wrap: wrap; gap: var(--space-3); }
+.queue-timeline { margin: 0; padding-left: 1.25rem; }
+.queue-timeline__time { font-variant-numeric: tabular-nums; font-weight: 600; }
+.queue-late { font-weight: 600; text-decoration: underline dotted; }
+.queue-plan { min-width: 0; }
+.queue-select { width: auto; padding-block: 0.15rem; }

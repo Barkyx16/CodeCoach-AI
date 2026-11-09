@@ -9,6 +9,7 @@ feedback, so a debrief still reads correctly after the scenario is revised or re
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime
 from typing import Any
 
@@ -18,7 +19,16 @@ from sqlalchemy.orm import Session
 from app.careers import CATALOG
 from app.errors import AppError, ConflictError, NotFoundError
 from app.models import ScenarioAttempt, User
-from app.scenarios import SCENARIO_INDEX, Node, Scenario, check_written, get_scenario, scenarios_for
+from app.scenarios import (
+    SCENARIO_INDEX,
+    Node,
+    Scenario,
+    _targets,
+    check_written,
+    get_scenario,
+    order_check,
+    scenarios_for,
+)
 from app.schemas.learn import ReferenceOut, ReviewOut
 from app.schemas.scenarios import (
     Alternative,
@@ -27,6 +37,8 @@ from app.schemas.scenarios import (
     DecisionOut,
     NodeView,
     OptionOut,
+    PlannedTask,
+    QueuePlanOut,
     ScenarioAttemptOut,
     ScenarioAttemptSummary,
     ScenarioCatalog,
@@ -35,6 +47,9 @@ from app.schemas.scenarios import (
     StartIn,
     StepIn,
     StepOut,
+    StrategyOut,
+    TaskOut,
+    Violation,
     WrittenOut,
 )
 
@@ -43,6 +58,23 @@ DISCLAIMER = (
     "Outcomes are simulated consequences of a fictional case. They don't predict what would happen at work or how "
     "an employer would judge you."
 )
+
+
+MIN_REASONING_WORDS = 5
+_CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+
+
+def _task(t: Any) -> dict[str, Any]:
+    """A task as the learner sees it, and as a step snapshots it."""
+    return {
+        "id": t.id,
+        "title": t.title,
+        "facts": list(t.facts),
+        "minutes": t.minutes,
+        "due": t.due,
+        "due_is_hard": t.due_is_hard,
+        "consequence": t.consequence,
+    }
 
 
 def _now() -> datetime:
@@ -64,9 +96,8 @@ def _longest_decisions(s: Scenario) -> int:
             return memo[node_id]
         n = s.node(node_id)
         assert n is not None
-        here = 1 if n.kind == "choice" else 0
-        targets = [o.to for o in n.options] if n.kind == "choice" else ([n.next] if n.next else [])
-        memo[node_id] = here + max((walk(t) for t in targets), default=0)
+        here = 1 if n.kind in ("choice", "prioritize") else 0
+        memo[node_id] = here + max((walk(t) for t in _targets(n)), default=0)
         return memo[node_id]
 
     return walk(s.start)
@@ -87,6 +118,7 @@ def summary(s: Scenario) -> ScenarioSummary:
         validated=False,
         decisions=_longest_decisions(s),
         endings=sum(1 for n in s.nodes if n.kind == "ending"),
+        queue=any(n.kind == "prioritize" for n in s.nodes),
         review=ReviewOut(status=s.review.status, by=s.review.by, on=s.review.on, note=s.review.note),
     )
 
@@ -186,6 +218,7 @@ class Scenarios:
             and last["node_id"] == body.node_id
             and last.get("choice_id") == body.choice_id
             and (last.get("response") or None) == ((body.text or "").strip() or None)
+            and (last.get("order") or None) == (body.order or None)
         )
         if repeat:
             return self.out(a)  # the same request again (double click, retry): nothing changes
@@ -229,6 +262,33 @@ class Scenarios:
                 ],
             }
             nxt = option.to
+        elif node.kind == "prioritize":
+            order = list(body.order or [])
+            if sorted(order) != sorted(t.id for t in node.tasks):
+                raise AppError(
+                    "Put every task in the order exactly once: nothing left out, nothing twice.",
+                    code="invalid_order",
+                )
+            text = _CONTROL.sub("", body.text or "").strip()
+            if len(re.findall(r"[\w']+", text)) < MIN_REASONING_WORDS:
+                raise AppError(
+                    "Say what you'd do first and why, in a sentence or two. The reasoning is part of the exercise.",
+                    code="reasoning_required",
+                )
+            checked = order_check(node, order)
+            covered, missing = check_written(node, text)
+            record |= {
+                "clock": node.clock,
+                "tasks": [_task(t) for t in node.tasks],
+                "order": order,
+                "response": text,
+                "covered": covered,
+                "missing": missing,
+                **checked,
+            }
+            # Consequences come from the graph: an order the case can't carry out goes where the
+            # authors put that consequence. The client only ever sends the order.
+            nxt = node.invalid_next if checked["violations"] and node.invalid_next else node.next
         else:
             text = (body.text or "").strip()
             if len(text) < 10:
@@ -304,6 +364,8 @@ class Scenarios:
                     title=n.title,
                     text=n.text,
                     options=[OptionOut(id=o.id, label=o.label) for o in n.options],
+                    clock=n.clock,
+                    tasks=[TaskOut(**_task(t)) for t in n.tasks],
                 )
         return ScenarioAttemptOut(
             id=a.id,
@@ -327,6 +389,10 @@ class Scenarios:
                     response=x.get("response"),
                     covered=x.get("covered", []),
                     missing=x.get("missing", []),
+                    plan=[PlannedTask(**p) for p in x.get("plan", [])],
+                    violations=[Violation(**v) for v in x.get("violations", [])],
+                    follows=[StrategyOut(**f) for f in x.get("follows", [])],
+                    others=[StrategyOut(**f) for f in x.get("others", [])],
                     at=datetime.fromisoformat(x["at"]),
                 )
                 for x in steps
@@ -363,9 +429,33 @@ class Scenarios:
             for i, x in enumerate(steps)
             if x["kind"] == "written"
         ]
+        plans = [
+            QueuePlanOut(
+                step_index=i,
+                title=x["title"],
+                clock=x["clock"],
+                known=[TaskOut(**t) for t in x["tasks"]],
+                learned_before=[y["title"] for y in steps[:i] if y["kind"] == "info"],
+                plan=[PlannedTask(**p) for p in x["plan"]],
+                violations=[Violation(**v) for v in x["violations"]],
+                follows=[StrategyOut(**f) for f in x["follows"]],
+                others=[StrategyOut(**f) for f in x["others"]],
+                response=x["response"],
+                covered=x["covered"],
+                missing=x["missing"],
+            )
+            for i, x in enumerate(steps)
+            if x["kind"] == "prioritize"
+        ]
         strengths = [f"{d.title}: {d.chosen}. {d.rule}" for d in decisions if d.quality == "strong"]
         strengths += [
             f"{w.title}: you covered {', '.join(c.lower() for c in w.covered)}." for w in written if w.covered
+        ]
+        strengths += [
+            f"{p.title}: your order meets every hard constraint"
+            + (f" and follows \u201c{p.follows[0].label}\u201d." if p.follows else ".")
+            for p in plans
+            if not p.violations
         ]
         return Debrief(
             outcome=end["outcome"],
@@ -376,6 +466,7 @@ class Scenarios:
             decisions=decisions,
             strengths=strengths,
             written=written,
+            plans=plans,
             references=_refs(s),
             feedback_source=FEEDBACK_SOURCE,
             disclaimer=DISCLAIMER,

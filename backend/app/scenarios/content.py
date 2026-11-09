@@ -6,6 +6,7 @@ authored graph, not predictions of what would happen at work.
 
 from app.learn import Reference, Review
 from app.scenarios import Node, Option, RubricPoint, Scenario
+from app.scenarios.queues import QUEUES
 
 _REVIEW = Review(
     status="author_reviewed",
@@ -404,4 +405,4 @@ TWO_PATIENTS = Scenario(
     regulated=True,
 )
 
-SCENARIOS: tuple[Scenario, ...] = (INCIDENT, TWO_PATIENTS)
+SCENARIOS: tuple[Scenario, ...] = (INCIDENT, TWO_PATIENTS, *QUEUES)

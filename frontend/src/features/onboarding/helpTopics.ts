@@ -34,7 +34,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       },
       {
         q: "What else is there besides single questions?",
-        a: "Learn has short lessons that teach before you're tested. Interview runs a timed mock interview for your job. Plan builds a practice plan around your goals, and Roles prepares you for a specific job posting you paste in. Scenarios are short branching situations.",
+        a: "Learn has short lessons that teach before you're tested. Interview runs a timed mock interview for your job. Plan builds a practice plan around your goals, and Roles prepares you for a specific job posting you paste in. Scenarios are short branching situations, and a few are work queues: put several tasks in order and say why.",
         links: [{ to: "/learn", label: "Learn" }, { to: "/interviews", label: "Interview" }, { to: "/plan", label: "Plan" }, { to: "/targets", label: "Roles" }, { to: "/scenarios", label: "Scenarios" }],
       },
     ],

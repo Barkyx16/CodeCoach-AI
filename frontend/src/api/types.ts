@@ -165,6 +165,10 @@ export type ScenarioDetail = S["ScenarioDetail"];
 export type ScenarioAttempt = S["ScenarioAttemptOut"];
 export type ScenarioAttemptSummary = S["ScenarioAttemptSummary"];
 export type ScenarioStep = S["StepOut"];
+export type ScenarioNode = S["NodeView"];
+export type ScenarioTask = S["TaskOut"];
+export type ScenarioPlan = S["QueuePlanOut"];
+export type PlannedTask = S["PlannedTask"];
 
 export type InterviewFormat = S["FormatOption"];
 export type InterviewFormatId = S["FormatOption"]["id"];
