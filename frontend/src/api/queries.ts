@@ -2,7 +2,7 @@
  * TanStack Query hooks: caching, request de-duplication, retries and polling live here,
  * so components only describe *what* data they need.
  */
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 
 import { ApiError, isSameSession, sessionMark } from "./client";
 import { api, type ActivityFilters, type ExploreFilters, type NoteFilters, type ProblemFilters, type QuestionFilters } from "./endpoints";
@@ -663,6 +663,13 @@ export function useOnboarding(enabled = true) {
  * (features/onboarding/finishIntent.ts): any reply from the server settles it, and so does a
  * definite refusal; a network failure or server error leaves it for the next load.
  */
+/**
+ * How many onboarding changes this app has sent, per query client. Each change's reply is the
+ * server's state as that change left it; while a newer change is on its way, an older reply is
+ * out of date (CI run 277: a late reply to "step 2" put the tour back from step 3).
+ */
+const onboardingChanges = new WeakMap<QueryClient, number>();
+
 export function useUpdateOnboarding(accountId?: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -678,8 +685,10 @@ export function useUpdateOnboarding(accountId?: string) {
     // Optimistic, and never rolled back: if saving fails (offline, say), the tour still moves on
     // this page and can always be left. The server's answer replaces it when it arrives.
     onMutate: (body) => {
+      const change = (onboardingChanges.get(qc) ?? 0) + 1;
+      onboardingChanges.set(qc, change);
       const prev = qc.getQueryData<Onboarding>(["me", "onboarding"]);
-      if (!prev) return;
+      if (!prev) return { change };
       let next: Onboarding | null = null;
       if (body.tour === "step" && body.tour_step != null && (prev.tour_status === "in_progress" || prev.tour_status === "paused")) {
         next = { ...prev, tour_status: "in_progress", tour_step: Math.min(body.tour_step, prev.tour_steps - 1) };
@@ -689,9 +698,13 @@ export function useUpdateOnboarding(accountId?: string) {
         next = { ...prev, tour_status: "completed", resume_due: false };
       }
       if (next) qc.setQueryData<Onboarding>(["me", "onboarding"], next);
+      return { change };
     },
-    onSuccess: (state, body) => {
-      qc.setQueryData(["me", "onboarding"], state);
+    onSuccess: (state, body, context) => {
+      // Only the newest change's reply replaces what's shown: an older one would undo the steps
+      // taken since. A tour step is absolute (the step, not "one more"), so the newest reply
+      // holds the place the learner chose whichever order the server took them in.
+      if (context?.change === onboardingChanges.get(qc)) qc.setQueryData(["me", "onboarding"], state);
       if (body.tour === "complete") clearFinishPending(accountId);
     },
   });

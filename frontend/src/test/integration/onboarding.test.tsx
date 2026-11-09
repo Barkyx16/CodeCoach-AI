@@ -170,6 +170,45 @@ describe("the tour", () => {
     await waitFor(() => expect(screen.queryByText(/Introduction · step/)).toBeNull());
   });
 
+  it("moves on with every Next, even when an earlier step's reply arrives after a later step was taken", async () => {
+    // CI run 277: three quick Nexts, and an older reply put the tour back a step; the last Next
+    // then landed on the step before, so Finish never came.
+    asUser();
+    fakeOnboarding({ tour_status: "in_progress", tour_kind: "written", tour_step: 0, format: "written", starter: nurseStarter });
+    let state = onboardingState({ tour_status: "in_progress", tour_kind: "written", tour_step: 0, format: "written", starter: nurseStarter });
+    const sent: OnboardingUpdate[] = [];
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    let firstReplied = false;
+    server.use(http.patch(`${API}/api/v1/me/onboarding`, async ({ request }) => {
+      const body = (await request.json()) as OnboardingUpdate;
+      sent.push(body);
+      if (body.tour === "step") state = { ...state, tour_step: Math.min(body.tour_step ?? 0, 4) };
+      if (body.tour === "complete") state = { ...state, tour_status: "completed" };
+      const reply = HttpResponse.json(state); // the state as this request left it
+      if (sent.length === 1) {
+        await held; // its reply comes back late
+        firstReplied = true;
+      }
+      return reply;
+    }));
+    const { user } = renderApp(QUESTION, { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByText("Introduction · step 3 of 5")).toBeInTheDocument();
+    await waitFor(() => expect(sent).toHaveLength(2));
+    release(); // "step 2" arrives after "step 3" was answered
+    await waitFor(() => expect(firstReplied).toBe(true));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(screen.getByText("Introduction · step 3 of 5")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByText("Introduction · step 5 of 5")).toBeInTheDocument();
+    expect(sent.map((b) => b.tour_step)).toEqual([1, 2, 3, 4]);
+    await user.click(screen.getByRole("button", { name: "Finish" }));
+    await waitFor(() => expect(screen.queryByText(/Introduction · step/)).toBeNull());
+  });
+
   it("doesn't run on a page of the other kind", async () => {
     asUser();
     fakeOnboarding({ tour_status: "in_progress", tour_kind: "coding", tour_step: 0 });
