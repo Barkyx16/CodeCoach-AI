@@ -47,6 +47,7 @@ from app.schemas.schedule import (
     ScheduleSettingsIn,
     ScheduleSettingsOut,
 )
+from app.services import request_keys
 from app.services.applications import not_over
 from app.services.content import is_problem_retired
 from app.services.ics import IcsEvent, calendar
@@ -371,15 +372,14 @@ class Schedule:
         e.local_time, e.timezone, e.fold = local_time, tz, fold
 
     def create(self, body: EntryIn) -> tuple[EntryOut, bool]:
-        if body.client_request_id:
-            existing = self.db.scalar(
-                select(ScheduleEntry).where(
-                    ScheduleEntry.user_id == self.user.id,
-                    ScheduleEntry.client_request_id == body.client_request_id,
-                )
-            )
-            if existing is not None:
-                return self.get(existing.id), False
+        """A retry with the same client_request_id returns the entry the first made, even if it
+        was moved since; the same key for another activity or time is a 409."""
+        print_ = request_keys.fingerprint(
+            "schedule.create", body.model_dump(mode="json", exclude={"client_request_id"})
+        )
+        if body.client_request_id and (existing := self._by_request(body.client_request_id)) is not None:
+            request_keys.check(existing.request_fingerprint, print_, "schedule entry")
+            return self.get(existing.id), False
         n = (
             self.db.scalar(
                 select(func.count()).select_from(ScheduleEntry).where(ScheduleEntry.user_id == self.user.id)
@@ -400,6 +400,7 @@ class Schedule:
             duration_min=body.duration_min,
             notes=body.notes.strip(),
             client_request_id=body.client_request_id,
+            request_fingerprint=print_ if body.client_request_id else None,
             status="scheduled",
             sequence=0,
         )
@@ -409,16 +410,19 @@ class Schedule:
             self.db.commit()
         except IntegrityError:  # the same retry raced
             self.db.rollback()
-            existing = self.db.scalar(
-                select(ScheduleEntry).where(
-                    ScheduleEntry.user_id == self.user.id,
-                    ScheduleEntry.client_request_id == body.client_request_id,
-                )
-            )
+            existing = self._by_request(body.client_request_id) if body.client_request_id else None
             if existing is None:
                 raise
+            request_keys.check(existing.request_fingerprint, print_, "schedule entry")
             return self.get(existing.id), False
         return self.get(e.id), True
+
+    def _by_request(self, key: str) -> ScheduleEntry | None:
+        return self.db.scalar(
+            select(ScheduleEntry).where(
+                ScheduleEntry.user_id == self.user.id, ScheduleEntry.client_request_id == key
+            )
+        )
 
     def move(self, entry_id: str, body: EntryMove) -> EntryOut:
         e = self._owned(entry_id)

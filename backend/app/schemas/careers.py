@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from app.schemas.common import APIModel
+from app.schemas.common import APIModel, OptionalKey
 
 
 class CareerSummary(APIModel):
@@ -58,7 +58,7 @@ class AnswerRequest(APIModel):
         max_length=36,
         description="One of your stories this answer rehearses (it isn't changed)",
     )
-    client_request_id: str | None = Field(
+    client_request_id: OptionalKey = Field(
         default=None,
         min_length=8,
         max_length=64,

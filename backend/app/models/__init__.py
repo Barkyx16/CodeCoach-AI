@@ -391,6 +391,10 @@ class AIInteraction(Base):
     # The request's key: the same hint or review asked again (its response was lost) gets this
     # answer back, without a second provider call or a second use of the daily budget.
     client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # What that key stands for: a digest of the request's inputs, made on the server ("v1:" + sha256
+    # of the action, problem, hint level, code and submission). The same key with other inputs is
+    # refused. None on rows from before it existed (checked by action, problem and level only).
+    request_fingerprint: Mapped[str | None] = mapped_column(String(80), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
 
@@ -735,6 +739,8 @@ class ExperienceEntry(Base):
     requirement_ids: Mapped[list] = mapped_column(JSONType, default=list)
     # The create's request key: the same create sent again (its response was lost) returns this story.
     client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # What the create that made this stood for (a digest, services/request_keys.py).
+    request_fingerprint: Mapped[str | None] = mapped_column(String(80), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, onupdate=utcnow)
 
@@ -1155,6 +1161,8 @@ class Application(Base):
     story_ids: Mapped[list] = mapped_column(JSONType, default=list)
     archived: Mapped[bool] = mapped_column(Boolean, default=False)
     client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # What the create that made this stood for (a digest, services/request_keys.py).
+    request_fingerprint: Mapped[str | None] = mapped_column(String(80), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
@@ -1205,6 +1213,8 @@ class ApplicationEvent(Base):
     starts_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     notes: Mapped[str] = mapped_column(Text, default="")
     client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # What the create that made this stood for (a digest, services/request_keys.py).
+    request_fingerprint: Mapped[str | None] = mapped_column(String(80), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
     application: Mapped[Application] = relationship(back_populates="events")
@@ -1262,6 +1272,8 @@ class ScheduleEntry(Base):
     sequence: Mapped[int] = mapped_column(Integer, default=0)
     notes: Mapped[str] = mapped_column(Text, default="")
     client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # What the create that made this stood for (a digest, services/request_keys.py).
+    request_fingerprint: Mapped[str | None] = mapped_column(String(80), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 

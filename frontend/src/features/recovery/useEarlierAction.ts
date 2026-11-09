@@ -12,6 +12,7 @@ export type EarlierAction =
   | { status: "checking"; intent: PendingIntent }
   | { status: "found"; intent: PendingIntent; outcome: RequestOutcome }
   | { status: "not_found"; intent: PendingIntent }
+  | { status: "in_progress"; intent: PendingIntent }
   | { status: "unavailable"; intent: PendingIntent; error: unknown };
 
 /**
@@ -19,7 +20,9 @@ export type EarlierAction =
  * and never answered (Volume 8, prompt 1). Once the account is known, the server is asked what
  * its key made: a read, never a resend. Found or not found, the record is then forgotten, so the
  * next reload doesn't ask again; the answer stays on screen for this visit. Unreachable: the
- * record is kept and `recheck` asks again.
+ * record is kept and `recheck` asks again. Still being answered (a hint or review in flight,
+ * which has no record until its answer does: Volume 8, prompt 2): kept, and asked again after
+ * the server's wait, once by itself; then `recheck`.
  */
 export function useEarlierAction(kind: IntentKind, target: string | null): EarlierAction & { recheck: () => void; dismiss: () => void } {
   const { user, isRestoring } = useAuth();
@@ -34,7 +37,9 @@ export function useEarlierAction(kind: IntentKind, target: string | null): Earli
   const query = useQuery({
     queryKey: ["request-outcome", userId, intent?.key],
     enabled: !!intent && !!userId,
-    retry: false,
+    // In progress: ask once more by itself after the server's wait (a few seconds).
+    retry: (count, e) => count < 1 && inProgress(e),
+    retryDelay: (_count, e) => Math.min(10, (e instanceof ApiError && e.retryAfterSeconds) || 2) * 1000,
     staleTime: Infinity,
     queryFn: async () => {
       try {
@@ -57,7 +62,10 @@ export function useEarlierAction(kind: IntentKind, target: string | null): Earli
   if (!intent) state = { status: "none" };
   else if (query.data) state = { status: "found", intent, outcome: query.data };
   else if (query.error instanceof ApiError && query.error.status === 404) state = { status: "not_found", intent };
+  else if (query.isError && inProgress(query.error)) state = { status: "in_progress", intent };
   else if (query.isError) state = { status: "unavailable", intent, error: query.error };
   else state = { status: "checking", intent };
   return { ...state, recheck, dismiss };
 }
+
+const inProgress = (e: unknown) => e instanceof ApiError && e.code === "request_in_progress";

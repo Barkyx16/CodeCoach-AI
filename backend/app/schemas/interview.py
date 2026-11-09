@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from app.models import Difficulty, InterviewPhase, InterviewStatus, TurnRole
 from app.schemas.careers import AnswerOut
-from app.schemas.common import APIModel
+from app.schemas.common import APIModel, OptionalKey
 
 InterviewKind = Literal["coding", "questions"]
 AnswerSource = Literal["typed", "voice", "mixed"]
@@ -153,12 +153,13 @@ class InterviewMessage(APIModel):
     source: AnswerSource = Field(
         default="typed", description="How the text was produced. Recorded for review only"
     )
-    client_request_id: str | None = Field(
+    client_request_id: OptionalKey = Field(
         default=None,
         min_length=8,
         max_length=64,
         description="Send the same id again for the same message (a response lost after the server took it): "
-        "you get the current state, the reply included, instead of a second reply",
+        "you get the current state, the reply included, instead of a second reply. The same id with "
+        "other words is refused (409 `idempotency_key_reused`)",
     )
     after_seq: int | None = Field(
         default=None,

@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.careers import CATALOG
-from app.errors import NotFoundError
+from app.errors import NotFoundError, RateLimitedError
 from app.models import User
 from app.schemas.activity import (
     ActivityFacets,
@@ -178,7 +178,7 @@ class RequestOutcome(APIModel):
     "/requests/{key}",
     response_model=RequestOutcome,
     summary="What a request you sent with this key made (read-only)",
-    responses=error_responses(401, 404, 422),
+    responses=error_responses(401, 404, 422, 429),
 )
 def request_outcome(
     key: str = Path(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$"),
@@ -188,7 +188,9 @@ def request_outcome(
     """A page that lost a reply, then was reloaded, asks here before offering to send again: did
     the request arrive, and what did it make? Only your own records are searched. It reads and
     never creates; 404 means the server has no record (it never arrived, or what it made has been
-    deleted since). The key is never permission for anything: it only finds your own record."""
+    deleted since). 429 `request_in_progress` means a coaching request of yours is still being
+    answered (PostgreSQL), so there's no record yet: ask again after `Retry-After`. The key is
+    never permission for anything: it only finds your own record."""
     from sqlalchemy import select
 
     from app.models import (
@@ -248,6 +250,17 @@ def request_outcome(
     note = db.scalar(select(Note).where(Note.user_id == user.id, Note.client_request_id == key))
     if note is not None:
         return RequestOutcome(kind="note", state="done", id=note.id, created_at=note.created_at)
+    from app.services.ai.service import CoachService
+
+    if CoachService.turn_in_flight(db, user.id):
+        # A hint or review is recorded only when its answer is, so while one is still being
+        # answered there's no record yet. That isn't "never arrived": say so, and to ask again.
+        raise RateLimitedError.wait(
+            "A coaching request you sent is still being answered, so this can't be told yet. "
+            "Check again in a moment.",
+            2,
+            code="request_in_progress",
+        )
     raise NotFoundError(
         "The server has no record of this request: it never arrived, or what it made has since been deleted.",
         code="request_not_found",

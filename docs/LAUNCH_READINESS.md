@@ -2,7 +2,7 @@
 
 ## Current status: the Volume 6 checkpoint (read this first)
 
-**Head of this checkpoint:** `8fd474e`, pushed. Later commits carry Volume 7 work (below); the latest with a full CI result is `09b8b46`. Everything below is keyed to a commit. A result from an older commit
+**Head of this checkpoint:** `8fd474e`, pushed. Later commits carry Volume 7 work (below); the latest with a full CI result is `201e478`. Everything below is keyed to a commit. A result from an older commit
 isn't counted as evidence for a newer one.
 
 **CI, completed runs only:**
@@ -20,6 +20,7 @@ isn't counted as evidence for a newer one.
 | `366449b` | 263 (push), 264 (pull_request) | all 7 jobs passed, both runs: Volume 7 prompt 6 and the History filter fix. The complete desktop browser suite after the fix, locally on this commit: 89 passed, 3 judge tests skipped (CI's sandbox job runs them) |
 | `037e618` | 265 (push), 266 (pull_request) | all 7 jobs passed, both runs: Volume 7 prompt 7 (back and deep links) |
 | `09b8b46` | 267 (push), 268 (pull_request) | all 7 jobs passed, both runs: Volume 7 prompt 8 (support report) |
+| `201e478` | 269 (push), 270 (pull_request) | all 7 jobs passed, both runs: Volume 7 prompt 9 (voice). `d3e0476` (prompt 10) was pushed together with `b429eba` and has no run of its own; `b429eba`'s runs (271, 272) were in progress when this was written |
 
 **Volume 6, item by item:**
 
@@ -60,6 +61,7 @@ deployed, and nothing will be without your say-so.
 | # | Prompt | Status | Commits | Evidence | Limits |
 |---|---|---|---|---|---|
 | 1 | Uncertain actions survive a reload | done | the commit after `d3e0476` | submissions, runs, hints, reviews and new stories write their key to this browser before sending (account, kind, target, key, fingerprint, time; no content, no credential; 24 h, 20 per account, deleted on sign-out); after a reload the page reads `GET /me/requests/{key}` (owner-only) and shows what it made, says "never arrived", or offers Check again; same content reuses the key across tabs. Tests: 5 unit, 6 integration (3 negative controls, each caught), 4 backend + the cross-account route walk, a real-API browser test with dropped replies and reloads. On this tree: backend SQLite 2511 passed (lookup and route walk also on PostgreSQL); frontend 906/906; desktop browser suite 95 passed (3 judge tests skipped). docs/RECOVERY.md | answers, interview messages, notes, drills and story updates still keep keys in the page; needs local storage |
+| 2 | Bind every replay key to one intent | done | the commit after `b429eba` | the same key with a different intent is a 409 `idempotency_key_reused`, never the old result, never executed or charged: hints (other code, level, problem, action), reviews (other code or submission), stories, applications, events, schedule entries (a server-side digest of the create's input, kept because these can be edited later; migration `06088140741a`), drills and interview messages (compared with what was saved), notes (another source; newer text stays allowed for autosave), shared-link feedback (only the same reviewer and the same words replay: another reviewer's key reveals nothing, where before it returned their feedback). The race path compares the intent too (it returned the winner without looking); two simultaneous events no longer 500; a blank key is no key (it was one shared key). The lookup says "still being answered" (429 `request_in_progress`) while a hint or review is in flight on PostgreSQL, and the page asks again once by itself. Forms keep one key per exact content, so an edited retry is new. Guarantees written separately for database effects, budget and external calls, with the crash windows (docs/RECOVERY.md). Tests: 16 backend (SQLite and PostgreSQL; two copies at once synchronised by a gate, no sleeps: one provider call on PostgreSQL, one row and one charge on both), 2 frontend; one share test changed (it asserted the dropped edit). 10 negative controls, each caught | not exactly-once with the provider (no provider idempotency; a crash after its answer means the next press calls again, charged once here); SQLite can't stop the second call or report in-flight; the transaction (and a connection) is held across the bounded 45 s call |
 
 ## Volume 5 (the launch-readiness batch)
 
@@ -110,6 +112,10 @@ Each of these was found by running something, not by reading.
 - `dd8a6dc39c8f`: `users.pending_email`, `pending_email_at`.
 - `7c1d2e3f4a5b`: RLS policies with scopes, and the read-only maintenance policy (PostgreSQL only).
 - `4e5f6a7b8c9d`: `notes.client_request_id`, unique per user.
+- `8d9e0f1a2b3c`: interview concurrency (one live interview per account, compare-and-set finish).
+- `9a0b1c2d3e4f`: `ai_interactions.client_request_id` and `experience_entries.client_request_id`, unique per user.
+- `06088140741a`: `request_fingerprint` (nullable digest) on `ai_interactions`, `experience_entries`,
+  `applications`, `application_events` and `schedule_entries`. No backfill; older rows are matched as before.
 
 `alembic upgrade head`, `alembic check` (models match) and `downgrade base` pass on a disposable
 PostgreSQL database. The API is additive: `api_compat.py --strict` against the last pushed

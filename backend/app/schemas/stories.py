@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from app.schemas.common import APIModel
+from app.schemas.common import APIModel, OptionalKey
 
 Competency = Literal[
     "teamwork",
@@ -56,7 +56,7 @@ class StoryFields(APIModel):
 
 class StoryCreate(StoryFields):
     title: str = Field(min_length=1, max_length=120)
-    client_request_id: str | None = Field(
+    client_request_id: OptionalKey = Field(
         default=None,
         min_length=8,
         max_length=64,

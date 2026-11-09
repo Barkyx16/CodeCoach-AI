@@ -16,6 +16,7 @@ import { ScheduleLink } from "@/features/schedule/ScheduleLink";
 import { useDictation } from "@/features/voice/useDictation";
 import { useStoredDraft } from "@/hooks/useStoredDraft";
 import { formatDateTime } from "@/lib/format";
+import { useRequestKey } from "@/lib/requestKey";
 
 /** One drill: the objective and what feedback looks for up front, then a spoken or typed answer. */
 export function DrillPage() {
@@ -30,7 +31,8 @@ export function DrillPage() {
     textRef.current = text; // dictated words are appended to what's in the box right now
   });
   const [usedVoice, setUsedVoice] = useState(false);
-  const [requestId, setRequestId] = useState(() => crypto.randomUUID());
+  // A retry of the same words keeps its key (saved once); changed words are a new attempt.
+  const requestKey = useRequestKey();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [params, setParams] = useSearchParams();
@@ -78,15 +80,14 @@ export function DrillPage() {
     const sent = text;
     try {
       const seconds = Math.round(spokenMs.current / 1000);
-      const out = await api.submitDrill(d.id, {
-        text: sent, source: usedVoice ? "voice" : "typed", spoken_seconds: delivery && usedVoice && seconds > 0 ? seconds : null, client_request_id: requestId,
-      });
+      const body = { text: sent, source: usedVoice ? "voice" as const : "typed" as const, spoken_seconds: delivery && usedVoice && seconds > 0 ? seconds : null };
+      const out = await api.submitDrill(d.id, { ...body, client_request_id: requestKey.keyFor([d.id, body]) });
       show(out);
       // Clear only what was sent: words typed or dictated while it was sending stay in the box.
       if (textRef.current === sent) setText("");
       setUsedVoice(false);
       spokenMs.current = 0;
-      setRequestId(crypto.randomUUID());
+      requestKey.done();
       void qc.invalidateQueries({ queryKey: ["me", "drills"] });
     } catch (e) {
       setError(e); // the words stay in the box (and on this device)

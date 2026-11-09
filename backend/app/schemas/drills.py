@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from app.schemas.common import APIModel
+from app.schemas.common import APIModel, OptionalKey
 
 
 class DrillOut(APIModel):
@@ -26,7 +26,7 @@ class DrillAttemptIn(APIModel):
     spoken_seconds: int | None = Field(
         default=None, ge=1, le=900, description="Only when the browser timed a recording"
     )
-    client_request_id: str | None = Field(default=None, max_length=64)
+    client_request_id: OptionalKey = Field(default=None, max_length=64)
 
 
 class DrillAttemptOut(APIModel):

@@ -34,7 +34,7 @@ from app.schemas.stories import (
     StoryTargetLink,
     StoryUpdate,
 )
-from app.services import story_assist
+from app.services import request_keys, story_assist
 
 MAX_STORIES = 200
 MAX_REVISIONS = 100
@@ -288,8 +288,13 @@ class Stories:
         )
 
     def create(self, user: User, body: StoryCreate) -> StoryOut:
-        """A create repeated with the same `client_request_id` returns the story the first made."""
+        """A create repeated with the same `client_request_id` returns the story the first made;
+        the same key with other content is refused (409 `idempotency_key_reused`)."""
+        print_ = request_keys.fingerprint(
+            "story.create", body.model_dump(mode="json", exclude={"client_request_id"})
+        )
         if body.client_request_id and (made := self._by_request(user, body.client_request_id)):
+            request_keys.check(made.request_fingerprint, print_, "story")
             return self.get(user, made.id)
         n = (
             self.db.scalar(
@@ -308,6 +313,7 @@ class Stories:
             track=user.career_track,
             revision=1,
             client_request_id=body.client_request_id,
+            request_fingerprint=print_ if body.client_request_id else None,
         )
         self._apply(user, e, body)
         self.db.add(e)
@@ -319,6 +325,7 @@ class Stories:
             made = self._by_request(user, body.client_request_id) if body.client_request_id else None
             if made is None:
                 raise
+            request_keys.check(made.request_fingerprint, print_, "story")
             return self.get(user, made.id)
         record_revision(self.db, e, "created", bump=False)
         self.db.commit()

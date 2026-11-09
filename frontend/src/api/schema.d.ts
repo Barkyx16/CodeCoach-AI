@@ -2755,7 +2755,9 @@ export interface paths {
          * @description A page that lost a reply, then was reloaded, asks here before offering to send again: did
          *     the request arrive, and what did it make? Only your own records are searched. It reads and
          *     never creates; 404 means the server has no record (it never arrived, or what it made has been
-         *     deleted since). The key is never permission for anything: it only finds your own record.
+         *     deleted since). 429 `request_in_progress` means a coaching request of yours is still being
+         *     answered (PostgreSQL), so there's no record yet: ask again after `Retry-After`. The key is
+         *     never permission for anything: it only finds your own record.
          */
         get: operations["request_outcome_api_v1_me_requests__key__get"];
         put?: never;
@@ -5440,7 +5442,7 @@ export interface components {
             token: string;
             /**
              * Client Request Id
-             * @description Retries with the same id are ignored
+             * @description A retry with the same id, from the same reviewer with the same words, returns the first receipt (`duplicate`); anything else under that id is refused (409 `idempotency_key_reused`)
              */
             client_request_id: string;
             /**
@@ -5886,7 +5888,7 @@ export interface components {
             source: "typed" | "voice" | "mixed";
             /**
              * Client Request Id
-             * @description Send the same id again for the same message (a response lost after the server took it): you get the current state, the reply included, instead of a second reply
+             * @description Send the same id again for the same message (a response lost after the server took it): you get the current state, the reply included, instead of a second reply. The same id with other words is refused (409 `idempotency_key_reused`)
              */
             client_request_id?: string | null;
             /**
@@ -20581,6 +20583,15 @@ export interface operations {
             };
             /** @description Request validation failed */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -284,13 +284,17 @@ def test_feedback_is_structured_attributed_honestly_and_rendered_as_text(client)
     ]
 
 
-def test_retries_are_ignored_and_volume_is_bounded(client, monkeypatch):
+def test_retries_are_saved_once_and_volume_is_bounded(client, monkeypatch):
     h = nurse(client)
     token = share(client, h, answer_question(client, h)["id"])["token"]
     once = feedback(client, token, client_request_id="retry-0001")
-    again = feedback(client, token, client_request_id="retry-0001", clear="a changed retry")
+    again = feedback(client, token, client_request_id="retry-0001")
     assert once.status_code == 201 and again.status_code == 200 and again.json()["duplicate"] is True
     assert again.json()["feedback"]["id"] == once.json()["feedback"]["id"]
+    # The same key with other words isn't the same feedback: refused, not taken as already sent
+    # (Volume 8, prompt 2). Before, it came back as "duplicate" and the new words were dropped.
+    changed = feedback(client, token, client_request_id="retry-0001", clear="a changed retry")
+    assert changed.status_code == 409 and changed.json()["error"]["code"] == "idempotency_key_reused"
     with client.app.state.session_factory() as db:
         assert len(db.scalars(select(ShareFeedback)).all()) == 1
 

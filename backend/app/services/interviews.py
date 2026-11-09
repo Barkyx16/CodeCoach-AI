@@ -75,7 +75,7 @@ from app.schemas.interview import (
     SpeakerOut,
     TurnOut,
 )
-from app.services import engagement
+from app.services import engagement, request_keys
 from app.services.ai.base import CoachProvider, InterviewContext, ProviderResult, TranscriptTurn
 from app.services.ai.offline import OfflineCoach
 from app.services.ai.service import CoachService, problem_context, sanitize_code
@@ -203,11 +203,21 @@ class InterviewService:
 
     def respond(self, user: User, interview_id: str, body: InterviewMessage) -> InterviewOut:
         session = self._load(user, interview_id)
-        if body.client_request_id and any(
-            (t.meta or {}).get("client_request_id") == body.client_request_id for t in session.turns
-        ):
-            # The same message again: its response was lost after the server took it. Reconcile
-            # (the current state, the reply included) instead of asking the interviewer twice.
+        sent = next(
+            (
+                t
+                for t in session.turns
+                if body.client_request_id
+                and (t.meta or {}).get("client_request_id") == body.client_request_id
+            ),
+            None,
+        )
+        if sent is not None:
+            # The same key again: its response was lost after the server took it. The same message
+            # is reconciled (the current state, the reply included) instead of asking the
+            # interviewer twice; other words under that key are refused, never taken as sent.
+            if sent.content != body.message.strip():
+                raise request_keys.reused("message")
             self._expire_if_due(user, session)
             return self._to_out(session)
         self._expire_if_due(user, session)

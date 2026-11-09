@@ -42,6 +42,7 @@ from app.schemas.ai import (
     ReviewRequest,
     ReviewResponse,
 )
+from app.services import request_keys
 from app.services.ai.anthropic_provider import AnthropicCoach
 from app.services.ai.base import (
     CoachProvider,
@@ -125,6 +126,22 @@ def problem_context(problem: Problem) -> ProblemContext:
     )
 
 
+def request_fingerprint(
+    action: AIAction, problem_id: int, hint_level: int | None, source_code: str, submission_id: str | None
+) -> str:
+    """What a keyed coaching request stands for, made on the server from validated inputs (never a
+    browser-supplied hash): the action, problem, hint level, the code exactly as sent, and the
+    submission a review is about. Stored as a digest only; never shown or logged."""
+    return request_keys.fingerprint(
+        f"ai.{action.value}",
+        {"problem": problem_id, "level": hint_level, "code": source_code, "submission": submission_id},
+    )
+
+
+def _turn_key(user_id: str) -> str:
+    return f"codecoach:ai-turn:{user_id}"
+
+
 class CoachService:
     def __init__(
         self, db: Session, settings: Settings, provider: CoachProvider, fallback: CoachProvider | None = None
@@ -159,10 +176,17 @@ class CoachService:
         )
 
     def _replayed(
-        self, user: User, key: str | None, action: AIAction, problem: Problem, hint_level: int | None = None
+        self,
+        user: User,
+        key: str | None,
+        action: AIAction,
+        problem: Problem,
+        hint_level: int | None = None,
+        fingerprint: str | None = None,
     ) -> AIInteraction | None:
         """The interaction an earlier request with this key made, if any. Sent again because its
-        response was lost, a request gets that answer back: no provider call, no budget used."""
+        response was lost, a request gets that answer back: no provider call, no budget used. The
+        same key with different inputs (other code, level, problem or submission) is refused."""
         if not key:
             return None
         row = self.db.scalar(
@@ -172,16 +196,39 @@ class CoachService:
         )
         if row is None:
             return None
-        if row.action != action or row.problem_id != problem.id or row.hint_level != hint_level:
+        self._same_intent(row, action, problem, hint_level, fingerprint)
+        return row
+
+    @staticmethod
+    def _same_intent(
+        row: AIInteraction,
+        action: AIAction,
+        problem: Problem,
+        hint_level: int | None,
+        fingerprint: str | None,
+    ) -> None:
+        different = row.action != action or row.problem_id != problem.id or row.hint_level != hint_level
+        # Rows from before fingerprints existed are checked as they always were.
+        if not different and fingerprint:
+            different = not request_keys.same(row.request_fingerprint, fingerprint)
+        if different:
             raise ConflictError(
                 "This request key was already used for a different coaching request.",
                 code="idempotency_key_reused",
             )
-        return row
 
-    def _commit_or_replay(self, user: User, key: str | None) -> AIInteraction | None:
+    def _commit_or_replay(
+        self,
+        user: User,
+        key: str | None,
+        action: AIAction,
+        problem: Problem,
+        hint_level: int | None = None,
+        fingerprint: str | None = None,
+    ) -> AIInteraction | None:
         """Commit the new interaction. If the same key won a race meanwhile (two copies of one
-        request at once, where the per-user lock doesn't apply), return the one that was kept."""
+        request at once, where the per-user lock doesn't apply), return the one that was kept, but
+        only if it stands for the same request: a different one is refused, never returned."""
         try:
             self.db.commit()
         except IntegrityError:
@@ -195,6 +242,7 @@ class CoachService:
             )
             if row is None:
                 raise
+            self._same_intent(row, action, problem, hint_level, fingerprint)
             return row
         return None
 
@@ -214,8 +262,9 @@ class CoachService:
 
     def hint(self, user: User, req: HintRequest) -> HintResponse:
         problem = self._problem(req.problem_slug)
+        print_ = request_fingerprint(AIAction.HINT, problem.id, req.level, req.source_code, None)
         if (
-            done := self._replayed(user, req.client_request_id, AIAction.HINT, problem, req.level)
+            done := self._replayed(user, req.client_request_id, AIAction.HINT, problem, req.level, print_)
         ) is not None:
             return self._hint_response(
                 problem, req.level, HintContent.model_validate(done.response), done.provider
@@ -253,9 +302,14 @@ class CoachService:
             result,
             hint_level=req.level,
             client_request_id=req.client_request_id,
+            request_fingerprint=print_ if req.client_request_id else None,
         )
         self._event(user, problem, ProgressEventType.HINT_USED)
-        if (kept := self._commit_or_replay(user, req.client_request_id)) is not None:
+        if (
+            kept := self._commit_or_replay(
+                user, req.client_request_id, AIAction.HINT, problem, req.level, print_
+            )
+        ) is not None:
             return self._hint_response(
                 problem, req.level, HintContent.model_validate(kept.response), kept.provider
             )
@@ -277,7 +331,10 @@ class CoachService:
                     # Don't let the coach treat a public-tests-only run as a full verdict.
                     judge_status += " on public tests only (a Run; hidden tests were not executed)"
         expected = problem.expected_complexity or {}
-        if (done := self._replayed(user, req.client_request_id, AIAction.REVIEW, problem)) is not None:
+        print_ = request_fingerprint(AIAction.REVIEW, problem.id, None, req.source_code, submission_id)
+        if (
+            done := self._replayed(user, req.client_request_id, AIAction.REVIEW, problem, None, print_)
+        ) is not None:
             return ReviewResponse(
                 review=CodeReview.model_validate(done.response),
                 provider=done.provider,
@@ -307,9 +364,14 @@ class CoachService:
             result,
             submission_id=submission_id,
             client_request_id=req.client_request_id,
+            request_fingerprint=print_ if req.client_request_id else None,
         )
         self._event(user, problem, ProgressEventType.REVIEW_REQUESTED)
-        if (kept := self._commit_or_replay(user, req.client_request_id)) is not None:
+        if (
+            kept := self._commit_or_replay(
+                user, req.client_request_id, AIAction.REVIEW, problem, None, print_
+            )
+        ) is not None:
             result = replace(result, content=CodeReview.model_validate(kept.response), provider=kept.provider)
         return ReviewResponse(
             review=result.content,
@@ -425,13 +487,37 @@ class CoachService:
         """One AI request per user at a time, on PostgreSQL: a transaction-scoped advisory lock,
         taken without waiting and released when this request's transaction ends. Held across
         the count, the provider call and the insert, it makes the daily budget exact: two
-        requests can't both pass at 49 of 50. SQLite (local runs) has no such lock: always True."""
+        requests can't both pass at 49 of 50, and two copies of one keyed request can't both
+        call the provider. The call it is held across is bounded (BoundedProvider: at most 45 s,
+        at most AI_MAX_CONCURRENT_CALLS at once), and if the process dies mid-call the database
+        ends the transaction: nothing is recorded or charged, and the lock is gone, so there is
+        no abandoned reservation to clean up. SQLite (local runs) has no such lock: always True."""
         bind = self.db.get_bind()
         if bind.dialect.name != "postgresql":
             return True
-        key = f"codecoach:ai-turn:{user.id}"
         return bool(
-            self.db.scalar(text("SELECT pg_try_advisory_xact_lock(hashtextextended(:k, 0))"), {"k": key})
+            self.db.scalar(
+                text("SELECT pg_try_advisory_xact_lock(hashtextextended(:k, 0))"), {"k": _turn_key(user.id)}
+            )
+        )
+
+    @staticmethod
+    def turn_in_flight(db: Session, user_id: str) -> bool:
+        """Whether another request of this user holds the AI turn right now (PostgreSQL; on SQLite
+        it can't be told: False). Looks without taking it, so it never makes a request wait."""
+        if db.get_bind().dialect.name != "postgresql":
+            return False
+        return bool(
+            db.scalar(
+                text(
+                    "SELECT EXISTS (SELECT 1 FROM pg_locks l, (SELECT hashtextextended(:k, 0) AS h) x "
+                    "WHERE l.locktype = 'advisory' AND l.granted AND l.objsubid = 1 "
+                    "AND l.database = (SELECT oid FROM pg_database WHERE datname = current_database()) "
+                    "AND l.classid::bigint = ((x.h >> 32) & 4294967295) "
+                    "AND l.objid::bigint = (x.h & 4294967295) AND l.pid <> pg_backend_pid())"
+                ),
+                {"k": _turn_key(user_id)},
+            )
         )
 
     def check_budget(self, user: User) -> None:
@@ -491,11 +577,13 @@ class CoachService:
         submission_id: str | None = None,
         store_response: bool = True,
         client_request_id: str | None = None,
+        request_fingerprint: str | None = None,
     ) -> None:
         self.db.add(
             AIInteraction(
                 user_id=user.id,
                 client_request_id=client_request_id,
+                request_fingerprint=request_fingerprint,
                 problem_id=problem.id,
                 submission_id=submission_id,
                 action=action,

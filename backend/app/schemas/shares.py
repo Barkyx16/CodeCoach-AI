@@ -125,7 +125,10 @@ class FeedbackCommentOut(FeedbackComment):
 class FeedbackIn(APIModel):
     token: str = Field(min_length=TOKEN_MIN, max_length=TOKEN_MAX)
     client_request_id: str = Field(
-        min_length=8, max_length=64, description="Retries with the same id are ignored"
+        min_length=8,
+        max_length=64,
+        description="A retry with the same id, from the same reviewer with the same words, returns the "
+        "first receipt (`duplicate`); anything else under that id is refused (409 `idempotency_key_reused`)",
     )
     clear: str = Field(default="", max_length=MAX_FIELD, description="What was clear?")
     needs_evidence: str = Field(default="", max_length=MAX_FIELD, description="What needs more evidence?")

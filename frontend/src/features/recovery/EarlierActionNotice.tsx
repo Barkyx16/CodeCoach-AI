@@ -39,6 +39,16 @@ export function EarlierActionNotice({ earlier, noun, changed, found }: {
           <span><Button size="sm" variant="ghost" onClick={earlier.dismiss}>OK</Button></span>
         </>
       )}
+      {earlier.status === "in_progress" && (
+        <>
+          <p><strong>The {noun} you sent at {when} is still being answered.</strong> Nothing has been saved yet, and it
+            isn't being sent again. Check again in a moment to see its answer.</p>
+          <span className="row">
+            <Button size="sm" onClick={earlier.recheck}>Check again</Button>
+            <Button size="sm" variant="ghost" onClick={earlier.dismiss}>Dismiss</Button>
+          </span>
+        </>
+      )}
       {earlier.status === "unavailable" && (
         <>
           <p><strong>Couldn't check the {noun} you sent at {when}.</strong> It may have arrived. Sending the same thing

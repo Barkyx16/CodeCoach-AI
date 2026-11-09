@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from app.schemas.common import APIModel
+from app.schemas.common import APIModel, OptionalKey
 
 SourceType = Literal["question", "problem", "lesson", "interview"]
 NoteStatus = Literal["active", "archived", "all"]
@@ -37,7 +37,7 @@ class NoteIn(APIModel):
         default=None, max_length=MAX_EXCERPT, description="A snapshot, not a live reference"
     )
     excerpt_kind: Literal["quote", "code"] | None = None
-    client_request_id: str | None = Field(
+    client_request_id: OptionalKey = Field(
         default=None,
         min_length=8,
         max_length=64,

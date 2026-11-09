@@ -10,6 +10,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { InlineError, LoadingState } from "@/components/States";
 import { formatDateTime } from "@/lib/format";
+import { useRequestKey } from "@/lib/requestKey";
 
 import { FeedbackView } from "./FeedbackView";
 import { SharedSnapshot } from "./SharedSnapshot";
@@ -17,13 +18,6 @@ import { SharedSnapshot } from "./SharedSnapshot";
 const MAX_FIELD = 1500;
 const MAX_COMMENTS = 8;
 
-function newRequestId(): string {
-  try {
-    return crypto.randomUUID();
-  } catch {
-    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
-  }
-}
 
 /** The link's secret lives in the URL fragment (#t=…), which browsers never send to a server. */
 function tokenFrom(hash: string): string {
@@ -114,7 +108,9 @@ function Shared({ token, data }: { token: string; data: RecipientView }) {
 
 function FeedbackForm({ token, data }: { token: string; data: RecipientView }) {
   const { view } = data;
-  const requestId = useRef(newRequestId());
+  // The same feedback sent again (a lost reply) keeps its key, so it's saved once; edited
+  // feedback is new, with a new key.
+  const requestKey = useRequestKey();
   const [fields, setFields] = useState({ clear: "", needs_evidence: "", next_step: "" });
   const [comments, setComments] = useState<{ sentence: number; text: string }[]>([]);
   const [sentence, setSentence] = useState<number>(view.excerpt[0]?.index ?? 0);
@@ -123,10 +119,13 @@ function FeedbackForm({ token, data }: { token: string; data: RecipientView }) {
   const [receipt, setReceipt] = useState<FeedbackReceipt | null>(null);
   const done = useRef<HTMLHeadingElement>(null);
   const send = useMutation({
-    mutationFn: () => api.sendFeedback({ token, client_request_id: requestId.current, ...fields, comments, guest_name: guestName.trim() }),
+    mutationFn: () => {
+      const body = { token, ...fields, comments, guest_name: guestName.trim() };
+      return api.sendFeedback({ ...body, client_request_id: requestKey.keyFor(body) });
+    },
     onSuccess: (r) => {
       setReceipt(r);
-      requestId.current = newRequestId(); // the next one is new feedback, not a retry
+      requestKey.done(); // the next one is new feedback, not a retry
       window.requestAnimationFrame(() => done.current?.focus());
     },
   });

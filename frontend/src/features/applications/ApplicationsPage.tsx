@@ -12,6 +12,7 @@ import { Card } from "@/components/Card";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
 import { useReturnHere } from "@/hooks/useReturnHere";
 import { useScrollMemory } from "@/hooks/useScrollMemory";
+import { useRequestKey } from "@/lib/requestKey";
 
 import { browserTimeZone, dueLabel, formatDay, todayIn } from "./dates";
 import { STAGE_HINT, STAGE_LABEL, STAGES } from "./labels";
@@ -249,8 +250,9 @@ function List({ apps, today, sort, dir, onSort, onMove }: {
 function NewApplication({ onDone }: { onDone: () => void }) {
   const qc = useQueryClient();
   const [form, setForm] = useState({ employer: "", role_title: "", stage: "saved" as ApplicationStage, applied_on: "", link: "", next_action: "", next_action_due: "" });
-  // One id per form: a double click or a retry after a dropped connection creates one application.
-  const [requestId] = useState(() => crypto.randomUUID());
+  // One key per exact application: a double click or a retry after a dropped connection creates
+  // one; edited details before it's saved are a new request.
+  const requestKey = useRequestKey();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   async function submit(e: FormEvent) {
@@ -259,10 +261,11 @@ function NewApplication({ onDone }: { onDone: () => void }) {
     setBusy(true);
     setError(null);
     try {
-      await api.createApplication({
+      const body = {
         employer: form.employer, role_title: form.role_title, stage: form.stage, applied_on: form.applied_on || null,
-        link: form.link || null, next_action: form.next_action, next_action_due: form.next_action_due || null, client_request_id: requestId,
-      });
+        link: form.link || null, next_action: form.next_action, next_action_due: form.next_action_due || null,
+      };
+      await api.createApplication({ ...body, client_request_id: requestKey.keyFor(body) });
       void qc.invalidateQueries({ queryKey: ["me", "applications"] });
       onDone();
     } catch (err) {

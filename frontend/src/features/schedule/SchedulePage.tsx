@@ -11,6 +11,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { browserTimeZone, formatDay, todayIn } from "@/features/applications/dates";
+import { useRequestKey } from "@/lib/requestKey";
 
 import { addDays, entryDay, startOfWeek, timeLabel, TIME_ZONES, zoneLabel } from "./time";
 
@@ -241,7 +242,9 @@ function AddEntry({ tz, defaultDate }: { tz: string; defaultDate: string }) {
   const preset = params.get("kind") && params.get("ref") ? { kind: params.get("kind") as ScheduleKind, ref: params.get("ref")!, title: params.get("title") ?? "" } : null;
   const [choice, setChoice] = useState(preset ? `${preset.kind}|${preset.ref}` : "");
   const [notes, setNotes] = useState("");
-  const [requestId, setRequestId] = useState(() => crypto.randomUUID());
+  // A retry of the same entry keeps its key (made once); a changed activity, time or note is new.
+  const requestKey = useRequestKey();
+  const [round, setRound] = useState(0); // a fresh form after each entry is added
   const [added, setAdded] = useState("");
   const options = [...(preset ? [{ kind: preset.kind, ref: preset.ref, title: preset.title || preset.ref, detail: KIND_LABEL[preset.kind], minutes: null }] : []),
     ...(schedulable.data ?? []).filter((s) => !(preset && s.kind === preset.kind && s.ref === preset.ref))];
@@ -249,13 +252,15 @@ function AddEntry({ tz, defaultDate }: { tz: string; defaultDate: string }) {
   return (
     <Card className="stack-sm">
       <h2 className="section-title">Schedule something</h2>
-      <TimeForm key={requestId} tz={tz} initial={{ on_date: defaultDate }} submitLabel="Add to schedule" disabled={!kind}
+      <TimeForm key={round} tz={tz} initial={{ on_date: defaultDate }} submitLabel="Add to schedule" disabled={!kind}
         onSubmit={async (t) => {
-          const e = await api.createScheduleEntry({ kind: kind!, ref: ref!, ...t, notes, client_request_id: requestId });
+          const body = { kind: kind!, ref: ref!, ...t, notes };
+          const e = await api.createScheduleEntry({ ...body, client_request_id: requestKey.keyFor(body) });
           setAdded(`Added “${e.title}” on ${formatDay(e.on_date)}.`);
           setChoice("");
           setNotes("");
-          setRequestId(crypto.randomUUID());
+          requestKey.done();
+          setRound((r) => r + 1);
           if (preset) setParams({}, { replace: true });
           void qc.invalidateQueries({ queryKey: ["me", "schedule"] });
         }}>

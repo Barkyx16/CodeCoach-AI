@@ -9,7 +9,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.schemas.common import APIModel
+from app.schemas.common import APIModel, OptionalKey
 
 HintLevel = Literal[1, 2, 3, 4]
 HINT_LEVEL_NAMES: dict[int, str] = {
@@ -24,7 +24,7 @@ class HintRequest(APIModel):
     problem_slug: str
     source_code: str = Field(default="", description="The learner's current draft")
     level: HintLevel = Field(description="1 nudge, 2 concept, 3 pseudocode, 4 full explanation")
-    client_request_id: str | None = Field(
+    client_request_id: OptionalKey = Field(
         default=None,
         min_length=8,
         max_length=64,
@@ -57,7 +57,7 @@ class ReviewRequest(APIModel):
     problem_slug: str
     source_code: str = Field(min_length=1)
     submission_id: str | None = None
-    client_request_id: str | None = Field(
+    client_request_id: OptionalKey = Field(
         default=None,
         min_length=8,
         max_length=64,

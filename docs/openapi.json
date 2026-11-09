@@ -14819,7 +14819,7 @@
           "progress"
         ],
         "summary": "What a request you sent with this key made (read-only)",
-        "description": "A page that lost a reply, then was reloaded, asks here before offering to send again: did\nthe request arrive, and what did it make? Only your own records are searched. It reads and\nnever creates; 404 means the server has no record (it never arrived, or what it made has been\ndeleted since). The key is never permission for anything: it only finds your own record.",
+        "description": "A page that lost a reply, then was reloaded, asks here before offering to send again: did\nthe request arrive, and what did it make? Only your own records are searched. It reads and\nnever creates; 404 means the server has no record (it never arrived, or what it made has been\ndeleted since). 429 `request_in_progress` means a coaching request of yours is still being\nanswered (PostgreSQL), so there's no record yet: ask again after `Retry-After`. The key is\nnever permission for anything: it only finds your own record.",
         "operationId": "request_outcome_api_v1_me_requests__key__get",
         "security": [
           {
@@ -14873,6 +14873,16 @@
           },
           "422": {
             "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
             "content": {
               "application/json": {
                 "schema": {
@@ -22469,7 +22479,7 @@
             "maxLength": 64,
             "minLength": 8,
             "title": "Client Request Id",
-            "description": "Retries with the same id are ignored"
+            "description": "A retry with the same id, from the same reviewer with the same words, returns the first receipt (`duplicate`); anything else under that id is refused (409 `idempotency_key_reused`)"
           },
           "clear": {
             "type": "string",
@@ -23528,7 +23538,7 @@
               }
             ],
             "title": "Client Request Id",
-            "description": "Send the same id again for the same message (a response lost after the server took it): you get the current state, the reply included, instead of a second reply"
+            "description": "Send the same id again for the same message (a response lost after the server took it): you get the current state, the reply included, instead of a second reply. The same id with other words is refused (409 `idempotency_key_reused`)"
           },
           "after_seq": {
             "anyOf": [

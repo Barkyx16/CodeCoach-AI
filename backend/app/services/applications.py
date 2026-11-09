@@ -35,6 +35,7 @@ from app.schemas.applications import (
     ApplicationTargetLink,
     ApplicationUpdate,
 )
+from app.services import request_keys
 from app.services.timeutil import local_to_utc, parse_hhmm, zone
 
 MAX_APPLICATIONS = 300
@@ -199,16 +200,14 @@ class Applications:
         )
 
     def create(self, body: ApplicationCreate) -> tuple[ApplicationOut, bool]:
-        """Returns (application, created). A retry with the same client_request_id returns the first."""
-        if body.client_request_id:
-            existing = self.db.scalar(
-                select(Application.id).where(
-                    Application.user_id == self.user.id,
-                    Application.client_request_id == body.client_request_id,
-                )
-            )
-            if existing:
-                return self.get(existing), False
+        """Returns (application, created). A retry with the same client_request_id returns the
+        first; the same key with other content is refused (409 `idempotency_key_reused`)."""
+        print_ = request_keys.fingerprint(
+            "application.create", body.model_dump(mode="json", exclude={"client_request_id"})
+        )
+        if body.client_request_id and (made := self._by_request(body.client_request_id)) is not None:
+            request_keys.check(made.request_fingerprint, print_, "application")
+            return self.get(made.id), False
         count = len(self.db.scalars(select(Application.id).where(Application.user_id == self.user.id)).all())
         if count >= MAX_APPLICATIONS:
             raise AppError(
@@ -227,6 +226,7 @@ class Applications:
             notes=clean(body.notes),
             story_ids=[],
             client_request_id=body.client_request_id,
+            request_fingerprint=print_ if body.client_request_id else None,
         )
         self._links(a, body.target_id, body.story_ids)
         self._record_stage(a, body.stage)
@@ -235,16 +235,19 @@ class Applications:
             self.db.commit()
         except IntegrityError:  # the same retry raced: return the one that won
             self.db.rollback()
-            existing = self.db.scalar(
-                select(Application.id).where(
-                    Application.user_id == self.user.id,
-                    Application.client_request_id == body.client_request_id,
-                )
-            )
-            if existing is None:
+            made = self._by_request(body.client_request_id) if body.client_request_id else None
+            if made is None:
                 raise
-            return self.get(existing), False
+            request_keys.check(made.request_fingerprint, print_, "application")
+            return self.get(made.id), False
         return self.get(a.id), True
+
+    def _by_request(self, key: str) -> Application | None:
+        return self.db.scalar(
+            select(Application).where(
+                Application.user_id == self.user.id, Application.client_request_id == key
+            )
+        )
 
     def update(self, app_id: str, body: ApplicationUpdate) -> ApplicationOut:
         a = self._get(app_id)
@@ -312,17 +315,39 @@ class Applications:
             e.starts_at = local_to_utc(e.on_date, e.local_time, e.timezone, body.fold)
 
     def add_event(self, app_id: str, body: ApplicationEventIn) -> ApplicationOut:
+        """A retry with the same client_request_id returns the application with the event the
+        first made (also when two copies arrive at once); other content under that key is a 409."""
         a = self._get(app_id)
-        if body.client_request_id and any(e.client_request_id == body.client_request_id for e in a.events):
+        print_ = request_keys.fingerprint(
+            "application.event",
+            {"application": a.id, **body.model_dump(mode="json", exclude={"client_request_id"})},
+        )
+        if body.client_request_id and (made := self._event_by_request(a, body.client_request_id)):
+            request_keys.check(made.request_fingerprint, print_, "event")
             return self.get(a.id)
         if len(a.events) >= MAX_EVENTS:
             raise AppError(f"Up to {MAX_EVENTS} events per application.", code="too_many_events")
-        e = ApplicationEvent(client_request_id=body.client_request_id)
+        e = ApplicationEvent(
+            client_request_id=body.client_request_id,
+            request_fingerprint=print_ if body.client_request_id else None,
+        )
         self._event_fields(e, body)
         a.events.append(e)
         a.updated_at = datetime.now(UTC)
-        self.db.commit()
+        try:
+            self.db.commit()
+        except IntegrityError:  # the same event, sent twice at once: the other copy made it
+            self.db.rollback()
+            a = self._get(app_id)
+            made = self._event_by_request(a, body.client_request_id) if body.client_request_id else None
+            if made is None:
+                raise
+            request_keys.check(made.request_fingerprint, print_, "event")
         return self.get(a.id)
+
+    @staticmethod
+    def _event_by_request(a: Application, key: str) -> ApplicationEvent | None:
+        return next((e for e in a.events if e.client_request_id == key), None)
 
     def update_event(self, app_id: str, event_id: str, body: ApplicationEventIn) -> ApplicationOut:
         a = self._get(app_id)

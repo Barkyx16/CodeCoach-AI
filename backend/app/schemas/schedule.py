@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from app.schemas.common import APIModel
+from app.schemas.common import APIModel, OptionalKey
 
 ScheduleKind = Literal["plan_item", "review_item", "question", "problem", "application_event", "drill"]
 
@@ -40,7 +40,7 @@ class EntryIn(APIModel):
     )
     duration_min: int = Field(default=30, ge=5, le=480)
     notes: str = Field(default="", max_length=500)
-    client_request_id: str | None = Field(default=None, max_length=64)
+    client_request_id: OptionalKey = Field(default=None, max_length=64)
 
 
 class EntryMove(APIModel):

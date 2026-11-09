@@ -1,8 +1,18 @@
-from typing import Any, Generic, TypeVar
+from typing import Annotated, Any, Generic, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
 T = TypeVar("T")
+
+
+def _blank_is_none(value: Any) -> Any:
+    return None if isinstance(value, str) and not value.strip() else value
+
+
+# A request key (`client_request_id`) that is empty or blank means "no key", on every route
+# (Volume 8, prompt 2). Stored as-is, "" would be one shared key for every keyless request, so a
+# second, different create would come back as the first.
+OptionalKey = Annotated[str | None, BeforeValidator(_blank_is_none)]
 
 
 class APIModel(BaseModel):

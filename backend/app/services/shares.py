@@ -59,6 +59,7 @@ from app.schemas.shares import (
     ShareStatus,
     ShareSummary,
 )
+from app.services import request_keys
 
 PROMPTS = ["What was clear?", "What needs more evidence?", "One useful next step"]
 MAX_ACTIVE_SHARES = 50
@@ -424,14 +425,6 @@ class Shares:
             raise ConflictError(
                 "This is your own answer: it can't be reviewed with your account.", code="own_share"
             )
-        existing = self.db.scalar(
-            select(ShareFeedback).where(
-                ShareFeedback.share_id == share.id, ShareFeedback.client_request_id == body.client_request_id
-            )
-        )
-        if existing is not None:
-            return FeedbackReceipt(feedback=self._feedback_out(share, existing), duplicate=True)
-
         fields = {k: _clean(getattr(body, k)) for k in ("clear", "needs_evidence", "next_step")}
         anchors = {s["index"] for s in share.snapshot["excerpt"]}
         comments = []
@@ -441,6 +434,36 @@ class Shares:
             text = _clean(c.text)
             if text:
                 comments.append({"sentence": c.sentence, "text": text})
+        account = viewer is not None and not viewer.is_guest
+        reviewer_id = viewer.id if account and viewer is not None else None
+        guest_name = None if account else (_clean(body.guest_name) or None)
+
+        def replay(item: ShareFeedback) -> FeedbackReceipt:
+            # Several people review through one link, so a key alone says nothing about who sent
+            # it. Only the same reviewer sending the same words gets the receipt back; anything
+            # else is refused without showing what that key saved, or whose it was.
+            same = (
+                item.reviewer_id,
+                item.guest_name,
+                item.comments,
+                *(getattr(item, k) for k in fields),
+            ) == (
+                reviewer_id,
+                guest_name,
+                comments,
+                *fields.values(),
+            )
+            if not same:
+                raise request_keys.reused("feedback")
+            return FeedbackReceipt(feedback=self._feedback_out(share, item), duplicate=True)
+
+        existing = self.db.scalar(
+            select(ShareFeedback).where(
+                ShareFeedback.share_id == share.id, ShareFeedback.client_request_id == body.client_request_id
+            )
+        )
+        if existing is not None:
+            return replay(existing)
         if not any(fields.values()) and not comments:
             raise AppError("Write something in at least one box before sending.", code="empty_feedback")
         count = self.db.scalar(
@@ -451,12 +474,11 @@ class Shares:
                 "This link has received as much feedback as it can take.", code="feedback_limit"
             )
 
-        account = viewer is not None and not viewer.is_guest
         item = ShareFeedback(
             share_id=share.id,
-            reviewer_id=viewer.id if account and viewer is not None else None,
+            reviewer_id=reviewer_id,
             reviewer_kind="account" if account else "guest",
-            guest_name=None if account else (_clean(body.guest_name) or None),
+            guest_name=guest_name,
             comments=comments,
             client_request_id=body.client_request_id,
             **fields,
@@ -472,7 +494,7 @@ class Shares:
                     ShareFeedback.client_request_id == body.client_request_id,
                 )
             ).one()
-            return FeedbackReceipt(feedback=self._feedback_out(share, item), duplicate=True)
+            return replay(item)
         return FeedbackReceipt(feedback=self._feedback_out(share, item), duplicate=False)
 
     # ------------------------------------------------------------------ presenting feedback

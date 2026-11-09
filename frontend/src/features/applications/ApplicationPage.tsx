@@ -20,6 +20,7 @@ import { DraftComposer } from "./DraftComposer";
 import { EVENT_KIND_LABEL, STAGE_HINT, STAGE_LABEL, STAGES } from "./labels";
 import { PrepPanel } from "./PrepPanel";
 import { externalHref } from "@/lib/links";
+import { useRequestKey } from "@/lib/requestKey";
 
 export function ApplicationPage() {
   const { id = "" } = useParams();
@@ -185,7 +186,8 @@ function EventForm({ a, event, onDone }: { a: Application; event: ApplicationEve
     local_time: event?.local_time ?? "", timezone: event?.timezone ?? browserTimeZone(), notes: event?.notes ?? "",
   });
   const [fold, setFold] = useState<0 | 1 | null>(null);
-  const [requestId] = useState(() => crypto.randomUUID());
+  // A retry of the same event keeps its key (added once); an edited one before it's saved is new.
+  const requestKey = useRequestKey();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const ambiguous = error instanceof ApiError && error.code === "ambiguous_time" ? (error.details as { first_offset: string; second_offset: string }) : null;
@@ -194,10 +196,11 @@ function EventForm({ a, event, onDone }: { a: Application; event: ApplicationEve
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const body = {
+    const fields = {
       kind: form.kind, title: form.title, on_date: form.on_date || null, local_time: form.local_time || null,
-      timezone: form.local_time ? form.timezone : null, notes: form.notes, fold, client_request_id: event ? null : requestId,
+      timezone: form.local_time ? form.timezone : null, notes: form.notes, fold,
     };
+    const body = { ...fields, client_request_id: event ? null : requestKey.keyFor([a.id, fields]) };
     try {
       onDone(event ? await api.updateApplicationEvent(a.id, event.id, body) : await api.addApplicationEvent(a.id, body));
     } catch (err) {

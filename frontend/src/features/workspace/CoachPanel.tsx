@@ -92,14 +92,15 @@ function HintLadder({ problemSlug, maxLevel, code }: { problemSlug: string; maxL
   // button waits, with a countdown; the editor, Run and Submit stay usable.
   const wait = useRetryWait(hint.error);
   const { user } = useAuth();
-  // One key per level until it's answered, kept in this browser (Volume 8, prompt 1): pressing
-  // again after a lost response, even after a reload or from another tab, gets the first answer
-  // back, without a second AI call or a second use of the budget.
+  // One key per level and code until it's answered, kept in this browser (Volume 8, prompts 1-2):
+  // pressing again after a lost response, even after a reload or from another tab, gets the first
+  // answer back, without a second AI call or a second use of the budget. Changed code is a new
+  // request with a new key (the server refuses an old key with different code).
   const earlier = useEarlierAction("hint", problemSlug);
 
   async function request(level: HintLevel) {
     if (earlier.status !== "none") earlier.dismiss();
-    const response = await keyed(user?.id, "hint", problemSlug, fingerprint(problemSlug, level), (key) =>
+    const response = await keyed(user?.id, "hint", problemSlug, fingerprint(problemSlug, level, code), (key) =>
       hint.mutateAsync({ problem_slug: problemSlug, level, source_code: code, client_request_id: key }));
     setFresh((f) => [...f.filter((h) => h.level !== response.level), response]);
   }
@@ -161,7 +162,7 @@ function ReviewTab({ problemSlug, code, submissionId, onHighlightLine }: {
   async function run() {
     onHighlightLine(null);
     if (earlier.status !== "none") earlier.dismiss();
-    setResult(await keyed(user?.id, "review", problemSlug, fingerprint(problemSlug, code), (key) =>
+    setResult(await keyed(user?.id, "review", problemSlug, fingerprint(problemSlug, code, submissionId), (key) =>
       review.mutateAsync({ problem_slug: problemSlug, source_code: code, submission_id: submissionId, client_request_id: key })));
   }
 

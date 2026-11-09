@@ -3,7 +3,7 @@ from datetime import datetime
 from pydantic import Field, field_validator
 
 from app.models import SubmissionMode, SubmissionStatus
-from app.schemas.common import APIModel
+from app.schemas.common import APIModel, OptionalKey
 
 
 class SubmissionCreate(APIModel):
@@ -15,7 +15,7 @@ class SubmissionCreate(APIModel):
         description="`submit`: judge against all tests and record the attempt. "
         "`run`: public tests only, for quick feedback; never counts as an attempt.",
     )
-    client_request_id: str | None = Field(
+    client_request_id: OptionalKey = Field(
         default=None,
         min_length=8,
         max_length=64,

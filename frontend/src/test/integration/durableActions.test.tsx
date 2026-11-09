@@ -95,6 +95,34 @@ it("if the server can't be asked, it says it may have arrived and offers to chec
   expect(await screen.findByText(/never arrived/)).toBeInTheDocument();
 });
 
+it("a hint still being answered when the page reloads says so, and is checked again, never sent again", async () => {
+  localStorage.setItem(`codecoach.pending.v1.${user.id}`, JSON.stringify({
+    "hint:two-sum": { v: 1, kind: "hint", target: "two-sum", key: "in-flight-key-1", fingerprint: "x", sentAt: Date.now() },
+  }));
+  let lookups = 0;
+  let posts = 0;
+  server.use(
+    http.post(`${API}/api/v1/ai/hint`, () => { posts += 1; return HttpResponse.error(); }),
+    http.get(`${API}/api/v1/me/requests/:key`, () => {
+      lookups += 1;
+      return lookups <= 2
+        ? HttpResponse.json({ error: { code: "request_in_progress", message: "still being answered", request_id: "r",
+          details: { retry_after_seconds: 0 } } }, { status: 429, headers: { "Retry-After": "0" } })
+        : HttpResponse.json({ kind: "hint", state: "done", id: "ai-1", created_at: new Date().toISOString(), problem_slug: "two-sum", hint_level: 1 });
+    }),
+  );
+  const { user: u } = renderApp("/problems/two-sum", { signedIn: true });
+  // Asked once, then once more by itself after the wait: still running.
+  expect(await screen.findByText(/The hint request you sent at .* is still being answered\./, {}, { timeout: 4000 })).toBeInTheDocument();
+  expect(screen.getByText(/isn't being sent again/)).toBeInTheDocument();
+  expect(lookups).toBe(2);
+  expect(stored()).not.toBeNull(); // kept: it may still arrive
+  await u.click(screen.getByRole("button", { name: "Check again" }));
+  expect(await screen.findByText(/Your hint request from .* arrived\./)).toBeInTheDocument();
+  expect(posts).toBe(0);
+  expect(stored()).toBeNull();
+});
+
 it("a hint whose reply was lost is found after a reload, and the budget isn't used twice", async () => {
   const posts: (string | undefined)[] = [];
   server.use(

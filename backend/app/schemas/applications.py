@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import Field, field_validator
 
-from app.schemas.common import APIModel
+from app.schemas.common import APIModel, OptionalKey
 
 Stage = Literal["saved", "applied", "interviewing", "offer", "closed", "withdrawn"]
 STAGES: tuple[Stage, ...] = ("saved", "applied", "interviewing", "offer", "closed", "withdrawn")
@@ -44,7 +44,7 @@ class ApplicationCreate(ApplicationFields):
     employer: str = Field(min_length=1, max_length=120)
     role_title: str = Field(min_length=1, max_length=120)
     stage: Stage = "saved"
-    client_request_id: str | None = Field(
+    client_request_id: OptionalKey = Field(
         default=None,
         max_length=64,
         description="Repeat the same id to retry safely: one application is created",
@@ -83,7 +83,7 @@ class ApplicationEventIn(APIModel):
         default=None, ge=0, le=1, description="For a time that happens twice: 0 first, 1 second"
     )
     notes: str = Field(default="", max_length=2000)
-    client_request_id: str | None = Field(default=None, max_length=64)
+    client_request_id: OptionalKey = Field(default=None, max_length=64)
 
 
 class ApplicationEventOut(APIModel):

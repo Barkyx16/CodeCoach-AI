@@ -42,6 +42,7 @@ from app.schemas.notes import (
     SourceOut,
     TagCount,
 )
+from app.services import request_keys
 
 UNDO_WINDOW = timedelta(minutes=10)
 MAX_NOTES = 2_000
@@ -238,8 +239,15 @@ class Notebook:
     def create(self, user: User, body: NoteIn, *, commit: bool = True) -> NoteOut:
         """With commit=False the note joins the caller's transaction (flushed, not committed), so it
         is saved together with whatever the caller saves, or not at all. A create repeated with the
-        same `client_request_id` returns the note the first one made."""
+        same `client_request_id` returns the note the first one made.
+
+        A note's key stands for creating this note from this source, not for its text: autosave
+        sends the create again with newer text when the first reply was lost, gets the note back,
+        then saves the newer text as an update (with its revision check). So the text may differ;
+        the source may not: the same key for a note on something else is a 409."""
         if body.client_request_id and (made := self._by_request(user, body.client_request_id)):
+            if not self._same_source(made, body.source):
+                raise request_keys.reused("note")
             return self.out(made)
         count = self.db.scalar(select(func.count()).select_from(Note).where(Note.user_id == user.id)) or 0
         if count >= MAX_NOTES:
@@ -271,8 +279,19 @@ class Notebook:
             made = self._by_request(user, body.client_request_id)
             if made is None:
                 raise
+            if not self._same_source(made, body.source):
+                raise request_keys.reused("note") from None
             return self.out(made)
         return self.out(n)
+
+    @staticmethod
+    def _same_source(n: Note, src: SourceIn | None) -> bool:
+        if src is None:
+            return n.source_type is None
+        sid = src.id
+        if src.type not in ("question", "problem", "lesson") and src.question_index is not None:
+            sid = f"{src.id}#q{src.question_index}"  # as _resolve stores it
+        return (n.source_type, n.source_id) == (src.type, sid)
 
     def _by_request(self, user: User, key: str) -> Note | None:
         return self.db.scalar(select(Note).where(Note.user_id == user.id, Note.client_request_id == key))

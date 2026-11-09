@@ -13,6 +13,7 @@ from app.drills.feedback import compare, evaluate, words
 from app.errors import AppError, NotFoundError, RateLimitedError
 from app.models import DrillAttempt, User
 from app.schemas.drills import DrillAttemptIn, DrillAttemptOut, DrillOut
+from app.services import request_keys
 
 _CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 MIN_WORDS = 3
@@ -83,16 +84,10 @@ class Drills:
 
     def submit(self, drill_id: str, body: DrillAttemptIn, limiter) -> tuple[DrillAttemptOut, bool]:
         d = self._drill(drill_id)
-        if body.client_request_id:
-            existing = self.db.scalar(
-                select(DrillAttempt).where(
-                    DrillAttempt.user_id == self.user.id,
-                    DrillAttempt.client_request_id == body.client_request_id,
-                )
-            )
-            if existing is not None:
-                return self._with_previous(existing), False
         text = _CONTROL.sub("", body.text).strip()
+        if body.client_request_id and (existing := self._by_request(body.client_request_id)) is not None:
+            self._same_attempt(existing, d.id, text, body)
+            return self._with_previous(existing), False
         # Silence, an aborted recording or a failed transcription never counts as an attempt.
         if len(words(text)) < MIN_WORDS:
             raise AppError(
@@ -129,16 +124,31 @@ class Drills:
             self.db.commit()
         except IntegrityError:
             self.db.rollback()
-            existing = self.db.scalar(
-                select(DrillAttempt).where(
-                    DrillAttempt.user_id == self.user.id,
-                    DrillAttempt.client_request_id == body.client_request_id,
-                )
-            )
+            existing = self._by_request(body.client_request_id) if body.client_request_id else None
             if existing is None:
                 raise
+            self._same_attempt(existing, d.id, text, body)
             return self._with_previous(existing), False
         return self._with_previous(a), True
+
+    def _by_request(self, key: str) -> DrillAttempt | None:
+        return self.db.scalar(
+            select(DrillAttempt).where(
+                DrillAttempt.user_id == self.user.id, DrillAttempt.client_request_id == key
+            )
+        )
+
+    @staticmethod
+    def _same_attempt(existing: DrillAttempt, drill_id: str, text: str, body: DrillAttemptIn) -> None:
+        """An attempt is never edited, so a resend is compared with what it saved: the same key
+        for another drill or other words is refused, not answered with the first feedback."""
+        if (existing.drill_id, existing.text, existing.source, existing.spoken_seconds) != (
+            drill_id,
+            text,
+            body.source,
+            body.spoken_seconds,
+        ):
+            raise request_keys.reused("drill attempt")
 
     def _with_previous(self, a: DrillAttempt) -> DrillAttemptOut:
         prev = self.db.scalar(
