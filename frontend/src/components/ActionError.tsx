@@ -1,4 +1,7 @@
+import type { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
+
+import { ApiError } from "@/api/client";
 
 import { reportedError, reportHelps, useGetHelp } from "@/features/support/getHelp";
 import { SupportReportPanel } from "@/features/support/SupportReport";
@@ -16,7 +19,7 @@ import { Button } from "./Button";
  * outside it, so a ticking wait isn't read out every second. Where a support report could help,
  * "Get help with this" opens one in place (identifiers only, never the message or the work).
  */
-export function ActionError({ error, action, onRetry, retrying = false, repeatSafe = false, id }: {
+export function ActionError({ error, action, onRetry, retrying = false, repeatSafe = false, id, extra }: {
   error: unknown;
   /** What the learner tried, as a noun phrase: "Your submission", "The hint". */
   action: string;
@@ -25,6 +28,8 @@ export function ActionError({ error, action, onRetry, retrying = false, repeatSa
   /** Sending it again can't do it twice (the request has a key, or the server dedupes). */
   repeatSafe?: boolean;
   id?: string;
+  /** The ways on that only the caller knows (Check availability, the pending submission). */
+  extra?: ReactNode;
 }) {
   const location = useLocation();
   const wait = useRetryWait(error);
@@ -50,12 +55,15 @@ export function ActionError({ error, action, onRetry, retrying = false, repeatSa
   }
   const retryable = ["offline", "busy", "unavailable", "server", "other"].includes(kind);
   const helps = reportHelps(error);
+  // The server's wait has run out: said once (not every second), and nothing is sent by itself.
+  const waitOver = error instanceof ApiError && error.retryAt !== null && wait === 0;
   return (
     <div className="action-error banner banner--warning" id={id}>
       <p role="alert" className="action-error__message"><strong>{action} didn't go through.</strong> {detail}</p>
-      {(wait > 0 || (onRetry && retryable) || kind === "signed_out" || (kind === "server" && requestId) || helps) && (
+      {(wait > 0 || waitOver || (onRetry && retryable) || kind === "signed_out" || (kind === "server" && requestId) || helps || extra) && (
         <div className="action-error__actions">
           {wait > 0 && <span className="subtle">You can try again in {formatWait(wait)}.</span>}
+          {waitOver && <span className="subtle" role="status">You can try again now.</span>}
           {onRetry && retryable && (
             <Button size="sm" onClick={onRetry} loading={retrying} disabled={wait > 0}>Try again</Button>
           )}
@@ -67,6 +75,7 @@ export function ActionError({ error, action, onRetry, retrying = false, repeatSa
           {kind === "server" && requestId && (
             <span className="subtle">Reference for support: <code>{requestId.slice(0, 12)}</code></span>
           )}
+          {extra}
           {helps && <Button size="sm" variant="ghost" {...help.button} />}
         </div>
       )}

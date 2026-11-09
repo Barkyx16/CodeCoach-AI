@@ -84,8 +84,9 @@ isn't read out every second. Nothing replaces the page.
 ## Cancelling
 
 Nothing in the app cancels server work, and no page claims to.
-- **Judge polling.** After 15 minutes the page stops checking and says the submission will still
-  be judged.
+- **Judge polling.** After 15 minutes the page stops checking by itself, says the submission stays
+  in the queue and will still be judged, that leaving the page doesn't stop it, and offers **Check
+  again** (one read). A submission that was accepted can't be cancelled.
 - **Interviews.** "Leave for now" keeps the interview running, and says the clock keeps going.
 - **Leaving a page with a hint or review in flight.** The browser stops waiting, but the server
   finishes. The hint ladder and History show the answer later.
@@ -501,6 +502,57 @@ Tests:
   server-side forget on sign-out was missed at first, because the cookie's removal alone hid it;
   the test now sends the old cookie again.
 
+## When the judge is busy, unavailable or still judging (Volume 8, prompt 7)
+
+A run or submission the judge refuses is not a job: nothing was queued or saved, and its request
+key isn't used up. The page keeps the code and the last result, says which case it is, and offers
+the way on that fits. Nothing is sent again by itself, and no wait is invented.
+
+| Case | Answer | A wait? | The way on |
+|---|---|---|---|
+| Too many submissions in a minute | 429 `rate_limited` | yes: when the oldest of the last minute's submissions leaves the window (counted from the saved rows) | Try again, enabled when the wait is over |
+| Still being judged (one pending per account by default) | 429 `submission_pending`, with the caller's own pending submission's id, problem and mode | no: how long judging takes isn't known | **Show its status** (or Open that problem). No Try again |
+| Queue full (all accounts) | 503 `judge_busy`, "Nothing was saved" | only when the judge finished something in the last 5 minutes: the average gap between those completions (roughly how often a place frees up), at least 5 s and at most 120 s. It's a hint for when to try again, not when anything will be judged, nor a queue position | with a wait: Try again after it, and the page says what the wait means. Without: **Check availability** and Try again |
+| Judge unreachable, not ready or misconfigured (Run only; Submit still queues) | 503 `judge_unavailable` | no: the server only knows it's down | **Check availability** (one capabilities read; the server probes the judge at most every 15 s), **Submit instead (it waits in the queue)** |
+| No judge on this server | 503 `execution_disabled` (Run); Submit saves without a verdict | no | **Save attempt instead**, **Ask the coach for a review**. No Try again: it can't help |
+| Accepted, reply lost | (prompt 1) | — | the same key, sent again or checked after a reload, finds the job |
+| Accepted, still running when the tab returns | 202, then polling | — | the result panel polls (1.5 s, then 5 s after a minute, stops after 15 min with Check again) |
+
+Every case also offers **Copy code**. The draft itself is kept in this browser as before.
+
+- **Waits are counted from a deadline**, the moment the answer arrived plus the wait, so a tab the
+  browser suspended shows the right time when it wakes, and "You can try again now." is said once
+  when it's over (the seconds themselves aren't announced). Its end enables the button; it never
+  sends anything.
+- **What counts as a wait:** whole seconds or an HTTP date. A date is read against the server's
+  `Date` header when there is one (now exposed to the page), so a wrong clock on this device doesn't
+  stretch or skip it. Malformed, negative, or longer than a day: no wait (Check availability or a
+  deliberate retry instead). Another 429 after a wait starts a new countdown from its own deadline.
+- **Two tabs at once:** the same code in two tabs carries the same key, so the server makes one
+  submission. Different code in two tabs is admitted one at a time per account (a PostgreSQL
+  advisory lock around the admission checks), so "one pending" holds; on SQLite (development) two
+  simultaneous presses can both be admitted. The queue-full check is across accounts and isn't
+  locked: under a burst it can let a few more in than the limit.
+- **Labels:** when the editor has changed since, the result says it's for the code as submitted
+  (or as run) and when, so an earlier verdict is never read as the current code's.
+- **What this doesn't measure:** the busy wait is derived from completions, not from the number of
+  workers or the queue's length, and promises nothing about when a submission would be judged.
+  The real judge (gVisor) path is exercised by CI's sandbox job on every push; it wasn't run here
+  (no gVisor in this environment), and no test fills the real judge's queue.
+
+Tests:
+- `backend/tests/test_judge_admission.py` (9; SQLite and PostgreSQL): the measured wait and its
+  bounds, no wait with nothing finished, "still being judged" naming only the caller's own
+  submission, a refusal that saves nothing and uses no key up, the same key after a lost reply,
+  Run while unavailable and not configured, and two tabs at once (PostgreSQL).
+- `frontend/src/test/integration/judgeAdmission.test.tsx` (12): a wait across a suspended tab
+  with nothing sent at its end; Check availability; malformed, over-a-day and absurd values; an
+  HTTP date against the server's clock; another 429; Show its status; not configured; unavailable
+  Run; the result label; Check again. `src/lib/retry.test.ts`: the parser's bounds.
+- Negative controls: 1 backend (the lock removed: both tabs admitted), 4 frontend, each caught;
+  the over-a-day test was strengthened after its first control was missed (its value was also
+  refused by the length check).
+
 ## Limits
 
 - Updates sent without a key (an older page), or retried after their receipt expired (7 days),
@@ -508,7 +560,9 @@ Tests:
 - Other revision-checked writes (story restore, role targets) don't keep receipts yet.
 - Waits come from the server. A proxy that rate-limits without `Retry-After` gives no countdown,
   only the message.
-- The judge's 503s carry no `Retry-After`, so there's no countdown for them.
+- The judge's full queue gives a wait only when something finished in the last 5 minutes (below);
+  otherwise, and for an unavailable or unconfigured judge, there's no countdown, only Check
+  availability or a deliberate retry.
 - Submissions, hints, reviews and new stories keep their key across a reload (above). The other
   keyed actions still keep it in the page's memory: a lost answer followed by a reload starts a
   new key, and may be done twice. History shows both.

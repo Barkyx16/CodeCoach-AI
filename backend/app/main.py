@@ -268,7 +268,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         ],
         # Retry-After: the browser shows how long to wait (a cross-origin page can only read the
         # response headers listed here).
-        expose_headers=["X-Request-ID", "X-Trace-ID", "Retry-After"],
+        # Date: an HTTP-date Retry-After (from a proxy) is read against the server's clock.
+        expose_headers=["X-Request-ID", "X-Trace-ID", "Retry-After", "Date"],
         max_age=600,
     )
 

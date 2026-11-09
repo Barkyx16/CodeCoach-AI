@@ -78,7 +78,7 @@ class RateLimitedError(AppError):
 
 
 def _retry_after(details: Any) -> str | None:
-    """Whole seconds for a Retry-After header, from a 429's details (never less than 1)."""
+    """Whole seconds for a Retry-After header, from a 429's or 503's details (never less than 1)."""
     value = details.get("retry_after_seconds") if isinstance(details, dict) else None
     if isinstance(value, int | float) and not isinstance(value, bool):
         return str(max(1, math.ceil(value)))
@@ -91,8 +91,9 @@ def _envelope(request: Request, status: int, code: str, message: str, details: A
     headers = {"X-Request-ID": request_id} if request_id else None
     if status == 401:
         headers = {**(headers or {}), "WWW-Authenticate": "Bearer"}
-    if status == 429 and (wait := _retry_after(details)) is not None:
+    if status in (429, 503) and (wait := _retry_after(details)) is not None:
         # Standard header (RFC 9110) as well as the body field, so clients and proxies can back off.
+        # A 503 carries one only when the server can justify it (the judge's full queue, below).
         headers = {**(headers or {}), "Retry-After": wait}
     return JSONResponse(status_code=status, content=body, headers=headers)
 

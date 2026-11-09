@@ -34,9 +34,14 @@ interface SubmissionPanelProps {
   submission: Submission | undefined;
   error: unknown;
   onHighlightLine?(line: number | null): void;
+  /** The editor's code now: when it differs, the result says it's for the code that was sent. */
+  editorCode?: string;
+  /** One more status read, after the page stopped checking by itself. */
+  onCheckAgain?(): void;
+  checking?: boolean;
 }
 
-export function SubmissionPanel({ submission, error, onHighlightLine }: SubmissionPanelProps) {
+export function SubmissionPanel({ submission, error, onHighlightLine, editorCode, onCheckAgain, checking = false }: SubmissionPanelProps) {
   const now = useNow();
   // Nothing to show yet: the error is all there is. With a result on screen, a failed refresh
   // doesn't take it away (below).
@@ -68,6 +73,12 @@ export function SubmissionPanel({ submission, error, onHighlightLine }: Submissi
         {isRun && <span className="badge badge--info">Run · public tests only</span>}
         <span className="subtle">{isRun ? "Ran" : "Submitted"} {timeAgo(submission.created_at)}</span>
       </div>
+      {editorCode !== undefined && submission.source_code !== undefined && submission.source_code !== editorCode && (
+        <p className="subtle" data-testid="result-source">
+          {running ? "This is judging" : "This result is for"} the code as {isRun ? "run" : "submitted"} {timeAgo(submission.created_at)}.
+          The editor has changed since; {isRun ? "run" : "submit"} again to check the current code.
+        </p>
+      )}
       {statusText && <p className="subtle" role="status">{statusText}</p>}
       {error != null && (
         <p className="subtle" role="status">
@@ -75,9 +86,11 @@ export function SubmissionPanel({ submission, error, onHighlightLine }: Submissi
         </p>
       )}
       {running && now - new Date(submission.created_at).getTime() > POLL_GIVE_UP_MS && (
-        <p className="banner banner--warning" role="status">
-          Still waiting after 15 minutes, so this page stopped checking. It will be judged when the judge catches up; reload the page to check again.
-        </p>
+        <div className="banner banner--warning" role="status">
+          Still waiting after 15 minutes, so this page stopped checking by itself. It stays in the queue and will be
+          judged when the judge catches up. Leaving this page doesn't stop it.
+          {onCheckAgain && <div><Button size="sm" variant="secondary" loading={checking} onClick={onCheckAgain}>Check again</Button></div>}
+        </div>
       )}
 
       {!submission.execution_enabled && (

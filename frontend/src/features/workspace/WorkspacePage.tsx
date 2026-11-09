@@ -8,6 +8,8 @@ import { queryKeys, useCapabilities, useContentMeta, useMySubmissions, useProble
 import type { SubmissionCreate, SubmissionMode } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { ActionError } from "@/components/ActionError";
+import { JudgeRecovery } from "./JudgeRecovery";
+import { judgeRetryHelps } from "./judgeRefusals";
 import { Button } from "@/components/Button";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { Tabs } from "@/components/Tabs";
@@ -157,6 +159,16 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
     await send({ problem_slug: problem.slug, language: "java", source_code: draft.code, mode, client_request_id: key });
   }
 
+  /** The coach's review is the way on when code can't run: bring it into view. */
+  function showCoach() {
+    if (isNarrow) setMobileTab("coach");
+    window.setTimeout(() => {
+      const coach = document.querySelector<HTMLElement>('[data-tour="coach"]');
+      coach?.scrollIntoView({ block: "start" });
+      coach?.querySelector<HTMLElement>("button, a[href]")?.focus();
+    }, 0);
+  }
+
   function jumpToLine(line: number | null) {
     setHighlightLine(line);
     if (line && isNarrow) setMobileTab("code");
@@ -265,7 +277,10 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
           The previous result stays in the results panel. */}
       {submit.error && !unconfirmed && !submit.isPending && (
         <ActionError error={submit.error} action={pendingMode === "run" ? "Your run" : "Your submission"}
-          onRetry={() => void handleSubmit(pendingMode)} />
+          onRetry={judgeRetryHelps(submit.error) ? () => void handleSubmit(pendingMode) : undefined}
+          extra={<JudgeRecovery error={submit.error} mode={pendingMode} problemSlug={problem.slug} code={draft.code}
+            onShowSubmission={(id) => { submit.reset(); setSubmissionId(id); }}
+            onSubmitInstead={() => void handleSubmit("submit")} onAskCoach={showCoach} />} />
       )}
       {showSettings && <div id={settingsId} className="editor-options"><EditorPreferencesControls /></div>}
       <CodeEditor value={draft.code} onChange={(v) => { draft.setCode(v); setHighlightLine(null); }}
@@ -274,7 +289,8 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
   );
   const results = (
     <section className="panel-scroll" aria-label="Submission results" tabIndex={0}>
-      <SubmissionPanel submission={submission.data} error={submission.error} onHighlightLine={jumpToLine} />
+      <SubmissionPanel submission={submission.data} error={submission.error} onHighlightLine={jumpToLine}
+        editorCode={draft.code} onCheckAgain={() => void submission.refetch()} checking={submission.isFetching} />
     </section>
   );
   const coach = (

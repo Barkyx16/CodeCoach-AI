@@ -155,9 +155,10 @@ Every non-2xx response has this shape:
 | 409 | `not_failed` | Explain-failure on a submission that passed | Hide the button |
 | 409 | `judge_error` | Explain-failure on an `INTERNAL_ERROR` (the judge's fault, not the code's) | Suggest resubmitting |
 | 409 | `content_retired` | Answering, retrying or submitting retired content (`details.reason`) | Keep it readable; disable answering |
-| 429 | `submission_pending` | A previous submission is still being judged (`details.max_pending`) | Wait for the verdict |
-| 503 | `judge_busy` | The judge queue is full | Retry in a minute |
-| 503 | `execution_disabled` | `mode: run` on a deployment without code execution (check `GET /capabilities` first) | Hide the Run button |
+| 429 | `submission_pending` | A previous submission is still being judged (`details.max_pending`; `details.pending_submission_id`, `problem_slug` and `mode` name the caller's own oldest pending one). No wait | Show that submission's status, not a new submit |
+| 503 | `judge_busy` | The judge queue is full; nothing was saved. `Retry-After` (and `details.retry_after_seconds`) only when the judge finished something in the last 5 minutes: the average gap between those completions, 5–120 s. A retry hint, not a completion time | Count down when given; otherwise check `GET /capabilities` |
+| 503 | `judge_unavailable` | `mode: run` while the judge is unreachable, not ready or misconfigured (Submit still queues). No wait | Check `GET /capabilities`; offer Submit |
+| 503 | `execution_disabled` | `mode: run` on a deployment without code execution (check `GET /capabilities` first). No wait | Hide the Run button |
 | 422 | `validation_error` | Body or query failed validation. `details` is a list of `{loc, msg, type}` | Map `loc[-1]` to form fields |
 | 429 | `rate_limited` | Auth attempts or the daily AI budget exceeded (`details.retry_after_seconds` or `details.daily_limit`) | Show a cooldown |
 | 429 | `ai_request_in_progress` | Another of this account's AI requests is still running (`Retry-After: 2`) | Wait, then retry |
@@ -168,8 +169,11 @@ Every non-2xx response has this shape:
 **Waits.** A 429, and a 503 `server_busy` or `database_unavailable`, carry `Retry-After` in
 seconds. Where the error has one, `details.retry_after_seconds` gives the same wait more precisely.
 The header is exposed to browser pages on other origins (CORS `Access-Control-Expose-Headers`), so
-a page can count it down. A client should also accept the HTTP-date form, which proxies send. The
-503s from the judge (`judge_busy`, `judge_unavailable`, `execution_disabled`) carry no wait.
+a page can count it down. A client should also accept the HTTP-date form, which proxies send, and
+read it against the response's `Date` header (also exposed). Of the judge's 503s, only
+`judge_busy` can carry a wait, and only when the server can justify one; `judge_unavailable` and
+`execution_disabled` never do. A refused submission (429 or 503) saved nothing: its key isn't used
+up, and the same key may be sent again later.
 
 **Lost responses.** A request with a `client_request_id` can be sent again after its response was
 lost, and it isn't done twice. Which writes are keyed and which aren't:
@@ -502,7 +506,9 @@ and are refused with `503 execution_disabled` when the deployment can't run code
 `language` is optional and must be `java`. `source_code` must be non-blank and at most
 `MAX_SOURCE_CHARS` characters. When execution is enabled, admission control applies:
 `429 rate_limited` (more than `SUBMISSION_RATE_LIMIT_PER_MINUTE`), `429 submission_pending`
-(a previous submission is still being judged), `503 judge_busy` (global queue full).
+(a previous submission is still being judged; it names that submission), `503 judge_busy` (global
+queue full; a measured wait when one can be justified). An account's submissions are admitted one
+at a time on PostgreSQL, so two tabs can't both pass the pending check.
 ```json
 {
   "id": "9098460d-619d-4f69-89fb-459bc700ef0b",

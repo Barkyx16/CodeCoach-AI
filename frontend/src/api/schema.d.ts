@@ -18779,7 +18779,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Temporarily unavailable (e.g. the judge queue is full) */
+            /** @description Temporarily unavailable (e.g. the judge queue is full). Retry-After is sent only when the server can justify a wait (for the judge's full queue: from its recent completions); none means no credible wait is known */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -18855,7 +18855,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Temporarily unavailable (e.g. the judge queue is full) */
+            /** @description Temporarily unavailable (e.g. the judge queue is full). Retry-After is sent only when the server can justify a wait (for the judge's full queue: from its recent completions); none means no credible wait is known */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -18936,7 +18936,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Temporarily unavailable (e.g. the judge queue is full) */
+            /** @description Temporarily unavailable (e.g. the judge queue is full). Retry-After is sent only when the server can justify a wait (for the judge's full queue: from its recent completions); none means no credible wait is known */
             503: {
                 headers: {
                     [name: string]: unknown;

@@ -13,17 +13,28 @@ import type { ErrorEnvelope } from "./types";
 
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
+/** The longest wait taken at its word: a day. Anything longer reads as a fault, not a plan, and
+ * is treated as no wait at all (the page then offers a deliberate retry, never a countdown). */
+export const MAX_RETRY_AFTER_SECONDS = 86_400;
+
 /**
  * Seconds to wait from a Retry-After header: either a number of seconds or an HTTP date
- * (RFC 9110). Null when absent or unreadable; never negative.
+ * (RFC 9110). Null when absent, unreadable, or longer than a day; never negative. An HTTP date
+ * is read against the server's own clock (`serverDate`, the response's Date header) when there
+ * is one, so a wrong clock on this device doesn't stretch or skip the wait.
  */
-export function parseRetryAfter(value: string | null | undefined, now: number = Date.now()): number | null {
+export function parseRetryAfter(value: string | null | undefined, now: number = Date.now(),
+  serverDate?: string | null): number | null {
   const v = (value ?? "").trim();
   if (!v) return null;
-  if (/^\d+$/.test(v)) return Number(v);
+  const bounded = (seconds: number) => (seconds > MAX_RETRY_AFTER_SECONDS ? null : seconds);
+  if (/^\d+$/.test(v)) return v.length > 6 ? null : bounded(Number(v));
   if (!/[A-Za-z]/.test(v)) return null; // an HTTP date names its day and month; "-5" isn't one
   const at = Date.parse(v);
-  return Number.isNaN(at) ? null : Math.max(0, Math.ceil((at - now) / 1000));
+  if (Number.isNaN(at)) return null;
+  const sent = serverDate ? Date.parse(serverDate) : NaN;
+  const from = Number.isNaN(sent) ? now : sent;
+  return bounded(Math.max(0, Math.ceil((at - from) / 1000)));
 }
 
 export class ApiError extends Error {
@@ -47,7 +58,8 @@ export class ApiError extends Error {
     // The body's figure is the more precise one; the header is the standard one (and the only one
     // a proxy or a server without our error envelope sends).
     const fromBody = (details as { retry_after_seconds?: unknown } | null)?.retry_after_seconds;
-    this.retryAfterSeconds = typeof fromBody === "number" && fromBody >= 0 ? Math.ceil(fromBody) : retryAfterSeconds;
+    this.retryAfterSeconds = typeof fromBody === "number" && fromBody >= 0 && fromBody <= MAX_RETRY_AFTER_SECONDS
+      ? Math.ceil(fromBody) : retryAfterSeconds;
   }
 
   get isAuthError(): boolean {
@@ -226,7 +238,7 @@ async function send<T>(path: string, options: RequestOptions, isRetry: boolean):
 
   if (!response.ok) {
     const requestId = response.headers.get("X-Request-ID");
-    const retryAfter = parseRetryAfter(response.headers.get("Retry-After"));
+    const retryAfter = parseRetryAfter(response.headers.get("Retry-After"), Date.now(), response.headers.get("Date"));
     // A refused session check is how "signed out" is learned, not a failure (the report says signed out).
     if (!(response.status === 401 && path.startsWith("/api/v1/auth/refresh"))) {
       recordFailure({ method, path, status: response.status, code: isErrorEnvelope(data) ? data.error.code : "http_error",
