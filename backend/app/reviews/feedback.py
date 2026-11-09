@@ -36,7 +36,7 @@ def words(text: str) -> int:
 
 
 def _spans(ref: dict[str, Any]) -> list[tuple[int, int]]:
-    return [tuple(ref["lines"])] + [tuple(s) for s in ref.get("related_lines", [])]  # type: ignore[misc]
+    return [tuple(ref["lines"])] + [tuple(s) for s in ref.get("related_lines", [])]
 
 
 def _overlaps(a: tuple[int, int], b: tuple[int, int]) -> bool:

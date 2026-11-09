@@ -55,7 +55,7 @@ def test_each_table_added_later_gets_the_same_policies_from_its_own_migration():
         assert spec and spec.loader
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        assert module.TABLES == tables, revision
+        assert tables == module.TABLES, revision
         assert (module.POLICY, module.MAINTENANCE_POLICY) == (rls.POLICY, rls.MAINTENANCE_POLICY)
         assert module.CONDITION == rls._CONDITION
         assert module.MAINTENANCE_CONDITION == rls._MAINTENANCE_CONDITION
