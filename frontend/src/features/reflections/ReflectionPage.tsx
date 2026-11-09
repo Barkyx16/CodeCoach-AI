@@ -15,13 +15,14 @@ import { CopyWork } from "@/components/CopyWork";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { VersionConflict } from "@/components/VersionConflict";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
-import { savedVersion } from "@/lib/conflict";
+import { recoveredSave, savedVersion } from "@/lib/conflict";
+import { useRequestKey } from "@/lib/requestKey";
 import { formatDateTime, timeAgo } from "@/lib/format";
 
 import { ListField } from "./ListField";
 import { OUTCOME_LABEL, STAGE_FOR, STAGE_LABEL } from "./labels";
 
-type Draft = Required<Omit<ReflectionIn, "expected_revision">>;
+type Draft = Required<Omit<ReflectionIn, "expected_revision" | "client_request_id">>;
 
 const fromReflection = (r: Reflection): Draft => ({
   questions: r.questions, topics: r.topics, clear: r.clear, difficult: r.difficult,
@@ -60,6 +61,9 @@ function Editor({ initial }: { initial: Reflection }) {
   });
   // The version saved elsewhere, when a save was refused (409) or a kept copy is older than it.
   const [against, setAgainst] = useState<Reflection | null>(null);
+  // One key per exact save: a retry after a lost reply is told "went through", not "changed elsewhere".
+  const saveKey = useRequestKey();
+  const [earlierSave, setEarlierSave] = useState<number | null>(null);
   const [keptHere, setKeptHere] = useState(true);
   // The draft as last rendered, for a save that resolves after newer edits.
   const latest = useRef(draft);
@@ -118,17 +122,28 @@ function Editor({ initial }: { initial: Reflection }) {
     setBusy("save");
     setError(null);
     try {
-      const next = await api.saveReflection(r.application_id, r.event_id, { ...sent, expected_revision: revision });
+      const next = await api.saveReflection(r.application_id, r.event_id,
+        { ...sent, expected_revision: revision, client_request_id: saveKey.keyFor([r.event_id, revision, sent]) });
+      saveKey.done();
+      const recovered = recoveredSave(next);
+      if (recovered?.newer) {
+        // Saved (the reply was lost), then changed elsewhere: compare, don't replace this page.
+        setEarlierSave(recovered.accepted);
+        setAgainst(next);
+        return;
+      }
       put(next);
       setAgainst(null);
+      setEarlierSave(null);
       // Typed while it was saving? Those edits stay, unsaved; "Saved" is only for exactly what was sent.
       if (JSON.stringify(latest.current) === JSON.stringify(sent)) {
         setDraft(fromReflection(next));
-        setStatus("Saved. Only you can see it.");
+        setStatus(recovered ? `Your earlier save went through (version ${recovered.accepted}). Only you can see it.` : "Saved. Only you can see it.");
         try { localStorage.removeItem(key); } catch { /* blocked */ }
       }
     } catch (err) {
       if (err instanceof ApiError && err.code === "stale_revision") {
+        setEarlierSave(null);
         setAgainst(savedVersion<Reflection>(err.details) ?? (await api.reflection(r.application_id, r.event_id).catch(() => null)));
       } else {
         setError(err);
@@ -143,6 +158,7 @@ function Editor({ initial }: { initial: Reflection }) {
     setDraft(fromReflection(version));
     setRestored((n) => n + 1);
     setAgainst(null);
+    setEarlierSave(null);
     setStatus("Loaded the saved version.");
     try { localStorage.removeItem(key); } catch { /* blocked */ }
   }
@@ -242,7 +258,7 @@ function Editor({ initial }: { initial: Reflection }) {
         {r.warnings.map((w) => <p key={w} className="banner banner--warning">{w}</p>)}
         {against && (
           <VersionConflict what="reflection" savedWhen={`version ${against.revision}${against.updated_at ? `, ${timeAgo(against.updated_at)}` : ""}`}
-            busy={busy === "save"} keepMineLabel="Keep mine as the newest"
+            busy={busy === "save"} keepMineLabel="Keep mine as the newest" earlierSave={earlierSave}
             fields={[
               { label: "Questions you were asked", mine: lines(draft.questions), saved: lines(against.questions) },
               { label: "Topics that came up", mine: lines(draft.topics), saved: lines(against.topics) },

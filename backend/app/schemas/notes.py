@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from app.schemas.common import APIModel, OptionalKey
+from app.schemas.common import APIModel, OptionalKey, SaveReplay, save_replay_field, update_key_field
 
 SourceType = Literal["question", "problem", "lesson", "interview"]
 NoteStatus = Literal["active", "archived", "all"]
@@ -50,6 +50,7 @@ class NotePatch(APIModel):
     base_revision: int | None = Field(
         default=None, ge=1, description="Required when changing text: the revision this edit started from"
     )
+    client_request_id: OptionalKey = update_key_field()
     title: str | None = Field(default=None, max_length=MAX_TITLE)
     body: str | None = Field(default=None, max_length=MAX_BODY)
     reflection: str | None = Field(default=None, max_length=MAX_REFLECTION)
@@ -86,6 +87,7 @@ class NoteSummary(APIModel):
 
 
 class NoteOut(NoteSummary):
+    save_replay: SaveReplay | None = save_replay_field()
     body: str
     reflection: str
     excerpt: str | None

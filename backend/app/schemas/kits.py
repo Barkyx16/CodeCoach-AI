@@ -6,7 +6,7 @@ from typing import Literal
 from pydantic import Field, field_validator
 
 from app.schemas.applications import _http_link
-from app.schemas.common import APIModel
+from app.schemas.common import APIModel, OptionalKey, SaveReplay, save_replay_field, update_key_field
 
 KitFormat = Literal["remote", "in_person", "phone", "unknown"]
 QuestionGroup = Literal["role", "team", "training", "workflow", "next_steps", "other"]
@@ -53,6 +53,7 @@ class KitUpdate(APIModel):
         "nothing is changed and the answer is 409 stale_revision with the current revision and the saved "
         "kit (details.current), so both can be shown.",
     )
+    client_request_id: OptionalKey = update_key_field()
     reviewed_story_ids: list[str] | None = Field(
         default=None,
         max_length=10,
@@ -88,6 +89,7 @@ class KitWhen(APIModel):
 
 
 class KitOut(APIModel):
+    save_replay: SaveReplay | None = save_replay_field()
     event_id: str
     application_id: str
     role_title: str

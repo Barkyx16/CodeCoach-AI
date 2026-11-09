@@ -18,8 +18,9 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 import { DEFAULT_PRINT, FORMAT_LABEL, GROUP_LABEL, PRINT_LABEL, type KitFormat, type PrintChoice, type QuestionGroup } from "./labels";
 import { PrintPack } from "./PrintPack";
-import { savedVersion } from "@/lib/conflict";
+import { recoveredSave, savedVersion } from "@/lib/conflict";
 import { externalHref } from "@/lib/links";
+import { useRequestKey } from "@/lib/requestKey";
 
 const newId = () => `u-${crypto.randomUUID().slice(0, 8)}`;
 
@@ -46,6 +47,9 @@ function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
   const [reviewed, setReviewed] = useState<string[]>([]);
   // A refused stale save: the kit saved elsewhere, shown beside this page's.
   const [conflict, setConflict] = useState<Kit | null>(null);
+  // One key per exact save: a retry after a lost reply is told "went through", not "changed elsewhere".
+  const saveKey = useRequestKey();
+  const [earlierSave, setEarlierSave] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [notice, setNotice] = useState("");
@@ -64,14 +68,24 @@ function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
     setError(null);
     const sent = kit;
     try {
-      const next = await api.saveKit(sent.application_id, sent.event_id, {
+      const update = {
         format: sent.format, location: sent.location, meeting_link: sent.meeting_link || null, clear_meeting_link: !sent.meeting_link,
         interviewers: sent.interviewers, notes: sent.notes, checklist: sent.checklist, questions: sent.questions, story_ids: sent.stories.map((s) => s.id),
         expected_revision: over ?? saved.revision, reviewed_story_ids: reviewed,
-      });
+      };
+      const next = await api.saveKit(sent.application_id, sent.event_id, { ...update, client_request_id: saveKey.keyFor([sent.event_id, update]) });
+      saveKey.done();
+      const recovered = recoveredSave(next);
+      if (recovered?.newer) {
+        // Saved (the reply was lost), then changed elsewhere: compare, don't replace this page.
+        setEarlierSave(recovered.accepted);
+        setConflict(next);
+        return;
+      }
+      setEarlierSave(null);
       if (JSON.stringify(latest.current) === JSON.stringify(sent)) {
         replaceWith(next);
-        setNotice("Saved.");
+        setNotice(recovered ? `Your earlier save went through (version ${recovered.accepted}).` : "Saved.");
       } else {
         // Edited while it was saving: keep those edits, now unsaved against the version just saved.
         setSaved(next);
@@ -81,6 +95,7 @@ function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
       }
     } catch (e) {
       if (e instanceof ApiError && e.code === "stale_revision") {
+        setEarlierSave(null);
         setConflict(savedVersion<Kit>(e.details) ?? (await api.kit(kit.application_id, kit.event_id).catch(() => null)));
       } else {
         setError(e);
@@ -95,6 +110,7 @@ function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
     setKit(next);
     setReviewed([]);
     setConflict(null);
+    setEarlierSave(null);
     qc.setQueryData(["me", "kit", next.application_id, next.event_id], next);
   }
 
@@ -134,7 +150,7 @@ function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
 
       {conflict && (
         <div className="no-print">
-          <VersionConflict what="kit" savedWhen={`version ${conflict.revision}`} busy={busy} keepMineLabel="Keep mine (replaces that version)"
+          <VersionConflict what="kit" savedWhen={`version ${conflict.revision}`} busy={busy} earlierSave={earlierSave} keepMineLabel="Keep mine (replaces that version)"
             fields={[
               { label: "Format", mine: FORMAT_LABEL[kit.format as KitFormat] ?? kit.format, saved: FORMAT_LABEL[conflict.format as KitFormat] ?? conflict.format },
               { label: "Where", mine: [kit.location, kit.meeting_link].filter(Boolean).join("\n"), saved: [conflict.location, conflict.meeting_link].filter(Boolean).join("\n") },

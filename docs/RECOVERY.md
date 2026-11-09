@@ -69,13 +69,11 @@ isn't read out every second. Nothing replaces the page.
 | Round answer | one answer per question (database) | the same text: 200; different text: 409, kept on screen |
 | Finish / end early | compare-and-set | the same evaluation |
 | Notes (create) | `client_request_id` | the same note |
+| Story, note, kit, whiteboard draft, reflection (update) | `client_request_id` per save, and a receipt kept with the update (migration `7045bdb6a532`, Volume 8 prompt 3) | "your save went through as version N". Changed since: both versions, compared |
 | Explain a failure | cached per submission | the same explanation |
 | Restore | the same file changes nothing | no change |
 
 **Can't yet be retried safely** (a repeat may do something twice or misread itself):
-- **Story, kit and note *updates*.** These are revision-checked. A save whose answer was lost, sent
-  again, meets its own new revision and is shown as a conflict with both versions. Nothing is lost,
-  but it reads as "changed elsewhere".
 - **Note "save mine as new"** (after a conflict). Unkeyed: a lost answer, retried, can make a
   second note.
 - **Guest sessions.** A lost answer leaves an unused guest account, removed by guest retention.
@@ -304,9 +302,87 @@ Tests:
   "duplicate", with the new words dropped.
 - Frontend: `requestKey.test.ts`, the in-progress notice in `durableActions.test.tsx`.
 
+## Recovering a save whose reply was lost (Volume 8, prompt 3)
+
+Stories, notes, kits, whiteboard drafts and reflections are saved against the revision the page
+started from, and a newer revision is a conflict. A save that went through, but whose reply never
+arrived, used to meet its own new revision when the page sent it again. It then read as "changed
+in another tab", with the learner's own text on both sides. Now each save carries a key, and the
+server keeps a **receipt** of the accepted save in the same transaction as the update
+(`update_receipts`; `backend/app/services/update_receipts.py`).
+
+A receipt records the entity, the revision the save started from, the revision it produced, and a
+digest of the update. It holds no content. A retry with that key, the same entity, the same base
+and the same content is answered with the entity as it is now, plus `save_replay:
+{accepted_revision, current_revision}`:
+
+- **Same revision** (`current_revision == accepted_revision`): "Your earlier save went through as
+  version N." Only what was sent is marked saved. Text typed after sending stays unsaved and is
+  saved next, against version N.
+- **Changed since** (`current_revision > accepted_revision`, another tab or device saved after
+  it): the page doesn't replace itself with the newer version, and nothing is overwritten. The
+  comparison panel opens, saying "Your save went through as version N. This story was changed after
+  that", with the learner's version beside the newer one. The learner chooses, as for any conflict.
+
+What stays protected:
+- **A real conflict is still one.** Another tab's save, with its own key, gets the usual
+  `stale_revision` / `note_conflict` with both versions. Its panel still says "not saved".
+- **The same key with other content, another base or another entity** is refused (409
+  `idempotency_key_reused`). It can't be used to skip the revision check.
+- **Proof is the receipt, never a resemblance.** A record that happens to equal what was sent isn't
+  taken as evidence. Without a receipt (no key, an older page, or it expired), a stale save is a
+  conflict, as before.
+- **Deleted or not yours:** the owner-scoped lookup comes first (404). A retry never recreates a
+  deleted story, and never shows another account's version. Keys are per account.
+- **Two copies at once** (PostgreSQL): the second waits on the row lock, then finds the first's
+  receipt. One revision results, and both replies say so.
+
+| Endpoint | Key in | Base | On a recovered save |
+|---|---|---|---|
+| `PATCH /me/stories/{id}` | `StoryUpdate.client_request_id` | `expected_revision` | the story now + `save_replay` |
+| `PATCH /me/notes/{id}` (text changes) | `NotePatch.client_request_id` | `base_revision` | the note now + `save_replay` |
+| `PUT …/events/{id}/kit` | `KitUpdate.client_request_id` (with `expected_revision`) | `expected_revision` | the kit now + `save_replay`, also when the copy lost the race |
+| `PUT /me/whiteboard/{prompt}/draft` | `WhiteboardDraftIn.client_request_id` | `expected_revision` (0 for the first) | the draft now + `save_replay`; a discarded draft: 404, not recreated |
+| `PUT …/events/{id}/reflection` | `ReflectionIn.client_request_id` | `expected_revision` (0 for the first) | the reflection now + `save_replay`; deleted since: 404 |
+
+**The browser side.** Each editor keeps one key per exact save (`useRequestKey`), so pressing Save
+again after a lost reply resends the same save. Note autosave keeps typing, so after a lost reply
+it first resends that exact save, with its key, to learn what happened, then sends the newer text
+against the accepted revision. Its own earlier save is never mistaken for a change made elsewhere.
+Pin and archive changes on notes aren't revision-checked and need no receipt.
+
+**How long.** Receipts are kept 7 days (`UPDATE_RECEIPT_DAYS`). The browser retries within the
+visit, and a persisted intent lasts at most a day. Housekeeping deletes older receipts daily. An
+expired receipt means the retry is treated as a new save, which is a conflict if it's stale: safe,
+and the learner chooses. Receipts aren't exported, aren't copied by `copy-db` (a retry from before
+a move is a save like any other), and go with the account. They're outside row-level security,
+because they hold no content and housekeeping purges them across learners; every lookup filters by
+account (`db/rls.py`).
+
+Tests:
+- `backend/tests/test_update_replay.py` (8; SQLite and PostgreSQL):
+  - lost, then retried twice: one revision;
+  - another device's later save kept and reported;
+  - a real conflict, and a reused key with other content or base;
+  - a deleted story, and another account;
+  - expired evidence, and housekeeping;
+  - a receipt holds no content;
+  - two copies at once (PostgreSQL);
+  - notes, kits, reflections and whiteboard drafts.
+- `frontend/src/test/integration/updateReplay.test.tsx` (4): recovered as the learner's own save;
+  changed on another device (both shown, nothing replaced); a real conflict still says "not
+  saved"; note autosave resends the lost save, then the newer text.
+- Negative controls: 5 backend and 4 frontend, each caught.
+- In the browser against the real API, `frontend/e2e/update-replay.spec.ts` (2). The second is the
+  full demonstration: a save whose reply is dropped; another tab saves version 3; Save again; both
+  versions shown, the newer one kept on the server
+  (`docs/screenshots/durable/lost-save-recovered.png`).
+
 ## Limits
 
-- The updates listed above still read a lost-then-retried save as a conflict.
+- Updates sent without a key (an older page), or retried after their receipt expired (7 days),
+  still read a lost-then-retried save as a conflict. Nothing is lost; the learner chooses.
+- Other revision-checked writes (story restore, role targets) don't keep receipts yet.
 - Waits come from the server. A proxy that rate-limits without `Retry-After` gives no countdown,
   only the message.
 - The judge's 503s carry no `Retry-After`, so there's no countdown for them.

@@ -35,6 +35,7 @@ SKIPPED = {
     "email_verification_tokens": "emailed codes and links (a new one can be sent)",
     "email_jobs": "queued emails: nothing old is sent from the new server",
     "rate_limit_counters": "rate-limit counters",
+    "update_receipts": "receipts of recent saves: a retry from before the move is a save like any other",
 }
 _IGNORED_SOURCE_TABLES = {"alembic_version", "sqlite_sequence"}
 BATCH = 500

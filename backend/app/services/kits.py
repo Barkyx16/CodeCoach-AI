@@ -19,6 +19,7 @@ from sqlalchemy.orm.exc import StaleDataError
 
 from app.errors import ConflictError, NotFoundError
 from app.models import Application, ApplicationEvent, ExperienceEntry, InterviewKit, RoleTarget, User
+from app.schemas.common import SaveReplay
 from app.schemas.kits import (
     AskQuestion,
     ChecklistItem,
@@ -28,6 +29,7 @@ from app.schemas.kits import (
     KitUpdate,
     KitWhen,
 )
+from app.services import update_receipts
 
 _CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
@@ -266,6 +268,16 @@ class Kits:
         current = self.get(app_id, event_id)
         ev, app = self._event(app_id, event_id)
         kit = self.db.get(InterviewKit, ev.id)
+        key = body.client_request_id if body.expected_revision is not None else None
+        base = body.expected_revision or 0
+        print_ = update_receipts.fingerprint(
+            "kit",
+            ev.id,
+            base,
+            body.model_dump(mode="json", exclude={"client_request_id", "expected_revision"}),
+        )
+        if (replayed := self._replayed(app_id, event_id, key, ev.id, base, print_)) is not None:
+            return replayed
         if body.expected_revision is not None and body.expected_revision != current.revision:
             raise ConflictError(
                 "This kit was saved somewhere else (maybe another tab) since you opened it. "
@@ -329,10 +341,26 @@ class Kits:
         kit.event_when = when_key(ev)  # saved on this page, where a move is shown
         kit.updated_at = datetime.now(UTC)
         try:
+            self.db.flush()  # the revision is bumped here
+            update_receipts.record(self.db, self.user, key, "kit", ev.id, base, kit.revision, print_)
             self.db.commit()
         except (StaleDataError, IntegrityError):  # another save got there first
+            self.db.rollback()
+            # A copy of this same save, sent at the same moment, may be the one that got there.
+            if (replayed := self._replayed(app_id, event_id, key, ev.id, base, print_)) is not None:
+                return replayed
             raise self._stale(app_id, event_id) from None
         return self.get(app_id, event_id)
+
+    def _replayed(
+        self, app_id: str, event_id: str, key: str | None, entity_id: str, base: int, print_: str
+    ) -> KitOut | None:
+        done = update_receipts.find(self.db, self.user, key, "kit", entity_id, base, print_)
+        if done is None:
+            return None
+        out = self.get(app_id, event_id)
+        out.save_replay = SaveReplay(accepted_revision=done.accepted_revision, current_revision=out.revision)
+        return out
 
     def _story_revisions(self, kit: InterviewKit, before: list[str], reviewed: set[str]) -> dict:
         """Each chosen story's version when it was chosen (or last marked as reread). A story newly

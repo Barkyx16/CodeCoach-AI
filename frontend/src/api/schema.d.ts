@@ -6215,6 +6215,8 @@ export interface components {
         };
         /** KitOut */
         KitOut: {
+            /** @description Only on a save recovered by its key: see SaveReplay */
+            save_replay?: components["schemas"]["SaveReplay"] | null;
             /** Event Id */
             event_id: string;
             /** Application Id */
@@ -6335,6 +6337,11 @@ export interface components {
              * @description The kit revision you loaded (0 if it was never saved). If the kit was saved since, nothing is changed and the answer is 409 stale_revision with the current revision and the saved kit (details.current), so both can be shown.
              */
             expected_revision?: number | null;
+            /**
+             * Client Request Id
+             * @description One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before.
+             */
+            client_request_id?: string | null;
             /**
              * Reviewed Story Ids
              * @description Chosen examples you've reread since they changed: their recorded version becomes the current one. Others keep the version they had when you chose them.
@@ -6554,6 +6561,8 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            /** @description Only on a save recovered by its key: see SaveReplay */
+            save_replay?: components["schemas"]["SaveReplay"] | null;
             /** Body */
             body: string;
             /** Reflection */
@@ -6592,6 +6601,11 @@ export interface components {
              * @description Required when changing text: the revision this edit started from
              */
             base_revision?: number | null;
+            /**
+             * Client Request Id
+             * @description One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before.
+             */
+            client_request_id?: string | null;
             /** Title */
             title?: string | null;
             /** Body */
@@ -7493,6 +7507,11 @@ export interface components {
              * @description 0 for the first save
              */
             expected_revision: number;
+            /**
+             * Client Request Id
+             * @description One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before.
+             */
+            client_request_id?: string | null;
         };
         /** ReflectionObservation */
         ReflectionObservation: {
@@ -7507,6 +7526,8 @@ export interface components {
         };
         /** ReflectionOut */
         ReflectionOut: {
+            /** @description Only on a save recovered by its key: see SaveReplay */
+            save_replay?: components["schemas"]["SaveReplay"] | null;
             /** Event Id */
             event_id: string;
             /** Application Id */
@@ -8322,6 +8343,22 @@ export interface components {
              * @description A specific observation from the transcript or code
              */
             evidence: string;
+        };
+        /**
+         * SaveReplay
+         * @description Set when this save had already been accepted under its key (its first reply was lost).
+         */
+        SaveReplay: {
+            /**
+             * Accepted Revision
+             * @description The revision your earlier save produced
+             */
+            accepted_revision: number;
+            /**
+             * Current Revision
+             * @description The revision now. Greater than accepted_revision: it was changed after your save (maybe on another device); what's returned is that newer version, not yours
+             */
+            current_revision: number;
         };
         /** ScenarioAttemptOut */
         ScenarioAttemptOut: {
@@ -9255,6 +9292,8 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            /** @description Only on a save recovered by its key: see SaveReplay */
+            save_replay?: components["schemas"]["SaveReplay"] | null;
             /** Situation */
             situation: string;
             /** Task */
@@ -9463,6 +9502,11 @@ export interface components {
              * @description The revision you edited; a newer one is a 409
              */
             expected_revision: number;
+            /**
+             * Client Request Id
+             * @description One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before.
+             */
+            client_request_id?: string | null;
             /**
              * Reason
              * @default edited
@@ -10360,9 +10404,16 @@ export interface components {
              * @description 0 for the first save
              */
             expected_revision: number;
+            /**
+             * Client Request Id
+             * @description One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before.
+             */
+            client_request_id?: string | null;
         };
         /** WhiteboardDraftOut */
         WhiteboardDraftOut: {
+            /** @description Only on a save recovered by its key: see SaveReplay */
+            save_replay?: components["schemas"]["SaveReplay"] | null;
             /** Prompt Id */
             prompt_id: string;
             diagram: components["schemas"]["WhiteboardDiagram"];

@@ -144,6 +144,26 @@ The address then becomes `users.email`, verified at that moment. Migration `dd8a
 | `key`, `window` | varchar(160), integer; composite PK | e.g. `auth:<client ip>` and epoch-seconds ÷ 60 |
 | `count` | integer | Incremented by an atomic `INSERT … ON CONFLICT DO UPDATE … RETURNING`; windows older than the previous one are deleted on the next hit |
 
+### `update_receipts`
+Evidence that one keyed update (a story, note, kit, whiteboard draft or reflection save) was
+accepted, written in the same transaction as the update (Volume 8, prompt 3; docs/RECOVERY.md).
+No content. Kept 7 days, purged by housekeeping; not exported, not copied by `copy-db`, outside
+row-level security (no content; purged across learners). Migration `7045bdb6a532`.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | varchar(36) PK | |
+| `user_id` | FK → users (cascade), indexed | |
+| `entity`, `entity_id` | varchar(16), varchar(80) | `story` \| `note` \| `kit` \| `whiteboard` \| `reflection`, and its id |
+| `client_request_id` | varchar(64) | unique per user |
+| `base_revision`, `accepted_revision` | integer | the revision the save started from, and the one it produced |
+| `request_fingerprint` | varchar(80) | `v1:` + SHA-256 of the update (services/request_keys.py); never shown |
+| `created_at` | timestamptz, indexed | for expiry |
+
+`request_fingerprint` (nullable, the same digest) is also kept on `ai_interactions`,
+`experience_entries`, `applications`, `application_events` and `schedule_entries`: what the keyed
+create stood for (migration `06088140741a`, Volume 8 prompt 2).
+
 ### `execution_results` (1:1 with submissions)
 `submission_id` (PK and FK, cascade), `runtime_ms`, `memory_kb`, `passed_count`, `total_count`,
 `public_results` (JSONB, **public tests only**), `stderr_excerpt` (bounded, redacted).

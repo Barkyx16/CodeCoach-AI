@@ -5,7 +5,7 @@ from typing import Annotated, Literal
 
 from pydantic import Field
 
-from app.schemas.common import APIModel
+from app.schemas.common import APIModel, OptionalKey, SaveReplay, save_replay_field, update_key_field
 
 Outcome = Literal["unknown", "awaiting", "another_round", "offer", "not_selected", "withdrawn"]
 ActionTarget = Literal["notebook", "schedule", "saved"]
@@ -29,6 +29,7 @@ class ReflectionIn(APIModel):
     practice: list[Line] = Field(default_factory=list, max_length=20)
     story_ids: list[Annotated[str, Field(max_length=36)]] = Field(default_factory=list, max_length=10)
     expected_revision: int = Field(ge=0, description="0 for the first save")
+    client_request_id: OptionalKey = update_key_field()
 
 
 class ReflectionOutcomeChange(APIModel):
@@ -56,6 +57,7 @@ class ReflectionActionOut(APIModel):
 
 
 class ReflectionOut(APIModel):
+    save_replay: SaveReplay | None = save_replay_field()
     event_id: str
     application_id: str
     application_archived: bool

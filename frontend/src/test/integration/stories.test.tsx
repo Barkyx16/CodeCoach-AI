@@ -115,9 +115,12 @@ describe("the story bank", () => {
     expect(await screen.findByText("Saved as version 3.")).toBeInTheDocument();
     const patches = sent.filter((r) => r.method === "PATCH").map((r) => r.body);
     expect(patches).toEqual([
-      { clear_target: false, result: "Both were seen in five minutes.", expected_revision: 1, reason: "edited" },
-      { clear_target: false, result: "Both were seen in five minutes.", expected_revision: 2, reason: "edited" },
+      { clear_target: false, result: "Both were seen in five minutes.", expected_revision: 1, reason: "edited", client_request_id: expect.any(String) },
+      { clear_target: false, result: "Both were seen in five minutes.", expected_revision: 2, reason: "edited", client_request_id: expect.any(String) },
     ]);
+    // Two different saves (another base revision): two keys, so the second isn't taken for a retry.
+    const keys = patches.map((p) => (p as { client_request_id: string }).client_request_id);
+    expect(new Set(keys).size).toBe(2);
   });
 
   it("writing help proposes side by side, and nothing changes until it's accepted and saved", async () => {

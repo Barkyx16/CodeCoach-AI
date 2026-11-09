@@ -15,8 +15,9 @@ import { CopyWork } from "@/components/CopyWork";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { VersionConflict } from "@/components/VersionConflict";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
-import { savedVersion } from "@/lib/conflict";
+import { recoveredSave, savedVersion } from "@/lib/conflict";
 import { formatDateTime, timeAgo } from "@/lib/format";
+import { useRequestKey } from "@/lib/requestKey";
 
 import { Canvas } from "./Canvas";
 import { describe, fingerprint, fit, history, KIND_LABEL, MAX_EDGES, MAX_NODES, normalize, type Diagram, type NodeKind, type NotesKey } from "./diagram";
@@ -64,6 +65,9 @@ function Editor({ prompt, initial }: { prompt: WhiteboardPrompt; initial: Whiteb
   const [status, setStatus] = useState("");
   // The version saved elsewhere: from a refused save (409), or newer than a kept copy being restored.
   const [against, setAgainst] = useState<WhiteboardDraft | null>(null);
+  // One key per exact save: a retry after a lost reply is told "went through", not "changed elsewhere".
+  const saveKey = useRequestKey();
+  const [earlierSave, setEarlierSave] = useState<number | null>(null);
   const [keptHere, setKeptHere] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState<"save" | "feedback" | null>(null);
@@ -93,15 +97,28 @@ function Editor({ prompt, initial }: { prompt: WhiteboardPrompt; initial: Whiteb
   async function save(revision = saved.revision) {
     setBusy("save");
     setError(null);
+    // What's sent is what's marked saved: edits made while it's saving stay unsaved.
+    const sent = { diagram: d, explanation };
     try {
-      const out = await api.saveWhiteboardDraft(prompt.id, { diagram: d, explanation, expected_revision: revision });
-      setSaved({ diagram: d, explanation, revision: out.revision });
+      const out = await api.saveWhiteboardDraft(prompt.id,
+        { ...sent, expected_revision: revision, client_request_id: saveKey.keyFor([prompt.id, revision, sent]) });
+      saveKey.done();
+      const recovered = recoveredSave(out);
+      if (recovered?.newer) {
+        // Saved (the reply was lost), then changed elsewhere: compare, don't replace this page.
+        setEarlierSave(recovered.accepted);
+        setAgainst(out);
+        return;
+      }
+      setSaved({ ...sent, revision: out.revision });
       try { localStorage.removeItem(localKey); } catch { /* blocked */ }
       qc.setQueryData(["me", "whiteboard", "draft", prompt.id], out);
       setAgainst(null);
-      setStatus("Saved to your account.");
+      setEarlierSave(null);
+      setStatus(recovered ? `Your earlier save went through (version ${recovered.accepted}).` : "Saved to your account.");
     } catch (e) {
       if (e instanceof ApiError && e.code === "stale_revision") {
+        setEarlierSave(null);
         setAgainst(savedVersion<WhiteboardDraft>(e.details) ?? (await api.whiteboardDraft(prompt.id).catch(() => null)));
       } else {
         setError(e);
@@ -157,6 +174,7 @@ function Editor({ prompt, initial }: { prompt: WhiteboardPrompt; initial: Whiteb
     setSaved({ diagram, explanation: version.explanation, revision: version.revision });
     qc.setQueryData(["me", "whiteboard", "draft", prompt.id], version);
     setAgainst(null);
+    setEarlierSave(null);
     try { localStorage.removeItem(localKey); } catch { /* blocked */ }
   }
   const inWords = (x: Diagram) => describe(x).join("\n");
@@ -254,7 +272,7 @@ function Editor({ prompt, initial }: { prompt: WhiteboardPrompt; initial: Whiteb
         </Card>
       )}
       {against && (
-        <VersionConflict what="diagram" savedWhen={`version ${against.revision}${against.updated_at ? `, ${timeAgo(against.updated_at)}` : ""}`}
+        <VersionConflict what="diagram" earlierSave={earlierSave} savedWhen={`version ${against.revision}${against.updated_at ? `, ${timeAgo(against.updated_at)}` : ""}`}
           busy={busy === "save"} keepMineLabel="Keep mine as the newest"
           fields={[
             { label: "The diagram in words", mine: inWords(d), saved: inWords(normalize(against.diagram)) },

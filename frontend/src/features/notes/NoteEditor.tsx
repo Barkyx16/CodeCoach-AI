@@ -113,11 +113,16 @@ function ConflictPanel({ editor, mine, saved, onResolved, onCopy }: {
 }) {
   return (
     <section className="banner banner--warning stack-sm note-conflict" role="region" aria-label="Edit conflict">
-      <strong>This note was changed in another tab or device ({timeAgo(saved.updated_at)}).</strong>
+      {editor.earlierSave ? (
+        <strong>Your save went through as version {editor.earlierSave}. This note was changed after that, in another tab or
+          device ({timeAgo(saved.updated_at)}).</strong>
+      ) : (
+        <strong>This note was changed in another tab or device ({timeAgo(saved.updated_at)}).</strong>
+      )}
       <p>Nothing has been overwritten. Compare the two versions and choose what to keep.</p>
       <div className="note-conflict__versions">
         <div>
-          <h3 className="learn-subtitle">Your version (not saved)</h3>
+          <h3 className="learn-subtitle">{editor.earlierSave ? `Your version (saved as version ${editor.earlierSave}, then changed)` : "Your version (not saved)"}</h3>
           <p className="note-conflict__title">{mine.title || "Untitled note"}</p>
           <pre className="note-conflict__text">{mine.body || "(empty)"}</pre>
         </div>

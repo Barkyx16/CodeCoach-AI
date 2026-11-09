@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { recoveredSave } from "@/lib/conflict";
 import { newRequestKey } from "@/lib/requestKey";
 
 import { ApiError } from "@/api/client";
@@ -74,6 +75,11 @@ export function useNoteAutosave({ initial, createWith, draftKey, onSaved, delayM
   const timer = useRef<number | undefined>(undefined);
   // One key for this editor's create: a retry after a lost response returns the same note.
   const createKey = useRef(newRequestKey());
+  // An update sent but not confirmed (its reply was lost: Volume 8, prompt 3). The next save sends
+  // exactly it again, with its key, to learn whether it went through, before sending newer text,
+  // so the learner's own earlier save is never mistaken for a change made elsewhere.
+  const unconfirmed = useRef<{ id: string; base: number; key: string; fields: NoteFields } | null>(null);
+  const [earlierSave, setEarlierSave] = useState<number | null>(null);
   const inflight = useRef(false);
   const again = useRef(false);
   const savedCb = useRef(onSaved);
@@ -104,9 +110,29 @@ export function useNoteAutosave({ initial, createWith, draftKey, onSaved, delayM
         }
         setState("saving");
         try {
-          const result = s
-            ? await api.updateNote(s.id, { base_revision: s.revision, title: f.title, body: f.body, reflection: f.reflection, tags: f.tags })
-            : await api.createNote({ ...createWith, ...f, client_request_id: createKey.current });
+          let result: Note;
+          if (s) {
+            const u = unconfirmed.current;
+            const resend = u && u.id === s.id && u.base === s.revision ? u : null;
+            const sent = resend?.fields ?? f;
+            const key = resend?.key ?? newRequestKey();
+            unconfirmed.current = { id: s.id, base: s.revision, key, fields: sent };
+            result = await api.updateNote(s.id, {
+              base_revision: s.revision, title: sent.title, body: sent.body, reflection: sent.reflection, tags: sent.tags, client_request_id: key,
+            });
+            unconfirmed.current = null;
+            const recovered = recoveredSave(result);
+            if (recovered?.newer) {
+              // The earlier save went through, then the note was changed elsewhere: compare.
+              conflictRef.current = result;
+              setEarlierSave(recovered.accepted);
+              setConflict(result);
+              setState("conflict");
+              return;
+            }
+          } else {
+            result = await api.createNote({ ...createWith, ...f, client_request_id: createKey.current });
+          }
           serverRef.current = result;
           setServer(result);
           savedCb.current?.(result);
@@ -117,7 +143,9 @@ export function useNoteAutosave({ initial, createWith, draftKey, onSaved, delayM
             return;
           }
         } catch (e) {
+          if (!(e instanceof ApiError && e.code === "network_error")) unconfirmed.current = null; // answered: not lost
           if (e instanceof ApiError && e.code === "note_conflict") {
+            setEarlierSave(null);
             const current = (e.details as { current: Note }).current;
             conflictRef.current = current;
             setConflict(current);
@@ -203,6 +231,7 @@ export function useNoteAutosave({ initial, createWith, draftKey, onSaved, delayM
     setServer(c);
     conflictRef.current = null;
     setConflict(null);
+    setEarlierSave(null);
     void save();
   }, [save]);
 
@@ -215,6 +244,7 @@ export function useNoteAutosave({ initial, createWith, draftKey, onSaved, delayM
     setFields(pick(c));
     conflictRef.current = null;
     setConflict(null);
+    setEarlierSave(null);
     clearDraft(draftKey);
     setState("saved");
   }, [draftKey]);
@@ -237,5 +267,5 @@ export function useNoteAutosave({ initial, createWith, draftKey, onSaved, delayM
     setServer(n);
   }, []);
 
-  return { fields, server, state, kept, error, conflict, recovery, change, save, restore, discardRecovery, keepMine, takeSaved, saveMineAsNew, adopt };
+  return { fields, server, state, kept, error, conflict, earlierSave, recovery, change, save, restore, discardRecovery, keepMine, takeSaved, saveMineAsNew, adopt };
 }

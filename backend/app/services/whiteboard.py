@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.db.locking import lock_for_update
 from app.errors import AppError, ConflictError, NotFoundError
 from app.models import User, WhiteboardAttempt, WhiteboardDraft
+from app.schemas.common import SaveReplay
 from app.schemas.whiteboard import (
     WhiteboardAttemptIn,
     WhiteboardAttemptOut,
@@ -22,6 +23,7 @@ from app.schemas.whiteboard import (
     WhiteboardPromptList,
     WhiteboardPromptRequirement,
 )
+from app.services import update_receipts
 from app.whiteboard import BY_ID, PROMPTS, RUBRIC_VERSION, Prompt, prompts_for
 from app.whiteboard.diagram import Diagram, digest, evaluate
 
@@ -90,6 +92,17 @@ class Whiteboard:
         self._prompt(prompt_id)
         row = lock_for_update(self.db, self.db.get(WhiteboardDraft, (self.user.id, prompt_id)))
         current = row.revision if row else 0
+        key = body.client_request_id
+        print_ = update_receipts.fingerprint(
+            "whiteboard",
+            prompt_id,
+            body.expected_revision,
+            body.model_dump(mode="json", exclude={"client_request_id", "expected_revision"}),
+        )
+        if (
+            replayed := self._replayed(prompt_id, key, body.expected_revision, print_, row is not None)
+        ) is not None:
+            return replayed
         if body.expected_revision != current:
             raise ConflictError(
                 "This diagram was saved somewhere else since you opened it. Your changes are still on this page.",
@@ -109,10 +122,18 @@ class Whiteboard:
         row.explanation = body.explanation.strip()
         row.revision = current + 1
         row.updated_at = datetime.now(UTC)
+        update_receipts.record(
+            self.db, self.user, key, "whiteboard", prompt_id, body.expected_revision, row.revision, print_
+        )
         try:
             self.db.commit()
         except IntegrityError:  # two first saves at once: the other one created the draft
             self.db.rollback()
+            exists = self.db.get(WhiteboardDraft, (self.user.id, prompt_id)) is not None
+            if (
+                replayed := self._replayed(prompt_id, key, body.expected_revision, print_, exists)
+            ) is not None:
+                return replayed  # ...and it was a copy of this same save
             saved = self.draft(prompt_id)
             raise ConflictError(
                 "This diagram was saved somewhere else since you opened it. Your changes are still on this page.",
@@ -120,6 +141,18 @@ class Whiteboard:
                 details={"current_revision": saved.revision, "current": saved.model_dump(mode="json")},
             ) from None
         return self.draft(prompt_id)
+
+    def _replayed(
+        self, prompt_id: str, key: str | None, base: int, print_: str, exists: bool
+    ) -> WhiteboardDraftOut | None:
+        done = update_receipts.find(self.db, self.user, key, "whiteboard", prompt_id, base, print_)
+        if done is None:
+            return None
+        if not exists:  # saved, then discarded since: a retry doesn't bring it back
+            raise NotFoundError("That draft was saved, then discarded. Nothing was saved again.")
+        out = self.draft(prompt_id)
+        out.save_replay = SaveReplay(accepted_revision=done.accepted_revision, current_revision=out.revision)
+        return out
 
     def attempt(self, prompt_id: str, body: WhiteboardAttemptIn) -> WhiteboardAttemptOut:
         p = self._prompt(prompt_id)

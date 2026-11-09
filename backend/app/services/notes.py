@@ -29,6 +29,7 @@ from app.db.locking import lock_for_update
 from app.errors import AppError, ConflictError, NotFoundError
 from app.learn import get_unit
 from app.models import Note, PracticeSession, Problem, User
+from app.schemas.common import SaveReplay
 from app.schemas.notes import (
     MAX_TAG,
     DeletedOut,
@@ -42,7 +43,7 @@ from app.schemas.notes import (
     SourceOut,
     TagCount,
 )
-from app.services import request_keys
+from app.services import request_keys, update_receipts
 
 UNDO_WINDOW = timedelta(minutes=10)
 MAX_NOTES = 2_000
@@ -309,6 +310,22 @@ class Notebook:
             if patch.base_revision is None:
                 raise AppError("Send base_revision with text changes.", code="base_revision_required")
             lock_for_update(self.db, n)  # a save sent at the same moment waits, then sees the new revision
+            print_ = update_receipts.fingerprint(
+                "note",
+                n.id,
+                patch.base_revision,
+                patch.model_dump(mode="json", exclude={"client_request_id", "base_revision"}),
+            )
+            done = update_receipts.find(
+                self.db, user, patch.client_request_id, "note", n.id, patch.base_revision, print_
+            )
+            if done is not None:
+                # This save went through already; its reply was lost. The note as it is now.
+                out = self.out(n)
+                out.save_replay = SaveReplay(
+                    accepted_revision=done.accepted_revision, current_revision=n.revision
+                )
+                return out
             if patch.base_revision != n.revision:
                 raise ConflictError(
                     "This note was changed somewhere else since you started editing.",
@@ -346,6 +363,10 @@ class Notebook:
                 n.pinned = False
         if text:
             n.revision += 1  # pin/archive never conflict with text edits in another tab
+            assert patch.base_revision is not None
+            update_receipts.record(
+                self.db, user, patch.client_request_id, "note", n.id, patch.base_revision, n.revision, print_
+            )
         n.updated_at = _now()
         self.db.commit()
         return self.out(n)

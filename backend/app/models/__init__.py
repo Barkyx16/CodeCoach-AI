@@ -1511,3 +1511,29 @@ class ImportedRecord(Base):
     kind: Mapped[str] = mapped_column(String(16))  # note | story | bookmark | application
     record_id: Mapped[str] = mapped_column(String(64))
     fingerprint: Mapped[str] = mapped_column(String(64))
+
+
+class UpdateReceipt(Base):
+    """Evidence that one keyed update was accepted (Volume 8, prompt 3; docs/RECOVERY.md).
+
+    Written in the same transaction as the update it records, so it exists exactly when the update
+    does. A retry of that update (its reply was lost) finds it and gets "your save went through as
+    revision N" instead of a conflict with its own save. It holds no content: which entity, the
+    revision the update started from and the one it produced, and a digest of the update. Kept
+    UPDATE_RECEIPT_DAYS; after that, a retry is treated as a new save (a conflict, if it's stale)."""
+
+    __tablename__ = "update_receipts"
+    __table_args__ = (
+        UniqueConstraint("user_id", "client_request_id", name="uq_update_receipt_request"),
+        Index("ix_update_receipt_created", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    entity: Mapped[str] = mapped_column(String(16))  # story | note | kit | whiteboard | reflection
+    entity_id: Mapped[str] = mapped_column(String(80))
+    client_request_id: Mapped[str] = mapped_column(String(64))
+    base_revision: Mapped[int] = mapped_column(Integer)
+    accepted_revision: Mapped[int] = mapped_column(Integer)
+    request_fingerprint: Mapped[str] = mapped_column(String(80))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)

@@ -8,6 +8,7 @@ import { useStory, useTargets } from "@/api/queries";
 import type { Competency, Story, StoryContext, StorySection } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { fingerprint, forgetIntent, keyForIntent } from "@/lib/pendingIntents";
+import { useRequestKey } from "@/lib/requestKey";
 import { EarlierActionNotice } from "@/features/recovery/EarlierActionNotice";
 import { useEarlierAction } from "@/features/recovery/useEarlierAction";
 import { BackLink } from "@/components/BackLink";
@@ -17,7 +18,7 @@ import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { VersionConflict } from "@/components/VersionConflict";
 import { CareerSelect } from "@/features/careers/CareerSelect";
 import { allowLeaveAfterSave, useLeaveWarning } from "@/hooks/useLeaveWarning";
-import { savedVersion } from "@/lib/conflict";
+import { recoveredSave, savedVersion } from "@/lib/conflict";
 import { formatDateTime, timeAgo } from "@/lib/format";
 
 import { COMPETENCIES, COMPETENCY_LABEL, CONTEXT_LABEL, SECTION_LABEL, SECTION_PROMPT, SECTIONS } from "./labels";
@@ -68,6 +69,10 @@ function Editor({ story }: { story: Story | null }) {
     return r && !sameForm(r.form, base) ? r : null;
   });
   const [kept, setKept] = useState(true);
+  // One key per exact save (Volume 8, prompt 3): sent again after a lost reply, the server answers
+  // "went through as version N" instead of a conflict with this page's own save.
+  const saveKey = useRequestKey();
+  const [earlierSave, setEarlierSave] = useState<number | null>(null);
   const [assisted, setAssisted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -136,15 +141,28 @@ function Editor({ story }: { story: Story | null }) {
         return;
       }
       const from = over ? fromStory(over) : base;
-      next = await api.updateStory(saved.id, { clear_target: false, ...changes(from, sent), expected_revision: over!.revision, reason: assisted ? "assisted" : "edited" });
+      const update = { clear_target: false, ...changes(from, sent), expected_revision: over!.revision, reason: assisted ? "assisted" as const : "edited" as const };
+      next = await api.updateStory(saved.id, { ...update, client_request_id: saveKey.keyFor([saved.id, update]) });
+      saveKey.done();
+      const recovered = recoveredSave(next);
+      if (recovered?.newer) {
+        // This page's save went through (its reply was lost), then the story was changed elsewhere.
+        // Not replaced, not overwritten: compared, with the learner's version still on the page.
+        setEarlierSave(recovered.accepted);
+        setConflict(next);
+        void qc.invalidateQueries({ queryKey: ["me", "story", next.id, "revisions"] }); // both are listed
+        return;
+      }
       setSaved(next);
       setAssisted(false);
       setConflict(null);
+      setEarlierSave(null);
       if (sameForm(latest.current, sent)) {
         // Nothing typed while it was saving: the page shows exactly what was saved.
         setForm(fromStory(next));
         window.localStorage.removeItem(key);
-        setNotice(next.revision === over!.revision ? "Nothing changed." : `Saved as version ${next.revision}.`);
+        setNotice(recovered ? `Your earlier save went through as version ${recovered.accepted}.`
+          : next.revision === over!.revision ? "Nothing changed." : `Saved as version ${next.revision}.`);
       }
       // Otherwise the newer edits stay, now unsaved against this version, and say so.
       qc.setQueryData(["me", "story", next.id], next);
@@ -152,6 +170,7 @@ function Editor({ story }: { story: Story | null }) {
       void qc.invalidateQueries({ queryKey: ["me", "story", next.id, "revisions"] });
     } catch (err) {
       if (err instanceof ApiError && err.code === "stale_revision") {
+        setEarlierSave(null);
         setConflict(savedVersion<Story>(err.details) ?? (saved ? await api.story(saved.id).catch(() => null) : null));
       } else {
         setError(err);
@@ -165,6 +184,7 @@ function Editor({ story }: { story: Story | null }) {
     setSaved(version);
     setForm(fromStory(version));
     setConflict(null);
+    setEarlierSave(null);
     setRecovery(null);
     window.localStorage.removeItem(key);
     qc.setQueryData(["me", "story", version.id], version);
@@ -221,7 +241,7 @@ function Editor({ story }: { story: Story | null }) {
       )}
       {conflict && (
         <VersionConflict what="story" savedWhen={`version ${conflict.revision}, ${timeAgo(conflict.updated_at)}`} busy={busy}
-          keepMineLabel="Keep mine as the newest version"
+          keepMineLabel="Keep mine as the newest version" earlierSave={earlierSave}
           fields={[
             { label: "Title", mine: form.title, saved: conflict.title },
             ...SECTIONS.map((s) => ({ label: SECTION_LABEL[s], mine: form[s], saved: conflict[s] })),

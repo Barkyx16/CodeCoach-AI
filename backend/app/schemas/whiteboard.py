@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pydantic import Field
 
-from app.schemas.common import APIModel
+from app.schemas.common import APIModel, OptionalKey, SaveReplay, save_replay_field, update_key_field
 from app.whiteboard.diagram import Diagram
 
 
@@ -31,9 +31,11 @@ class WhiteboardDraftIn(APIModel):
     diagram: Diagram
     explanation: str = Field(default="", max_length=4000)
     expected_revision: int = Field(ge=0, description="0 for the first save")
+    client_request_id: OptionalKey = update_key_field()
 
 
 class WhiteboardDraftOut(APIModel):
+    save_replay: SaveReplay | None = save_replay_field()
     prompt_id: str
     diagram: Diagram
     explanation: str

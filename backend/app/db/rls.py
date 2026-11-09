@@ -27,7 +27,9 @@ owns nothing (db/roles.py, docs/STORAGE.md). SQLite has no RLS: everything here 
 Not covered, deliberately: `submissions`/`execution_results` (the judge's queue depth and stall
 checks count across learners inside a learner's request); the sign-in tokens (looked up by token
 before the user is known); `shares`/`share_feedback` (read by the recipient); content triage tables
-(admin); and child tables without a `user_id` column (reached through a covered parent).
+(admin); `update_receipts` (no content, only ids, revision numbers and a digest; purged across
+learners by housekeeping, which runs in the worker scope; every lookup filters by user); and child
+tables without a `user_id` column (reached through a covered parent).
 """
 
 from __future__ import annotations

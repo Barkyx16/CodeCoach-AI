@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from app.schemas.common import APIModel, OptionalKey
+from app.schemas.common import APIModel, OptionalKey, SaveReplay, save_replay_field, update_key_field
 
 Competency = Literal[
     "teamwork",
@@ -68,6 +68,7 @@ class StoryCreate(StoryFields):
 
 class StoryUpdate(StoryFields):
     expected_revision: int = Field(ge=1, description="The revision you edited; a newer one is a 409")
+    client_request_id: OptionalKey = update_key_field()
     reason: Literal["edited", "assisted"] = "edited"
     clear_target: bool = False
 
@@ -112,6 +113,7 @@ class StorySummary(APIModel):
 
 
 class StoryOut(StorySummary):
+    save_replay: SaveReplay | None = save_replay_field()
     situation: str
     task: str
     action: str

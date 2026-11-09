@@ -20,6 +20,7 @@ from app.careers.questions import get_question, is_retired
 from app.db.locking import lock_for_update
 from app.errors import AppError, ConflictError, NotFoundError
 from app.models import ExperienceEntry, PracticeAnswer, RoleTarget, StoryRevision, User
+from app.schemas.common import SaveReplay
 from app.schemas.stories import (
     SECTIONS,
     StoryAssistIn,
@@ -34,7 +35,7 @@ from app.schemas.stories import (
     StoryTargetLink,
     StoryUpdate,
 )
-from app.services import request_keys, story_assist
+from app.services import request_keys, story_assist, update_receipts
 
 MAX_STORIES = 200
 MAX_REVISIONS = 100
@@ -333,6 +334,22 @@ class Stories:
 
     def update(self, user: User, story_id: str, body: StoryUpdate) -> StoryOut:
         e = lock_for_update(self.db, self._get(user, story_id))
+        key = body.client_request_id
+        print_ = update_receipts.fingerprint(
+            "story",
+            e.id,
+            body.expected_revision,
+            body.model_dump(mode="json", exclude={"client_request_id", "expected_revision"}),
+        )
+        if (
+            done := update_receipts.find(self.db, user, key, "story", e.id, body.expected_revision, print_)
+        ) is not None:
+            # This save went through already; its reply was lost. Say so, with the story as it is now.
+            out = self.get(user, e.id)
+            out.save_replay = SaveReplay(
+                accepted_revision=done.accepted_revision, current_revision=out.revision
+            )
+            return out
         if body.expected_revision != e.revision:
             raise ConflictError(
                 "This story changed since you opened it (maybe in another tab). Your edits weren't saved.",
@@ -345,10 +362,10 @@ class Stories:
             )
         before = snapshot(e)
         self._apply(user, e, body, clear_target=body.clear_target)
-        if snapshot(e) == before:
-            return self.get(user, e.id)  # nothing changed: no new revision
-        e.updated_at = datetime.now(UTC)
-        record_revision(self.db, e, body.reason, bump=True)
+        if snapshot(e) != before:  # otherwise nothing changed: no new revision
+            e.updated_at = datetime.now(UTC)
+            record_revision(self.db, e, body.reason, bump=True)
+        update_receipts.record(self.db, user, key, "story", e.id, body.expected_revision, e.revision, print_)
         self.db.commit()
         return self.get(user, e.id)
 

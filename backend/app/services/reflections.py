@@ -31,6 +31,7 @@ from app.models import (
 )
 from app.models import ReflectionAction as ActionRow
 from app.schemas.applications import ApplicationStageIn
+from app.schemas.common import SaveReplay
 from app.schemas.explore import CollectionItemIn
 from app.schemas.notes import NoteIn
 from app.schemas.reflections import (
@@ -45,6 +46,7 @@ from app.schemas.reflections import (
     ReflectionSummary,
 )
 from app.schemas.schedule import EntryIn
+from app.services import update_receipts
 
 _CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 _WORD = re.compile(r"[a-z][a-z'-]{2,}")
@@ -361,6 +363,19 @@ class Reflections:
         app, ev = self._event(app_id, event_id)
         r = lock_for_update(self.db, self._row(ev.id))
         current = r.revision if r else 0
+        key = body.client_request_id
+        print_ = update_receipts.fingerprint(
+            "reflection",
+            ev.id,
+            body.expected_revision,
+            body.model_dump(mode="json", exclude={"client_request_id", "expected_revision"}),
+        )
+        if (
+            replayed := self._replayed(
+                app_id, event_id, ev.id, key, body.expected_revision, print_, r is not None
+            )
+        ) is not None:
+            return replayed
         if body.expected_revision != current:
             raise ConflictError(
                 "This reflection was saved somewhere else since you opened it. Your text is still on this page.",
@@ -408,10 +423,17 @@ class Reflections:
         r.story_ids = story_ids
         r.revision = current + 1
         r.updated_at = datetime.now(UTC)
+        update_receipts.record(
+            self.db, self.user, key, "reflection", ev.id, body.expected_revision, r.revision, print_
+        )
         try:
             self.db.commit()
         except IntegrityError:  # two first saves at once: the other one created the reflection
             self.db.rollback()
+            exists = self._row(ev.id) is not None
+            replayed = self._replayed(app_id, event_id, ev.id, key, body.expected_revision, print_, exists)
+            if replayed is not None:
+                return replayed  # ...and it was a copy of this same save
             saved = self.get(app_id, event_id)
             raise ConflictError(
                 "This reflection was saved somewhere else since you opened it. Your text is still on this page.",
@@ -419,6 +441,25 @@ class Reflections:
                 details={"current_revision": saved.revision, "current": saved.model_dump(mode="json")},
             ) from None
         return self._out(app, ev, r)
+
+    def _replayed(
+        self,
+        app_id: str,
+        event_id: str,
+        entity_id: str,
+        key: str | None,
+        base: int,
+        print_: str,
+        exists: bool,
+    ) -> ReflectionOut | None:
+        done = update_receipts.find(self.db, self.user, key, "reflection", entity_id, base, print_)
+        if done is None:
+            return None
+        if not exists:  # saved, then deleted since: a retry doesn't bring it back
+            raise NotFoundError("That reflection was saved, then deleted. Nothing was saved again.")
+        out = self.get(app_id, event_id)
+        out.save_replay = SaveReplay(accepted_revision=done.accepted_revision, current_revision=out.revision)
+        return out
 
     def suggest(self, app_id: str, event_id: str) -> ReflectionOut:
         """Turn what the learner wrote into suggestions. Accepted and dismissed ones are left alone,
