@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 
 import AxeBuilder from "@axe-core/playwright";
 import { navTo, chooseJob, expect, test, type Page } from "./fixtures";
+import { E2E_DATABASE_URL } from "./ports";
 
 // Content quality end to end with the real API: reports pinned to a version, duplicates grouped,
 // an admin (granted from the command line, the only way) triages, corrects and retires, and the
@@ -29,7 +30,7 @@ function grantAdmin(email: string) {
   // The same command an operator runs; there is no API for it.
   execFileSync(process.env.PYTHON ?? "python", ["-m", "app.cli", "grant-admin", email], {
     cwd: resolve(process.cwd(), "../backend"),
-    env: { ...process.env, DATABASE_URL: "sqlite:///./e2e.db", SECRET_KEY: "e2e-secret-key-that-is-at-least-32-characters" },
+    env: { ...process.env, DATABASE_URL: E2E_DATABASE_URL, SECRET_KEY: "e2e-secret-key-that-is-at-least-32-characters" },
   });
 }
 

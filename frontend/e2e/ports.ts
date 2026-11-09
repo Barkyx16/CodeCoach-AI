@@ -4,6 +4,9 @@
  *   E2E_PORT_OFFSET=10 npm run e2e   → API :8010, runner :8110, web :5183, preview :4183
  * Specs and the config import these instead of writing ports out.
  */
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 const raw = process.env.E2E_PORT_OFFSET ?? "0";
 const offset = Number(raw);
 if (!Number.isInteger(offset) || offset < 0 || offset > 999) {
@@ -22,3 +25,12 @@ export const INSTANCE_LABEL = "e2e";
  * to tell a read that never reached the server from one the server never finished. Relative to
  * frontend/; the API writes it from backend/. */
 export const ACCESS_LOG = `../backend/e2e-access${offset ? `-${offset}` : ""}.log`;
+/** This run's database, as the API sees it (from backend/). A helper that writes to it directly
+ * (granting admin, as an operator would) must use this: a fixed e2e.db is another run's. */
+export const E2E_DATABASE_URL = `sqlite:///./e2e${offset ? `-${offset}` : ""}.db`;
+/** Where this run's API saves the emails it would send (EMAIL_BACKEND=file), as an absolute path.
+ * A spec reading a fixed backend/e2e-outbox reads another run's mail. */
+export const E2E_OUTBOX = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  `../../backend/e2e-outbox${offset ? `-${offset}` : ""}`,
+);

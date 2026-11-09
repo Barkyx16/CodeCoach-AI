@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 import { fileURLToPath } from "node:url";
 
-import { API_URL, INSTANCE_LABEL, PORT_OFFSET, PORTS, PREVIEW_URL, RUNNER_URL, WEB_URL } from "./e2e/ports";
+import { API_URL, E2E_DATABASE_URL, INSTANCE_LABEL, PORT_OFFSET, PORTS, PREVIEW_URL, RUNNER_URL, WEB_URL } from "./e2e/ports";
 
 /**
  * End-to-end tests against the REAL backend (FastAPI + throwaway SQLite DB) and the real
@@ -66,8 +66,10 @@ export default defineConfig({
         E2E_OWNED_COMMAND: `${python} -c "import pathlib, shutil; pathlib.Path('e2e${suffix}.db').unlink(missing_ok=True); pathlib.Path('e2e-access${suffix}.log').unlink(missing_ok=True); shutil.rmtree('e2e-outbox${suffix}', ignore_errors=True)" && ${python} -m uvicorn app.main:app --port ${PORTS.api}`,
         // Tells e2e/global-setup.ts this is the suite's own server (never a developer's).
         INSTANCE_LABEL,
-        DATABASE_URL: `sqlite:///./e2e${suffix}.db`,
+        DATABASE_URL: E2E_DATABASE_URL,
         CORS_ORIGINS: `${WEB_URL},http://127.0.0.1:${PORTS.web},${PREVIEW_URL}`,
+        // Links in emails (password reset) point at this run's web server, not the default port.
+        APP_BASE_URL: WEB_URL,
         SECRET_KEY: "e2e-secret-key-that-is-at-least-32-characters",
         AI_PROVIDER: "offline",
         // Password-reset emails are written here; e2e/password-reset.spec.ts reads the link.

@@ -1,11 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import AxeBuilder from "@axe-core/playwright";
 
 import { chooseJob, expect, test, type Page } from "./fixtures";
-import { PORT_OFFSET } from "./ports";
+import { E2E_OUTBOX } from "./ports";
 
 /**
  * Email verification as a recovery journey, against the real API and its file capture transport
@@ -18,15 +17,11 @@ import { PORT_OFFSET } from "./ports";
  * - the same link again (pasted into the same tab), and a link cut short, say what they are;
  * - another account's link, opened while signed in, asks first and leaves that session alone.
  */
-const OUTBOX = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  `../../backend/e2e-outbox${PORT_OFFSET ? `-${PORT_OFFSET}` : ""}`,
-);
 const PASSWORD = "CorrectHorse42";
 
 function linkTokenFor(email: string): string | null {
-  if (!fs.existsSync(OUTBOX)) return null;
-  const mails = fs.readdirSync(OUTBOX).sort().map((f) => JSON.parse(fs.readFileSync(path.join(OUTBOX, f), "utf8")));
+  if (!fs.existsSync(E2E_OUTBOX)) return null;
+  const mails = fs.readdirSync(E2E_OUTBOX).sort().map((f) => JSON.parse(fs.readFileSync(path.join(E2E_OUTBOX, f), "utf8")));
   return mails.filter((m) => m.to === email).at(-1)?.text.match(/\/verify-email#token=([\w-]+)/)?.[1] ?? null;
 }
 

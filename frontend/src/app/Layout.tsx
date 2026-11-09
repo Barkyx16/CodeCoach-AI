@@ -47,7 +47,9 @@ export function Layout() {
     release,
   }), [focusOn, pathname, release]);
 
-  useEffect(() => {
+  // A layout effect: the page and the mode change in the same commit, so the next page never
+  // appears, even for a frame, without its header (a passive effect ran after it was shown).
+  useLayoutEffect(() => {
     document.documentElement.toggleAttribute("data-focus", focusOn);
     if (!focusOn) return;
     const onKey = (event: KeyboardEvent) => {

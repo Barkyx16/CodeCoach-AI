@@ -1,14 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { chooseJob, expect, test } from "./fixtures";
-
-const OUTBOX = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../backend/e2e-outbox");
+import { E2E_OUTBOX } from "./ports";
 
 function latestCodeFor(email: string): string | null {
-  if (!fs.existsSync(OUTBOX)) return null;
-  const mails = fs.readdirSync(OUTBOX).sort().map((f) => JSON.parse(fs.readFileSync(path.join(OUTBOX, f), "utf8")));
+  if (!fs.existsSync(E2E_OUTBOX)) return null;
+  const mails = fs.readdirSync(E2E_OUTBOX).sort().map((f) => JSON.parse(fs.readFileSync(path.join(E2E_OUTBOX, f), "utf8")));
   return mails.filter((m) => m.to === email).at(-1)?.text.match(/verification code is: (\d{6})/)?.[1] ?? null;
 }
 

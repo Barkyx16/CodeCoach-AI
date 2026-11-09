@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 
 import { chooseJob, expect, test, type Page, type Request } from "./fixtures";
+import { E2E_DATABASE_URL } from "./ports";
 
 // One answer followed across the system (docs/OBSERVABILITY.md): the browser's trace context goes
 // with the request, the API continues it, the page reports what it showed, and an admin reads the
@@ -27,7 +28,7 @@ function grantAdmin(email: string) {
   // The same command an operator runs; there is no API for it.
   execFileSync(process.env.PYTHON ?? "python", ["-m", "app.cli", "grant-admin", email], {
     cwd: resolve(process.cwd(), "../backend"),
-    env: { ...process.env, DATABASE_URL: "sqlite:///./e2e.db", SECRET_KEY: "e2e-secret-key-that-is-at-least-32-characters" },
+    env: { ...process.env, DATABASE_URL: E2E_DATABASE_URL, SECRET_KEY: "e2e-secret-key-that-is-at-least-32-characters" },
   });
 }
 

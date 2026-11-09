@@ -1,9 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { chooseJob, expect, test, type Page, type Route } from "./fixtures";
-import { PORT_OFFSET } from "./ports";
+import { E2E_OUTBOX } from "./ports";
 
 /**
  * A guest start or registration whose reply was lost (Volume 8, prompt 6), against the real API.
@@ -12,14 +11,10 @@ import { PORT_OFFSET } from "./ports";
  * browser's HttpOnly anchor cookie, returns the account the first one made: one guest, not two;
  * one account and one verification email, not "email taken".
  */
-const OUTBOX = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  `../../backend/e2e-outbox${PORT_OFFSET ? `-${PORT_OFFSET}` : ""}`,
-);
 
 function mailsTo(email: string): number {
-  if (!fs.existsSync(OUTBOX)) return 0;
-  return fs.readdirSync(OUTBOX).filter((f) => JSON.parse(fs.readFileSync(path.join(OUTBOX, f), "utf8")).to === email).length;
+  if (!fs.existsSync(E2E_OUTBOX)) return 0;
+  return fs.readdirSync(E2E_OUTBOX).filter((f) => JSON.parse(fs.readFileSync(path.join(E2E_OUTBOX, f), "utf8")).to === email).length;
 }
 
 type Made = { status: number; userId: string; resumed: string | null };

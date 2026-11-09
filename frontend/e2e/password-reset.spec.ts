@@ -1,15 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { chooseJob, expect, test } from "./fixtures";
+import { E2E_OUTBOX } from "./ports";
 
-// The e2e backend writes emails to backend/e2e-outbox (EMAIL_BACKEND=file).
-const OUTBOX = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../backend/e2e-outbox");
-
+// The e2e backend writes emails to E2E_OUTBOX (EMAIL_BACKEND=file).
 function latestLinkFor(email: string): string | null {
-  if (!fs.existsSync(OUTBOX)) return null;
-  const mails = fs.readdirSync(OUTBOX).sort().map((f) => JSON.parse(fs.readFileSync(path.join(OUTBOX, f), "utf8")));
+  if (!fs.existsSync(E2E_OUTBOX)) return null;
+  const mails = fs.readdirSync(E2E_OUTBOX).sort().map((f) => JSON.parse(fs.readFileSync(path.join(E2E_OUTBOX, f), "utf8")));
   const mail = mails.filter((m) => m.to === email).at(-1);
   return mail?.text.match(/https?:\/\/\S+\/reset-password#token=[\w-]+/)?.[0] ?? null;
 }

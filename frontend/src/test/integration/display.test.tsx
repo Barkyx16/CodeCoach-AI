@@ -120,8 +120,17 @@ describe("focus mode", () => {
 
     await user.click(screen.getByRole("button", { name: "Focus mode" }));
     expect(html).toHaveAttribute("data-focus");
+    // Not even for a moment: the next page never appears in this page's focus mode (a full test run
+    // once found its heading before the mode had ended).
+    const whenShown: boolean[] = [];
+    const watch = new MutationObserver(() => {
+      if (!whenShown.length && document.querySelector("h1")?.textContent === "Your notes") whenShown.push(html.hasAttribute("data-focus"));
+    });
+    watch.observe(document.body, { childList: true, subtree: true, characterData: true });
     await router.navigate("/notes");
     await screen.findByRole("heading", { name: "Your notes", level: 1 });
+    watch.disconnect();
+    expect(whenShown).toEqual([false]);
     expect(html).not.toHaveAttribute("data-focus");
     expect(screen.getByRole("navigation", { name: "Main" })).toBeInTheDocument();
   });

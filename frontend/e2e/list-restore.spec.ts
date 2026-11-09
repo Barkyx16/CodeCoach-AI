@@ -45,6 +45,10 @@ async function openFromList(page: Page, title: string): Promise<{ href: string; 
   const href = (await link.getAttribute("href"))!;
   await link.click();
   await expect(page).toHaveURL(new RegExp(`${href}$`));
+  // The note is on screen, so the list has really been left. (The address changes first; Back
+  // before the note showed returned to a list that never went away, still focused on the link
+  // just clicked, which a full run under load once mistook for a restore.)
+  await expect(page.getByLabel("Title", { exact: true })).toHaveValue(title);
   return { href, top };
 }
 
@@ -88,9 +92,15 @@ test("Back to the notebook after notes were added above, after the note was dele
   // The learner scrolls while the list is still loading: it isn't snapped back.
   await openFromList(page, "Synthetic note 05");
   let release!: () => void;
+  let asked!: () => void;
   const held = new Promise<void>((resolve) => { release = resolve; });
-  await page.route(/\/api\/v1\/me\/notes\?/, async (route) => { await held; await route.continue(); });
+  const reloading = new Promise<void>((resolve) => { asked = resolve; });
+  await page.route(/\/api\/v1\/me\/notes\?/, async (route) => { asked(); await held; await route.continue(); });
   await page.goBack();
+  // The list is back on screen (from before) and its reload is on the way: only now can the learner
+  // scroll it. (A wheel sent before the page was there scrolled the note, a full run once showed.)
+  await reloading;
+  await expect(page.locator(".notes-list")).toBeVisible();
   await page.mouse.wheel(0, -200);
   release();
   await expect(page.locator(".notes-list")).toBeVisible();
