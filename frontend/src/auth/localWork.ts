@@ -57,4 +57,20 @@ export function clearLocalWork(userId: string): void {
       /* storage blocked: nothing was kept */
     }
   }
+  clearListMemory();
+}
+
+/**
+ * This tab's list positions and the items opened from them (hooks/useScrollMemory.ts): which note
+ * or application was opened is that account's, so it goes when the account signs out here, and the
+ * next account's Back starts its lists at the top.
+ */
+export function clearListMemory(): void {
+  try {
+    const stale = Array.from({ length: window.sessionStorage.length }, (_, i) => window.sessionStorage.key(i) ?? "")
+      .filter((k) => k.startsWith("scroll:") || k.startsWith("focus:scroll:"));
+    for (const k of stale) window.sessionStorage.removeItem(k);
+  } catch {
+    /* storage blocked: nothing was kept */
+  }
 }

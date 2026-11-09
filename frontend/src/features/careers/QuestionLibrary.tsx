@@ -88,7 +88,7 @@ export function QuestionLibrary() {
   const bookmark = useToggleBookmark();
   const [bookmarkError, setBookmarkError] = useState<{ title: string; on: boolean; id: string; error: unknown } | null>(null);
   const data = explore.data as (ExploreResult & Partial<Pick<MyExploreResult, "status">>) | undefined;
-  useScrollMemory(Boolean(data) && !explore.isPlaceholderData);
+  useScrollMemory(Boolean(data) && !explore.isPlaceholderData && !explore.isFetching);
 
   const settling = explore.isFetching || q !== search.trim();
   const total = data?.total ?? 0;

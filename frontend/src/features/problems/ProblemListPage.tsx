@@ -68,7 +68,7 @@ export function ProblemListPage() {
   }
 
   const problems = useProblems({ difficulty, topic, q, page: 1, page_size: visible });
-  useScrollMemory(Boolean(problems.data) && !problems.isPlaceholderData);
+  useScrollMemory(Boolean(problems.data) && !problems.isPlaceholderData && !problems.isFetching);
   const counts = useProblemCounts({ topic, q });
   const topics = useTopics();
   const progress = useProgress(isAuthenticated);

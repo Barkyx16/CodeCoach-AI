@@ -43,7 +43,7 @@ export function ApplicationsPage() {
   const [adding, setAdding] = useState(false);
   const searchId = useId();
   const today = todayIn(browserTimeZone());
-  useScrollMemory(Boolean(apps.data));
+  useScrollMemory(Boolean(apps.data) && !apps.isFetching);
 
   const update = (next: Record<string, string>) => {
     const p = new URLSearchParams(params);

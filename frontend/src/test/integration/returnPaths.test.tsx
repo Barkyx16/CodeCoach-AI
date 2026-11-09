@@ -184,11 +184,14 @@ describe("Coming back from a detour", () => {
   });
 
   it("Back to a list puts focus on the item the learner came back from", async () => {
+    // jsdom lays nothing out; a row with no box counts as hidden, and hidden rows are never focused.
+    vi.spyOn(Element.prototype, "getClientRects").mockReturnValue([{}] as unknown as DOMRectList);
     const { user, router } = renderApp("/history", { signedIn: true });
     const link = await screen.findByRole("link", { name: /What good patient assessment looks like/ });
     await user.click(link);
     await waitFor(() => expect(router.state.location.pathname).not.toBe("/history"));
     await act(() => router.navigate(-1));
     await waitFor(() => expect(document.activeElement?.getAttribute("href")).toBe(link.getAttribute("href")));
+    vi.restoreAllMocks();
   });
 });

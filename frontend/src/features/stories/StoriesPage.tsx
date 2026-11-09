@@ -21,7 +21,7 @@ export function StoriesPage() {
   // The search runs on the server over everything you wrote; typing doesn't send a request per key.
   const deferredQ = useDebouncedValue(q.trim(), 300);
   const stories = useStories({ archived, q: deferredQ, competency });
-  useScrollMemory(Boolean(stories.data) && !stories.isPlaceholderData);
+  useScrollMemory(Boolean(stories.data) && !stories.isPlaceholderData && !stories.isFetching);
   const filtering = !!deferredQ || !!competency;
   const searchId = useId();
 

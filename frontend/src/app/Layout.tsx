@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, ScrollRestoration, useLocation, useNavigate } from "react-router-dom";
 
 import { useCapabilities } from "@/api/queries";
@@ -7,6 +7,7 @@ import { Button } from "@/components/Button";
 import { BrandMark } from "@/components/BrandMark";
 import { FocusModeContext } from "@/features/display/focusContext";
 import { countLocalWork } from "@/auth/localWork";
+import { noteLocation } from "@/lib/documentEntry";
 
 import { AppStatus } from "./AppStatus";
 import { LeaveGuard } from "./LeaveGuard";
@@ -21,7 +22,9 @@ import { SessionEndedBanner } from "./SessionEndedBanner";
 export function Layout() {
   const { user, isAuthenticated, isRestoring, logout, signedOutReason, offlineUser } = useAuth();
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, key: locationKey } = useLocation();
+  // Every location shown, so a list can tell a page opened directly from a return to it.
+  useLayoutEffect(() => noteLocation(locationKey), [locationKey]);
   // A demo server has no accounts to sign in to or create: its header offers the demo instead.
   // Only a signed-out header needs to know.
   const demoMode = useCapabilities(!isAuthenticated && !isRestoring).data?.demo_mode === true;

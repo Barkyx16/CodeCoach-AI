@@ -42,7 +42,7 @@ export function HistoryPage() {
   const facets = useActivityFacets(filters.career);
   const activity = useActivity({ ...filters, page_size: PAGE_SIZE });
   // Back from an item: the same scroll position, and focus on the item it came back from.
-  useScrollMemory(Boolean(activity.data) && !activity.isPlaceholderData);
+  useScrollMemory(Boolean(activity.data) && !activity.isPlaceholderData && !activity.isFetching);
 
   // The filters as last set by this page: two changes in quick succession (a career, then a type)
   // must build on each other, not each on the URL of the last render (the second used to drop

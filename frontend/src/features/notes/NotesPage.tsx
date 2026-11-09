@@ -37,7 +37,7 @@ export function NotesPage() {
     page_size: 100,
   };
   const notes = useNotes(filters);
-  useScrollMemory(Boolean(notes.data) && !notes.isPlaceholderData);
+  useScrollMemory(Boolean(notes.data) && !notes.isPlaceholderData && !notes.isFetching);
   const undo = (location.state as { deleted?: { id: string; title: string } } | null)?.deleted ?? null;
   const [undoOpen, setUndoOpen] = useState(Boolean(undo));
   const [restored, setRestored] = useState("");

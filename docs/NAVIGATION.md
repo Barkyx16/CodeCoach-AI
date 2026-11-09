@@ -188,6 +188,31 @@ All your interviews (History, interviews only) and Dashboard. A retired nursing 
 question, "This question is retired, so it isn't graded any more", the reason, past answers as
 they were, and the breadcrumb "Registered Nurse questions".
 
+### Coming back to a list that changed (Volume 9, prompt 6)
+
+`hooks/useScrollMemory.ts` puts a list back when the learner returns to it with Back/Forward, a
+breadcrumb that goes back, or a reload. It restores by the item, not by pixels:
+
+- **The item that was opened** is remembered with its neighbours and where it sat on screen. On
+  return, once the list's fresh data has arrived (not the cached copy shown while it refetches),
+  it's found again by its link and put where it was, with keyboard focus (no activation, no
+  animated scroll). Notes added above it or a new order don't land the learner on another item.
+- **Gone** (deleted, filtered out, moved to a page that isn't loaded): the nearest neighbour still
+  shown (the next one, else the previous one) gets focus at that place, and a screen reader hears
+  "The item you opened isn't in this list any more." With no neighbour either (an empty list),
+  focus goes to the page's main region at the remembered position, with the same announcement.
+  A hidden row is never focused; nothing pretends the item still exists.
+- **Once, and only if wanted:** a return is restored once. If the learner scrolls, presses a
+  navigation key or clicks while the list is still loading, they've taken over and nothing moves.
+  Later background refetches, late layout and window focus never snap back.
+- **New contexts start at the top:** following a link, changing a filter or search (a new history
+  entry), and opening a page directly (a link, a bookmark, a typed address). The router gives a
+  document's first entry the same key every time, so `lib/documentEntry.ts` tells the first page
+  of a freshly opened document (top) from a return to it or a reload (restored).
+- **Per tab, per entry, per account:** positions live in this tab's sessionStorage, per history
+  entry; a copied URL carries only the public filters. Signing out here clears them
+  (`clearListMemory`), so the next account's Back starts at the top.
+
 ## Tests
 
 - `frontend/src/test/integration/returnPaths.test.tsx` (12):
@@ -206,6 +231,17 @@ they were, and the breadcrumb "Registered Nurse questions".
   and expired copies; a refused write with Copy your work; another account; another tab's newer
   copy; a posting saved again since; details and notes typed while saving keep their copy.
   6 negative controls, each caught (one test strengthened after its control was missed).
+- `listRestore.test.tsx` (5): the opened note focused again after one was added; a deleted one's
+  neighbour focused, with the announcement, and the note not shown; an emptied list focuses the
+  main region; scrolling during the reload leaves the page alone; signing out clears this tab's list
+  memory and nothing else. `returnPaths.test.tsx`: the focus test stubs layout (hidden rows aren't
+  focused). Browser, `e2e/list-restore.spec.ts`, real API, 30 synthetic notes: three added above the
+  opened one (same note, same place within 40 px, focused); a background refetch after the
+  learner scrolled away doesn't pull them back; Forward then Back restores again; the opened note
+  deleted (its neighbour focused, announced); scrolling while the reload is held (left alone); a
+  direct visit at the top. `navigation.spec.ts` (the filtered coding list) unchanged and passing.
+  7 negative controls, each caught (one rerun with both of its checks removed: the hook checks a
+  takeover twice).
 - `deadLinks.test.tsx` (7): a bookmarked interview that isn't there (generic words, All your
   interviews, Dashboard, no retry, no id, no server wording); deleted, never there, another
   account's and a 403 read exactly the same; each kind's own list (applications, stories,
@@ -252,8 +288,12 @@ they were, and the breadcrumb "Registered Nurse questions".
 
 - **Back needs the tab's history.** "Back to …" relies on it; a copied link or a new tab gets the
   fallback, not the original list's scroll position.
-- **Focus is restored only when the item is still in the list.** If it was removed or filtered out
-  since, focus starts at the top of the page.
+- **Restoration is checked on the lists named below.** The notebook (in the browser, with records
+  added, deleted, and scrolled during the reload) and the coding list (navigation.spec.ts); the
+  same hook serves History, stories, applications and the question library, which share the
+  behaviour but weren't driven through every changed-data case in a browser. An item moved to a
+  page that isn't loaded counts as gone. Stale browser state from before this change (an older
+  memory entry) is read as "just the link".
 - **Leave warnings are not everywhere.** Inventoried here: the forms listed above ask. Still
   without one: the application message composer. The one-line form for adding a requirement to a
   target doesn't ask; what it would lose is one line.
