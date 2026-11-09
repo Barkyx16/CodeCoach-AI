@@ -166,6 +166,25 @@ export type ScenarioAttempt = S["ScenarioAttemptOut"];
 export type ScenarioAttemptSummary = S["ScenarioAttemptSummary"];
 export type ScenarioStep = S["StepOut"];
 export type OfferCaseSummary = S["OfferCaseSummary"];
+export type OfferComparison = S["OfferComparisonOut"];
+export type OfferComparisonSummary = S["OfferComparisonSummary"];
+export type ComparisonDoc = S["ComparisonDoc"];
+export type OfferTerms = S["OfferTerms"];
+export type OfferFactor = S["Factor"];
+export type OfferRating = S["Rating"];
+export type CurrencyRate = S["Conversion"];
+/** A derived figure with its working (app/offercompare/calc.py). */
+export interface Figure { value: number | null; currency: string | null; formula: string | null; assumptions: string[]; unknown: string | null }
+export interface OfferFigures {
+  id: string; annual_pay: Figure; annual_pay_converted: Figure | null; guaranteed_first_year: Figure; guaranteed_first_year_converted: Figure | null;
+  conditional_bonus: { value: number | null; currency: string | null; text: string }; equity: string;
+}
+export interface WeightedRow { id: string; label: string; total: number; counted: number;
+  contributions: { factor: string; weight: number; rating: number; points: number; formula: string }[]; not_counted: { factor: string; reason: string }[] }
+export interface ComparisonFigures {
+  offers: OfferFigures[]; mixed_currencies: boolean; currency_note: string | null; not_estimated: string;
+  weighted: { rows: WeightedRow[]; order: string[]; explanation: string; uneven: string | null; label: string } | null;
+}
 export type OfferCard = S["OfferCard"];
 export type OfferRehearsal = S["OfferRehearsalOut"];
 export type OfferRehearsalSummary = S["OfferRehearsalSummary"];

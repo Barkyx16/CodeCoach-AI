@@ -98,7 +98,7 @@ dated now.
 | Section | Why |
 |---|---|
 | `profile`, `onboarding` | Account details, sign-in and roles are never restored. The account stays exactly as it is, whatever the file says (an `is_admin` in a file changes nothing). |
-| `submissions`, `practice_sessions`, `answers`, `ai_interactions`, `drill_attempts`, `whiteboard`, `code_reviews`, `test_design_runs`, `work_samples`, `comparisons`, `offer_rehearsals`, `scenario_attempts`, `learn_events`, `answer_reviews`, plans, goals and the review queue | Practice results and evaluations can't be verified from a file, so an edited backup can't create a passing verdict, a score, progress or readiness. |
+| `submissions`, `practice_sessions`, `answers`, `ai_interactions`, `drill_attempts`, `whiteboard`, `code_reviews`, `test_design_runs`, `work_samples`, `comparisons`, `offer_rehearsals`, `offer_comparisons` (not restored: re-enter them), `scenario_attempts`, `learn_events`, `answer_reviews`, plans, goals and the review queue | Practice results and evaluations can't be verified from a file, so an edited backup can't create a passing verdict, a score, progress or readiness. |
 | `shares`, `shared_feedback`, `schedule`, sessions | They could share data or start something (links, sessions, reminders). |
 | `targets`, `collections`, `interview_kits`, `interview_reflections`, `content_reports` | Not restorable yet (they depend on other records by id); listed in the preview. |
 | Anything else | Not recognised, ignored, and listed. |

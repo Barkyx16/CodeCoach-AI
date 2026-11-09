@@ -769,6 +769,14 @@ export function useWhiteboardPrompts() {
   return useQuery({ queryKey: ["me", "whiteboard", "prompts"], queryFn: api.whiteboardPrompts, staleTime: 5 * 60_000 });
 }
 
+export function useOfferComparisons() {
+  return useQuery({ queryKey: ["me", "offer-comparisons"], queryFn: api.offerComparisons });
+}
+
+export function useOfferComparison(id: string) {
+  return useQuery({ queryKey: ["me", "offer-comparison", id], queryFn: () => api.offerComparison(id) });
+}
+
 export function useOfferCases() {
   return useQuery({ queryKey: ["offer-cases"], queryFn: api.offerCases, staleTime: 5 * 60_000 });
 }

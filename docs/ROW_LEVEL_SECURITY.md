@@ -28,11 +28,11 @@ accounts apart. Every database-enforced statement below is about PostgreSQL.
 
 ## Policies
 
-There are two policies on each of the 36 learner-owned tables (`app/db/rls.py`
+There are two policies on each of the 37 learner-owned tables (`app/db/rls.py`
 `PROTECTED_TABLES`). The first 30 (`BASE_TABLES`) got them from migrations `248721f0fcb1` and
 `7c1d2e3f4a5b`; a table added later gets them from the migration that creates it, listed in
 `ADDED_TABLES` (`5b7e2c9d4a10`: `code_review_attempts`, `code_review_drafts`; `c4a9e2f71b35`:
-`work_sample_attempts`, `work_sample_drafts`; `e7b3c1d9a842`: `comparison_attempts`; `f2c8a6d4b913`: `offer_rehearsals`), and a test checks
+`work_sample_attempts`, `work_sample_drafts`; `e7b3c1d9a842`: `comparison_attempts`; `f2c8a6d4b913`: `offer_rehearsals`; `a5d3e9c1b7f2`: `offer_comparisons`), and a test checks
 each such migration installs exactly the current policies. Both compare the row's `user_id` with
 two transaction-local settings.
 

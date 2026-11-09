@@ -29,6 +29,7 @@ from app.api.routes import (
     me,
     meta,
     notes,
+    offer_comparisons,
     offers,
     onboarding,
     plan,
@@ -144,6 +145,12 @@ TAGS = [
         "name": "offer-rehearsals",
         "description": "Rehearse an offer conversation (clarify the terms, make a reasoned request, respond to a "
         "counteroffer) against a fictional fact card and an authored counterpart. Nothing is sent to anyone.",
+    },
+    {
+        "name": "offer-comparisons",
+        "description": "A private workspace comparing offers you enter by hand: pay with its basis and currency, "
+        "guaranteed and conditional amounts kept apart, your own factors and optional weights, every figure with "
+        "its formula. No tax, equity or market estimates; nothing changes an application.",
     },
     {
         "name": "backup",
@@ -331,6 +338,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         work_samples.router,
         comparisons.router,
         offers.router,
+        offer_comparisons.router,
         schedule.router,
         submissions.router,
         ai.router,

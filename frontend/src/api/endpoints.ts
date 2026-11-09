@@ -155,7 +155,10 @@ import type {
   TestDesignVariant,
   WorkSampleAttempt,
   ComparisonAttempt,
+  ComparisonDoc,
   OfferCard,
+  OfferComparison,
+  OfferComparisonSummary,
   OfferCaseSummary,
   OfferPhase,
   OfferRehearsal,
@@ -679,6 +682,17 @@ export const api = {
   offerAdvance: (id: string, fromPhase: OfferPhase) =>
     apiRequest<OfferRehearsal>(`/api/v1/me/offer-rehearsals/${encodeURIComponent(id)}/phase`, { method: "POST", body: { from_phase: fromPhase } }),
   offerFinish: (id: string) => apiRequest<OfferRehearsal>(`/api/v1/me/offer-rehearsals/${encodeURIComponent(id)}/finish`, { method: "POST" }),
+
+  // private offer comparisons (terms entered by hand; nothing is sent)
+  offerComparisons: () => apiRequest<OfferComparisonSummary[]>("/api/v1/me/offer-comparisons"),
+  createOfferComparison: (body: { title?: string; example?: boolean }) =>
+    apiRequest<OfferComparison>("/api/v1/me/offer-comparisons", { method: "POST", body }),
+  offerComparison: (id: string) => apiRequest<OfferComparison>(`/api/v1/me/offer-comparisons/${encodeURIComponent(id)}`),
+  saveOfferComparison: (id: string, body: { doc: ComparisonDoc; expected_revision: number; client_request_id: string }) =>
+    apiRequest<OfferComparison>(`/api/v1/me/offer-comparisons/${encodeURIComponent(id)}`, { method: "PUT", body }),
+  deleteOfferComparison: (id: string) => apiRequest<void>(`/api/v1/me/offer-comparisons/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  previewOfferComparison: (doc: ComparisonDoc) =>
+    apiRequest<{ derived: Record<string, unknown> }>("/api/v1/me/offer-comparisons/preview", { method: "POST", body: doc }),
 
   // branching scenarios
   scenarios: (track: string) => apiRequest<ScenarioCatalog>("/api/v1/scenarios", { query: { track }, auth: false }),

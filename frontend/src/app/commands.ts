@@ -65,6 +65,8 @@ const SPECS: ((c: CommandContext) => Spec)[] = [
     aliases: ["work sample", "incident update", "handoff", "customer reply", "memo"], when: signedIn }),
   () => ({ id: "compare", label: "Compare sample answers", detail: "Mark what makes an answer useful, then see why", to: "/compare", section: "Practice",
     aliases: ["sample answers", "example answers", "compare answers", "what makes a good answer"], when: signedIn }),
+  () => ({ id: "offer-compare", label: "Compare offers", detail: "Your terms and priorities side by side, privately", to: "/offers/compare", section: "Practice",
+    aliases: ["offer comparison", "compare offers", "salary comparison", "job offers"], when: signedIn }),
   () => ({ id: "offers", label: "Rehearse an offer conversation", detail: "Clarify, ask with a reason, answer a counteroffer", to: "/offers", section: "Practice",
     aliases: ["negotiation", "negotiate", "salary", "offer", "counteroffer", "pay"], when: signedIn }),
   () => ({ id: "drills", label: "Communication drills", detail: "Quick exercises in how you say it", to: "/drills", section: "Practice", aliases: ["drill", "speaking", "voice"], when: signedIn }),

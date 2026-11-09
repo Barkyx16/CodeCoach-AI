@@ -157,6 +157,11 @@ export const HELP_TOPICS: HelpTopic[] = [
         a: "It practises three parts of an offer conversation with a made-up offer: asking about terms the offer leaves unclear, making a request with a reason, and answering a counteroffer, including asking for time or declining. You can type or speak, stop at any point, and try a different approach later; your earlier rehearsal is kept. The other person is a script, not AI: it only states what the fictional card says, says when something is unknown, and never agrees to anything. The debrief shows your request with the card's own arithmetic, the terms still unknown, anything you said that the card doesn't support, and one thing to try next. It can't predict what a real employer would offer, and it doesn't give salary, tax or legal advice. Nothing is sent to anyone and no application changes.",
         links: [{ to: "/offers", label: "Offer conversations" }],
       },
+      {
+        q: "How does comparing offers work?",
+        a: "You enter each offer's terms yourself (nothing is imported or looked up) with your own factors such as schedule, commute or learning. Pay is put on a yearly basis only when you've entered the basis (payments a year, or hours and weeks), currencies are converted only with a rate and date you enter, and anything missing stays unknown rather than zero. Guaranteed pay, conditional bonuses and equity are kept apart; equity and benefits are never valued and tax isn't estimated. Your ratings are subjective. Optional weights can order the offers, with every point explained, but that's your weighting, not a recommendation. Comparisons are private, never change an application, and Copy as text shows exactly what it copies first.",
+        links: [{ to: "/offers/compare", label: "Compare offers" }],
+      },
     ],
   },
   {

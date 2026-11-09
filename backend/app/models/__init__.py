@@ -1439,6 +1439,23 @@ class OfferRehearsal(Base):
     completed_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
 
 
+class OfferComparison(Base):
+    """A private comparison of offers (docs/OFFER_COMPARISON.md): the terms the learner entered for
+    two or three offers, their own factors, ratings and optional weights, and dated currency rates,
+    saved against a revision. Figures are derived on read, never stored. Linking an application
+    reads its name; nothing here changes an application's stage."""
+
+    __tablename__ = "offer_comparisons"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(80))
+    doc: Mapped[dict] = mapped_column(JSONType)
+    revision: Mapped[int] = mapped_column(Integer, default=1)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
 class WorkSampleDraft(Base):
     """A work sample in progress for one brief (docs/WORK_SAMPLES.md): the text of each section,
     saved against a revision like the other long-form editors."""
@@ -1693,7 +1710,7 @@ class UpdateReceipt(Base):
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     entity: Mapped[str] = mapped_column(
         String(16)
-    )  # story | note | kit | whiteboard | reflection | code_review
+    )  # story | note | kit | whiteboard | reflection | code_review | work_sample | offer_comparison
     entity_id: Mapped[str] = mapped_column(String(80))
     client_request_id: Mapped[str] = mapped_column(String(64))
     base_revision: Mapped[int] = mapped_column(Integer)

@@ -348,6 +348,12 @@ The cases are code (`backend/app/offers`, docs/OFFER_REHEARSAL.md), not rows.
   (the rehearsal a different approach follows), `debrief` (JSON), `created_at`, `updated_at`,
   `completed_at`.
 
+### Offer comparisons
+- `offer_comparisons`: each private comparison (cascade with the account): `title`, `doc` (JSON: the
+  offers' terms entered by hand, factors with ratings and optional weights, dated currency rates, the
+  display currency), `revision` (checked on save, with update receipts), `created_at`, `updated_at`.
+  Figures are derived on read (docs/OFFER_COMPARISON.md), never stored.
+
 ### Restores
 - `import_batches`: one per restore (cascade with the account): `file_sha256` (to recognise the
   same file; the file itself isn't stored), `export_version`, `categories`, `status`
@@ -460,6 +466,7 @@ The cases are code (`backend/app/offers`, docs/OFFER_REHEARSAL.md), not rows.
 | `c4a9e2f71b35` work samples | Adds `work_sample_drafts` and `work_sample_attempts`, cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
 | `e7b3c1d9a842` comparison attempts | Adds `comparison_attempts`, cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
 | `f2c8a6d4b913` offer rehearsals | Adds `offer_rehearsals`, cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
+| `a5d3e9c1b7f2` offer comparisons | Adds `offer_comparisons`, cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

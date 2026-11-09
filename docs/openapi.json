@@ -13567,6 +13567,386 @@
         }
       }
     },
+    "/api/v1/me/offer-comparisons": {
+      "get": {
+        "tags": [
+          "offer-comparisons"
+        ],
+        "summary": "Your comparisons",
+        "operationId": "mine_api_v1_me_offer_comparisons_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OfferComparisonSummary"
+                  },
+                  "type": "array",
+                  "title": "Response Mine Api V1 Me Offer Comparisons Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "offer-comparisons"
+        ],
+        "summary": "Start a comparison (empty, or a fictional example)",
+        "operationId": "create_api_v1_me_offer_comparisons_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferComparisonCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferComparisonOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/offer-comparisons/preview": {
+      "post": {
+        "tags": [
+          "offer-comparisons"
+        ],
+        "summary": "The figures for an unsaved draft (nothing is stored)",
+        "operationId": "preview_api_v1_me_offer_comparisons_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComparisonDoc"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DerivedOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/offer-comparisons/{comparison_id}": {
+      "get": {
+        "tags": [
+          "offer-comparisons"
+        ],
+        "summary": "A comparison",
+        "operationId": "one_api_v1_me_offer_comparisons__comparison_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "comparison_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Comparison Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferComparisonOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "offer-comparisons"
+        ],
+        "summary": "Save against the revision you started from",
+        "operationId": "save_api_v1_me_offer_comparisons__comparison_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "comparison_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Comparison Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferComparisonSave"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferComparisonOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "offer-comparisons"
+        ],
+        "summary": "Delete a comparison",
+        "operationId": "delete_api_v1_me_offer_comparisons__comparison_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "comparison_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Comparison Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/schedule": {
       "get": {
         "tags": [
@@ -22490,6 +22870,63 @@
         ],
         "title": "ComparisonAttemptSummary"
       },
+      "ComparisonDoc": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "offers": {
+            "items": {
+              "$ref": "#/components/schemas/OfferTerms"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "title": "Offers"
+          },
+          "factors": {
+            "items": {
+              "$ref": "#/components/schemas/Factor"
+            },
+            "type": "array",
+            "maxItems": 12,
+            "title": "Factors"
+          },
+          "conversions": {
+            "items": {
+              "$ref": "#/components/schemas/Conversion"
+            },
+            "type": "array",
+            "maxItems": 6,
+            "title": "Conversions"
+          },
+          "weights_on": {
+            "type": "boolean",
+            "title": "Weights On",
+            "default": false
+          },
+          "show_in": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Z]{3}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Show In",
+            "description": "Show converted figures in this currency"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "ComparisonDoc"
+      },
       "ComparisonLesson": {
         "properties": {
           "id": {
@@ -22839,6 +23276,45 @@
         ],
         "title": "ContentMeta",
         "description": "What a learner should know about where this content came from and its state."
+      },
+      "Conversion": {
+        "properties": {
+          "from_currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "title": "From Currency"
+          },
+          "to_currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "title": "To Currency"
+          },
+          "rate": {
+            "type": "number",
+            "maximum": 1000000.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Rate"
+          },
+          "as_of": {
+            "type": "string",
+            "format": "date",
+            "title": "As Of"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Note",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "from_currency",
+          "to_currency",
+          "rate",
+          "as_of"
+        ],
+        "title": "Conversion"
       },
       "CorrectionIn": {
         "properties": {
@@ -23495,6 +23971,20 @@
           "examples"
         ],
         "title": "DemoPersona"
+      },
+      "DerivedOut": {
+        "properties": {
+          "derived": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Derived"
+          }
+        },
+        "type": "object",
+        "required": [
+          "derived"
+        ],
+        "title": "DerivedOut"
       },
       "Difficulty": {
         "type": "string",
@@ -25179,6 +25669,49 @@
           "count"
         ],
         "title": "FacetOption"
+      },
+      "Factor": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{1,16}$",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Label"
+          },
+          "weight": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 5.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight",
+            "description": "Optional; used only when weights are on"
+          },
+          "ratings": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Rating"
+            },
+            "type": "object",
+            "title": "Ratings",
+            "description": "By offer id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "Factor"
       },
       "FailureExplanation": {
         "properties": {
@@ -28876,6 +29409,148 @@
         ],
         "title": "OfferCaseSummary"
       },
+      "OfferComparisonCreate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Title",
+            "default": "My offers"
+          },
+          "example": {
+            "type": "boolean",
+            "title": "Example",
+            "description": "Start from a fictional example with gaps",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "OfferComparisonCreate"
+      },
+      "OfferComparisonOut": {
+        "properties": {
+          "save_replay": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SaveReplay"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only on a save recovered by its key: see SaveReplay"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "doc": {
+            "$ref": "#/components/schemas/ComparisonDoc"
+          },
+          "derived": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Derived",
+            "description": "Figures with formulas and assumptions; see docs/OFFER_COMPARISON.md"
+          },
+          "applications": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Applications",
+            "description": "Linked application ids \u2192 'role at employer' (yours only)"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "revision",
+          "doc",
+          "derived",
+          "applications",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "OfferComparisonOut"
+      },
+      "OfferComparisonSave": {
+        "properties": {
+          "doc": {
+            "$ref": "#/components/schemas/ComparisonDoc"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expected Revision"
+          },
+          "client_request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 8,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Request Id",
+            "description": "One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before."
+          }
+        },
+        "type": "object",
+        "required": [
+          "doc",
+          "expected_revision"
+        ],
+        "title": "OfferComparisonSave"
+      },
+      "OfferComparisonSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "offers": {
+            "type": "integer",
+            "title": "Offers"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "offers",
+          "updated_at"
+        ],
+        "title": "OfferComparisonSummary"
+      },
       "OfferPhaseIn": {
         "properties": {
           "from_phase": {
@@ -29195,6 +29870,197 @@
           "value"
         ],
         "title": "OfferTermOut"
+      },
+      "OfferTerms": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{1,16}$",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Label"
+          },
+          "application_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 36
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Application Id",
+            "description": "One of your applications, if linked"
+          },
+          "source_note": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Source Note",
+            "description": "Where these terms came from",
+            "default": ""
+          },
+          "terms_as_of": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terms As Of",
+            "description": "The date of the terms entered"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Z]{3}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "pay_amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100000000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pay Amount"
+          },
+          "pay_period": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "year",
+                  "month",
+                  "week",
+                  "hour"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pay Period"
+          },
+          "months_paid": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 14.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Months Paid",
+            "description": "Monthly pay: payments a year"
+          },
+          "hours_per_week": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hours Per Week"
+          },
+          "weeks_per_year": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 53.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weeks Per Year",
+            "description": "Weekly or hourly pay: weeks paid a year"
+          },
+          "guaranteed_extra": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100000000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guaranteed Extra",
+            "description": "Guaranteed one-off cash; 0 if none"
+          },
+          "guaranteed_note": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Guaranteed Note",
+            "default": ""
+          },
+          "bonus_amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100000000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bonus Amount",
+            "description": "Conditional bonus, never guaranteed"
+          },
+          "bonus_note": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Bonus Note",
+            "default": ""
+          },
+          "equity_note": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Equity Note",
+            "description": "Described only; never valued",
+            "default": ""
+          },
+          "benefits_note": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Benefits Note",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "OfferTerms",
+        "description": "One offer, as the learner enters it. Every field can be left unknown; unknown isn't zero."
       },
       "OfferTurnIn": {
         "properties": {
@@ -31291,6 +32157,42 @@
         ],
         "title": "QueuePlanOut",
         "description": "One ordered queue, judged on what the case had said by then."
+      },
+      "Rating": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "rated",
+              "unknown",
+              "not_comparable"
+            ],
+            "title": "State",
+            "default": "unknown"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 5.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Your rating, 1 to 5, when rated"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Note",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "Rating"
       },
       "RecipientView": {
         "properties": {
@@ -41191,6 +42093,10 @@
     {
       "name": "offer-rehearsals",
       "description": "Rehearse an offer conversation (clarify the terms, make a reasoned request, respond to a counteroffer) against a fictional fact card and an authored counterpart. Nothing is sent to anyone."
+    },
+    {
+      "name": "offer-comparisons",
+      "description": "A private workspace comparing offers you enter by hand: pay with its basis and currency, guaranteed and conditional amounts kept apart, your own factors and optional weights, every figure with its formula. No tax, equity or market estimates; nothing changes an application."
     },
     {
       "name": "backup",

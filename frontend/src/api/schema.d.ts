@@ -2659,6 +2659,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/offer-comparisons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your comparisons */
+        get: operations["mine_api_v1_me_offer_comparisons_get"];
+        put?: never;
+        /** Start a comparison (empty, or a fictional example) */
+        post: operations["create_api_v1_me_offer_comparisons_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/offer-comparisons/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The figures for an unsaved draft (nothing is stored) */
+        post: operations["preview_api_v1_me_offer_comparisons_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/offer-comparisons/{comparison_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A comparison */
+        get: operations["one_api_v1_me_offer_comparisons__comparison_id__get"];
+        /** Save against the revision you started from */
+        put: operations["save_api_v1_me_offer_comparisons__comparison_id__put"];
+        post?: never;
+        /** Delete a comparison */
+        delete: operations["delete_api_v1_me_offer_comparisons__comparison_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/schedule": {
         parameters: {
             query?: never;
@@ -4956,6 +5010,27 @@ export interface components {
              */
             created_at: string;
         };
+        /** ComparisonDoc */
+        ComparisonDoc: {
+            /** Title */
+            title: string;
+            /** Offers */
+            offers?: components["schemas"]["OfferTerms"][];
+            /** Factors */
+            factors?: components["schemas"]["Factor"][];
+            /** Conversions */
+            conversions?: components["schemas"]["Conversion"][];
+            /**
+             * Weights On
+             * @default false
+             */
+            weights_on: boolean;
+            /**
+             * Show In
+             * @description Show converted figures in this currency
+             */
+            show_in?: string | null;
+        };
         /**
          * ComparisonLesson
          * @description The question and the samples, before any reveal: no explanation.
@@ -5100,6 +5175,25 @@ export interface components {
              * @description Published corrections, oldest first
              */
             changes: components["schemas"]["ContentChange"][];
+        };
+        /** Conversion */
+        Conversion: {
+            /** From Currency */
+            from_currency: string;
+            /** To Currency */
+            to_currency: string;
+            /** Rate */
+            rate: number;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
         };
         /** CorrectionIn */
         CorrectionIn: {
@@ -5360,6 +5454,13 @@ export interface components {
             problem_slug?: string | null;
             /** Examples */
             examples: components["schemas"]["DemoExample"][];
+        };
+        /** DerivedOut */
+        DerivedOut: {
+            /** Derived */
+            derived: {
+                [key: string]: unknown;
+            };
         };
         /**
          * Difficulty
@@ -6069,6 +6170,25 @@ export interface components {
             label: string;
             /** Count */
             count: number;
+        };
+        /** Factor */
+        Factor: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /**
+             * Weight
+             * @description Optional; used only when weights are on
+             */
+            weight?: number | null;
+            /**
+             * Ratings
+             * @description By offer id
+             */
+            ratings?: {
+                [key: string]: components["schemas"]["Rating"];
+            };
         };
         /**
          * FailureExplanation
@@ -7518,6 +7638,79 @@ export interface components {
             /** Employer */
             employer: string;
         };
+        /** OfferComparisonCreate */
+        OfferComparisonCreate: {
+            /**
+             * Title
+             * @default My offers
+             */
+            title: string;
+            /**
+             * Example
+             * @description Start from a fictional example with gaps
+             * @default false
+             */
+            example: boolean;
+        };
+        /** OfferComparisonOut */
+        OfferComparisonOut: {
+            /** @description Only on a save recovered by its key: see SaveReplay */
+            save_replay?: components["schemas"]["SaveReplay"] | null;
+            /** Id */
+            id: string;
+            /** Revision */
+            revision: number;
+            doc: components["schemas"]["ComparisonDoc"];
+            /**
+             * Derived
+             * @description Figures with formulas and assumptions; see docs/OFFER_COMPARISON.md
+             */
+            derived: {
+                [key: string]: unknown;
+            };
+            /**
+             * Applications
+             * @description Linked application ids → 'role at employer' (yours only)
+             */
+            applications: {
+                [key: string]: string;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** OfferComparisonSave */
+        OfferComparisonSave: {
+            doc: components["schemas"]["ComparisonDoc"];
+            /** Expected Revision */
+            expected_revision: number;
+            /**
+             * Client Request Id
+             * @description One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before.
+             */
+            client_request_id?: string | null;
+        };
+        /** OfferComparisonSummary */
+        OfferComparisonSummary: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Offers */
+            offers: number;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** OfferPhaseIn */
         OfferPhaseIn: {
             /**
@@ -7642,6 +7835,81 @@ export interface components {
              * @description As the card states it; null: the offer doesn't say (unknown)
              */
             value: string | null;
+        };
+        /**
+         * OfferTerms
+         * @description One offer, as the learner enters it. Every field can be left unknown; unknown isn't zero.
+         */
+        OfferTerms: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /**
+             * Application Id
+             * @description One of your applications, if linked
+             */
+            application_id?: string | null;
+            /**
+             * Source Note
+             * @description Where these terms came from
+             * @default
+             */
+            source_note: string;
+            /**
+             * Terms As Of
+             * @description The date of the terms entered
+             */
+            terms_as_of?: string | null;
+            /** Currency */
+            currency?: string | null;
+            /** Pay Amount */
+            pay_amount?: number | null;
+            /** Pay Period */
+            pay_period?: ("year" | "month" | "week" | "hour") | null;
+            /**
+             * Months Paid
+             * @description Monthly pay: payments a year
+             */
+            months_paid?: number | null;
+            /** Hours Per Week */
+            hours_per_week?: number | null;
+            /**
+             * Weeks Per Year
+             * @description Weekly or hourly pay: weeks paid a year
+             */
+            weeks_per_year?: number | null;
+            /**
+             * Guaranteed Extra
+             * @description Guaranteed one-off cash; 0 if none
+             */
+            guaranteed_extra?: number | null;
+            /**
+             * Guaranteed Note
+             * @default
+             */
+            guaranteed_note: string;
+            /**
+             * Bonus Amount
+             * @description Conditional bonus, never guaranteed
+             */
+            bonus_amount?: number | null;
+            /**
+             * Bonus Note
+             * @default
+             */
+            bonus_note: string;
+            /**
+             * Equity Note
+             * @description Described only; never valued
+             * @default
+             */
+            equity_note: string;
+            /**
+             * Benefits Note
+             * @default
+             */
+            benefits_note: string;
         };
         /** OfferTurnIn */
         OfferTurnIn: {
@@ -8443,6 +8711,25 @@ export interface components {
             covered: string[];
             /** Missing */
             missing: string[];
+        };
+        /** Rating */
+        Rating: {
+            /**
+             * State
+             * @default unknown
+             * @enum {string}
+             */
+            state: "rated" | "unknown" | "not_comparable";
+            /**
+             * Value
+             * @description Your rating, 1 to 5, when rated
+             */
+            value?: number | null;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
         };
         /** RecipientView */
         RecipientView: {
@@ -21541,6 +21828,295 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["OfferRehearsalOut"];
                 };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mine_api_v1_me_offer_comparisons_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferComparisonSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_api_v1_me_offer_comparisons_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferComparisonCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferComparisonOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    preview_api_v1_me_offer_comparisons_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComparisonDoc"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DerivedOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    one_api_v1_me_offer_comparisons__comparison_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                comparison_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferComparisonOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_api_v1_me_offer_comparisons__comparison_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                comparison_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferComparisonSave"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferComparisonOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    delete_api_v1_me_offer_comparisons__comparison_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                comparison_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Missing, invalid, expired or revoked access token */
             401: {

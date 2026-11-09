@@ -38,6 +38,7 @@ from app.services.code_reviews import CodeReviews
 from app.services.comparisons import Comparisons
 from app.services.drills import Drills
 from app.services.kits import Kits
+from app.services.offer_comparisons import OfferComparisons
 from app.services.offers import Offers
 from app.services.onboarding import Onboarding
 from app.services.reflections import Reflections
@@ -436,6 +437,8 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
         "comparisons": Comparisons(db, user).export(),
         # Offer-conversation rehearsals: the fictional card, your goals, every turn and the debrief.
         "offer_rehearsals": Offers(db, user).export(),
+        # Offer comparisons: the terms you entered, your factors, ratings, weights and rates.
+        "offer_comparisons": OfferComparisons(db, user).export(),
         # Private reflections on real interviews, with the next steps you accepted or dismissed.
         "interview_reflections": Reflections(db, user).export(with_ids=with_ids),
         # Restores you made from backup files (what each added and, if removed, what it kept).

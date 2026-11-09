@@ -30,6 +30,7 @@ export function OfferList() {
         This helps you practise how you say it. It can't predict what a real employer would offer or agree to, and it doesn't
         give salary, tax or legal advice.
       </p>
+      <p>Weighing real offers? <Link to="/offers/compare">Compare offers privately</Link>, with your own priorities.</p>
       {cases.isPending ? <LoadingState label="Loading cases…" />
         : cases.isError ? <ErrorState error={cases.error} onRetry={() => void cases.refetch()} />
           : (
