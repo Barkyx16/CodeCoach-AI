@@ -205,7 +205,7 @@ jobs:
         run: scripts/rehearse_web_csp.sh
         env:
           PYTHON: python
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-traces
@@ -289,7 +289,7 @@ jobs:
           E2E_JUDGE: "1"
         # Through the launcher, like every other e2e run: it owns and stops what the run starts.
         run: npm run e2e -- e2e/judge.spec.ts
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: sandbox-traces
