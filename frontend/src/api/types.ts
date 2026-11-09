@@ -251,6 +251,26 @@ export interface TestDesignReport {
   summary: string[];
   gap: { variant: string; hint: string } | null;
 }
+export type WorkSampleSummary = S["WorkSampleSummary"];
+export type WorkSampleBrief = S["WorkSampleBrief"];
+export type WorkSampleDraft = S["WorkSampleDraftOut"];
+export type WorkSampleDraftIn = S["WorkSampleDraftIn"];
+export type WorkSampleAttempt = S["WorkSampleAttemptOut"];
+export type WorkSampleAttemptSummary = S["WorkSampleAttemptSummary"];
+/** The checks' feedback stored with an attempt (app/worksamples/feedback.py). */
+export interface WorkSampleFeedback {
+  rules_version: number;
+  checks: { id: string; ok: boolean; text: string }[];
+  points: { id: string; label: string; covered: boolean; quote: string | null; guidance: string }[];
+  covered: number;
+  total: number;
+  unsupported: { text: string; sentence: string; why: string }[];
+  claims: { phrase: string; sentence: string; why: string }[];
+  jargon: { term: string; sentence: string; why: string }[];
+  long_sentences: { sentence: string; words: number }[];
+  revision: string;
+  method: string;
+}
 /** The comparison stored with an attempt (app/reviews/feedback.py). */
 export interface ReviewFeedback {
   rubric_version: number;

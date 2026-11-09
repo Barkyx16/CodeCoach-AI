@@ -10,7 +10,7 @@ is in [ROW_LEVEL_SECURITY.md](ROW_LEVEL_SECURITY.md) and [SECURITY.md](SECURITY.
 | Data | Where | Kept until | On account deletion |
 |---|---|---|---|
 | Account: email, password **hash**, name, career, pending email change | database | you delete the account | deleted at once |
-| Your work: answers, code submissions, notes, stories, applications, schedule, kits, reflections, plans, drills, whiteboards, code reviews, test-design runs, bookmarks, AI feedback ([PERSISTENCE.md](PERSISTENCE.md)) | database | you delete it, or the account | deleted at once (`ON DELETE CASCADE`) |
+| Your work: answers, code submissions, notes, stories, applications, schedule, kits, reflections, plans, drills, whiteboards, code reviews, test-design runs, work samples, bookmarks, AI feedback ([PERSISTENCE.md](PERSISTENCE.md)) | database | you delete it, or the account | deleted at once (`ON DELETE CASCADE`) |
 | A note you deleted | database | a 10-minute undo window, then purged | deleted at once |
 | Answers you shared: the snapshot and feedback received | database; visible to anyone with the link until it expires or you revoke it | revoke, expiry, or deletion | deleted, and the link stops working |
 | Feedback you wrote on someone else's share | database, with their share | their share's lifetime | stays with them, labelled "a former CodeCoach user" |
@@ -25,7 +25,7 @@ is in [ROW_LEVEL_SECURITY.md](ROW_LEVEL_SECURITY.md) and [SECURITY.md](SECURITY.
 | Server logs | the host's log storage | the host's setting | not linked: the app logs each request's method, route path (no query string), status, duration and request id, plus job ids and SMTP codes. Never email addresses, IP addresses, codes, links, bodies or cookies. uvicorn's own access log, which writes each visitor's IP and full path, is **off in the production image** (`--no-access-log`); a local `./dev.sh` still prints it in your terminal |
 | Traces and metrics | API process memory (lost on restart), route templates only | until restart | not linked to content |
 | Server backups | encrypted files, off the server once a schedule exists ([BACKUP.md](BACKUP.md)) | proposed: up to ~3 months | **not erased from older backups**: they age out. A restore must re-delete accounts deleted after that backup |
-| Drafts in your browser (answers, code, notes, stories, whiteboards, code reviews, test cases, reflections, drills, interviews) | this browser's storage | sent, or **cleared when you sign out** on this device (after a warning) | cleared on this device |
+| Drafts in your browser (answers, code, notes, stories, whiteboards, code reviews, test cases, work samples, reflections, drills, interviews) | this browser's storage | sent, or **cleared when you sign out** on this device (after a warning) | cleared on this device |
 | Display, editor and voice preferences; public pages saved for offline | this browser | until you change or remove them | kept: device settings, not account data |
 | Spoken answers (dictation) | **no audio reaches CodeCoach.** The browser transcribes: Chrome and Edge send the speech to the browser maker's speech service, under the browser's terms; Safari may do it on the device. Only the text you send is stored, as an answer ([VOICE.md](VOICE.md)) | as the answer | as the answer |
 | Private pages and API responses | never cached: `Cache-Control: no-store` on every private response; only the public catalogue is cacheable (`tests/test_http_cache.py`) | — | — |

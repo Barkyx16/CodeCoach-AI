@@ -2366,6 +2366,93 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/work-samples": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Work-sample briefs and their careers */
+        get: operations["briefs_api_v1_work_samples_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/work-samples/{brief_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One brief: audience, purpose, facts and limits (not the reference artifact) */
+        get: operations["brief_api_v1_work_samples__brief_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/work-samples/{brief_id}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your draft */
+        get: operations["get_draft_api_v1_me_work_samples__brief_id__draft_get"];
+        /** Save it (409 if it changed elsewhere) */
+        put: operations["put_draft_api_v1_me_work_samples__brief_id__draft_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/work-samples/{brief_id}/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your attempts at this brief */
+        get: operations["attempts_api_v1_me_work_samples__brief_id__attempts_get"];
+        put?: never;
+        /** Send the work sample for feedback (a revision names the attempt it revises) */
+        post: operations["attempt_api_v1_me_work_samples__brief_id__attempts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/work-samples/attempts/{attempt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One attempt, with the brief version it was written against */
+        get: operations["get_attempt_api_v1_me_work_samples_attempts__attempt_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/schedule": {
         parameters: {
             query?: never;
@@ -11307,6 +11394,173 @@ export interface components {
             /** Text */
             text: string;
         };
+        /** WorkSampleAttemptIn */
+        WorkSampleAttemptIn: {
+            /** Sections */
+            sections: {
+                [key: string]: string;
+            };
+            /**
+             * Revision Of
+             * @description The attempt this revises, if any
+             */
+            revision_of?: string | null;
+        };
+        /** WorkSampleAttemptOut */
+        WorkSampleAttemptOut: {
+            /** Id */
+            id: string;
+            /** Brief Id */
+            brief_id: string;
+            /** Brief Version */
+            brief_version: number;
+            /** Current Version */
+            current_version: number | null;
+            /** Title */
+            title: string;
+            /** Format Label */
+            format_label: string;
+            /** Sections */
+            sections: {
+                [key: string]: string;
+            };
+            /** Section Labels */
+            section_labels: {
+                [key: string]: string;
+            };
+            /** Feedback */
+            feedback: {
+                [key: string]: unknown;
+            };
+            /**
+             * Reference
+             * @description One good approach, shown after an attempt; wording needn't match
+             */
+            reference: {
+                [key: string]: string;
+            };
+            /** Revision Of */
+            revision_of: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** WorkSampleAttemptSummary */
+        WorkSampleAttemptSummary: {
+            /** Id */
+            id: string;
+            /** Brief Version */
+            brief_version: number;
+            /** Covered */
+            covered: number;
+            /** Total */
+            total: number;
+            /** Revision Of */
+            revision_of: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * WorkSampleBrief
+         * @description Everything the learner needs to write the artifact; not the reference artifact.
+         */
+        WorkSampleBrief: {
+            /** Id */
+            id: string;
+            /** Version */
+            version: number;
+            /** Title */
+            title: string;
+            /** Format */
+            format: string;
+            /** Format Label */
+            format_label: string;
+            /** Careers */
+            careers: string[];
+            /** Scenario */
+            scenario: string;
+            /** Audience */
+            audience: string;
+            /** Purpose */
+            purpose: string;
+            /** Facts */
+            facts: string[];
+            /**
+             * Required
+             * @description The points the brief asks for, by name
+             */
+            required: string[];
+            /**
+             * Sections
+             * @description Empty: one plain message
+             */
+            sections: components["schemas"]["WorkSampleSectionOut"][];
+            /** Min Words */
+            min_words: number;
+            /** Max Words */
+            max_words: number;
+            /** Review Status */
+            review_status: string;
+            /** Scope Note */
+            scope_note: string;
+        };
+        /** WorkSampleDraftIn */
+        WorkSampleDraftIn: {
+            /** Sections */
+            sections?: {
+                [key: string]: string;
+            };
+            /**
+             * Expected Revision
+             * @description 0 for the first save
+             */
+            expected_revision: number;
+            /**
+             * Client Request Id
+             * @description One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before.
+             */
+            client_request_id?: string | null;
+        };
+        /** WorkSampleDraftOut */
+        WorkSampleDraftOut: {
+            /** @description Only on a save recovered by its key: see SaveReplay */
+            save_replay?: components["schemas"]["SaveReplay"] | null;
+            /** Brief Id */
+            brief_id: string;
+            /** Sections */
+            sections: {
+                [key: string]: string;
+            };
+            /** Revision */
+            revision: number;
+            /** Updated At */
+            updated_at: string | null;
+        };
+        /** WorkSampleSectionOut */
+        WorkSampleSectionOut: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Hint */
+            hint: string;
+        };
+        /** WorkSampleSummary */
+        WorkSampleSummary: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Format Label */
+            format_label: string;
+            /** Careers */
+            careers: string[];
+        };
         /** WrittenOut */
         WrittenOut: {
             /** Step Index */
@@ -19599,6 +19853,346 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TestDesignRunOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    briefs_api_v1_work_samples_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkSampleSummary"][];
+                };
+            };
+        };
+    };
+    brief_api_v1_work_samples__brief_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                brief_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkSampleBrief"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_draft_api_v1_me_work_samples__brief_id__draft_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                brief_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkSampleDraftOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_draft_api_v1_me_work_samples__brief_id__draft_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                brief_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkSampleDraftIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkSampleDraftOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    attempts_api_v1_me_work_samples__brief_id__attempts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                brief_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkSampleAttemptSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attempt_api_v1_me_work_samples__brief_id__attempts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                brief_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkSampleAttemptIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkSampleAttemptOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_attempt_api_v1_me_work_samples_attempts__attempt_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkSampleAttemptOut"];
                 };
             };
             /** @description Missing, invalid, expired or revoked access token */

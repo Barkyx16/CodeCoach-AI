@@ -127,6 +127,17 @@ export const HELP_TOPICS: HelpTopic[] = [
     ],
   },
   {
+    id: "work-samples",
+    title: "Work samples",
+    items: [
+      {
+        q: "What are work samples?",
+        a: "Short pieces of real-looking work written from a made-up brief: an incident status update, a reply to a customer, a project handoff note. The brief names the reader, the purpose and the facts you can use. Feedback comes from fixed checks against that brief, not AI: the parts it asks for, the points you covered (quoting your sentence) or missed, any time, amount or reference that isn't in the facts, claims the facts don't support, and words wrong for the reader. Different wording and structure are fine. A revision is a new attempt; the first one is kept. Nothing is sent anywhere, and it's practice evidence, not a credential. Briefs exist so far for software engineers, IT support, customer service, and project and product managers.",
+        links: [{ to: "/work-samples", label: "Work samples" }],
+      },
+    ],
+  },
+  {
     id: "getting-around",
     title: "Getting around",
     items: [

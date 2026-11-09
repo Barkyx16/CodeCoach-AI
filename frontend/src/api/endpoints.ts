@@ -153,6 +153,12 @@ import type {
   TestDesignRunSummary,
   TestDesignSummary,
   TestDesignVariant,
+  WorkSampleAttempt,
+  WorkSampleAttemptSummary,
+  WorkSampleBrief,
+  WorkSampleDraft,
+  WorkSampleDraftIn,
+  WorkSampleSummary,
   WhiteboardAttemptIn,
   WhiteboardAttemptSummary,
   WhiteboardDiagram,
@@ -607,6 +613,17 @@ export const api = {
     apiRequest<TestDesignRun>(`/api/v1/me/test-design/${encodeURIComponent(slug)}/runs`, { method: "POST", body }),
   testRuns: (slug: string) => apiRequest<TestDesignRunSummary[]>(`/api/v1/me/test-design/${encodeURIComponent(slug)}/runs`),
   testRun: (id: string) => apiRequest<TestDesignRun>(`/api/v1/me/test-design/runs/${encodeURIComponent(id)}`),
+
+  // work samples (the briefs are public; your drafts and attempts are yours)
+  workSamples: () => apiRequest<WorkSampleSummary[]>("/api/v1/work-samples", { auth: false }),
+  workSample: (id: string) => apiRequest<WorkSampleBrief>(`/api/v1/work-samples/${encodeURIComponent(id)}`, { auth: false }),
+  workSampleDraft: (id: string) => apiRequest<WorkSampleDraft>(`/api/v1/me/work-samples/${encodeURIComponent(id)}/draft`),
+  saveWorkSampleDraft: (id: string, body: WorkSampleDraftIn) =>
+    apiRequest<WorkSampleDraft>(`/api/v1/me/work-samples/${encodeURIComponent(id)}/draft`, { method: "PUT", body }),
+  sendWorkSample: (id: string, body: { sections: Record<string, string>; revision_of?: string | null }) =>
+    apiRequest<WorkSampleAttempt>(`/api/v1/me/work-samples/${encodeURIComponent(id)}/attempts`, { method: "POST", body }),
+  workSampleAttempts: (id: string) => apiRequest<WorkSampleAttemptSummary[]>(`/api/v1/me/work-samples/${encodeURIComponent(id)}/attempts`),
+  workSampleAttempt: (attemptId: string) => apiRequest<WorkSampleAttempt>(`/api/v1/me/work-samples/attempts/${encodeURIComponent(attemptId)}`),
 
   // interview-day kits
   kit: (appId: string, eventId: string) => apiRequest<Kit>(`/api/v1/me/applications/${encodeURIComponent(appId)}/events/${encodeURIComponent(eventId)}/kit`),

@@ -42,6 +42,7 @@ DEBUGGING_DIR = BACKEND_DIR / "app" / "seed" / "debugging"
 REFERENCE_DIR = BACKEND_DIR / "app" / "seed" / "reference"
 REVIEWS_DIR = BACKEND_DIR / "app" / "seed" / "reviews"
 TEST_DESIGN_DIR = BACKEND_DIR / "app" / "seed" / "testdesign"
+WORK_SAMPLES_DIR = BACKEND_DIR / "app" / "seed" / "worksamples"
 
 
 @dataclass
@@ -432,6 +433,85 @@ def _test_design(report: Report) -> None:
     report.counts["test design exercises"] = len(seen)
 
 
+_BRIEF_TEXT = (
+    "title",
+    "format",
+    "format_label",
+    "scenario",
+    "audience",
+    "purpose",
+    "review_status",
+    "scope_note",
+)
+
+
+def _work_samples(report: Report) -> None:
+    """Work-sample briefs (app/seed/worksamples; docs/WORK_SAMPLES.md). Besides the shape, a brief
+    must pass its own checks with its reference artifact: every required point covered, no detail
+    outside the supplied facts, no claim it warns against, none of its audience-unfit words, within
+    its limits. A brief that fails them is refused before a learner is checked against it."""
+    from app.careers import CATALOG as careers
+    from app.worksamples import parse
+    from app.worksamples.feedback import evaluate, specifics
+
+    known = set(careers)
+    seen: set[str] = set()
+    for path in sorted(WORK_SAMPLES_DIR.glob("*.json")):
+        where = f"work sample file {path.name}"
+        try:
+            data = json.loads(path.read_text())
+        except json.JSONDecodeError as exc:
+            report.errors.append(f"{where}: invalid JSON ({exc})")
+            continue
+        bid = str(data.get("id", ""))
+        if not bid.startswith("ws-") or bid in seen:
+            report.errors.append(f"{where}: an id starting 'ws-', unique ({bid!r})")
+            continue
+        seen.add(bid)
+        here = f"work sample {bid}"
+        missing = [k for k in _BRIEF_TEXT if not str(data.get(k) or "").strip()]
+        if missing:
+            report.errors.append(f"{here}: missing {missing}")
+        unknown = [c for c in data.get("careers") or [] if c not in known]
+        if not data.get("careers") or unknown:
+            report.errors.append(f"{here}: careers must be known career slugs (unknown: {unknown})")
+        if len(data.get("facts") or []) < 2 or len(data.get("required") or []) < 2:
+            report.errors.append(f"{here}: needs at least two facts and two required points")
+        for r in data.get("required") or []:
+            if (
+                not r.get("match")
+                or not all(isinstance(g, list) and g for g in r["match"])
+                or not str(r.get("guidance", "")).strip()
+            ):
+                report.errors.append(f"{here} point {r.get('id', '?')}: needs match groups and guidance")
+        try:
+            brief = parse(data)
+        except (KeyError, TypeError, ValueError) as exc:
+            report.errors.append(f"{here}: malformed ({exc.__class__.__name__}: {exc})")
+            continue
+        if set(brief.reference) != set(brief.section_ids):
+            report.errors.append(f"{here}: the reference must have exactly the sections {brief.section_ids}")
+            continue
+        # Feedback quotes the brief's guidance; it may only mention details the facts supply.
+        allowed = {k for f in brief.facts for k, _ in specifics(f["text"])}
+        authored = [r["guidance"] for r in brief.required] + [c["why"] for c in brief.claims_to_avoid]
+        authored += [a["why"] for a in brief.avoid]
+        stray = sorted({shown for t in authored for k, shown in specifics(t) if k not in allowed})
+        if stray:
+            report.errors.append(f"{here}: its guidance mentions details that aren't in its facts: {stray}")
+        fb = evaluate(brief, brief.reference)
+        problems = [f"point {p['id']} not covered" for p in fb["points"] if not p["covered"]]
+        problems += [f"detail {u['text']!r} not in the facts" for u in fb["unsupported"]]
+        problems += [f"says {c['phrase']!r}" for c in fb["claims"]]
+        problems += [f"uses {j['term']!r}" for j in fb["jargon"]]
+        problems += [c["text"] for c in fb["checks"] if not c["ok"]]
+        if problems:
+            report.errors.append(
+                f"{here}: its reference artifact fails its own checks: {'; '.join(problems)}"
+            )
+    report.counts["work sample briefs"] = len(seen)
+
+
 def _load_reference_checker():
     spec = importlib.util.spec_from_file_location(
         "verify_reference", BACKEND_DIR / "scripts" / "verify_reference_solutions.py"
@@ -454,6 +534,7 @@ def run(db: Session | None, *, run_reference: bool = False, record: bool = False
     seeds |= _debugging(report, seeds)
     reviews = _reviews(report, seeds)
     _test_design(report)
+    _work_samples(report)
     retired: set[tuple[str, str]] = set()
     if db is not None:
         _db_content(db, report, set(seeds))

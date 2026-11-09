@@ -12242,6 +12242,468 @@
         }
       }
     },
+    "/api/v1/work-samples": {
+      "get": {
+        "tags": [
+          "work samples"
+        ],
+        "summary": "Work-sample briefs and their careers",
+        "operationId": "briefs_api_v1_work_samples_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WorkSampleSummary"
+                  },
+                  "type": "array",
+                  "title": "Response Briefs Api V1 Work Samples Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/work-samples/{brief_id}": {
+      "get": {
+        "tags": [
+          "work samples"
+        ],
+        "summary": "One brief: audience, purpose, facts and limits (not the reference artifact)",
+        "operationId": "brief_api_v1_work_samples__brief_id__get",
+        "parameters": [
+          {
+            "name": "brief_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Brief Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkSampleBrief"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/work-samples/{brief_id}/draft": {
+      "get": {
+        "tags": [
+          "work samples"
+        ],
+        "summary": "Your draft",
+        "operationId": "get_draft_api_v1_me_work_samples__brief_id__draft_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "brief_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Brief Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkSampleDraftOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "work samples"
+        ],
+        "summary": "Save it (409 if it changed elsewhere)",
+        "operationId": "put_draft_api_v1_me_work_samples__brief_id__draft_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "brief_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Brief Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkSampleDraftIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkSampleDraftOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/work-samples/{brief_id}/attempts": {
+      "post": {
+        "tags": [
+          "work samples"
+        ],
+        "summary": "Send the work sample for feedback (a revision names the attempt it revises)",
+        "operationId": "attempt_api_v1_me_work_samples__brief_id__attempts_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "brief_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Brief Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkSampleAttemptIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkSampleAttemptOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "work samples"
+        ],
+        "summary": "Your attempts at this brief",
+        "operationId": "attempts_api_v1_me_work_samples__brief_id__attempts_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "brief_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Brief Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkSampleAttemptSummary"
+                  },
+                  "title": "Response Attempts Api V1 Me Work Samples  Brief Id  Attempts Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/work-samples/attempts/{attempt_id}": {
+      "get": {
+        "tags": [
+          "work samples"
+        ],
+        "summary": "One attempt, with the brief version it was written against",
+        "operationId": "get_attempt_api_v1_me_work_samples_attempts__attempt_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Attempt Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkSampleAttemptOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/schedule": {
       "get": {
         "tags": [
@@ -38107,6 +38569,418 @@
         ],
         "title": "WhiteboardPromptRequirement"
       },
+      "WorkSampleAttemptIn": {
+        "properties": {
+          "sections": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Sections"
+          },
+          "revision_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision Of",
+            "description": "The attempt this revises, if any"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sections"
+        ],
+        "title": "WorkSampleAttemptIn"
+      },
+      "WorkSampleAttemptOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "brief_id": {
+            "type": "string",
+            "title": "Brief Id"
+          },
+          "brief_version": {
+            "type": "integer",
+            "title": "Brief Version"
+          },
+          "current_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Version"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "format_label": {
+            "type": "string",
+            "title": "Format Label"
+          },
+          "sections": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Sections"
+          },
+          "section_labels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Section Labels"
+          },
+          "feedback": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Feedback"
+          },
+          "reference": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Reference",
+            "description": "One good approach, shown after an attempt; wording needn't match"
+          },
+          "revision_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision Of"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "brief_id",
+          "brief_version",
+          "current_version",
+          "title",
+          "format_label",
+          "sections",
+          "section_labels",
+          "feedback",
+          "reference",
+          "revision_of",
+          "created_at"
+        ],
+        "title": "WorkSampleAttemptOut"
+      },
+      "WorkSampleAttemptSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "brief_version": {
+            "type": "integer",
+            "title": "Brief Version"
+          },
+          "covered": {
+            "type": "integer",
+            "title": "Covered"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "revision_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision Of"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "brief_version",
+          "covered",
+          "total",
+          "revision_of",
+          "created_at"
+        ],
+        "title": "WorkSampleAttemptSummary"
+      },
+      "WorkSampleBrief": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "format": {
+            "type": "string",
+            "title": "Format"
+          },
+          "format_label": {
+            "type": "string",
+            "title": "Format Label"
+          },
+          "careers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Careers"
+          },
+          "scenario": {
+            "type": "string",
+            "title": "Scenario"
+          },
+          "audience": {
+            "type": "string",
+            "title": "Audience"
+          },
+          "purpose": {
+            "type": "string",
+            "title": "Purpose"
+          },
+          "facts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Facts"
+          },
+          "required": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Required",
+            "description": "The points the brief asks for, by name"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/WorkSampleSectionOut"
+            },
+            "type": "array",
+            "title": "Sections",
+            "description": "Empty: one plain message"
+          },
+          "min_words": {
+            "type": "integer",
+            "title": "Min Words"
+          },
+          "max_words": {
+            "type": "integer",
+            "title": "Max Words"
+          },
+          "review_status": {
+            "type": "string",
+            "title": "Review Status"
+          },
+          "scope_note": {
+            "type": "string",
+            "title": "Scope Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "version",
+          "title",
+          "format",
+          "format_label",
+          "careers",
+          "scenario",
+          "audience",
+          "purpose",
+          "facts",
+          "required",
+          "sections",
+          "min_words",
+          "max_words",
+          "review_status",
+          "scope_note"
+        ],
+        "title": "WorkSampleBrief",
+        "description": "Everything the learner needs to write the artifact; not the reference artifact."
+      },
+      "WorkSampleDraftIn": {
+        "properties": {
+          "sections": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Sections"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "description": "0 for the first save"
+          },
+          "client_request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 8,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Request Id",
+            "description": "One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before."
+          }
+        },
+        "type": "object",
+        "required": [
+          "expected_revision"
+        ],
+        "title": "WorkSampleDraftIn"
+      },
+      "WorkSampleDraftOut": {
+        "properties": {
+          "save_replay": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SaveReplay"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only on a save recovered by its key: see SaveReplay"
+          },
+          "brief_id": {
+            "type": "string",
+            "title": "Brief Id"
+          },
+          "sections": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Sections"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "brief_id",
+          "sections",
+          "revision",
+          "updated_at"
+        ],
+        "title": "WorkSampleDraftOut"
+      },
+      "WorkSampleSectionOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "hint": {
+            "type": "string",
+            "title": "Hint"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "hint"
+        ],
+        "title": "WorkSampleSectionOut"
+      },
+      "WorkSampleSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "format_label": {
+            "type": "string",
+            "title": "Format Label"
+          },
+          "careers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Careers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "format_label",
+          "careers"
+        ],
+        "title": "WorkSampleSummary"
+      },
       "WrittenOut": {
         "properties": {
           "step_index": {
@@ -38218,6 +39092,10 @@
     {
       "name": "test design",
       "description": "Propose test cases for a small specification and see, from a real sandbox run, which authored faulty versions they tell apart from the reference. Coverage counts only those versions."
+    },
+    {
+      "name": "work samples",
+      "description": "Write a short professional artifact (an incident update, a customer explanation, a handoff note) from a fictional brief, checked against the facts it supplies. Nothing is sent anywhere."
     },
     {
       "name": "backup",

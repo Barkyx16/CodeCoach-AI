@@ -1,0 +1,194 @@
+{
+  "id": "ws-project-handoff",
+  "version": 1,
+  "format": "project_handoff",
+  "format_label": "Project handoff note",
+  "careers": [
+    "project-manager",
+    "product-manager",
+    "construction-project-manager"
+  ],
+  "title": "Handing over the office move",
+  "scenario": "You've been running the move of Northgate Insurance's (fictional) support team to a new floor. You're going on two weeks' leave tomorrow, and Priya, a colleague, takes over. Write the handoff note she'll read first.",
+  "audience": "Priya: an experienced project manager who knows the company but not this project.",
+  "purpose": "Give her the status, what's decided, what's open and needs her, and who to talk to, so she can act on day one without calling you.",
+  "facts": [
+    {
+      "id": "date",
+      "text": "The move is booked for Saturday 14 June."
+    },
+    {
+      "id": "done",
+      "text": "Desks, network points and the floor plan are signed off by facilities."
+    },
+    {
+      "id": "risk",
+      "text": "The new phone handsets haven't been delivered; the supplier says 'by 10 June' but hasn't confirmed in writing."
+    },
+    {
+      "id": "decision",
+      "text": "Someone needs to decide by 9 June whether the support team works from home on Monday 16 June if the phones aren't ready. The support lead, Dan, prefers working from home."
+    },
+    {
+      "id": "budget",
+      "text": "Spend so far is $18,400 of the $25,000 budget."
+    },
+    {
+      "id": "contacts",
+      "text": "Facilities: Grace. Phone supplier contact: Hollis Telecom, account rep Sam. Support lead: Dan."
+    }
+  ],
+  "required": [
+    {
+      "id": "status",
+      "label": "Where things stand",
+      "match": [
+        [
+          "14 june",
+          "june 14"
+        ],
+        [
+          "signed off",
+          "approved",
+          "agreed",
+          "done",
+          "confirmed"
+        ]
+      ],
+      "guidance": "Say the date (Saturday 14 June) and what's already signed off."
+    },
+    {
+      "id": "risk",
+      "label": "The open risk",
+      "match": [
+        [
+          "phone",
+          "handset"
+        ],
+        [
+          "10 june",
+          "june 10",
+          "not delivered",
+          "haven't been delivered",
+          "not confirmed",
+          "unconfirmed",
+          "in writing"
+        ]
+      ],
+      "guidance": "Name the risk precisely: the phones aren't delivered, and the 10 June promise isn't confirmed in writing."
+    },
+    {
+      "id": "decision",
+      "label": "The decision she needs to make, and by when",
+      "match": [
+        [
+          "decide",
+          "decision",
+          "call"
+        ],
+        [
+          "9 june",
+          "june 9"
+        ]
+      ],
+      "guidance": "Say what needs deciding (home working on 16 June if the phones aren't ready) and the deadline (9 June); mention Dan's preference."
+    },
+    {
+      "id": "budget",
+      "label": "Money",
+      "match": [
+        [
+          "18,400",
+          "18400",
+          "$18.4k"
+        ],
+        [
+          "25,000",
+          "25000",
+          "$25k"
+        ]
+      ],
+      "guidance": "Give spend against budget: $18,400 of $25,000."
+    },
+    {
+      "id": "who",
+      "label": "Who to talk to",
+      "match": [
+        [
+          "grace"
+        ],
+        [
+          "sam",
+          "hollis"
+        ],
+        [
+          "dan"
+        ]
+      ],
+      "guidance": "List the people and what each is for: Grace (facilities), Sam at Hollis Telecom (phones), Dan (support lead)."
+    }
+  ],
+  "claims_to_avoid": [
+    {
+      "phrases": [
+        "phones will arrive",
+        "phones are confirmed",
+        "delivery is confirmed",
+        "confirmed for 10 june"
+      ],
+      "why": "The brief says delivery isn't confirmed in writing; a handoff that says it is hides the main risk."
+    },
+    {
+      "phrases": [
+        "dan has decided",
+        "it's decided",
+        "already decided"
+      ],
+      "why": "The brief says the home-working decision is still open."
+    }
+  ],
+  "avoid": [
+    {
+      "term": "as discussed",
+      "why": "Priya wasn't there; say what was agreed."
+    },
+    {
+      "term": "the usual",
+      "why": "Name the thing: she doesn't know this project's usual."
+    }
+  ],
+  "sections": [
+    {
+      "id": "status",
+      "label": "Status",
+      "hint": "Date and what's done."
+    },
+    {
+      "id": "open",
+      "label": "Open risks and decisions",
+      "hint": "What could go wrong, and what needs deciding by when."
+    },
+    {
+      "id": "money",
+      "label": "Budget",
+      "hint": "Spend against budget."
+    },
+    {
+      "id": "people",
+      "label": "Who's who",
+      "hint": "Names and what each is for."
+    }
+  ],
+  "limits": {
+    "min_words": 60,
+    "max_words": 220
+  },
+  "reference": {
+    "status": "The move is on Saturday 14 June. Facilities (Grace) has signed off the desks, network points and floor plan.",
+    "open": "Main risk: the new phone handsets aren't here. Hollis Telecom says 'by 10 June' but hasn't confirmed in writing; please chase Sam for written confirmation. Decision needed by 9 June: if the phones won't be ready, does the support team work from home on Monday 16 June? Dan, the support lead, prefers that.",
+    "money": "$18,400 spent of the $25,000 budget.",
+    "people": "Grace: facilities. Sam at Hollis Telecom: phones. Dan: support lead, owns the home-working preference."
+  },
+  "review_status": "Fictional practice brief, written and checked for internal consistency; not reviewed by an outside practitioner. Not real company guidance.",
+  "scope_note": "Everything here is made up for practice: the company, the people and the numbers. Don't paste real employer, customer or patient material."
+}

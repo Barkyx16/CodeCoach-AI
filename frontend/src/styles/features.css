@@ -354,3 +354,13 @@ fieldset.field { border: none; padding: 0; margin: 0; }
 .td-case { border: 0; margin: 0; padding: 0; min-width: 0; }
 .td-fields { display: grid; gap: var(--space-2); grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); }
 .td-report code, .td-page .mini-list code { overflow-wrap: anywhere; }
+
+/* Work samples (features/workSamples): the brief beside the editor, a preview, and the debrief. */
+.ws-layout { display: grid; gap: var(--space-4); align-items: start; grid-template-columns: minmax(0, 1fr); }
+.ws-layout > * { min-width: 0; }
+@media (min-width: 1000px) { .ws-layout { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); } .ws-brief { position: sticky; top: var(--space-4); } }
+.ws-toolbar { justify-content: space-between; }
+.ws-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.ws-quote { font-style: italic; overflow-wrap: anywhere; }
+.ws-points { margin: 0; padding-left: 1.25rem; }
+.ws-flags { border-left: 3px solid var(--color-warning); }

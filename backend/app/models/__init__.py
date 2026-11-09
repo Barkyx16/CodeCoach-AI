@@ -1393,6 +1393,38 @@ class CodeReviewAttempt(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
 
+class WorkSampleDraft(Base):
+    """A work sample in progress for one brief (docs/WORK_SAMPLES.md): the text of each section,
+    saved against a revision like the other long-form editors."""
+
+    __tablename__ = "work_sample_drafts"
+
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    brief_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    sections: Mapped[dict] = mapped_column(JSONType)
+    revision: Mapped[int] = mapped_column(Integer, default=0)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class WorkSampleAttempt(Base):
+    """A work sample sent for feedback: the text as sent, the brief it was written against (a
+    snapshot) and the checks' feedback. A revision is a new attempt that names the one it revises;
+    the original is never changed."""
+
+    __tablename__ = "work_sample_attempts"
+    __table_args__ = (Index("ix_work_sample_user_brief", "user_id", "brief_id"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    brief_id: Mapped[str] = mapped_column(String(64))
+    brief_version: Mapped[int] = mapped_column(Integer)
+    snapshot: Mapped[dict] = mapped_column(JSONType)
+    sections: Mapped[dict] = mapped_column(JSONType)
+    feedback: Mapped[dict] = mapped_column(JSONType)
+    revision_of: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
 class TestDesignRun(Base):
     """One set of test cases a learner ran against a test-design exercise's reference and faulty
     versions (docs/TEST_DESIGN.md). Queued like a submission and run by the judge worker in the

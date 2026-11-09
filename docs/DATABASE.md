@@ -154,7 +154,7 @@ row-level security (no content; purged across learners). Migration `7045bdb6a532
 |---|---|---|
 | `id` | varchar(36) PK | |
 | `user_id` | FK → users (cascade), indexed | |
-| `entity`, `entity_id` | varchar(16), varchar(80) | `story` \| `note` \| `kit` \| `whiteboard` \| `reflection` \| `note_copy` \| `app_notes` \| `code_review`, and its id |
+| `entity`, `entity_id` | varchar(16), varchar(80) | `story` \| `note` \| `kit` \| `whiteboard` \| `reflection` \| `note_copy` \| `app_notes` \| `code_review` \| `work_sample`, and its id |
 | `client_request_id` | varchar(64) | unique per user |
 | `base_revision`, `accepted_revision` | integer | the revision the save started from, and the one it produced |
 | `request_fingerprint` | varchar(80) | `v1:` + SHA-256 of the update (services/request_keys.py); never shown |
@@ -324,6 +324,14 @@ The exercises are files (`backend/app/seed/testdesign`, docs/TEST_DESIGN.md), no
   per user), `trace_id`, `created_at`, `judged_at`. Claimed by the judge worker like submissions,
   so not under row-level security; every request-side lookup filters by user.
 
+### Work samples
+The briefs are files (`backend/app/seed/worksamples`, docs/WORK_SAMPLES.md), not rows.
+- `work_sample_drafts`: one row per user and brief (primary key `user_id`, `brief_id`; cascade with
+  the account): `sections` (JSON: text per section), `revision` (checked on save), `updated_at`.
+- `work_sample_attempts`: each artifact sent for feedback (cascade with the account), indexed by user
+  and brief: `brief_version`, `snapshot` (JSON: the brief it was written against, its reference),
+  `sections`, `feedback` (JSON), `revision_of` (the attempt it revises), `created_at`. Never updated.
+
 ### Restores
 - `import_batches`: one per restore (cascade with the account): `file_sha256` (to recognise the
   same file; the file itself isn't stored), `export_version`, `categories`, `status`
@@ -433,6 +441,7 @@ The exercises are files (`backend/app/seed/testdesign`, docs/TEST_DESIGN.md), no
 | `9fa5ab598fa5` restores | Adds `import_batches` and `imported_records`. New tables, cascading with the user; round-tripped on PostgreSQL |
 | `5b7e2c9d4a10` code-review practice | Adds `code_review_drafts` (one per user and exercise) and `code_review_attempts`, both cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
 | `8e4b1d7c2f60` test design runs | Adds `test_design_runs`, cascading with the user; not under row-level security (claimed by the judge worker, like submissions) |
+| `c4a9e2f71b35` work samples | Adds `work_sample_drafts` and `work_sample_attempts`, cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

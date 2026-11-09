@@ -35,6 +35,8 @@ PUBLIC = {
     ("GET", "/api/v1/test-design"),
     ("GET", "/api/v1/test-design/{slug}"),
     ("GET", "/api/v1/test-design/{slug}/variants"),
+    ("GET", "/api/v1/work-samples"),
+    ("GET", "/api/v1/work-samples/{brief_id}"),
     ("GET", "/api/v1/careers"),
     ("GET", "/api/v1/careers/{slug}/questions"),
     ("GET", "/api/v1/careers/{slug}/questions/counts"),
@@ -179,7 +181,7 @@ def seed(client, h):
     return ids
 
 
-PUBLIC_PARAMS = {"slug", "question_id", "prompt_id", "drill_id", "unit_id", "scenario_id"}
+PUBLIC_PARAMS = {"slug", "question_id", "prompt_id", "drill_id", "unit_id", "scenario_id", "brief_id"}
 # GET routes with record ids this walk doesn't make; each has its own cross-account test.
 NOT_WALKED = {
     "/api/v1/me/shares/{share_id}": "test_shares.py",
@@ -187,6 +189,7 @@ NOT_WALKED = {
     "/api/v1/me/whiteboard/attempts/{attempt_id}": "test_whiteboard.py",
     "/api/v1/me/code-reviews/attempts/{attempt_id}": "test_code_reviews.py",
     "/api/v1/me/test-design/runs/{run_id}": "test_test_design.py",
+    "/api/v1/me/work-samples/attempts/{attempt_id}": "test_work_samples.py",
 }
 
 

@@ -45,6 +45,7 @@ from app.services.shares import status_of
 from app.services.stories import snapshot
 from app.services.test_design import TestDesign
 from app.services.whiteboard import Whiteboard
+from app.services.work_samples import WorkSamples
 
 EXPORT_VERSION = 1
 
@@ -427,6 +428,8 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
         "code_reviews": CodeReviews(db, user).export(),
         # Test design: each set of cases you ran, the exercise version and what it showed.
         "test_design_runs": TestDesign(db, user).export(),
+        # Work samples: drafts, and each artifact sent for feedback with the brief version.
+        "work_samples": WorkSamples(db, user).export(),
         # Private reflections on real interviews, with the next steps you accepted or dismissed.
         "interview_reflections": Reflections(db, user).export(with_ids=with_ids),
         # Restores you made from backup files (what each added and, if removed, what it kept).
