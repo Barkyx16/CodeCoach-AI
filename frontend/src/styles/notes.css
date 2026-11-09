@@ -37,3 +37,12 @@
   .notes-filters .filters__search { grid-column: 1 / -1; }
   .note-page__layout { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Standalone text buttons (the note's Write/Preview, a story's saved versions) are controls, not
+   links in a sentence: a target of at least 24 px, 44 px on touch screens (Volume 9, prompt 7). */
+.note-editor__modes .link-button, .revision-list > li > .link-button {
+  display: inline-flex; align-items: center; min-height: 1.5rem; min-width: 1.5rem; padding: 0 var(--space-1);
+}
+@media (pointer: coarse) {
+  .note-editor__modes .link-button, .revision-list > li > .link-button { min-height: 2.75rem; }
+}

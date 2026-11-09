@@ -127,6 +127,27 @@ Automated, run in CI or locally:
   21 pages at 320px and 640px with the largest text and spacious layout (the overflows listed
   above, all fixed).
 
+### Editing on small screens (Volume 9, prompt 7)
+
+The editing pages (a new target job, the job posting editor, an application's details, goals, a
+note, a story) were measured at 320 x 640 in the light and dark themes and at 740 x 360
+(landscape), on the phone configuration (Chromium with Pixel 7 emulation), with synthetic records:
+no page scrolls sideways, every field is in one column with its label above it, and each form's
+Save sits right after its fields in normal document flow (no sticky footer that could cover the
+last lines, an error or the on-screen keyboard). The sticky header doesn't hide what gets focus:
+`html` has `scroll-padding-top`, so a refused save's summary or field scrolls into view below it.
+
+Two controls were too small to tap reliably (WCAG 2.5.8 asks for 24 px): the note's Write and
+Preview buttons (22 px tall) and a story's "Version 1", "Version 2" (19 px). They're now at least
+24 px, and 44 px on touch screens (`pointer: coarse`); `docs/screenshots/v9-07/` has before and
+after. Radio buttons and checkboxes measure 13-18 px but sit inside their full-width labels,
+which are the target. Restore and Discard, Copy your work, Archive and Delete are separate,
+labelled buttons with space between them; nothing relies on a swipe.
+
+Not checked here: a real phone with its on-screen keyboard open (the visual viewport, browser
+bars, safe areas), iOS Safari, and Android Chrome on a device. Only viewport emulation was
+available; no layout depends on a keyboard height or pins controls to the bottom of the screen.
+
 ### Not checked
 
 - **No screen reader was used.** None is installed in this environment (no NVDA, JAWS,
