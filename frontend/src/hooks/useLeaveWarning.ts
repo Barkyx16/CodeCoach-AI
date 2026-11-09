@@ -1,10 +1,22 @@
 import { useEffect, useId } from "react";
 
-/** Work on this page that would be lost by leaving or reloading (e.g. storage failed). */
-const unsafe = new Set<string>();
+/** Work on this page that would be lost by leaving or reloading (e.g. storage failed), and, where
+ * the page said, what it is ("the job description"), for the question the leave guard asks. */
+const unsafe = new Map<string, string | undefined>();
 
 export function hasUnretainedWork(): boolean {
   return unsafe.size > 0;
+}
+
+/** What the pages with unsaved work said they hold, for the leave question (may be empty). */
+export function unretainedWorkLabels(): string[] {
+  return [...new Set([...unsafe.values()].filter((v): v is string => Boolean(v)))];
+}
+
+/** The question the leave guard asks: what would be discarded, and which button does what. */
+export function leaveQuestion(labels: string[] = unretainedWorkLabels()): string {
+  const what = labels.length ? `Your changes to ${labels.join(" and ")} aren't saved` : "This page has changes that aren't saved yet";
+  return `${what}, and leaving would discard them. Leave anyway? (Cancel stays here with everything as it is.)`;
 }
 
 /** Until when the next in-app navigation follows a save that just succeeded (ms since the epoch). */
@@ -31,11 +43,11 @@ export function takeLeaveAfterSave(): boolean {
  * another page asks first (app/LeaveGuard.tsx), and an app update waits for confirmation. Use it
  * when leaving would lose work: edits held only in memory, or a draft this browser can't keep.
  */
-export function useLeaveWarning(active: boolean): void {
+export function useLeaveWarning(active: boolean, what?: string): void {
   const id = useId();
   useEffect(() => {
     if (!active) return;
-    unsafe.add(id);
+    unsafe.set(id, what);
     const warn = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = ""; // older browsers need it set
@@ -45,5 +57,5 @@ export function useLeaveWarning(active: boolean): void {
       unsafe.delete(id);
       window.removeEventListener("beforeunload", warn);
     };
-  }, [active, id]);
+  }, [active, id, what]);
 }

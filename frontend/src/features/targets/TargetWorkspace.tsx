@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
@@ -11,6 +11,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Icon } from "@/components/Icon";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { formatDateTime } from "@/lib/format";
 
 type Category = Requirement["category"];
@@ -317,16 +318,25 @@ function ExperienceForm({ t, entry, onDone }: { t: Target; entry: Experience | n
 
 function SourceSection({ t }: { t: Target }) {
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ title: t.title, employer: t.employer ?? "", description: t.description, interview_date: t.interview_date ?? "", notes: t.notes ?? "" });
+  const saved = { title: t.title, employer: t.employer ?? "", description: t.description, interview_date: t.interview_date ?? "", notes: t.notes ?? "" };
+  const [form, setForm] = useState(saved);
   const update = useTargetMutation((body: Parameters<typeof api.updateTarget>[1]) => api.updateTarget(t.id, body));
   const again = useTargetMutation(() => api.reextract(t.id));
+  // Unsaved: the open editor differs from the posting as saved (Volume 9, prompt 1).
+  const current = useRef(form);
+  useEffect(() => { current.current = form; }, [form]);
+  const dirty = editing && JSON.stringify(form) !== JSON.stringify(saved);
+  useLeaveWarning(dirty, "the job posting");
   return (
     <Card className="stack">
       <h2 className="section-title">The posting</h2>
       {editing ? (
         <form className="stack" aria-label="Edit the posting" onSubmit={(e) => {
           e.preventDefault();
-          update.mutate({ title: form.title, employer: form.employer || null, description: form.description, interview_date: form.interview_date || null, notes: form.notes || null }, { onSuccess: () => setEditing(false) });
+          const sent = JSON.stringify(form);
+          // Closes only when nothing was typed while saving; otherwise the newer text stays open.
+          update.mutate({ title: form.title, employer: form.employer || null, description: form.description, interview_date: form.interview_date || null, notes: form.notes || null },
+            { onSuccess: () => { if (JSON.stringify(current.current) === sent) setEditing(false); } });
         }}>
           <label className="field"><span className="field__label">Role title</span><input className="input" required maxLength={120} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
           <label className="field"><span className="field__label">Employer</span><input className="input" maxLength={120} value={form.employer} onChange={(e) => setForm({ ...form, employer: e.target.value })} /></label>
@@ -335,7 +345,7 @@ function SourceSection({ t }: { t: Target }) {
           <label className="field"><span className="field__label">Job description</span><textarea className="input target-jd" rows={10} maxLength={20000} required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
           <p className="subtle">Saving keeps your requirements, edits and every attempt. Lines you remove are flagged on their requirement; use "Find requirements again" to add new ones.</p>
           <InlineError error={update.error} />
-          <div className="row"><Button type="submit" variant="primary" loading={update.isPending}>Save</Button><Button type="button" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button></div>
+          <div className="row"><Button type="submit" variant="primary" loading={update.isPending}>Save</Button><Button type="button" variant="ghost" onClick={() => { setForm(saved); setEditing(false); }}>Cancel</Button></div>
         </form>
       ) : (
         <>

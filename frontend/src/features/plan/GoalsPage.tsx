@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { useGoals, useSaveGoals } from "@/api/queries";
@@ -7,6 +7,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { useCameFrom } from "@/hooks/useCameFrom";
+import { allowLeaveAfterSave, useLeaveWarning } from "@/hooks/useLeaveWarning";
 
 const EXPERIENCE = [
   { id: "new", label: "New to the field", hint: "Starting with easy questions" },
@@ -38,6 +39,14 @@ function GoalsForm({ goals }: { goals: Goals }) {
     focus_areas: goals.focus_areas ?? [], formats: goals.formats?.length ? goals.formats : ["written", ...(goals.has_coding ? ["coding" as const] : [])],
     confidence: goals.confidence, setup_skipped: false,
   });
+  // Unsaved: the form differs from what was loaded or last saved (typing and putting it back
+  // isn't a change). Leaving then asks first (Volume 9, prompt 1).
+  const [accepted, setAccepted] = useState(() => JSON.stringify(form));
+  const [savedMore, setSavedMore] = useState(false);
+  const current = useRef(form);
+  useEffect(() => { current.current = form; }, [form]);
+  const dirty = JSON.stringify(form) !== accepted;
+  useLeaveWarning(dirty, "your goals");
   const set = (patch: Partial<GoalsInput>) => setForm((f) => ({ ...f, ...patch }));
   const toggle = <T,>(list: T[], value: T) => (list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
   const focus = form.focus_areas ?? [];
@@ -48,10 +57,19 @@ function GoalsForm({ goals }: { goals: Goals }) {
       ...form, specialty: form.specialty?.trim() || null,
       confidence: Object.fromEntries(Object.entries(form.confidence ?? {}).filter(([k]) => focus.includes(k))),
     };
+    const sent = JSON.stringify(form);
     try {
       await save.mutateAsync(body);
+      setAccepted(sent);
+      if (JSON.stringify(current.current) !== sent) {
+        // Changed while saving: what was sent is saved; the newer choices stay, still unsaved.
+        setSavedMore(true);
+        return;
+      }
       // Back where the goals were opened from (the plan, or the dashboard by default), not always
-      // the dashboard. Replace: Back from there shouldn't reopen the saved form.
+      // the dashboard. Replace: Back from there shouldn't reopen the saved form. This one move is
+      // what the save allows; later edits ask again.
+      allowLeaveAfterSave();
       navigate(returnTo, { replace: Boolean(came) });
     } catch {
       /* shown below */
@@ -149,6 +167,7 @@ function GoalsForm({ goals }: { goals: Goals }) {
           )}
         </Card>
         <InlineError error={save.error} />
+        {savedMore && dirty && <p className="subtle" role="status">Saved what you had when you pressed Save. You changed more since: save again to keep those changes.</p>}
         <div className="row">
           <Button type="submit" variant="primary" loading={save.isPending}>Save goals</Button>
           <Link to={returnTo} className="btn btn--ghost btn--md">Cancel</Link>

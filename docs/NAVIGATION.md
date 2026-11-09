@@ -47,9 +47,30 @@ Private text (answers, notes, drafts) is never put in a URL.
 - **Leaving asks only when it would lose something.** Pages that ask:
   - a written scenario response that hasn't been sent;
   - a note neither saved nor kept in this browser, or in a conflict;
-  - the existing pages (answers, stories, kits, reflections, diagrams) on their own rules.
+  - the existing pages (answers, stories, kits, reflections, diagrams) on their own rules;
+  - goals, a new target job, the job posting editor, and an application's details (Volume 9,
+    prompt 1), below.
 
-  A navigation that follows a successful save doesn't ask (`allowLeaveAfterSave`).
+  A navigation that follows a successful save doesn't ask (`allowLeaveAfterSave`): one move,
+  within a second, and only the one that save makes. A failed save allows nothing.
+
+  The question names what would be discarded when the page says ("Your changes to the job posting
+  aren't saved, and leaving would discard them. Leave anyway? (Cancel stays here with everything as
+  it is.)"). It's the browser's own confirm, so the buttons are its OK and Cancel. Cancel keeps every
+  field as it was. Reload and closing the tab get the browser's generic warning instead: browsers
+  don't show custom text there, and a phone that ends the app's process may show nothing at all.
+
+### The forms added in Volume 9, prompt 1
+
+| Form | Unsaved means | After a successful save | Typed while the save was on its way |
+|---|---|---|---|
+| Goals (`/plan/goals`) | the form differs from what was loaded or last saved; typing and putting it back isn't a change | goes back where the goals were opened from, without asking | stays on the page: "Saved what you had when you pressed Save. You changed more since: save again to keep those changes." Leaving asks |
+| New target job (`/targets`, Add a target role) | anything typed in its fields (the job chosen by default isn't typing) | opens the new target without asking | — (creating isn't repeated) |
+| The job posting editor (`/targets/:id`, The posting, Edit) | the open editor differs from the posting as saved | the editor closes | the editor stays open with the newer text; leaving asks. Cancel discards on purpose and asks nothing |
+| An application's details (`/applications/:id`) | any detail differs from what was loaded or last accepted, or the private notes differ from the saved notes | "Saved."; leaving doesn't ask | the newer text stays and still counts as unsaved |
+
+This adds leave protection, not another copy of the work: only the application's notes are also
+kept in this browser (Volume 8, prompt 5). A deliberate sign-out follows the existing policy.
 
 ## Tests
 
@@ -65,6 +86,11 @@ Private text (answers, notes, drafts) is never put in a URL.
   - confirming from Settings goes back;
   - focus returns to the item.
 - `explore.test.tsx`: "Back to the queue" opens the queue.
+- `leaveWarnings.test.tsx` (8): for goals, a new target job, the posting editor and an
+  application's details: an in-app exit asks and names what would be discarded; staying keeps
+  every field; putting a field back asks nothing; a successful save moves on without asking; a
+  failed save still asks; typing during a save stays and asks; a second edit after saving asks
+  again; Cancel discards without asking; browser Back asks too. 4 negative controls, each caught.
 - Negative control: with the source as it was (366449b), 11 of these checks fail.
 - Browser, `frontend/e2e/navigation.spec.ts`, against the real API:
   - a medium-difficulty coding list, View more, scrolled, a problem opened from row 13;
@@ -79,8 +105,9 @@ Private text (answers, notes, drafts) is never put in a URL.
   fallback, not the original list's scroll position.
 - **Focus is restored only when the item is still in the list.** If it was removed or filtered out
   since, focus starts at the top of the page.
-- **Leave warnings are not everywhere.** Memory-only forms without a warning remain: target job
-  descriptions, the application detail fields, the application message composer, goals.
+- **Leave warnings are not everywhere.** Inventoried here: the forms listed above ask. Still
+  without one: the application message composer. The one-line form for adding a requirement to a
+  target doesn't ask; what it would lose is one line.
 - **An unexplained hang, seen once.** One run of the related browser specs hung two API reads for
   63 s, and then the next navigation was aborted. It didn't reproduce in four more runs of that test
   (two alone, two with the same specs), and the server logged nothing. It's recorded here, not explained.

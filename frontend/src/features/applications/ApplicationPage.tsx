@@ -280,7 +280,12 @@ function DetailsCard({ a, onDone }: { a: Application; onDone: (a: Application) =
   const [kept, setKept] = useState(true);
   const saveKey = useRequestKey();
   const notesDirty = form.notes !== notesSaved.text;
-  useLeaveWarning(notesDirty);
+  // The other details, against what was loaded or last accepted (typing and putting it back isn't
+  // a change). Either unsaved: leaving asks first (Volume 9, prompt 1).
+  const fieldsOf = (f: typeof form) => JSON.stringify({ ...f, notes: undefined });
+  const [acceptedFields, setAcceptedFields] = useState(() => fieldsOf(form));
+  const fieldsDirty = fieldsOf(form) !== acceptedFields;
+  useLeaveWarning(notesDirty || fieldsDirty, "this application's details");
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
   function setNotes(v: string) {
     set("notes", v);
@@ -321,6 +326,7 @@ function DetailsCard({ a, onDone }: { a: Application; onDone: (a: Application) =
         return;
       }
       onDone(next);
+      setAcceptedFields(fieldsOf(sentForm));
       setNotesSaved({ text: next.notes, revision: next.notes_revision });
       setConflict(null);
       setEarlierSave(null);

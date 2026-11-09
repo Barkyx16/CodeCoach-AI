@@ -11,6 +11,7 @@ import { Card } from "@/components/Card";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
 import { CareerSelect } from "@/features/careers/CareerSelect";
 import { DEFAULT_TRACK } from "@/features/careers/practiceTrack";
+import { allowLeaveAfterSave, useLeaveWarning } from "@/hooks/useLeaveWarning";
 
 const MAX_DESCRIPTION = 20_000;
 
@@ -83,6 +84,9 @@ function NewTarget({ onCancel }: { onCancel: () => void }) {
     title: "", employer: "", description: "", track: user?.career_track || DEFAULT_TRACK, interview_date: "", notes: "",
   });
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
+  // Anything typed (the job chosen by default isn't typing) is lost by leaving: ask first.
+  const typed = [form.title, form.employer, form.description, form.interview_date, form.notes].some((v) => v.trim());
+  useLeaveWarning(typed, "the new target job");
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -91,6 +95,7 @@ function NewTarget({ onCancel }: { onCancel: () => void }) {
         title: form.title, employer: form.employer || null, description: form.description, track: form.track,
         interview_date: form.interview_date || null, notes: form.notes || null,
       });
+      allowLeaveAfterSave(); // the one move this save allows: to the target it made
       navigate(`/targets/${t.id}`);
     } catch {
       /* shown below */
