@@ -63,6 +63,8 @@ const SPECS: ((c: CommandContext) => Spec)[] = [
   () => ({ id: "learn", label: "Lessons", detail: "Short lessons with guided help", to: "/learn", section: "Practice", aliases: ["learn", "units", "course"] }),
   () => ({ id: "work-samples", label: "Work samples", detail: "Write a short piece of work from a brief", to: "/work-samples", section: "Practice",
     aliases: ["work sample", "incident update", "handoff", "customer reply", "memo"], when: signedIn }),
+  () => ({ id: "compare", label: "Compare sample answers", detail: "Mark what makes an answer useful, then see why", to: "/compare", section: "Practice",
+    aliases: ["sample answers", "example answers", "compare answers", "what makes a good answer"], when: signedIn }),
   () => ({ id: "drills", label: "Communication drills", detail: "Quick exercises in how you say it", to: "/drills", section: "Practice", aliases: ["drill", "speaking", "voice"], when: signedIn }),
   () => ({ id: "scenarios", label: "Scenarios", detail: "Choose what to do and see what follows", to: "/scenarios", section: "Practice", aliases: ["branching", "situations", "simulator"], when: signedIn }),
   (c) => ({ id: "whiteboard", label: "Whiteboard: explain a design", detail: "Sketch a system and explain your choices", to: "/whiteboard", section: "Practice",

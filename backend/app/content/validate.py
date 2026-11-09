@@ -43,6 +43,7 @@ REFERENCE_DIR = BACKEND_DIR / "app" / "seed" / "reference"
 REVIEWS_DIR = BACKEND_DIR / "app" / "seed" / "reviews"
 TEST_DESIGN_DIR = BACKEND_DIR / "app" / "seed" / "testdesign"
 WORK_SAMPLES_DIR = BACKEND_DIR / "app" / "seed" / "worksamples"
+COMPARISONS_DIR = BACKEND_DIR / "app" / "seed" / "comparisons"
 
 
 @dataclass
@@ -512,6 +513,73 @@ def _work_samples(report: Report) -> None:
     report.counts["work sample briefs"] = len(seen)
 
 
+def _comparisons(report: Report) -> None:
+    """Sample-answer comparison lessons (app/seed/comparisons; docs/COMPARE_ANSWERS.md): neutral
+    labels, sentence ids that anchor quotes, an explanation that cites only sentences in the samples
+    and only the lesson's rubric criteria, and a preferred answer only when the lesson isn't a
+    tradeoff."""
+    seen: set[str] = set()
+    for path in sorted(COMPARISONS_DIR.glob("*.json")):
+        where = f"comparison file {path.name}"
+        try:
+            data = json.loads(path.read_text())
+        except json.JSONDecodeError as exc:
+            report.errors.append(f"{where}: invalid JSON ({exc})")
+            continue
+        lid = str(data.get("id", ""))
+        if not lid.startswith("cmp-") or lid in seen:
+            report.errors.append(f"{where}: an id starting 'cmp-', unique ({lid!r})")
+            continue
+        seen.add(lid)
+        here = f"comparison {lid}"
+        missing = [
+            k
+            for k in ("title", "teaching_goal", "question", "review_status")
+            if not str(data.get(k) or "").strip()
+        ]
+        if missing:
+            report.errors.append(f"{here}: missing {missing}")
+        criteria = {r.get("id") for r in data.get("rubric") or []}
+        samples = data.get("samples") or []
+        if not 2 <= len(samples) <= 3:
+            report.errors.append(f"{here}: two or three samples")
+        if any(s.get("label") != f"Answer {s.get('id')}" for s in samples):
+            report.errors.append(f"{here}: sample labels must be neutral ('Answer A', 'Answer B', ...)")
+        sentences = {(s["id"], x["id"]) for s in samples for x in s.get("sentences", [])}
+        if len(sentences) != sum(len(s.get("sentences", [])) for s in samples):
+            report.errors.append(f"{here}: sentence ids must be unique within a sample")
+        explanation = data.get("explanation") or {}
+        notes = explanation.get("samples") or {}
+        if set(notes) != {s.get("id") for s in samples}:
+            report.errors.append(f"{here}: the explanation needs notes for exactly the samples shown")
+        entries = [e for n in notes.values() for key in ("strengths", "gaps") for e in n.get(key, [])]
+        cited = {
+            f"{sid}/{x}"
+            for sid, n in notes.items()
+            for key in ("strengths", "gaps")
+            for e in n.get(key, [])
+            for x in e.get("sentences", [])
+        }
+        unknown = sorted(c for c in cited if tuple(c.split("/", 1)) not in sentences)
+        if unknown:
+            report.errors.append(
+                f"{here}: the explanation cites sentences that aren't in the samples: {unknown}"
+            )
+        bad_criteria = sorted({e.get("criterion") for e in entries} - criteria)
+        if bad_criteria:
+            report.errors.append(f"{here}: unknown rubric criteria in the explanation: {bad_criteria}")
+        if any(not str(e.get("why") or "").strip() for e in entries):
+            report.errors.append(f"{here}: every strength and gap says why")
+        kind, preferred = data.get("kind"), explanation.get("preferred")
+        if kind == "tradeoff" and preferred is not None:
+            report.errors.append(f"{here}: a tradeoff lesson has no preferred answer")
+        elif kind == "clear" and preferred not in {s.get("id") for s in samples}:
+            report.errors.append(f"{here}: a clear lesson names its preferred answer")
+        elif kind not in ("clear", "tradeoff"):
+            report.errors.append(f"{here}: kind is 'clear' or 'tradeoff'")
+    report.counts["comparison lessons"] = len(seen)
+
+
 def _load_reference_checker():
     spec = importlib.util.spec_from_file_location(
         "verify_reference", BACKEND_DIR / "scripts" / "verify_reference_solutions.py"
@@ -535,6 +603,7 @@ def run(db: Session | None, *, run_reference: bool = False, record: bool = False
     reviews = _reviews(report, seeds)
     _test_design(report)
     _work_samples(report)
+    _comparisons(report)
     retired: set[tuple[str, str]] = set()
     if db is not None:
         _db_content(db, report, set(seeds))

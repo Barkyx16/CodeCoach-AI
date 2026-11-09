@@ -7,6 +7,7 @@ const FORMATS: { to: string; title: string; detail: string; icon: IconName; codi
   { to: "/whiteboard", title: "Explain a design on a whiteboard", detail: "Talk through a system, step by step", icon: "code", codingOnly: true },
   { to: "/scenarios", title: "Branching scenarios", detail: "Choose what to do and see what follows", icon: "list" },
   { to: "/work-samples", title: "Work samples", detail: "Write a short piece of work from a brief", icon: "book" },
+  { to: "/compare", title: "Compare sample answers", detail: "Mark what makes an answer useful, then see why", icon: "list" },
   { to: "/learn", title: "Short lessons", detail: "A few minutes, with guided help", icon: "book" },
 ];
 

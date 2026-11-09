@@ -2453,6 +2453,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/comparisons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sample-answer comparison lessons */
+        get: operations["lessons_api_v1_comparisons_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/comparisons/{lesson_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One lesson: the question, rubric and samples (not the explanation) */
+        get: operations["lesson_api_v1_comparisons__lesson_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/comparisons/{lesson_id}/explanation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The authored explanation (a deliberate reveal) */
+        get: operations["explanation_api_v1_comparisons__lesson_id__explanation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/comparisons/{lesson_id}/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your readings of this lesson */
+        get: operations["attempts_api_v1_me_comparisons__lesson_id__attempts_get"];
+        put?: never;
+        /** Send your reading and compare it with the explanation */
+        post: operations["attempt_api_v1_me_comparisons__lesson_id__attempts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/comparisons/attempts/{attempt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One reading, with the samples and explanation as they were */
+        get: operations["get_attempt_api_v1_me_comparisons_attempts__attempt_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/schedule": {
         parameters: {
             query?: never;
@@ -4675,6 +4761,158 @@ export interface components {
             newly_missing: string[];
             /** Score Change */
             score_change: number | null;
+        };
+        /** ComparisonAttemptIn */
+        ComparisonAttemptIn: {
+            /** Selections */
+            selections: components["schemas"]["ComparisonSelectionIn"][];
+            /** Choice */
+            choice?: string | null;
+            /**
+             * Revealed Early
+             * @description The explanation was opened before this was sent
+             * @default false
+             */
+            revealed_early: boolean;
+        };
+        /** ComparisonAttemptOut */
+        ComparisonAttemptOut: {
+            /** Id */
+            id: string;
+            /** Lesson Id */
+            lesson_id: string;
+            /** Lesson Version */
+            lesson_version: number;
+            /** Current Version */
+            current_version: number | null;
+            /** Title */
+            title: string;
+            /** Question */
+            question: string;
+            /**
+             * Samples
+             * @description As they were when this attempt was made
+             */
+            samples: components["schemas"]["ComparisonSample"][];
+            /** Rubric */
+            rubric: components["schemas"]["ComparisonRubricItem"][];
+            /** Selections */
+            selections: {
+                [key: string]: unknown;
+            }[];
+            /** Choice */
+            choice: string | null;
+            /** Feedback */
+            feedback: {
+                [key: string]: unknown;
+            };
+            /** Explanation */
+            explanation: {
+                [key: string]: unknown;
+            };
+            /** Revealed Early */
+            revealed_early: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ComparisonAttemptSummary */
+        ComparisonAttemptSummary: {
+            /** Id */
+            id: string;
+            /** Lesson Version */
+            lesson_version: number;
+            /** Selections */
+            selections: number;
+            /** Matches */
+            matches: number;
+            /** Revealed Early */
+            revealed_early: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * ComparisonLesson
+         * @description The question and the samples, before any reveal: no explanation.
+         */
+        ComparisonLesson: {
+            /** Id */
+            id: string;
+            /** Version */
+            version: number;
+            /** Title */
+            title: string;
+            /** Teaching Goal */
+            teaching_goal: string;
+            /** Question */
+            question: string;
+            /** Rubric */
+            rubric: components["schemas"]["ComparisonRubricItem"][];
+            /**
+             * Kind
+             * @description tradeoff: no single best answer, so no choice is asked
+             * @enum {string}
+             */
+            kind: "clear" | "tradeoff";
+            /** Samples */
+            samples: components["schemas"]["ComparisonSample"][];
+            /** Next Step */
+            next_step: {
+                [key: string]: string;
+            };
+            /** Review Status */
+            review_status: string;
+        };
+        /** ComparisonRubricItem */
+        ComparisonRubricItem: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+        };
+        /** ComparisonSample */
+        ComparisonSample: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Sentences */
+            sentences: components["schemas"]["ComparisonSentence"][];
+        };
+        /** ComparisonSelectionIn */
+        ComparisonSelectionIn: {
+            /** Sample */
+            sample: string;
+            /** Sentence */
+            sentence: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "strength" | "gap";
+            /** Reason */
+            reason: string;
+        };
+        /** ComparisonSentence */
+        ComparisonSentence: {
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+        };
+        /** ComparisonSummary */
+        ComparisonSummary: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Teaching Goal */
+            teaching_goal: string;
         };
         /** Complexity */
         Complexity: {
@@ -20193,6 +20431,268 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkSampleAttemptOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lessons_api_v1_comparisons_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonSummary"][];
+                };
+            };
+        };
+    };
+    lesson_api_v1_comparisons__lesson_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lesson_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonLesson"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    explanation_api_v1_comparisons__lesson_id__explanation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lesson_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attempts_api_v1_me_comparisons__lesson_id__attempts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lesson_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonAttemptSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attempt_api_v1_me_comparisons__lesson_id__attempts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lesson_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComparisonAttemptIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonAttemptOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_attempt_api_v1_me_comparisons_attempts__attempt_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonAttemptOut"];
                 };
             };
             /** @description Missing, invalid, expired or revoked access token */

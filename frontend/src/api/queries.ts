@@ -769,6 +769,18 @@ export function useWhiteboardPrompts() {
   return useQuery({ queryKey: ["me", "whiteboard", "prompts"], queryFn: api.whiteboardPrompts, staleTime: 5 * 60_000 });
 }
 
+export function useSampleLessons() {
+  return useQuery({ queryKey: ["sample-lessons"], queryFn: api.sampleLessons, staleTime: 5 * 60_000 });
+}
+
+export function useSampleLesson(id: string) {
+  return useQuery({ queryKey: ["sample-lessons", id], queryFn: () => api.sampleLesson(id), staleTime: 5 * 60_000 });
+}
+
+export function useSampleReadings(id: string) {
+  return useQuery({ queryKey: ["me", "sample-lessons", "readings", id], queryFn: () => api.sampleReadings(id), staleTime: 0 });
+}
+
 export function useWorkSamples() {
   return useQuery({ queryKey: ["work-samples"], queryFn: api.workSamples, staleTime: 5 * 60_000 });
 }

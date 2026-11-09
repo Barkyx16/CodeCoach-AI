@@ -1,0 +1,143 @@
+{
+  "id": "cmp-specific-evidence",
+  "version": 1,
+  "title": "Specific evidence or general claims?",
+  "teaching_goal": "Notice the difference between saying you have a quality and showing what you did.",
+  "question": "Tell me about a time you disagreed with a colleague about how to do something.",
+  "rubric": [
+    {
+      "id": "situation",
+      "label": "A real, specific situation"
+    },
+    {
+      "id": "action",
+      "label": "What you did, step by step"
+    },
+    {
+      "id": "result",
+      "label": "What changed, and how you know"
+    }
+  ],
+  "kind": "clear",
+  "samples": [
+    {
+      "id": "A",
+      "label": "Answer A",
+      "sentences": [
+        {
+          "id": "a1",
+          "text": "I'm a strong communicator, so disagreements don't usually last long with me."
+        },
+        {
+          "id": "a2",
+          "text": "Once a colleague and I disagreed about a project approach."
+        },
+        {
+          "id": "a3",
+          "text": "I listened to their side and explained mine, and we found a solution together."
+        },
+        {
+          "id": "a4",
+          "text": "In the end it worked out well and we learned a lot from each other."
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "label": "Answer B",
+      "sentences": [
+        {
+          "id": "b1",
+          "text": "On a team at a fictional delivery company, a colleague wanted to launch a new route-planning tool to all drivers at once."
+        },
+        {
+          "id": "b2",
+          "text": "I thought a two-week trial with one depot was safer, because the old tool had failed on rural addresses."
+        },
+        {
+          "id": "b3",
+          "text": "I asked for 20 minutes with her and brought three examples of failed rural deliveries from the last month."
+        },
+        {
+          "id": "b4",
+          "text": "We agreed to trial it at one depot first; the trial found the same rural-address problem, which was fixed before the wider launch."
+        }
+      ]
+    }
+  ],
+  "explanation": {
+    "summary": "Answer B lets an interviewer see the disagreement, what the speaker did and what came of it. Answer A says the right things about itself, but almost nothing an interviewer could check or follow up.",
+    "samples": {
+      "A": {
+        "strengths": [
+          {
+            "sentences": [
+              "a3"
+            ],
+            "criterion": "action",
+            "why": "Listening and explaining is a reasonable approach, and it's named."
+          }
+        ],
+        "gaps": [
+          {
+            "sentences": [
+              "a1"
+            ],
+            "criterion": "situation",
+            "why": "A claim about yourself isn't evidence; the rest of the answer has to show it."
+          },
+          {
+            "sentences": [
+              "a2",
+              "a4"
+            ],
+            "criterion": "result",
+            "why": "No details of what the disagreement was or what changed, so there's nothing to judge."
+          }
+        ],
+        "uncertain": "It could be a true story told too briefly. A follow-up question would be needed to know."
+      },
+      "B": {
+        "strengths": [
+          {
+            "sentences": [
+              "b1",
+              "b2"
+            ],
+            "criterion": "situation",
+            "why": "The disagreement and the reason for it are concrete."
+          },
+          {
+            "sentences": [
+              "b3"
+            ],
+            "criterion": "action",
+            "why": "Specific actions: asked for time, brought examples."
+          },
+          {
+            "sentences": [
+              "b4"
+            ],
+            "criterion": "result",
+            "why": "A result that can be checked: the trial found the problem before launch."
+          }
+        ],
+        "gaps": [
+          {
+            "sentences": [],
+            "criterion": "result",
+            "why": "It doesn't say how the working relationship went afterwards, which an interviewer might ask."
+          }
+        ],
+        "uncertain": "Whether the colleague agreed willingly isn't said."
+      }
+    },
+    "preferred": "B",
+    "alternatives": "Shorter answers can be fine when asked for one; what matters is that each sentence gives something checkable, not the length."
+  },
+  "next_step": {
+    "to": "/drills",
+    "label": "Try a communication drill"
+  },
+  "review_status": "Written for practice with fictional details; checked for consistency, not reviewed by an outside interviewer."
+}

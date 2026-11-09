@@ -66,6 +66,8 @@ const DrillPage = lazy(() => import("@/features/drills/DrillPage").then((m) => (
 const DrillsPage = lazy(() => import("@/features/drills/DrillsPage").then((m) => ({ default: m.DrillsPage })));
 const ReflectionPage = lazy(() => import("@/features/reflections/ReflectionPage").then((m) => ({ default: m.ReflectionPage })));
 const ReflectionsPage = lazy(() => import("@/features/reflections/ReflectionsPage").then((m) => ({ default: m.ReflectionsPage })));
+const SampleLessonList = lazy(() => import("@/features/sampleLessons/SampleLessonList").then((m) => ({ default: m.SampleLessonList })));
+const CompareSamplesPage = lazy(() => import("@/features/sampleLessons/CompareSamplesPage").then((m) => ({ default: m.CompareSamplesPage })));
 const WorkSampleList = lazy(() => import("@/features/workSamples/WorkSampleList").then((m) => ({ default: m.WorkSampleList })));
 const WorkSamplePage = lazy(() => import("@/features/workSamples/WorkSamplePage").then((m) => ({ default: m.WorkSamplePage })));
 const TestDesignPage = lazy(() => import("@/features/testDesign/TestDesignPage").then((m) => ({ default: m.TestDesignPage })));
@@ -156,6 +158,8 @@ export const routes: RouteObject[] = [
       { path: "/test-design/:slug", element: <RequireAuth><TestDesignPage /></RequireAuth> },
       { path: "/work-samples", element: <RequireAuth><WorkSampleList /></RequireAuth> },
       { path: "/work-samples/:briefId", element: <RequireAuth><WorkSamplePage /></RequireAuth> },
+      { path: "/compare", element: <RequireAuth><SampleLessonList /></RequireAuth> },
+      { path: "/compare/:lessonId", element: <RequireAuth><CompareSamplesPage /></RequireAuth> },
       { path: "/applications/:id", element: <RequireAuth><ApplicationPage /></RequireAuth> },
       { path: "/applications/:id/events/:eventId/kit", element: <RequireAuth><KitPage /></RequireAuth> },
       { path: "/stories/new", element: <RequireAuth><StoryEditorPage /></RequireAuth> },

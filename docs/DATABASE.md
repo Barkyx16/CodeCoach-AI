@@ -332,6 +332,14 @@ The briefs are files (`backend/app/seed/worksamples`, docs/WORK_SAMPLES.md), not
   and brief: `brief_version`, `snapshot` (JSON: the brief it was written against, its reference),
   `sections`, `feedback` (JSON), `revision_of` (the attempt it revises), `created_at`. Never updated.
 
+### Sample-answer comparisons
+The lessons are files (`backend/app/seed/comparisons`, docs/COMPARE_ANSWERS.md), not rows. Unsent
+marks live only on the device; there's no server draft.
+- `comparison_attempts`: each reading sent (cascade with the account), indexed by user and lesson:
+  `lesson_version`, `snapshot` (JSON: the question, rubric, samples and explanation it was made
+  against), `selections` (JSON: sample, sentence, the quoted text, strength or gap, the reason),
+  `choice` (an answer id or null), `feedback` (JSON), `revealed_early`, `created_at`. Never updated.
+
 ### Restores
 - `import_batches`: one per restore (cascade with the account): `file_sha256` (to recognise the
   same file; the file itself isn't stored), `export_version`, `categories`, `status`
@@ -442,6 +450,7 @@ The briefs are files (`backend/app/seed/worksamples`, docs/WORK_SAMPLES.md), not
 | `5b7e2c9d4a10` code-review practice | Adds `code_review_drafts` (one per user and exercise) and `code_review_attempts`, both cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
 | `8e4b1d7c2f60` test design runs | Adds `test_design_runs`, cascading with the user; not under row-level security (claimed by the judge worker, like submissions) |
 | `c4a9e2f71b35` work samples | Adds `work_sample_drafts` and `work_sample_attempts`, cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
+| `e7b3c1d9a842` comparison attempts | Adds `comparison_attempts`, cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

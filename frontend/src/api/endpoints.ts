@@ -154,6 +154,12 @@ import type {
   TestDesignSummary,
   TestDesignVariant,
   WorkSampleAttempt,
+  ComparisonAttempt,
+  ComparisonAttemptSummary,
+  ComparisonExplanation,
+  ComparisonLesson,
+  ComparisonSelectionIn,
+  ComparisonSummary,
   WorkSampleAttemptSummary,
   WorkSampleBrief,
   WorkSampleDraft,
@@ -624,6 +630,15 @@ export const api = {
     apiRequest<WorkSampleAttempt>(`/api/v1/me/work-samples/${encodeURIComponent(id)}/attempts`, { method: "POST", body }),
   workSampleAttempts: (id: string) => apiRequest<WorkSampleAttemptSummary[]>(`/api/v1/me/work-samples/${encodeURIComponent(id)}/attempts`),
   workSampleAttempt: (attemptId: string) => apiRequest<WorkSampleAttempt>(`/api/v1/me/work-samples/attempts/${encodeURIComponent(attemptId)}`),
+
+  // sample-answer comparisons (lessons and explanations are public; your readings are yours)
+  sampleLessons: () => apiRequest<ComparisonSummary[]>("/api/v1/comparisons", { auth: false }),
+  sampleLesson: (id: string) => apiRequest<ComparisonLesson>(`/api/v1/comparisons/${encodeURIComponent(id)}`, { auth: false }),
+  sampleLessonExplanation: (id: string) => apiRequest<ComparisonExplanation>(`/api/v1/comparisons/${encodeURIComponent(id)}/explanation`, { auth: false }),
+  sendSampleReading: (id: string, body: { selections: ComparisonSelectionIn[]; choice: string | null; revealed_early: boolean }) =>
+    apiRequest<ComparisonAttempt>(`/api/v1/me/comparisons/${encodeURIComponent(id)}/attempts`, { method: "POST", body }),
+  sampleReadings: (id: string) => apiRequest<ComparisonAttemptSummary[]>(`/api/v1/me/comparisons/${encodeURIComponent(id)}/attempts`),
+  sampleReading: (attemptId: string) => apiRequest<ComparisonAttempt>(`/api/v1/me/comparisons/attempts/${encodeURIComponent(attemptId)}`),
 
   // interview-day kits
   kit: (appId: string, eventId: string) => apiRequest<Kit>(`/api/v1/me/applications/${encodeURIComponent(appId)}/events/${encodeURIComponent(eventId)}/kit`),

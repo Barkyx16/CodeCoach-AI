@@ -364,3 +364,23 @@ fieldset.field { border: none; padding: 0; margin: 0; }
 .ws-quote { font-style: italic; overflow-wrap: anywhere; }
 .ws-points { margin: 0; padding-left: 1.25rem; }
 .ws-flags { border-left: 3px solid var(--color-warning); }
+
+/* Compare sample answers (features/sampleLessons): samples side by side on wide screens, one at a
+ * time on narrow ones; marks are words and pressed buttons, never colour alone. */
+.cmp-samples { display: grid; gap: var(--space-4); align-items: start; grid-template-columns: minmax(0, 1fr); }
+.cmp-samples > * { min-width: 0; }
+@media (min-width: 900px) { .cmp-samples { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); } }
+.cmp-sample__toggle { all: unset; cursor: pointer; display: inline-flex; flex-wrap: wrap; gap: var(--space-1); align-items: baseline; }
+.cmp-sample__chevron { display: inline-block; width: 1em; }
+.cmp-sample__toggle:focus-visible { box-shadow: var(--focus-ring); border-radius: 4px; }
+.cmp-sentences { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-3); }
+.cmp-sentences[hidden] { display: none; }
+.cmp-sentence { display: grid; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-left: 3px solid transparent; border-radius: 4px; }
+.cmp-sentence.is-strength { border-left-color: var(--color-success); }
+.cmp-sentence.is-gap { border-left-color: var(--color-warning); border-left-style: dashed; }
+.cmp-sentence__text, .cmp-question, .cmp-text, .cmp-quote, .cmp-quote-inline { overflow-wrap: anywhere; white-space: pre-wrap; }
+.cmp-sentence__marks { flex-wrap: wrap; }
+.cmp-choice { flex-wrap: wrap; border: 0; padding: 0; margin: 0; }
+.cmp-quote { margin: 0; padding-left: var(--space-3); border-left: 3px solid var(--color-border); font-style: italic; }
+.cmp-quote-inline { font-style: italic; margin-right: var(--space-1); }
+.cmp-results { margin: 0; padding: 0; list-style: none; }

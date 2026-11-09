@@ -138,6 +138,17 @@ export const HELP_TOPICS: HelpTopic[] = [
     ],
   },
   {
+    id: "compare-samples",
+    title: "Compare sample answers",
+    items: [
+      {
+        q: "How do sample-answer lessons work?",
+        a: "Each lesson shows one interview question and two made-up answers with neutral labels. Mark the sentences that help or hurt an answer, using the Strength and Gap buttons (they work from the keyboard), and write a short reason for each. Then compare with an authored explanation tied to what interviewers look for: it quotes the exact text you read, says what each answer supports and what stays uncertain, and names other good ways to answer. Picking a better answer is optional, and some lessons have no single best one. A reason that differs from the explanation is shown side by side, not marked wrong. You can read the explanation early; your reading then says so. Feedback is fixed rules, not AI, and nothing here changes your plan or scores.",
+        links: [{ to: "/compare", label: "Compare sample answers" }],
+      },
+    ],
+  },
+  {
     id: "getting-around",
     title: "Getting around",
     items: [

@@ -1,0 +1,138 @@
+{
+  "id": "cmp-tradeoffs",
+  "version": 1,
+  "title": "Two different strengths",
+  "teaching_goal": "See that two answers can both be good in different ways, and say what each one gives up.",
+  "question": "A customer calls, angry that their order is three days late. What do you do?",
+  "rubric": [
+    {
+      "id": "acknowledge",
+      "label": "Acknowledges the customer's experience"
+    },
+    {
+      "id": "resolve",
+      "label": "A concrete next step and when it happens"
+    },
+    {
+      "id": "ownership",
+      "label": "Takes ownership without blaming"
+    }
+  ],
+  "kind": "tradeoff",
+  "samples": [
+    {
+      "id": "A",
+      "label": "Answer A",
+      "sentences": [
+        {
+          "id": "a1",
+          "text": "First I'd let them explain fully, without interrupting, because they need to feel heard before anything else lands."
+        },
+        {
+          "id": "a2",
+          "text": "I'd say I'm sorry it's late and that I understand how frustrating it is when you've planned around a delivery."
+        },
+        {
+          "id": "a3",
+          "text": "Then I'd look up the order while they're on the line and tell them what I can see."
+        },
+        {
+          "id": "a4",
+          "text": "I'd promise to call back by the end of the day with a firm date."
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "label": "Answer B",
+      "sentences": [
+        {
+          "id": "b1",
+          "text": "I'd apologise once and go straight to the order."
+        },
+        {
+          "id": "b2",
+          "text": "If the courier shows a new date, I'd give it to them and send it by text so they have it in writing."
+        },
+        {
+          "id": "b3",
+          "text": "If there's no date, I'd offer a replacement sent by next-day delivery or a refund, and let them choose."
+        },
+        {
+          "id": "b4",
+          "text": "Either way they'd leave the call with a decision made, not a promise to call back."
+        }
+      ]
+    }
+  ],
+  "explanation": {
+    "summary": "Both answers would help this customer, in different ways. A puts the customer's feelings first and is careful not to over-promise; B gets to a decision quickly and gives the customer a choice. Neither is the one right answer.",
+    "samples": {
+      "A": {
+        "strengths": [
+          {
+            "sentences": [
+              "a1",
+              "a2"
+            ],
+            "criterion": "acknowledge",
+            "why": "Lets the customer be heard and names the frustration specifically."
+          },
+          {
+            "sentences": [
+              "a3"
+            ],
+            "criterion": "ownership",
+            "why": "Looks it up on the call instead of passing it on."
+          }
+        ],
+        "gaps": [
+          {
+            "sentences": [
+              "a4"
+            ],
+            "criterion": "resolve",
+            "why": "The customer leaves without a date; a callback is a promise they have to wait on."
+          }
+        ],
+        "uncertain": "Whether the callback happens on time decides how this answer lands; the answer can't show that."
+      },
+      "B": {
+        "strengths": [
+          {
+            "sentences": [
+              "b2",
+              "b3"
+            ],
+            "criterion": "resolve",
+            "why": "Concrete options with timing, and the customer chooses."
+          },
+          {
+            "sentences": [
+              "b4"
+            ],
+            "criterion": "resolve",
+            "why": "A decision on the call, not a follow-up."
+          }
+        ],
+        "gaps": [
+          {
+            "sentences": [
+              "b1"
+            ],
+            "criterion": "acknowledge",
+            "why": "A single quick apology may feel rushed to someone who is angry."
+          }
+        ],
+        "uncertain": "Whether the speaker can offer a replacement or refund depends on what the company allows; the answer assumes it."
+      }
+    },
+    "preferred": null,
+    "alternatives": "Many good answers mix the two: a little more acknowledgement than B, a firmer next step than A. Choosing either and saying why is a good answer to this exercise."
+  },
+  "next_step": {
+    "to": "/drills",
+    "label": "Try a communication drill"
+  },
+  "review_status": "Written for practice with fictional details; checked for consistency, not reviewed by an outside interviewer."
+}

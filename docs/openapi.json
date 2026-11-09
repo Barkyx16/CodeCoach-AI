@@ -12704,6 +12704,360 @@
         }
       }
     },
+    "/api/v1/comparisons": {
+      "get": {
+        "tags": [
+          "comparisons"
+        ],
+        "summary": "Sample-answer comparison lessons",
+        "operationId": "lessons_api_v1_comparisons_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ComparisonSummary"
+                  },
+                  "type": "array",
+                  "title": "Response Lessons Api V1 Comparisons Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comparisons/{lesson_id}": {
+      "get": {
+        "tags": [
+          "comparisons"
+        ],
+        "summary": "One lesson: the question, rubric and samples (not the explanation)",
+        "operationId": "lesson_api_v1_comparisons__lesson_id__get",
+        "parameters": [
+          {
+            "name": "lesson_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Lesson Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComparisonLesson"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comparisons/{lesson_id}/explanation": {
+      "get": {
+        "tags": [
+          "comparisons"
+        ],
+        "summary": "The authored explanation (a deliberate reveal)",
+        "operationId": "explanation_api_v1_comparisons__lesson_id__explanation_get",
+        "parameters": [
+          {
+            "name": "lesson_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Lesson Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Explanation Api V1 Comparisons  Lesson Id  Explanation Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/comparisons/{lesson_id}/attempts": {
+      "post": {
+        "tags": [
+          "comparisons"
+        ],
+        "summary": "Send your reading and compare it with the explanation",
+        "operationId": "attempt_api_v1_me_comparisons__lesson_id__attempts_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "lesson_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Lesson Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComparisonAttemptIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComparisonAttemptOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "comparisons"
+        ],
+        "summary": "Your readings of this lesson",
+        "operationId": "attempts_api_v1_me_comparisons__lesson_id__attempts_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "lesson_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Lesson Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ComparisonAttemptSummary"
+                  },
+                  "title": "Response Attempts Api V1 Me Comparisons  Lesson Id  Attempts Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/comparisons/attempts/{attempt_id}": {
+      "get": {
+        "tags": [
+          "comparisons"
+        ],
+        "summary": "One reading, with the samples and explanation as they were",
+        "operationId": "get_attempt_api_v1_me_comparisons_attempts__attempt_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Attempt Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComparisonAttemptOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/schedule": {
       "get": {
         "tags": [
@@ -21445,6 +21799,380 @@
           "score_change"
         ],
         "title": "Comparison"
+      },
+      "ComparisonAttemptIn": {
+        "properties": {
+          "selections": {
+            "items": {
+              "$ref": "#/components/schemas/ComparisonSelectionIn"
+            },
+            "type": "array",
+            "maxItems": 12,
+            "minItems": 1,
+            "title": "Selections"
+          },
+          "choice": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 8
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Choice"
+          },
+          "revealed_early": {
+            "type": "boolean",
+            "title": "Revealed Early",
+            "description": "The explanation was opened before this was sent",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "selections"
+        ],
+        "title": "ComparisonAttemptIn"
+      },
+      "ComparisonAttemptOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "lesson_id": {
+            "type": "string",
+            "title": "Lesson Id"
+          },
+          "lesson_version": {
+            "type": "integer",
+            "title": "Lesson Version"
+          },
+          "current_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Version"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "samples": {
+            "items": {
+              "$ref": "#/components/schemas/ComparisonSample"
+            },
+            "type": "array",
+            "title": "Samples",
+            "description": "As they were when this attempt was made"
+          },
+          "rubric": {
+            "items": {
+              "$ref": "#/components/schemas/ComparisonRubricItem"
+            },
+            "type": "array",
+            "title": "Rubric"
+          },
+          "selections": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Selections"
+          },
+          "choice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Choice"
+          },
+          "feedback": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Feedback"
+          },
+          "explanation": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Explanation"
+          },
+          "revealed_early": {
+            "type": "boolean",
+            "title": "Revealed Early"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "lesson_id",
+          "lesson_version",
+          "current_version",
+          "title",
+          "question",
+          "samples",
+          "rubric",
+          "selections",
+          "choice",
+          "feedback",
+          "explanation",
+          "revealed_early",
+          "created_at"
+        ],
+        "title": "ComparisonAttemptOut"
+      },
+      "ComparisonAttemptSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "lesson_version": {
+            "type": "integer",
+            "title": "Lesson Version"
+          },
+          "selections": {
+            "type": "integer",
+            "title": "Selections"
+          },
+          "matches": {
+            "type": "integer",
+            "title": "Matches"
+          },
+          "revealed_early": {
+            "type": "boolean",
+            "title": "Revealed Early"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "lesson_version",
+          "selections",
+          "matches",
+          "revealed_early",
+          "created_at"
+        ],
+        "title": "ComparisonAttemptSummary"
+      },
+      "ComparisonLesson": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "teaching_goal": {
+            "type": "string",
+            "title": "Teaching Goal"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "rubric": {
+            "items": {
+              "$ref": "#/components/schemas/ComparisonRubricItem"
+            },
+            "type": "array",
+            "title": "Rubric"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "clear",
+              "tradeoff"
+            ],
+            "title": "Kind",
+            "description": "tradeoff: no single best answer, so no choice is asked"
+          },
+          "samples": {
+            "items": {
+              "$ref": "#/components/schemas/ComparisonSample"
+            },
+            "type": "array",
+            "title": "Samples"
+          },
+          "next_step": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Next Step"
+          },
+          "review_status": {
+            "type": "string",
+            "title": "Review Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "version",
+          "title",
+          "teaching_goal",
+          "question",
+          "rubric",
+          "kind",
+          "samples",
+          "next_step",
+          "review_status"
+        ],
+        "title": "ComparisonLesson",
+        "description": "The question and the samples, before any reveal: no explanation."
+      },
+      "ComparisonRubricItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "ComparisonRubricItem"
+      },
+      "ComparisonSample": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "sentences": {
+            "items": {
+              "$ref": "#/components/schemas/ComparisonSentence"
+            },
+            "type": "array",
+            "title": "Sentences"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "sentences"
+        ],
+        "title": "ComparisonSample"
+      },
+      "ComparisonSelectionIn": {
+        "properties": {
+          "sample": {
+            "type": "string",
+            "maxLength": 8,
+            "title": "Sample"
+          },
+          "sentence": {
+            "type": "string",
+            "maxLength": 16,
+            "title": "Sentence"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "strength",
+              "gap"
+            ],
+            "title": "Kind"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 600,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sample",
+          "sentence",
+          "kind",
+          "reason"
+        ],
+        "title": "ComparisonSelectionIn"
+      },
+      "ComparisonSentence": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "text"
+        ],
+        "title": "ComparisonSentence"
+      },
+      "ComparisonSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "teaching_goal": {
+            "type": "string",
+            "title": "Teaching Goal"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "teaching_goal"
+        ],
+        "title": "ComparisonSummary"
       },
       "Complexity": {
         "properties": {
@@ -39096,6 +39824,10 @@
     {
       "name": "work samples",
       "description": "Write a short professional artifact (an incident update, a customer explanation, a handoff note) from a fictional brief, checked against the facts it supplies. Nothing is sent anywhere."
+    },
+    {
+      "name": "comparisons",
+      "description": "Compare authored sample answers: mark excerpts as strengths or gaps with a reason, then reveal an explanation tied to the rubric. Fictional samples written for teaching."
     },
     {
       "name": "backup",

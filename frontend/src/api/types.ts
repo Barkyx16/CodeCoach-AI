@@ -271,6 +271,31 @@ export interface WorkSampleFeedback {
   revision: string;
   method: string;
 }
+export type ComparisonSummary = S["ComparisonSummary"];
+export type ComparisonLesson = S["ComparisonLesson"];
+export type ComparisonAttempt = S["ComparisonAttemptOut"];
+export type ComparisonAttemptSummary = S["ComparisonAttemptSummary"];
+export type ComparisonSelectionIn = S["ComparisonSelectionIn"];
+/** The authored explanation of a comparison lesson (app/seed/comparisons). */
+export interface ComparisonExplanation {
+  summary: string;
+  samples: Record<string, {
+    strengths: { sentences: string[]; criterion: string; why: string }[];
+    gaps: { sentences: string[]; criterion: string; why: string }[];
+    uncertain: string;
+  }>;
+  preferred: string | null;
+  alternatives: string;
+}
+/** How a reading compared (app/comparisons/feedback.py). */
+export interface ComparisonFeedback {
+  rules_version: number;
+  selections: (ComparisonSelectionIn & { quote: string; status: "matches" | "differs" | "not_covered"; note: string; explanation_why: string | null })[];
+  counts: { matches: number; differs: number; not_covered: number };
+  choice: string | null;
+  choice_note: string;
+  method: string;
+}
 /** The comparison stored with an attempt (app/reviews/feedback.py). */
 export interface ReviewFeedback {
   rubric_version: number;

@@ -36,6 +36,7 @@ export function localWorkKeys(userId: string): string[] {
     `code-review-draft:${userId}:`,
     `test-design-draft:${userId}:`,
     `work-sample-draft:${userId}:`,
+    `compare-draft:${userId}:`,
     `codecoach.appnotes.v1.${userId}.`,
     "codecoach.round.",
     "codecoach.interview-message.",

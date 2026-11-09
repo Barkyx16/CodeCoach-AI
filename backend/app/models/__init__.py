@@ -1393,6 +1393,26 @@ class CodeReviewAttempt(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
 
+class ComparisonAttempt(Base):
+    """A learner's reading of a sample-answer comparison (docs/COMPARE_ANSWERS.md): the excerpts
+    they marked, with reasons, an optional choice, a snapshot of the samples and explanation they
+    were compared with, and the comparison. Never changed afterwards."""
+
+    __tablename__ = "comparison_attempts"
+    __table_args__ = (Index("ix_comparison_user_lesson", "user_id", "lesson_id"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    lesson_id: Mapped[str] = mapped_column(String(64))
+    lesson_version: Mapped[int] = mapped_column(Integer)
+    snapshot: Mapped[dict] = mapped_column(JSONType)
+    selections: Mapped[list] = mapped_column(JSONType)
+    choice: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    feedback: Mapped[dict] = mapped_column(JSONType)
+    revealed_early: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
 class WorkSampleDraft(Base):
     """A work sample in progress for one brief (docs/WORK_SAMPLES.md): the text of each section,
     saved against a revision like the other long-form editors."""

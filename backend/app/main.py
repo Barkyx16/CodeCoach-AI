@@ -18,6 +18,7 @@ from app.api.routes import (
     auth,
     careers,
     code_reviews,
+    comparisons,
     content,
     drills,
     explore,
@@ -132,6 +133,11 @@ TAGS = [
         "name": "work samples",
         "description": "Write a short professional artifact (an incident update, a customer explanation, a handoff note) "
         "from a fictional brief, checked against the facts it supplies. Nothing is sent anywhere.",
+    },
+    {
+        "name": "comparisons",
+        "description": "Compare authored sample answers: mark excerpts as strengths or gaps with a reason, then reveal "
+        "an explanation tied to the rubric. Fictional samples written for teaching.",
     },
     {
         "name": "backup",
@@ -317,6 +323,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         code_reviews.router,
         test_design.router,
         work_samples.router,
+        comparisons.router,
         schedule.router,
         submissions.router,
         ai.router,

@@ -35,6 +35,7 @@ from app.models import (
 from app.services.answer_review import AnswerReview
 from app.services.applications import Applications
 from app.services.code_reviews import CodeReviews
+from app.services.comparisons import Comparisons
 from app.services.drills import Drills
 from app.services.kits import Kits
 from app.services.onboarding import Onboarding
@@ -430,6 +431,8 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
         "test_design_runs": TestDesign(db, user).export(),
         # Work samples: drafts, and each artifact sent for feedback with the brief version.
         "work_samples": WorkSamples(db, user).export(),
+        # Sample-answer comparisons: the excerpts you marked, your reasons and what they matched.
+        "comparisons": Comparisons(db, user).export(),
         # Private reflections on real interviews, with the next steps you accepted or dismissed.
         "interview_reflections": Reflections(db, user).export(with_ids=with_ids),
         # Restores you made from backup files (what each added and, if removed, what it kept).
