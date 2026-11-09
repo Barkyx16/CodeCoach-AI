@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
@@ -27,6 +27,8 @@ import { VersionConflict } from "@/components/VersionConflict";
 import { FormDraftOffer, FormDraftStatus } from "@/components/FormDraftNotice";
 import { formDraftKey, isTextForm, useFormDraft } from "@/hooks/useFormDraft";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
+import { ControlField } from "@/components/FieldErrors";
+import { invalidProps, useFieldErrors } from "@/hooks/useFieldErrors";
 
 export function ApplicationPage() {
   const { id = "" } = useParams();
@@ -248,6 +250,9 @@ function EventForm({ a, event, onDone }: { a: Application; event: ApplicationEve
   );
 }
 
+/** The details a save can refuse field by field (the notes have their own conflict handling). */
+const DETAIL_FIELDS = ["role_title", "employer", "link", "applied_on", "next_action", "next_action_due"] as const;
+
 /** This browser's unsaved private notes for one application, with the revision they were edited
  * from (Volume 8, prompt 5). Kept per account: another account never reads them. */
 const notesDraftKey = (userId: string, appId: string) => `codecoach.appnotes.v1.${userId}.${appId}`;
@@ -269,6 +274,11 @@ function DetailsCard({ a, onDone }: { a: Application; onDone: (a: Application) =
   // when Save was pressed, so "typed while saving" has to be read from here.
   const latest = useRef(form);
   useEffect(() => { latest.current = form; }, [form]);
+  // A refused save's field errors, shown beside the fields while they still hold the refused
+  // values (Volume 9, prompt 3).
+  const errId = useCallback((k: string) => `app-${a.id}-${k}`, [a.id]);
+  const fieldErrors = useFieldErrors(DETAIL_FIELDS, form, { ids: errId });
+  const err = (k: (typeof DETAIL_FIELDS)[number]) => fieldErrors.errorFor(k);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   // What the server last accepted: "Saved." only while the form still says exactly that, so a slow
@@ -318,6 +328,7 @@ function DetailsCard({ a, onDone }: { a: Application; onDone: (a: Application) =
     e?.preventDefault();
     setBusy(true);
     setError(null);
+    fieldErrors.clear();
     const sentForm = form;
     const sent = JSON.stringify(sentForm);
     const base = over ?? notesSaved.revision;
@@ -340,6 +351,7 @@ function DetailsCard({ a, onDone }: { a: Application; onDone: (a: Application) =
       }
       onDone(next);
       setAcceptedFields(fieldsOf(sentForm));
+      fieldErrors.clear();
       fieldsDraft.accepted(fieldsOnly(sentForm), fieldsOnly(latest.current));
       setNotesSaved({ text: next.notes, revision: next.notes_revision });
       setConflict(null);
@@ -352,6 +364,8 @@ function DetailsCard({ a, onDone }: { a: Application; onDone: (a: Application) =
         const d = err.details as { current: string; current_revision: number };
         setEarlierSave(null);
         setConflict({ notes: d.current, revision: d.current_revision });
+      } else if (fieldErrors.rejected(err, sentForm)) {
+        // shown beside the fields it names
       } else {
         setError(err);
       }
@@ -372,12 +386,12 @@ function DetailsCard({ a, onDone }: { a: Application; onDone: (a: Application) =
     <form className="card stack-sm" aria-label="Details" onSubmit={(e) => void submit(e)}>
       <h2 className="section-title">Details</h2>
       <div className="app-form__grid">
-        <label className="field"><span className="field__label">Role title</span><input className="input" required maxLength={120} value={form.role_title} onChange={(e) => set("role_title", e.target.value)} /></label>
-        <label className="field"><span className="field__label">Employer</span><input className="input" required maxLength={120} value={form.employer} onChange={(e) => set("employer", e.target.value)} /></label>
-        <label className="field"><span className="field__label">Applied on</span><input className="input" type="date" value={form.applied_on} onChange={(e) => set("applied_on", e.target.value)} /></label>
-        <label className="field"><span className="field__label">Link to the posting</span><input className="input" type="url" maxLength={500} value={form.link} onChange={(e) => set("link", e.target.value)} placeholder="https://" /></label>
-        <label className="field"><span className="field__label">Next action</span><input className="input" maxLength={300} value={form.next_action} onChange={(e) => set("next_action", e.target.value)} /></label>
-        <label className="field"><span className="field__label">Next action due</span><input className="input" type="date" value={form.next_action_due} onChange={(e) => set("next_action_due", e.target.value)} /></label>
+        <ControlField id={errId("role_title")} label="Role title" error={err("role_title")}><input className="input" id={errId("role_title")} {...invalidProps(`${errId("role_title")}-error`, err("role_title"))} required maxLength={120} value={form.role_title} onChange={(e) => set("role_title", e.target.value)} /></ControlField>
+        <ControlField id={errId("employer")} label="Employer" error={err("employer")}><input className="input" id={errId("employer")} {...invalidProps(`${errId("employer")}-error`, err("employer"))} required maxLength={120} value={form.employer} onChange={(e) => set("employer", e.target.value)} /></ControlField>
+        <ControlField id={errId("applied_on")} label="Applied on" error={err("applied_on")}><input className="input" id={errId("applied_on")} {...invalidProps(`${errId("applied_on")}-error`, err("applied_on"))} type="date" value={form.applied_on} onChange={(e) => set("applied_on", e.target.value)} /></ControlField>
+        <ControlField id={errId("link")} label="Link to the posting" error={err("link")}><input className="input" id={errId("link")} {...invalidProps(`${errId("link")}-error`, err("link"))} type="url" maxLength={500} value={form.link} onChange={(e) => set("link", e.target.value)} placeholder="https://" /></ControlField>
+        <ControlField id={errId("next_action")} label="Next action" error={err("next_action")}><input className="input" id={errId("next_action")} {...invalidProps(`${errId("next_action")}-error`, err("next_action"))} maxLength={300} value={form.next_action} onChange={(e) => set("next_action", e.target.value)} /></ControlField>
+        <ControlField id={errId("next_action_due")} label="Next action due" error={err("next_action_due")}><input className="input" id={errId("next_action_due")} {...invalidProps(`${errId("next_action_due")}-error`, err("next_action_due"))} type="date" value={form.next_action_due} onChange={(e) => set("next_action_due", e.target.value)} /></ControlField>
       </div>
       {a.link && <p className="subtle">Posting: {externalHref(a.link)
         ? <a href={externalHref(a.link)} target="_blank" rel="noopener noreferrer nofollow">{a.link}<span className="visually-hidden"> (opens in a new tab)</span></a>
@@ -413,6 +427,7 @@ function DetailsCard({ a, onDone }: { a: Application; onDone: (a: Application) =
       )}
       <FormDraftStatus changed={fieldsDirty} kept={fieldsDraft.kept} competing={fieldsDraft.competing}
         copyText={() => [form.role_title, form.employer, form.link, form.next_action].filter(Boolean).join("\n")} />
+      {fieldErrors.other.length > 0 && <p className="field__error" role="alert">{fieldErrors.other.join(" ")}</p>}
       <span className="row"><Button type="submit" size="sm" variant="primary" loading={busy}>Save details</Button>{savedAs === JSON.stringify(form) && <span className="subtle" role="status">Saved.</span>}</span>
     </form>
   );

@@ -12,7 +12,9 @@ import { matchCareers } from "./careerSearch";
  * chooses, Escape closes and keeps the job that was chosen, and the number of matches is
  * announced. Typing alone never changes the job: only choosing one does.
  */
-export function CareerSelect({ value, onChange, label = "Job you're preparing for", placeholder, hint, error, required }: {
+export function CareerSelect({ value, onChange, label = "Job you're preparing for", placeholder, hint, error, required, id: givenId }: {
+  /** The input's id, when something outside links to it (an error summary). */
+  id?: string;
   value: string;
   onChange(slug: string): void;
   label?: string;
@@ -21,7 +23,8 @@ export function CareerSelect({ value, onChange, label = "Job you're preparing fo
   error?: string;
   required?: boolean;
 }) {
-  const id = useId();
+  const autoId = useId();
+  const id = givenId ?? autoId;
   const listId = `${id}-list`;
   const optionId = (slug: string) => `${id}-option-${slug}`;
   const careers = useCareers();

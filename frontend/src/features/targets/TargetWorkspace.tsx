@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
@@ -12,7 +12,9 @@ import { Card } from "@/components/Card";
 import { Icon } from "@/components/Icon";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { useAuth } from "@/auth/useAuth";
+import { ErrorSummary, ControlField } from "@/components/FieldErrors";
 import { FormDraftOffer, FormDraftStatus } from "@/components/FormDraftNotice";
+import { invalidProps, useFieldErrors } from "@/hooks/useFieldErrors";
 import { formDraftKey, isTextForm, useFormDraft } from "@/hooks/useFormDraft";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { formatDateTime } from "@/lib/format";
@@ -319,6 +321,11 @@ function ExperienceForm({ t, entry, onDone }: { t: Target; entry: Experience | n
   );
 }
 
+const POSTING_FIELDS = ["title", "employer", "interview_date", "notes", "description"] as const;
+const POSTING_LABELS: Record<(typeof POSTING_FIELDS)[number], string> = {
+  title: "Role title", employer: "Employer", interview_date: "Interview date", notes: "Notes", description: "Job description",
+};
+
 function SourceSection({ t }: { t: Target }) {
   const [editing, setEditing] = useState(false);
   const saved = { title: t.title, employer: t.employer ?? "", description: t.description, interview_date: t.interview_date ?? "", notes: t.notes ?? "" };
@@ -336,6 +343,9 @@ function SourceSection({ t }: { t: Target }) {
     isForm: (v): v is typeof saved => isTextForm(v, ["title", "employer", "description", "interview_date", "notes"]),
     enabled: Boolean(user),
   });
+  const fid = useCallback((k: string) => `posting-${t.id}-${k}`, [t.id]);
+  const fieldErrors = useFieldErrors(POSTING_FIELDS, form, { ids: fid, summaryId: fid("errors") });
+  const err = (k: (typeof POSTING_FIELDS)[number]) => fieldErrors.errorFor(k);
   return (
     <Card className="stack">
       <h2 className="section-title">The posting</h2>
@@ -347,21 +357,26 @@ function SourceSection({ t }: { t: Target }) {
       {editing ? (
         <form className="stack" aria-label="Edit the posting" onSubmit={(e) => {
           e.preventDefault();
+          fieldErrors.clear();
           const sent = JSON.stringify(form);
+          const sentForm = form;
           // Closes only when nothing was typed while saving; otherwise the newer text stays open.
           update.mutate({ title: form.title, employer: form.employer || null, description: form.description, interview_date: form.interview_date || null, notes: form.notes || null },
             { onSuccess: () => {
               draft.accepted(JSON.parse(sent) as typeof saved, current.current);
               if (JSON.stringify(current.current) === sent) setEditing(false);
-            } });
+            },
+            onError: (error) => { fieldErrors.rejected(error, sentForm); } });
         }}>
-          <label className="field"><span className="field__label">Role title</span><input className="input" required maxLength={120} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
-          <label className="field"><span className="field__label">Employer</span><input className="input" maxLength={120} value={form.employer} onChange={(e) => setForm({ ...form, employer: e.target.value })} /></label>
-          <label className="field"><span className="field__label">Interview date</span><input className="input" type="date" value={form.interview_date} onChange={(e) => setForm({ ...form, interview_date: e.target.value })} /></label>
-          <label className="field"><span className="field__label">Notes</span><input className="input" maxLength={2000} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></label>
-          <label className="field"><span className="field__label">Job description</span><textarea className="input target-jd" rows={10} maxLength={20000} required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
+          <ErrorSummary id={fid("errors")} other={fieldErrors.other}
+            items={fieldErrors.active.map(({ name, message }) => ({ fieldId: fid(name), label: POSTING_LABELS[name], message }))} />
+          <ControlField id={fid("title")} label="Role title" error={err("title")}><input id={fid("title")} {...invalidProps(`${fid("title")}-error`, err("title"))} className="input" required maxLength={120} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></ControlField>
+          <ControlField id={fid("employer")} label="Employer" error={err("employer")}><input id={fid("employer")} {...invalidProps(`${fid("employer")}-error`, err("employer"))} className="input" maxLength={120} value={form.employer} onChange={(e) => setForm({ ...form, employer: e.target.value })} /></ControlField>
+          <ControlField id={fid("interview_date")} label="Interview date" error={err("interview_date")}><input id={fid("interview_date")} {...invalidProps(`${fid("interview_date")}-error`, err("interview_date"))} className="input" type="date" value={form.interview_date} onChange={(e) => setForm({ ...form, interview_date: e.target.value })} /></ControlField>
+          <ControlField id={fid("notes")} label="Notes" error={err("notes")}><input id={fid("notes")} {...invalidProps(`${fid("notes")}-error`, err("notes"))} className="input" maxLength={2000} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></ControlField>
+          <ControlField id={fid("description")} label="Job description" error={err("description")}><textarea id={fid("description")} {...invalidProps(`${fid("description")}-error`, err("description"))} className="input target-jd" rows={10} maxLength={20000} required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></ControlField>
           <p className="subtle">Saving keeps your requirements, edits and every attempt. Lines you remove are flagged on their requirement; use "Find requirements again" to add new ones.</p>
-          <InlineError error={update.error} />
+          {!fieldErrors.shown && <InlineError error={update.error} />}
           <FormDraftStatus changed={dirty} kept={draft.kept} competing={draft.competing} copyText={() => [form.title, form.employer, form.description, form.notes].filter(Boolean).join("\n\n")} />
           <div className="row"><Button type="submit" variant="primary" loading={update.isPending}>Save</Button><Button type="button" variant="ghost" onClick={() => { setForm(saved); setEditing(false); }}>Cancel</Button></div>
         </form>

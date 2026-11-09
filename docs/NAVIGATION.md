@@ -101,6 +101,36 @@ keystroke. One was the application's private notes (Volume 8, prompt 5); both no
 current form. And the notes' browser copy (`codecoach.appnotes.v1.…`) wasn't deleted at sign-out:
 it is now, and the test that scans the source for private keys now looks for "notes" too.
 
+### Field errors (Volume 9, prompt 3)
+
+When the server refuses a save of these four forms with a validation error (422
+`validation_error`), each error is shown beside the field it names (`hooks/useFieldErrors.ts`,
+`components/FieldErrors.tsx`):
+
+- **Beside the field:** the control gets `aria-invalid` and the message's id in
+  `aria-describedby`; the message is outside the label, so it's the control's description, not
+  part of its name. A group of choices (experience, formats, focus areas, confidence) carries its
+  message after its legend. Text says what's wrong and what to do: "Too long: use at most 2,000
+  characters.", "Not a date: choose a day, or leave it empty.", "This is required: fill it in.",
+  or the server's own sentence for a rule only it knows ("Links must start with https:// or
+  http://"). Colour isn't the only sign.
+- **Summary on the longer forms:** goals, a new target job and the posting editor show "This
+  wasn't saved. Check 2 fields:" with a link to each field (a link to a group of choices focuses
+  its first choice; one inside a closed section opens it). An error the server didn't tie to one
+  of the form's fields is listed there too. The application's details, a short form, put focus in
+  the first field in error instead, with untied errors in one line under the form.
+- **Focus:** the summary (or the first field) takes focus only while the form still holds exactly
+  what was sent. A refusal that arrives after the learner carried on typing doesn't pull them out
+  of their field.
+- **Only while it's still true:** an error is shown only while its field holds the value that was
+  refused. Edit the field and its error and its summary line go; the next save checks the new
+  value. Nothing typed is lost or replaced, before or during the save, and a retry sends what the
+  form holds now, never the refused copy.
+- **Not a field error:** offline, not allowed, a conflict, the server unavailable: shown as before
+  (one message, the recovery choices of RECOVERY.md), with no field marked. The vaguer "Request
+  validation failed" isn't shown next to field errors. The form stays unsaved: its browser copy
+  and its leave warning are unchanged.
+
 ## Tests
 
 - `frontend/src/test/integration/returnPaths.test.tsx` (12):
@@ -119,6 +149,16 @@ it is now, and the test that scans the source for private keys now looks for "no
   and expired copies; a refused write with Copy your work; another account; another tab's newer
   copy; a posting saved again since; details and notes typed while saving keep their copy.
   6 negative controls, each caught (one test strengthened after its control was missed).
+- `fieldErrors.test.tsx` (8): the wording of each common refusal and the server's own sentence;
+  errors tied to the form's fields, the first per field, the rest in the summary; a refused goals
+  save (errors beside two fields, linked by `aria-describedby`, the summary focused, the field's
+  name without the error, nothing lost, still unsaved and kept), a summary link by keyboard,
+  editing a field clears its error, the retry sends the edited value; a link to a group of choices
+  focuses its first choice; a new target job's refusal arriving after the title was edited again
+  (no old error on the title, focus stays, the other field's error shown, both edits kept); a 403
+  and a dropped connection mark no field; the posting editor stays open with its text and a
+  focused summary; an application's link that only the server refuses (`ftp://`), corrected and
+  saved. 6 negative controls, each caught.
 - `leaveWarnings.test.tsx` (8): for goals, a new target job, the posting editor and an
   application's details: an in-app exit asks and names what would be discarded; staying keeps
   every field; putting a field back asks nothing; a successful save moves on without asking; a
@@ -141,6 +181,15 @@ it is now, and the test that scans the source for private keys now looks for "no
 - **Leave warnings are not everywhere.** Inventoried here: the forms listed above ask. Still
   without one: the application message composer. The one-line form for adding a requirement to a
   target doesn't ask; what it would lose is one line.
+- **Field errors are on these four forms.** The account forms (sign in, create account, password
+  reset, Settings) keep their older helper (`features/auth/fieldErrors.ts`): errors beside their
+  fields in the server's wording, without a summary or the "only while the field holds the refused
+  value" rule. Other forms (stories, the application's events and messages) still show one
+  message for a refused save. Messages are in English, and a
+  rule the app hasn't worded is shown in the server's own words, made readable.
+- **The browser checks some values first.** Required fields, lengths, link and date formats stop
+  a save before it's sent, with the browser's own message; field errors cover what only the
+  server checks, and what reaches it anyway.
 - **An unexplained hang, seen once.** One run of the related browser specs hung two API reads for
   63 s, and then the next navigation was aborted. It didn't reproduce in four more runs of that test
   (two alone, two with the same specs), and the server logged nothing. It's recorded here, not explained.

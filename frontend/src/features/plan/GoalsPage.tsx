@@ -11,6 +11,8 @@ import { allowLeaveAfterSave, useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { formDraftKey, useFormDraft } from "@/hooks/useFormDraft";
 import { useAuth } from "@/auth/useAuth";
 import { FormDraftOffer, FormDraftStatus } from "@/components/FormDraftNotice";
+import { ErrorSummary, ControlField, FieldError } from "@/components/FieldErrors";
+import { invalidProps, useFieldErrors } from "@/hooks/useFieldErrors";
 
 const EXPERIENCE = [
   { id: "new", label: "New to the field", hint: "Starting with easy questions" },
@@ -22,6 +24,15 @@ const WEEKLY = [30, 60, 90, 120, 180];
 const MAX_FOCUS = 8;
 type Format = NonNullable<GoalsInput["formats"]>[number];
 const FORMATS: Format[] = ["written", "voice", "coding"];
+/** What a refused save can name, in the form's order, with where each one is (Volume 9, prompt 3). */
+const GOAL_FIELDS = ["specialty", "experience", "target_date", "weekly_minutes", "formats", "focus_areas", "confidence"] as const;
+type GoalField = (typeof GOAL_FIELDS)[number];
+const GOAL_LABELS: Record<GoalField, string> = {
+  specialty: "Specialty or focus", experience: "Experience", target_date: "Interview date", weekly_minutes: "Practice time per week",
+  formats: "How you want to practise", focus_areas: "Where you want help", confidence: "How confident you feel",
+};
+const goalId = (k: GoalField) => `goals-${k.replace(/_/g, "-")}`;
+const goalErrorId = (k: GoalField) => `${goalId(k)}-error`;
 
 /** Optional goal setup. Everything can be left blank; saving never resets progress. */
 export function GoalsPage() {
@@ -56,6 +67,10 @@ function GoalsForm({ goals }: { goals: Goals }) {
     storageKey: formDraftKey(user?.id ?? "anon", "goals", goals.track), form, baseline: JSON.parse(accepted) as GoalsInput,
     base: null, isForm: isGoalsForm, enabled: Boolean(user),
   });
+  // A refused save: each error beside its field while that field holds the refused value, and a
+  // summary that takes focus (Volume 9, prompt 3).
+  const fieldErrors = useFieldErrors(GOAL_FIELDS, form, { ids: goalId, summaryId: "goals-errors" });
+  const err = (k: GoalField) => fieldErrors.errorFor(k);
   const set = (patch: Partial<GoalsInput>) => setForm((f) => ({ ...f, ...patch }));
   const toggle = <T,>(list: T[], value: T) => (list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
   const focus = form.focus_areas ?? [];
@@ -67,6 +82,8 @@ function GoalsForm({ goals }: { goals: Goals }) {
       confidence: Object.fromEntries(Object.entries(form.confidence ?? {}).filter(([k]) => focus.includes(k))),
     };
     const sent = JSON.stringify(form);
+    const sentForm = form;
+    fieldErrors.clear();
     try {
       await save.mutateAsync(body);
       setAccepted(sent);
@@ -81,8 +98,8 @@ function GoalsForm({ goals }: { goals: Goals }) {
       // what the save allows; later edits ask again.
       allowLeaveAfterSave();
       navigate(returnTo, { replace: Boolean(came) });
-    } catch {
-      /* shown below */
+    } catch (error) {
+      fieldErrors.rejected(error, sentForm); // a validation error goes beside its fields; anything else is shown below
     }
   }
 
@@ -100,15 +117,17 @@ function GoalsForm({ goals }: { goals: Goals }) {
           onRestore={() => { const d = draft.restore(); if (d) setForm({ ...d.form, track: goals.track }); }} />
       )}
       <form className="stack" onSubmit={onSubmit} aria-label="Your goals">
+        <ErrorSummary id="goals-errors" other={fieldErrors.other}
+          items={fieldErrors.active.map(({ name, message }) => ({ fieldId: goalId(name), label: GOAL_LABELS[name], message }))} />
         <Card className="stack">
           <p className="subtle">Career: <strong>{goals.career_title}</strong> (<Link to="/settings#account">change in Settings</Link>)</p>
-          <label className="field">
-            <span className="field__label">Specialty or focus (optional)</span>
-            <input className="input" maxLength={120} value={form.specialty ?? ""} placeholder="e.g. Emergency department, Backend APIs"
-              onChange={(e) => set({ specialty: e.target.value })} />
-          </label>
-          <fieldset className="field">
+          <ControlField id={goalId("specialty")} label="Specialty or focus (optional)" error={err("specialty")}>
+            <input className="input" id={goalId("specialty")} maxLength={120} value={form.specialty ?? ""} placeholder="e.g. Emergency department, Backend APIs"
+              onChange={(e) => set({ specialty: e.target.value })} {...invalidProps(goalErrorId("specialty"), err("specialty"))} />
+          </ControlField>
+          <fieldset className="field" id={goalId("experience")} aria-describedby={err("experience") ? goalErrorId("experience") : undefined}>
             <legend className="field__label">Experience</legend>
+            <FieldError id={goalErrorId("experience")} message={err("experience")} />
             <div className="choice-grid">
               {EXPERIENCE.map((x) => (
                 <label key={x.id} className={`choice${form.experience === x.id ? " choice--active" : ""}`}>
@@ -119,20 +138,21 @@ function GoalsForm({ goals }: { goals: Goals }) {
             </div>
           </fieldset>
           <div className="goals-page__row">
-            <label className="field">
-              <span className="field__label">Interview date (if you know it)</span>
-              <input className="input" type="date" value={form.target_date ?? ""} onChange={(e) => set({ target_date: e.target.value || null })} />
-            </label>
-            <label className="field">
-              <span className="field__label">Practice time per week</span>
-              <select className="select" value={form.weekly_minutes ?? ""} onChange={(e) => set({ weekly_minutes: e.target.value ? Number(e.target.value) : null })}>
+            <ControlField id={goalId("target_date")} label="Interview date (if you know it)" error={err("target_date")}>
+              <input className="input" id={goalId("target_date")} type="date" value={form.target_date ?? ""} onChange={(e) => set({ target_date: e.target.value || null })}
+                {...invalidProps(goalErrorId("target_date"), err("target_date"))} />
+            </ControlField>
+            <ControlField id={goalId("weekly_minutes")} label="Practice time per week" error={err("weekly_minutes")}>
+              <select className="select" id={goalId("weekly_minutes")} value={form.weekly_minutes ?? ""} onChange={(e) => set({ weekly_minutes: e.target.value ? Number(e.target.value) : null })}
+                {...invalidProps(goalErrorId("weekly_minutes"), err("weekly_minutes"))}>
                 <option value="">Not sure (plan for 60 minutes)</option>
                 {WEEKLY.map((m) => <option key={m} value={m}>{m >= 60 ? `${m / 60} hour${m > 60 ? "s" : ""}` : `${m} minutes`}</option>)}
               </select>
-            </label>
+            </ControlField>
           </div>
-          <fieldset className="field">
+          <fieldset className="field" id={goalId("formats")} aria-describedby={err("formats") ? goalErrorId("formats") : undefined}>
             <legend className="field__label">How you want to practise</legend>
+            <FieldError id={goalErrorId("formats")} message={err("formats")} />
             <div className="row">
               {FORMATS.filter((f) => f !== "coding" || goals.has_coding).map((f) => (
                 <label key={f} className="checkbox">
@@ -144,8 +164,9 @@ function GoalsForm({ goals }: { goals: Goals }) {
           </fieldset>
         </Card>
         <Card className="stack">
-          <fieldset className="field">
+          <fieldset className="field" id={goalId("focus_areas")} aria-describedby={err("focus_areas") ? goalErrorId("focus_areas") : undefined}>
             <legend className="field__label">Where do you want help? (up to {MAX_FOCUS})</legend>
+            <FieldError id={goalErrorId("focus_areas")} message={err("focus_areas")} />
             <div className="skill-grid">
               {goals.skills.map((s) => {
                 const on = focus.includes(s);
@@ -160,8 +181,9 @@ function GoalsForm({ goals }: { goals: Goals }) {
             </div>
           </fieldset>
           {focus.length > 0 && (
-            <fieldset className="field">
+            <fieldset className="field" id={goalId("confidence")} aria-describedby={err("confidence") ? goalErrorId("confidence") : undefined}>
               <legend className="field__label">How confident do you feel? (optional, 1 = not yet, 5 = very)</legend>
+              <FieldError id={goalErrorId("confidence")} message={err("confidence")} />
               <p className="subtle">This is kept separate from your scores. It's never mixed into them.</p>
               {focus.map((s) => (
                 <label key={s} className="confidence-row">
@@ -180,7 +202,7 @@ function GoalsForm({ goals }: { goals: Goals }) {
             </fieldset>
           )}
         </Card>
-        <InlineError error={save.error} />
+        {!fieldErrors.shown && <InlineError error={save.error} />}
         <FormDraftStatus changed={dirty} kept={draft.kept} competing={draft.competing}
           copyText={() => [form.specialty, ...(form.focus_areas ?? [])].filter(Boolean).join("\n")} />
         {savedMore && dirty && <p className="subtle" role="status">Saved what you had when you pressed Save. You changed more since: save again to keep those changes.</p>}
