@@ -94,6 +94,17 @@ export const HELP_TOPICS: HelpTopic[] = [
     ],
   },
   {
+    id: "debugging-lab",
+    title: "The debugging lab",
+    items: [
+      {
+        q: "What's the debugging lab?",
+        a: "Coding exercises that start from a Java program with a known bug. The page says what the code should do and which public cases fail; you reproduce it, find the cause and fix it. Any fix that passes the tests counts, whatever it looks like. Optional notes stay in this browser. The explanation and one correct repair appear only when you ask, or once your fix passes, and asking isn't recorded. Without a judge on the server, attempts are saved but can't be checked. It's for careers with coding practice.",
+        links: [{ to: "/problems?view=debugging", label: "Debugging lab" }],
+      },
+    ],
+  },
+  {
     id: "getting-around",
     title: "Getting around",
     items: [

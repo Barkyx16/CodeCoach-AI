@@ -452,6 +452,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/problems/{slug}/lab/explanation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A debugging exercise's defect explanation and reference repair (shown when the learner asks)
+         * @description Authored content, the same for everyone: what the defect is, why a simple case misses it,
+         *     one correct repair and a follow-up. It reveals no hidden test. Asking for it is recorded nowhere:
+         *     looking is part of learning, not a mark against the learner.
+         */
+        get: operations["get_lab_explanation_api_v1_problems__slug__lab_explanation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/careers": {
         parameters: {
             query?: never;
@@ -6404,6 +6426,48 @@ export interface components {
             /** Timezone */
             timezone: string | null;
         };
+        /**
+         * LabBrief
+         * @description What a debugging exercise says up front. The defect's explanation and the reference repair
+         *     are only in GET /problems/{slug}/lab/explanation, which the page calls when the learner asks.
+         */
+        LabBrief: {
+            /**
+             * Version
+             * @description The exercise's version; attempts record the version they started from
+             */
+            version: number;
+            /** Intended Behavior */
+            intended_behavior: string;
+            /**
+             * Reproduction Test Ids
+             * @description Public tests the faulty starter fails
+             */
+            reproduction_test_ids: number[];
+            /** Review Status */
+            review_status: string;
+        };
+        /** LabExplanation */
+        LabExplanation: {
+            /** Version */
+            version: number;
+            /** Defect Summary */
+            defect_summary: string;
+            /** Explanation */
+            explanation: string;
+            /**
+             * Why Missed
+             * @description Why a simple case doesn't show the defect
+             */
+            why_missed: string;
+            /**
+             * Reference Repair
+             * @description One correct repair; any repair that passes the tests is accepted
+             */
+            reference_repair: string;
+            /** Follow Up */
+            follow_up: string;
+        };
         /** LearnCatalog */
         LearnCatalog: {
             /** Track */
@@ -7196,6 +7260,15 @@ export interface components {
              * @description How many progressive hint levels are available
              */
             hint_levels: number;
+            /**
+             * Kind
+             * @description problem: write a solution; debug: fix the deliberately faulty starter
+             * @default problem
+             * @enum {string}
+             */
+            kind: "problem" | "debug";
+            /** @description Only for a debugging exercise (kind 'debug') */
+            lab?: components["schemas"]["LabBrief"] | null;
         };
         /** ProblemStatus */
         ProblemStatus: {
@@ -9624,6 +9697,16 @@ export interface components {
             result?: components["schemas"]["ExecutionResultOut"] | null;
             /** Source Code */
             source_code: string;
+            /**
+             * Starting Code
+             * @description A debugging exercise's faulty code as it was when this attempt was made
+             */
+            starting_code?: string | null;
+            /**
+             * Lab Version
+             * @description The debugging exercise's version for this attempt
+             */
+            lab_version?: number | null;
         };
         /** SubmissionListItem */
         SubmissionListItem: {
@@ -11699,6 +11782,8 @@ export interface operations {
                 q?: string | null;
                 page?: number;
                 page_size?: number;
+                /** @description problem: the coding library; debug: the debugging lab's exercises */
+                kind?: "problem" | "debug";
             };
             header?: never;
             path?: never;
@@ -11731,6 +11816,8 @@ export interface operations {
             query?: {
                 topic?: string | null;
                 q?: string | null;
+                /** @description problem: the coding library; debug: the debugging lab's exercises */
+                kind?: "problem" | "debug";
             };
             header?: never;
             path?: never;
@@ -11796,6 +11883,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_lab_explanation_api_v1_problems__slug__lab_explanation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabExplanation"];
                 };
             };
             /** @description Not found (also returned for resources owned by another user) */

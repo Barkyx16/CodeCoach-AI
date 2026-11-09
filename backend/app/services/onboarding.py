@@ -41,7 +41,7 @@ def starter_for(db: Session, track: str) -> StarterActivity | None:
         candidates = [preferred] if preferred is not None else []
         candidates += db.scalars(
             select(Problem)
-            .where(Problem.difficulty == Difficulty.EASY)
+            .where(Problem.difficulty == Difficulty.EASY, Problem.kind == "problem")
             .order_by(Problem.order_index, Problem.id)
         ).all()
         problem = next((p for p in candidates if not is_problem_retired(p.slug)), None)

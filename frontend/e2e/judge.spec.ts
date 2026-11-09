@@ -102,3 +102,33 @@ test("the judge reports ready, and a reload while judging picks the submission b
   await page.reload();
   await expect(page.getByText("Your code ran too long. Look for an infinite loop or a slower-than-needed approach.")).toBeVisible({ timeout: 90_000 });
 });
+
+test("the debugging lab: the faulty starter fails on its reproduction case, and a repair of the learner's own passes", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/");
+  await page.getByRole("button", { name: /try it now/i }).click();
+  await page.goto("/problems/debug-count-at-most");
+  await expect(page.locator(".monaco-editor")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Fix the bug" })).toBeVisible();
+
+  // The code as given: judged for real, it fails exactly where the brief says.
+  await page.getByRole("button", { name: "Submit", exact: true }).click();
+  const debrief = page.getByRole("region", { name: "Debugging debrief" });
+  await expect(debrief.getByRole("heading", { name: /^Not fixed yet/ })).toBeVisible({ timeout: 60_000 });
+  await expect(debrief).toContainText("nums = [4, 8, 3], limit = 5: still fails (got 1, expected 2)");
+
+  // A repair that isn't the reference's text: a for-each loop.
+  await paste(page, `class Solution {
+    public int countAtMost(int[] nums, int limit) {
+        int count = 0;
+        for (int n : nums) {
+            if (n <= limit) count++;
+        }
+        return count;
+    }
+}`);
+  await page.getByRole("button", { name: "Submit", exact: true }).click();
+  await expect(debrief.getByRole("heading", { name: "Fixed: every test passes" })).toBeVisible({ timeout: 60_000 });
+  await expect(debrief).toContainText("nums = [4, 8, 3], limit = 5: now passes");
+  await expect(debrief.getByRole("heading", { name: "Why it happened" })).toBeVisible();
+});

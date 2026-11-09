@@ -2,12 +2,14 @@ import { useSearchParams } from "react-router-dom";
 
 import { useAuth } from "@/auth/useAuth";
 import { LoadingState } from "@/components/States";
+import { DebugLabList } from "@/features/debugging/DebugLabList";
 import { ProblemListPage } from "@/features/problems/ProblemListPage";
 
 import { DEFAULT_TRACK, usePracticeTrack } from "./practiceTrack";
 import { QuestionLibrary } from "./QuestionLibrary";
 
-/** /problems: coding problems for jobs that have them (unless ?view=questions), interview questions otherwise. */
+/** /problems: coding problems for jobs that have them (unless ?view=questions, or ?view=debugging for
+ * the debugging lab), interview questions otherwise. */
 export function PracticePage() {
   const { isRestoring } = useAuth();
   const { track, career, careersLoading } = usePracticeTrack();
@@ -16,5 +18,6 @@ export function PracticePage() {
   // default career's list first would flash the wrong questions.
   if (isRestoring || (careersLoading && track !== DEFAULT_TRACK)) return <LoadingState label="Loading practice…" />;
   const hasCoding = career ? career.has_coding : track === DEFAULT_TRACK;
+  if (hasCoding && params.get("view") === "debugging") return <DebugLabList />;
   return hasCoding && params.get("view") !== "questions" ? <ProblemListPage /> : <QuestionLibrary />;
 }

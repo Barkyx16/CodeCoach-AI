@@ -303,3 +303,18 @@ fieldset.field { border: none; padding: 0; margin: 0; }
 .judge-status__help p { margin: var(--space-1) 0 0; overflow-wrap: anywhere; }
 
 /* Dashboard: other practice formats, as a quiet row of links. */
+
+/* Debugging lab (features/debugging): the brief beside the problem, notes, and the debrief. */
+.debug-brief, .debug-debrief { margin-top: var(--space-4); }
+.debug-brief__subtitle { font-size: var(--text-base); font-weight: var(--weight-semibold); margin: 0; }
+.debug-brief__minor { font-size: var(--text-sm); font-weight: var(--weight-semibold); margin: var(--space-2) 0 0; }
+.debug-brief__cases { margin: 0; padding-left: 1.25rem; display: grid; gap: var(--space-1); }
+.debug-brief__cases code { overflow-wrap: anywhere; }
+.debug-brief__meta { font-size: var(--text-xs); }
+.debug-notes > summary { cursor: pointer; font-weight: var(--weight-medium); min-height: 1.5rem; }
+.debug-notes[open] { display: grid; gap: var(--space-2); }
+.debug-diff > summary { cursor: pointer; font-weight: var(--weight-medium); }
+.debug-diff__lines { white-space: pre-wrap; overflow-wrap: anywhere; }
+.debug-diff__added { color: var(--color-success); }
+.debug-diff__removed { color: var(--color-danger); text-decoration: line-through; text-decoration-thickness: 1px; }
+.debug-diff__gap { color: var(--color-text-subtle); }

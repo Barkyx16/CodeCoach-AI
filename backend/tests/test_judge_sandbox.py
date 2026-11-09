@@ -402,3 +402,31 @@ def test_capabilities_report_ready_only_when_the_real_runner_answers(judge, runn
     wrong = make_client(execution_enabled=True, runner_token="w" * 40, runner_url=runner_url)
     e = wrong.get("/api/v1/capabilities").json()["execution"]
     assert e["state"] == "unavailable" and e["reason"] == "judge_misconfigured"
+
+
+DEBUGGING = {
+    p.stem.split("-", 1)[1]: json.loads(p.read_text())
+    for p in sorted((SEED_DIR.parent / "debugging").glob("*.json"))
+}
+
+
+@pytest.mark.parametrize("slug", sorted(DEBUGGING))
+def test_debugging_exercise_in_the_real_judge(judge, slug):
+    """The debugging lab (Volume 10, prompt 2) through API -> worker -> runner -> gVisor: the faulty
+    starter fails on exactly its reproduction cases (a logic failure, not a compile error); an
+    alternative repair, not the reference text, passes every test, hidden ones included; and the
+    attempt records the code it started from."""
+    seed = DEBUGGING[slug]
+    faulty = judge(slug, seed["starter_code"])
+    assert faulty["status"] == "FAILED", faulty
+    public_inputs = [t["input"] for t in seed["tests"] if t["visibility"] == "public"]
+    failing = [r["input"] for r in faulty["result"]["public_results"] if not r["passed"]]
+    assert failing == [seed["tests"][i]["input"] for i in seed["lab"]["reproduction"]]
+    assert all(r["input"] in public_inputs for r in faulty["result"]["public_results"])
+    assert faulty["starting_code"] == seed["starter_code"] and faulty["lab_version"] == seed["lab"]["version"]
+
+    alternative = (SEED_DIR.parent / "debugging" / "alternatives" / f"{slug}.1.java").read_text()
+    fixed = judge(slug, alternative)
+    assert fixed["status"] == "PASSED", fixed
+    assert fixed["result"]["hidden_passed"] == fixed["result"]["hidden_total"] > 0
+    assert fixed["starting_code"] == seed["starter_code"]

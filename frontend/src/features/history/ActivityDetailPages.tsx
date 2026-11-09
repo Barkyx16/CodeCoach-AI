@@ -53,6 +53,13 @@ export function SubmissionDetailPage() {
         )}
       </Card>
       <Card className="stack">
+        {s.starting_code != null && (
+          <>
+            <h2 className="section-title">Started from</h2>
+            <p className="subtle">The debugging exercise's faulty code{s.lab_version != null ? ` (version ${s.lab_version})` : ""}, as it was when you made this attempt.</p>
+            <pre className="final-code" tabIndex={0} aria-label="Starting code">{s.starting_code}</pre>
+          </>
+        )}
         <h2 className="section-title">Submitted code</h2>
         <pre className="final-code" tabIndex={0} aria-label="Submitted code">{s.source_code}</pre>
         <p className="subtle">Opening it in the editor asks before replacing your current draft.</p>

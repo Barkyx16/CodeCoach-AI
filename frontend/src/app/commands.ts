@@ -52,6 +52,8 @@ const SPECS: ((c: CommandContext) => Spec)[] = [
       aliases: ["library", "practice", "questions", "answer"] },
   (c) => ({ id: "questions-coding-career", label: "Interview questions", detail: "Written and spoken questions for your job", to: "/problems?view=questions", section: "Practice",
     aliases: ["library", "behavioral", "questions", "answer"], when: () => c.coding }),
+  (c) => ({ id: "debugging", label: "Debugging lab", detail: "Fix programs with a known bug", to: "/problems?view=debugging", section: "Practice",
+    aliases: ["debug", "bug", "fix", "broken code"], when: () => c.coding }),
   () => ({ id: "interview", label: "Start or resume a mock interview", detail: "Questions in a row, like the real thing; a round in progress is offered first", to: "/interviews", section: "Practice",
     aliases: ["mock interview", "interview", "resume", "round"], when: signedIn }),
   () => ({ id: "learn", label: "Lessons", detail: "Short lessons with guided help", to: "/learn", section: "Practice", aliases: ["learn", "units", "course"] }),

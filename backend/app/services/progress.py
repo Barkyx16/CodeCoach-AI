@@ -102,7 +102,10 @@ class ProgressService:
         self.db = db
 
     def _facts(self, user: User) -> dict[int, _ProblemFacts]:
-        problems = self.db.scalars(select(Problem).order_by(Problem.order_index)).all()
+        # Debugging exercises (kind "debug") are in History, not in problem progress or recommendations.
+        problems = self.db.scalars(
+            select(Problem).where(Problem.kind == "problem").order_by(Problem.order_index)
+        ).all()
         facts = {p.id: _ProblemFacts(problem=p) for p in problems}
 
         for sub in self.db.scalars(

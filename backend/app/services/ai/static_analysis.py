@@ -218,14 +218,26 @@ def analyze(
 
     if starter_code is not None and _normalize(source) == _normalize(starter_code):
         analysis.is_unchanged_starter = True
-        analysis.findings.append(
-            Finding(
-                "high",
-                "correctness",
-                "This is still the starter code, so it returns a placeholder value.",
-                "Replace the TODO with your own logic. Ask for a level-1 hint if you're not sure where to start.",
+        if re.search(r"\bTODO\b", starter_code):
+            analysis.findings.append(
+                Finding(
+                    "high",
+                    "correctness",
+                    "This is still the starter code, so it returns a placeholder value.",
+                    "Replace the TODO with your own logic. Ask for a level-1 hint if you're not sure where to start.",
+                )
             )
-        )
+        else:
+            # A debugging exercise starts from real code with a known defect (docs/DEBUGGING_LAB.md),
+            # not a placeholder.
+            analysis.findings.append(
+                Finding(
+                    "high",
+                    "correctness",
+                    "This is the code as given, defect included: nothing has been changed yet.",
+                    "Run the failing public case, work out which line causes it, and change that line.",
+                )
+            )
         return analysis
 
     if re.search(r"\bTODO\b", source):

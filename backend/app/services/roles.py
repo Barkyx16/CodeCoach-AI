@@ -397,7 +397,11 @@ class RoleTargets:
         bank = sorted(questions_for(track), key=lambda q: (DIFFICULTY_ORDER.get(q.difficulty, 3), q.id))
         retired = retired_problem_slugs()
         problems: list[Problem] = (
-            [p for p in self.db.scalars(select(Problem)).all() if p.slug not in retired]
+            [
+                p
+                for p in self.db.scalars(select(Problem).where(Problem.kind == "problem")).all()
+                if p.slug not in retired
+            ]
             if profile.has_coding
             else []
         )

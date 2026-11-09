@@ -75,6 +75,12 @@ class SubmissionOut(APIModel):
 
 class SubmissionDetail(SubmissionOut):
     source_code: str
+    starting_code: str | None = Field(
+        default=None, description="A debugging exercise's faulty code as it was when this attempt was made"
+    )
+    lab_version: int | None = Field(
+        default=None, description="The debugging exercise's version for this attempt"
+    )
 
 
 class SubmissionListItem(APIModel):

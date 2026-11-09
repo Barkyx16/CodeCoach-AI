@@ -52,6 +52,8 @@ export const twoSum: ProblemDetail = {
   public_tests: [{ id: 1, input: { nums: [2, 7, 11, 15], target: 9 }, expected_output: [0, 1] }],
   hidden_test_count: 4,
   hint_levels: 4,
+  kind: "problem",
+  lab: null,
 };
 
 export const queuedSubmission: Submission = {

@@ -21,6 +21,7 @@ import type {
   ApplicationUpdate,
   Bookmark,
   Capabilities,
+  LabExplanation,
   DemoOut,
   Career,
   CareerAnalytics,
@@ -147,6 +148,8 @@ import type {
 } from "./types";
 
 export interface ProblemFilters {
+  /** "debug": the debugging lab's exercises; the coding library otherwise. */
+  kind?: "problem" | "debug";
   difficulty?: Difficulty | "";
   topic?: string;
   q?: string;
@@ -276,6 +279,7 @@ export const api = {
   problemCounts: (filters: Pick<ProblemFilters, "topic" | "q"> = {}, signal?: AbortSignal) =>
     apiRequest<DifficultyCounts>("/api/v1/problems/counts", { query: { ...filters }, signal }),
   topics: () => apiRequest<TopicCount[]>("/api/v1/topics"),
+  labExplanation: (slug: string) => apiRequest<LabExplanation>(`/api/v1/problems/${encodeURIComponent(slug)}/lab/explanation`, { auth: false }),
 
   // careers and their interview questions
   careers: () => apiRequest<Career[]>("/api/v1/careers"),

@@ -53,6 +53,11 @@ export function useProblems(filters: ProblemFilters, enabled = true) {
   });
 }
 
+/** A debugging exercise's explanation and reference repair: fetched only once the learner asks. */
+export function useLabExplanation(slug: string, enabled: boolean) {
+  return useQuery({ queryKey: ["problems", slug, "lab-explanation"], queryFn: () => api.labExplanation(slug), enabled, staleTime: Infinity });
+}
+
 /** How many problems match the topic and search, per difficulty (the library tab counts). */
 export function useProblemCounts(filters: { topic?: string; q?: string }) {
   return useQuery({

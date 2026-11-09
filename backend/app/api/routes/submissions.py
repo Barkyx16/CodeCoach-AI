@@ -47,6 +47,8 @@ def to_detail(sub: Submission, execution_enabled: bool) -> SubmissionDetail:
         updated_at=sub.updated_at,
         result=result,
         source_code=sub.source_code,
+        starting_code=sub.starting_code,
+        lab_version=sub.lab_version,
     )
 
 
@@ -103,6 +105,9 @@ def create_submission(
         status=SubmissionStatus.QUEUED,
         client_request_id=body.client_request_id,
         trace_id=tracing.current_trace_id(),
+        # A debugging exercise: what this attempt started from, kept as it is now.
+        starting_code=problem.starter_code if problem.kind == "debug" else None,
+        lab_version=(problem.lab or {}).get("version") if problem.kind == "debug" else None,
     )
     db.add(sub)
     try:

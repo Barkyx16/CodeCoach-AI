@@ -1,0 +1,137 @@
+{
+  "order": 2003,
+  "slug": "debug-palindrome-sentence",
+  "title": "Fix: Sentence Palindrome",
+  "difficulty": "medium",
+  "topics": [
+    "debugging",
+    "strings",
+    "two-pointers"
+  ],
+  "summary": "A palindrome check that should ignore case and punctuation gets two kinds of input wrong. Find both defects.",
+  "statement": "`isPalindrome(s)` should say whether `s` reads the same forwards and backwards when you keep only letters and digits and ignore upper and lower case. So `\"Racecar\"` and `\"Was it a car or a cat I saw?\"` are palindromes, and `\"1a2\"` is not.\n\nThe code below has **two** separate defects. Each public case that fails shows one of them. Any correct fix is accepted.",
+  "constraints": [
+    "0 <= s.length <= 2 * 10^5",
+    "s contains printable ASCII characters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"Racecar\"",
+      "output": "true",
+      "explanation": "Ignoring case, it reads the same both ways."
+    },
+    {
+      "input": "s = \"1a2\"",
+      "output": "false",
+      "explanation": "Digits count: 1 and 2 differ."
+    }
+  ],
+  "signature": {
+    "method": "isPalindrome",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean isPalindrome(String s) {\n        int i = 0;\n        int j = s.length() - 1;\n        while (i < j) {\n            char a = s.charAt(i);\n            char b = s.charAt(j);\n            if (!Character.isLetter(a)) {\n                i++;\n            } else if (!Character.isLetter(b)) {\n                j--;\n            } else {\n                if (a != b) {\n                    return false;\n                }\n                i++;\n                j--;\n            }\n        }\n        return true;\n    }\n}\n",
+  "hints": [
+    "Two public cases fail, for different reasons. Take them one at a time: what's special about \"Racecar\", and what's special about \"1a2\"?",
+    "For \"Racecar\": what does the comparison `a != b` do with 'R' and 'r'? For \"1a2\": which characters does the code skip, and should it?",
+    "Compare characters with case ignored (for example Character.toLowerCase on both), and keep digits as well as letters (Character.isLetterOrDigit)."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "abba"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "abc"
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "Racecar"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "1a2"
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "A man, a plan, a canal: Panama"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "No 'x' in Nixon"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "0P"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "12321"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": ""
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": ".,"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    }
+  ],
+  "kind": "debug",
+  "lab": {
+    "version": 1,
+    "intended_behavior": "Keep letters and digits, ignore case, and say whether what's left reads the same both ways.",
+    "reproduction": [
+      2,
+      3
+    ],
+    "defect": {
+      "summary": "Two defects: letters are compared with their case, and digits are skipped as if they were punctuation.",
+      "explanation": "First, `a != b` compares characters exactly, so 'R' and 'r' count as different and \"Racecar\" is rejected. Second, `Character.isLetter` is false for digits, so the code skips them like punctuation: in \"1a2\" it skips both 1 and 2 and only compares 'a' with itself, answering true.",
+      "why_missed": "Simple lower-case words such as \"abba\" and \"abc\" have no capitals and no digits, so neither defect is reached. Each defect needs its own kind of input: one with mixed case, one with digits that differ."
+    },
+    "follow_up": "When a rule says what to ignore (case, punctuation, spaces), write one test per rule, and one where a character the rule keeps, like a digit, makes the difference.",
+    "review_status": "Authored for CodeCoach and machine-checked (the starter fails exactly its reproduction cases; the repair and an alternative pass every test). Not yet reviewed by an outside instructor."
+  }
+}

@@ -37,6 +37,7 @@ from app.scenarios import SCENARIO_INDEX, ScenarioError, validate
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 PROBLEMS_DIR = BACKEND_DIR / "app" / "seed" / "problems"
+DEBUGGING_DIR = BACKEND_DIR / "app" / "seed" / "debugging"
 REFERENCE_DIR = BACKEND_DIR / "app" / "seed" / "reference"
 
 
@@ -199,6 +200,55 @@ def _problems(report: Report) -> dict[str, dict]:
     return seeds
 
 
+_LAB_TEXT = ("intended_behavior", "follow_up", "review_status")
+_DEFECT_TEXT = ("summary", "explanation", "why_missed")
+
+
+def _debugging(report: Report, problems: dict[str, dict]) -> dict[str, dict]:
+    """Debugging exercises (app/seed/debugging): a problem file plus "kind": "debug" and a "lab"
+    block. Running the starter and the repairs is the reference check's job (run_reference)."""
+    seeds: dict[str, dict] = {}
+    for path in sorted(DEBUGGING_DIR.glob("*.json")):
+        where = f"debugging file {path.name}"
+        try:
+            data = json.loads(path.read_text())
+        except json.JSONDecodeError as exc:
+            report.errors.append(f"{where}: invalid JSON ({exc})")
+            continue
+        slug = str(data.get("slug", ""))
+        if not slug.startswith("debug-"):
+            report.errors.append(f"{where}: a debugging exercise's slug starts with 'debug-'")
+            continue
+        if slug in problems or slug in seeds:
+            report.errors.append(f"{where}: duplicate slug {slug!r}")
+            continue
+        if data.get("kind") != "debug":
+            report.errors.append(f"debugging {slug}: kind must be 'debug'")
+        tests = data.get("tests") or []
+        if not {"public", "hidden"} <= {t.get("visibility") for t in tests}:
+            report.errors.append(f"debugging {slug}: needs at least one public and one hidden test")
+        if len(data.get("hints") or []) < 2:
+            report.errors.append(f"debugging {slug}: needs at least two staged hints")
+        lab = data.get("lab") or {}
+        if not isinstance(lab.get("version"), int) or lab["version"] < 1:
+            report.errors.append(f"debugging {slug}: lab.version must be a positive whole number")
+        missing = [k for k in _LAB_TEXT if not str(lab.get(k, "")).strip()]
+        missing += [
+            f"defect.{k}" for k in _DEFECT_TEXT if not str((lab.get("defect") or {}).get(k, "")).strip()
+        ]
+        if missing:
+            report.errors.append(f"debugging {slug}: lab is missing {missing}")
+        repro = lab.get("reproduction") or []
+        public = {i for i, t in enumerate(tests) if t.get("visibility") == "public"}
+        if not repro or not set(repro) <= public:
+            report.errors.append(f"debugging {slug}: lab.reproduction must list public test positions")
+        if not (REFERENCE_DIR / f"{slug}.java").exists():
+            report.errors.append(f"debugging {slug}: no reference repair")
+        seeds[slug] = {**data, "_path": path}
+    report.counts["debugging exercises"] = len(seeds)
+    return seeds
+
+
 def _load_reference_checker():
     spec = importlib.util.spec_from_file_location(
         "verify_reference", BACKEND_DIR / "scripts" / "verify_reference_solutions.py"
@@ -206,13 +256,14 @@ def _load_reference_checker():
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    return module.check_problem
+    return module.check_problem, module.check_debug_exercise
 
 
 def run(db: Session | None, *, run_reference: bool = False, record: bool = False) -> Report:
     report = Report()
     _questions(report)
     seeds = _problems(report)
+    seeds |= _debugging(report, seeds)
     retired: set[tuple[str, str]] = set()
     if db is not None:
         _db_content(db, report, set(seeds))
@@ -227,9 +278,11 @@ def run(db: Session | None, *, run_reference: bool = False, record: bool = False
         if shutil.which("javac") is None or shutil.which("java") is None:
             report.warnings.append("reference solutions not run: no local JDK (javac/java) found")
         else:
-            check = _load_reference_checker()
+            check, check_debug = _load_reference_checker()
             for slug in seeds:
-                failures = check(seeds[slug]["_path"])
+                failures = (check_debug if seeds[slug].get("kind") == "debug" else check)(
+                    seeds[slug]["_path"]
+                )
                 report.checks.append((slug, not failures, "\n".join(failures)[:2000]))
                 if failures:
                     report.errors.append(f"problem {slug}: reference solution failed ({len(failures)} tests)")

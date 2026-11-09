@@ -37,6 +37,7 @@ import { QueueBar } from "@/features/saved/QueueBar";
 import { SaveControls } from "@/features/saved/SaveControls";
 import { EarlierActionNotice } from "@/features/recovery/EarlierActionNotice";
 import { useEarlierAction } from "@/features/recovery/useEarlierAction";
+import { DebugBrief, DebugDebrief } from "@/features/debugging/DebugLab";
 import { fingerprint, forgetIntent, keyForIntent } from "@/lib/pendingIntents";
 
 
@@ -217,12 +218,12 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
     <section className="panel-scroll" aria-label="Problem description" tabIndex={0} data-tour="statement">
       <ProblemStatement problem={problem}
         before={isAuthenticated ? <div className="focus-hide display-contents"><QueueBar item={savedRef} /></div> : undefined}
-        after={<div className="focus-hide display-contents">
+        after={<>{problem.kind === "debug" && <DebugBrief problem={problem} />}<div className="focus-hide display-contents">
           <LearnLinks query={{ problem_slug: problem.slug }} from={{ from: `/problems/${problem.slug}`, fromLabel: "Back to the problem" }} />
           {isAuthenticated && <SaveControls item={savedRef} title={problem.title} />}
           {isAuthenticated && <NoteCapture source={{ type: "problem", id: problem.slug }} excerpt={draft.code} excerptKind="code" excerptLabel="your current code" />}
           <SaveOffline kind="problem" itemKey={problem.slug} label="problem" />
-        </div>} />
+        </div></>} />
       <div className="workspace-content-info stack-sm">
         <ContentInfo type="problem" id={problem.slug} />
         {content.data && <ReportIssue type="problem" id={problem.slug} version={content.data.version} />}
@@ -291,6 +292,7 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
     <section className="panel-scroll" aria-label="Submission results" tabIndex={0}>
       <SubmissionPanel submission={submission.data} error={submission.error} onHighlightLine={jumpToLine}
         editorCode={draft.code} onCheckAgain={() => void submission.refetch()} checking={submission.isFetching} />
+      {problem.kind === "debug" && <DebugDebrief problem={problem} submission={submission.data} />}
     </section>
   );
   const coach = (

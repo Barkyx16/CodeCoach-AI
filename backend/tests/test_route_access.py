@@ -28,6 +28,8 @@ PUBLIC = {
     ("GET", "/api/v1/problems/counts"),
     ("GET", "/api/v1/topics"),
     ("GET", "/api/v1/problems/{slug}"),
+    # A debugging exercise's authored explanation and repair: the same for everyone, no hidden test.
+    ("GET", "/api/v1/problems/{slug}/lab/explanation"),
     ("GET", "/api/v1/careers"),
     ("GET", "/api/v1/careers/{slug}/questions"),
     ("GET", "/api/v1/careers/{slug}/questions/counts"),

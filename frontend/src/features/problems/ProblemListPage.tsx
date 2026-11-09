@@ -94,6 +94,7 @@ export function ProblemListPage() {
             {libraryTotal !== null && !hasFilters ? `${libraryTotal} problem${libraryTotal === 1 ? "" : "s"}` : "Curated Java interview problems"}
             {progress.data && ` · ${progress.data.solved} solved`}
           </p>
+          <p><Link to="/problems?view=debugging">Debugging lab: fix programs with a known bug</Link></p>
         </div>
         <div className="library-badge"><Icon name="code" size={18} /><span>Java, one problem at a time.</span></div>
       </div>

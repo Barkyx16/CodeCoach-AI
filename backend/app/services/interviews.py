@@ -397,7 +397,7 @@ class InterviewService:
         chosen = self.db.scalar(
             select(Problem).where(Problem.slug == recs[0].slug)
             if recs
-            else select(Problem).order_by(Problem.order_index)
+            else select(Problem).where(Problem.kind == "problem").order_by(Problem.order_index)
         )
         if chosen is None:
             raise NotFoundError("No problems are available")

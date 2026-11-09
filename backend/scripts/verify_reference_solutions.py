@@ -27,25 +27,21 @@ from app.services.judge.harness import build_driver, judge_cases  # noqa: E402
 
 PROBLEMS_DIR = BACKEND_DIR / "app" / "seed" / "problems"
 REFERENCE_DIR = BACKEND_DIR / "app" / "seed" / "reference"
+DEBUGGING_DIR = BACKEND_DIR / "app" / "seed" / "debugging"
 
 
 def java_available() -> bool:
     return shutil.which("javac") is not None and shutil.which("java") is not None
 
 
-def check_problem(problem_file: Path, timeout_s: float = 30.0) -> list[str]:
-    """Return a list of human-readable failures (empty means every test passed)."""
-    problem = json.loads(problem_file.read_text())
-    slug = problem["slug"]
-    reference = REFERENCE_DIR / f"{slug}.java"
-    if not reference.exists():
-        return [f"{slug}: missing reference solution {reference.name}"]
-
+def run_source(problem: dict, source: str, timeout_s: float = 30.0) -> tuple[str | None, list]:
+    """Compile `source` as the Solution for `problem` and run every test case through the
+    production driver and comparison. Returns (compile error or None, per-test outcomes)."""
     tests = problem["tests"]
     driver = build_driver(problem["signature"], [t["input"] for t in tests])
-    with tempfile.TemporaryDirectory(prefix=f"cc-ref-{slug}-") as tmp:
+    with tempfile.TemporaryDirectory(prefix=f"cc-ref-{problem['slug']}-") as tmp:
         work = Path(tmp)
-        (work / "Solution.java").write_text(reference.read_text())
+        (work / "Solution.java").write_text(source)
         (work / "Main.java").write_text(driver)
         compiled = subprocess.run(
             ["javac", "-d", str(work), str(work / "Solution.java"), str(work / "Main.java")],
@@ -55,7 +51,7 @@ def check_problem(problem_file: Path, timeout_s: float = 30.0) -> list[str]:
             check=False,
         )
         if compiled.returncode != 0:
-            return [f"{slug}: compile error\n{compiled.stderr[:2000]}"]
+            return compiled.stderr[:2000], []
         nonce = secrets.token_hex(16)
         ran = subprocess.run(
             ["java", "-cp", str(work), "Main"],
@@ -65,16 +61,70 @@ def check_problem(problem_file: Path, timeout_s: float = 30.0) -> list[str]:
             timeout=timeout_s,
             check=False,
         )
-    outcomes = judge_cases([t["expected_output"] for t in tests], ran.stdout, nonce)
-    failures = []
-    for outcome in outcomes:
-        if not outcome.passed:
-            t = tests[outcome.index]
+    return None, judge_cases([t["expected_output"] for t in tests], ran.stdout, nonce)
+
+
+def _describe(slug: str, tests: list, outcome) -> str:
+    t = tests[outcome.index]
+    return (
+        f"{slug} test #{outcome.index} ({t['visibility']}): input={t['input']} "
+        f"expected={t['expected_output']!r} actual={outcome.actual!r} "
+        f"exception={outcome.exception!r} missing={outcome.missing}"
+    )
+
+
+def check_problem(problem_file: Path, timeout_s: float = 30.0) -> list[str]:
+    """Return a list of human-readable failures (empty means every test passed)."""
+    problem = json.loads(problem_file.read_text())
+    slug = problem["slug"]
+    reference = REFERENCE_DIR / f"{slug}.java"
+    if not reference.exists():
+        return [f"{slug}: missing reference solution {reference.name}"]
+    error, outcomes = run_source(problem, reference.read_text(), timeout_s)
+    if error is not None:
+        return [f"{slug}: compile error\n{error}"]
+    return [_describe(slug, problem["tests"], o) for o in outcomes if not o.passed]
+
+
+def check_debug_exercise(problem_file: Path, timeout_s: float = 30.0) -> list[str]:
+    """A debugging exercise (app/seed/debugging) is sound when:
+    - its faulty starter compiles and runs without crashing (a logic defect, not a compile or
+      runtime failure), fails exactly the public cases its `lab.reproduction` names, passes the
+      other public cases, and fails at least one test overall;
+    - its reference repair, and every alternative repair in debugging/alternatives, pass every test.
+    Returns human-readable failures (empty means sound)."""
+    problem = json.loads(problem_file.read_text())
+    slug, tests = problem["slug"], problem["tests"]
+    failures = check_problem(problem_file, timeout_s)
+    error, outcomes = run_source(problem, problem["starter_code"], timeout_s)
+    if error is not None:
+        failures.append(
+            f"{slug}: the faulty starter doesn't compile (a debugging exercise is about logic)\n{error}"
+        )
+    else:
+        crashed = [o for o in outcomes if o.exception or o.missing]
+        failures += [
+            f"{slug}: the starter crashes instead of failing: {_describe(slug, tests, o)}" for o in crashed
+        ]
+        public = {i for i, t in enumerate(tests) if t["visibility"] == "public"}
+        failing_public = {o.index for o in outcomes if not o.passed and o.index in public}
+        declared = set(problem["lab"]["reproduction"])
+        if failing_public != declared:
             failures.append(
-                f"{slug} test #{outcome.index} ({t['visibility']}): input={t['input']} "
-                f"expected={t['expected_output']!r} actual={outcome.actual!r} "
-                f"exception={outcome.exception!r} missing={outcome.missing}"
+                f"{slug}: the starter fails public tests {sorted(failing_public)}, "
+                f"but lab.reproduction says {sorted(declared)}"
             )
+        if failing_public == public:
+            failures.append(f"{slug}: the starter fails every public test; keep a simple case that passes")
+    for alternative in sorted((problem_file.parent / "alternatives").glob(f"{slug}.*.java")):
+        alt_error, alt_outcomes = run_source(problem, alternative.read_text(), timeout_s)
+        if alt_error is not None:
+            failures.append(f"{slug}: alternative {alternative.name} doesn't compile\n{alt_error}")
+        failures += [
+            f"{slug}: alternative {alternative.name}: {_describe(slug, tests, o)}"
+            for o in alt_outcomes
+            if not o.passed
+        ]
     return failures
 
 
@@ -207,6 +257,17 @@ def main() -> int:
         print("\n".join(all_failures))
         return 1
     print(f"All {len(files)} reference solutions pass every test case.")
+    exercises = sorted(DEBUGGING_DIR.glob("*.json"))
+    for path in exercises:
+        failures = check_debug_exercise(path)
+        print(f"{path.stem:40s} {'ok' if not failures else f'{len(failures)} failure(s)'}")
+        all_failures.extend(failures)
+    if all_failures:
+        print("\n".join(all_failures))
+        return 1
+    print(
+        f"All {len(exercises)} debugging exercises: each starter fails exactly its reproduction cases; repairs pass."
+    )
     return 0
 
 

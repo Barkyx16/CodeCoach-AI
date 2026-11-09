@@ -1522,6 +1522,22 @@
               "default": 20,
               "title": "Page Size"
             }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "problem",
+                "debug"
+              ],
+              "type": "string",
+              "description": "problem: the coding library; debug: the debugging lab's exercises",
+              "default": "problem",
+              "title": "Kind"
+            },
+            "description": "problem: the coding library; debug: the debugging lab's exercises"
           }
         ],
         "responses": {
@@ -1589,6 +1605,22 @@
               ],
               "title": "Q"
             }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "problem",
+                "debug"
+              ],
+              "type": "string",
+              "description": "problem: the coding library; debug: the debugging lab's exercises",
+              "default": "problem",
+              "title": "Kind"
+            },
+            "description": "problem: the coding library; debug: the debugging lab's exercises"
           }
         ],
         "responses": {
@@ -1670,6 +1702,59 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/problems/{slug}/lab/explanation": {
+      "get": {
+        "tags": [
+          "problems"
+        ],
+        "summary": "A debugging exercise's defect explanation and reference repair (shown when the learner asks)",
+        "description": "Authored content, the same for everyone: what the defect is, why a simple case misses it,\none correct repair and a follow-up. It reveals no hidden test. Asking for it is recorded nowhere:\nlooking is part of learning, not a mark against the learner.",
+        "operationId": "get_lab_explanation_api_v1_problems__slug__lab_explanation_get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabExplanation"
                 }
               }
             }
@@ -25054,6 +25139,80 @@
         ],
         "title": "KitWhen"
       },
+      "LabBrief": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "The exercise's version; attempts record the version they started from"
+          },
+          "intended_behavior": {
+            "type": "string",
+            "title": "Intended Behavior"
+          },
+          "reproduction_test_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Reproduction Test Ids",
+            "description": "Public tests the faulty starter fails"
+          },
+          "review_status": {
+            "type": "string",
+            "title": "Review Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "intended_behavior",
+          "reproduction_test_ids",
+          "review_status"
+        ],
+        "title": "LabBrief",
+        "description": "What a debugging exercise says up front. The defect's explanation and the reference repair\nare only in GET /problems/{slug}/lab/explanation, which the page calls when the learner asks."
+      },
+      "LabExplanation": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "defect_summary": {
+            "type": "string",
+            "title": "Defect Summary"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          },
+          "why_missed": {
+            "type": "string",
+            "title": "Why Missed",
+            "description": "Why a simple case doesn't show the defect"
+          },
+          "reference_repair": {
+            "type": "string",
+            "title": "Reference Repair",
+            "description": "One correct repair; any repair that passes the tests is accepted"
+          },
+          "follow_up": {
+            "type": "string",
+            "title": "Follow Up"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "defect_summary",
+          "explanation",
+          "why_missed",
+          "reference_repair",
+          "follow_up"
+        ],
+        "title": "LabExplanation"
+      },
       "LearnCatalog": {
         "properties": {
           "track": {
@@ -27138,6 +27297,27 @@
             "type": "integer",
             "title": "Hint Levels",
             "description": "How many progressive hint levels are available"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "problem",
+              "debug"
+            ],
+            "title": "Kind",
+            "description": "problem: write a solution; debug: fix the deliberately faulty starter",
+            "default": "problem"
+          },
+          "lab": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LabBrief"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only for a debugging exercise (kind 'debug')"
           }
         },
         "type": "object",
@@ -33506,6 +33686,30 @@
           "source_code": {
             "type": "string",
             "title": "Source Code"
+          },
+          "starting_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starting Code",
+            "description": "A debugging exercise's faulty code as it was when this attempt was made"
+          },
+          "lab_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lab Version",
+            "description": "The debugging exercise's version for this attempt"
           }
         },
         "type": "object",

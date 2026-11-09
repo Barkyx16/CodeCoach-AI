@@ -285,6 +285,12 @@ class Problem(Base):
     expected_complexity: Mapped[dict] = mapped_column(JSONType, default=dict)
     order_index: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    # "problem" (write a solution) or "debug" (fix a deliberately faulty starter; app/seed/debugging).
+    kind: Mapped[str] = mapped_column(String(16), default="problem", server_default="problem", index=True)
+    # A debugging exercise's authored material: version, intended behaviour, reproduction cases,
+    # the defect's explanation and the reference repair. The API shows the brief up front and the
+    # rest only when the learner asks to see it.
+    lab: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
 
     test_cases: Mapped[list[TestCase]] = relationship(
         back_populates="problem", cascade="all, delete-orphan", order_by="TestCase.position"
@@ -332,6 +338,10 @@ class Submission(Base):
     judge_started_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     judged_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     test_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # A debugging exercise's faulty code and lab version as they were when this was submitted, so a
+    # later correction of the exercise doesn't change what this attempt started from.
+    starting_code: Mapped[str | None] = mapped_column(Text, nullable=True)
+    lab_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # Set by the client so a retried request (network failure, double send) returns the same
     # submission instead of judging twice. Unique per user.
     client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
