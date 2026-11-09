@@ -41,7 +41,9 @@ it("reports a failed guest session instead of leaving an unhandled rejection", a
   server.use(http.post(`${API}/api/v1/auth/guest`, () => HttpResponse.error()));
   const { user, router } = renderApp("/login");
   await user.click(screen.getByRole("button", { name: "Continue as guest" }));
-  expect(await screen.findByRole("alert")).toHaveTextContent("Can't reach the CodeCoach server");
+  // No reply, even after one quiet retry: the guest may have been made, so the page doesn't claim
+  // the server couldn't be reached (Volume 8, prompt 6).
+  expect(await screen.findByRole("alert")).toHaveTextContent(/We couldn't confirm your guest session was created\. It may have been/);
   expect(router.state.location.pathname).toBe("/login");
   expect(screen.getByRole("button", { name: "Continue as guest" })).toBeEnabled();
 });

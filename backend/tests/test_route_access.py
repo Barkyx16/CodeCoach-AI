@@ -19,6 +19,7 @@ PUBLIC = {
     ("POST", "/api/v1/auth/register"),
     ("POST", "/api/v1/auth/login"),
     ("POST", "/api/v1/auth/guest"),
+    ("POST", "/api/v1/auth/create-anchor"),  # sets an opaque same-browser cookie; grants nothing
     ("POST", "/api/v1/auth/refresh"),  # the HttpOnly cookie is the credential
     ("POST", "/api/v1/auth/verify-email"),  # the emailed link token is the credential
     ("POST", "/api/v1/auth/password-reset"),

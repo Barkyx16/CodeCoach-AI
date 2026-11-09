@@ -210,6 +210,9 @@ export const api = {
       body: { ...(display_name ? { display_name } : {}), ...(career_track ? { career_track } : {}) },
       auth: false,
     }),
+  /** Before a guest start or registration: an HttpOnly cookie that lets a retry of it, after a lost
+   * reply, find the account it made instead of making another (Volume 8, prompt 6). */
+  createAnchor: () => apiRequest<void>("/api/v1/auth/create-anchor", { method: "POST", auth: false }),
   me: () => apiRequest<User>("/api/v1/auth/me"),
   logout: () => apiRequest<void>("/api/v1/auth/logout", { method: "POST" }),
   /** Sign-out with a token that isn't this tab's session (finishing a sign-out the server missed). */

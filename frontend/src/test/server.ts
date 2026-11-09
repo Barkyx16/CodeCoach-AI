@@ -78,6 +78,7 @@ export const handlers = [
   http.get(`${API}/api/v1/problems/:slug`, ({ params }) =>
     HttpResponse.json({ error: { code: "not_found", message: `Problem '${String(params.slug)}' not found`, request_id: "req-404", details: null } }, { status: 404 })),
   http.post(`${API}/api/v1/auth/login`, () => signIn(tokenResponse())),
+  http.post(`${API}/api/v1/auth/create-anchor`, () => new HttpResponse(null, { status: 204 })),
   http.post(`${API}/api/v1/auth/register`, () => signIn(tokenResponse(), { status: 201 })),
   http.post(`${API}/api/v1/auth/guest`, () => signIn(tokenResponse({ user: { ...user, email: null, is_guest: true, display_name: "Guest" } }), { status: 201 })),
   http.post(`${API}/api/v1/auth/logout`, () => { cookieJar.hasSession = false; return new HttpResponse(null, { status: 204 }); }),

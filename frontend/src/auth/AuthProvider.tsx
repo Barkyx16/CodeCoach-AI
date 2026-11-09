@@ -279,6 +279,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(timer);
   }, [session, refreshNow, clear]);
 
+  /**
+   * A guest start or registration whose reply may be lost (Volume 8, prompt 6). This browser first
+   * gets an anchor (an HttpOnly cookie scripts can't read). If the reply is lost, the session cookie
+   * may still have arrived: a refresh says so. If not, the same request once more: the anchor lets
+   * the server find the account it made (a registration needs the same password too), so no second
+   * guest or "email taken". Still no answer: the outcome is unknown, and the page says so plainly.
+   */
+  /** Create a guest or an account when its reply may be lost (Volume 8, prompt 6; RECOVERY.md).
+   * The server first gives this browser an HttpOnly anchor; a resend from here then finds what the
+   * lost request made instead of making another. If the reply's session cookie did arrive, that
+   * session is used, but only when it is the one being created (`made`). */
+  const createAccount = useCallback(async (send: () => Promise<TokenResponse>, what: string, made: (user: User) => boolean): Promise<User> => {
+    await api.createAnchor().catch(() => undefined); // without it, a retry is a new one, as before
+    try {
+      return adopt(await send());
+    } catch (e) {
+      if (!(e instanceof ApiError && e.code === "network_error")) throw e;
+      if (await refreshNow() && sessionRef.current && made(sessionRef.current.user)) return sessionRef.current.user;
+      try {
+        return adopt(await send());
+      } catch (again) {
+        if (again instanceof ApiError && again.code === "network_error") {
+          throw new ApiError(0, "create_unconfirmed", `We couldn't confirm your ${what} was created. It may have been. When you're online again, ` +
+            "press the same button again: on this browser it finds what was made instead of making another.");
+        }
+        throw again;
+      }
+    }
+  }, [adopt, refreshNow]);
+
   const value = useMemo<AuthContextValue>(() => ({
     user: session?.user ?? null,
     isAuthenticated: session !== null,
@@ -286,8 +316,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signedOutReason,
     signedOutDeliberately,
     login: async (body) => adopt(await api.login(body)),
-    register: async (body) => adopt(await api.register(body)),
-    continueAsGuest: async (displayName, careerTrack) => adopt(await api.guest(displayName, careerTrack)),
+    register: async (body) => createAccount(() => api.register(body), "account",
+      (u) => !u.is_guest && u.email?.toLowerCase() === body.email.trim().toLowerCase()),
+    continueAsGuest: async (displayName, careerTrack) => createAccount(() => api.guest(displayName, careerTrack), "guest session",
+      (u) => u.is_guest),
     logout: async () => {
       try {
         await api.logout(); // ends this device's refresh cookie server-side
@@ -326,7 +358,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     offlineUser,
     draftScope: session?.user.id ?? offlineUser?.id ?? lapsedUserId ?? "anon",
-  }), [session, isRestoring, signedOutReason, signedOutDeliberately, adopt, clear, offlineUser, lapsedUserId]);
+  }), [session, isRestoring, signedOutReason, signedOutDeliberately, adopt, createAccount, clear, offlineUser, lapsedUserId]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

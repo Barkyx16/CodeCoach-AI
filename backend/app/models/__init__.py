@@ -1540,3 +1540,24 @@ class UpdateReceipt(Base):
     accepted_revision: Mapped[int] = mapped_column(Integer)
     request_fingerprint: Mapped[str] = mapped_column(String(80))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class CreateIntent(Base):
+    """Which account a browser's account-creating request made (Volume 8, prompt 6).
+
+    Before a guest start or a registration, the browser gets an anchor: a random value in an
+    HttpOnly, SameSite=Strict cookie that page scripts can't read. The create records the anchor's
+    hash here, in the same transaction as the account. If the reply is lost and the browser sends
+    the request again, the same anchor finds the account it already made, instead of making a
+    second guest or answering "email taken". The anchor is proof of the same browser only: a guest
+    is resumed by it alone (a guest has no other credential), a registration only with the right
+    password too. Kept CREATE_INTENT_MINUTES; deleted on a deliberate sign-out."""
+
+    __tablename__ = "create_intents"
+    __table_args__ = (UniqueConstraint("anchor_hash", "kind", name="uq_create_intent_anchor_kind"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    anchor_hash: Mapped[str] = mapped_column(String(64))
+    kind: Mapped[str] = mapped_column(String(16))  # guest | register
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, index=True)

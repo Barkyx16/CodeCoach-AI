@@ -47,6 +47,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/create-anchor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Before starting a guest session or registering: tie the request to this browser
+         * @description Sets an HttpOnly, SameSite=Strict cookie (`cc_create`, an hour) that page scripts can't read.
+         *     A browser that already has a valid one keeps its value (renewed for another hour), so a retry
+         *     carries the same value. A guest start or registration records it with the account it makes, so
+         *     the same request sent again after a lost reply finds that account instead of making another
+         *     (docs/RECOVERY.md). It grants nothing by itself and reveals nothing; without it, those requests
+         *     behave as before.
+         */
+        post: operations["create_anchor_api_v1_auth_create_anchor_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/register": {
         parameters: {
             query?: never;
@@ -90,7 +115,12 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Start a demo session without an account */
+        /**
+         * Start a demo session without an account
+         * @description With this browser's anchor (`POST /auth/create-anchor`), a start whose reply was lost and is
+         *     sent again resumes the guest it made (200, `X-Account-Resumed: guest`) instead of making
+         *     another; so do two tabs starting at once. Without one, every start is a new guest, as before.
+         */
         post: operations["guest_api_v1_auth_guest_post"];
         delete?: never;
         options?: never;
@@ -10603,12 +10633,43 @@ export interface operations {
             };
         };
     };
+    create_anchor_api_v1_auth_create_anchor_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                cc_create?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     register_api_v1_auth_register_post: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                cc_create?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -10728,7 +10789,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                cc_create?: string | null;
+            };
         };
         requestBody?: {
             content: {
@@ -11462,6 +11525,7 @@ export interface operations {
             path?: never;
             cookie?: {
                 cc_refresh?: string | null;
+                cc_create?: string | null;
             };
         };
         requestBody?: never;

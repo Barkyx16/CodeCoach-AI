@@ -154,7 +154,7 @@ row-level security (no content; purged across learners). Migration `7045bdb6a532
 |---|---|---|
 | `id` | varchar(36) PK | |
 | `user_id` | FK → users (cascade), indexed | |
-| `entity`, `entity_id` | varchar(16), varchar(80) | `story` \| `note` \| `kit` \| `whiteboard` \| `reflection`, and its id |
+| `entity`, `entity_id` | varchar(16), varchar(80) | `story` \| `note` \| `kit` \| `whiteboard` \| `reflection` \| `note_copy` \| `app_notes`, and its id |
 | `client_request_id` | varchar(64) | unique per user |
 | `base_revision`, `accepted_revision` | integer | the revision the save started from, and the one it produced |
 | `request_fingerprint` | varchar(80) | `v1:` + SHA-256 of the update (services/request_keys.py); never shown |
@@ -166,6 +166,22 @@ revision. A notes change must name it (Volume 8, prompt 5); other fields don't t
 `request_fingerprint` (nullable, the same digest) is also kept on `ai_interactions`,
 `experience_entries`, `applications`, `application_events` and `schedule_entries`: what the keyed
 create stood for (migration `06088140741a`, Volume 8 prompt 2).
+
+### `create_intents`
+Which account a browser's guest start or registration made, so the same request sent again after a
+lost reply finds it instead of making another (Volume 8, prompt 6; docs/RECOVERY.md). Written in
+the same transaction as the account. Holds a hash, never the anchor itself, a password or a token.
+Kept an hour, purged by housekeeping, deleted on a deliberate sign-out (this browser's) and on
+sign-out everywhere (the account's); not exported, not copied by `copy-db`, outside row-level
+security (looked up before the user is known, like the sign-in tokens). Migration `fa8c2d7ff836`.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | varchar(36) PK | |
+| `anchor_hash` | varchar(64) | SHA-256 of the browser's `cc_create` cookie (HttpOnly, SameSite=Strict, path `/api/v1/auth`) |
+| `kind` | varchar(16) | `guest` \| `register`; unique with `anchor_hash` |
+| `user_id` | FK → users (cascade), indexed | the account the request made |
+| `created_at` | timestamptz, indexed | for expiry |
 
 ### `execution_results` (1:1 with submissions)
 `submission_id` (PK and FK, cascade), `runtime_ms`, `memory_kb`, `passed_count`, `total_count`,

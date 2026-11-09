@@ -73,11 +73,13 @@ isn't read out every second. Nothing replaces the page.
 | Story, note, kit, whiteboard draft, reflection (update) | `client_request_id` per save, and a receipt kept with the update (migration `7045bdb6a532`, Volume 8 prompt 3) | "your save went through as version N". Changed since: both versions, compared |
 | Explain a failure | cached per submission | the same explanation |
 | Restore | the same file changes nothing | no change |
+| Guest start, register (new) | this browser's HttpOnly anchor cookie, recorded with the account (Volume 8 prompt 6) | the same guest; the same account, with the right password, and no second email. Without the anchor: as before (below) |
 
 **Can't yet be retried safely** (a repeat may do something twice or misread itself):
-- **Guest sessions.** A lost answer leaves an unused guest account, removed by guest retention.
-- **Register.** A lost answer, retried, gets `409 email_taken`. Signing in then works. The page
-  doesn't recognise this case itself.
+- **Guest sessions without the anchor** (another browser, cookies blocked or cleared, over an
+  hour). A lost answer leaves an unused guest account, removed by guest retention.
+- **Register without the anchor.** A lost answer, retried, gets `409 email_taken`. Signing in then
+  works.
 
 ## Cancelling
 
@@ -434,6 +436,70 @@ Tests:
 - Negative controls: 4 backend, each caught. One finding: removing only the up-front check isn't
   caught, because the note's unique key and the race path still return the copy (two layers, by
   design). Removing both is caught.
+
+## Starting as a guest or registering (Volume 8, prompt 6)
+
+A guest start and a registration each make an account and a session in one request. If the reply
+was lost, the page had neither: retrying made a second guest (the first left unused), or answered
+"email taken" for the account the first request had just made.
+
+- **An anchor first.** Before either, the page calls `POST /auth/create-anchor`. The server sets
+  `cc_create`: a random value in an HttpOnly, SameSite=Strict cookie, sent only to `/api/v1/auth`,
+  for an hour. Page scripts can't read it and other sites can't send it. A browser that already
+  has one keeps its value (renewed). If this call fails, the create goes ahead as before.
+- **The create records it.** In the same transaction as the account, `create_intents` stores the
+  anchor's SHA-256 hash, the kind and the account (migration `fa8c2d7ff836`). Not the anchor, not
+  the password, not a token.
+- **Sent again from the same browser:**
+  - a **guest start** returns the guest that anchor made: `200` with `X-Account-Resumed: guest` and
+    a new session, not a second guest. A guest has no password or email; this browser's anchor is
+    what ties it to the guest, as the session cookie would have. Two tabs starting at once get one
+    guest;
+  - a **registration** is resumed only when the email and the password are right too, as a sign-in
+    would be: `200` with `X-Account-Resumed: register`. No second verification email. Without both,
+    the usual `409 email_taken`.
+- **Never resumed:** another browser (its own anchor); a made-up value (an unknown hash; a short
+  one is ignored); no anchor; an anchor over an hour old; after a deliberate sign-out on this
+  browser (its intents are deleted, so even a cookie whose removal never arrived finds nothing);
+  after sign-out everywhere; a guest that has since become a full account; a deleted account. A
+  request id in page storage plays no part, and no email, guessed id or key grants anything.
+- **The page** (`createAccount` in AuthProvider): when the reply is lost, it first asks whether the
+  lost reply's session cookie arrived (a refresh). That session is used only if it is the account
+  being made (a guest, or the address being registered); then nothing is sent again. Otherwise it
+  sends the same request once more and the anchor check answers. If that reply is lost too, it
+  says: "We couldn't confirm your account was created. It may have been. When you're online again,
+  press the same button again: on this browser it finds what was made instead of making another."
+  It says nothing about whether the address has an account. Any other answer (a validation error,
+  `email_taken`, a rate limit) is shown as before, without a resend.
+- **Unchanged:** rate limits (the resend counts like any request), session rotation, the
+  verification screens and their honest delivery status, the return path after sign-up, guest to
+  account conversion, and guest retention. Nothing is merged or transferred by an email match.
+- **How long:** an intent lasts an hour from the create, and the daily housekeeping purges older
+  ones. The cookie lasts an hour from the last anchor request.
+
+What this doesn't do: it makes **fewer** orphan guests, not none. A retry from another browser,
+with cookies blocked or cleared, or after an hour makes a new guest, and the earlier one, if
+unused, goes with guest retention (30 days by default). Registration's `email_taken` answer
+already says that an address has an account; that public answer is unchanged here.
+
+Tests:
+- `backend/tests/test_create_recovery.py` (10; SQLite and PostgreSQL):
+  - the anchor cookie's flags, and that it's kept for a retry;
+  - a lost guest start resumes the same guest; without an anchor, a new guest each time;
+  - another browser, made-up anchors, and a sign-out (with the old cookie sent again);
+  - an expired anchor, and a guest that became an account;
+  - a lost registration resumed once with one email; the wrong password or another browser gets
+    the usual answer, and signing in works;
+  - sign-out everywhere, two tabs at once, and the hourly purge.
+- `frontend/src/test/integration/createRecovery.test.tsx` (7): the resend, a session cookie that
+  arrived, a session that isn't the account being made, a resumed registration, a double loss and
+  pressing again, an ordinary error without a resend, and no anchor.
+- `frontend/e2e/create-recovery.spec.ts` (2, real API): a lost guest reply and a lost registration
+  reply, each answered by the same account (one verification email); the anchor isn't readable
+  by the page; another browser gets its own guest.
+- Negative controls: 8 backend, 4 frontend, 1 browser, each caught. One finding: removing the
+  server-side forget on sign-out was missed at first, because the cookie's removal alone hid it;
+  the test now sends the old cookie again.
 
 ## Limits
 

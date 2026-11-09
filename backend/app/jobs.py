@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.db import rls
-from app.services import outbox, update_receipts
+from app.services import create_intents, outbox, update_receipts
 from app.services.email import EmailSender
 from app.services.rate_limit import purge_expired
 from app.services.retention import prune_inactive_guests, purge_expired_tokens
@@ -56,6 +56,7 @@ def housekeeping(
         step("email_jobs_purged", lambda db: outbox.purge_finished(db))
         step("expired_tokens_purged", lambda db: purge_expired_tokens(db))
         step("update_receipts_purged", lambda db: update_receipts.purge(db))
+        step("create_intents_purged", lambda db: create_intents.purge(db))
     return done
 
 

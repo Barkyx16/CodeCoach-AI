@@ -38,7 +38,7 @@ from app.schemas.auth import (
     VerifyLinkOut,
 )
 from app.schemas.common import error_responses
-from app.services import email_verification, outbox, password_reset
+from app.services import create_intents, email_verification, outbox, password_reset
 from app.services import refresh as refresh_tokens
 from app.services.auth import hash_password, issue_access_token, needs_rehash, verify_password
 from app.services.rate_limit import client_key
@@ -146,6 +146,39 @@ def _start_session(db: Session, user: User, response: Response, settings: Settin
     return _token_response(user, settings)
 
 
+def _set_anchor_cookie(response: Response, anchor: str, settings: Settings) -> None:
+    response.set_cookie(
+        create_intents.COOKIE_NAME,
+        anchor,
+        max_age=create_intents.CREATE_INTENT_MINUTES * 60,
+        path=refresh_tokens.COOKIE_PATH,  # only ever sent to the auth endpoints
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite="strict",
+    )
+
+
+@router.post(
+    "/create-anchor",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Before starting a guest session or registering: tie the request to this browser",
+)
+def create_anchor(
+    response: Response,
+    settings: Settings = Depends(get_settings_dep),
+    cc_create: str | None = Cookie(default=None),
+) -> None:
+    """Sets an HttpOnly, SameSite=Strict cookie (`cc_create`, an hour) that page scripts can't read.
+    A browser that already has a valid one keeps its value (renewed for another hour), so a retry
+    carries the same value. A guest start or registration records it with the account it makes, so
+    the same request sent again after a lost reply finds that account instead of making another
+    (docs/RECOVERY.md). It grants nothing by itself and reveals nothing; without it, those requests
+    behave as before."""
+    anchor = cc_create if create_intents.valid(cc_create) else create_intents.new_anchor()
+    assert anchor is not None
+    _set_anchor_cookie(response, anchor, settings)
+
+
 @router.post(
     "/register",
     dependencies=[Depends(refuse_in_demo)],
@@ -161,10 +194,13 @@ def register(
     background: BackgroundTasks,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
+    cc_create: str | None = Cookie(default=None),
 ) -> TokenResponse:
     _throttle(request)
     email = body.email.lower()
     if db.scalar(select(User.id).where(User.email == email)):
+        if (resumed := _resume_registration(db, cc_create, email, body.password)) is not None:
+            return _resumed(db, resumed, response, settings, "register")
         raise ConflictError("An account with this email already exists", code="email_taken")
     user = User(
         email=email,
@@ -177,11 +213,34 @@ def register(
     )
     db.add(user)
     try:
+        db.flush()
+        create_intents.record(db, cc_create, "register", user)
         db.commit()
     except IntegrityError as exc:  # concurrent registration with the same email
         db.rollback()
+        if (resumed := _resume_registration(db, cc_create, email, body.password)) is not None:
+            return _resumed(db, resumed, response, settings, "register")  # a copy of this one, sent at once
         raise ConflictError("An account with this email already exists", code="email_taken") from exc
     _send_email(request, background, db, settings, "verify_email", user_id=user.id)
+    return _start_session(db, user, response, settings)
+
+
+def _resume_registration(db: Session, anchor: str | None, email: str, password: str) -> User | None:
+    """This browser made this account in the last hour (its anchor says so) and the password is
+    right: the registration whose reply was lost. Anything less is the usual "email taken", so the
+    answer never depends on the anchor alone, and says nothing a sign-in wouldn't."""
+    user = create_intents.made_by(db, anchor, "register")
+    if user is None or user.email != email or not verify_password(user.password_hash, password):
+        return None
+    return user
+
+
+def _resumed(db: Session, user: User, response: Response, settings: Settings, kind: str) -> TokenResponse:
+    """A session for the account this browser's lost request made: 200, not 201, with
+    `X-Account-Resumed` saying which. Nothing else happens again (no second verification email)."""
+    response.status_code = status.HTTP_200_OK
+    response.headers["X-Account-Resumed"] = kind
+    user.last_login_at = datetime.now(UTC)
     return _start_session(db, user, response, settings)
 
 
@@ -223,10 +282,16 @@ def guest(
     body: GuestSessionRequest | None = None,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
+    cc_create: str | None = Cookie(default=None),
 ) -> TokenResponse:
+    """With this browser's anchor (`POST /auth/create-anchor`), a start whose reply was lost and is
+    sent again resumes the guest it made (200, `X-Account-Resumed: guest`) instead of making
+    another; so do two tabs starting at once. Without one, every start is a new guest, as before."""
     if not settings.allow_guest_sessions:
         raise AppError("Guest sessions are disabled", code="guest_disabled")
     _throttle(request)
+    if (resumed := create_intents.made_by(db, cc_create, "guest")) is not None:
+        return _resumed(db, resumed, response, settings, "guest")
     user = User(
         auth_provider_id=f"guest:{new_id()}",
         is_guest=True,
@@ -234,7 +299,15 @@ def guest(
         career_track=(body.career_track if body else None) or DEFAULT_TRACK,
     )
     db.add(user)
-    db.commit()
+    try:
+        db.flush()
+        create_intents.record(db, cc_create, "guest", user)
+        db.commit()
+    except IntegrityError:  # another tab of this browser started at the same moment
+        db.rollback()
+        if (resumed := create_intents.made_by(db, cc_create, "guest")) is not None:
+            return _resumed(db, resumed, response, settings, "guest")
+        raise
     return _start_session(db, user, response, settings)
 
 
@@ -570,13 +643,23 @@ def logout(
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
     cc_refresh: str | None = Cookie(default=None),
+    cc_create: str | None = Cookie(default=None),
 ) -> None:
     row = refresh_tokens.find(db, cc_refresh)
     if row is not None and row.user_id == user.id:
         refresh_tokens.revoke_family(db, row.family_id)
-        db.commit()
+    # A deliberate sign-out: the next start on this browser is a new one, never this account.
+    create_intents.forget(db, cc_create)
+    db.commit()
     # The access token in this tab is discarded by the client and expires within 15 minutes.
     _clear_refresh_cookie(response, settings)
+    response.delete_cookie(
+        create_intents.COOKIE_NAME,
+        path=refresh_tokens.COOKIE_PATH,
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite="strict",
+    )
 
 
 @router.post(
@@ -593,6 +676,7 @@ def logout_all(
 ) -> None:
     user.token_version += 1  # every access and refresh token issued so far stops working
     refresh_tokens.revoke_all(db, user)
+    create_intents.forget_user(db, user.id)  # no browser resumes this account's creation either
     db.commit()
     _clear_refresh_cookie(response, settings)
 
