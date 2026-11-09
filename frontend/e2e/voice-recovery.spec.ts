@@ -104,7 +104,7 @@ test("the coding editor's Ctrl/⌘+Enter doesn't send while the microphone is on
   await page.getByRole("button", { name: "Start this problem" }).click();
   await expect(page).toHaveURL(/two-sum/);
   await navTo(page, "Mock interview");
-  await page.getByLabel("Problem").selectOption("two-sum");
+  await page.getByLabel("Problem", { exact: true }).selectOption("two-sum");
   await page.getByRole("button", { name: "Start interview" }).click();
   await expect(page).toHaveURL(/\/interviews\/[0-9a-f-]+$/);
   await expect(page.locator(".monaco-editor")).toBeVisible();

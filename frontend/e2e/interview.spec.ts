@@ -28,7 +28,9 @@ test("mock interview: five phases, real editor, rubric feedback, history", async
   await expect(page).toHaveURL(/two-sum/);
 
   await navTo(page, "Mock interview");
-  await page.getByLabel("Problem").selectOption("two-sum");
+  // Exactly "Problem": until the new page has rendered, the workspace's "Problem description" is
+  // still on screen, and a partial match would pick it (CI run 280).
+  await page.getByLabel("Problem", { exact: true }).selectOption("two-sum");
   await page.getByText("15 min").click();
   await page.getByRole("button", { name: "Start interview" }).click();
   await expect(page).toHaveURL(/\/interviews\/[0-9a-f-]+$/);
