@@ -33,6 +33,7 @@ export function localWorkKeys(userId: string): string[] {
     `drill-draft:${userId}:`,
     `form-draft:${userId}:`,
     `debug-notes:${userId}:`,
+    `code-review-draft:${userId}:`,
     `codecoach.appnotes.v1.${userId}.`,
     "codecoach.round.",
     "codecoach.interview-message.",

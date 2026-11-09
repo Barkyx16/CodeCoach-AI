@@ -25,7 +25,7 @@ def test_the_migration_and_the_app_protect_the_same_tables():
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    assert module.TABLES == rls.PROTECTED_TABLES
+    assert module.TABLES == rls.BASE_TABLES
     assert module.POLICY == rls.POLICY
     for name in rls.PROTECTED_TABLES:  # each has the owner column the policy compares
         assert "user_id" in Base.metadata.tables[name].columns, name
@@ -39,10 +39,26 @@ def test_the_scopes_migration_installs_exactly_what_the_app_does():
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    assert module.TABLES == rls.PROTECTED_TABLES
+    assert module.TABLES == rls.BASE_TABLES
     assert (module.POLICY, module.MAINTENANCE_POLICY) == (rls.POLICY, rls.MAINTENANCE_POLICY)
     assert module.CONDITION == rls._CONDITION  # what a dev database gets from rls.apply()
     assert module.MAINTENANCE_CONDITION == rls._MAINTENANCE_CONDITION
+
+
+def test_each_table_added_later_gets_the_same_policies_from_its_own_migration():
+    """A table put under row-level security after 248721f0fcb1 is listed in rls.ADDED_TABLES under
+    the migration that created it; that migration installs exactly the current policies on it."""
+    assert set(rls.BASE_TABLES).isdisjoint(t for added in rls.ADDED_TABLES.values() for t in added)
+    for revision, tables in rls.ADDED_TABLES.items():
+        (path,) = MIGRATION.parent.glob(f"*_{revision}_*.py")
+        spec = importlib.util.spec_from_file_location(f"rls_added_{revision}", path)
+        assert spec and spec.loader
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        assert module.TABLES == tables, revision
+        assert (module.POLICY, module.MAINTENANCE_POLICY) == (rls.POLICY, rls.MAINTENANCE_POLICY)
+        assert module.CONDITION == rls._CONDITION
+        assert module.MAINTENANCE_CONDITION == rls._MAINTENANCE_CONDITION
 
 
 def _enforced(url: str) -> bool:

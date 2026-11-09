@@ -139,6 +139,14 @@ import type {
   VerificationStatus,
   VerifyLinkResult,
   WhiteboardAttempt,
+  ReviewAttempt,
+  ReviewAttemptIn,
+  ReviewAttemptSummary,
+  ReviewDraft,
+  ReviewDraftIn,
+  ReviewExercise,
+  ReviewExerciseSummary,
+  ReviewReference,
   WhiteboardAttemptIn,
   WhiteboardAttemptSummary,
   WhiteboardDiagram,
@@ -572,6 +580,18 @@ export const api = {
   whiteboardAttempts: (promptId: string) => apiRequest<WhiteboardAttemptSummary[]>(`/api/v1/me/whiteboard/${encodeURIComponent(promptId)}/attempts`),
   whiteboardAttemptById: (id: string) => apiRequest<WhiteboardAttempt>(`/api/v1/me/whiteboard/attempts/${encodeURIComponent(id)}`),
   validateWhiteboard: (body: unknown) => apiRequest<WhiteboardDiagram>("/api/v1/me/whiteboard/validate", { method: "POST", body }),
+
+  // code-review practice (the exercises are public; your review is yours)
+  reviewExercises: () => apiRequest<ReviewExerciseSummary[]>("/api/v1/code-reviews", { auth: false }),
+  reviewExercise: (slug: string) => apiRequest<ReviewExercise>(`/api/v1/code-reviews/${encodeURIComponent(slug)}`, { auth: false }),
+  reviewDraft: (slug: string) => apiRequest<ReviewDraft>(`/api/v1/me/code-reviews/${encodeURIComponent(slug)}/draft`),
+  saveReviewDraft: (slug: string, body: ReviewDraftIn) =>
+    apiRequest<ReviewDraft>(`/api/v1/me/code-reviews/${encodeURIComponent(slug)}/draft`, { method: "PUT", body }),
+  revealReview: (slug: string) => apiRequest<ReviewReference>(`/api/v1/me/code-reviews/${encodeURIComponent(slug)}/reveal`, { method: "POST" }),
+  sendReview: (slug: string, body: ReviewAttemptIn) =>
+    apiRequest<ReviewAttempt>(`/api/v1/me/code-reviews/${encodeURIComponent(slug)}/attempts`, { method: "POST", body }),
+  reviewAttempts: (slug: string) => apiRequest<ReviewAttemptSummary[]>(`/api/v1/me/code-reviews/${encodeURIComponent(slug)}/attempts`),
+  reviewAttempt: (id: string) => apiRequest<ReviewAttempt>(`/api/v1/me/code-reviews/attempts/${encodeURIComponent(id)}`),
 
   // interview-day kits
   kit: (appId: string, eventId: string) => apiRequest<Kit>(`/api/v1/me/applications/${encodeURIComponent(appId)}/events/${encodeURIComponent(eventId)}/kit`),

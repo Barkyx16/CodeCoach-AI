@@ -28,6 +28,7 @@ from app.services.judge.harness import build_driver, judge_cases  # noqa: E402
 PROBLEMS_DIR = BACKEND_DIR / "app" / "seed" / "problems"
 REFERENCE_DIR = BACKEND_DIR / "app" / "seed" / "reference"
 DEBUGGING_DIR = BACKEND_DIR / "app" / "seed" / "debugging"
+REVIEWS_DIR = BACKEND_DIR / "app" / "seed" / "reviews"
 
 
 def java_available() -> bool:
@@ -124,6 +125,70 @@ def check_debug_exercise(problem_file: Path, timeout_s: float = 30.0) -> list[st
             f"{slug}: alternative {alternative.name}: {_describe(slug, tests, o)}"
             for o in alt_outcomes
             if not o.passed
+        ]
+    return failures
+
+
+def _problem_for(slug: str) -> dict | None:
+    for path in PROBLEMS_DIR.glob(f"*-{slug}.json"):
+        data = json.loads(path.read_text())
+        if data.get("slug") == slug:
+            return data
+    return None
+
+
+def check_review_exercise(review_file: Path, timeout_s: float = 30.0) -> list[str]:
+    """A code-review exercise (app/seed/reviews; docs/CODE_REVIEW_PRACTICE.md) is sound when its
+    authored review matches what the code does on the problem's tests:
+    - the reviewed code compiles and runs without crashing;
+    - the public tests it fails are exactly those its defects cite as evidence, each with the
+      result the evidence states; and with no defect, it passes every public and hidden test (an
+      exercise with no defect must really have none);
+    - with a defect, it fails at least one test, and `repaired_code` passes every test.
+    Returns human-readable failures (empty means sound)."""
+    review = json.loads(review_file.read_text())
+    slug = review["slug"]
+    problem = _problem_for(review["problem"])
+    if problem is None:
+        return [f"{slug}: no coding problem {review['problem']!r}"]
+    tests = problem["tests"]
+    failures: list[str] = []
+    error, outcomes = run_source(problem, review["code"], timeout_s)
+    if error is not None:
+        return [f"{slug}: the reviewed code doesn't compile\n{error}"]
+    # An expected exception (a test that wants IllegalArgumentException) passes; any other is a crash.
+    crashed = [o for o in outcomes if not o.passed and (o.exception or o.missing)]
+    failures += [f"{slug}: the reviewed code crashes: {_describe(slug, tests, o)}" for o in crashed]
+    public = [i for i, t in enumerate(tests) if t["visibility"] == "public"]
+    position = {index: n for n, index in enumerate(public, 1)}  # test index -> public position
+    failing_public = {position[o.index]: o for o in outcomes if not o.passed and o.index in position}
+    defects = [f for f in review["findings"] if f["kind"] == "defect"]
+    cited = {e["public_test"]: e for f in defects for e in f.get("evidence", [])}
+    if set(failing_public) != set(cited):
+        failures.append(
+            f"{slug}: the code fails public tests {sorted(failing_public)}, "
+            f"but the defects cite {sorted(cited)}"
+        )
+    for pos, e in cited.items():
+        o = failing_public.get(pos)
+        if o is not None and o.actual != e["actual"]:
+            failures.append(
+                f"{slug}: public test {pos} returns {o.actual!r}, but the evidence says {e['actual']!r}"
+            )
+    failed_any = [o for o in outcomes if not o.passed]
+    if not defects and failed_any:
+        failures += [
+            f"{slug}: has no defect in its review but fails: {_describe(slug, tests, o)}" for o in failed_any
+        ]
+    if defects:
+        if not failed_any:
+            failures.append(f"{slug}: its review has a defect, but the code passes every test")
+        repaired = review.get("repaired_code") or ""
+        fix_error, fix_outcomes = run_source(problem, repaired, timeout_s)
+        if fix_error is not None:
+            failures.append(f"{slug}: repaired_code doesn't compile\n{fix_error}")
+        failures += [
+            f"{slug}: repaired_code fails: {_describe(slug, tests, o)}" for o in fix_outcomes if not o.passed
         ]
     return failures
 
@@ -267,6 +332,17 @@ def main() -> int:
         return 1
     print(
         f"All {len(exercises)} debugging exercises: each starter fails exactly its reproduction cases; repairs pass."
+    )
+    reviews = sorted(REVIEWS_DIR.glob("*.json"))
+    for path in reviews:
+        failures = check_review_exercise(path)
+        print(f"{path.stem:40s} {'ok' if not failures else f'{len(failures)} failure(s)'}")
+        all_failures.extend(failures)
+    if all_failures:
+        print("\n".join(all_failures))
+        return 1
+    print(
+        f"All {len(reviews)} review exercises: each authored review matches what the code does on the tests."
     )
     return 0
 

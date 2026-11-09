@@ -11337,6 +11337,535 @@
         }
       }
     },
+    "/api/v1/code-reviews": {
+      "get": {
+        "tags": [
+          "code reviews"
+        ],
+        "summary": "Code-review exercises",
+        "operationId": "exercises_api_v1_code_reviews_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReviewExerciseSummary"
+                  },
+                  "type": "array",
+                  "title": "Response Exercises Api V1 Code Reviews Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/code-reviews/{slug}": {
+      "get": {
+        "tags": [
+          "code reviews"
+        ],
+        "summary": "One exercise: the code and the task, without the authored review",
+        "operationId": "exercise_api_v1_code_reviews__slug__get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewExerciseOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/code-reviews/{slug}/draft": {
+      "get": {
+        "tags": [
+          "code reviews"
+        ],
+        "summary": "Your review so far",
+        "operationId": "get_draft_api_v1_me_code_reviews__slug__draft_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewDraftOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "code reviews"
+        ],
+        "summary": "Save it (409 if it changed elsewhere)",
+        "operationId": "put_draft_api_v1_me_code_reviews__slug__draft_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewDraftIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewDraftOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/code-reviews/{slug}/reveal": {
+      "post": {
+        "tags": [
+          "code reviews"
+        ],
+        "summary": "Show the authored review (later reviews of this version say they came after it)",
+        "operationId": "reveal_api_v1_me_code_reviews__slug__reveal_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewReference"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/code-reviews/{slug}/attempts": {
+      "post": {
+        "tags": [
+          "code reviews"
+        ],
+        "summary": "Send your review and compare it with the authored one",
+        "operationId": "attempt_api_v1_me_code_reviews__slug__attempts_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewAttemptIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewAttemptOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "code reviews"
+        ],
+        "summary": "Your reviews of this exercise",
+        "operationId": "attempts_api_v1_me_code_reviews__slug__attempts_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReviewAttemptSummary"
+                  },
+                  "title": "Response Attempts Api V1 Me Code Reviews  Slug  Attempts Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/code-reviews/attempts/{attempt_id}": {
+      "get": {
+        "tags": [
+          "code reviews"
+        ],
+        "summary": "One of your reviews, with the version it was compared against",
+        "operationId": "get_attempt_api_v1_me_code_reviews_attempts__attempt_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Attempt Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewAttemptOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/schedule": {
       "get": {
         "tags": [
@@ -22920,6 +23449,121 @@
         "title": "FeedbackReceipt",
         "description": "What the reviewer sent, echoed back so they can see it was received."
       },
+      "FindingIn": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Id"
+          },
+          "start_line": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Start Line"
+          },
+          "end_line": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "End Line"
+          },
+          "problem": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Problem",
+            "description": "What's wrong",
+            "default": ""
+          },
+          "consequence": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Consequence",
+            "description": "What happens because of it",
+            "default": ""
+          },
+          "repair": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Repair",
+            "description": "A change, or a test that would show it",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "start_line",
+          "end_line"
+        ],
+        "title": "FindingIn"
+      },
+      "FindingOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Id"
+          },
+          "start_line": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Start Line"
+          },
+          "end_line": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "End Line"
+          },
+          "problem": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Problem",
+            "description": "What's wrong",
+            "default": ""
+          },
+          "consequence": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Consequence",
+            "description": "What happens because of it",
+            "default": ""
+          },
+          "repair": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Repair",
+            "description": "A change, or a test that would show it",
+            "default": ""
+          },
+          "excerpt": {
+            "type": "string",
+            "title": "Excerpt",
+            "description": "The cited lines as they were when the finding was saved"
+          },
+          "anchor": {
+            "type": "string",
+            "enum": [
+              "same",
+              "moved",
+              "missing"
+            ],
+            "title": "Anchor",
+            "description": "For a draft written against an earlier version: whether the cited lines were found again",
+            "default": "same"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "start_line",
+          "end_line",
+          "excerpt"
+        ],
+        "title": "FindingOut"
+      },
       "FlagIn": {
         "properties": {
           "criterion": {
@@ -29660,6 +30304,411 @@
         ],
         "title": "ReviewAdd"
       },
+      "ReviewAttemptIn": {
+        "properties": {
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/FindingIn"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Findings"
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Summary",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "ReviewAttemptIn"
+      },
+      "ReviewAttemptOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "exercise_version": {
+            "type": "integer",
+            "title": "Exercise Version"
+          },
+          "current_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Version",
+            "description": "None if the exercise is no longer offered"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "problem_title": {
+            "type": "string",
+            "title": "Problem Title"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "The code as it was reviewed"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/FindingOut"
+            },
+            "type": "array",
+            "title": "Findings"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "reference": {
+            "$ref": "#/components/schemas/ReviewReference"
+          },
+          "feedback": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Feedback"
+          },
+          "after_reveal": {
+            "type": "boolean",
+            "title": "After Reveal",
+            "description": "Written after the authored review had been seen"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "exercise_version",
+          "current_version",
+          "title",
+          "problem_title",
+          "code",
+          "findings",
+          "summary",
+          "reference",
+          "feedback",
+          "after_reveal",
+          "created_at"
+        ],
+        "title": "ReviewAttemptOut"
+      },
+      "ReviewAttemptSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "exercise_version": {
+            "type": "integer",
+            "title": "Exercise Version"
+          },
+          "findings": {
+            "type": "integer",
+            "title": "Findings"
+          },
+          "defects_raised": {
+            "type": "integer",
+            "title": "Defects Raised"
+          },
+          "defects_total": {
+            "type": "integer",
+            "title": "Defects Total"
+          },
+          "after_reveal": {
+            "type": "boolean",
+            "title": "After Reveal"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "exercise_version",
+          "findings",
+          "defects_raised",
+          "defects_total",
+          "after_reveal",
+          "created_at"
+        ],
+        "title": "ReviewAttemptSummary"
+      },
+      "ReviewDraftIn": {
+        "properties": {
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/FindingIn"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Findings"
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Summary",
+            "default": ""
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "description": "0 for the first save"
+          },
+          "client_request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 8,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Request Id",
+            "description": "One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before."
+          }
+        },
+        "type": "object",
+        "required": [
+          "expected_revision"
+        ],
+        "title": "ReviewDraftIn"
+      },
+      "ReviewDraftOut": {
+        "properties": {
+          "save_replay": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SaveReplay"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only on a save recovered by its key: see SaveReplay"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "exercise_version": {
+            "type": "integer",
+            "title": "Exercise Version",
+            "description": "The version the findings were written against"
+          },
+          "current_version": {
+            "type": "integer",
+            "title": "Current Version"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/FindingOut"
+            },
+            "type": "array",
+            "title": "Findings"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "revealed": {
+            "type": "boolean",
+            "title": "Revealed",
+            "description": "True once you've seen the authored review for this version"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slug",
+          "exercise_version",
+          "current_version",
+          "findings",
+          "summary",
+          "revision",
+          "revealed",
+          "updated_at"
+        ],
+        "title": "ReviewDraftOut"
+      },
+      "ReviewEvidence": {
+        "properties": {
+          "public_test": {
+            "type": "integer",
+            "title": "Public Test"
+          },
+          "input": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Input"
+          },
+          "expected": {
+            "title": "Expected"
+          },
+          "actual": {
+            "title": "Actual"
+          }
+        },
+        "type": "object",
+        "required": [
+          "public_test",
+          "input",
+          "expected",
+          "actual"
+        ],
+        "title": "ReviewEvidence"
+      },
+      "ReviewExerciseOut": {
+        "properties": {
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "context": {
+            "type": "string",
+            "title": "Context"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "line_count": {
+            "type": "integer",
+            "title": "Line Count"
+          },
+          "problem_slug": {
+            "type": "string",
+            "title": "Problem Slug"
+          },
+          "problem_title": {
+            "type": "string",
+            "title": "Problem Title"
+          },
+          "difficulty": {
+            "$ref": "#/components/schemas/Difficulty"
+          },
+          "statement": {
+            "type": "string",
+            "title": "Statement"
+          },
+          "constraints": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Constraints"
+          },
+          "public_tests": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewPublicTest"
+            },
+            "type": "array",
+            "title": "Public Tests"
+          },
+          "review_status": {
+            "type": "string",
+            "title": "Review Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slug",
+          "version",
+          "title",
+          "context",
+          "code",
+          "line_count",
+          "problem_slug",
+          "problem_title",
+          "difficulty",
+          "statement",
+          "constraints",
+          "public_tests",
+          "review_status"
+        ],
+        "title": "ReviewExerciseOut",
+        "description": "The exercise as the learner sees it before reviewing: no authored findings."
+      },
+      "ReviewExerciseSummary": {
+        "properties": {
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "difficulty": {
+            "$ref": "#/components/schemas/Difficulty"
+          },
+          "problem_slug": {
+            "type": "string",
+            "title": "Problem Slug"
+          },
+          "problem_title": {
+            "type": "string",
+            "title": "Problem Title"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slug",
+          "title",
+          "difficulty",
+          "problem_slug",
+          "problem_title"
+        ],
+        "title": "ReviewExerciseSummary"
+      },
       "ReviewIssue": {
         "properties": {
           "severity": {
@@ -29941,6 +30990,30 @@
         ],
         "title": "ReviewOut"
       },
+      "ReviewPublicTest": {
+        "properties": {
+          "position": {
+            "type": "integer",
+            "title": "Position",
+            "description": "1-based, as the authored review cites it"
+          },
+          "input": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Input"
+          },
+          "expected_output": {
+            "title": "Expected Output"
+          }
+        },
+        "type": "object",
+        "required": [
+          "position",
+          "input",
+          "expected_output"
+        ],
+        "title": "ReviewPublicTest"
+      },
       "ReviewQueue": {
         "properties": {
           "due": {
@@ -30059,6 +31132,130 @@
           "snoozed"
         ],
         "title": "ReviewQueueItem"
+      },
+      "ReviewReference": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewReferenceFinding"
+            },
+            "type": "array",
+            "title": "Findings"
+          },
+          "repaired_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repaired Code"
+          },
+          "debrief": {
+            "type": "string",
+            "title": "Debrief"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "findings",
+          "repaired_code",
+          "debrief"
+        ],
+        "title": "ReviewReference"
+      },
+      "ReviewReferenceFinding": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "defect",
+              "observation"
+            ],
+            "title": "Kind"
+          },
+          "lines": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Lines"
+          },
+          "related_lines": {
+            "items": {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Related Lines"
+          },
+          "excerpt": {
+            "type": "string",
+            "title": "Excerpt"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          },
+          "consequence": {
+            "type": "string",
+            "title": "Consequence"
+          },
+          "repair": {
+            "type": "string",
+            "title": "Repair"
+          },
+          "why_preference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Why Preference"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewEvidence"
+            },
+            "type": "array",
+            "title": "Evidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "lines",
+          "related_lines",
+          "excerpt",
+          "title",
+          "explanation",
+          "consequence",
+          "repair",
+          "why_preference",
+          "evidence"
+        ],
+        "title": "ReviewReferenceFinding"
       },
       "ReviewRequest": {
         "properties": {
@@ -36208,6 +37405,10 @@
     {
       "name": "whiteboard",
       "description": "System-design practice with a small, plain-text diagram: drafts with conflict-safe saves, attempts frozen with their prompt and rubric versions, and feedback that names the elements it found."
+    },
+    {
+      "name": "code reviews",
+      "description": "Review someone else's code (synthetic snippets for existing problems), then compare with an authored review: defects shown by public tests, preferences labelled as such, comparison by location only."
     },
     {
       "name": "backup",

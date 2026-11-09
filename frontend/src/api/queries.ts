@@ -769,6 +769,26 @@ export function useWhiteboardPrompts() {
   return useQuery({ queryKey: ["me", "whiteboard", "prompts"], queryFn: api.whiteboardPrompts, staleTime: 5 * 60_000 });
 }
 
+export function useReviewExercises() {
+  return useQuery({ queryKey: ["code-reviews"], queryFn: api.reviewExercises, staleTime: 5 * 60_000 });
+}
+
+export function useReviewExercise(slug: string) {
+  return useQuery({ queryKey: ["code-reviews", slug], queryFn: () => api.reviewExercise(slug), staleTime: 5 * 60_000 });
+}
+
+export function useReviewDraft(slug: string) {
+  return useQuery({ queryKey: ["me", "code-reviews", "draft", slug], queryFn: () => api.reviewDraft(slug), staleTime: 0, gcTime: 0 });
+}
+
+export function useReviewAttempts(slug: string) {
+  return useQuery({ queryKey: ["me", "code-reviews", "attempts", slug], queryFn: () => api.reviewAttempts(slug), staleTime: 0 });
+}
+
+export function useReviewAttempt(id: string) {
+  return useQuery({ queryKey: ["me", "code-reviews", "attempt", id], queryFn: () => api.reviewAttempt(id), staleTime: Infinity });
+}
+
 export function useWhiteboardDraft(promptId: string) {
   return useQuery({ queryKey: ["me", "whiteboard", "draft", promptId], queryFn: () => api.whiteboardDraft(promptId), staleTime: 0, gcTime: 0 });
 }

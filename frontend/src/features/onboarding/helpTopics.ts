@@ -105,6 +105,17 @@ export const HELP_TOPICS: HelpTopic[] = [
     ],
   },
   {
+    id: "code-review-practice",
+    title: "Code review practice",
+    items: [
+      {
+        q: "What's code review practice?",
+        a: "You review someone else's code: a short Java solution written for one of the coding problems. For each point, cite the lines, say what's wrong, what happens because of it, and what to change; no severity rating is needed. Then send your review, or ask to see the authored one first. The comparison goes by where each finding points, not its wording: it notes which findings line up with an authored defect (each shown by a public test), which with a preference, and which nothing in the authored review supports. It can't judge whether your explanation is right, and there's no score. Not every exercise has a bug. Drafts are saved to your account; reviews you send keep the code they reviewed. It's for careers with coding practice, and no AI is involved.",
+        links: [{ to: "/problems?view=code-review", label: "Code review practice" }],
+      },
+    ],
+  },
+  {
     id: "getting-around",
     title: "Getting around",
     items: [

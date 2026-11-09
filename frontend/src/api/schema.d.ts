@@ -2176,6 +2176,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/code-reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Code-review exercises */
+        get: operations["exercises_api_v1_code_reviews_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/code-reviews/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One exercise: the code and the task, without the authored review */
+        get: operations["exercise_api_v1_code_reviews__slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/code-reviews/{slug}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your review so far */
+        get: operations["get_draft_api_v1_me_code_reviews__slug__draft_get"];
+        /** Save it (409 if it changed elsewhere) */
+        put: operations["put_draft_api_v1_me_code_reviews__slug__draft_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/code-reviews/{slug}/reveal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Show the authored review (later reviews of this version say they came after it) */
+        post: operations["reveal_api_v1_me_code_reviews__slug__reveal_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/code-reviews/{slug}/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your reviews of this exercise */
+        get: operations["attempts_api_v1_me_code_reviews__slug__attempts_get"];
+        put?: never;
+        /** Send your review and compare it with the authored one */
+        post: operations["attempt_api_v1_me_code_reviews__slug__attempts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/code-reviews/attempts/{attempt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One of your reviews, with the version it was compared against */
+        get: operations["get_attempt_api_v1_me_code_reviews_attempts__attempt_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/schedule": {
         parameters: {
             query?: never;
@@ -5603,6 +5707,72 @@ export interface components {
              */
             duplicate: boolean;
         };
+        /** FindingIn */
+        FindingIn: {
+            /** Id */
+            id: string;
+            /** Start Line */
+            start_line: number;
+            /** End Line */
+            end_line: number;
+            /**
+             * Problem
+             * @description What's wrong
+             * @default
+             */
+            problem: string;
+            /**
+             * Consequence
+             * @description What happens because of it
+             * @default
+             */
+            consequence: string;
+            /**
+             * Repair
+             * @description A change, or a test that would show it
+             * @default
+             */
+            repair: string;
+        };
+        /** FindingOut */
+        FindingOut: {
+            /** Id */
+            id: string;
+            /** Start Line */
+            start_line: number;
+            /** End Line */
+            end_line: number;
+            /**
+             * Problem
+             * @description What's wrong
+             * @default
+             */
+            problem: string;
+            /**
+             * Consequence
+             * @description What happens because of it
+             * @default
+             */
+            consequence: string;
+            /**
+             * Repair
+             * @description A change, or a test that would show it
+             * @default
+             */
+            repair: string;
+            /**
+             * Excerpt
+             * @description The cited lines as they were when the finding was saved
+             */
+            excerpt: string;
+            /**
+             * Anchor
+             * @description For a draft written against an earlier version: whether the cited lines were found again
+             * @default same
+             * @enum {string}
+             */
+            anchor: "same" | "moved" | "missing";
+        };
         /** FlagIn */
         FlagIn: {
             /** Criterion */
@@ -8159,6 +8329,181 @@ export interface components {
             /** Session Id */
             session_id?: string | null;
         };
+        /** ReviewAttemptIn */
+        ReviewAttemptIn: {
+            /** Findings */
+            findings?: components["schemas"]["FindingIn"][];
+            /**
+             * Summary
+             * @default
+             */
+            summary: string;
+        };
+        /** ReviewAttemptOut */
+        ReviewAttemptOut: {
+            /** Id */
+            id: string;
+            /** Slug */
+            slug: string;
+            /** Exercise Version */
+            exercise_version: number;
+            /**
+             * Current Version
+             * @description None if the exercise is no longer offered
+             */
+            current_version: number | null;
+            /** Title */
+            title: string;
+            /** Problem Title */
+            problem_title: string;
+            /**
+             * Code
+             * @description The code as it was reviewed
+             */
+            code: string;
+            /** Findings */
+            findings: components["schemas"]["FindingOut"][];
+            /** Summary */
+            summary: string;
+            reference: components["schemas"]["ReviewReference"];
+            /** Feedback */
+            feedback: {
+                [key: string]: unknown;
+            };
+            /**
+             * After Reveal
+             * @description Written after the authored review had been seen
+             */
+            after_reveal: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ReviewAttemptSummary */
+        ReviewAttemptSummary: {
+            /** Id */
+            id: string;
+            /** Exercise Version */
+            exercise_version: number;
+            /** Findings */
+            findings: number;
+            /** Defects Raised */
+            defects_raised: number;
+            /** Defects Total */
+            defects_total: number;
+            /** After Reveal */
+            after_reveal: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ReviewDraftIn */
+        ReviewDraftIn: {
+            /** Findings */
+            findings?: components["schemas"]["FindingIn"][];
+            /**
+             * Summary
+             * @default
+             */
+            summary: string;
+            /**
+             * Expected Revision
+             * @description 0 for the first save
+             */
+            expected_revision: number;
+            /**
+             * Client Request Id
+             * @description One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before.
+             */
+            client_request_id?: string | null;
+        };
+        /** ReviewDraftOut */
+        ReviewDraftOut: {
+            /** @description Only on a save recovered by its key: see SaveReplay */
+            save_replay?: components["schemas"]["SaveReplay"] | null;
+            /** Slug */
+            slug: string;
+            /**
+             * Exercise Version
+             * @description The version the findings were written against
+             */
+            exercise_version: number;
+            /** Current Version */
+            current_version: number;
+            /** Findings */
+            findings: components["schemas"]["FindingOut"][];
+            /** Summary */
+            summary: string;
+            /** Revision */
+            revision: number;
+            /**
+             * Revealed
+             * @description True once you've seen the authored review for this version
+             */
+            revealed: boolean;
+            /** Updated At */
+            updated_at: string | null;
+        };
+        /** ReviewEvidence */
+        ReviewEvidence: {
+            /** Public Test */
+            public_test: number;
+            /** Input */
+            input: {
+                [key: string]: unknown;
+            };
+            /** Expected */
+            expected: unknown;
+            /** Actual */
+            actual: unknown;
+        };
+        /**
+         * ReviewExerciseOut
+         * @description The exercise as the learner sees it before reviewing: no authored findings.
+         */
+        ReviewExerciseOut: {
+            /** Slug */
+            slug: string;
+            /** Version */
+            version: number;
+            /** Title */
+            title: string;
+            /** Context */
+            context: string;
+            /** Code */
+            code: string;
+            /** Line Count */
+            line_count: number;
+            /** Problem Slug */
+            problem_slug: string;
+            /** Problem Title */
+            problem_title: string;
+            difficulty: components["schemas"]["Difficulty"];
+            /** Statement */
+            statement: string;
+            /** Constraints */
+            constraints: string[];
+            /** Public Tests */
+            public_tests: components["schemas"]["ReviewPublicTest"][];
+            /** Review Status */
+            review_status: string;
+        };
+        /** ReviewExerciseSummary */
+        ReviewExerciseSummary: {
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+            difficulty: components["schemas"]["Difficulty"];
+            /** Problem Slug */
+            problem_slug: string;
+            /** Problem Title */
+            problem_title: string;
+        };
         /** ReviewIssue */
         ReviewIssue: {
             /**
@@ -8253,6 +8598,20 @@ export interface components {
             /** Note */
             note: string;
         };
+        /** ReviewPublicTest */
+        ReviewPublicTest: {
+            /**
+             * Position
+             * @description 1-based, as the authored review cites it
+             */
+            position: number;
+            /** Input */
+            input: {
+                [key: string]: unknown;
+            };
+            /** Expected Output */
+            expected_output: unknown;
+        };
         /** ReviewQueue */
         ReviewQueue: {
             /** Due */
@@ -8298,6 +8657,45 @@ export interface components {
             reviews: number;
             /** Snoozed */
             snoozed: boolean;
+        };
+        /** ReviewReference */
+        ReviewReference: {
+            /** Version */
+            version: number;
+            /** Findings */
+            findings: components["schemas"]["ReviewReferenceFinding"][];
+            /** Repaired Code */
+            repaired_code: string | null;
+            /** Debrief */
+            debrief: string;
+        };
+        /** ReviewReferenceFinding */
+        ReviewReferenceFinding: {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "defect" | "observation";
+            /** Lines */
+            lines: number[];
+            /** Related Lines */
+            related_lines: number[][];
+            /** Excerpt */
+            excerpt: string;
+            /** Title */
+            title: string;
+            /** Explanation */
+            explanation: string;
+            /** Consequence */
+            consequence: string;
+            /** Repair */
+            repair: string;
+            /** Why Preference */
+            why_preference: string | null;
+            /** Evidence */
+            evidence: components["schemas"]["ReviewEvidence"][];
         };
         /** ReviewRequest */
         ReviewRequest: {
@@ -18277,6 +18675,395 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WhiteboardAttemptOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    exercises_api_v1_code_reviews_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewExerciseSummary"][];
+                };
+            };
+        };
+    };
+    exercise_api_v1_code_reviews__slug__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewExerciseOut"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_draft_api_v1_me_code_reviews__slug__draft_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewDraftOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_draft_api_v1_me_code_reviews__slug__draft_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewDraftIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewDraftOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    reveal_api_v1_me_code_reviews__slug__reveal_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewReference"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attempts_api_v1_me_code_reviews__slug__attempts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewAttemptSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attempt_api_v1_me_code_reviews__slug__attempts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewAttemptIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewAttemptOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_attempt_api_v1_me_code_reviews_attempts__attempt_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewAttemptOut"];
                 };
             };
             /** @description Missing, invalid, expired or revoked access token */

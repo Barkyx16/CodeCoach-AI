@@ -54,8 +54,9 @@ REQUEST, WORKER, MAINTENANCE = "request", "worker", "maintenance"
 SCOPES = (REQUEST, WORKER, MAINTENANCE)
 
 # Every table here has a `user_id` column holding the owner's id. Migration 248721f0fcb1 enables
-# RLS on exactly this list; tests check the two agree.
-PROTECTED_TABLES: tuple[str, ...] = (
+# RLS on exactly BASE_TABLES (and 7c1d2e3f4a5b sets their scoped policies); each table added later
+# is listed under the migration that created it with its policies. Tests check they all agree.
+BASE_TABLES: tuple[str, ...] = (
     "ai_interactions",
     "answer_evaluations",
     "answer_flags",
@@ -87,6 +88,10 @@ PROTECTED_TABLES: tuple[str, ...] = (
     "whiteboard_attempts",
     "whiteboard_drafts",
 )
+ADDED_TABLES: dict[str, tuple[str, ...]] = {
+    "5b7e2c9d4a10": ("code_review_attempts", "code_review_drafts"),
+}
+PROTECTED_TABLES: tuple[str, ...] = BASE_TABLES + tuple(t for added in ADDED_TABLES.values() for t in added)
 
 # Unset, or '' (what a transaction-local setting reads as on a pooled connection after its
 # transaction ended), means "not set". Migration 7c1d2e3f4a5b installs exactly these.

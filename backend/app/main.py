@@ -17,6 +17,7 @@ from app.api.routes import (
     applications,
     auth,
     careers,
+    code_reviews,
     content,
     drills,
     explore,
@@ -114,6 +115,11 @@ TAGS = [
         "name": "whiteboard",
         "description": "System-design practice with a small, plain-text diagram: drafts with conflict-safe saves, "
         "attempts frozen with their prompt and rubric versions, and feedback that names the elements it found.",
+    },
+    {
+        "name": "code reviews",
+        "description": "Review someone else's code (synthetic snippets for existing problems), then compare with an "
+        "authored review: defects shown by public tests, preferences labelled as such, comparison by location only.",
     },
     {
         "name": "backup",
@@ -296,6 +302,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         answer_review.router,
         drills.router,
         whiteboard.router,
+        code_reviews.router,
         schedule.router,
         submissions.router,
         ai.router,

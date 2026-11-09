@@ -39,6 +39,7 @@ BACKEND_DIR = Path(__file__).resolve().parents[2]
 PROBLEMS_DIR = BACKEND_DIR / "app" / "seed" / "problems"
 DEBUGGING_DIR = BACKEND_DIR / "app" / "seed" / "debugging"
 REFERENCE_DIR = BACKEND_DIR / "app" / "seed" / "reference"
+REVIEWS_DIR = BACKEND_DIR / "app" / "seed" / "reviews"
 
 
 @dataclass
@@ -249,6 +250,96 @@ def _debugging(report: Report, problems: dict[str, dict]) -> dict[str, dict]:
     return seeds
 
 
+_REVIEW_TEXT = ("title", "context", "code", "debrief", "review_status")
+_FINDING_TEXT = ("id", "title", "explanation", "consequence", "repair")
+
+
+def _span(value: object, n: int) -> bool:
+    return (
+        isinstance(value, list)
+        and len(value) == 2
+        and all(isinstance(v, int) for v in value)
+        and 1 <= value[0] <= value[1] <= n
+    )
+
+
+def _reviews(report: Report, problems: dict[str, dict]) -> dict[str, dict]:
+    """Code-review exercises (app/seed/reviews; docs/CODE_REVIEW_PRACTICE.md). Running the code
+    and the repairs against the problem's tests is the reference check's job."""
+    seeds: dict[str, dict] = {}
+    for path in sorted(REVIEWS_DIR.glob("*.json")):
+        where = f"review file {path.name}"
+        try:
+            data = json.loads(path.read_text())
+        except json.JSONDecodeError as exc:
+            report.errors.append(f"{where}: invalid JSON ({exc})")
+            continue
+        slug = str(data.get("slug", ""))
+        if not slug.startswith("review-"):
+            report.errors.append(f"{where}: a review exercise's slug starts with 'review-'")
+            continue
+        if slug in seeds:
+            report.errors.append(f"{where}: duplicate slug {slug!r}")
+            continue
+        here = f"review {slug}"
+        if not isinstance(data.get("version"), int) or data["version"] < 1:
+            report.errors.append(f"{here}: version must be a positive whole number")
+        missing = [k for k in _REVIEW_TEXT if not str(data.get(k) or "").strip()]
+        if missing:
+            report.errors.append(f"{here}: missing {missing}")
+        problem = problems.get(str(data.get("problem")))
+        if problem is None:
+            report.errors.append(f"{here}: no coding problem {data.get('problem')!r}")
+            continue
+        public = [t for t in problem.get("tests", []) if t.get("visibility") == "public"]
+        n = len(str(data.get("code") or "").splitlines())
+        findings = data.get("findings") or []
+        if not findings:
+            report.errors.append(f"{here}: needs at least one authored finding")
+        ids: set[str] = set()
+        for f in findings:
+            fid = str(f.get("id", "?"))
+            at = f"{here} finding {fid}"
+            if fid in ids:
+                report.errors.append(f"{at}: duplicate id")
+            ids.add(fid)
+            gaps = [k for k in _FINDING_TEXT if not str(f.get(k) or "").strip()]
+            if gaps:
+                report.errors.append(f"{at}: missing {gaps}")
+            if f.get("kind") not in ("defect", "observation"):
+                report.errors.append(f"{at}: kind must be 'defect' or 'observation'")
+            spans = [f.get("lines")] + list(f.get("related_lines") or [])
+            if not all(_span(s, n) for s in spans):
+                report.errors.append(f"{at}: lines must be [first, last] within the code's {n} lines")
+            evidence = f.get("evidence") or []
+            if f.get("kind") == "defect":
+                if not evidence:
+                    report.errors.append(f"{at}: a defect needs evidence from a public test")
+                for e in evidence:
+                    pos = e.get("public_test")
+                    if not isinstance(pos, int) or not 1 <= pos <= len(public) or "actual" not in e:
+                        report.errors.append(
+                            f"{at}: evidence must name a public test (1 to {len(public)}) and the actual result"
+                        )
+            elif f.get("kind") == "observation":
+                if evidence:
+                    report.errors.append(
+                        f"{at}: an observation has no failing test; label it a defect or drop the evidence"
+                    )
+                if not str(f.get("why_preference") or "").strip():
+                    report.errors.append(f"{at}: an observation says why it's a preference, not a defect")
+        defects = [f for f in findings if f.get("kind") == "defect"]
+        if defects and not str(data.get("repaired_code") or "").strip():
+            report.errors.append(f"{here}: an exercise with a defect needs repaired_code")
+        seeds[slug] = {**data, "_path": path, "_defects": len(defects)}
+    if seeds and all(s["_defects"] for s in seeds.values()):
+        report.errors.append(
+            "reviews: at least one exercise must have no defect (a correct implementation to review)"
+        )
+    report.counts["review exercises"] = len(seeds)
+    return seeds
+
+
 def _load_reference_checker():
     spec = importlib.util.spec_from_file_location(
         "verify_reference", BACKEND_DIR / "scripts" / "verify_reference_solutions.py"
@@ -256,7 +347,7 @@ def _load_reference_checker():
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    return module.check_problem, module.check_debug_exercise
+    return module.check_problem, module.check_debug_exercise, module.check_review_exercise
 
 
 def run(db: Session | None, *, run_reference: bool = False, record: bool = False) -> Report:
@@ -264,6 +355,7 @@ def run(db: Session | None, *, run_reference: bool = False, record: bool = False
     _questions(report)
     seeds = _problems(report)
     seeds |= _debugging(report, seeds)
+    reviews = _reviews(report, seeds)
     retired: set[tuple[str, str]] = set()
     if db is not None:
         _db_content(db, report, set(seeds))
@@ -278,7 +370,10 @@ def run(db: Session | None, *, run_reference: bool = False, record: bool = False
         if shutil.which("javac") is None or shutil.which("java") is None:
             report.warnings.append("reference solutions not run: no local JDK (javac/java) found")
         else:
-            check, check_debug = _load_reference_checker()
+            check, check_debug, check_review = _load_reference_checker()
+            for slug, review in reviews.items():
+                if failures := check_review(review["_path"]):
+                    report.errors.append(f"review {slug}: " + "; ".join(failures)[:2000])
             for slug in seeds:
                 failures = (check_debug if seeds[slug].get("kind") == "debug" else check)(
                     seeds[slug]["_path"]

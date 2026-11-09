@@ -34,6 +34,7 @@ from app.models import (
 )
 from app.services.answer_review import AnswerReview
 from app.services.applications import Applications
+from app.services.code_reviews import CodeReviews
 from app.services.drills import Drills
 from app.services.kits import Kits
 from app.services.onboarding import Onboarding
@@ -420,6 +421,9 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
         "drill_attempts": Drills(db, user).export(),
         # Whiteboard practice: working drafts, and attempts frozen with their feedback.
         "whiteboard": Whiteboard(db, user).export(),
+        # Code-review practice: your review drafts, and each review you sent with the code you
+        # reviewed and how it compared with the authored review.
+        "code_reviews": CodeReviews(db, user).export(),
         # Private reflections on real interviews, with the next steps you accepted or dismissed.
         "interview_reflections": Reflections(db, user).export(with_ids=with_ids),
         # Restores you made from backup files (what each added and, if removed, what it kept).

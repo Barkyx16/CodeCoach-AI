@@ -30,6 +30,8 @@ PUBLIC = {
     ("GET", "/api/v1/problems/{slug}"),
     # A debugging exercise's authored explanation and repair: the same for everyone, no hidden test.
     ("GET", "/api/v1/problems/{slug}/lab/explanation"),
+    ("GET", "/api/v1/code-reviews"),
+    ("GET", "/api/v1/code-reviews/{slug}"),
     ("GET", "/api/v1/careers"),
     ("GET", "/api/v1/careers/{slug}/questions"),
     ("GET", "/api/v1/careers/{slug}/questions/counts"),
@@ -180,6 +182,7 @@ NOT_WALKED = {
     "/api/v1/me/shares/{share_id}": "test_shares.py",
     "/api/v1/me/scenario-attempts/{attempt_id}": "test_scenarios.py",
     "/api/v1/me/whiteboard/attempts/{attempt_id}": "test_whiteboard.py",
+    "/api/v1/me/code-reviews/attempts/{attempt_id}": "test_code_reviews.py",
 }
 
 

@@ -219,6 +219,29 @@ export type WhiteboardAttemptIn = S["WhiteboardAttemptIn"];
 export type WhiteboardAttempt = S["WhiteboardAttemptOut"];
 export type WhiteboardAttemptSummary = S["WhiteboardAttemptSummary"];
 
+export type ReviewExerciseSummary = S["ReviewExerciseSummary"];
+export type ReviewExercise = S["ReviewExerciseOut"];
+export type ReviewFindingIn = S["FindingIn"];
+export type ReviewFinding = S["FindingOut"];
+export type ReviewDraft = S["ReviewDraftOut"];
+export type ReviewDraftIn = S["ReviewDraftIn"];
+export type ReviewReference = S["ReviewReference"];
+export type ReviewReferenceFinding = S["ReviewReferenceFinding"];
+export type ReviewAttemptIn = S["ReviewAttemptIn"];
+export type ReviewAttempt = S["ReviewAttemptOut"];
+export type ReviewAttemptSummary = S["ReviewAttemptSummary"];
+/** The comparison stored with an attempt (app/reviews/feedback.py). */
+export interface ReviewFeedback {
+  rubric_version: number;
+  findings: { id: string; location: "defect" | "observation" | "unsupported" | "broad"; matches: string[]; consequence: boolean; repair: boolean; notes: string[] }[];
+  reference: { id: string; raised_by: string[] }[];
+  defects_total: number;
+  defects_raised: number;
+  unsupported: number;
+  summary: string[];
+  method: string;
+}
+
 export type Criteria = S["CriteriaOut"];
 export type AnswerReview = S["AnswerReviewOut"];
 export type SelfReviewIn = S["SelfReviewIn"];

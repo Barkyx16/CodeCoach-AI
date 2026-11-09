@@ -95,6 +95,7 @@ export function ProblemListPage() {
             {progress.data && ` · ${progress.data.solved} solved`}
           </p>
           <p><Link to="/problems?view=debugging">Debugging lab: fix programs with a known bug</Link></p>
+          <p><Link to="/problems?view=code-review">Code review: review someone else's code</Link></p>
         </div>
         <div className="library-badge"><Icon name="code" size={18} /><span>Java, one problem at a time.</span></div>
       </div>

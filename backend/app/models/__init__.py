@@ -1355,6 +1355,44 @@ class WhiteboardAttempt(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
 
+class CodeReviewDraft(Base):
+    """A learner's review of a code-review exercise, in progress (docs/CODE_REVIEW_PRACTICE.md).
+    Saving checks the revision, like the other long-form editors. `exercise_version` is the version
+    the findings' line numbers were written against; `revealed_version` is set once the learner
+    has seen the authored review (deliberately, or by sending a review)."""
+
+    __tablename__ = "code_review_drafts"
+
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    exercise_slug: Mapped[str] = mapped_column(String(64), primary_key=True)
+    exercise_version: Mapped[int] = mapped_column(Integer)
+    findings: Mapped[list] = mapped_column(JSONType)
+    summary: Mapped[str] = mapped_column(Text, default="")
+    revision: Mapped[int] = mapped_column(Integer, default=0)
+    revealed_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class CodeReviewAttempt(Base):
+    """A review sent for comparison: the learner's findings, a snapshot of the code and the authored
+    review they were compared with, and the comparison. Never changed afterwards, so a corrected
+    exercise doesn't rewrite it."""
+
+    __tablename__ = "code_review_attempts"
+    __table_args__ = (Index("ix_code_review_user_exercise", "user_id", "exercise_slug"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    exercise_slug: Mapped[str] = mapped_column(String(64))
+    exercise_version: Mapped[int] = mapped_column(Integer)
+    snapshot: Mapped[dict] = mapped_column(JSONType)
+    findings: Mapped[list] = mapped_column(JSONType)
+    summary: Mapped[str] = mapped_column(Text, default="")
+    feedback: Mapped[dict] = mapped_column(JSONType)
+    after_reveal: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
 class DrillAttempt(Base):
     """One go at a communication drill: the words sent (typed, or a transcript the learner checked
     and edited), how they were given, and the feedback. Attempts are never changed afterwards."""
@@ -1543,7 +1581,9 @@ class UpdateReceipt(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    entity: Mapped[str] = mapped_column(String(16))  # story | note | kit | whiteboard | reflection
+    entity: Mapped[str] = mapped_column(
+        String(16)
+    )  # story | note | kit | whiteboard | reflection | code_review
     entity_id: Mapped[str] = mapped_column(String(80))
     client_request_id: Mapped[str] = mapped_column(String(64))
     base_revision: Mapped[int] = mapped_column(Integer)

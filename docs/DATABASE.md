@@ -154,7 +154,7 @@ row-level security (no content; purged across learners). Migration `7045bdb6a532
 |---|---|---|
 | `id` | varchar(36) PK | |
 | `user_id` | FK → users (cascade), indexed | |
-| `entity`, `entity_id` | varchar(16), varchar(80) | `story` \| `note` \| `kit` \| `whiteboard` \| `reflection` \| `note_copy` \| `app_notes`, and its id |
+| `entity`, `entity_id` | varchar(16), varchar(80) | `story` \| `note` \| `kit` \| `whiteboard` \| `reflection` \| `note_copy` \| `app_notes` \| `code_review`, and its id |
 | `client_request_id` | varchar(64) | unique per user |
 | `base_revision`, `accepted_revision` | integer | the revision the save started from, and the one it produced |
 | `request_fingerprint` | varchar(80) | `v1:` + SHA-256 of the update (services/request_keys.py); never shown |
@@ -304,6 +304,17 @@ or `problem` + slug), not a foreign key, so a report outlives a renamed or retir
   `prompt_id`, `prompt_version`, `rubric_version`, `diagram` (JSON as sent), `digest` (a
   fingerprint of it), `explanation`, `feedback` (JSON), `created_at`.
 
+### Code-review practice
+The exercises are files (`backend/app/seed/reviews`, docs/CODE_REVIEW_PRACTICE.md), not rows.
+- `code_review_drafts`: one row per user and exercise (primary key `user_id`, `exercise_slug`;
+  cascade with the account): `exercise_version` (the version its line numbers were written
+  against), `findings` (JSON: id, lines, the cited excerpt, the three texts), `summary`,
+  `revision` (checked on save), `revealed_version` (set once the authored review was seen),
+  `updated_at`.
+- `code_review_attempts`: reviews sent for comparison (cascade with the account), indexed by user
+  and exercise: `exercise_version`, `snapshot` (JSON: the code and the authored review compared
+  with), `findings`, `summary`, `feedback` (JSON), `after_reveal`, `created_at`. Never updated.
+
 ### Restores
 - `import_batches`: one per restore (cascade with the account): `file_sha256` (to recognise the
   same file; the file itself isn't stored), `export_version`, `categories`, `status`
@@ -411,6 +422,7 @@ or `problem` + slug), not a foreign key, so a report outlives a renamed or retir
 | `c2cc8ed140c2` answer reviews | Adds `answer_self_reviews`, `answer_flags` and `answer_evaluations`. New tables, cascading with the answer and the user; round-tripped on PostgreSQL |
 | `76e9a3e567dc` interview reflections | Adds `interview_reflections` (one per event) and `reflection_actions`. New tables, cascading with the event, application and user; round-tripped on PostgreSQL |
 | `9fa5ab598fa5` restores | Adds `import_batches` and `imported_records`. New tables, cascading with the user; round-tripped on PostgreSQL |
+| `5b7e2c9d4a10` code-review practice | Adds `code_review_drafts` (one per user and exercise) and `code_review_attempts`, both cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

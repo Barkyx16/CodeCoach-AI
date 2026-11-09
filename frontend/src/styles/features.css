@@ -318,3 +318,30 @@ fieldset.field { border: none; padding: 0; margin: 0; }
 .debug-diff__added { color: var(--color-success); }
 .debug-diff__removed { color: var(--color-danger); text-decoration: line-through; text-decoration-thickness: 1px; }
 .debug-diff__gap { color: var(--color-text-subtle); }
+
+/* Code-review practice (features/codeReview): read-only numbered code, the findings form, and the comparison. */
+/* minmax(0, …): a column may shrink below its longest code line; the code scrolls inside its own box. */
+.review-layout { display: grid; gap: var(--space-4); align-items: start; grid-template-columns: minmax(0, 1fr); }
+.review-layout > * { min-width: 0; }
+@media (min-width: 1000px) { .review-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.review-code { overflow-x: auto; padding-left: 0; }
+.review-code > code { display: block; min-width: max-content; }
+.review-code__line { display: block; padding-right: var(--space-2); }
+.review-code__no { display: inline-block; width: 3ch; margin-right: 1.5ch; text-align: right; color: var(--color-text-subtle); user-select: none; }
+.review-code__line.is-cited { background: var(--color-warning-soft); box-shadow: inset 3px 0 0 var(--color-warning); }
+.review-excerpt { overflow-x: auto; margin: 0; font-size: var(--text-sm); }
+.review-findings, .review-your-list, .review-ref-list { margin: 0; padding: 0; list-style: none; }
+.review-finding fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.review-finding__legend { font-weight: var(--weight-semibold); padding: 0; }
+.review-lines .field { max-width: 9rem; }
+.review-minor { font-size: var(--text-sm); font-weight: var(--weight-semibold); margin: var(--space-2) 0 0; }
+.review-tests code, .review-evidence code { overflow-wrap: anywhere; }
+.review-ref__title { font-size: var(--text-base); font-weight: var(--weight-semibold); margin: 0; }
+.review-ref--defect { border-left: 3px solid var(--color-danger); }
+.review-ref--observation { border-left: 3px solid var(--color-info); }
+.review-fields { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-3); margin: 0; }
+.review-fields dt { font-weight: var(--weight-medium); }
+.review-fields dd { margin: 0; }
+.review-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.review-notes { margin: 0; }
+@media (max-width: 480px) { .review-fields { grid-template-columns: minmax(0, 1fr); } .review-fields dd { margin-bottom: var(--space-1); } }
