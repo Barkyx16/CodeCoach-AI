@@ -26,9 +26,9 @@ from sqlalchemy.orm import Session
 from app.careers import CATALOG
 from app.careers.questions import get_question
 from app.db.locking import lock_for_update
-from app.errors import AppError, ConflictError, NotFoundError
+from app.errors import AppError, ConflictError, GoneError, NotFoundError
 from app.learn import get_unit
-from app.models import Note, PracticeSession, Problem, User
+from app.models import Note, PracticeSession, Problem, User, new_id
 from app.schemas.common import SaveReplay
 from app.schemas.notes import (
     MAX_TAG,
@@ -246,6 +246,8 @@ class Notebook:
         sends the create again with newer text when the first reply was lost, gets the note back,
         then saves the newer text as an update (with its revision check). So the text may differ;
         the source may not: the same key for a note on something else is a 409."""
+        if body.copy_of is not None:
+            return self.copy(user, body)
         if body.client_request_id and (made := self._by_request(user, body.client_request_id)):
             if not self._same_source(made, body.source):
                 raise request_keys.reused("note")
@@ -283,6 +285,70 @@ class Notebook:
             if not self._same_source(made, body.source):
                 raise request_keys.reused("note") from None
             return self.out(made)
+        return self.out(n)
+
+    def copy(self, user: User, body: NoteIn) -> NoteOut:
+        """Keep both after a conflict: the learner's version as a separate note, made once per
+        decision (Volume 8, prompt 4; docs/RECOVERY.md).
+
+        The key stands for this copy of this text: a retry (a double click, a lost reply, a reload)
+        gets the copy already made. A receipt, written with the note, says which note the key made
+        and what text it stood for; the same key with other text is refused. A copy made and then
+        deleted is never made again by a retry (410 `copy_deleted`): only a new key, the learner's
+        deliberate choice, makes another. The source note is only read: the question or problem it's
+        about comes along if it's the caller's own; anyone else's id is treated as missing, and no
+        link back to it is kept."""
+        key = body.client_request_id
+        if not key:
+            raise AppError(
+                "A copy needs a client_request_id, so a retry can't make it twice.",
+                code="client_request_id_required",
+            )
+        fields = {
+            "title": body.title.strip(),
+            "body": body.body,
+            "reflection": body.reflection,
+            "tags": clean_tags(body.tags),
+        }
+        print_ = request_keys.fingerprint("note.copy", {"of": body.copy_of, **fields})
+
+        def made_before() -> NoteOut | None:
+            r = update_receipts.by_key(self.db, user, key)
+            if r is not None:
+                if r.entity != "note_copy" or not request_keys.same(r.request_fingerprint, print_):
+                    raise request_keys.reused("copy")
+                made = self.db.get(Note, r.entity_id)
+            else:  # no receipt (it expired): the note's own unique key still finds the copy
+                made = self._by_request(user, key)
+            if made is None and r is None:
+                return None
+            if made is None or made.user_id != user.id or made.deleted_at is not None:
+                raise GoneError(
+                    "That copy was made, then deleted. Nothing was made again: make a new copy to keep your version.",
+                    code="copy_deleted",
+                )
+            return self.out(made)
+
+        if (done := made_before()) is not None:
+            return done
+        count = self.db.scalar(select(func.count()).select_from(Note).where(Note.user_id == user.id)) or 0
+        if count >= MAX_NOTES:
+            raise AppError(f"You can keep up to {MAX_NOTES} notes.", code="too_many_notes")
+        src = self.db.get(Note, body.copy_of)
+        own = src if src is not None and src.user_id == user.id else None
+        n = Note(id=new_id(), user_id=user.id, client_request_id=key, **fields)
+        if own is not None and own.source_type:
+            n.source_type, n.source_id, n.source_track = own.source_type, own.source_id, own.source_track
+            n.source_version, n.source_title = own.source_version, own.source_title
+        self.db.add(n)
+        update_receipts.record(self.db, user, key, "note_copy", n.id, 0, 1, print_)
+        try:
+            self.db.commit()
+        except IntegrityError:  # the same copy, sent twice at once: the other one made it
+            self.db.rollback()
+            if (done := made_before()) is not None:
+                return done
+            raise
         return self.out(n)
 
     @staticmethod

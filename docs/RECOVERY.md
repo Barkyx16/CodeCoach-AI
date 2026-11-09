@@ -69,13 +69,12 @@ isn't read out every second. Nothing replaces the page.
 | Round answer | one answer per question (database) | the same text: 200; different text: 409, kept on screen |
 | Finish / end early | compare-and-set | the same evaluation |
 | Notes (create) | `client_request_id` | the same note |
+| Note "Keep both" after a conflict | `client_request_id` per decision + `copy_of`, and a copy receipt (Volume 8 prompt 4) | the same copy. Made, then deleted: 410 `copy_deleted`, not made again |
 | Story, note, kit, whiteboard draft, reflection (update) | `client_request_id` per save, and a receipt kept with the update (migration `7045bdb6a532`, Volume 8 prompt 3) | "your save went through as version N". Changed since: both versions, compared |
 | Explain a failure | cached per submission | the same explanation |
 | Restore | the same file changes nothing | no change |
 
 **Can't yet be retried safely** (a repeat may do something twice or misread itself):
-- **Note "save mine as new"** (after a conflict). Unkeyed: a lost answer, retried, can make a
-  second note.
 - **Guest sessions.** A lost answer leaves an unused guest account, removed by guest retention.
 - **Register.** A lost answer, retried, gets `409 email_taken`. Signing in then works. The page
   doesn't recognise this case itself.
@@ -377,6 +376,64 @@ Tests:
   full demonstration: a save whose reply is dropped; another tab saves version 3; Save again; both
   versions shown, the newer one kept on the server
   (`docs/screenshots/durable/lost-save-recovered.png`).
+
+## "Keep both" makes one copy (Volume 8, prompt 4)
+
+After a note conflict, **Keep both** saves the learner's version as a separate note and puts this
+note back to the saved version. It used to be an unkeyed create, so a double click or a retry after
+a lost reply could make two copies.
+
+- **One decision, one key.** The text on the page when the button is pressed is captured. The
+  decision gets one key, written to this browser before sending (`note_copy`, the persisted intents
+  of prompt 1). A double click, Retry same copy, or a reload sends that key. Changed text, or Make a
+  new copy, is a new decision with a new key.
+- **The server** (`POST /me/notes` with `copy_of` and `client_request_id`;
+  `NoteService.copy`) writes the note and a copy receipt in one transaction. The receipt says which
+  note the key made, and holds a digest of the text, not the text. The same key returns that note,
+  even when two copies arrive at once (the note's unique key, then the receipt). The same key with
+  other text is a 409. A copy that was made and then deleted, even after it was purged, is
+  **410 `copy_deleted`**, never made again by a retry.
+- **The source note is only read.** It's never changed. The copy takes the source's question or
+  problem link if the source is the caller's own. Another account's note id is treated exactly
+  like a missing one, so the response doesn't reveal whether it exists. No link back to the source
+  is kept. Nothing else is carried over (no pin, archive, key points or share).
+- **What the learner sees:**
+  - while sending: "Saving your version, as shown above, as a separate note…", with the button
+    disabled;
+  - no reply: "We couldn't confirm the copy of your version. It may have been made", with **Check
+    copy** (a read) and **Retry same copy** (the same key). There's no unqualified create button;
+  - made then deleted: "That copy was made, then deleted. Nothing was made again", with **Make a new
+    copy**.
+
+  **Copy my text** stays available throughout. Neither a failure nor a pending copy closes the
+  panel or touches the text on the page. When the copy is made, focus moves to the result, with a
+  link to the new note. Text typed after pressing Keep both isn't in the copy: the page says so,
+  keeps it, and leaves the conflict open.
+- **After a reload:** the note's page checks the stored key (a read) and says "Your copy of your
+  version from 21:04 arrived" with **Open the copy**, or that it never arrived. It never sends it
+  again.
+- **How long:** a duplicate is refused for as long as the copy exists. After a deletion, the
+  receipt keeps a retry from remaking it for 7 days. The browser asks for at most a day.
+
+Tests:
+- `backend/tests/test_note_copies.py` (7; SQLite and PostgreSQL):
+  - a double click and a retry make one note, and the source is unchanged;
+  - changed text under a key, and a deliberate second copy;
+  - made then deleted, and then purged;
+  - a missing source and another account's source look alike;
+  - a key is required;
+  - the receipt holds no content, and expires;
+  - two at once (PostgreSQL).
+- `frontend/src/test/integration/noteCopy.test.tsx` (6):
+  - a double click, and focus on the result;
+  - a lost reply, then Retry same copy;
+  - Check copy;
+  - made then deleted, then a new copy;
+  - text typed after pressing;
+  - a reload.
+- Negative controls: 4 backend, each caught. One finding: removing only the up-front check isn't
+  caught, because the note's unique key and the race path still return the copy (two layers, by
+  design). Removing both is caught.
 
 ## Limits
 

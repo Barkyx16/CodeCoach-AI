@@ -4,13 +4,23 @@ import { http, HttpResponse } from "msw";
 import type { Note } from "@/api/types";
 
 const API = "http://localhost:8000";
-export const noteStore = { notes: [] as Note[], deleted: [] as Note[], failSaves: 0, seq: 0, requests: [] as string[] };
+export const noteStore = {
+  notes: [] as Note[], deleted: [] as Note[], failSaves: 0, seq: 0, requests: [] as string[],
+  /** Keyed creates, as the server keeps them: key → the note it made. */
+  keys: new Map<string, string>(),
+  /** Make the next create, then lose its reply (the server did it; the page never hears). */
+  dropNextCreateReply: false,
+  bodies: [] as Record<string, unknown>[],
+};
 export function resetNoteStore() {
   noteStore.notes = [];
   noteStore.deleted = [];
   noteStore.failSaves = 0;
   noteStore.seq = 0;
   noteStore.requests = [];
+  noteStore.keys = new Map();
+  noteStore.dropNextCreateReply = false;
+  noteStore.bodies = [];
 }
 
 export function makeNote(over: Partial<Note> = {}): Note {
@@ -44,13 +54,24 @@ export const noteHandlers = [
   http.post(`${API}/api/v1/me/notes`, async ({ request }) => {
     noteStore.requests.push("POST");
     if (noteStore.failSaves > 0) { noteStore.failSaves--; return err(503, "unavailable", "The server is busy."); }
-    const body = (await request.json()) as Partial<Note> & { source?: { type: "question"; id: string; track?: string } };
+    const body = (await request.json()) as Partial<Note> & { source?: { type: "question"; id: string; track?: string }; client_request_id?: string };
+    noteStore.bodies.push(body as Record<string, unknown>);
+    const key = body.client_request_id;
+    if (key && noteStore.keys.has(key)) {
+      const made = noteStore.notes.find((x) => x.id === noteStore.keys.get(key));
+      return made ? HttpResponse.json(made) : err(410, "copy_deleted", "That copy was made, then deleted. Nothing was made again.");
+    }
     const n = makeNote({
       title: body.title || "Untitled note", body: body.body ?? "", reflection: body.reflection ?? "", tags: body.tags ?? [],
       excerpt: body.excerpt ?? null, excerpt_kind: body.excerpt_kind ?? null,
       source: body.source ? { type: body.source.type, id: body.source.id, track: body.source.track ?? null, version: null, title: "A time patient assessment mattered", href: `/careers/${body.source.track}/questions/${body.source.id}`, available: true, career_title: "Registered Nurse" } : null,
     });
     noteStore.notes.unshift(n);
+    if (key) noteStore.keys.set(key, n.id);
+    if (noteStore.dropNextCreateReply) {
+      noteStore.dropNextCreateReply = false;
+      return HttpResponse.error();
+    }
     return HttpResponse.json(n, { status: 201 });
   }),
   http.get(`${API}/api/v1/me/notes/:id`, ({ params }) => {

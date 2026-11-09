@@ -33,7 +33,7 @@ from app.models import UpdateReceipt, User
 from app.services import request_keys
 
 UPDATE_RECEIPT_DAYS = 7  # the browser keeps an unconfirmed save for at most a day
-Entity = Literal["story", "note", "kit", "whiteboard", "reflection"]
+Entity = Literal["story", "note", "kit", "whiteboard", "reflection", "note_copy"]
 
 
 @dataclass(frozen=True)
@@ -73,6 +73,15 @@ def find(
     ) or not request_keys.same(r.request_fingerprint, print_):
         raise request_keys.reused("save")
     return Replay(accepted_revision=r.accepted_revision)
+
+
+def by_key(db: Session, user: User, key: str) -> UpdateReceipt | None:
+    """This account's unexpired receipt for a key, whatever it was for (the caller checks)."""
+    since = datetime.now(UTC) - timedelta(days=UPDATE_RECEIPT_DAYS)
+    r = db.scalar(
+        select(UpdateReceipt).where(UpdateReceipt.user_id == user.id, UpdateReceipt.client_request_id == key)
+    )
+    return r if r is not None and _aware(r.created_at) >= since else None
 
 
 def record(

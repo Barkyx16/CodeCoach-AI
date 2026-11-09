@@ -1,4 +1,4 @@
-import { lazy, Suspense, useId, useState } from "react";
+import { lazy, Suspense, useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import type { Note } from "@/api/types";
@@ -44,7 +44,6 @@ export function NoteEditor({ editor, compact = false, autoFocus = false }: {
   const { fields, state, change } = editor;
   const [preview, setPreview] = useState(false);
   const [tagText, setTagText] = useState(fields.tags.join(", "));
-  const [copy, setCopy] = useState<Note | null>(null);
 
   return (
     <div className="note-editor stack-sm">
@@ -57,9 +56,9 @@ export function NoteEditor({ editor, compact = false, autoFocus = false }: {
           </span>
         </div>
       )}
-      {editor.conflict && <ConflictPanel editor={editor} mine={fields} saved={editor.conflict} onCopy={setCopy}
+      {editor.conflict && <ConflictPanel editor={editor} mine={fields} saved={editor.conflict}
         onResolved={(f) => setTagText(f.tags.join(", "))} />}
-      {copy && <p role="status" className="banner banner--success">Your version was saved as a separate note: <Link to={`/notes/${copy.id}`}>{copy.title}</Link>.</p>}
+      {!editor.conflict && editor.copy.status === "done" && <CopyMade copy={editor.copy} />}
 
       <label className="field">
         <span className="field__label">Title</span>
@@ -104,13 +103,23 @@ export function NoteEditor({ editor, compact = false, autoFocus = false }: {
   );
 }
 
-function ConflictPanel({ editor, mine, saved, onResolved, onCopy }: {
+function ConflictPanel({ editor, mine, saved, onResolved }: {
   editor: ReturnType<typeof useNoteAutosave>;
   mine: NoteFields;
   saved: Note;
   onResolved(f: NoteFields): void;
-  onCopy(n: Note): void;
 }) {
+  const { copy } = editor;
+  const savedFields = { title: saved.title, body: saved.body, reflection: saved.reflection, tags: saved.tags };
+  const busy = copy.status === "copying";
+  async function keepBoth(mode: "new" | "again" | "fresh") {
+    await editor.copyMine(mode);
+  }
+  // The panel closes when the copy is made and the note goes back to the saved version.
+  useEffect(() => {
+    if (copy.status === "done" && !copy.newerSince) onResolved(savedFields);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [copy.status]);
   return (
     <section className="banner banner--warning stack-sm note-conflict" role="region" aria-label="Edit conflict">
       {editor.earlierSave ? (
@@ -133,13 +142,51 @@ function ConflictPanel({ editor, mine, saved, onResolved, onCopy }: {
         </div>
       </div>
       <span className="row">
-        <Button size="sm" variant="primary" onClick={() => editor.keepMine()}>Keep my version</Button>
-        <Button size="sm" onClick={() => { editor.takeSaved(); onResolved({ title: saved.title, body: saved.body, reflection: saved.reflection, tags: saved.tags }); }}>Use the saved version</Button>
-        <Button size="sm" variant="ghost" onClick={async () => {
-          const c = await editor.saveMineAsNew();
-          if (c) { onCopy(c); onResolved({ title: saved.title, body: saved.body, reflection: saved.reflection, tags: saved.tags }); }
-        }}>Keep both</Button>
+        <Button size="sm" variant="primary" disabled={busy} onClick={() => editor.keepMine()}>Keep my version</Button>
+        <Button size="sm" disabled={busy} onClick={() => { editor.takeSaved(); onResolved(savedFields); }}>Use the saved version</Button>
+        {(copy.status === "idle" || copy.status === "copying" || copy.status === "done") && (
+          <Button size="sm" variant="ghost" loading={busy} disabled={busy} onClick={() => void keepBoth("new")}>
+            {copy.status === "done" ? "Keep both again" : "Keep both"}
+          </Button>
+        )}
+        <CopyWork text={[mine.title, mine.body, mine.reflection].filter(Boolean).join("\n\n")} label="Copy my text" />
       </span>
+      {busy && <p className="subtle" role="status">Saving your version, as shown above, as a separate note…</p>}
+      {copy.status === "unknown" && (
+        <div className="stack-sm" role="alert">
+          <p><strong>We couldn't confirm the copy of your version.</strong> It may have been made. Checking is safe, and retrying
+            sends the same copy, so it can't be made twice.</p>
+          <span className="row">
+            <Button size="sm" onClick={() => void editor.checkCopy()}>Check copy</Button>
+            <Button size="sm" variant="ghost" onClick={() => void keepBoth("again")}>Retry same copy</Button>
+          </span>
+        </div>
+      )}
+      {copy.status === "gone" && (
+        <div className="stack-sm" role="alert">
+          <p><strong>That copy was made, then deleted.</strong> Nothing was made again. Your version is still on this page.</p>
+          <span><Button size="sm" onClick={() => void keepBoth("fresh")}>Make a new copy</Button></span>
+        </div>
+      )}
+      {copy.status === "failed" && (
+        <div className="stack-sm">
+          <InlineError error={copy.error} />
+          <span><Button size="sm" onClick={() => void keepBoth("again")}>Retry the copy</Button></span>
+        </div>
+      )}
+      {copy.status === "done" && copy.newerSince && <CopyMade copy={copy} />}
     </section>
+  );
+}
+
+/** Where the copy went; focused when it appears, so keyboard users land on the result. */
+function CopyMade({ copy }: { copy: { id: string; title: string; newerSince: boolean } }) {
+  const ref = useRef<HTMLParagraphElement>(null);
+  useEffect(() => { ref.current?.focus(); }, [copy.id]);
+  return (
+    <p ref={ref} tabIndex={-1} role="status" className="banner banner--success">
+      Your version was saved as a separate note: <Link to={`/notes/${copy.id}`}>{copy.title}</Link>.
+      {copy.newerSince && " What you typed after choosing Keep both isn't in it: it's still here, not saved yet."}
+    </p>
   );
 }

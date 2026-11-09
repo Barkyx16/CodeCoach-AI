@@ -15,6 +15,9 @@ import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { formatDateTime, timeAgo } from "@/lib/format";
 import { CodeBlock } from "@/features/learn/UnitParts";
 
+import { EarlierActionNotice } from "@/features/recovery/EarlierActionNotice";
+import { useEarlierAction } from "@/features/recovery/useEarlierAction";
+
 import { NoteEditor } from "./NoteEditor";
 import { useNoteAutosave } from "./useNoteAutosave";
 
@@ -87,6 +90,7 @@ function NoteScreen({ note }: { note: Note | null }) {
 
       <div className="note-page__layout">
         <div className="stack">
+          {note && <EarlierCopy noteId={note.id} />}
           <NoteEditor editor={editor} autoFocus={!note} />
           {current && current.key_points && current.key_points.length > 0 && (
             <Card className="stack-sm">
@@ -176,5 +180,16 @@ function NoteScreen({ note }: { note: Note | null }) {
         </aside>
       </div>
     </div>
+  );
+}
+
+/** A "Keep both" copy whose reply was lost before the page reloaded (Volume 8, prompt 4): checked,
+ * never sent again. Made: a link to it. Never arrived: said, and the learner's text is wherever it
+ * was kept (this browser's draft). */
+function EarlierCopy({ noteId }: { noteId: string }) {
+  const earlier = useEarlierAction("note_copy", noteId);
+  return (
+    <EarlierActionNotice earlier={earlier} noun="copy of your version"
+      found={earlier.status === "found" ? <Link to={`/notes/${earlier.outcome.id}`}>Open the copy</Link> : null} />
   );
 }

@@ -247,7 +247,9 @@ def request_outcome(
     )
     if answer is not None:
         return RequestOutcome(kind="answer", state="done", id=answer.id, created_at=answer.created_at)
-    note = db.scalar(select(Note).where(Note.user_id == user.id, Note.client_request_id == key))
+    note = db.scalar(
+        select(Note).where(Note.user_id == user.id, Note.client_request_id == key, Note.deleted_at.is_(None))
+    )
     if note is not None:
         return RequestOutcome(kind="note", state="done", id=note.id, created_at=note.created_at)
     from app.services.ai.service import CoachService

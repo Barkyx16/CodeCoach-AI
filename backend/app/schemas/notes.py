@@ -44,6 +44,14 @@ class NoteIn(APIModel):
         pattern=r"^[A-Za-z0-9_-]+$",
         description="One key per new note: sending the same create again returns the note it made",
     )
+    copy_of: str | None = Field(
+        default=None,
+        max_length=36,
+        description="Keep both after a conflict (Volume 8, prompt 4): the note this is a copy of. Requires "
+        "`client_request_id` (one per decision). The same key returns the copy it made; a copy made and "
+        "then deleted is 410 `copy_deleted`, not made again. The question or problem your own note is "
+        "about comes along; another account's note id is treated as missing. The source isn't changed.",
+    )
 
 
 class NotePatch(APIModel):

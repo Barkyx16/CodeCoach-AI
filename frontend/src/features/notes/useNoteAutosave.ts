@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { recoveredSave } from "@/lib/conflict";
+import { findIntent, fingerprint, forgetIntent, keyForIntent } from "@/lib/pendingIntents";
 import { newRequestKey } from "@/lib/requestKey";
 
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
 import type { Note, NoteInput } from "@/api/types";
+import { useAuth } from "@/auth/useAuth";
 
 /**
  * pending: an edit to a saved note couldn't reach the server; it's on this device and is sent
@@ -22,6 +24,27 @@ const pick = (n: Note): NoteFields => ({ title: n.title === "Untitled note" ? ""
 const same = (a: NoteFields, b: NoteFields) =>
   a.title.trim() === b.title.trim() && a.body === b.body && a.reflection === b.reflection && a.tags.join("\n") === b.tags.join("\n");
 const empty = (f: NoteFields) => !f.title.trim() && !f.body.trim() && !f.reflection.trim() && f.tags.length === 0;
+
+/**
+ * "Keep both" after a conflict: the learner's version saved as a separate note (Volume 8, prompt 4).
+ * The exact text chosen is captured when the button is pressed, and that decision gets one key,
+ * written to this browser before sending: a double click, a retry after a lost reply, or a retry
+ * after a reload sends the same key, and the server returns the copy it made instead of a second.
+ * - copying: sent, waiting (the button is disabled);
+ * - unknown: no reply: the copy may exist. Check copy (a read) or Retry same copy (same key);
+ * - gone: it was made, then deleted: nothing is made again unless the learner asks for a new copy;
+ * - failed: refused (not made);
+ * - done: made (or found). `newerSince`: the learner typed after pressing it; that text isn't in
+ *   the copy and stays in the editor.
+ */
+export type CopyState =
+  | { status: "idle" }
+  | { status: "copying"; snapshot: NoteFields }
+  | { status: "unknown"; snapshot: NoteFields }
+  | { status: "gone"; snapshot: NoteFields }
+  | { status: "failed"; snapshot: NoteFields; error: unknown }
+  | { status: "done"; id: string; title: string; newerSince: boolean };
+const copyTitle = (f: NoteFields) => `${f.title.trim() || "Untitled note"} (my version)`;
 
 function readDraft(key: string): StoredDraft | null {
   try {
@@ -249,17 +272,76 @@ export function useNoteAutosave({ initial, createWith, draftKey, onSaved, delayM
     setState("saved");
   }, [draftKey]);
 
-  const saveMineAsNew = useCallback(async (): Promise<Note | null> => {
-    const mine = fieldsRef.current;
-    try {
-      const copy = await api.createNote({ ...mine, title: `${mine.title.trim() || "Untitled note"} (my version)` });
-      takeSaved();
-      return copy;
-    } catch (e) {
-      setError(e);
-      return null;
-    }
+  const { user } = useAuth();
+  const [copy, setCopy] = useState<CopyState>({ status: "idle" });
+  const copySnap = useRef<NoteFields | null>(null);
+  const copyBusy = useRef(false);
+
+  const finishCopy = useCallback((id: string, title: string, snap: NoteFields) => {
+    const newerSince = !same(fieldsRef.current, snap);
+    setCopy({ status: "done", id, title, newerSince });
+    copySnap.current = null;
+    // The copy holds exactly what's on the page: this note goes back to the saved version. Text
+    // typed after "Keep both" isn't in the copy, so then the editor and the conflict stay as they are.
+    if (!newerSince) takeSaved();
   }, [takeSaved]);
+
+  /** Keep both. `again`: retry the same copy (the text captured before, the same key); `fresh`: a
+   * deliberate new copy (a new key, even for the same text). Otherwise the text on the page now. */
+  const copyMine = useCallback(async (mode: "new" | "again" | "fresh" = "new"): Promise<void> => {
+    const sourceId = serverRef.current?.id;
+    if (!sourceId || !user || copyBusy.current) return; // one at a time in this tab
+    const snap = mode !== "new" && copySnap.current ? copySnap.current : { ...fieldsRef.current };
+    copySnap.current = snap;
+    if (mode === "fresh") forgetIntent(user.id, "note_copy", sourceId);
+    const { key } = keyForIntent(user.id, "note_copy", sourceId, fingerprint(JSON.stringify(snap)));
+    copyBusy.current = true;
+    setCopy({ status: "copying", snapshot: snap });
+    try {
+      const made = await api.createNote({ ...snap, title: copyTitle(snap), client_request_id: key, copy_of: sourceId });
+      forgetIntent(user.id, "note_copy", sourceId, key);
+      finishCopy(made.id, made.title, snap);
+    } catch (e) {
+      if (e instanceof ApiError && e.code === "network_error") {
+        setCopy({ status: "unknown", snapshot: snap }); // the record stays: it may have been made
+      } else if (e instanceof ApiError && e.code === "copy_deleted") {
+        forgetIntent(user.id, "note_copy", sourceId, key);
+        setCopy({ status: "gone", snapshot: snap });
+      } else {
+        forgetIntent(user.id, "note_copy", sourceId, key);
+        setCopy({ status: "failed", snapshot: snap, error: e });
+      }
+    } finally {
+      copyBusy.current = false;
+    }
+  }, [user, finishCopy]);
+
+  /** Did the copy whose reply was lost arrive? A read: nothing is sent again. */
+  const checkCopy = useCallback(async (): Promise<void> => {
+    const sourceId = serverRef.current?.id;
+    const snap = copySnap.current;
+    if (!sourceId || !user || !snap || copyBusy.current) return;
+    const intent = findIntent(user.id, "note_copy", sourceId);
+    if (!intent) return;
+    copyBusy.current = true;
+    setCopy({ status: "copying", snapshot: snap });
+    try {
+      const outcome = await api.requestOutcome(intent.key);
+      forgetIntent(user.id, "note_copy", sourceId, intent.key);
+      finishCopy(outcome.id, copyTitle(snap), snap);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) {
+        // Never made: the same copy can be sent now (same key, so it still can't be made twice).
+        setCopy({ status: "failed", snapshot: snap, error: new ApiError(404, "copy_not_made", "The copy never arrived, so nothing was made. Retry it to make it now.") });
+      } else {
+        setCopy({ status: "unknown", snapshot: snap });
+      }
+    } finally {
+      copyBusy.current = false;
+    }
+  }, [user, finishCopy]);
+
+  const resetCopy = useCallback(() => { copySnap.current = null; setCopy({ status: "idle" }); }, []);
 
   /** A change made outside the editor (key points accepted): adopt the server's new revision. */
   const adopt = useCallback((n: Note) => {
@@ -267,5 +349,5 @@ export function useNoteAutosave({ initial, createWith, draftKey, onSaved, delayM
     setServer(n);
   }, []);
 
-  return { fields, server, state, kept, error, conflict, earlierSave, recovery, change, save, restore, discardRecovery, keepMine, takeSaved, saveMineAsNew, adopt };
+  return { fields, server, state, kept, error, conflict, earlierSave, recovery, change, save, restore, discardRecovery, keepMine, takeSaved, copy, copyMine, checkCopy, resetCopy, adopt };
 }
