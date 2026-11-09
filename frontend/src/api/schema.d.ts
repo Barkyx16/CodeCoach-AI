@@ -3659,6 +3659,13 @@ export interface components {
             link: string | null;
             /** Notes */
             notes: string;
+            /**
+             * Notes Revision
+             * @description Send it back as notes_expected_revision when changing the notes
+             */
+            notes_revision: number;
+            /** @description Only on a save recovered by its key: see SaveReplay */
+            save_replay?: components["schemas"]["SaveReplay"] | null;
             /** Stories */
             stories: components["schemas"]["ApplicationStoryLink"][];
             /** Events */
@@ -3788,6 +3795,16 @@ export interface components {
              * @description Fields to empty (a date or link that turned out to be wrong)
              */
             clear?: ("link" | "applied_on" | "next_action_due" | "target_id")[];
+            /**
+             * Notes Expected Revision
+             * @description Required when `notes` changes them (Volume 8, prompt 5): the `notes_revision` your edit started from. A newer one is a 409 `notes_conflict` with your saved notes; without it, a notes change is a 428 `notes_revision_required`. Other fields never need it.
+             */
+            notes_expected_revision?: number | null;
+            /**
+             * Client Request Id
+             * @description One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before.
+             */
+            client_request_id?: string | null;
         };
         /** AskQuestion */
         AskQuestion: {
@@ -16074,8 +16091,26 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Request validation failed */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required precondition (e.g. the revision an edit started from) was missing */
+            428: {
                 headers: {
                     [name: string]: unknown;
                 };

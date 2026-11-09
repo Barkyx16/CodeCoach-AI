@@ -78,6 +78,7 @@ _ERROR_DESCRIPTIONS = {
     409: "Conflict with current state",
     413: "Payload too large",
     422: "Request validation failed",
+    428: "A required precondition (e.g. the revision an edit started from) was missing",
     429: "Rate limit or AI budget exceeded",
     503: "Temporarily unavailable (e.g. the judge queue is full)",
 }

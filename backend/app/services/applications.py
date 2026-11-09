@@ -10,11 +10,11 @@ from __future__ import annotations
 import re
 from datetime import UTC, datetime, time, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from app.errors import AppError, NotFoundError
+from app.errors import AppError, ConflictError, NotFoundError, PreconditionRequiredError
 from app.models import (
     Application,
     ApplicationEvent,
@@ -35,7 +35,8 @@ from app.schemas.applications import (
     ApplicationTargetLink,
     ApplicationUpdate,
 )
-from app.services import request_keys
+from app.schemas.common import SaveReplay
+from app.services import request_keys, update_receipts
 from app.services.timeutil import local_to_utc, parse_hhmm, zone
 
 MAX_APPLICATIONS = 300
@@ -149,6 +150,7 @@ class Applications:
             **self._summary(a).model_dump(),
             link=a.link,
             notes=a.notes,
+            notes_revision=a.notes_revision or 1,
             stories=stories,
             events=[
                 event_out(e)
@@ -252,7 +254,9 @@ class Applications:
     def update(self, app_id: str, body: ApplicationUpdate) -> ApplicationOut:
         a = self._get(app_id)
         data = body.model_dump(exclude_unset=True)
-        for f in ("employer", "role_title", "next_action", "notes"):
+        if (replayed := self._notes(a, body, data)) is not None:
+            return replayed
+        for f in ("employer", "role_title", "next_action"):
             if data.get(f) is not None:
                 setattr(a, f, clean(data[f]))
         if not a.employer or not a.role_title:
@@ -266,6 +270,56 @@ class Applications:
         a.updated_at = datetime.now(UTC)
         self.db.commit()
         return self.get(a.id)
+
+    def _notes(self, a: Application, body: ApplicationUpdate, data: dict) -> ApplicationOut | None:
+        """The private notes, revision-checked (Volume 8, prompt 5; docs/PERSISTENCE.md). Only a
+        change to them needs `notes_expected_revision`; the same text, or no notes at all, leaves
+        them and their revision alone, so editing the next action never conflicts with them.
+
+        The write is conditional (`... WHERE notes_revision = expected`), so two devices saving from
+        the same base can't both succeed on any database: one wins, the other gets the saved notes
+        back to compare. A keyed save whose reply was lost is recognised by its receipt and answered
+        "went through", not as a conflict with itself. Returns that replay, else None."""
+        if data.get("notes") is None:
+            return None
+        new = clean(data["notes"])
+        expected = body.notes_expected_revision
+        key = body.client_request_id
+        print_ = update_receipts.fingerprint("app_notes", a.id, expected or 0, {"notes": new})
+        if expected is not None:
+            done = update_receipts.find(self.db, self.user, key, "app_notes", a.id, expected, print_)
+            if done is not None:
+                out = self.get(a.id)
+                out.save_replay = SaveReplay(
+                    accepted_revision=done.accepted_revision, current_revision=out.notes_revision
+                )
+                return out
+        if new == a.notes:
+            return None  # unchanged: nothing to check, nothing to bump
+        if expected is None:
+            raise PreconditionRequiredError(
+                "Changing the notes needs the revision they were edited from. Reload, then save again.",
+                code="notes_revision_required",
+            )
+        moved = self.db.execute(
+            update(Application)
+            .where(Application.id == a.id, Application.notes_revision == expected)
+            .values(notes=new, notes_revision=Application.notes_revision + 1)
+            .execution_options(synchronize_session=False)
+        )
+        if int(getattr(moved, "rowcount", 0) or 0) != 1:
+            self.db.rollback()
+            current = self.db.get(Application, a.id)
+            assert current is not None
+            raise ConflictError(
+                "These notes were changed somewhere else (maybe another tab) since you opened them. "
+                "Your text is still on this page.",
+                code="notes_conflict",
+                details={"current_revision": current.notes_revision, "current": current.notes},
+            )
+        self.db.expire(a, ["notes", "notes_revision"])
+        update_receipts.record(self.db, self.user, key, "app_notes", a.id, expected, expected + 1, print_)
+        return None
 
     def set_stage(self, app_id: str, body: ApplicationStageIn, *, commit: bool = True) -> ApplicationOut:
         """With commit=False the change joins the caller's transaction, so it's saved together with

@@ -1155,6 +1155,9 @@ class Application(Base):
     next_action: Mapped[str] = mapped_column(Text, default="")
     next_action_due: Mapped[date | None] = mapped_column(Date, nullable=True)  # a calendar date, no time
     notes: Mapped[str] = mapped_column(Text, default="")
+    # The private notes' own revision (Volume 8, prompt 5): a notes change must name it, so two
+    # devices editing the notes can't silently overwrite each other. Other fields don't touch it.
+    notes_revision: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
     target_id: Mapped[str | None] = mapped_column(
         ForeignKey("role_targets.id", ondelete="SET NULL", name="fk_application_target"), nullable=True
     )

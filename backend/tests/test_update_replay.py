@@ -236,3 +236,14 @@ def test_note_kit_whiteboard_and_reflection_saves_recover_the_same_way(client):
     theirs = client.put(f"{WB}/{P}/draft", headers=kim, json={**body, "explanation": "Kim's"})
     assert theirs.status_code == 200 and theirs.json()["save_replay"] is None
     assert theirs.json()["revision"] == 1 and theirs.json()["explanation"] == "Kim's"
+
+
+def test_every_receipt_entity_name_fits_its_column():
+    """PostgreSQL enforces the column's length and SQLite doesn't: an entity name that's too long
+    only failed on PostgreSQL (found while adding `app_notes`)."""
+    from typing import get_args
+
+    width = UpdateReceipt.__table__.c.entity.type.length
+    assert all(len(name) <= width for name in get_args(update_receipts.Entity)), get_args(
+        update_receipts.Entity
+    )

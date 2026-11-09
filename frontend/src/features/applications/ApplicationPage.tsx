@@ -21,6 +21,10 @@ import { EVENT_KIND_LABEL, STAGE_HINT, STAGE_LABEL, STAGES } from "./labels";
 import { PrepPanel } from "./PrepPanel";
 import { externalHref } from "@/lib/links";
 import { useRequestKey } from "@/lib/requestKey";
+import { recoveredSave } from "@/lib/conflict";
+import { useAuth } from "@/auth/useAuth";
+import { VersionConflict } from "@/components/VersionConflict";
+import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 
 export function ApplicationPage() {
   const { id = "" } = useParams();
@@ -242,32 +246,108 @@ function EventForm({ a, event, onDone }: { a: Application; event: ApplicationEve
   );
 }
 
+/** This browser's unsaved private notes for one application, with the revision they were edited
+ * from (Volume 8, prompt 5). Kept per account: another account never reads them. */
+const notesDraftKey = (userId: string, appId: string) => `codecoach.appnotes.v1.${userId}.${appId}`;
+function readNotesDraft(key: string): { notes: string; base: number } | null {
+  try {
+    const raw = window.localStorage.getItem(key);
+    const v = raw ? (JSON.parse(raw) as { notes?: unknown; base?: unknown }) : null;
+    return v && typeof v.notes === "string" && typeof v.base === "number" ? { notes: v.notes, base: v.base } : null;
+  } catch {
+    return null;
+  }
+}
+
 function DetailsCard({ a, onDone }: { a: Application; onDone: (a: Application) => void }) {
+  const { user } = useAuth();
+  const draftKey = notesDraftKey(user?.id ?? "anon", a.id);
   const [form, setForm] = useState({ role_title: a.role_title, employer: a.employer, link: a.link ?? "", applied_on: a.applied_on ?? "", next_action: a.next_action, next_action_due: a.next_action_due ?? "", notes: a.notes });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   // What the server last accepted: "Saved." only while the form still says exactly that, so a slow
   // response never labels newer edits as saved.
   const [savedAs, setSavedAs] = useState<string | null>(null);
+  // The notes as the server has them, and their revision: a notes change is saved against it, and
+  // a newer one elsewhere is compared, never overwritten (Volume 8, prompt 5).
+  const [notesSaved, setNotesSaved] = useState({ text: a.notes, revision: a.notes_revision });
+  const [conflict, setConflict] = useState<{ notes: string; revision: number } | null>(null);
+  const [earlierSave, setEarlierSave] = useState<number | null>(null);
+  const [recovered, setRecovered] = useState(() => {
+    const d = readNotesDraft(draftKey);
+    return d && d.notes !== a.notes ? d : null;
+  });
+  const [kept, setKept] = useState(true);
+  const saveKey = useRequestKey();
+  const notesDirty = form.notes !== notesSaved.text;
+  useLeaveWarning(notesDirty);
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
-  async function submit(e: FormEvent) {
-    e.preventDefault();
+  function setNotes(v: string) {
+    set("notes", v);
+    try {
+      if (v !== notesSaved.text) window.localStorage.setItem(draftKey, JSON.stringify({ notes: v, base: notesSaved.revision }));
+      else window.localStorage.removeItem(draftKey);
+      setKept(true);
+    } catch {
+      setKept(v === notesSaved.text); // private mode or full: the text is on this page only
+    }
+  }
+  function clearDraft() {
+    try { window.localStorage.removeItem(draftKey); } catch { /* nothing kept */ }
+  }
+
+  async function submit(e?: FormEvent, over?: number) {
+    e?.preventDefault();
     setBusy(true);
     setError(null);
-    const sent = JSON.stringify(form);
-    const clear = (["link", "applied_on", "next_action_due"] as const).filter((k) => !form[k] && a[k]);
+    const sentForm = form;
+    const sent = JSON.stringify(sentForm);
+    const base = over ?? notesSaved.revision;
+    const notesChanged = sentForm.notes !== notesSaved.text || over !== undefined;
+    const clear = (["link", "applied_on", "next_action_due"] as const).filter((k) => !sentForm[k] && a[k]);
     try {
-      onDone(await api.updateApplication(a.id, {
-        role_title: form.role_title, employer: form.employer, next_action: form.next_action, notes: form.notes,
-        link: form.link || null, applied_on: form.applied_on || null, next_action_due: form.next_action_due || null, clear,
-      }));
+      const notes = notesChanged ? { notes: sentForm.notes, notes_expected_revision: base, client_request_id: saveKey.keyFor([a.id, base, sentForm.notes]) } : {};
+      const next = await api.updateApplication(a.id, {
+        role_title: sentForm.role_title, employer: sentForm.employer, next_action: sentForm.next_action,
+        link: sentForm.link || null, applied_on: sentForm.applied_on || null, next_action_due: sentForm.next_action_due || null, clear, ...notes,
+      });
+      saveKey.done();
+      const replay = recoveredSave(next);
+      if (replay?.newer) {
+        // Saved (its reply was lost), then changed elsewhere: compare, don't replace this page.
+        setEarlierSave(replay.accepted);
+        setConflict({ notes: next.notes, revision: next.notes_revision });
+        onDone(next);
+        return;
+      }
+      onDone(next);
+      setNotesSaved({ text: next.notes, revision: next.notes_revision });
+      setConflict(null);
+      setEarlierSave(null);
       setSavedAs(sent);
+      if (form.notes === sentForm.notes) clearDraft(); // typed while saving: that text stays kept
+      setRecovered(null);
     } catch (err) {
-      setError(err);
+      if (err instanceof ApiError && err.code === "notes_conflict") {
+        const d = err.details as { current: string; current_revision: number };
+        setEarlierSave(null);
+        setConflict({ notes: d.current, revision: d.current_revision });
+      } else {
+        setError(err);
+      }
     } finally {
       setBusy(false);
     }
   }
+
+  function takeSaved(c: { notes: string; revision: number }) {
+    setForm((f) => ({ ...f, notes: c.notes }));
+    setNotesSaved({ text: c.notes, revision: c.revision });
+    setConflict(null);
+    setEarlierSave(null);
+    clearDraft();
+  }
+
   return (
     <form className="card stack-sm" aria-label="Details" onSubmit={(e) => void submit(e)}>
       <h2 className="section-title">Details</h2>
@@ -282,7 +362,29 @@ function DetailsCard({ a, onDone }: { a: Application; onDone: (a: Application) =
       {a.link && <p className="subtle">Posting: {externalHref(a.link)
         ? <a href={externalHref(a.link)} target="_blank" rel="noopener noreferrer nofollow">{a.link}<span className="visually-hidden"> (opens in a new tab)</span></a>
         : <span>{a.link}</span>}</p>}
-      <label className="field"><span className="field__label">Notes <span className="subtle">(private)</span></span><textarea className="input" rows={3} maxLength={4000} value={form.notes} onChange={(e) => set("notes", e.target.value)} /></label>
+      {recovered && (
+        <div className="banner banner--info stack-sm" role="region" aria-label="Unsaved notes found">
+          <p>This browser has unsaved private notes for this application.</p>
+          <span className="row">
+            <Button size="sm" variant="primary" onClick={() => {
+              set("notes", recovered.notes);
+              // Edited from an older version than the one saved now: compare before saving over it.
+              if (recovered.base !== notesSaved.revision) setConflict({ notes: notesSaved.text, revision: notesSaved.revision });
+              setRecovered(null);
+            }}>Restore them</Button>
+            <Button size="sm" variant="ghost" onClick={() => { clearDraft(); setRecovered(null); }}>Discard them</Button>
+          </span>
+        </div>
+      )}
+      {conflict && (
+        <VersionConflict what="private note" savedWhen={`version ${conflict.revision}`} busy={busy} earlierSave={earlierSave}
+          keepMineLabel="Keep my notes (replaces that version)"
+          fields={[{ label: "Private notes", mine: form.notes, saved: conflict.notes }]}
+          onKeepMine={() => void submit(undefined, conflict.revision)}
+          onUseSaved={() => takeSaved(conflict)} />
+      )}
+      <label className="field"><span className="field__label">Notes <span className="subtle">(private)</span></span><textarea className="input" rows={3} maxLength={4000} value={form.notes} onChange={(e) => setNotes(e.target.value)} /></label>
+      {notesDirty && !kept && <p className="subtle">This browser can't keep a copy of unsaved notes: save them, or copy them somewhere safe.</p>}
       <InlineError error={error} />
       <span className="row"><Button type="submit" size="sm" variant="primary" loading={busy}>Save details</Button>{savedAs === JSON.stringify(form) && <span className="subtle" role="status">Saved.</span>}</span>
     </form>

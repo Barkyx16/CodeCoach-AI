@@ -33,7 +33,7 @@ from app.models import UpdateReceipt, User
 from app.services import request_keys
 
 UPDATE_RECEIPT_DAYS = 7  # the browser keeps an unconfirmed save for at most a day
-Entity = Literal["story", "note", "kit", "whiteboard", "reflection", "note_copy"]
+Entity = Literal["story", "note", "kit", "whiteboard", "reflection", "note_copy", "app_notes"]
 
 
 @dataclass(frozen=True)

@@ -13,7 +13,7 @@ const now = () => new Date().toISOString();
 function app(over: Partial<Application> = {}): Application {
   return {
     id: "a1", employer: "Mercy General", role_title: "Ward nurse", stage: "applied", applied_on: "2026-10-30", next_action: "Call the recruiter",
-    next_action_due: null, target: null, archived: false, next_event: null, updated_at: now(), link: null, notes: "", stories: [], events: [],
+    next_action_due: null, target: null, archived: false, next_event: null, updated_at: now(), link: null, notes: "", notes_revision: 1, stories: [], events: [],
     history: [{ from_stage: null, to_stage: "applied", correction: false, note: "", role_title: "Ward nurse", employer: "Mercy General", changed_at: now() }],
     created_at: now(), ...over,
   };

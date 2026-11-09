@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import Field, field_validator
 
-from app.schemas.common import APIModel, OptionalKey
+from app.schemas.common import APIModel, OptionalKey, SaveReplay, save_replay_field, update_key_field
 
 Stage = Literal["saved", "applied", "interviewing", "offer", "closed", "withdrawn"]
 STAGES: tuple[Stage, ...] = ("saved", "applied", "interviewing", "offer", "closed", "withdrawn")
@@ -55,6 +55,14 @@ class ApplicationUpdate(ApplicationFields):
     clear: list[Literal["link", "applied_on", "next_action_due", "target_id"]] = Field(
         default_factory=list, description="Fields to empty (a date or link that turned out to be wrong)"
     )
+    notes_expected_revision: int | None = Field(
+        default=None,
+        ge=1,
+        description="Required when `notes` changes them (Volume 8, prompt 5): the `notes_revision` your "
+        "edit started from. A newer one is a 409 `notes_conflict` with your saved notes; without it, a "
+        "notes change is a 428 `notes_revision_required`. Other fields never need it.",
+    )
+    client_request_id: OptionalKey = update_key_field()
 
 
 class ApplicationStageIn(APIModel):
@@ -127,6 +135,8 @@ class ApplicationSummary(APIModel):
 class ApplicationOut(ApplicationSummary):
     link: str | None
     notes: str
+    notes_revision: int = Field(description="Send it back as notes_expected_revision when changing the notes")
+    save_replay: SaveReplay | None = save_replay_field()
     stories: list[ApplicationStoryLink]
     events: list[ApplicationEventOut]
     history: list[ApplicationStageChangeOut]

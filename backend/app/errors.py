@@ -55,6 +55,14 @@ class GoneError(AppError):
     code = "gone"
 
 
+class PreconditionRequiredError(AppError):
+    """A write that must say which version it started from didn't (e.g. a notes change without its
+    revision): refused rather than guessed, so nothing newer is overwritten."""
+
+    status_code = 428
+    code = "precondition_required"
+
+
 class RateLimitedError(AppError):
     status_code = 429
     code = "rate_limited"

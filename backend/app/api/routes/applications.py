@@ -63,7 +63,7 @@ def get_application(
 @router.patch(
     "/{app_id}",
     response_model=ApplicationOut,
-    responses=error_responses(400, 401, 404, 422),
+    responses=error_responses(400, 401, 404, 409, 422, 428),
     summary="Edit details (history keeps the title and employer as they were)",
 )
 def update_application(

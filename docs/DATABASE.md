@@ -160,6 +160,9 @@ row-level security (no content; purged across learners). Migration `7045bdb6a532
 | `request_fingerprint` | varchar(80) | `v1:` + SHA-256 of the update (services/request_keys.py); never shown |
 | `created_at` | timestamptz, indexed | for expiry |
 
+`applications.notes_revision` (integer, default 1; migration `59c06366e6cf`): the private notes' own
+revision. A notes change must name it (Volume 8, prompt 5); other fields don't touch it.
+
 `request_fingerprint` (nullable, the same digest) is also kept on `ai_interactions`,
 `experience_entries`, `applications`, `application_events` and `schedule_entries`: what the keyed
 create stood for (migration `06088140741a`, Volume 8 prompt 2).
