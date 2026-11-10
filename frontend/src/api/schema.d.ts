@@ -3374,6 +3374,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/recent-work": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A few of your recent records to continue, newest first (titles and times only) */
+        get: operations["recent_api_v1_me_recent_work_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/goals": {
         parameters: {
             query?: never;
@@ -8772,6 +8789,57 @@ export interface components {
              * @default
              */
             note: string;
+        };
+        /** RecentItem */
+        RecentItem: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "interview" | "note" | "story" | "kit" | "application" | "offer_comparison";
+            /**
+             * Id
+             * @description The record's id; for a kit, its event's id
+             */
+            id: string;
+            /**
+             * Parent Id
+             * @description For a kit: its application's id
+             */
+            parent_id?: string | null;
+            /** Title */
+            title: string;
+            /**
+             * State
+             * @description Interviews only
+             */
+            state?: ("in_progress" | "time_up" | "finished" | "expired" | "ended_early") | null;
+            /**
+             * Detail
+             * @description A short status: an application's stage, a kit's date
+             */
+            detail?: string | null;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /**
+             * At Meaning
+             * @description saved: last saved to your account; started/finished: the session's own times. Nothing here means 'opened'.
+             * @enum {string}
+             */
+            at_meaning: "saved" | "started" | "finished";
+        };
+        /** RecentWorkOut */
+        RecentWorkOut: {
+            /** Items */
+            items: components["schemas"]["RecentItem"][];
+            /**
+             * Unavailable
+             * @description Kinds of record that couldn't be read just now; the rest are listed
+             */
+            unavailable: string[];
         };
         /** RecipientView */
         RecipientView: {
@@ -24789,6 +24857,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    recent_api_v1_me_recent_work_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecentWorkOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

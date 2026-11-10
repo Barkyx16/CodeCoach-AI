@@ -17741,6 +17741,66 @@
         }
       }
     },
+    "/api/v1/me/recent-work": {
+      "get": {
+        "tags": [
+          "progress"
+        ],
+        "summary": "A few of your recent records to continue, newest first (titles and times only)",
+        "operationId": "recent_api_v1_me_recent_work_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 12,
+              "minimum": 1,
+              "default": 6,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecentWorkOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/goals": {
       "get": {
         "tags": [
@@ -32292,6 +32352,123 @@
         },
         "type": "object",
         "title": "Rating"
+      },
+      "RecentItem": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "interview",
+              "note",
+              "story",
+              "kit",
+              "application",
+              "offer_comparison"
+            ],
+            "title": "Type"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "The record's id; for a kit, its event's id"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id",
+            "description": "For a kit: its application's id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "in_progress",
+                  "time_up",
+                  "finished",
+                  "expired",
+                  "ended_early"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State",
+            "description": "Interviews only"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail",
+            "description": "A short status: an application's stage, a kit's date"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          },
+          "at_meaning": {
+            "type": "string",
+            "enum": [
+              "saved",
+              "started",
+              "finished"
+            ],
+            "title": "At Meaning",
+            "description": "saved: last saved to your account; started/finished: the session's own times. Nothing here means 'opened'."
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "id",
+          "title",
+          "at",
+          "at_meaning"
+        ],
+        "title": "RecentItem"
+      },
+      "RecentWorkOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RecentItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "unavailable": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unavailable",
+            "description": "Kinds of record that couldn't be read just now; the rest are listed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "unavailable"
+        ],
+        "title": "RecentWorkOut"
       },
       "RecipientView": {
         "properties": {
