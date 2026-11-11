@@ -162,6 +162,8 @@ import type {
   DataSummary,
   RecentWork,
   WorkspaceSearch,
+  CollectionBatchIn,
+  CollectionBatchOut,
   WorkspaceSearchBody,
   OfferCaseSummary,
   OfferPhase,
@@ -460,6 +462,9 @@ export const api = {
   deleteCollection: (id: string) => apiRequest<void>(`/api/v1/me/collections/${encodeURIComponent(id)}`, { method: "DELETE" }),
   addToCollection: (id: string, body: SavedItemRef) =>
     apiRequest<Collection>(`/api/v1/me/collections/${encodeURIComponent(id)}/items`, { method: "POST", body }),
+  // Several adds or several removals, an outcome for each (docs/BULK_ACTIONS.md).
+  batchCollection: (id: string, body: CollectionBatchIn) =>
+    apiRequest<CollectionBatchOut>(`/api/v1/me/collections/${encodeURIComponent(id)}/items/batch`, { method: "POST", body }),
   removeFromCollection: (id: string, itemId: string) =>
     apiRequest<Collection>(`/api/v1/me/collections/${encodeURIComponent(id)}/items/${encodeURIComponent(itemId)}`, { method: "DELETE" }),
   reorderCollection: (id: string, itemIds: string[]) =>

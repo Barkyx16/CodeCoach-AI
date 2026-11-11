@@ -14,6 +14,8 @@ from app.models import User
 from app.schemas.common import error_responses
 from app.schemas.explore import (
     BookmarkOut,
+    CollectionBatchIn,
+    CollectionBatchOut,
     CollectionIn,
     CollectionItemIn,
     CollectionOut,
@@ -235,6 +237,21 @@ def add_collection_item(
     db: Session = Depends(get_db),
 ) -> CollectionOut:
     return Explorer(db).add_item(user, collection_id, body)
+
+
+@router.post(
+    "/me/collections/{collection_id}/items/batch",
+    response_model=CollectionBatchOut,
+    responses=error_responses(401, 404, 422),
+    summary="Add several items, or remove several, with an outcome for each (docs/BULK_ACTIONS.md)",
+)
+def batch_collection_items(
+    collection_id: str,
+    body: CollectionBatchIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> CollectionBatchOut:
+    return Explorer(db).batch(user, collection_id, body)
 
 
 @router.delete(

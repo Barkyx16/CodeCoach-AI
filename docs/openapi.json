@@ -4278,6 +4278,83 @@
         }
       }
     },
+    "/api/v1/me/collections/{collection_id}/items/batch": {
+      "post": {
+        "tags": [
+          "explore"
+        ],
+        "summary": "Add several items, or remove several, with an outcome for each (docs/BULK_ACTIONS.md)",
+        "operationId": "batch_collection_items_api_v1_me_collections__collection_id__items_batch_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "collection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Collection Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CollectionBatchIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionBatchOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/collections/{collection_id}/items/{item_id}": {
       "delete": {
         "tags": [
@@ -21989,6 +22066,39 @@
         ],
         "title": "AuditEntry"
       },
+      "BatchResult": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "The item as sent: 'type:track:ref' for an add, the item id for a remove"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "added",
+              "already_there",
+              "unavailable",
+              "full",
+              "removed",
+              "not_there",
+              "repeated"
+            ],
+            "title": "Outcome"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "outcome",
+          "message"
+        ],
+        "title": "BatchResult"
+      },
       "BookmarkOut": {
         "properties": {
           "item_type": {
@@ -22664,6 +22774,51 @@
           "saved_not_judged"
         ],
         "title": "CodingEvidence"
+      },
+      "CollectionBatchIn": {
+        "properties": {
+          "add": {
+            "items": {
+              "$ref": "#/components/schemas/CollectionItemIn"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Add"
+          },
+          "remove": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Remove",
+            "description": "Item ids of this collection"
+          }
+        },
+        "type": "object",
+        "title": "CollectionBatchIn",
+        "description": "Add several items to a collection, or remove several, in one request (docs/BULK_ACTIONS.md).\nExactly one of `add` and `remove` is given."
+      },
+      "CollectionBatchOut": {
+        "properties": {
+          "collection": {
+            "$ref": "#/components/schemas/CollectionOut"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/BatchResult"
+            },
+            "type": "array",
+            "title": "Results",
+            "description": "One per item sent, in the order sent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "collection",
+          "results"
+        ],
+        "title": "CollectionBatchOut"
       },
       "CollectionIn": {
         "properties": {

@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from app.schemas.common import APIModel
 
@@ -92,6 +92,39 @@ class CollectionItemIn(APIModel):
     item_type: ItemType
     track: str = Field(default="", max_length=64)
     ref_id: str = Field(min_length=1, max_length=80)
+
+
+BATCH_LIMIT = 50
+
+
+class CollectionBatchIn(APIModel):
+    """Add several items to a collection, or remove several, in one request (docs/BULK_ACTIONS.md).
+    Exactly one of `add` and `remove` is given."""
+
+    add: list[CollectionItemIn] = Field(default_factory=list, max_length=BATCH_LIMIT)
+    remove: list[str] = Field(
+        default_factory=list, max_length=BATCH_LIMIT, description="Item ids of this collection"
+    )
+
+    @model_validator(mode="after")
+    def _one_action(self) -> "CollectionBatchIn":
+        if bool(self.add) == bool(self.remove):
+            raise ValueError("Give either items to add or item ids to remove, not both or neither.")
+        return self
+
+
+BatchOutcome = Literal["added", "already_there", "unavailable", "full", "removed", "not_there", "repeated"]
+
+
+class BatchResult(APIModel):
+    key: str = Field(description="The item as sent: 'type:track:ref' for an add, the item id for a remove")
+    outcome: BatchOutcome
+    message: str
+
+
+class CollectionBatchOut(APIModel):
+    collection: "CollectionOut"
+    results: list[BatchResult] = Field(description="One per item sent, in the order sent")
 
 
 class OrderIn(APIModel):

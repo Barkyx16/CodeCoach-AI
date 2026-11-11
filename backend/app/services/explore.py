@@ -40,7 +40,10 @@ from app.models import (
     User,
 )
 from app.schemas.explore import (
+    BatchResult,
     BookmarkOut,
+    CollectionBatchIn,
+    CollectionBatchOut,
     CollectionItemIn,
     CollectionItemOut,
     CollectionOut,
@@ -490,6 +493,101 @@ class Explorer:
         c.updated_at = datetime.now(UTC)
         self.db.commit()
         return self.get(user, cid)
+
+    def batch(self, user: User, cid: str, body: CollectionBatchIn) -> CollectionBatchOut:
+        """Several adds, or several removals, each checked on its own (docs/BULK_ACTIONS.md).
+
+        The collection must be yours (404 otherwise, before anything is looked at). Each item gets
+        its own outcome: an add is "added", "already_there", "unavailable" (not in the library) or
+        "full"; a removal is "removed" or "not_there" (not an item of this collection: the same
+        answer for an id that never existed and for another account's item). An item sent twice is
+        "repeated" the second time. Adding and removing are idempotent, so sending the same batch
+        again after a lost reply reports "already_there" / "not_there" instead of changing twice.
+        Removing only takes an item out of this collection: the question, your bookmarks and
+        everything you've answered stay."""
+        c = self._collection(user, cid)
+        name = c.name
+        results: list[BatchResult] = []
+        seen: set[str] = set()
+        changed = False
+        if body.add:
+            for item in body.add:
+                track = item.track if item.item_type == "question" else ""
+                key = f"{item.item_type}:{track}:{item.ref_id}"
+                if key in seen:
+                    results.append(
+                        BatchResult(key=key, outcome="repeated", message="Listed twice; counted once.")
+                    )
+                    continue
+                seen.add(key)
+                if any(
+                    i.item_type == item.item_type and i.track == track and i.ref_id == item.ref_id
+                    for i in c.items
+                ):
+                    results.append(
+                        BatchResult(key=key, outcome="already_there", message=f"Already in “{name}”.")
+                    )
+                    continue
+                try:
+                    self._validate(item)
+                except NotFoundError:
+                    results.append(
+                        BatchResult(key=key, outcome="unavailable", message="Not in the library any more.")
+                    )
+                    continue
+                if len(c.items) >= MAX_ITEMS:
+                    results.append(
+                        BatchResult(
+                            key=key, outcome="full", message=f"“{name}” holds up to {MAX_ITEMS} items."
+                        )
+                    )
+                    continue
+                row = CollectionItem(
+                    collection_id=c.id,
+                    item_type=item.item_type,
+                    track=track,
+                    ref_id=item.ref_id,
+                    position=len(c.items),
+                )
+                try:
+                    with self.db.begin_nested():  # another tab adding the same item keeps one copy
+                        self.db.add(row)
+                        self.db.flush()
+                except IntegrityError:
+                    results.append(
+                        BatchResult(key=key, outcome="already_there", message=f"Already in “{name}”.")
+                    )
+                    continue
+                c.items.append(row)
+                changed = True
+                results.append(BatchResult(key=key, outcome="added", message=f"Added to “{name}”."))
+        else:
+            for item_id in body.remove:
+                if item_id in seen:
+                    results.append(
+                        BatchResult(key=item_id, outcome="repeated", message="Listed twice; counted once.")
+                    )
+                    continue
+                seen.add(item_id)
+                found = next((i for i in c.items if i.id == item_id), None)
+                if found is None:
+                    results.append(
+                        BatchResult(key=item_id, outcome="not_there", message=f"Not in “{name}” (any more).")
+                    )
+                    continue
+                idx = c.items.index(found)
+                c.items.remove(found)
+                if c.queue_position > idx:
+                    c.queue_position -= 1
+                changed = True
+                results.append(BatchResult(key=item_id, outcome="removed", message=f"Taken out of “{name}”."))
+            for pos, i in enumerate(c.items):
+                i.position = pos
+            c.queue_position = min(c.queue_position, max(0, len(c.items) - 1))
+        if changed:
+            c.updated_at = datetime.now(UTC)
+        self.db.commit()
+        return CollectionBatchOut(collection=self.get(user, cid), results=results)
 
     def reorder(self, user: User, cid: str, item_ids: list[str]) -> CollectionOut:
         c = self._collection(user, cid)

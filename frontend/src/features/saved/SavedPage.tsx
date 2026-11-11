@@ -1,15 +1,22 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
 import { useBookmarks, useCollectionMutation, useCollections, useToggleBookmark } from "@/api/queries";
-import type { Bookmark } from "@/api/types";
+import type { BatchResult, Bookmark } from "@/api/types";
+import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
 import { timeAgo } from "@/lib/format";
 
+import { BulkOutcomes, NoReply, SelectBox } from "./bulk";
+import { BATCH_LIMIT, isDone, useSelection } from "./bulkSelection";
 import { useItemKind } from "./labels";
+
+const markKey = (b: { item_type: string; track: string; ref_id: string }) => `${b.item_type}:${b.item_type === "question" ? b.track : ""}:${b.ref_id}`;
 
 /** Your bookmarks and private collections. Nothing here is visible to anyone else. */
 export function SavedPage() {
@@ -20,6 +27,7 @@ export function SavedPage() {
   const removeMark = useToggleBookmark();
   const marksHeading = useRef<HTMLHeadingElement>(null);
   const [marksNote, setMarksNote] = useState("");
+  const { user } = useAuth();
 
   function removeBookmark(mark: Bookmark) {
     setMarksNote("");
@@ -88,7 +96,8 @@ export function SavedPage() {
               Use the bookmark button on a question in the list, or “Bookmark” on its page.
             </EmptyState>
           ) : (
-            <ul className="saved-list">{bookmarks.data.map((b) => <BookmarkRow key={`${b.item_type}:${b.track}:${b.ref_id}`} mark={b} onRemove={() => removeBookmark(b)} />)}</ul>
+            // A bookmark's key is the same in every account, so the selection belongs to whoever is signed in.
+            <BulkBookmarks key={user?.id ?? ""} marks={bookmarks.data} collections={collections.data ?? []} onRemove={removeBookmark} />
           )}
         <p className="visually-hidden" role="status">{marksNote}</p>
         {/* Shown here, not in the row: a removal is optimistic, so the row is gone if it fails and comes back. */}
@@ -98,10 +107,11 @@ export function SavedPage() {
   );
 }
 
-function BookmarkRow({ mark, onRemove }: { mark: Bookmark; onRemove: () => void }) {
+function BookmarkRow({ mark, onRemove, selected, onSelect }: { mark: Bookmark; onRemove: () => void; selected: boolean; onSelect: (on: boolean) => void }) {
   const itemKind = useItemKind();
   return (
-    <li className="card saved-list__item">
+    <li className="card saved-list__item saved-list__item--selectable">
+      <SelectBox label={`Select: ${mark.title}`} checked={selected} onChange={onSelect} />
       {mark.href /* retired items stay readable */
         ? <Link to={mark.href} state={{ from: "/saved", fromLabel: "Back to Saved" }} className="saved-list__title">{mark.title}</Link>
         : <span className="saved-list__title">{mark.title}</span>}
@@ -115,5 +125,95 @@ function BookmarkRow({ mark, onRemove }: { mark: Bookmark; onRemove: () => void 
         <Button size="sm" variant="ghost" aria-label={`Remove bookmark: ${mark.title}`} onClick={onRemove}>Remove</Button>
       </span>
     </li>
+  );
+}
+
+/**
+ * Bookmarks with a selection, and "Add to a collection" for the selected ones (docs/BULK_ACTIONS.md).
+ * Adding only puts them in the collection: the bookmarks stay, and nothing about your answers changes.
+ */
+function BulkBookmarks({ marks, collections, onRemove }: {
+  marks: Bookmark[];
+  collections: { id: string; name: string; items: number }[];
+  onRemove: (mark: Bookmark) => void;
+}) {
+  const qc = useQueryClient();
+  const keys = useMemo(() => marks.map(markKey), [marks]);
+  const selection = useSelection(keys);
+  const [target, setTarget] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [results, setResults] = useState<{ verb: string; rows: BatchResult[]; titles: Map<string, string> } | null>(null);
+  const [lost, setLost] = useState<{ cid: string; marks: Bookmark[] } | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  const outcomesRef = useRef<HTMLHeadingElement>(null);
+  const focusOutcomes = useRef(false);
+  useEffect(() => {
+    if (!focusOutcomes.current || !results) return;
+    focusOutcomes.current = false;
+    outcomesRef.current?.focus();
+  }, [results]);
+  const destination = collections.find((c) => c.id === target);
+  const chosen = marks.filter((m) => selection.selected.includes(markKey(m)));
+  const tooMany = chosen.length > BATCH_LIMIT;
+
+  async function send(cid: string, these: Bookmark[]) {
+    setBusy(true);
+    setError(null);
+    setLost(null);
+    try {
+      const out = await api.batchCollection(cid, { add: these.map((m) => ({ item_type: m.item_type, track: m.track, ref_id: m.ref_id })) });
+      qc.setQueryData(["me", "collection", cid], out.collection);
+      void qc.invalidateQueries({ queryKey: ["me", "collections"] });
+      void qc.invalidateQueries({ queryKey: ["me", "explore"] });
+      const name = collections.find((c) => c.id === cid)?.name ?? "the collection";
+      setResults({ verb: `adding to “${name}”`, rows: out.results, titles: new Map(these.map((m) => [markKey(m), m.title])) });
+      // Done ones leave the selection; the ones that need attention stay picked.
+      selection.keep(out.results.filter((r) => !isDone(r)).map((r) => r.key));
+      focusOutcomes.current = true; // after the results are on screen (the effect below)
+    } catch (e) {
+      if (e instanceof ApiError && (e.code === "network_error" || e.status >= 500)) setLost({ cid, marks: these });
+      else setError(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="bulk-bar" role="group" aria-label="Selected bookmarks">
+        <label className="checkbox">
+          <input type="checkbox" checked={selection.all} onChange={(e) => selection.setAll(e.target.checked)} />
+          Select all shown ({marks.length})
+        </label>
+        <span className="subtle" aria-live="polite">{selection.selected.length} of {marks.length} selected</span>
+        {selection.selected.length > 0 && (
+          <span className="bulk-bar__action">
+            <label className="field bulk-bar__target">
+              <span className="field__label">Add the selected to</span>
+              <select className="select" value={target} onChange={(e) => setTarget(e.target.value)}>
+                <option value="">Choose a collection…</option>
+                {collections.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.items})</option>)}
+              </select>
+            </label>
+            <Button size="sm" variant="primary" loading={busy} disabled={!destination || tooMany}
+              onClick={() => destination && void send(destination.id, chosen)}>
+              {destination ? `Add ${chosen.length} to “${destination.name}”` : "Add"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => selection.setAll(false)}>Clear selection</Button>
+          </span>
+        )}
+      </div>
+      {tooMany && <p className="subtle" role="status">Up to {BATCH_LIMIT} at a time: {chosen.length} are selected.</p>}
+      {collections.length === 0 && selection.selected.length > 0 && <p className="subtle">Create a collection above first.</p>}
+      {lost && <NoReply busy={busy} onRetry={() => void send(lost.cid, lost.marks)} />}
+      <InlineError error={error} />
+      {results && <BulkOutcomes ref={outcomesRef} results={results.rows} verb={results.verb} titleOf={(k) => results.titles.get(k) ?? k} />}
+      <ul className="saved-list">
+        {marks.map((b) => (
+          <BookmarkRow key={markKey(b)} mark={b} onRemove={() => onRemove(b)}
+            selected={selection.isSelected(markKey(b))} onSelect={(on) => selection.toggle(markKey(b), on)} />
+        ))}
+      </ul>
+    </>
   );
 }

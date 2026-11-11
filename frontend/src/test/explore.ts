@@ -173,6 +173,43 @@ export const exploreHandlers = [
     c.item_list.push(item);
     return HttpResponse.json(fresh(c));
   }),
+  // Several at once, an outcome each (the server's rules: docs/BULK_ACTIONS.md).
+  http.post(`${API}/api/v1/me/collections/:id/items/batch`, async ({ params, request }) => {
+    const c = find(String(params.id));
+    if (!c) return err(404, "not_found", "Collection not found");
+    const body = (await request.json()) as { add?: SavedItemRef[]; remove?: string[] };
+    const results: { key: string; outcome: string; message: string }[] = [];
+    const seen = new Set<string>();
+    if (body.add?.length) {
+      for (const ref of body.add) {
+        const track = ref.item_type === "question" ? ref.track ?? "" : "";
+        const key = `${ref.item_type}:${track}:${ref.ref_id}`;
+        if (seen.has(key)) { results.push({ key, outcome: "repeated", message: "Listed twice; counted once." }); continue; }
+        seen.add(key);
+        if (c.item_list.some((i) => i.item_type === ref.item_type && i.ref_id === ref.ref_id)) {
+          results.push({ key, outcome: "already_there", message: `Already in “${c.name}”.` });
+          continue;
+        }
+        const title = titleOf(ref);
+        if (!title) { results.push({ key, outcome: "unavailable", message: "Not in the library any more." }); continue; }
+        c.item_list.push({
+          id: `i-${++store.seq}`, item_type: ref.item_type, track, ref_id: ref.ref_id, position: c.item_list.length, title,
+          href: hrefOf(ref), available: true, unavailable_reason: null, queue_done: false, practiced_since_added: false,
+        });
+        results.push({ key, outcome: "added", message: `Added to “${c.name}”.` });
+      }
+    } else {
+      for (const id of body.remove ?? []) {
+        if (seen.has(id)) { results.push({ key: id, outcome: "repeated", message: "Listed twice; counted once." }); continue; }
+        seen.add(id);
+        if (!c.item_list.some((i) => i.id === id)) { results.push({ key: id, outcome: "not_there", message: `Not in “${c.name}” (any more).` }); continue; }
+        c.item_list = c.item_list.filter((i) => i.id !== id);
+        results.push({ key: id, outcome: "removed", message: `Taken out of “${c.name}”.` });
+      }
+      c.item_list.forEach((i, n) => { i.position = n; });
+    }
+    return HttpResponse.json({ collection: fresh(c), results });
+  }),
   http.delete(`${API}/api/v1/me/collections/:id/items/:item`, ({ params }) => {
     const c = find(String(params.id));
     if (!c) return err(404, "not_found", "Collection not found");

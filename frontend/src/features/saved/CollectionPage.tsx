@@ -1,14 +1,18 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
+import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
 import { useCollection, useCollectionMutation, useDeleteCollection } from "@/api/queries";
-import type { CollectionItem } from "@/api/types";
+import type { BatchResult, CollectionItem } from "@/api/types";
 import { BackLink } from "@/components/BackLink";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
 
+import { BulkOutcomes, NoReply, SelectBox } from "./bulk";
+import { isDone, useSelection } from "./bulkSelection";
 import { useItemKind } from "./labels";
 
 /** One collection: rename, reorder (buttons, keyboard-friendly), remove items, start the practice queue. */
@@ -32,6 +36,22 @@ export function CollectionPage() {
   // After a removal the row (and its focused button) is gone: focus the next item's Remove, or the title.
   const focusRemoveAt = useRef<number | null>(null);
   const title = useRef<HTMLHeadingElement>(null);
+  // Several at once (docs/BULK_ACTIONS.md): only the rows shown can be picked; removing takes them out
+  // of this collection and nothing else (the questions, bookmarks and answers stay).
+  const qc = useQueryClient();
+  const itemIds = useMemo(() => collection.data?.item_list.map((i) => i.id) ?? [], [collection.data]);
+  const selection = useSelection(itemIds);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkResults, setBulkResults] = useState<{ rows: BatchResult[]; titles: Map<string, string> } | null>(null);
+  const [bulkLost, setBulkLost] = useState<string[] | null>(null);
+  const [bulkError, setBulkError] = useState<unknown>(null);
+  const outcomesRef = useRef<HTMLHeadingElement>(null);
+  const focusOutcomes = useRef(false);
+  useEffect(() => {
+    if (!focusOutcomes.current || !bulkResults) return;
+    focusOutcomes.current = false;
+    outcomesRef.current?.focus();
+  }, [bulkResults]);
 
   useEffect(() => {
     const at = focusRemoveAt.current;
@@ -52,6 +72,27 @@ export function CollectionPage() {
   if (collection.isError) return <div className="page"><ErrorState error={collection.error} onRetry={() => void collection.refetch()} /></div>;
   const c = collection.data;
   const items = c.item_list;
+
+  async function removeSelected(ids: string[]) {
+    setBulkBusy(true);
+    setBulkError(null);
+    setBulkLost(null);
+    const titles = new Map(items.filter((i) => ids.includes(i.id)).map((i) => [i.id, i.title]));
+    try {
+      const out = await api.batchCollection(id, { remove: ids });
+      qc.setQueryData(["me", "collection", id], out.collection);
+      void qc.invalidateQueries({ queryKey: ["me", "collections"] });
+      void qc.invalidateQueries({ queryKey: ["me", "explore"] });
+      setBulkResults({ rows: out.results, titles: new Map([...(bulkResults?.titles ?? []), ...titles]) });
+      selection.keep(out.results.filter((r) => !isDone(r)).map((r) => r.key));
+      focusOutcomes.current = true; // after the results are on screen (the effect below)
+    } catch (e) {
+      if (e instanceof ApiError && (e.code === "network_error" || e.status >= 500)) setBulkLost(ids);
+      else setBulkError(e);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
 
   function move(item: CollectionItem, dir: "up" | "down") {
     const ids = items.map((i) => i.id);
@@ -137,9 +178,32 @@ export function CollectionPage() {
           Open a question and use “Add to a collection”.
         </EmptyState>
       ) : (
+        <div className="stack">
+        <div className="bulk-bar" role="group" aria-label="Selected items">
+          <label className="checkbox">
+            <input type="checkbox" checked={selection.all} onChange={(e) => selection.setAll(e.target.checked)} />
+            Select all shown ({items.length})
+          </label>
+          <span className="subtle" aria-live="polite">{selection.selected.length} of {items.length} selected</span>
+          {selection.selected.length > 0 && (
+            <span className="bulk-bar__action">
+              <Button size="sm" loading={bulkBusy} onClick={() => void removeSelected(selection.selected)}>
+                Remove {selection.selected.length} from “{c.name}”
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => selection.setAll(false)}>Clear selection</Button>
+            </span>
+          )}
+        </div>
+        {selection.selected.length > 0 && (
+          <p className="subtle">Removing only takes them out of this collection. The questions stay in the library, and your bookmarks and answers aren't touched.</p>
+        )}
+        {bulkLost && <NoReply busy={bulkBusy} onRetry={() => void removeSelected(bulkLost)} />}
+        <InlineError error={bulkError} />
+        {bulkResults && <BulkOutcomes ref={outcomesRef} level={2} results={bulkResults.rows} verb={`removing from “${c.name}”`} titleOf={(k) => bulkResults.titles.get(k) ?? "An item"} />}
         <ol className="collection-items" aria-label="Items in order">
           {items.map((item, index) => (
             <li key={item.id} className={`card collection-item${item.available ? "" : " collection-item--gone"}`}>
+              <SelectBox label={`Select: ${item.title}`} checked={selection.isSelected(item.id)} onChange={(on) => selection.toggle(item.id, on)} />
               <span className="collection-item__pos" aria-hidden="true">{index + 1}</span>
               <div className="collection-item__main stack-sm">
                 {item.href /* retired items stay readable */
@@ -174,7 +238,9 @@ export function CollectionPage() {
             </li>
           ))}
         </ol>
+        </div>
       )}
+      {items.length === 0 && bulkResults && <BulkOutcomes ref={outcomesRef} level={2} results={bulkResults.rows} verb={`removing from “${c.name}”`} titleOf={(k) => bulkResults.titles.get(k) ?? "An item"} />}
       <InlineError error={reorder.error ?? remove.error} />
     </div>
   );

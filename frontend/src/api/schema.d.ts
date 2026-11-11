@@ -894,6 +894,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/collections/{collection_id}/items/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add several items, or remove several, with an outcome for each (docs/BULK_ACTIONS.md) */
+        post: operations["batch_collection_items_api_v1_me_collections__collection_id__items_batch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/collections/{collection_id}/items/{item_id}": {
         parameters: {
             query?: never;
@@ -4566,6 +4583,21 @@ export interface components {
              */
             created_at: string;
         };
+        /** BatchResult */
+        BatchResult: {
+            /**
+             * Key
+             * @description The item as sent: 'type:track:ref' for an add, the item id for a remove
+             */
+            key: string;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "added" | "already_there" | "unavailable" | "full" | "removed" | "not_there" | "repeated";
+            /** Message */
+            message: string;
+        };
         /** BookmarkOut */
         BookmarkOut: {
             /**
@@ -4880,6 +4912,29 @@ export interface components {
             passed: number;
             /** Saved Not Judged */
             saved_not_judged: number;
+        };
+        /**
+         * CollectionBatchIn
+         * @description Add several items to a collection, or remove several, in one request (docs/BULK_ACTIONS.md).
+         *     Exactly one of `add` and `remove` is given.
+         */
+        CollectionBatchIn: {
+            /** Add */
+            add?: components["schemas"]["CollectionItemIn"][];
+            /**
+             * Remove
+             * @description Item ids of this collection
+             */
+            remove?: string[];
+        };
+        /** CollectionBatchOut */
+        CollectionBatchOut: {
+            collection: components["schemas"]["CollectionOut"];
+            /**
+             * Results
+             * @description One per item sent, in the order sent
+             */
+            results: components["schemas"]["BatchResult"][];
         };
         /** CollectionIn */
         CollectionIn: {
@@ -15580,6 +15635,59 @@ export interface operations {
             };
             /** @description Conflict with current state */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    batch_collection_items_api_v1_me_collections__collection_id__items_batch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionBatchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionBatchOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

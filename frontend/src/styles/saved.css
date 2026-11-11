@@ -33,7 +33,7 @@
 .saved-list__title { font-weight: 600; overflow-wrap: anywhere; }
 
 .collection-items { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
-.collection-item { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: var(--space-3); align-items: start; }
+.collection-item { display: grid; grid-template-columns: 28px 32px minmax(0, 1fr) auto; gap: var(--space-3); align-items: start; }
 .collection-item__pos { font-family: var(--font-mono); color: var(--color-text-muted); padding-top: 2px; }
 .collection-item__main a, .collection-item__main strong { overflow-wrap: anywhere; }
 .collection-item__actions { display: flex; flex-wrap: wrap; gap: var(--space-1); justify-content: flex-end; }
@@ -59,7 +59,25 @@
 }
 
 @media (max-width: 560px) {
-  .collection-item { grid-template-columns: 24px minmax(0, 1fr); }
+  .collection-item { grid-template-columns: 28px 24px minmax(0, 1fr); }
   .collection-item__actions { grid-column: 1 / -1; justify-content: flex-start; }
   .bookmark-toggle { width: 44px; }
 }
+
+/* The page's two sections (collections, bookmarks) need room between them. */
+.saved-page > section + section { margin-top: var(--space-8); }
+
+/* Several at once (docs/BULK_ACTIONS.md) */
+.bulk-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); padding: var(--space-2) 0; }
+.bulk-bar__action { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-2); }
+.bulk-bar__target .select { min-width: 12rem; max-width: 100%; }
+.bulk-select { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; min-height: 28px; cursor: pointer; }
+.bulk-select input { width: 18px; height: 18px; }
+.saved-list__item--selectable { grid-template-columns: 28px minmax(0, 1fr); }
+.saved-list__item--selectable > :not(.bulk-select) { grid-column: 2; }
+.saved-list__item--selectable > .bulk-select { grid-row: 1; }
+.bulk-outcomes .section-title:focus { outline: none; }
+.bulk-outcomes .section-title:focus-visible { outline: 2px solid var(--color-link); outline-offset: 2px; }
+.bulk-outcomes__list { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; overflow-wrap: anywhere; }
+.bulk-outcomes__attention { color: var(--color-text); font-weight: var(--weight-semibold); }
+@media (pointer: coarse) { .bulk-select { min-width: 44px; min-height: 44px; } }
