@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 
-import { expect, test } from "./fixtures";
+import { expect, test, setTheme } from "./fixtures";
 import { API_URL } from "./ports";
 
 /**
@@ -41,7 +41,7 @@ test("continue a saved story, check an earlier action, and come back", async ({ 
   await expect(saved.getByRole("link", { name: /question round/ })).toHaveAttribute("href", `/interviews/${roundId}`);
 
   for (const theme of ["dark", "light"]) {
-    await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), theme);
+    await setTheme(page, theme);
     const scan = await new AxeBuilder({ page }).include(".continue-card").analyze();
     expect(scan.violations.map((v) => v.id), theme).toEqual([]);
   }

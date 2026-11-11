@@ -169,3 +169,18 @@ export async function navTo(page: import("@playwright/test").Page, name: string)
   }
   await link.click();
 }
+
+/**
+ * Switch the colour theme the way a scan expects to see it: set it, then wait for the colour
+ * transitions it started (buttons fade their background over 120 ms while their text changes at
+ * once) so an accessibility scan never samples a half-faded background under the new text colour.
+ * Only CSS transitions are awaited: a spinner's endless animation would never finish.
+ */
+export async function setTheme(page: import("@playwright/test").Page, theme: string): Promise<void> {
+  await page.evaluate(async (t) => {
+    document.documentElement.setAttribute("data-theme", t);
+    void getComputedStyle(document.documentElement).color; // apply the new styles now, starting their transitions
+    const fading = document.getAnimations().filter((a) => typeof CSSTransition !== "undefined" && a instanceof CSSTransition);
+    await Promise.all(fading.map((a) => a.finished.catch(() => undefined)));
+  }, theme);
+}

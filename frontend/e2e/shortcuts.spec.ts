@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 
-import { expect, test } from "./fixtures";
+import { expect, test, setTheme } from "./fixtures";
 import { API_URL } from "./ports";
 
 /**
@@ -48,7 +48,7 @@ test("arrange shortcuts by keyboard, keep them through a reload, and open one", 
   await expect(up).toBeFocused();
 
   for (const theme of ["dark", "light"]) {
-    await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), theme);
+    await setTheme(page, theme);
     const scan = await new AxeBuilder({ page }).include(".shortcuts").analyze();
     expect(scan.violations.map((v) => v.id), `editing, ${theme}`).toEqual([]);
   }
@@ -59,7 +59,7 @@ test("arrange shortcuts by keyboard, keep them through a reload, and open one", 
   await expect(card.getByRole("link")).toHaveCount(6);
   expect(await labels()).toEqual(["Coding problems", "Whiteboard: explain a design", "Notes", "Stories", "Applications", "My plan"]);
   for (const theme of ["dark", "light"]) {
-    await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), theme);
+    await setTheme(page, theme);
     const scan = await new AxeBuilder({ page }).include(".shortcuts").analyze();
     expect(scan.violations.map((v) => v.id), `list, ${theme}`).toEqual([]);
   }

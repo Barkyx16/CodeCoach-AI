@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 
-import { expect, test } from "./fixtures";
+import { expect, test, setTheme } from "./fixtures";
 import { API_URL } from "./ports";
 
 /**
@@ -37,7 +37,7 @@ test("a device-only draft is told from an account save and removed without losin
   await expect(account).toContainText("Stories, with their earlier versions");
 
   for (const theme of ["dark", "light"]) {
-    await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), theme);
+    await setTheme(page, theme);
     const scan = await new AxeBuilder({ page }).include(".yd-page").analyze();
     expect(scan.violations.map((v) => v.id), theme).toEqual([]);
   }

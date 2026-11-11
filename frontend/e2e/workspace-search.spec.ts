@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 
-import { expect, test } from "./fixtures";
+import { expect, test, setTheme } from "./fixtures";
 import { API_URL } from "./ports";
 
 /**
@@ -43,7 +43,7 @@ test("find a saved story and a private note; another account's matching text sta
   expect(page.url()).not.toContain("sepsis");
 
   for (const theme of ["dark", "light"]) {
-    await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), theme);
+    await setTheme(page, theme);
     const scan = await new AxeBuilder({ page }).include(".workspace-search").analyze();
     expect(scan.violations.map((v) => v.id), theme).toEqual([]);
   }

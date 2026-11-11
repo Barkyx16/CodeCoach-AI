@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 
-import { expect, test, type APIRequestContext, type Page } from "./fixtures";
+import { expect, test, type APIRequestContext, type Page, setTheme } from "./fixtures";
 import { API_URL } from "./ports";
 
 /**
@@ -41,7 +41,7 @@ test("an IT support queue by keyboard, two defensible strategies, and a second a
   expect(await order(page)).toEqual(["New starter's account", "Boardroom screen", "Remote staff can't connect", "Locked-out account", "Second-floor printer jam"]);
   await page.getByLabel("What you'd do first, and why").fill("Priya's account first so it's ready at 09:30, then the screen before the 10:00 board meeting; I'd tell the remote staff when to expect the VPN.");
   for (const theme of ["dark", "light"]) {
-    await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), theme);
+    await setTheme(page, theme);
     const scan = await new AxeBuilder({ page }).include(".scenario-attempt").analyze();
     expect(scan.violations.map((v) => v.id), theme).toEqual([]);
   }

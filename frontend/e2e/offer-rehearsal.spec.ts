@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 
-import { expect, test, type APIRequestContext, type Page } from "./fixtures";
+import { expect, test, type APIRequestContext, type Page, setTheme } from "./fixtures";
 import { API_URL } from "./ports";
 
 /**
@@ -43,7 +43,7 @@ test("three parts against a fictional card, a declined counteroffer, and a debri
   await expect(transcript).toContainText("Base salary: £31,000 per year.");
   await expect(transcript).toContainText("Bonus: That isn't set out in the offer you have.");
   for (const theme of ["dark", "light"]) {
-    await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), theme);
+    await setTheme(page, theme);
     const scan = await new AxeBuilder({ page }).include(".offers-rehearsal").analyze();
     expect(scan.violations.map((v) => v.id), theme).toEqual([]);
   }

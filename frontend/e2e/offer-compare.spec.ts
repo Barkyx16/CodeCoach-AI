@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 
-import { expect, test, type APIRequestContext, type Page } from "./fixtures";
+import { expect, test, type APIRequestContext, type Page, setTheme } from "./fixtures";
 import { API_URL } from "./ports";
 
 /**
@@ -43,7 +43,7 @@ test("the fictional example, a yearly basis, a dated rate, weights explained, an
   await expect(weighted).toContainText("not a recommendation or an objectively best offer");
   await expect(weighted).toContainText("Commute: not counted (unknown)");
   for (const theme of ["dark", "light"]) {
-    await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), theme);
+    await setTheme(page, theme);
     const scan = await new AxeBuilder({ page }).include(".oc-page").analyze();
     expect(scan.violations.map((v) => v.id), theme).toEqual([]);
   }

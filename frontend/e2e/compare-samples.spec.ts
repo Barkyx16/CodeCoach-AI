@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 
-import { expect, test, type APIRequestContext, type Page } from "./fixtures";
+import { expect, test, type APIRequestContext, type Page, setTheme } from "./fixtures";
 import { API_URL } from "./ports";
 
 /**
@@ -46,7 +46,7 @@ test("a lesson by keyboard: marks with reasons, a choice, and results tied to th
   await page.getByLabel("Why is it a gap?").fill("A claim about yourself is not evidence of anything.");
   await page.getByRole("radio", { name: "Answer B" }).check();
   for (const theme of ["dark", "light"]) {
-    await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), theme);
+    await setTheme(page, theme);
     const scan = await new AxeBuilder({ page }).include(".cmp-page").analyze();
     expect(scan.violations.map((v) => v.id), theme).toEqual([]);
   }

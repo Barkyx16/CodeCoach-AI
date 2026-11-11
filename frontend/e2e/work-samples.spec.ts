@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 
-import { expect, test, type APIRequestContext, type Page } from "./fixtures";
+import { expect, test, type APIRequestContext, type Page, setTheme } from "./fixtures";
 import { API_URL } from "./ports";
 
 /**
@@ -38,7 +38,7 @@ test("an incident update by keyboard, feedback tied to its sentences, a revision
   await page.keyboard.press("Tab");
   await page.keyboard.type("Next update at 10:30 UTC.");
   for (const theme of ["dark", "light"]) {
-    await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), theme);
+    await setTheme(page, theme);
     const scan = await new AxeBuilder({ page }).include(".ws-layout").analyze();
     expect(scan.violations.map((v) => v.id), theme).toEqual([]);
   }

@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 
-import { expect, test, type APIRequestContext, type Page } from "./fixtures";
+import { expect, test, type APIRequestContext, type Page, setTheme } from "./fixtures";
 import { API_URL } from "./ports";
 
 /**
@@ -92,7 +92,7 @@ test("the open palette has no accessibility violations, in the dark and the ligh
   await signedIn(page, request, "registered-nurse");
   await page.goto("/dashboard");
   for (const theme of ["dark", "light"]) {
-    await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), theme);
+    await setTheme(page, theme);
     await page.getByRole("button", { name: "Go to…" }).click();
     await expect(palette(page)).toBeVisible();
     await page.getByRole("combobox", { name: "Go to a page" }).fill("st");
