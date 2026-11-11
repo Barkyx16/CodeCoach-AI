@@ -14,6 +14,7 @@ import { TodayCard } from "@/features/plan/TodayCard";
 import { OnboardingBanner } from "@/features/onboarding/OnboardingBanner";
 
 import { ContinueCard } from "./ContinueCard";
+import { ShortcutsCard } from "./ShortcutsCard";
 import { EndedEarlyNote } from "./EndedEarlyNote";
 import { MorePractice } from "./MorePractice";
 import { ProgressBars } from "./ProgressBars";
@@ -58,6 +59,7 @@ function CodingDashboard() {
       <OnboardingBanner />
       <TodayCard />
       <ContinueCard />
+      <ShortcutsCard coding />
       <EndedEarlyNote />
 
       <h2 className="dashboard__section-title">Your progress</h2>

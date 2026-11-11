@@ -286,6 +286,9 @@ typing. `app/commands.ts` is the list; `app/CommandPalette.tsx` the dialog.
 - **Recent pages:** the last five command ids used, per account, in this browser
   (`palette-recent:<account>`), shown first when the field is empty; never a record's title. Signing
   out removes them; another account never reads them.
+- **Shortcuts on the dashboard** ([SHORTCUTS.md](SHORTCUTS.md)) are chosen from these same
+  commands and kept separately (page ids per account in this browser); the palette's recent pages
+  and search don't affect them.
 
 ## Tests
 

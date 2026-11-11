@@ -14,6 +14,7 @@ import { TodayCard } from "@/features/plan/TodayCard";
 import { OnboardingBanner } from "@/features/onboarding/OnboardingBanner";
 
 import { ContinueCard } from "./ContinueCard";
+import { ShortcutsCard } from "./ShortcutsCard";
 import { EndedEarlyNote } from "./EndedEarlyNote";
 import { LEVEL_UP_AFTER, LEVELS, nextLevel, RETRY_BELOW, upNext } from "./upNext";
 import { MorePractice } from "./MorePractice";
@@ -58,6 +59,7 @@ export function CareerDashboard({ track, careerTitle }: { track: string; careerT
       <OnboardingBanner />
       <TodayCard />
       <ContinueCard />
+      <ShortcutsCard coding={false} careerTitle={role} />
       <EndedEarlyNote />
 
       <h2 className="dashboard__section-title">Your progress</h2>

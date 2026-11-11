@@ -25,7 +25,8 @@ Also listed and removable:
   what happened after a reload, and sending again may save it twice; the review says so.
 - **Pages opened recently, for Go to**: a count of names.
 
-Described, not removed here: display, editor and voice settings (device settings); public pages
+Described, not removed here: display, editor and voice settings (device settings); the dashboard's
+shortcuts (page ids per account, kept at sign-out; Reset to defaults clears them, [SHORTCUTS.md](SHORTCUTS.md)); public pages
 saved for offline (`/offline` removes them); the sign-in cookie (this page can't read it, and
 signing out ends it); which account last used the device; this tab's list positions.
 

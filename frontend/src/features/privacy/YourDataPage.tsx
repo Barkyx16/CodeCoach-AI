@@ -137,6 +137,7 @@ export function YourDataPage() {
         <h3 className="review-minor">Also on this device, not removed here</h3>
         <ul className="mini-list">
           <li>Display, editor and voice settings: device settings, not account data. <Link to="/settings#display">Settings</Link></li>
+          <li>Your dashboard shortcuts: which pages you keep there, by name, for this account. Kept when you sign out; Reset to defaults on the dashboard clears them. <Link to="/dashboard">Dashboard</Link></li>
           <li>Public pages you saved for offline reading. <Link to="/offline">Manage saved items</Link></li>
           <li>Your sign-in: a cookie this page can't read. Nothing here touches it; signing out ends it.</li>
           <li>Which account last used this device (its id and name, no password or token), so drafts still show offline. Removed when you sign out.</li>
