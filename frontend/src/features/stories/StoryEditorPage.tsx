@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
@@ -22,6 +22,7 @@ import { CareerSelect } from "@/features/careers/CareerSelect";
 import { allowLeaveAfterSave, useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { recoveredSave, savedVersion } from "@/lib/conflict";
 import { formatDateTime, timeAgo } from "@/lib/format";
+import { announce } from "@/lib/recordSignals";
 import { dropCopy, useCopySince, writeCopy } from "@/lib/deviceCopies";
 
 import { COMPETENCIES, COMPETENCY_LABEL, CONTEXT_LABEL, SECTION_LABEL, SECTION_PROMPT, SECTIONS } from "./labels";
@@ -50,12 +51,15 @@ export function StoryEditorPage() {
   const { id } = useParams();
   const story = useStory(id);
   if (id && story.isPending) return <LoadingState label="Loading the story…" />;
-  if (id && story.isError && isGone(story.error)) return <PrivateUnavailable what="story" list={{ to: "/stories", label: "Your stories" }} />;
-  if (id && story.isError) return <div className="page"><ErrorState error={story.error} onRetry={() => void story.refetch()} /></div>;
-  return <Editor key={id ?? "new"} story={id ? story.data! : null} />;
+  // Never loaded: say why. Loaded once and gone since (deleted elsewhere): the editor stays, with
+  // the learner's text, and says so (docs/FRESHNESS.md).
+  if (id && story.isError && !story.data && isGone(story.error)) return <PrivateUnavailable what="story" list={{ to: "/stories", label: "Your stories" }} />;
+  if (id && story.isError && !story.data) return <div className="page"><ErrorState error={story.error} onRetry={() => void story.refetch()} /></div>;
+  const gone = !!id && story.isError && isGone(story.error);
+  return <Editor key={id ?? "new"} story={id ? story.data! : null} live={id ? story.data ?? null : null} gone={gone} />;
 }
 
-function Editor({ story }: { story: Story | null }) {
+function Editor({ story, live, gone }: { story: Story | null; live: Story | null; gone: boolean }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -89,6 +93,35 @@ function Editor({ story }: { story: Story | null }) {
   const earlier = useEarlierAction("story", saved ? null : "new");
   const dirty = !sameForm(form, base);
   useLeaveWarning(dirty && !kept);
+  // A newer version saved in another tab or on another device (docs/FRESHNESS.md). A page with no
+  // unsaved changes shows it; a page with changes keeps them and offers the comparison. An older
+  // reply arriving late is ignored, and an archive elsewhere changes only the flag.
+  const [elsewhere, setElsewhere] = useState<Story | null>(null);
+  const [seenLive, setSeenLive] = useState<Story | null>(live);
+  if (live !== seenLive) {
+    // What the server says changed (a refetch on focus, reconnect or another tab's hint): adjusted
+    // during render, React's pattern for state that follows a prop.
+    setSeenLive(live);
+    if (live && saved && live.id === saved.id) {
+      if (live.revision > saved.revision) {
+        if (!dirty && !conflict) {
+          setSaved(live);
+          setFormState(fromStory(live));
+          setElsewhere(null);
+          setNotice(`Updated to version ${live.revision}, saved in another tab or on another device.`);
+        } else {
+          setElsewhere(live);
+        }
+      } else if (live.revision === saved.revision && live.archived !== saved.archived) {
+        setSaved({ ...saved, archived: live.archived });
+        setNotice(live.archived ? "Archived in another tab or on another device. It's kept, and hidden from your list." : "Unarchived in another tab or on another device.");
+      }
+    }
+  }
+  useEffect(() => { latest.current = form; }, [form]); // the form as shown, including a version adopted above
+  const tell = (change: "saved" | "archived" | "unarchived" | "deleted", id: string, revision?: number) => {
+    if (user) announce({ account: user.id, type: "story", id, change, revision });
+  };
 
   // Every change is kept on this device until it's saved, so a closed tab loses nothing.
   function keep(next: StoryForm) {
@@ -109,7 +142,7 @@ function Editor({ story }: { story: Story | null }) {
 
   /** Save the form. `against`: the version to save over (after a conflict, the saved one), so
    * "keep my version" sends all of mine, not just what differs from the version I first loaded. */
-  async function save(e?: FormEvent, against?: Story) {
+  async function save(e?: FormEvent, against?: Story, asNew = false) {
     e?.preventDefault();
     setBusy(true);
     setError(null);
@@ -118,7 +151,7 @@ function Editor({ story }: { story: Story | null }) {
     const over = against ?? saved;
     try {
       let next: Story;
-      if (!saved) {
+      if (!saved || asNew) {
         // The same form as a create whose answer never came (even before a reload, or in another
         // tab): the same key, so the server returns the story it may already have made instead of
         // a second one. Edited since, it's a new create. The key is written down before sending.
@@ -131,6 +164,7 @@ function Editor({ story }: { story: Story | null }) {
           throw err;
         }
         forgetIntent(user?.id, "story", "new", k);
+        tell("saved", next.id, next.revision);
         try {
           window.localStorage.removeItem(key);
         } catch {
@@ -161,6 +195,8 @@ function Editor({ story }: { story: Story | null }) {
       setAssisted(false);
       setConflict(null);
       setEarlierSave(null);
+      setElsewhere(null);
+      if (next.revision !== over!.revision) tell("saved", next.id, next.revision);
       if (sameForm(latest.current, sent)) {
         // Nothing typed while it was saving: the page shows exactly what was saved.
         setForm(fromStory(next));
@@ -185,6 +221,7 @@ function Editor({ story }: { story: Story | null }) {
   }
 
   function takeSaved(version: Story) {
+    setElsewhere(null);
     setSaved(version);
     setForm(fromStory(version));
     setConflict(null);
@@ -204,15 +241,28 @@ function Editor({ story }: { story: Story | null }) {
   async function archive(archived: boolean) {
     if (!saved) return;
     replaceWith(await api.archiveStory(saved.id, archived));
+    tell(archived ? "archived" : "unarchived", saved.id);
     setNotice(archived ? "Archived. It's hidden from your list until you unarchive it." : "Back in your list.");
   }
 
   async function remove() {
     if (!saved || !window.confirm("Delete this story and every saved version of it? Answers you practised with it are kept. Interview kits and reflections that used it will say an example was deleted. This can't be undone.")) return;
     await api.deleteStory(saved.id);
+    tell("deleted", saved.id);
     window.localStorage.removeItem(key);
     void qc.invalidateQueries({ queryKey: ["me", "stories"] });
     navigate("/stories", { replace: true });
+  }
+
+  async function copyText() {
+    const text = [form.title, ...SECTIONS.map((s) => (form[s].trim() ? `${SECTION_LABEL[s]}:\n${form[s]}` : "")), form.short_version, form.long_version]
+      .filter((x) => x.trim()).join("\n\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      setNotice("Copied. Your text is on the clipboard.");
+    } catch {
+      setNotice("Copying isn't allowed here. Select the text in the boxes below and copy it.");
+    }
   }
 
   const sections = { situation: form.situation, task: form.task, action: form.action, result: form.result, reflection: form.reflection };
@@ -229,31 +279,49 @@ function Editor({ story }: { story: Story | null }) {
         </div>
       </div>
 
-      {recovery && (
-        <div className="banner banner--info row" role="region" aria-label="Unsaved changes">
-          <span>You have unsaved changes to this story from {formatDateTime(recovery.at)} on this device.</span>
-          <span className="row">
-            <Button size="sm" variant="primary" onClick={() => {
-              setForm(recovery.form);
-              setRecovery(null);
-              // Kept against an older version than the one saved now: compare before anything is saved over it.
-              if (saved && recovery.base !== null && recovery.base !== saved.revision) setConflict(saved);
-            }}>Restore them</Button>
-            <Button size="sm" variant="ghost" onClick={() => { window.localStorage.removeItem(key); setRecovery(null); }}>Discard them</Button>
-          </span>
-        </div>
-      )}
-      {conflict && (
-        <VersionConflict what="story" savedWhen={`version ${conflict.revision}, ${timeAgo(conflict.updated_at)}`} busy={busy}
-          keepMineLabel="Keep mine as the newest version" earlierSave={earlierSave}
-          fields={[
-            { label: "Title", mine: form.title, saved: conflict.title },
-            ...SECTIONS.map((s) => ({ label: SECTION_LABEL[s], mine: form[s], saved: conflict[s] })),
-            { label: "Long version", mine: form.long_version, saved: conflict.long_version ?? "" },
-          ]}
-          onKeepMine={() => void save(undefined, conflict)}
-          onUseSaved={() => takeSaved(conflict)} />
-      )}
+      <div className="story-editor__notices stack-sm">
+        {recovery && (
+          <div className="banner banner--info row" role="region" aria-label="Unsaved changes">
+            <span>You have unsaved changes to this story from {formatDateTime(recovery.at)} on this device.</span>
+            <span className="row">
+              <Button size="sm" variant="primary" onClick={() => {
+                setForm(recovery.form);
+                setRecovery(null);
+                // Kept against an older version than the one saved now: compare before anything is saved over it.
+                if (saved && recovery.base !== null && recovery.base !== saved.revision) setConflict(saved);
+              }}>Restore them</Button>
+              <Button size="sm" variant="ghost" onClick={() => { window.localStorage.removeItem(key); setRecovery(null); }}>Discard them</Button>
+            </span>
+          </div>
+        )}
+        {gone && saved && (
+          <div className="banner banner--warning stack-sm" role="alert">
+            <p>This story was deleted, or isn't available to this account any more. Your text below is still on this page{kept ? " and kept on this device" : ""}; it isn't saved anywhere else.</p>
+            <span className="row">
+              <Button size="sm" onClick={() => void copyText()}>Copy my text</Button>
+              <Button size="sm" variant="primary" loading={busy} disabled={!form.title.trim()} onClick={() => void save(undefined, undefined, true)}>Save it as a new story</Button>
+            </span>
+          </div>
+        )}
+        {!gone && elsewhere && !conflict && (
+          <div className="banner banner--info stack-sm" role="status">
+            <p>This story was saved somewhere else (version {elsewhere.revision}) since you opened it. Your changes are still here, not saved.</p>
+            <span className="row"><Button size="sm" onClick={() => { setConflict(elsewhere); setElsewhere(null); }}>Compare with the saved version</Button></span>
+          </div>
+        )}
+        {/* Gone: nothing offers to save over the deleted story or take its last copy. */}
+        {conflict && !gone && (
+          <VersionConflict what="story" level={2} savedWhen={`version ${conflict.revision}, ${timeAgo(conflict.updated_at)}`} busy={busy}
+            keepMineLabel="Keep mine as the newest version" earlierSave={earlierSave}
+            fields={[
+              { label: "Title", mine: form.title, saved: conflict.title },
+              ...SECTIONS.map((s) => ({ label: SECTION_LABEL[s], mine: form[s], saved: conflict[s] })),
+              { label: "Long version", mine: form.long_version, saved: conflict.long_version ?? "" },
+            ]}
+            onKeepMine={() => void save(undefined, conflict)}
+            onUseSaved={() => takeSaved(conflict)} />
+        )}
+      </div>
 
       <div className="story-editor__layout">
         <EarlierActionNotice earlier={earlier} noun="story"
@@ -350,7 +418,7 @@ function Editor({ story }: { story: Story | null }) {
           </Card>
 
           <div className="story-editor__actions">
-            <Button type="submit" variant="primary" loading={busy} disabled={!form.title.trim() || (!!saved && !dirty)}>{saved ? "Save changes" : "Save story"}</Button>
+            <Button type="submit" variant="primary" loading={busy} disabled={gone || !form.title.trim() || (!!saved && !dirty)}>{saved ? "Save changes" : "Save story"}</Button>
             <span className="subtle" role="status">{notice || (dirty ? (kept ? "Unsaved changes, kept on this device" : "Unsaved changes, and this browser can't keep a copy") : saved ? "All changes saved" : "")}</span>
           </div>
           <InlineError error={error} action="Saving the story" />
@@ -369,9 +437,9 @@ function Editor({ story }: { story: Story | null }) {
               <p className="subtle">Each practice is its own answer; the story isn't changed by it.</p>
             </Card>
           )}
-          {saved && <UsedIn storyId={saved.id} />}
-          {saved && <RevisionsPanel story={saved} onRestored={replaceWith} />}
-          {saved && (
+          {saved && !gone && <UsedIn storyId={saved.id} />}
+          {saved && !gone && <RevisionsPanel story={saved} onRestored={replaceWith} />}
+          {saved && !gone && (
             <Card className="stack-sm">
               <h2 className="section-title">Keep or remove</h2>
               <span className="row">

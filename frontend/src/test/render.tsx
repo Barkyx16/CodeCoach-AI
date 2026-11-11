@@ -18,8 +18,11 @@ export function renderApp(
   cookieJar.hasSession = signedIn;
   const router = createMemoryRouter(routes, { initialEntries: [path] });
   const queryClient = makeQueryClient();
-  // Tests don't retry failed queries unless they ask to (queries: { retry, retryDelay }).
-  queryClient.setDefaultOptions({ queries: { retry: false, ...queries } });
+  // Tests don't retry failed queries unless they ask to (queries: { retry, retryDelay }). The app's
+  // other defaults stay as they are in main.tsx (no refetch on focus unless a query asks for it,
+  // network mode "always"): setDefaultOptions replaces them, so they're carried over.
+  const defaults = queryClient.getDefaultOptions();
+  queryClient.setDefaultOptions({ ...defaults, queries: { ...defaults.queries, retry: false, ...queries } });
   const app = (
     <AppProviders queryClient={queryClient}>
       <RouterProvider router={router} />

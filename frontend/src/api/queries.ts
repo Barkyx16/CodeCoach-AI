@@ -722,12 +722,14 @@ export function useUpdateOnboarding(accountId?: string) {
 export function useStories(filters: { archived?: boolean; q?: string; competency?: string } = {}, enabled = true) {
   return useQuery({
     queryKey: ["me", "stories", filters], queryFn: () => api.stories(filters), enabled, staleTime: 0,
+    refetchOnWindowFocus: true, refetchOnReconnect: true, // changes made on another device (docs/FRESHNESS.md)
     placeholderData: (prev) => prev, // keep the list on screen while a new search loads
   });
 }
 
 export function useStory(id: string | undefined) {
-  return useQuery({ queryKey: ["me", "story", id], queryFn: () => api.story(id!), enabled: !!id, staleTime: 0 });
+  // Back in this tab, or back online: asked again, so a change made on another device shows (docs/FRESHNESS.md).
+  return useQuery({ queryKey: ["me", "story", id], queryFn: () => api.story(id!), enabled: !!id, staleTime: 0, refetchOnWindowFocus: true, refetchOnReconnect: true });
 }
 
 /** Your applications, kits and reflections that use this story (docs/BACKLINKS.md). */

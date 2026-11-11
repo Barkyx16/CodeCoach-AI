@@ -13,7 +13,7 @@ export interface ConflictField {
  * learner sees both versions (the parts that differ), copies theirs if they like, and chooses
  * which to keep. Nothing is merged automatically.
  */
-export function VersionConflict({ what, savedWhen, fields, busy = false, keepMineLabel = "Keep my version", earlierSave, onKeepMine, onUseSaved }: {
+export function VersionConflict({ what, savedWhen, fields, busy = false, keepMineLabel = "Keep my version", earlierSave, level = 3, onKeepMine, onUseSaved }: {
   /** "story", "reflection", "diagram", "kit" */
   what: string;
   /** Set when this page's own save went through (as this version) and its reply was lost, and
@@ -24,6 +24,8 @@ export function VersionConflict({ what, savedWhen, fields, busy = false, keepMin
   fields: ConflictField[];
   busy?: boolean;
   keepMineLabel?: string;
+  /** The heading level that fits where it's shown (the page's outline mustn't skip a level). */
+  level?: 2 | 3;
   onKeepMine(): void;
   onUseSaved(): void;
 }) {
@@ -31,6 +33,7 @@ export function VersionConflict({ what, savedWhen, fields, busy = false, keepMin
   const shown = differing.length ? differing : fields;
   const mineText = fields.map((f) => `${f.label}:\n${f.mine}`).join("\n\n");
   const show = (text: string) => text.trim() || "(empty)";
+  const Heading = level === 2 ? "h2" : "h3";
   return (
     <section className="banner banner--warning stack-sm version-conflict" role="region" aria-label="Edit conflict">
       {/* Announced once when it appears: a save the learner just asked for didn't happen. */}
@@ -46,7 +49,7 @@ export function VersionConflict({ what, savedWhen, fields, busy = false, keepMin
       </p>
       <div className="version-conflict__versions">
         <div>
-          <h3 className="learn-subtitle">{earlierSave ? `Your version (saved as version ${earlierSave}, then changed)` : "Your version (not saved)"}</h3>
+          <Heading className="learn-subtitle">{earlierSave ? `Your version (saved as version ${earlierSave}, then changed)` : "Your version (not saved)"}</Heading>
           {shown.map((f) => (
             <div key={f.label} className="version-conflict__field">
               <p className="version-conflict__label">{f.label}</p>
@@ -55,7 +58,7 @@ export function VersionConflict({ what, savedWhen, fields, busy = false, keepMin
           ))}
         </div>
         <div>
-          <h3 className="learn-subtitle">{earlierSave ? "The newer saved version" : "Saved version"}</h3>
+          <Heading className="learn-subtitle">{earlierSave ? "The newer saved version" : "Saved version"}</Heading>
           {shown.map((f) => (
             <div key={f.label} className="version-conflict__field">
               <p className="version-conflict__label">{f.label}</p>

@@ -5,6 +5,9 @@
 .story-list { display: grid; gap: var(--space-3); }
 .story-list__preview { overflow-wrap: anywhere; }
 
+/* Notices above the form, spaced from it (and nothing at all when there are none). */
+.story-editor__notices { margin-bottom: var(--space-4); }
+.story-editor__notices:empty { display: none; }
 .story-editor__layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--space-6); align-items: start; }
 @media (max-width: 960px) { .story-editor__layout { grid-template-columns: minmax(0, 1fr); } }
 .story-editor__row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-3); }

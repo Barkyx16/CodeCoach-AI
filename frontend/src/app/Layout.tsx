@@ -21,9 +21,11 @@ import { MainNav, type NavGroup } from "./MainNav";
 import { NAV_ICONS } from "./navIcons";
 import { RouteAccessibility } from "./RouteAccessibility";
 import { SessionEndedBanner } from "./SessionEndedBanner";
+import { useRecordFreshness } from "./useRecordFreshness";
 
 export function Layout() {
   const { user, isAuthenticated, isRestoring, logout, signedOutReason, offlineUser } = useAuth();
+  useRecordFreshness(); // other tabs' "this record changed" hints (docs/FRESHNESS.md)
   const navigate = useNavigate();
   const { pathname, key: locationKey } = useLocation();
   // Every location shown, so a list can tell a page opened directly from a return to it.
