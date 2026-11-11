@@ -25,7 +25,13 @@ test("filtered list → question → Back keeps the filters and scroll, even aft
   await expect(page.getByRole("tablist", { name: "Difficulty" }).getByRole("tab", { name: "Medium 60" })).toBeVisible();
   await expect(page.getByRole("status").filter({ hasText: "Format: Scenario" })).toBeVisible();
   // Show more so the page scrolls, then open a question far down the list.
-  for (let i = 0; i < 2; i++) await list(page).getByRole("button", { name: "View more" }).click();
+  // One step at a time: while the next rows load, the button ignores presses (aria-disabled), so a
+  // second click sent before the first one's rows arrive would be dropped.
+  for (const shown of [15, 25]) {
+    await list(page).getByRole("button", { name: "View more" }).click();
+    await expect(page).toHaveURL(new RegExp(`shown=${shown}`));
+    await expect(list(page).getByRole("listitem")).toHaveCount(shown);
+  }
   await expect(page).toHaveURL(/shown=25/);
   await expect(list(page).getByRole("listitem")).toHaveCount(25);
   const target = list(page).getByRole("listitem").nth(20).getByRole("link");
