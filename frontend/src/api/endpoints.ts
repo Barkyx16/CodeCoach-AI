@@ -160,6 +160,7 @@ import type {
   OfferComparison,
   OfferComparisonSummary,
   DataSummary,
+  RecentWork,
   OfferCaseSummary,
   OfferPhase,
   OfferRehearsal,
@@ -688,6 +689,8 @@ export const api = {
   offerComparisons: () => apiRequest<OfferComparisonSummary[]>("/api/v1/me/offer-comparisons"),
   // What's saved to the account, as counts (docs/YOUR_DATA.md)
   dataSummary: () => apiRequest<DataSummary>("/api/v1/me/data-summary"),
+  // A few of your own records, newest first: titles and times only (docs/CONTINUE.md)
+  recentWork: (limit = 6) => apiRequest<RecentWork>("/api/v1/me/recent-work", { query: { limit } }),
   createOfferComparison: (body: { title?: string; example?: boolean }) =>
     apiRequest<OfferComparison>("/api/v1/me/offer-comparisons", { method: "POST", body }),
   offerComparison: (id: string) => apiRequest<OfferComparison>(`/api/v1/me/offer-comparisons/${encodeURIComponent(id)}`),

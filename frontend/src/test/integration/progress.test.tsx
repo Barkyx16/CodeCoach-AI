@@ -113,8 +113,8 @@ describe("Career-aware Analytics", () => {
   });
 });
 
-describe("Continue where you left off", () => {
-  it("puts a running interview first, says its timer can't pause, and lists other saved work", async () => {
+describe("Continue your work", () => {
+  it("puts a running interview first, says its timer can't pause, and lists the drafts kept in this browser", async () => {
     window.localStorage.setItem("codecoach.answer.u-1.registered-nurse.e-good-0", "My unsent thoughts on assessment");
     window.localStorage.setItem("codecoach.draft.v1.u-1.two-sum", "class Solution { int x; }");
     server.use(http.get(`${API}/api/v1/me/resume`, () => HttpResponse.json({
@@ -123,20 +123,21 @@ describe("Continue where you left off", () => {
       last_question: null,
     })));
     asNurse();
-    const { user } = renderApp("/dashboard", { signedIn: true });
-    const card = await screen.findByRole("region", { name: "Continue where you left off" });
-    expect(within(card).getByText("Registered Nurse question round")).toBeInTheDocument();
+    renderApp("/dashboard", { signedIn: true });
+    const card = await screen.findByRole("region", { name: "Continue your work" });
+    expect(await within(card).findByText("Registered Nurse question round")).toBeInTheDocument();
     expect(within(card).getByText(/can't be paused/)).toBeInTheDocument();
     expect(within(card).getByRole("link", { name: /Resume interview/ })).toHaveAttribute("href", "/interviews/round-3");
-    await user.click(within(card).getByText("Also saved (2)"));
-    expect(await within(card).findByText(/An unsent answer \(5 words\) is saved in this browser/)).toBeInTheDocument();
-    expect(within(card).getByText(/Your code draft is saved in this browser/)).toBeInTheDocument();
+    const device = within(card).getByRole("group", { name: "Only in this browser" });
+    expect(device).toHaveTextContent("An unsent answer (5 words)");
+    expect(within(device).getByRole("link", { name: /Open your draft/ })).toHaveAttribute("href", "/problems/two-sum");
   });
 
-  it("stays hidden when there's nothing saved", async () => {
+  it("says there's nothing to continue yet, without inventing any", async () => {
     asNurse();
     renderApp("/dashboard", { signedIn: true });
-    expect(await screen.findByText("Registered Nurse · Easy level")).toBeInTheDocument();
-    await waitFor(() => expect(screen.queryByRole("region", { name: "Continue where you left off" })).not.toBeInTheDocument());
+    const card = await screen.findByRole("region", { name: "Continue your work" });
+    expect(await within(card).findByText(/Nothing to continue yet\./)).toBeInTheDocument();
+    expect(within(card).queryAllByRole("link")).toHaveLength(0);
   });
 });

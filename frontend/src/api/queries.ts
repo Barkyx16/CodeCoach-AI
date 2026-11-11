@@ -778,6 +778,11 @@ export function useDataSummary() {
   return useQuery({ queryKey: ["me", "data-summary"], queryFn: api.dataSummary, staleTime: 0 });
 }
 
+/** Recent records to continue: read again whenever the dashboard shows, so deleted ones drop out. */
+export function useRecentWork(enabled = true) {
+  return useQuery({ queryKey: ["me", "recent-work"], queryFn: () => api.recentWork(6), staleTime: 0, enabled });
+}
+
 export function useOfferComparison(id: string) {
   return useQuery({ queryKey: ["me", "offer-comparison", id], queryFn: () => api.offerComparison(id) });
 }

@@ -116,6 +116,7 @@ export const handlers = [
   http.get(`${API}/api/v1/me/goals`, () => HttpResponse.json(nurseGoals)),
   http.put(`${API}/api/v1/me/goals`, async ({ request }) => HttpResponse.json({ ...nurseGoals, ...((await request.json()) as object), saved: true })),
   http.get(`${API}/api/v1/me/resume`, () => HttpResponse.json({ interview: null, unfinished_problem: null, last_question: null })),
+  http.get(`${API}/api/v1/me/recent-work`, () => HttpResponse.json({ items: [], unavailable: [] })),
   http.get(`${API}/api/v1/me/progress`, () => HttpResponse.json(progress)),
   http.get(`${API}/api/v1/me/recommendations`, () => HttpResponse.json([
     { slug: "find-largest-number", title: "Find Largest Number", difficulty: "easy", topics: ["arrays"], reason: "You've submitted this once without a pass.", kind: "retry" },

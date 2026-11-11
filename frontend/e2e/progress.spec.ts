@@ -34,7 +34,7 @@ test("coding: activity shows up honestly, and Back returns to the same filtered,
   }
 
   await page.goto("/dashboard");
-  const resume = page.getByRole("region", { name: "Continue where you left off" });
+  const resume = page.getByRole("region", { name: "Continue your work" });
   await expect(resume).toContainText("Two Sum");
 
   await navTo(page, "History");
@@ -87,8 +87,8 @@ test("non-coding: answer, find it in History, inspect Analytics, switch careers 
   await page.reload();
   await expect(box).toHaveValue(/airway, breathing and circulation/);
   await page.goto("/dashboard");
-  await expect(page.getByRole("region", { name: "Continue where you left off" })).toContainText("unsent answer");
-  await page.getByRole("link", { name: "Finish your answer" }).click();
+  await expect(page.getByRole("region", { name: "Continue your work" })).toContainText("unsent answer");
+  await page.getByRole("link", { name: /Finish your answer/ }).click();
   await page.getByRole("button", { name: "Get feedback" }).click();
   await expect(page.getByRole("region", { name: "Feedback", exact: true })).toBeVisible();
   const questionUrl = page.url();

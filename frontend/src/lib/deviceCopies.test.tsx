@@ -113,6 +113,7 @@ it("every file that writes to this browser's storage directly is a known one (dr
     "auth/emailVerified.ts", // where to go after verifying
     "auth/pendingSignOut.ts", // a sign-out to finish
     "features/careers/QuestionPage.tsx", // the "reflect first" setting; the answer itself uses useStoredDraft
+    "features/dashboard/ContinueCard.tsx", // whether "Continue your work" is hidden on this device
     "features/display/DisplayProvider.tsx", // display settings
     "features/drills/DrillPage.tsx", // the delivery setting; the answer itself uses useStoredDraft
     "features/onboarding/finishIntent.ts", // a tour step to finish
