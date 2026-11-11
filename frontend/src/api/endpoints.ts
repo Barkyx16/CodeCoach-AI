@@ -161,6 +161,8 @@ import type {
   OfferComparisonSummary,
   DataSummary,
   RecentWork,
+  WorkspaceSearch,
+  WorkspaceSearchBody,
   OfferCaseSummary,
   OfferPhase,
   OfferRehearsal,
@@ -691,6 +693,9 @@ export const api = {
   dataSummary: () => apiRequest<DataSummary>("/api/v1/me/data-summary"),
   // A few of your own records, newest first: titles and times only (docs/CONTINUE.md)
   recentWork: (limit = 6) => apiRequest<RecentWork>("/api/v1/me/recent-work", { query: { limit } }),
+  // Search your own saved work (docs/WORKSPACE_SEARCH.md). A POST: the words stay out of URLs and logs.
+  searchWorkspace: (body: WorkspaceSearchBody, signal?: AbortSignal) =>
+    apiRequest<WorkspaceSearch>("/api/v1/me/search", { method: "POST", body, signal }),
   createOfferComparison: (body: { title?: string; example?: boolean }) =>
     apiRequest<OfferComparison>("/api/v1/me/offer-comparisons", { method: "POST", body }),
   offerComparison: (id: string) => apiRequest<OfferComparison>(`/api/v1/me/offer-comparisons/${encodeURIComponent(id)}`),

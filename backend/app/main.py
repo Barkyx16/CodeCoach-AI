@@ -48,6 +48,7 @@ from app.api.routes import (
     test_design,
     whiteboard,
     work_samples,
+    workspace_search,
 )
 from app.config import Settings, get_settings
 from app.db import rls
@@ -279,6 +280,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.share_feedback_limiter = limiter(settings.share_feedback_per_hour, 3600)
     app.state.share_create_limiter = limiter(settings.shares_created_per_hour, 3600)
     app.state.report_limiter = limiter(settings.content_reports_per_hour, 3600)
+    app.state.search_limiter = limiter(
+        120, 60
+    )  # per account: workspace searches a minute (typing is debounced)
     app.state.telemetry_limiter = SlidingWindowLimiter(120, 600.0)  # per account: 120 batches / 10 min
     app.state.metrics = Metrics() if settings.metrics_enabled else None
     app.state.traces = (
@@ -353,6 +357,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         interviews.router,
         me.router,
         recent_work.router,
+        workspace_search.router,
         plan.router,
         targets.router,
         meta.router,

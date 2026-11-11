@@ -3391,6 +3391,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Search your own notes, stories, interview-day kits and applications */
+        post: operations["search_workspace_api_v1_me_search_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/goals": {
         parameters: {
             query?: never;
@@ -12662,6 +12679,102 @@ export interface components {
             format_label: string;
             /** Careers */
             careers: string[];
+        };
+        /** WorkspaceHit */
+        WorkspaceHit: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "note" | "story" | "kit" | "application";
+            /**
+             * Id
+             * @description The record's id; for a kit, its event's id
+             */
+            id: string;
+            /**
+             * Parent Id
+             * @description For a kit: its application's id
+             */
+            parent_id?: string | null;
+            /** Title */
+            title: string;
+            /**
+             * Snippet
+             * @description Plain text around the first word found (or the start of the text): show as text
+             */
+            snippet?: string | null;
+            /**
+             * Matched
+             * @description Where the words were found: title, text, tags, ...
+             */
+            matched: string[];
+            /** State */
+            state?: ("archived" | "pinned") | null;
+            /**
+             * Detail
+             * @description An application's stage; a kit's employer and date
+             */
+            detail?: string | null;
+            /** Tags */
+            tags?: string[];
+            /**
+             * At
+             * Format: date-time
+             * @description When it was last saved to your account
+             */
+            at: string;
+        };
+        /** WorkspaceSearchIn */
+        WorkspaceSearchIn: {
+            /**
+             * Q
+             * @description Words to find; every word must appear
+             */
+            q: string;
+            /**
+             * Kinds
+             * @description notes: title, body, reflection, tags, source_title; stories: title, situation, task, action, result, reflection, notes, evidence, short_version, long_version, tags; kits: event title, employer, role title; applications: employer, role title, next step
+             */
+            kinds?: ("notes" | "stories" | "kits" | "applications")[];
+            /**
+             * Include Archived
+             * @description Also search archived notes, stories and applications
+             * @default false
+             */
+            include_archived: boolean;
+            /**
+             * Limit
+             * @default 20
+             */
+            limit: number;
+        };
+        /** WorkspaceSearchOut */
+        WorkspaceSearchOut: {
+            /** Items */
+            items: components["schemas"]["WorkspaceHit"][];
+            /**
+             * Counts
+             * @description Matches of each kind searched, among your own records
+             */
+            counts: {
+                [key: string]: number;
+            };
+            /**
+             * Capped
+             * @description Kinds with more candidates than were looked at; refine the words
+             */
+            capped: string[];
+            /**
+             * Unavailable
+             * @description Kinds that couldn't be searched just now; the rest were
+             */
+            unavailable: string[];
+            /**
+             * Words
+             * @description The words matched, as folded for matching (for highlighting)
+             */
+            words: string[];
         };
         /** WrittenOut */
         WrittenOut: {
@@ -24897,6 +25010,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_workspace_api_v1_me_search_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceSearchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceSearchOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

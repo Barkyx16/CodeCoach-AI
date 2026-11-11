@@ -17801,6 +17801,72 @@
         }
       }
     },
+    "/api/v1/me/search": {
+      "post": {
+        "tags": [
+          "progress"
+        ],
+        "summary": "Search your own notes, stories, interview-day kits and applications",
+        "operationId": "search_workspace_api_v1_me_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceSearchIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceSearchOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/me/goals": {
       "get": {
         "tags": [
@@ -42245,6 +42311,207 @@
           "careers"
         ],
         "title": "WorkSampleSummary"
+      },
+      "WorkspaceHit": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "note",
+              "story",
+              "kit",
+              "application"
+            ],
+            "title": "Type"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "The record's id; for a kit, its event's id"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id",
+            "description": "For a kit: its application's id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "snippet": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snippet",
+            "description": "Plain text around the first word found (or the start of the text): show as text"
+          },
+          "matched": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Matched",
+            "description": "Where the words were found: title, text, tags, ..."
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "archived",
+                  "pinned"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail",
+            "description": "An application's stage; a kit's employer and date"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At",
+            "description": "When it was last saved to your account"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "id",
+          "title",
+          "matched",
+          "at"
+        ],
+        "title": "WorkspaceHit"
+      },
+      "WorkspaceSearchIn": {
+        "properties": {
+          "q": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Q",
+            "description": "Words to find; every word must appear"
+          },
+          "kinds": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "notes",
+                "stories",
+                "kits",
+                "applications"
+              ]
+            },
+            "type": "array",
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Kinds",
+            "description": "notes: title, body, reflection, tags, source_title; stories: title, situation, task, action, result, reflection, notes, evidence, short_version, long_version, tags; kits: event title, employer, role title; applications: employer, role title, next step"
+          },
+          "include_archived": {
+            "type": "boolean",
+            "title": "Include Archived",
+            "description": "Also search archived notes, stories and applications",
+            "default": false
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "default": 20
+          }
+        },
+        "type": "object",
+        "required": [
+          "q"
+        ],
+        "title": "WorkspaceSearchIn"
+      },
+      "WorkspaceSearchOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceHit"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Counts",
+            "description": "Matches of each kind searched, among your own records"
+          },
+          "capped": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Capped",
+            "description": "Kinds with more candidates than were looked at; refine the words"
+          },
+          "unavailable": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unavailable",
+            "description": "Kinds that couldn't be searched just now; the rest were"
+          },
+          "words": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Words",
+            "description": "The words matched, as folded for matching (for highlighting)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "counts",
+          "capped",
+          "unavailable",
+          "words"
+        ],
+        "title": "WorkspaceSearchOut"
       },
       "WrittenOut": {
         "properties": {

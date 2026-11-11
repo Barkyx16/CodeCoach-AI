@@ -6,7 +6,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClie
 
 import { ApiError, isSameSession, sessionMark } from "./client";
 import { api, type ActivityFilters, type ExploreFilters, type NoteFilters, type ProblemFilters, type QuestionFilters } from "./endpoints";
-import type { AIHistoryAction, AnswerSource, Difficulty, Bookmark, Collection, GoalsInput, MyExploreResult, ReviewQueue, SavedItemRef, ShareDetail, Target, ContentKind, Onboarding, OnboardingUpdate, UnitProgress, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate } from "./types";
+import type { AIHistoryAction, AnswerSource, Difficulty, Bookmark, Collection, GoalsInput, MyExploreResult, ReviewQueue, SavedItemRef, ShareDetail, Target, ContentKind, Onboarding, OnboardingUpdate, UnitProgress, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate, WorkspaceSearchBody } from "./types";
 import { withOfflineCopy } from "@/features/offline/offlineStore";
 import { clearFinishPending } from "@/features/onboarding/finishIntent";
 
@@ -781,6 +781,19 @@ export function useDataSummary() {
 /** Recent records to continue: read again whenever the dashboard shows, so deleted ones drop out. */
 export function useRecentWork(enabled = true) {
   return useQuery({ queryKey: ["me", "recent-work"], queryFn: () => api.recentWork(6), staleTime: 0, enabled });
+}
+
+/** Your own saved work matching some words. Keyed by account and the exact search, so an answer
+ * for an older search (or another account) is never shown for this one; a superseded request is
+ * cancelled. Read again when the page shows, so deleted records drop out. */
+export function useWorkspaceSearch(userId: string | undefined, body: WorkspaceSearchBody, enabled: boolean) {
+  return useQuery({
+    queryKey: ["me", "workspace-search", userId ?? "none", body],
+    queryFn: ({ signal }) => api.searchWorkspace(body, signal),
+    enabled: enabled && !!userId,
+    staleTime: 0,
+    retry: false,
+  });
 }
 
 export function useOfferComparison(id: string) {

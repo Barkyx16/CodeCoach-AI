@@ -122,6 +122,7 @@ export function Layout() {
           { to: "/stories", title: "Stories", description: "Your examples, ready for any question", icon: NAV_ICONS.stories },
           { to: "/notes", title: "Notes", description: "What you've noted while practising", icon: NAV_ICONS.notes },
           { to: "/saved", title: "Saved", description: "Bookmarks and collections", icon: NAV_ICONS.saved },
+          { to: "/search", title: "Search", description: "Find your own notes, stories, kits and applications", icon: NAV_ICONS.search },
           ...(user?.is_admin ? [{ to: "/admin/reports", title: "Triage", description: "Reports about questions", icon: NAV_ICONS.triage }] : []),
         ],
       },

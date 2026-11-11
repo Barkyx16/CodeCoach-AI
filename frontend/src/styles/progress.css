@@ -86,3 +86,17 @@ a.shortcut:hover .shortcut__label { color: var(--color-link); text-decoration: u
   .history-filters { grid-template-columns: minmax(0, 1fr); }
   .history-filters__search { grid-column: auto; }
 }
+
+/* Search your saved work (docs/WORKSPACE_SEARCH.md) */
+.workspace-search__form { margin-bottom: 16px; }
+.workspace-search__form .subtle { margin: 0; }
+.workspace-search__kinds { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.workspace-search__kinds legend { font-weight: var(--weight-semibold); font-size: 0.875rem; margin-bottom: 4px; padding: 0; }
+.workspace-search__list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.workspace-hit { display: grid; gap: 4px; padding: 12px 14px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface, transparent); color: var(--color-text); text-decoration: none; overflow-wrap: anywhere; }
+.workspace-hit:hover { border-color: var(--color-link); }
+.workspace-hit:hover .workspace-hit__title { color: var(--color-link); text-decoration: underline; }
+.workspace-hit__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.8125rem; }
+.workspace-hit__title { font-weight: var(--weight-semibold); }
+.workspace-hit__snippet { font-size: 0.875rem; color: var(--color-text-subtle); }
+.workspace-hit mark { background: var(--color-warning-soft, #fff3bf); color: inherit; border-radius: 2px; padding: 0 1px; }

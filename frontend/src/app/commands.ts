@@ -90,6 +90,8 @@ const SPECS: ((c: CommandContext) => Spec)[] = [
   () => ({ id: "story-new", label: "Write a new story", detail: "Opens an empty story; nothing is saved until you save it", to: "/stories/new", section: "Your library", aliases: ["new story", "star", "add story"], when: signedIn }),
   () => ({ id: "notes", label: "Notes", detail: "What you've noted while practising", to: "/notes", section: "Your library", aliases: ["notebook"], when: signedIn }),
   () => ({ id: "saved", label: "Saved", detail: "Bookmarks and collections", to: "/saved", section: "Your library", aliases: ["bookmarks", "collections", "queue"], when: signedIn }),
+  () => ({ id: "workspace-search", label: "Search your saved work", detail: "Your notes, stories, interview-day kits and applications, by the words in them", to: "/search", section: "Your library",
+    aliases: ["search", "find", "look up"], when: signedIn }),
   () => ({ id: "shares", label: "Shared answers", detail: "Links you've shared and the feedback they got", to: "/shares", section: "Your library", aliases: ["share", "reviewer", "feedback links"], when: signedIn }),
   (c) => ({ id: "triage", label: "Triage reports", detail: "Reports about questions (admin)", to: "/admin/reports", section: "Your library", aliases: ["admin", "reports"], when: () => c.signedIn && c.isAdmin }),
   // Account

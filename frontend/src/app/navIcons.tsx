@@ -22,5 +22,6 @@ export const NAV_ICONS = {
   stories: icon("M5 4h10l4 4v12H5zM14 4v5h5M9 13h6M9 17h4"),
   notes: icon("M4 20h4L19 9l-4-4L4 16v4ZM13 7l4 4"),
   saved: icon("M7 3h10v18l-5-4-5 4z"),
+  search: icon("M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14ZM20 20l-4-4"),
   triage: icon("M12 3 2 21h20L12 3ZM12 10v5M12 18h.01"),
 };
