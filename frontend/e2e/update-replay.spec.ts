@@ -15,6 +15,9 @@ async function newStory(page: Page): Promise<string> {
   await page.getByLabel("Situation").fill("Two nurses called in sick on a night shift.");
   await page.getByRole("button", { name: "Save story" }).click();
   await expect(page).toHaveURL(/\/stories\/[0-9a-f-]{36}$/);
+  // The address changes a moment before the saved story's editor replaces the new-story one;
+  // typing into the outgoing editor is lost with it. Only the saved story's says "Save changes".
+  await expect(page.getByRole("button", { name: "Save changes" })).toBeVisible();
   return page.url();
 }
 
