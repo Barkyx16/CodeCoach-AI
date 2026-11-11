@@ -122,6 +122,7 @@ it("every file that writes to this browser's storage directly is a known one (dr
     "features/plan/todayMinutes.ts", // minutes set for today
     "features/settings/EditorPreferencesProvider.tsx", // editor settings
     "features/voice/voicePrefs.ts", // voice settings
+    "features/whatsnew/whatsNew.ts", // the newest What's new release looked at: one number, per account, listed on "Your data"
     "lib/deviceCopies.ts",
     "lib/pendingIntents.ts",
     "lib/storage.ts",

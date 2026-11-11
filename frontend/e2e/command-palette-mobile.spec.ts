@@ -17,7 +17,7 @@ test("on a phone: tap Go to, tap a page; Close returns to the button; nothing sc
   expect(box.x).toBeGreaterThanOrEqual(0);
   expect(box.x + box.width).toBeLessThanOrEqual(width);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  await expect(dialog.getByRole("option")).toHaveText([/^Coding problems/, /^Interview questions/, /^Debugging lab/, /^Lessons/, /^Help/, /^Sign in/, /^Create account/]);
+  await expect(dialog.getByRole("option")).toHaveText([/^Coding problems/, /^Interview questions/, /^Debugging lab/, /^Lessons/, /^What's new/, /^Help/, /^Sign in/, /^Create account/]);
 
   await dialog.getByRole("button", { name: "Close" }).tap();
   await expect(dialog).toHaveCount(0);

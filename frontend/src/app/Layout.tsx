@@ -15,6 +15,7 @@ import { isPaletteShortcut } from "./commands";
 import { Icon } from "@/components/Icon";
 import { LeaveGuard } from "./LeaveGuard";
 import { Reminders } from "@/features/schedule/Reminders";
+import { WhatsNewLink } from "@/features/whatsnew/WhatsNewLink";
 import { TourFinishReconciler } from "@/features/onboarding/TourFinishReconciler";
 import { PlanReturn } from "@/features/plan/PlanReturn";
 import { MainNav, type NavGroup } from "./MainNav";
@@ -185,6 +186,7 @@ export function Layout() {
           onClick={(event) => { if ((event.target as HTMLElement).closest("a")) setOpenPath(null); }}>
         <MainNav groups={navGroups} />
         <div className="header__account">
+          <WhatsNewLink className={navClass} />
           <NavLink to="/help" className={navClass}>Help</NavLink>
           {isAuthenticated ? (
             <>

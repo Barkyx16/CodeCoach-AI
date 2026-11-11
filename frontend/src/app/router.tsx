@@ -70,6 +70,7 @@ const ReflectionPage = lazy(() => import("@/features/reflections/ReflectionPage"
 const ReflectionsPage = lazy(() => import("@/features/reflections/ReflectionsPage").then((m) => ({ default: m.ReflectionsPage })));
 const OfferCompareList = lazy(() => import("@/features/offerCompare/OfferCompareList").then((m) => ({ default: m.OfferCompareList })));
 const KitTemplatesPage = lazy(() => import("@/features/kit/KitTemplatesPage").then((m) => ({ default: m.KitTemplatesPage })));
+const WhatsNewPage = lazy(() => import("@/features/whatsnew/WhatsNewPage").then((m) => ({ default: m.WhatsNewPage })));
 const PacketPage = lazy(() => import("@/features/packet/PacketPage").then((m) => ({ default: m.PacketPage })));
 const OfferComparePage = lazy(() => import("@/features/offerCompare/OfferComparePage").then((m) => ({ default: m.OfferComparePage })));
 const OfferList = lazy(() => import("@/features/offers/OfferList").then((m) => ({ default: m.OfferList })));
@@ -148,6 +149,7 @@ export const routes: RouteObject[] = [
       { path: "/shared", element: <SharedPage /> },
       { path: "/offline", element: <OfflinePage /> },
       { path: "/help", element: <HelpPage /> },
+      { path: "/whats-new", element: <WhatsNewPage /> },
       // Public: the report works signed out, offline and while the server is down.
       { path: "/help/report", element: <SupportReportPage /> },
       // Public: the portfolio demo's entry (it says so when the server isn't a demo server).

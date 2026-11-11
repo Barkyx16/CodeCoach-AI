@@ -68,8 +68,8 @@ export function useProblemCounts(filters: { topic?: string; q?: string }) {
   });
 }
 
-export function useCareers() {
-  return useQuery({ queryKey: queryKeys.careers, queryFn: api.careers, staleTime: Infinity });
+export function useCareers(enabled = true) {
+  return useQuery({ queryKey: queryKeys.careers, queryFn: api.careers, staleTime: Infinity, enabled });
 }
 
 export function useQuestions(track: string, filters: QuestionFilters) {

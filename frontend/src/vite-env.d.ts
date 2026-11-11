@@ -23,3 +23,6 @@ declare module "monaco-editor/editor/browser/config/tabFocus" {
 
 /** The build's commit id (or "unknown"), set by vite.config.ts; shown in the support report. */
 declare const __CODECOACH_BUILD__: string;
+
+/** The build's release number from release.json (0 when missing), set by vite.config.ts; gates What's new. */
+declare const __CODECOACH_RELEASE__: number;

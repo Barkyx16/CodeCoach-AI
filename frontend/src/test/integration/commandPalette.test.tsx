@@ -52,7 +52,7 @@ describe("the command list", () => {
     expect(nurseCommands.map((c) => c.label)).not.toEqual(expect.arrayContaining(["Coding problems"]));
     expect(nurseCommands.find((c) => c.id === "whiteboard")).toBeUndefined();
     const visitor = commandsFor({ signedIn: false, coding: true, demoMode: false, isAdmin: false, executionEnabled: true });
-    expect(visitor.map((c) => c.id)).toEqual(["problems", "questions-coding-career", "debugging", "learn", "help", "sign-in", "register"]);
+    expect(visitor.map((c) => c.id)).toEqual(["problems", "questions-coding-career", "debugging", "learn", "whats-new", "help", "sign-in", "register"]);
     expect(nurseCommands.find((c) => c.id === "debugging")).toBeUndefined(); // a Java lab isn't a nursing exercise
   });
 
@@ -67,6 +67,7 @@ describe("the command list", () => {
     expect(searchCommands(commands, "story").map((c) => c.label)).toEqual(["Stories", "Write a new story"]);
     expect(searchCommands(commands, "stories").map((c) => c.label)).toEqual(["Stories", "Write a new story"]);
     expect(searchCommands(commands, "note")[0]?.label).toBe("Notes");
+    expect(searchCommands(commands, "notes").map((c) => c.label)).toEqual(["Notes"]); // nothing else is about notes
   });
 
   it("the shortcut is Ctrl+K or Cmd+K, not inside the code editor or while composing text", () => {
@@ -157,7 +158,7 @@ describe("the palette", () => {
   it("signed out: public pages only; in a coding career the library is called what it is, and a server that doesn't run code says so", async () => {
     const { user } = renderApp("/learn");
     await user.click(await screen.findByRole("button", { name: "Go to…" }));
-    await waitFor(() => expect(options()).toEqual(["Coding problems", "Interview questions", "Debugging lab", "Lessons", "Help", "Sign in", "Create account"]));
+    await waitFor(() => expect(options()).toEqual(["Coding problems", "Interview questions", "Debugging lab", "Lessons", "What's new", "Help", "Sign in", "Create account"]));
     expect(within(palette()).getByText("Code isn't run on this server: attempts are saved, not judged.")).toBeInTheDocument();
   });
 

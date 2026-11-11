@@ -97,8 +97,22 @@ function buildId(): string {
   }
 }
 
+/**
+ * Which release this build is, for What's new (docs/WHATS_NEW.md): `release` in release.json, a
+ * whole number from 1. Anything else (missing, malformed) is 0, and What's new then shows nothing:
+ * an entry is shown only when its release is at most this build's.
+ */
+function releaseNumber(): number {
+  try {
+    const value = (JSON.parse(readFileSync(fileURLToPath(new URL("./release.json", import.meta.url)), "utf8")) as { release?: unknown }).release;
+    return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 9999 ? value : 0;
+  } catch {
+    return 0;
+  }
+}
+
 export default defineConfig({
-  define: { __CODECOACH_BUILD__: JSON.stringify(buildId()) },
+  define: { __CODECOACH_BUILD__: JSON.stringify(buildId()), __CODECOACH_RELEASE__: JSON.stringify(releaseNumber()) },
   plugins: [react(), offlineShell(), noSecretsInBundle()],
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },

@@ -103,6 +103,8 @@ const SPECS: ((c: CommandContext) => Spec)[] = [
   () => ({ id: "your-data", label: "Your data", detail: "What's stored, where, and clearing this device", to: "/settings/data", section: "Account",
     aliases: ["privacy", "data", "storage", "clear drafts", "device data", "what's stored"], when: signedIn }),
   () => ({ id: "restore", label: "Restore from a backup", detail: "Preview a backup file first; nothing is added until you confirm", to: "/settings/restore", section: "Account", aliases: ["import", "backup"], when: signedIn }),
+  () => ({ id: "whats-new", label: "What's new", detail: "Changes in this version you can use now", to: "/whats-new", section: "Account",
+    aliases: ["new", "updates", "changes", "release", "changelog"] }), // not "release notes": "notes" should find Notes
   () => ({ id: "help", label: "Help", detail: "How things work, and keyboard shortcuts", to: "/help", section: "Account", aliases: ["guide", "faq", "shortcuts"] }),
   (c) => ({ id: "sign-in", label: "Sign in", detail: "To an account you already have", to: "/login", section: "Account", aliases: ["log in", "login"], when: () => !c.signedIn && !c.demoMode }),
   (c) => ({ id: "register", label: "Create account", detail: "Free; pick your job to get its questions", to: "/register", section: "Account", aliases: ["sign up", "register"], when: () => !c.signedIn,

@@ -65,6 +65,8 @@
 .nav__link--active { color: var(--color-link); background: var(--color-primary-soft); }
 .header__account { margin-left: auto; display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
 .header__user { color: var(--color-text-muted); font-size: var(--text-sm); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 8px 0; }
+/* The links and Sign out keep their size and stay on one line; the account name is what gives way (with an ellipsis). */
+.header__account > .nav__link, .header__account > .btn { flex-shrink: 0; white-space: nowrap; }
 .menu-toggle { display: none; margin-left: auto; }
 @media (max-width: 1100px) {
   .header { padding: 0 var(--space-4); gap: var(--space-3); }
