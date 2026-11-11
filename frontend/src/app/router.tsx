@@ -70,6 +70,7 @@ const ReflectionPage = lazy(() => import("@/features/reflections/ReflectionPage"
 const ReflectionsPage = lazy(() => import("@/features/reflections/ReflectionsPage").then((m) => ({ default: m.ReflectionsPage })));
 const OfferCompareList = lazy(() => import("@/features/offerCompare/OfferCompareList").then((m) => ({ default: m.OfferCompareList })));
 const KitTemplatesPage = lazy(() => import("@/features/kit/KitTemplatesPage").then((m) => ({ default: m.KitTemplatesPage })));
+const PacketPage = lazy(() => import("@/features/packet/PacketPage").then((m) => ({ default: m.PacketPage })));
 const OfferComparePage = lazy(() => import("@/features/offerCompare/OfferComparePage").then((m) => ({ default: m.OfferComparePage })));
 const OfferList = lazy(() => import("@/features/offers/OfferList").then((m) => ({ default: m.OfferList })));
 const OfferStartPage = lazy(() => import("@/features/offers/OfferStartPage").then((m) => ({ default: m.OfferStartPage })));
@@ -170,6 +171,7 @@ export const routes: RouteObject[] = [
       { path: "/work-samples/:briefId", element: <RequireAuth><WorkSamplePage /></RequireAuth> },
       { path: "/offers/compare", element: <RequireAuth><OfferCompareList /></RequireAuth> },
       { path: "/kit-templates", element: <RequireAuth><KitTemplatesPage /></RequireAuth> },
+      { path: "/packet", element: <RequireAuth><PacketPage /></RequireAuth> },
       { path: "/offers/compare/:comparisonId", element: <RequireAuth><OfferComparePage /></RequireAuth> },
       { path: "/offers", element: <RequireAuth><OfferList /></RequireAuth> },
       { path: "/offers/rehearsals/:rehearsalId", element: <RequireAuth><RehearsalPage /></RequireAuth> },

@@ -14743,6 +14743,72 @@
         }
       }
     },
+    "/api/v1/me/packet/preview": {
+      "post": {
+        "tags": [
+          "packet"
+        ],
+        "summary": "Assemble the questions, notes and stories you chose, in your order, for a preview (nothing is stored, sent or shared; the file is made on your device from this preview)",
+        "operationId": "preview_packet_api_v1_me_packet_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PacketIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PacketOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/me/data-summary": {
       "get": {
         "tags": [
@@ -31757,6 +31823,242 @@
           "item_ids"
         ],
         "title": "OrderIn"
+      },
+      "PacketIn": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "default": "My practice packet"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PacketItemIn"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Items",
+            "description": "In the order they'll appear. Never empty: nothing is chosen for you"
+          },
+          "keep_contact_details": {
+            "type": "boolean",
+            "title": "Keep Contact Details",
+            "description": "Keep email addresses and phone numbers in your own text (removed by default)",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "PacketIn"
+      },
+      "PacketItemIn": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "question",
+              "note",
+              "story"
+            ],
+            "title": "Type"
+          },
+          "id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Id",
+            "description": "A question as track/question_id; a note or story id"
+          },
+          "parts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "title": "Parts",
+            "description": "Which parts to include (empty: the usual ones). question: question, your_answer, feedback. note: note, reflection, excerpt. story: situation, task, action, result, reflection, short_version, long_version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "id"
+        ],
+        "title": "PacketItemIn"
+      },
+      "PacketItemOut": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "question",
+              "note",
+              "story"
+            ],
+            "title": "Type"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/PacketSection"
+            },
+            "type": "array",
+            "title": "Sections"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes",
+            "description": "Parts you chose that aren't there, and why"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "id",
+          "title",
+          "sections"
+        ],
+        "title": "PacketItemOut"
+      },
+      "PacketOut": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "assembled_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Assembled At"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PacketItemOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "unavailable": {
+            "items": {
+              "$ref": "#/components/schemas/PacketUnavailable"
+            },
+            "type": "array",
+            "title": "Unavailable",
+            "description": "Chosen but not included: deleted, retired, repeated, or not found (another account's id is just not found)"
+          },
+          "redacted": {
+            "type": "integer",
+            "title": "Redacted",
+            "description": "Email addresses and phone numbers removed from your own text"
+          },
+          "shortened": {
+            "type": "boolean",
+            "title": "Shortened",
+            "description": "Something was cut short to keep the packet bounded"
+          },
+          "digest": {
+            "type": "string",
+            "title": "Digest",
+            "description": "A fingerprint of exactly this content, shown with the preview and in the file"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "assembled_at",
+          "items",
+          "unavailable",
+          "redacted",
+          "shortened",
+          "digest"
+        ],
+        "title": "PacketOut"
+      },
+      "PacketSection": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "question",
+              "your_answer",
+              "automated_feedback",
+              "your_note",
+              "your_story"
+            ],
+            "title": "Kind",
+            "description": "question: authored material from the library; your_*: what you wrote; automated_feedback: what the coach said about an answer (not a grade from a person)"
+          },
+          "heading": {
+            "type": "string",
+            "title": "Heading"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "provenance": {
+            "type": "string",
+            "title": "Provenance",
+            "description": "Where it comes from, its version and date, as recorded"
+          },
+          "shortened": {
+            "type": "boolean",
+            "title": "Shortened",
+            "description": "Cut short to keep the packet bounded (it says so in the text)",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "heading",
+          "text",
+          "provenance"
+        ],
+        "title": "PacketSection"
+      },
+      "PacketUnavailable": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "question",
+              "note",
+              "story"
+            ],
+            "title": "Type"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "id",
+          "reason"
+        ],
+        "title": "PacketUnavailable"
       },
       "Page_AIHistoryItem_": {
         "properties": {

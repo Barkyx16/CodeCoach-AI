@@ -34,6 +34,7 @@ from app.api.routes import (
     offer_comparisons,
     offers,
     onboarding,
+    packet,
     plan,
     problems,
     recent_work,
@@ -284,6 +285,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.search_limiter = limiter(
         120, 60
     )  # per account: workspace searches a minute (typing is debounced)
+    app.state.packet_limiter = limiter(30, 60)  # per account: packet previews a minute (docs/PACKET.md)
     app.state.telemetry_limiter = SlidingWindowLimiter(120, 600.0)  # per account: 120 batches / 10 min
     app.state.metrics = Metrics() if settings.metrics_enabled else None
     app.state.traces = (
@@ -352,6 +354,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         offers.router,
         kit_templates.router,
         offer_comparisons.router,
+        packet.router,
         data_summary.router,
         schedule.router,
         submissions.router,

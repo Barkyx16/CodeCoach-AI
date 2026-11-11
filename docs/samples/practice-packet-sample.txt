@@ -1,0 +1,55 @@
+Ward nurse interview: week 1
+Practice packet · assembled 2026-11-11 08:01 UTC · fingerprint bc60eb18d22b63f7
+Made on your device from the preview you saw. It isn't stored in your account, sent or shared.
+
+1. What good patient assessment looks like (Question)
+
+## The question [From the question library]
+(Authored question, Registered Nurse, version 1)
+What does good patient assessment look like for a registered nurse?
+
+Tips:
+- Start with a one-sentence answer, then back it up.
+- Use the job's real terms and tools.
+- A short example makes it memorable.
+
+## Your latest answer [Yours]
+(Your answer, 2026-11-11, to version 1 of the question)
+On a busy medical ward I owned the assessment for five patients. I checked vital signs every hour, escalated a falling blood pressure to the charge nurse early and documented each step, and as a result the patient was stable within an hour.
+
+## Automated feedback on that answer [Automated feedback]
+(Automated feedback from the built-in (offline) coach, rubric v10, 2026-11-11. Not a grade from a person, and not a verification of anything. This career's feedback has been checked against example answers written for it, including once on a separate set kept back for that purpose; the examples were labelled by an AI and not reviewed by a person, so treat the feedback as a guide to structure.)
+Score: 52/100 (Developing)
+You covered 2 of 4 key points. Start with: explains why it matters.
+- Covered: Talks about patient assessment specifically. Name the real parts of the work (patient assessment). Specific job language shows you know the role.
+- To add: Explains why it matters. Add a sentence on why this matters: who is affected and what goes wrong without it.
+- To add: Backs it up with a concrete example. Give one short, real example. It's what makes an answer believable.
+- Covered: Lays out clear steps or habits. Give an order: first …, then …, finally …. Structure shows you'd do it reliably.
+
+2. SBAR handover (Your note)
+
+## Note [Yours]
+(Your note, revision 1, saved 2026-11-11)
+Situation, Background, Assessment, Recommendation.
+Say the recommendation out loud: "I think the patient needs review within 30 minutes."
+For questions, ring the ward on [phone number removed].
+
+3. Two call lights at once (Your story)
+
+## Situation [Yours]
+(Your story, revision 1, saved 2026-11-11)
+On a night shift two patients rang at the same moment.
+
+## Task [Yours]
+(Your story, revision 1, saved 2026-11-11)
+Decide who to see first.
+
+## Action [Yours]
+(Your story, revision 1, saved 2026-11-11)
+I checked who was at higher risk, went to the patient with chest pain and asked a colleague to answer the other light.
+
+## Result [Yours]
+(Your story, revision 1, saved 2026-11-11)
+Both were seen within five minutes and the chest pain was escalated promptly.
+
+Email addresses and phone numbers removed from your own text: 1.

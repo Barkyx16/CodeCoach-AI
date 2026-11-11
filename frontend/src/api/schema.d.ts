@@ -2836,6 +2836,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/packet/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assemble the questions, notes and stories you chose, in your order, for a preview (nothing is stored, sent or shared; the file is made on your device from this preview) */
+        post: operations["preview_packet_api_v1_me_packet_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/data-summary": {
         parameters: {
             query?: never;
@@ -8367,6 +8384,130 @@ export interface components {
              * @description Every item id of the collection, in the new order
              */
             item_ids: string[];
+        };
+        /** PacketIn */
+        PacketIn: {
+            /**
+             * Title
+             * @default My practice packet
+             */
+            title: string;
+            /**
+             * Items
+             * @description In the order they'll appear. Never empty: nothing is chosen for you
+             */
+            items: components["schemas"]["PacketItemIn"][];
+            /**
+             * Keep Contact Details
+             * @description Keep email addresses and phone numbers in your own text (removed by default)
+             * @default false
+             */
+            keep_contact_details: boolean;
+        };
+        /** PacketItemIn */
+        PacketItemIn: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "question" | "note" | "story";
+            /**
+             * Id
+             * @description A question as track/question_id; a note or story id
+             */
+            id: string;
+            /**
+             * Parts
+             * @description Which parts to include (empty: the usual ones). question: question, your_answer, feedback. note: note, reflection, excerpt. story: situation, task, action, result, reflection, short_version, long_version
+             */
+            parts?: string[];
+        };
+        /** PacketItemOut */
+        PacketItemOut: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "question" | "note" | "story";
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Sections */
+            sections: components["schemas"]["PacketSection"][];
+            /**
+             * Notes
+             * @description Parts you chose that aren't there, and why
+             */
+            notes?: string[];
+        };
+        /** PacketOut */
+        PacketOut: {
+            /** Title */
+            title: string;
+            /**
+             * Assembled At
+             * Format: date-time
+             */
+            assembled_at: string;
+            /** Items */
+            items: components["schemas"]["PacketItemOut"][];
+            /**
+             * Unavailable
+             * @description Chosen but not included: deleted, retired, repeated, or not found (another account's id is just not found)
+             */
+            unavailable: components["schemas"]["PacketUnavailable"][];
+            /**
+             * Redacted
+             * @description Email addresses and phone numbers removed from your own text
+             */
+            redacted: number;
+            /**
+             * Shortened
+             * @description Something was cut short to keep the packet bounded
+             */
+            shortened: boolean;
+            /**
+             * Digest
+             * @description A fingerprint of exactly this content, shown with the preview and in the file
+             */
+            digest: string;
+        };
+        /** PacketSection */
+        PacketSection: {
+            /**
+             * Kind
+             * @description question: authored material from the library; your_*: what you wrote; automated_feedback: what the coach said about an answer (not a grade from a person)
+             * @enum {string}
+             */
+            kind: "question" | "your_answer" | "automated_feedback" | "your_note" | "your_story";
+            /** Heading */
+            heading: string;
+            /** Text */
+            text: string;
+            /**
+             * Provenance
+             * @description Where it comes from, its version and date, as recorded
+             */
+            provenance: string;
+            /**
+             * Shortened
+             * @description Cut short to keep the packet bounded (it says so in the text)
+             * @default false
+             */
+            shortened: boolean;
+        };
+        /** PacketUnavailable */
+        PacketUnavailable: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "question" | "note" | "story";
+            /** Id */
+            id: string;
+            /** Reason */
+            reason: string;
         };
         /** Page[AIHistoryItem] */
         Page_AIHistoryItem_: {
@@ -23294,6 +23435,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_packet_api_v1_me_packet_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PacketIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PacketOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

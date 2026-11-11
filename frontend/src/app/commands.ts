@@ -88,6 +88,8 @@ const SPECS: ((c: CommandContext) => Spec)[] = [
     aliases: ["template", "interview kit", "checklist"], when: signedIn }),
   () => ({ id: "reflections", label: "Interview reflections", detail: "What happened in real interviews, and what's next", to: "/reflections", section: "Job search", aliases: ["debrief", "after interview"], when: signedIn }),
   // Your library
+  () => ({ id: "packet", label: "Practice packet", detail: "Questions, notes and stories you choose, previewed, to save or print", to: "/packet", section: "Your library",
+    aliases: ["print", "pdf", "download", "study sheet", "revision"], when: signedIn }),
   () => ({ id: "stories", label: "Stories", detail: "Your examples, ready for any question", to: "/stories", section: "Your library", aliases: ["star", "examples"], when: signedIn }),
   () => ({ id: "story-new", label: "Write a new story", detail: "Opens an empty story; nothing is saved until you save it", to: "/stories/new", section: "Your library", aliases: ["new story", "star", "add story"], when: signedIn }),
   () => ({ id: "notes", label: "Notes", detail: "What you've noted while practising", to: "/notes", section: "Your library", aliases: ["notebook"], when: signedIn }),
