@@ -117,6 +117,7 @@ export const handlers = [
   http.put(`${API}/api/v1/me/goals`, async ({ request }) => HttpResponse.json({ ...nurseGoals, ...((await request.json()) as object), saved: true })),
   http.get(`${API}/api/v1/me/resume`, () => HttpResponse.json({ interview: null, unfinished_problem: null, last_question: null })),
   http.get(`${API}/api/v1/me/recent-work`, () => HttpResponse.json({ items: [], unavailable: [] })),
+  http.get(`${API}/api/v1/me/kit-templates`, () => HttpResponse.json([])),
   http.post(`${API}/api/v1/me/search`, () => HttpResponse.json({ items: [], counts: {}, capped: [], unavailable: [], words: [] })),
   http.get(`${API}/api/v1/me/progress`, () => HttpResponse.json(progress)),
   http.get(`${API}/api/v1/me/recommendations`, () => HttpResponse.json([

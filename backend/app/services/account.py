@@ -37,6 +37,7 @@ from app.services.applications import Applications
 from app.services.code_reviews import CodeReviews
 from app.services.comparisons import Comparisons
 from app.services.drills import Drills
+from app.services.kit_templates import KitTemplates
 from app.services.kits import Kits
 from app.services.offer_comparisons import OfferComparisons
 from app.services.offers import Offers
@@ -445,6 +446,8 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
         "restores": Restore(db, user).export(),
         # Interview-day kits: logistics, checklists, questions and chosen stories.
         "interview_kits": Kits(db, user).export(with_ids=with_ids),
+        # Your kit templates: their names, checklist items and questions (docs/TEMPLATES.md).
+        "kit_templates": KitTemplates(db, user).export(),
         # Applications you recorded, with their interview events and stage history.
         "applications": Applications(db, user).export(with_ids=with_ids),
         # Your choices about the first-session introduction (no answer text is part of it).

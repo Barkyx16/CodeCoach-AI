@@ -1458,6 +1458,32 @@ class OfferComparison(Base):
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
 
+class KitTemplate(Base):
+    """A personal template for interview kits (Volume 11, prompt 7; docs/TEMPLATES.md): checklist
+    items and questions to ask, chosen from a kit and kept as a snapshot. Only the text and the
+    question's group are kept: never whether an item was done, the meeting link, location,
+    interviewers, notes, examples, the outcome or anything about the interview it came from.
+    Applying one copies its items into another kit's form as new, unticked items; later changes to
+    the template change no kit, and deleting it leaves those kits alone."""
+
+    __tablename__ = "kit_templates"
+    __table_args__ = (
+        # A create sent twice (a lost reply, then a retry) makes one template, not two.
+        UniqueConstraint("user_id", "client_request_id", name="uq_kit_template_client_request"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(80))
+    checklist: Mapped[list] = mapped_column(JSONType, default=list)  # [{text}]
+    questions: Mapped[list] = mapped_column(JSONType, default=list)  # [{text, group}]
+    revision: Mapped[int] = mapped_column(Integer, default=1)
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    request_fingerprint: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
 class WorkSampleDraft(Base):
     """A work sample in progress for one brief (docs/WORK_SAMPLES.md): the text of each section,
     saved against a revision like the other long-form editors."""

@@ -354,6 +354,13 @@ The cases are code (`backend/app/offers`, docs/OFFER_REHEARSAL.md), not rows.
   display currency), `revision` (checked on save, with update receipts), `created_at`, `updated_at`.
   Figures are derived on read (docs/OFFER_COMPARISON.md), never stored.
 
+### Kit templates
+- `kit_templates`: personal templates of interview-kit items (cascade with the account): `name`,
+  `checklist` (JSON: `[{text}]`), `questions` (JSON: `[{text, group}]`), `revision` (checked on edit,
+  with update receipts), `client_request_id` and `request_fingerprint` (a create sent again makes
+  one; unique per account), `created_at`, `updated_at`. Never ticks, links, notes or which interview
+  it came from (docs/TEMPLATES.md).
+
 ### Restores
 - `import_batches`: one per restore (cascade with the account): `file_sha256` (to recognise the
   same file; the file itself isn't stored), `export_version`, `categories`, `status`
@@ -468,6 +475,7 @@ The cases are code (`backend/app/offers`, docs/OFFER_REHEARSAL.md), not rows.
 | `f2c8a6d4b913` offer rehearsals | Adds `offer_rehearsals`, cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
 | `a5d3e9c1b7f2` offer comparisons | Adds `offer_comparisons`, cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
 | `b8e4c2a7d915` offer comparison archived | Adds `offer_comparisons.archived` (not null, server default false): the archive flag the other kinds already have (docs/ARCHIVE.md). Existing rows stay active; the table's row-level security covers it; downgrade drops it |
+| `c3f7a9d2e614` kit templates | Adds `kit_templates`, cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

@@ -57,6 +57,10 @@ import type {
   InterviewSummary,
   KeyPoints,
   Kit,
+  KitTemplate,
+  KitTemplateCreate,
+  KitTemplateSummary,
+  KitTemplateUpdate,
   KitUpdate,
   LearnCatalog,
   LearnUnit,
@@ -664,6 +668,13 @@ export const api = {
 
   // interview-day kits
   kit: (appId: string, eventId: string) => apiRequest<Kit>(`/api/v1/me/applications/${encodeURIComponent(appId)}/events/${encodeURIComponent(eventId)}/kit`),
+  // your kit templates (docs/TEMPLATES.md)
+  kitTemplates: () => apiRequest<KitTemplateSummary[]>("/api/v1/me/kit-templates"),
+  kitTemplate: (id: string) => apiRequest<KitTemplate>(`/api/v1/me/kit-templates/${encodeURIComponent(id)}`),
+  createKitTemplate: (body: KitTemplateCreate) => apiRequest<KitTemplate>("/api/v1/me/kit-templates", { method: "POST", body }),
+  updateKitTemplate: (id: string, body: KitTemplateUpdate) =>
+    apiRequest<KitTemplate>(`/api/v1/me/kit-templates/${encodeURIComponent(id)}`, { method: "PATCH", body }),
+  deleteKitTemplate: (id: string) => apiRequest<void>(`/api/v1/me/kit-templates/${encodeURIComponent(id)}`, { method: "DELETE" }),
   saveKit: (appId: string, eventId: string, body: KitUpdate) =>
     apiRequest<Kit>(`/api/v1/me/applications/${encodeURIComponent(appId)}/events/${encodeURIComponent(eventId)}/kit`, { method: "PUT", body }),
 

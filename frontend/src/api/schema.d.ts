@@ -2711,6 +2711,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/kit-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your kit templates */
+        get: operations["mine_api_v1_me_kit_templates_get"];
+        put?: never;
+        /** Save a template (only the text you send: never done states, links, notes or outcomes) */
+        post: operations["create_api_v1_me_kit_templates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/kit-templates/{template_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One template */
+        get: operations["get_one_api_v1_me_kit_templates__template_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete (kits made from it keep their items) */
+        delete: operations["delete_api_v1_me_kit_templates__template_id__delete"];
+        options?: never;
+        head?: never;
+        /** Rename it or change its items (revision-checked; kits made from it don't change) */
+        patch: operations["update_api_v1_me_kit_templates__template_id__patch"];
+        trace?: never;
+    };
     "/api/v1/me/offer-comparisons": {
         parameters: {
             query?: never;
@@ -7404,6 +7441,83 @@ export interface components {
              */
             chosen_revision?: number | null;
         };
+        /** KitTemplateCreate */
+        KitTemplateCreate: {
+            /** Checklist */
+            checklist?: components["schemas"]["TemplateChecklistItem"][];
+            /** Questions */
+            questions?: components["schemas"]["TemplateQuestion"][];
+            /** Name */
+            name: string;
+            /**
+             * Client Request Id
+             * @description One key per new template: sending the same create again (its reply was lost) returns the template it made
+             */
+            client_request_id?: string | null;
+        };
+        /** KitTemplateOut */
+        KitTemplateOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Checklist */
+            checklist: components["schemas"]["TemplateChecklistItem"][];
+            /** Questions */
+            questions: components["schemas"]["TemplateQuestion"][];
+            /** Revision */
+            revision: number;
+            /** @description Only on a save recovered by its key: see SaveReplay */
+            save_replay?: components["schemas"]["SaveReplay"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** KitTemplateSummary */
+        KitTemplateSummary: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Checklist Count */
+            checklist_count: number;
+            /** Questions Count */
+            questions_count: number;
+            /** Revision */
+            revision: number;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * KitTemplateUpdate
+         * @description Rename, or replace the items. Saved against the revision you loaded (409 stale_revision with
+         *     the saved template in details.current if it changed since).
+         */
+        KitTemplateUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Checklist */
+            checklist?: components["schemas"]["TemplateChecklistItem"][] | null;
+            /** Questions */
+            questions?: components["schemas"]["TemplateQuestion"][] | null;
+            /** Expected Revision */
+            expected_revision: number;
+            /**
+             * Client Request Id
+             * @description One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before.
+             */
+            client_request_id?: string | null;
+        };
         /**
          * KitUpdate
          * @description Replace whichever parts you send. Lists are saved in the order given (that's the priority).
@@ -11776,6 +11890,22 @@ export interface components {
             due_is_hard: boolean;
             /** Consequence */
             consequence?: string | null;
+        };
+        /** TemplateChecklistItem */
+        TemplateChecklistItem: {
+            /** Text */
+            text: string;
+        };
+        /** TemplateQuestion */
+        TemplateQuestion: {
+            /** Text */
+            text: string;
+            /**
+             * Group
+             * @default other
+             * @enum {string}
+             */
+            group: "role" | "team" | "training" | "workflow" | "next_steps" | "other";
         };
         /** TestCaseIn */
         TestCaseIn: {
@@ -22509,6 +22639,262 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mine_api_v1_me_kit_templates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KitTemplateSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_api_v1_me_kit_templates_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KitTemplateCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KitTemplateOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_one_api_v1_me_kit_templates__template_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KitTemplateOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_api_v1_me_kit_templates__template_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_api_v1_me_kit_templates__template_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KitTemplateUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KitTemplateOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

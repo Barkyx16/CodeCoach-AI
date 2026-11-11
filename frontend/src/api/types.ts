@@ -269,6 +269,10 @@ export type Schedulable = S["SchedulableOut"];
 export type Kit = S["KitOut"];
 export type KitQuestion = S["AskQuestion"];
 export type KitChecklistItem = S["ChecklistItem"];
+export type KitTemplate = S["KitTemplateOut"];
+export type KitTemplateSummary = S["KitTemplateSummary"];
+export type KitTemplateCreate = S["KitTemplateCreate"];
+export type KitTemplateUpdate = S["KitTemplateUpdate"];
 export type KitUpdate = S["KitUpdate"];
 
 export type WhiteboardDiagram = S["WhiteboardDiagram"];

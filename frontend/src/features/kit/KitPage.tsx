@@ -19,6 +19,7 @@ import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 import { DEFAULT_PRINT, FORMAT_LABEL, GROUP_LABEL, PRINT_LABEL, type KitFormat, type PrintChoice, type QuestionGroup } from "./labels";
+import { KitTemplatesCard } from "./KitTemplatesCard";
 import { PrintPack } from "./PrintPack";
 import { recoveredSave, savedVersion } from "@/lib/conflict";
 import { externalHref } from "@/lib/links";
@@ -334,6 +335,7 @@ function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
         </div>
 
         <aside className="stack">
+          <KitTemplatesCard kit={kit} fromHere={fromHere} onApply={(next) => { setKit((x) => ({ ...x, ...next })); setNotice(""); }} />
           <Card className="stack-sm">
             <h2 className="section-title">Print or save as PDF</h2>
             <p className="subtle">Choose what goes in. The preview below is exactly what prints; use your browser's “Save as PDF” in the print dialog for a file. Nothing is sent to the employer.</p>

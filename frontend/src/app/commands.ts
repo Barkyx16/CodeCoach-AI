@@ -84,6 +84,8 @@ const SPECS: ((c: CommandContext) => Spec)[] = [
   () => ({ id: "targets", label: "Target roles", detail: "Roles you're after and what each one asks for", to: "/targets", section: "Job search", aliases: ["roles", "jobs", "postings"], when: signedIn }),
   () => ({ id: "applications", label: "Applications", detail: "Track where you've applied", to: "/applications", section: "Job search", aliases: ["applied", "tracker", "companies"], when: signedIn }),
   () => ({ id: "schedule", label: "Schedule", detail: "Interviews and practice on your calendar", to: "/schedule", section: "Job search", aliases: ["calendar", "agenda", "upcoming"], when: signedIn }),
+  () => ({ id: "kit-templates", label: "Kit templates", detail: "Checklists and questions to reuse for another interview", to: "/kit-templates", section: "Job search",
+    aliases: ["template", "interview kit", "checklist"], when: signedIn }),
   () => ({ id: "reflections", label: "Interview reflections", detail: "What happened in real interviews, and what's next", to: "/reflections", section: "Job search", aliases: ["debrief", "after interview"], when: signedIn }),
   // Your library
   () => ({ id: "stories", label: "Stories", detail: "Your examples, ready for any question", to: "/stories", section: "Your library", aliases: ["star", "examples"], when: signedIn }),

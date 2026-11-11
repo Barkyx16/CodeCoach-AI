@@ -74,8 +74,8 @@ CATEGORIES: tuple[Category, ...] = (
     Category(
         "interview_days",
         "work",
-        "Interview-day kits and reflections on real interviews",
-        ("interview_kits", "interview_reflections"),
+        "Interview-day kits, your kit templates, and reflections on real interviews",
+        ("interview_kits", "interview_reflections", "kit_templates"),
         includes=("reflection_actions",),
     ),
     Category(

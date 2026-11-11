@@ -766,6 +766,14 @@ export function useSchedulable() {
   return useQuery({ queryKey: ["me", "schedule", "schedulable"], queryFn: api.schedulable, staleTime: 0 });
 }
 
+export function useKitTemplates(enabled = true) {
+  return useQuery({ queryKey: ["me", "kit-templates"], queryFn: api.kitTemplates, enabled, staleTime: 0 });
+}
+
+export function useKitTemplate(id: string | undefined) {
+  return useQuery({ queryKey: ["me", "kit-templates", id], queryFn: () => api.kitTemplate(id!), enabled: !!id, staleTime: 0 });
+}
+
 export function useKit(appId: string, eventId: string) {
   return useQuery({ queryKey: ["me", "kit", appId, eventId], queryFn: () => api.kit(appId, eventId), staleTime: 0 });
 }
