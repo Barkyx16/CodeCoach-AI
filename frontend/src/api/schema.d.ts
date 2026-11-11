@@ -1549,6 +1549,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/stories/{story_id}/used-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your applications, interview kits and reflections that use this story (titles and dates only) */
+        get: operations["story_used_in_api_v1_me_stories__story_id__used_in_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/stories/{story_id}/revisions": {
         parameters: {
             query?: never;
@@ -1683,6 +1700,24 @@ export interface paths {
         /** Unarchive */
         post: operations["unarchive_api_v1_me_applications__app_id__unarchive_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/stories/{story_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Link one of your stories (linking a linked one changes nothing) */
+        put: operations["link_story_api_v1_me_applications__app_id__stories__story_id__put"];
+        post?: never;
+        /** Unlink a story (the story itself stays; unlinking one that isn't linked changes nothing) */
+        delete: operations["unlink_story_api_v1_me_applications__app_id__stories__story_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -4423,6 +4458,12 @@ export interface components {
             id: string;
             /** Title */
             title: string;
+            /**
+             * Archived
+             * @description Archived in the story bank; still linked here
+             * @default false
+             */
+            archived: boolean;
         };
         /** ApplicationSummary */
         ApplicationSummary: {
@@ -11394,6 +11435,86 @@ export interface components {
              */
             clear_target: boolean;
         };
+        /** StoryUseApplication */
+        StoryUseApplication: {
+            /** Id */
+            id: string;
+            /** Role Title */
+            role_title: string;
+            /** Employer */
+            employer: string;
+            /**
+             * Stage
+             * @enum {string}
+             */
+            stage: "saved" | "applied" | "interviewing" | "offer" | "closed" | "withdrawn";
+            /** Archived */
+            archived: boolean;
+        };
+        /** StoryUseKit */
+        StoryUseKit: {
+            /** Application Id */
+            application_id: string;
+            /** Event Id */
+            event_id: string;
+            /** Event Title */
+            event_title: string;
+            /** Event On */
+            event_on: string | null;
+            /** Role Title */
+            role_title: string;
+            /** Employer */
+            employer: string;
+            /** Application Archived */
+            application_archived: boolean;
+        };
+        /** StoryUseReflection */
+        StoryUseReflection: {
+            /** Application Id */
+            application_id: string;
+            /** Event Id */
+            event_id: string;
+            /**
+             * Event Title
+             * @description As recorded in the reflection
+             */
+            event_title: string;
+            /**
+             * Event On
+             * @description As recorded in the reflection
+             */
+            event_on: string | null;
+            /**
+             * Role Title
+             * @description As recorded in the reflection
+             */
+            role_title: string;
+            /**
+             * Employer
+             * @description As recorded in the reflection
+             */
+            employer: string;
+        };
+        /**
+         * StoryUsedIn
+         * @description Each list holds at most `limit` entries, newest first; the totals count them all.
+         */
+        StoryUsedIn: {
+            /** Applications */
+            applications: components["schemas"]["StoryUseApplication"][];
+            /** Applications Total */
+            applications_total: number;
+            /** Kits */
+            kits: components["schemas"]["StoryUseKit"][];
+            /** Kits Total */
+            kits_total: number;
+            /** Reflections */
+            reflections: components["schemas"]["StoryUseReflection"][];
+            /** Reflections Total */
+            reflections_total: number;
+            /** Limit */
+            limit: number;
+        };
         /** StrategyOut */
         StrategyOut: {
             /** Label */
@@ -18147,6 +18268,55 @@ export interface operations {
             };
         };
     };
+    story_used_in_api_v1_me_stories__story_id__used_in_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoryUsedIn"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     story_revisions_api_v1_me_stories__story_id__revisions_get: {
         parameters: {
             query?: never;
@@ -18696,6 +18866,115 @@ export interface operations {
             header?: never;
             path: {
                 app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    link_story_api_v1_me_applications__app_id__stories__story_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unlink_story_api_v1_me_applications__app_id__stories__story_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                story_id: string;
             };
             cookie?: never;
         };

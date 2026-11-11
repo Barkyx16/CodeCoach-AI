@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from datetime import UTC, datetime, time, timedelta
 
-from sqlalchemy import select, update
+from sqlalchemy import JSON, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
@@ -24,6 +24,7 @@ from app.models import (
     User,
 )
 from app.schemas.applications import (
+    MAX_LINKED_STORIES,
     ApplicationCreate,
     ApplicationEventIn,
     ApplicationEventOut,
@@ -41,6 +42,7 @@ from app.services.timeutil import local_to_utc, parse_hhmm, zone
 
 MAX_APPLICATIONS = 300
 MAX_EVENTS = 30
+LINK_ATTEMPTS = 10  # a story link's conditional write, retried when another change got there first
 _CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
 
@@ -145,7 +147,7 @@ class Applications:
         for sid in a.story_ids or []:
             s = self.db.get(ExperienceEntry, sid)
             if s is not None and s.user_id == self.user.id:  # a deleted story simply drops out
-                stories.append(ApplicationStoryLink(id=s.id, title=s.title))
+                stories.append(ApplicationStoryLink(id=s.id, title=s.title, archived=s.archived))
         return ApplicationOut(
             **self._summary(a).model_dump(),
             link=a.link,
@@ -186,6 +188,57 @@ class Applications:
                 if s is None or s.user_id != self.user.id:
                     raise NotFoundError("Story not found")
             a.story_ids = ids
+
+    def link_story(self, app_id: str, story_id: str, linked: bool) -> ApplicationOut:
+        """Link one of your stories to this application, or unlink it (Volume 11, prompt 6;
+        docs/BACKLINKS.md). One story at a time, so a page showing an older list can't undo a link
+        made elsewhere, and asking twice is the same as asking once: linking what's linked, or
+        unlinking what isn't, changes nothing (a lost reply can simply be sent again). Both ends
+        must be yours: the application (404 otherwise) and, to link, the story (404 otherwise).
+        Unlinking needs no story, so an id left by a story deleted since can be taken out.
+
+        The write is conditional on the list it was worked out from (`... WHERE story_ids =
+        <as read>`), so two links made at the same moment both stay on any database: the one that
+        finds the list changed reads it again and tries once more."""
+        if linked:
+            s = self.db.get(ExperienceEntry, story_id)
+            if s is None or s.user_id != self.user.id:
+                self._get(app_id)  # an application that isn't yours is "not found" first
+                raise NotFoundError("Story not found")
+        for _ in range(LINK_ATTEMPTS):
+            a = self._get(app_id)
+            before = a.story_ids
+            ids = list(before or [])
+            if linked:
+                if story_id in ids:
+                    return self.get(a.id)
+                if len(ids) >= MAX_LINKED_STORIES:
+                    raise ConflictError(
+                        f"An application links up to {MAX_LINKED_STORIES} stories. Unlink one first.",
+                        code="too_many_stories",
+                    )
+                after = [*ids, story_id]
+            else:
+                if story_id not in ids:
+                    return self.get(a.id)
+                after = [x for x in ids if x != story_id]
+            same = (
+                or_(Application.story_ids.is_(None), Application.story_ids == JSON.NULL)
+                if before is None
+                else Application.story_ids == before
+            )
+            done = self.db.execute(
+                update(Application)
+                .where(Application.id == a.id, Application.user_id == self.user.id, same)
+                .values(story_ids=after, updated_at=datetime.now(UTC))
+                .execution_options(synchronize_session=False)
+            )
+            if int(getattr(done, "rowcount", 0) or 0) == 1:
+                self.db.commit()
+                self.db.expire_all()
+                return self.get(a.id)
+            self.db.rollback()  # changed meanwhile: read it again
+        raise ConflictError("The application kept changing. Try again.", code="busy")
 
     def _record_stage(
         self, a: Application, to: str, note: str = "", correction: bool = False, frm: str | None = None

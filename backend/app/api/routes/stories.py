@@ -16,6 +16,7 @@ from app.schemas.stories import (
     StoryRevisionOut,
     StorySummary,
     StoryUpdate,
+    StoryUsedIn,
 )
 from app.services.stories import Stories
 
@@ -94,6 +95,18 @@ def delete_story(
 ) -> Response:
     Stories(db).delete(user, story_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get(
+    "/{story_id}/used-in",
+    response_model=StoryUsedIn,
+    responses=error_responses(401, 404),
+    summary="Your applications, interview kits and reflections that use this story (titles and dates only)",
+)
+def story_used_in(
+    story_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> StoryUsedIn:
+    return Stories(db).used_in(user, story_id)
 
 
 @router.get(

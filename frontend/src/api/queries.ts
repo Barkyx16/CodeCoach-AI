@@ -730,6 +730,11 @@ export function useStory(id: string | undefined) {
   return useQuery({ queryKey: ["me", "story", id], queryFn: () => api.story(id!), enabled: !!id, staleTime: 0 });
 }
 
+/** Your applications, kits and reflections that use this story (docs/BACKLINKS.md). */
+export function useStoryUsedIn(id: string | undefined) {
+  return useQuery({ queryKey: ["me", "story", id, "used-in"], queryFn: () => api.storyUsedIn(id!), enabled: !!id, staleTime: 0 });
+}
+
 export function useStoryRevisions(id: string | undefined, enabled = true) {
   return useQuery({ queryKey: ["me", "story", id, "revisions"], queryFn: () => api.storyRevisions(id!), enabled: !!id && enabled, staleTime: 0 });
 }

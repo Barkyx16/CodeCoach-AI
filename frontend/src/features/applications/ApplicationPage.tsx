@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
-import { useApplication, useStories, useTargets } from "@/api/queries";
+import { useApplication } from "@/api/queries";
 import type { Application, ApplicationEvent, ApplicationStage, EventKind } from "@/api/types";
 import { BackLink } from "@/components/BackLink";
 import { Badge } from "@/components/Badge";
@@ -21,6 +21,7 @@ import { ScheduleLink } from "@/features/schedule/ScheduleLink";
 
 import { DraftComposer } from "./DraftComposer";
 import { EVENT_KIND_LABEL, STAGE_HINT, STAGE_LABEL, STAGES } from "./labels";
+import { LinksCard } from "./LinksCard";
 import { PrepPanel } from "./PrepPanel";
 import { externalHref } from "@/lib/links";
 import { useRequestKey } from "@/lib/requestKey";
@@ -458,47 +459,6 @@ function DetailsCard({ a, onDone }: { a: Application; onDone: (a: Application) =
       {fieldErrors.other.length > 0 && <p className="field__error" role="alert">{fieldErrors.other.join(" ")}</p>}
       <span className="row"><Button type="submit" size="sm" variant="primary" loading={busy}>Save details</Button>{savedAs === JSON.stringify(form) && <span className="form-state form-state--saved" role="status"><span className="form-state__mark" aria-hidden="true" />Saved.</span>}</span>
     </form>
-  );
-}
-
-function LinksCard({ a, onDone }: { a: Application; onDone: (a: Application) => void }) {
-  const targets = useTargets();
-  const stories = useStories({});
-  const [error, setError] = useState<unknown>(null);
-  // Shown at once; the server's answer replaces it (or it reverts, with the error, if saving fails).
-  const [pending, setPending] = useState<{ target?: string; stories?: string[] } | null>(null);
-  const save = async (body: Parameters<typeof api.updateApplication>[1], optimistic: { target?: string; stories?: string[] }) => {
-    setError(null);
-    setPending(optimistic);
-    try { onDone(await api.updateApplication(a.id, body)); } catch (e) { setError(e); } finally { setPending(null); }
-  };
-  const target = pending?.target ?? a.target?.id ?? "";
-  const linked = new Set(pending?.stories ?? a.stories.map((s) => s.id));
-  return (
-    <Card className="stack-sm">
-      <h2 className="section-title">Linked preparation</h2>
-      <label className="field"><span className="field__label">Job target</span>
-        <select className="select" value={target} onChange={(e) => void save(e.target.value ? { target_id: e.target.value, clear: [] } : { clear: ["target_id"] }, { target: e.target.value })}>
-          <option value="">None</option>
-          {(targets.data ?? []).map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
-        </select>
-      </label>
-      <fieldset className="stack-sm">
-        <legend className="field__label">Stories to prepare</legend>
-        {(stories.data ?? []).length === 0 && <p className="subtle">No stories yet. <Link to="/stories/new">Write one</Link>.</p>}
-        {(stories.data ?? []).map((s) => (
-          <label key={s.id} className="checkbox">
-            <input type="checkbox" checked={linked.has(s.id)} onChange={(e) => {
-              const next = e.target.checked ? [...linked, s.id] : [...linked].filter((x) => x !== s.id);
-              void save({ clear: [], story_ids: next }, { stories: next });
-            }} />
-            {s.title}
-          </label>
-        ))}
-      </fieldset>
-      <p className="subtle">Links point to your target and stories; nothing is copied.</p>
-      <InlineError error={error} />
-    </Card>
   );
 }
 

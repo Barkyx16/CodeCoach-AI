@@ -111,6 +111,30 @@ def unarchive(
     return Applications(db, user).set_archived(app_id, False)
 
 
+@router.put(
+    "/{app_id}/stories/{story_id}",
+    response_model=ApplicationOut,
+    responses=error_responses(401, 404, 409),
+    summary="Link one of your stories (linking a linked one changes nothing)",
+)
+def link_story(
+    app_id: str, story_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> ApplicationOut:
+    return Applications(db, user).link_story(app_id, story_id, True)
+
+
+@router.delete(
+    "/{app_id}/stories/{story_id}",
+    response_model=ApplicationOut,
+    responses=error_responses(401, 404),
+    summary="Unlink a story (the story itself stays; unlinking one that isn't linked changes nothing)",
+)
+def unlink_story(
+    app_id: str, story_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> ApplicationOut:
+    return Applications(db, user).link_story(app_id, story_id, False)
+
+
 @router.delete(
     "/{app_id}", status_code=status.HTTP_204_NO_CONTENT, responses=error_responses(401, 404), summary="Delete"
 )

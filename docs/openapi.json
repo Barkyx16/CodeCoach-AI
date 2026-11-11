@@ -7881,6 +7881,73 @@
         }
       }
     },
+    "/api/v1/me/stories/{story_id}/used-in": {
+      "get": {
+        "tags": [
+          "stories"
+        ],
+        "summary": "Your applications, interview kits and reflections that use this story (titles and dates only)",
+        "operationId": "story_used_in_api_v1_me_stories__story_id__used_in_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "story_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Story Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoryUsedIn"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/stories/{story_id}/revisions": {
       "get": {
         "tags": [
@@ -8655,6 +8722,166 @@
             "schema": {
               "type": "string",
               "title": "App Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/applications/{app_id}/stories/{story_id}": {
+      "put": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Link one of your stories (linking a linked one changes nothing)",
+        "operationId": "link_story_api_v1_me_applications__app_id__stories__story_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "App Id"
+            }
+          },
+          {
+            "name": "story_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Story Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Unlink a story (the story itself stays; unlinking one that isn't linked changes nothing)",
+        "operationId": "unlink_story_api_v1_me_applications__app_id__stories__story_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "App Id"
+            }
+          },
+          {
+            "name": "story_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Story Id"
             }
           }
         ],
@@ -21573,6 +21800,12 @@
           "title": {
             "type": "string",
             "title": "Title"
+          },
+          "archived": {
+            "type": "boolean",
+            "title": "Archived",
+            "description": "Archived in the story bank; still linked here",
+            "default": false
           }
         },
         "type": "object",
@@ -39163,6 +39396,201 @@
           "expected_revision"
         ],
         "title": "StoryUpdate"
+      },
+      "StoryUseApplication": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "role_title": {
+            "type": "string",
+            "title": "Role Title"
+          },
+          "employer": {
+            "type": "string",
+            "title": "Employer"
+          },
+          "stage": {
+            "type": "string",
+            "enum": [
+              "saved",
+              "applied",
+              "interviewing",
+              "offer",
+              "closed",
+              "withdrawn"
+            ],
+            "title": "Stage"
+          },
+          "archived": {
+            "type": "boolean",
+            "title": "Archived"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "role_title",
+          "employer",
+          "stage",
+          "archived"
+        ],
+        "title": "StoryUseApplication"
+      },
+      "StoryUseKit": {
+        "properties": {
+          "application_id": {
+            "type": "string",
+            "title": "Application Id"
+          },
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "event_title": {
+            "type": "string",
+            "title": "Event Title"
+          },
+          "event_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event On"
+          },
+          "role_title": {
+            "type": "string",
+            "title": "Role Title"
+          },
+          "employer": {
+            "type": "string",
+            "title": "Employer"
+          },
+          "application_archived": {
+            "type": "boolean",
+            "title": "Application Archived"
+          }
+        },
+        "type": "object",
+        "required": [
+          "application_id",
+          "event_id",
+          "event_title",
+          "event_on",
+          "role_title",
+          "employer",
+          "application_archived"
+        ],
+        "title": "StoryUseKit"
+      },
+      "StoryUseReflection": {
+        "properties": {
+          "application_id": {
+            "type": "string",
+            "title": "Application Id"
+          },
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "event_title": {
+            "type": "string",
+            "title": "Event Title",
+            "description": "As recorded in the reflection"
+          },
+          "event_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event On",
+            "description": "As recorded in the reflection"
+          },
+          "role_title": {
+            "type": "string",
+            "title": "Role Title",
+            "description": "As recorded in the reflection"
+          },
+          "employer": {
+            "type": "string",
+            "title": "Employer",
+            "description": "As recorded in the reflection"
+          }
+        },
+        "type": "object",
+        "required": [
+          "application_id",
+          "event_id",
+          "event_title",
+          "event_on",
+          "role_title",
+          "employer"
+        ],
+        "title": "StoryUseReflection"
+      },
+      "StoryUsedIn": {
+        "properties": {
+          "applications": {
+            "items": {
+              "$ref": "#/components/schemas/StoryUseApplication"
+            },
+            "type": "array",
+            "title": "Applications"
+          },
+          "applications_total": {
+            "type": "integer",
+            "title": "Applications Total"
+          },
+          "kits": {
+            "items": {
+              "$ref": "#/components/schemas/StoryUseKit"
+            },
+            "type": "array",
+            "title": "Kits"
+          },
+          "kits_total": {
+            "type": "integer",
+            "title": "Kits Total"
+          },
+          "reflections": {
+            "items": {
+              "$ref": "#/components/schemas/StoryUseReflection"
+            },
+            "type": "array",
+            "title": "Reflections"
+          },
+          "reflections_total": {
+            "type": "integer",
+            "title": "Reflections Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "applications",
+          "applications_total",
+          "kits",
+          "kits_total",
+          "reflections",
+          "reflections_total",
+          "limit"
+        ],
+        "title": "StoryUsedIn",
+        "description": "Each list holds at most `limit` entries, newest first; the totals count them all."
       },
       "StrategyOut": {
         "properties": {

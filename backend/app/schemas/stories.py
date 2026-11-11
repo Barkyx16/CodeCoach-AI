@@ -1,10 +1,11 @@
 """The story bank: a learner's own experiences, written in STAR form, for behavioral interviews."""
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import Field
 
+from app.schemas.applications import Stage
 from app.schemas.common import APIModel, OptionalKey, SaveReplay, save_replay_field, update_key_field
 
 Competency = Literal[
@@ -164,3 +165,49 @@ class StoryAssistOut(APIModel):
         description="Edits to review; nothing is changed until you accept one"
     )
     questions: list[str] = Field(description="Things only you can answer; nothing is guessed for you")
+
+
+# --- Where a story is used (Volume 11, prompt 6; docs/BACKLINKS.md) ------------------------------
+# References back to the story from your own applications, interview kits and reflections. Titles
+# and dates only: no notes, answers or story text are copied into them.
+
+USED_IN_LIMIT = 20
+
+
+class StoryUseApplication(APIModel):
+    id: str
+    role_title: str
+    employer: str
+    stage: Stage
+    archived: bool
+
+
+class StoryUseKit(APIModel):
+    application_id: str
+    event_id: str
+    event_title: str
+    event_on: date | None
+    role_title: str
+    employer: str
+    application_archived: bool
+
+
+class StoryUseReflection(APIModel):
+    application_id: str
+    event_id: str
+    event_title: str = Field(description="As recorded in the reflection")
+    event_on: date | None = Field(description="As recorded in the reflection")
+    role_title: str = Field(description="As recorded in the reflection")
+    employer: str = Field(description="As recorded in the reflection")
+
+
+class StoryUsedIn(APIModel):
+    """Each list holds at most `limit` entries, newest first; the totals count them all."""
+
+    applications: list[StoryUseApplication]
+    applications_total: int
+    kits: list[StoryUseKit]
+    kits_total: int
+    reflections: list[StoryUseReflection]
+    reflections_total: int
+    limit: int

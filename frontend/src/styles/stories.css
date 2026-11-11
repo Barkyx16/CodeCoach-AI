@@ -24,3 +24,7 @@
 .story-picker--chosen { border-style: solid; border-color: var(--color-primary); background: var(--color-primary-soft); }
 .story-picker__list { display: grid; gap: var(--space-1); list-style: none; padding: 0; margin: var(--space-2) 0 0; }
 .story-picker fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+
+/* Where a story is used (docs/BACKLINKS.md) */
+.used-in__title { margin: 0; font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--color-text); }
+.used-in .mini-list li { overflow-wrap: anywhere; }

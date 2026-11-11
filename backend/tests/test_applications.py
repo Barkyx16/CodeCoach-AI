@@ -173,7 +173,7 @@ def test_links_are_your_own_and_never_copies(client):
         f"{URL}/{a['id']}", headers=h, json={"target_id": t["id"], "story_ids": [s["id"]]}
     ).json()
     assert linked["target"] == {"id": t["id"], "title": "Ward nurse"} and linked["stories"] == [
-        {"id": s["id"], "title": "Two call lights"}
+        {"id": s["id"], "title": "Two call lights", "archived": False}
     ]
     assert client.patch(f"{URL}/{a['id']}", headers=h, json={"story_ids": [theirs["id"]]}).status_code == 404
     # Renaming the story shows the new title: it's a link, not a copy.

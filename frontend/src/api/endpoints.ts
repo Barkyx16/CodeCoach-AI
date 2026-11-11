@@ -121,6 +121,7 @@ import type {
   StoryRevision,
   StorySummary,
   StoryUpdate,
+  StoryUsedIn,
   Submission,
   SubmissionCreate,
   SubmissionListItem,
@@ -530,6 +531,7 @@ export const api = {
   archiveStory: (id: string, archived: boolean) =>
     apiRequest<Story>(`/api/v1/me/stories/${encodeURIComponent(id)}/${archived ? "archive" : "unarchive"}`, { method: "POST" }),
   deleteStory: (id: string) => apiRequest<void>(`/api/v1/me/stories/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  storyUsedIn: (id: string) => apiRequest<StoryUsedIn>(`/api/v1/me/stories/${encodeURIComponent(id)}/used-in`),
   storyRevisions: (id: string) => apiRequest<StoryRevision[]>(`/api/v1/me/stories/${encodeURIComponent(id)}/revisions`),
   restoreStoryRevision: (id: string, revision: number, expected: number) =>
     apiRequest<Story>(`/api/v1/me/stories/${encodeURIComponent(id)}/revisions/${revision}/restore`, { method: "POST", body: { expected_revision: expected } }),
@@ -540,6 +542,9 @@ export const api = {
   applications: (archived = false) => apiRequest<ApplicationSummary[]>("/api/v1/me/applications", { query: { archived: archived ? "true" : undefined } }),
   application: (id: string) => apiRequest<Application>(`/api/v1/me/applications/${encodeURIComponent(id)}`),
   createApplication: (body: ApplicationCreate) => apiRequest<Application>("/api/v1/me/applications", { method: "POST", body }),
+  /** One story at a time, repeat-safe both ways (docs/BACKLINKS.md). */
+  linkApplicationStory: (id: string, storyId: string, linked: boolean) =>
+    apiRequest<Application>(`/api/v1/me/applications/${encodeURIComponent(id)}/stories/${encodeURIComponent(storyId)}`, { method: linked ? "PUT" : "DELETE" }),
   updateApplication: (id: string, body: ApplicationUpdate) => apiRequest<Application>(`/api/v1/me/applications/${encodeURIComponent(id)}`, { method: "PATCH", body }),
   setApplicationStage: (id: string, body: { stage: ApplicationStage; note: string; correction: boolean }) =>
     apiRequest<Application>(`/api/v1/me/applications/${encodeURIComponent(id)}/stage`, { method: "POST", body }),

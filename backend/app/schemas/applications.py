@@ -7,6 +7,9 @@ from pydantic import Field, field_validator
 
 from app.schemas.common import APIModel, OptionalKey, SaveReplay, save_replay_field, update_key_field
 
+# An application links at most this many stories (Volume 11, prompt 6; docs/BACKLINKS.md).
+MAX_LINKED_STORIES = 20
+
 Stage = Literal["saved", "applied", "interviewing", "offer", "closed", "withdrawn"]
 STAGES: tuple[Stage, ...] = ("saved", "applied", "interviewing", "offer", "closed", "withdrawn")
 EventKind = Literal["phone_screen", "interview", "assessment", "other"]
@@ -32,7 +35,7 @@ class ApplicationFields(APIModel):
     next_action_due: date | None = None
     notes: str | None = Field(default=None, max_length=4000)
     target_id: str | None = Field(default=None, max_length=36)
-    story_ids: list[str] | None = Field(default=None, max_length=20)
+    story_ids: list[str] | None = Field(default=None, max_length=MAX_LINKED_STORIES)
 
     @field_validator("link")
     @classmethod
@@ -116,6 +119,7 @@ class ApplicationTargetLink(APIModel):
 class ApplicationStoryLink(APIModel):
     id: str
     title: str
+    archived: bool = Field(default=False, description="Archived in the story bank; still linked here")
 
 
 class ApplicationSummary(APIModel):

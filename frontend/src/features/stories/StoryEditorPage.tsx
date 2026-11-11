@@ -27,6 +27,7 @@ import { dropCopy, useCopySince, writeCopy } from "@/lib/deviceCopies";
 import { COMPETENCIES, COMPETENCY_LABEL, CONTEXT_LABEL, SECTION_LABEL, SECTION_PROMPT, SECTIONS } from "./labels";
 import { RevisionsPanel } from "./RevisionsPanel";
 import { changes, emptyForm, fromStory, sameForm, storyDraftKey, toBody, type StoryForm } from "./storyForm";
+import { UsedIn } from "./UsedIn";
 import { WritingHelp } from "./WritingHelp";
 
 interface Recovery {
@@ -368,6 +369,7 @@ function Editor({ story }: { story: Story | null }) {
               <p className="subtle">Each practice is its own answer; the story isn't changed by it.</p>
             </Card>
           )}
+          {saved && <UsedIn storyId={saved.id} />}
           {saved && <RevisionsPanel story={saved} onRestored={replaceWith} />}
           {saved && (
             <Card className="stack-sm">

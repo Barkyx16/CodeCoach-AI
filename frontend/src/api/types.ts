@@ -237,6 +237,7 @@ export type StarterActivity = S["StarterActivity"];
 
 export type StorySummary = S["StorySummary"];
 export type Story = S["StoryOut"];
+export type StoryUsedIn = S["StoryUsedIn"];
 export type StoryCreate = S["StoryCreate"];
 export type StoryUpdate = S["StoryUpdate"];
 export type StoryRevision = S["StoryRevisionOut"];

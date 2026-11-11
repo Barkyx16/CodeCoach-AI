@@ -19,10 +19,21 @@ from app.careers.eligibility import feedback_eligibility
 from app.careers.questions import get_question, is_retired
 from app.db.locking import lock_for_update
 from app.errors import AppError, ConflictError, NotFoundError
-from app.models import ExperienceEntry, PracticeAnswer, RoleTarget, StoryRevision, User
+from app.models import (
+    Application,
+    ApplicationEvent,
+    ExperienceEntry,
+    InterviewKit,
+    InterviewReflection,
+    PracticeAnswer,
+    RoleTarget,
+    StoryRevision,
+    User,
+)
 from app.schemas.common import SaveReplay
 from app.schemas.stories import (
     SECTIONS,
+    USED_IN_LIMIT,
     StoryAssistIn,
     StoryAssistOut,
     StoryCreate,
@@ -34,6 +45,10 @@ from app.schemas.stories import (
     StorySummary,
     StoryTargetLink,
     StoryUpdate,
+    StoryUseApplication,
+    StoryUsedIn,
+    StoryUseKit,
+    StoryUseReflection,
 )
 from app.services import request_keys, story_assist, update_receipts
 
@@ -229,6 +244,101 @@ class Stories:
             practice=practice,
             privacy_hints=privacy_hints(e),
             created_at=e.created_at,
+        )
+
+    def used_in(self, user: User, story_id: str) -> StoryUsedIn:
+        """Where this story is used: your applications, interview kits and reflections that point at
+        it (Volume 11, prompt 6; docs/BACKLINKS.md). One level only (nothing here follows their own
+        links), only your own records (each query is by owner, and the story must be yours first),
+        at most USED_IN_LIMIT of each with a count of all, and only titles and dates: no notes,
+        answers or story text. The links are the story ids the records already hold; a deleted
+        record simply isn't there, and an archived one is listed and says so."""
+        e = self._get(user, story_id)
+
+        def uses(ids: list | None) -> bool:
+            return e.id in (ids or [])
+
+        apps = self.db.execute(
+            select(
+                Application.id,
+                Application.role_title,
+                Application.employer,
+                Application.stage,
+                Application.archived,
+                Application.story_ids,
+            )
+            .where(Application.user_id == user.id)
+            .order_by(Application.updated_at.desc(), Application.id)
+        ).all()
+        applications = [
+            StoryUseApplication(
+                id=a.id, role_title=a.role_title, employer=a.employer, stage=a.stage, archived=a.archived
+            )
+            for a in apps
+            if uses(a.story_ids)
+        ]
+        kit_rows = self.db.execute(
+            select(
+                InterviewKit.story_ids,
+                ApplicationEvent.id,
+                ApplicationEvent.title,
+                ApplicationEvent.on_date,
+                Application.id.label("application_id"),
+                Application.role_title,
+                Application.employer,
+                Application.archived,
+            )
+            .join(ApplicationEvent, ApplicationEvent.id == InterviewKit.event_id)
+            .join(Application, Application.id == ApplicationEvent.application_id)
+            .where(InterviewKit.user_id == user.id, Application.user_id == user.id)
+            .order_by(ApplicationEvent.on_date.desc().nulls_last(), ApplicationEvent.id)
+        ).all()
+        kits = [
+            StoryUseKit(
+                application_id=k.application_id,
+                event_id=k.id,
+                event_title=k.title,
+                event_on=k.on_date,
+                role_title=k.role_title,
+                employer=k.employer,
+                application_archived=k.archived,
+            )
+            for k in kit_rows
+            if uses(k.story_ids)
+        ]
+        refl_rows = self.db.execute(
+            select(
+                InterviewReflection.application_id,
+                InterviewReflection.event_id,
+                InterviewReflection.event_title,
+                InterviewReflection.event_on,
+                InterviewReflection.role_title,
+                InterviewReflection.employer,
+                InterviewReflection.story_ids,
+            )
+            .where(InterviewReflection.user_id == user.id)
+            .order_by(InterviewReflection.event_on.desc().nulls_last(), InterviewReflection.event_id)
+        ).all()
+        reflections = [
+            StoryUseReflection(
+                application_id=r.application_id,
+                event_id=r.event_id,
+                event_title=r.event_title,
+                event_on=r.event_on,
+                role_title=r.role_title,
+                employer=r.employer,
+            )
+            for r in refl_rows
+            if uses(r.story_ids)
+        ]
+        return StoryUsedIn(
+            applications=applications[:USED_IN_LIMIT],
+            applications_total=len(applications),
+            kits=kits[:USED_IN_LIMIT],
+            kits_total=len(kits),
+            reflections=reflections[:USED_IN_LIMIT],
+            reflections_total=len(reflections),
+            limit=USED_IN_LIMIT,
         )
 
     def revisions(self, user: User, story_id: str) -> list[StoryRevisionOut]:
