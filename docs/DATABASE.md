@@ -467,6 +467,7 @@ The cases are code (`backend/app/offers`, docs/OFFER_REHEARSAL.md), not rows.
 | `e7b3c1d9a842` comparison attempts | Adds `comparison_attempts`, cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
 | `f2c8a6d4b913` offer rehearsals | Adds `offer_rehearsals`, cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
 | `a5d3e9c1b7f2` offer comparisons | Adds `offer_comparisons`, cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
+| `b8e4c2a7d915` offer comparison archived | Adds `offer_comparisons.archived` (not null, server default false): the archive flag the other kinds already have (docs/ARCHIVE.md). Existing rows stay active; the table's row-level security covers it; downgrade drops it |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

@@ -1452,6 +1452,8 @@ class OfferComparison(Base):
     title: Mapped[str] = mapped_column(String(80))
     doc: Mapped[dict] = mapped_column(JSONType)
     revision: Mapped[int] = mapped_column(Integer, default=1)
+    # Out of the active list, not deleted (docs/ARCHIVE.md); never changes the document or revision.
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 

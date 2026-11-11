@@ -769,8 +769,9 @@ export function useWhiteboardPrompts() {
   return useQuery({ queryKey: ["me", "whiteboard", "prompts"], queryFn: api.whiteboardPrompts, staleTime: 5 * 60_000 });
 }
 
-export function useOfferComparisons() {
-  return useQuery({ queryKey: ["me", "offer-comparisons"], queryFn: api.offerComparisons });
+/** Your active comparisons, or (archived) the archived ones. */
+export function useOfferComparisons(archived = false) {
+  return useQuery({ queryKey: ["me", "offer-comparisons", { archived }], queryFn: () => api.offerComparisons(archived) });
 }
 
 /** What's saved to the account, as counts: fetched fresh each time the page opens. */

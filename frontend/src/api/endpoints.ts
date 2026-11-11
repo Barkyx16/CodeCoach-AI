@@ -688,7 +688,11 @@ export const api = {
   offerFinish: (id: string) => apiRequest<OfferRehearsal>(`/api/v1/me/offer-rehearsals/${encodeURIComponent(id)}/finish`, { method: "POST" }),
 
   // private offer comparisons (terms entered by hand; nothing is sent)
-  offerComparisons: () => apiRequest<OfferComparisonSummary[]>("/api/v1/me/offer-comparisons"),
+  offerComparisons: (archived = false) =>
+    apiRequest<OfferComparisonSummary[]>("/api/v1/me/offer-comparisons", { query: { archived } }),
+  // Out of the active list or back into it; only the flag changes (docs/ARCHIVE.md).
+  archiveOfferComparison: (id: string, archived: boolean) =>
+    apiRequest<OfferComparison>(`/api/v1/me/offer-comparisons/${encodeURIComponent(id)}/${archived ? "archive" : "unarchive"}`, { method: "POST" }),
   // What's saved to the account, as counts (docs/YOUR_DATA.md)
   dataSummary: () => apiRequest<DataSummary>("/api/v1/me/data-summary"),
   // A few of your own records, newest first: titles and times only (docs/CONTINUE.md)

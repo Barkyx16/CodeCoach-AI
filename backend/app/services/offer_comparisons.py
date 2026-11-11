@@ -112,6 +112,7 @@ class OfferComparisons:
             doc=ComparisonDoc.model_validate(row.doc),
             derived=derive(row.doc),
             applications=self._applications(row.doc),
+            archived=row.archived,
             created_at=row.created_at,
             updated_at=row.updated_at,
         )
@@ -178,24 +179,38 @@ class OfferComparisons:
         """The figures for an unsaved draft, so the page can show formulas as you type. Nothing is stored."""
         return DerivedOut(derived=derive(checked(doc)))
 
-    def mine(self) -> list[OfferComparisonSummary]:
-        rows = self.db.scalars(
-            select(OfferComparison)
-            .where(OfferComparison.user_id == self.user.id)
-            .order_by(OfferComparison.updated_at.desc())
-        ).all()
+    def mine(self, archived: bool | None = None) -> list[OfferComparisonSummary]:
+        """Yours, newest saved first: active ones, archived ones, or (None) all of them."""
+        q = select(OfferComparison).where(OfferComparison.user_id == self.user.id)
+        if archived is not None:
+            q = q.where(OfferComparison.archived.is_(archived))
+        rows = self.db.scalars(q.order_by(OfferComparison.updated_at.desc())).all()
         return [
             OfferComparisonSummary(
-                id=r.id, title=r.title, offers=len(r.doc.get("offers", [])), updated_at=r.updated_at
+                id=r.id,
+                title=r.title,
+                offers=len(r.doc.get("offers", [])),
+                archived=r.archived,
+                updated_at=r.updated_at,
             )
             for r in rows
         ]
+
+    def set_archived(self, comparison_id: str, archived: bool) -> OfferComparisonOut:
+        """Out of the active list, or back into it (docs/ARCHIVE.md). Only the flag changes: not the
+        document, the revision or the saved time, so it can't overwrite a save made elsewhere, and
+        asking twice is the same as asking once."""
+        row = self._find(comparison_id, lock=True)
+        row.archived = archived
+        self.db.commit()
+        return self._out(row)
 
     def export(self) -> list[dict[str, Any]]:
         return [
             {
                 "title": r.title,
                 "revision": r.revision,
+                "archived": r.archived,
                 "doc": r.doc,
                 "created_at": r.created_at.isoformat(),
                 "updated_at": r.updated_at.isoformat(),

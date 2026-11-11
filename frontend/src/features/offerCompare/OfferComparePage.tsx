@@ -45,6 +45,8 @@ export function OfferComparePage() {
 }
 
 function Workspace({ saved }: { saved: OfferComparison }) {
+  const [archivedNow, setArchivedNow] = useState(saved.archived);
+  const [restoring, setRestoring] = useState(false);
   const qc = useQueryClient();
   const { user } = useAuth();
   const apps = useApplications();
@@ -130,6 +132,22 @@ function Workspace({ saved }: { saved: OfferComparison }) {
     }
   }
 
+  async function restore() {
+    setRestoring(true);
+    try {
+      const next = await api.archiveOfferComparison(saved.id, false);
+      setArchivedNow(next.archived);
+      qc.setQueryData(["me", "offer-comparison", saved.id], (old: OfferComparison | undefined) => (old ? { ...old, archived: next.archived } : old));
+      void qc.invalidateQueries({ queryKey: ["me", "offer-comparisons"] });
+      void qc.invalidateQueries({ queryKey: ["me", "recent-work"] });
+      setStatus("Restored to your active comparisons, unchanged.");
+    } catch (e) {
+      setError(e);
+    } finally {
+      setRestoring(false);
+    }
+  }
+
   return (
     <div className={`page oc-page${hidden ? " is-hidden" : ""}`}>
       <BackLink fallback={{ to: "/offers/compare", label: "Compare offers" }} />
@@ -143,6 +161,12 @@ function Workspace({ saved }: { saved: OfferComparison }) {
           <p className="subtle">It organises the facts you enter and your own priorities. It doesn't choose for you, and nothing here changes an application.</p>
         </div>
       </div>
+      {archivedNow && (
+        <p className="banner banner--info row" role="note">
+          <span>Archived: it's out of your active list, kept exactly as it is. Nothing was deleted.</span>
+          <Button size="sm" loading={restoring} onClick={() => void restore()}>Restore</Button>
+        </p>
+      )}
       {offer === "open" && onDevice && (
         <section className="banner banner--info stack-sm" aria-labelledby="oc-device">
           <h2 className="section-title" id="oc-device">Unsaved changes</h2>

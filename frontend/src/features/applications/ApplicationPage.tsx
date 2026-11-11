@@ -16,7 +16,7 @@ import { isGone } from "@/lib/errors";
 import { formatDateTime } from "@/lib/format";
 import { dropCopy, useCopySince, writeCopy } from "@/lib/deviceCopies";
 
-import { browserTimeZone, describeWhen } from "./dates";
+import { browserTimeZone, describeWhen, formatDay } from "./dates";
 import { ScheduleLink } from "@/features/schedule/ScheduleLink";
 
 import { DraftComposer } from "./DraftComposer";
@@ -45,6 +45,14 @@ export function ApplicationPage() {
 function Detail({ a }: { a: Application }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  // Archiving with an interview still to come asks first: the interview isn't cancelled, it just
+  // leaves the board and the upcoming list (docs/ARCHIVE.md).
+  const [confirmArchive, setConfirmArchive] = useState(false);
+  const setArchived = async (archived: boolean) => {
+    setConfirmArchive(false);
+    done(await api.archiveApplication(a.id, archived));
+    void qc.invalidateQueries({ queryKey: ["me", "recent-work"] });
+  };
   const done = (next: Application) => {
     qc.setQueryData(["me", "application", next.id], next);
     void qc.invalidateQueries({ queryKey: ["me", "applications"] });
@@ -79,7 +87,10 @@ function Detail({ a }: { a: Application }) {
             <h2 className="section-title">Keep or remove</h2>
             <p className="subtle">Archiving hides it from your board; nothing is lost. Deleting removes it, its events and its history, and each event's interview kit and reflection. Your stories, notes and schedule entries stay.</p>
             <span className="row">
-              <Button size="sm" onClick={async () => done(await api.archiveApplication(a.id, !a.archived))}>{a.archived ? "Unarchive" : "Archive"}</Button>
+              <Button size="sm" aria-expanded={a.next_event && !a.archived ? confirmArchive : undefined}
+                onClick={() => (a.archived ? void setArchived(false) : a.next_event ? setConfirmArchive(true) : void setArchived(true))}>
+                {a.archived ? "Unarchive" : "Archive"}
+              </Button>
               <Button size="sm" variant="danger" onClick={async () => {
                 if (!window.confirm(`Delete ${a.role_title} at ${a.employer}, its events and its history, and the interview kits and reflections for those events? Your stories, notes and schedule entries stay. This can't be undone. (Archive keeps it out of the way instead.)`)) return;
                 await api.deleteApplication(a.id);
@@ -87,6 +98,19 @@ function Detail({ a }: { a: Application }) {
                 navigate("/applications", { replace: true });
               }}>Delete…</Button>
             </span>
+            {confirmArchive && a.next_event && (
+              <div className="banner banner--warning stack-sm" role="group" aria-label="Archive with an interview coming up">
+                <p>
+                  {a.next_event.title}{a.next_event.on_date ? ` on ${formatDay(a.next_event.on_date)}` : ""} is still to come. Archiving takes
+                  this application off your board and your upcoming interviews. It doesn't cancel the interview or change the stage, and
+                  anything already on your schedule stays.
+                </p>
+                <span className="row">
+                  <Button size="sm" onClick={() => void setArchived(true)}>Archive anyway</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setConfirmArchive(false)}>Keep it active</Button>
+                </span>
+              </div>
+            )}
           </Card>
         </aside>
       </div>

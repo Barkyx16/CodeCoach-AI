@@ -2713,6 +2713,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/offer-comparisons/{comparison_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive: out of the active list, nothing else changes */
+        post: operations["archive_api_v1_me_offer_comparisons__comparison_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/offer-comparisons/{comparison_id}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore to the active list, unchanged */
+        post: operations["unarchive_api_v1_me_offer_comparisons__comparison_id__unarchive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/data-summary": {
         parameters: {
             query?: never;
@@ -7752,6 +7786,12 @@ export interface components {
                 [key: string]: string;
             };
             /**
+             * Archived
+             * @description Out of the active list, not deleted; archiving changes nothing else (docs/ARCHIVE.md)
+             * @default false
+             */
+            archived: boolean;
+            /**
              * Created At
              * Format: date-time
              */
@@ -7781,6 +7821,11 @@ export interface components {
             title: string;
             /** Offers */
             offers: number;
+            /**
+             * Archived
+             * @default false
+             */
+            archived: boolean;
             /**
              * Updated At
              * Format: date-time
@@ -22083,7 +22128,10 @@ export interface operations {
     };
     mine_api_v1_me_offer_comparisons_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description true: only archived comparisons (docs/ARCHIVE.md) */
+                archived?: boolean;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -22106,6 +22154,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -22340,6 +22397,104 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_api_v1_me_offer_comparisons__comparison_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                comparison_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferComparisonOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unarchive_api_v1_me_offer_comparisons__comparison_id__unarchive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                comparison_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferComparisonOut"];
+                };
             };
             /** @description Missing, invalid, expired or revoked access token */
             401: {

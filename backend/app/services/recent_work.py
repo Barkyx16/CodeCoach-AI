@@ -2,7 +2,8 @@
 records, newest first, from the times the records really keep. Only ids, titles and timestamps
 are read: no note body, story text, transcript or terms. An interview in progress comes first.
 Each kind of record is read on its own, in a savepoint: one that fails is named in `unavailable`
-and the others are still listed.
+and the others are still listed. Archived records (and kits of archived applications) aren't
+listed: archiving takes a record out of active views (docs/ARCHIVE.md).
 """
 
 from __future__ import annotations
@@ -82,7 +83,7 @@ def _interviews(db: Session, user: User, n: int) -> list[dict]:
 def _notes(db: Session, user: User, n: int) -> list[dict]:
     rows = db.execute(
         select(Note.id, Note.title, Note.updated_at)
-        .where(Note.user_id == user.id, Note.deleted_at.is_(None))
+        .where(Note.user_id == user.id, Note.deleted_at.is_(None), Note.archived.is_(False))
         .order_by(Note.updated_at.desc())
         .limit(n)
     ).all()
@@ -95,7 +96,7 @@ def _notes(db: Session, user: User, n: int) -> list[dict]:
 def _stories(db: Session, user: User, n: int) -> list[dict]:
     rows = db.execute(
         select(ExperienceEntry.id, ExperienceEntry.title, ExperienceEntry.updated_at)
-        .where(ExperienceEntry.user_id == user.id)
+        .where(ExperienceEntry.user_id == user.id, ExperienceEntry.archived.is_(False))
         .order_by(ExperienceEntry.updated_at.desc())
         .limit(n)
     ).all()
@@ -117,7 +118,9 @@ def _kits(db: Session, user: User, n: int) -> list[dict]:
         )
         .join(ApplicationEvent, ApplicationEvent.id == InterviewKit.event_id)
         .join(Application, Application.id == ApplicationEvent.application_id)
-        .where(InterviewKit.user_id == user.id, Application.user_id == user.id)
+        .where(
+            InterviewKit.user_id == user.id, Application.user_id == user.id, Application.archived.is_(False)
+        )
         .order_by(InterviewKit.updated_at.desc())
         .limit(n)
     ).all()
@@ -144,7 +147,7 @@ def _applications(db: Session, user: User, n: int) -> list[dict]:
             Application.stage,
             Application.updated_at,
         )
-        .where(Application.user_id == user.id)
+        .where(Application.user_id == user.id, Application.archived.is_(False))
         .order_by(Application.updated_at.desc())
         .limit(n)
     ).all()
@@ -164,7 +167,7 @@ def _applications(db: Session, user: User, n: int) -> list[dict]:
 def _offer_comparisons(db: Session, user: User, n: int) -> list[dict]:
     rows = db.execute(
         select(OfferComparison.id, OfferComparison.title, OfferComparison.updated_at)
-        .where(OfferComparison.user_id == user.id)
+        .where(OfferComparison.user_id == user.id, OfferComparison.archived.is_(False))
         .order_by(OfferComparison.updated_at.desc())
         .limit(n)
     ).all()

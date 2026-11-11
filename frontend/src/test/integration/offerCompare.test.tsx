@@ -43,7 +43,7 @@ const derived = (hourly: { value: number | null; formula: string | null; unknown
 });
 const initial = derived({ value: null, formula: null, unknown: "Enter the weeks paid a year to put hourly pay on a yearly basis." });
 const comparison = (over: Partial<OfferComparison> = {}): OfferComparison => ({
-  id: "cmp-1", revision: 1, doc, derived: initial, applications: {}, created_at: "2026-11-09T10:00:00Z", updated_at: "2026-11-09T10:00:00Z", ...over,
+  id: "cmp-1", revision: 1, doc, derived: initial, applications: {}, archived: false, created_at: "2026-11-09T10:00:00Z", updated_at: "2026-11-09T10:00:00Z", ...over,
 });
 
 let saves: { doc: ComparisonDoc; expected_revision: number }[] = [];

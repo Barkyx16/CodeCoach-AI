@@ -56,7 +56,7 @@ conditional bonus pays out, overtime, future raises or returns, market rates.
 
 ## Saving, devices and privacy
 
-- `offer_comparisons` (migration `a5d3e9c1b7f2`): the title, the document and a revision. Figures are
+- `offer_comparisons` (migration `a5d3e9c1b7f2`; `archived` added by `b8e4c2a7d915`, see ARCHIVE.md): the title, the document and a revision. Figures are
   derived on every read, never stored. Saves are revision-checked: a save from an older version is
   refused with the saved version, shown side by side, and you choose; a save whose reply was lost
   is recognised by its update receipt (`offer_comparison`). The page shows figures for your unsaved

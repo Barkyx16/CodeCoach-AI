@@ -429,3 +429,11 @@ fieldset.field { border: none; padding: 0; margin: 0; }
 .yd-item .checkbox { min-width: 0; overflow-wrap: anywhere; }
 .yd-count { display: inline-block; min-width: 2.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .yd-review { border: 1px solid var(--color-border); }
+
+/* Offer comparisons: Active and Archived views (docs/ARCHIVE.md) */
+.oc-list__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.oc-list__head .section-title:focus { outline: none; }
+.oc-list__head .section-title:focus-visible { outline: 2px solid var(--color-focus, var(--color-link)); outline-offset: 2px; }
+.oc-list__views { display: flex; flex-wrap: wrap; gap: 6px; }
+.oc-list__item { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; }
+.oc-list__item > span { min-width: 0; overflow-wrap: anywhere; }

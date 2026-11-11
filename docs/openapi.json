@@ -13574,16 +13574,35 @@
         ],
         "summary": "Your comparisons",
         "operationId": "mine_api_v1_me_offer_comparisons_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "true: only archived comparisons (docs/ARCHIVE.md)",
+              "default": false,
+              "title": "Archived"
+            },
+            "description": "true: only archived comparisons (docs/ARCHIVE.md)"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/OfferComparisonSummary"
                   },
-                  "type": "array",
                   "title": "Response Mine Api V1 Me Offer Comparisons Get"
                 }
               }
@@ -13598,13 +13617,18 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       },
       "post": {
         "tags": [
@@ -13612,15 +13636,20 @@
         ],
         "summary": "Start a comparison (empty, or a fictional example)",
         "operationId": "create_api_v1_me_offer_comparisons_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/OfferComparisonCreate"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -13653,12 +13682,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/me/offer-comparisons/preview": {
@@ -13913,6 +13937,140 @@
         "responses": {
           "204": {
             "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/offer-comparisons/{comparison_id}/archive": {
+      "post": {
+        "tags": [
+          "offer-comparisons"
+        ],
+        "summary": "Archive: out of the active list, nothing else changes",
+        "operationId": "archive_api_v1_me_offer_comparisons__comparison_id__archive_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "comparison_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Comparison Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferComparisonOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/offer-comparisons/{comparison_id}/unarchive": {
+      "post": {
+        "tags": [
+          "offer-comparisons"
+        ],
+        "summary": "Restore to the active list, unchanged",
+        "operationId": "unarchive_api_v1_me_offer_comparisons__comparison_id__unarchive_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "comparison_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Comparison Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferComparisonOut"
+                }
+              }
+            }
           },
           "401": {
             "description": "Missing, invalid, expired or revoked access token",
@@ -29691,6 +29849,12 @@
             "title": "Applications",
             "description": "Linked application ids \u2192 'role at employer' (yours only)"
           },
+          "archived": {
+            "type": "boolean",
+            "title": "Archived",
+            "description": "Out of the active list, not deleted; archiving changes nothing else (docs/ARCHIVE.md)",
+            "default": false
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -29760,6 +29924,11 @@
           "offers": {
             "type": "integer",
             "title": "Offers"
+          },
+          "archived": {
+            "type": "boolean",
+            "title": "Archived",
+            "default": false
           },
           "updated_at": {
             "type": "string",

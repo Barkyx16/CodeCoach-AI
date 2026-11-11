@@ -26,6 +26,8 @@ work; it isn't a score or a plan. Loading it only reads: nothing is sent, starte
   available" page with its list.
 - **Hide** keeps the section to one line ("Show it") on this device (`codecoach.continue.hidden`,
   a display preference); hidden, it fetches nothing.
+- **Archived records** (and an archived application's kits) aren't listed: archiving takes a record
+  out of active views (ARCHIVE.md).
 - **Nothing yet** is said in a sentence; no sample activity is invented.
 - **Another account** never sees the previous one's titles: signing out clears the cache, drafts
   and pending records are per account (YOUR_DATA.md).

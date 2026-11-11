@@ -34,7 +34,7 @@ async function applicationWithInterview(page: Page) {
   await page.getByRole("button", { name: "Add an event" }).click();
   const ev = page.getByRole("form", { name: "New event" });
   await ev.getByLabel("What").fill("Panel interview");
-  await ev.getByLabel(/^Date/).fill("2026-11-12");
+  await ev.getByLabel(/^Date/).fill(new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10)); // a week ahead: still to come
   await ev.getByRole("button", { name: "Add event" }).click();
   await expect(page.getByRole("link", { name: "Reflect on this interview" })).toBeVisible();
 }
@@ -85,8 +85,11 @@ test("reflect, recover, choose steps, record an outcome, and find it again", asy
   await page.goto(appUrl);
   await expect(page.locator(".page__header")).toContainText("Offer");
 
-  // Archive it: the reflection is still there, and search finds it.
-  await page.getByRole("button", { name: "Archive" }).click();
+  // Archive it: the interview is still to come, so it asks first (nothing is cancelled); the
+  // reflection is still there, and search finds it.
+  await page.getByRole("button", { name: "Archive", exact: true }).click();
+  await page.getByRole("group", { name: "Archive with an interview coming up" }).getByRole("button", { name: "Archive anyway" }).click();
+  await expect(page.getByText(/APPLICATION · ARCHIVED/)).toBeVisible();
   await page.goto("/reflections?q=medication");
   await page.getByRole("link", { name: /Panel interview: Ward nurse at Mercy General/ }).click();
   await expect(page.getByText("This application is archived. Your reflection stays here.")).toBeVisible();

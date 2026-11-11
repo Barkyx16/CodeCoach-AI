@@ -1,6 +1,6 @@
 """Private offer comparisons: terms entered by hand, your own priorities, figures that show their working."""
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
@@ -27,9 +27,11 @@ MINE = "/api/v1/me/offer-comparisons"
     summary="Your comparisons",
 )
 def mine(
-    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    archived: bool = Query(default=False, description="true: only archived comparisons (docs/ARCHIVE.md)"),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> list[OfferComparisonSummary]:
-    return OfferComparisons(db, user).mine()
+    return OfferComparisons(db, user).mine(archived)
 
 
 @router.post(
@@ -96,3 +98,27 @@ def delete(
 ) -> Response:
     OfferComparisons(db, user).delete(comparison_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    MINE + "/{comparison_id}/archive",
+    response_model=OfferComparisonOut,
+    responses=error_responses(401, 404),
+    summary="Archive: out of the active list, nothing else changes",
+)
+def archive(
+    comparison_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> OfferComparisonOut:
+    return OfferComparisons(db, user).set_archived(comparison_id, True)
+
+
+@router.post(
+    MINE + "/{comparison_id}/unarchive",
+    response_model=OfferComparisonOut,
+    responses=error_responses(401, 404),
+    summary="Restore to the active list, unchanged",
+)
+def unarchive(
+    comparison_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> OfferComparisonOut:
+    return OfferComparisons(db, user).set_archived(comparison_id, False)

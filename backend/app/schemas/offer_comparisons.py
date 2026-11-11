@@ -99,6 +99,10 @@ class OfferComparisonOut(APIModel):
     applications: dict[str, str] = Field(
         description="Linked application ids → 'role at employer' (yours only)"
     )
+    archived: bool = Field(
+        default=False,
+        description="Out of the active list, not deleted; archiving changes nothing else (docs/ARCHIVE.md)",
+    )
     created_at: datetime
     updated_at: datetime
 
@@ -107,6 +111,7 @@ class OfferComparisonSummary(APIModel):
     id: str
     title: str
     offers: int
+    archived: bool = False
     updated_at: datetime
 
 
