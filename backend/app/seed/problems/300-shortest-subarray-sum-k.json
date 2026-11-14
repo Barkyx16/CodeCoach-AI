@@ -1,0 +1,169 @@
+{
+  "order": 300,
+  "slug": "shortest-subarray-sum-k",
+  "title": "Shortest Subarray With Sum at Least K (With Negatives)",
+  "difficulty": "hard",
+  "topics": [
+    "queues",
+    "prefix-sums",
+    "sliding-window"
+  ],
+  "summary": "Shortest window whose sum reaches k when values can be negative.",
+  "statement": "Return the length of the shortest non-empty contiguous subarray of `nums` with sum at least `k`, or `-1` if\nthere isn't one. Values may be negative.",
+  "constraints": [
+    "1 <= nums.length <= 10^5",
+    "-10^5 <= nums[i] <= 10^5",
+    "1 <= k <= 10^9"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1], k = 1",
+      "output": "1"
+    },
+    {
+      "input": "nums = [1, 2], k = 4",
+      "output": "-1"
+    },
+    {
+      "input": "nums = [2, -1, 2], k = 3",
+      "output": "3"
+    }
+  ],
+  "signature": {
+    "method": "shortestSubarray",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      },
+      {
+        "name": "k",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int shortestSubarray(int[] nums, int k) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Negative values break the usual two-pointer window. Work with prefix sums instead.",
+    "Keep a deque of indices with increasing prefix sums. Pop from the front while the current prefix minus the front prefix reaches k.",
+    "P = prefix sums (P[0] = 0)\ndq = deque()\nfor j in 0..n:\n    while dq and P[j] - P[dq[0]] >= k: best = min(best, j - dq.popleft())\n    while dq and P[dq[-1]] >= P[j]: dq.pop()\n    dq.append(j)\nreturn best or -1",
+    "A larger, later prefix can never be a better start than a smaller one, so the deque stays increasing. Each index enters and leaves once: O(n). Use long prefix sums."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1
+        ],
+        "k": 1
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2
+        ],
+        "k": 4
+      },
+      "expected_output": -1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          -1,
+          2
+        ],
+        "k": 3
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          84,
+          -37,
+          32,
+          40,
+          95
+        ],
+        "k": 167
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -6,
+          8,
+          7,
+          -6,
+          2,
+          -2,
+          7,
+          7,
+          -4,
+          -6,
+          5
+        ],
+        "k": 4
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -6,
+          -1,
+          0,
+          -4,
+          3,
+          1
+        ],
+        "k": 7
+      },
+      "expected_output": -1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          2,
+          -6,
+          1,
+          -6,
+          6
+        ],
+        "k": 6
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -6,
+          -4,
+          8
+        ],
+        "k": 15
+      },
+      "expected_output": -1,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

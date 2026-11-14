@@ -1,0 +1,44 @@
+/* Interview review: focus, timeline, detail, code replay, retry comparison and the review queue. */
+.review__meta { margin: 4px 0 0; font-size: 0.75rem; }
+.review__notices { color: inherit; }
+.review__layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 20px; align-items: start; margin-top: 16px; }
+.review__improvements { margin: 0; padding-left: 20px; display: grid; gap: 14px; }
+.review__improvements p { margin: 0; }
+.review__practice { justify-self: start; }
+.review__evidence { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; font-size: 0.8125rem; }
+.evidence-link { border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface-sunken); color: var(--color-text); padding: 4px 8px; font: inherit; font-size: 0.75rem; text-align: left; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; min-height: 32px; }
+.evidence-link:hover { border-color: var(--color-link); }
+.review__dims { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.review-dim { padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 10px; }
+.review-dim p { margin: 4px 0 0; font-size: 0.875rem; }
+.review-dim__head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; font-size: 0.875rem; }
+.review-dim--not_evaluated, .review-dim--not_applicable { border-style: dashed; }
+.review__timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.timeline-item { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; min-height: 44px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); color: var(--color-text); font: inherit; font-size: 0.875rem; text-align: left; cursor: pointer; }
+.timeline-item:hover { border-color: var(--color-border-strong); }
+.timeline-item.is-selected { border-color: var(--color-link); background: var(--color-primary-soft); }
+.timeline-item.is-selected .timeline-item__n::after { content: " ▸"; }
+.timeline-item__n { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 0.75rem; }
+.timeline-item__title { overflow-wrap: anywhere; }
+.timeline-item__status { font-size: 0.75rem; white-space: nowrap; }
+.review-detail { outline: none; }
+.review-detail:focus-visible { box-shadow: var(--focus-ring); }
+.review-detail__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.review-detail__time { margin: 0; font-size: 0.75rem; }
+.review-detail details summary { cursor: pointer; min-height: 36px; display: flex; align-items: center; font-size: 0.875rem; }
+.review-detail__actions { flex-wrap: wrap; gap: 8px; align-items: center; }
+.review__nav { justify-content: space-between; }
+.review-code { margin: 0; padding: 10px 0; overflow-x: auto; background: var(--color-surface-sunken); border-radius: 8px; font-family: var(--font-mono); font-size: 0.8125rem; line-height: 1.6; }
+.review-code__line { display: block; padding: 0 12px; white-space: pre; }
+.review-code__line.is-flagged { background: var(--color-warning-soft); box-shadow: inset 3px 0 0 var(--color-warning); }
+.review-code__line.is-flagged::after { content: "  ← flagged"; font-family: inherit; color: var(--color-warning); }
+.review-code__n { display: inline-block; width: 2.5em; color: var(--color-text-muted); user-select: none; }
+.retry-page > * + * { margin-top: 16px; }
+.retry-page__original summary { cursor: pointer; min-height: 36px; display: flex; align-items: center; font-weight: 600; }
+.comparison__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.comparison__lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.queue-row__head { flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; }
+.queue-row p { margin: 0; font-size: 0.875rem; }
+.queue-row__actions { flex-wrap: wrap; gap: 6px; }
+@media (max-width: 960px) { .review__layout, .comparison__grid { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .timeline-item { grid-template-columns: 24px minmax(0, 1fr); } .timeline-item__status { grid-column: 2; } }

@@ -1,0 +1,177 @@
+{
+  "order": 175,
+  "slug": "richest-customer",
+  "title": "Richest Customer Wealth",
+  "difficulty": "easy",
+  "topics": [
+    "matrix",
+    "arrays"
+  ],
+  "summary": "Find the largest row sum.",
+  "statement": "`accounts[i][j]` is how much customer `i` has in bank `j`. A customer's wealth is the sum of\ntheir row. Return the largest wealth.",
+  "constraints": [
+    "1 <= customers, banks <= 50",
+    "1 <= accounts[i][j] <= 100"
+  ],
+  "examples": [
+    {
+      "input": "accounts = [[1, 2, 3], [3, 2, 1]]",
+      "output": "6"
+    },
+    {
+      "input": "accounts = [[1, 5], [7, 3], [3, 5]]",
+      "output": "10"
+    },
+    {
+      "input": "accounts = [[9]]",
+      "output": "9"
+    }
+  ],
+  "signature": {
+    "method": "maximumWealth",
+    "params": [
+      {
+        "name": "accounts",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int maximumWealth(int[][] accounts) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Each customer's wealth is independent of the others.",
+    "Sum each row and keep the maximum.",
+    "best = 0\nfor row in accounts:\n    best = max(best, sum(row))\nreturn best",
+    "Every cell is added once: O(customers \u00d7 banks)."
+  ],
+  "expected_complexity": {
+    "time": "O(m * n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "accounts": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            3,
+            2,
+            1
+          ]
+        ]
+      },
+      "expected_output": 6,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "accounts": [
+          [
+            1,
+            5
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            3,
+            5
+          ]
+        ]
+      },
+      "expected_output": 10,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "accounts": [
+          [
+            9
+          ]
+        ]
+      },
+      "expected_output": 9,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "accounts": [
+          [
+            11
+          ],
+          [
+            21
+          ],
+          [
+            2
+          ],
+          [
+            18
+          ]
+        ]
+      },
+      "expected_output": 21,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "accounts": [
+          [
+            16,
+            9,
+            26
+          ],
+          [
+            27,
+            12,
+            20
+          ],
+          [
+            30,
+            10,
+            26
+          ]
+        ]
+      },
+      "expected_output": 66,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "accounts": [
+          [
+            22
+          ],
+          [
+            21
+          ],
+          [
+            22
+          ]
+        ]
+      },
+      "expected_output": 22,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "accounts": [
+          [
+            24,
+            30,
+            28,
+            11
+          ]
+        ]
+      },
+      "expected_output": 93,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

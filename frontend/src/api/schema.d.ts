@@ -31,10 +31,41 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Readiness probe (checks the database) */
+        /**
+         * Readiness probe (checks the database and its schema)
+         * @description Ready when the database answers and its schema isn't older than this code needs. Names no
+         *     revision: only whether the schema is current, behind, newer or unmanaged. Opens its own session
+         *     (not the request dependency, which reads content state first), so an unreachable database is a
+         *     503 here, not an error before this check runs.
+         */
         get: operations["ready_health_ready_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/create-anchor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Before starting a guest session or registering: tie the request to this browser
+         * @description Sets an HttpOnly, SameSite=Strict cookie (`cc_create`, an hour) that page scripts can't read.
+         *     A browser that already has a valid one keeps its value (renewed for another hour), so a retry
+         *     carries the same value. A guest start or registration records it with the account it makes, so
+         *     the same request sent again after a lost reply finds that account instead of making another
+         *     (docs/RECOVERY.md). It grants nothing by itself and reveals nothing; without it, those requests
+         *     behave as before.
+         */
+        post: operations["create_anchor_api_v1_auth_create_anchor_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -84,8 +115,199 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Start a demo session without an account */
+        /**
+         * Start a demo session without an account
+         * @description With this browser's anchor (`POST /auth/create-anchor`), a start whose reply was lost and is
+         *     sent again resumes the guest it made (200, `X-Account-Resumed: guest`) instead of making
+         *     another; so do two tabs starting at once. Without one, every start is a new guest, as before.
+         */
         post: operations["guest_api_v1_auth_guest_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/upgrade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Turn the current guest account into a full account, keeping all of its data */
+        post: operations["upgrade_guest_api_v1_auth_upgrade_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Exchange the refresh cookie for a new access token (rotates the cookie) */
+        post: operations["refresh_api_v1_auth_refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/verify-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm an email address with the emailed link (no sign-in needed)
+         * @description Works signed out. A link that can't be used is a 400 `invalid_verification_token` whose
+         *     `details.reason` says why (malformed, unknown, expired, superseded, already_verified,
+         *     address_changed, stopped) and `details.account` whose link it was (this, other, signed_out,
+         *     unknown). Signed in as a different account than the link's: 409
+         *     `verification_link_other_account` and nothing changes, unless `other_account_ok`.
+         */
+        post: operations["verify_email_api_v1_auth_verify_email_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/verify-email/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Where your code was sent (masked), what became of the email, and when you can resend
+         * @description For the signed-in owner only. Delivery states are what the outbox can back up: a mail
+         *     server accepting an email (`sent_to_provider`) isn't proof that it reached an inbox.
+         */
+        get: operations["verification_status_api_v1_auth_verify_email_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/verify-email/code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm your email with the 6-digit code from the email (5 tries per code) */
+        post: operations["verify_email_code_api_v1_auth_verify_email_code_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/verify-email/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a new verification link to your current email */
+        post: operations["resend_verification_api_v1_auth_verify_email_resend_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask to change your email (needs your password); it changes once the new address confirms
+         * @description Nothing changes yet: the new address gets a code, and the account keeps its current
+         *     address (for sign-in and recovery) until that code or link is used. A verified current
+         *     address is warned at once, and a password reset from it cancels the change.
+         */
+        post: operations["change_email_api_v1_auth_email_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/email/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Cancel a pending change of email (its codes and links stop working) */
+        delete: operations["cancel_email_change_api_v1_auth_email_pending_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/password-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Email a password reset link (same answer whether or not the account exists) */
+        post: operations["request_password_reset_api_v1_auth_password_reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/password-reset/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set a new password with a reset link (signs out every session) */
+        post: operations["confirm_password_reset_api_v1_auth_password_reset_confirm_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -120,8 +342,25 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Revoke every access token issued to this user */
+        /** Sign out of this device (ends this session's refresh cookie) */
         post: operations["logout_api_v1_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sign out of every device (revokes all access and refresh tokens) */
+        post: operations["logout_all_api_v1_auth_logout_all_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -162,6 +401,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/problems/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How many problems match the filters, per difficulty (for the library tabs) */
+        get: operations["count_problems_api_v1_problems_counts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/topics": {
         parameters: {
             query?: never;
@@ -189,6 +445,2823 @@ export interface paths {
         /** Problem statement, starter code and public tests */
         get: operations["get_problem_api_v1_problems__slug__get"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/problems/{slug}/lab/explanation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A debugging exercise's defect explanation and reference repair (shown when the learner asks)
+         * @description Authored content, the same for everyone: what the defect is, why a simple case misses it,
+         *     one correct repair and a follow-up. It reveals no hidden test. Asking for it is recorded nowhere:
+         *     looking is part of learning, not a mark against the learner.
+         */
+        get: operations["get_lab_explanation_api_v1_problems__slug__lab_explanation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/careers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every career you can practice for */
+        get: operations["list_careers_api_v1_careers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/careers/{slug}/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Interview questions for a career (filterable, searchable) */
+        get: operations["list_questions_api_v1_careers__slug__questions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/careers/{slug}/questions/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How many questions match, per difficulty */
+        get: operations["count_questions_api_v1_careers__slug__questions_counts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/careers/{slug}/questions/{question_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One interview question with tips */
+        get: operations["get_one_api_v1_careers__slug__questions__question_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/careers/{slug}/questions/{question_id}/answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your past answers to a question, newest first */
+        get: operations["my_answers_api_v1_careers__slug__questions__question_id__answers_get"];
+        put?: never;
+        /**
+         * Answer a question and get feedback
+         * @description 201 with the new answer, or 200 with header `Idempotent-Replayed: true` and the answer an earlier request with the same `client_request_id` saved (the same request, resent).
+         */
+        post: operations["answer_question_api_v1_careers__slug__questions__question_id__answers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/careers/{slug}/questions/{question_id}/answers/keyed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Answer a question with a required request key (the protected route)
+         * @description The same as the plain route, except that `client_request_id` is required. A server that doesn't keep one answer per key has no such route, so it refuses a request sent here (404) instead of saving it unprotected: send keyed answers here, not to the plain route, so a resend can never be saved twice by a server that ignores keys.
+         */
+        post: operations["answer_question_keyed_api_v1_careers__slug__questions__question_id__answers_keyed_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/careers/{slug}/questions/{question_id}/follow-up": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A reviewed follow-up question, after repeated practice on this one (docs/FOLLOW_UPS.md) */
+        get: operations["follow_up_api_v1_careers__slug__questions__question_id__follow_up_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/careers/{slug}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your progress on a career's questions */
+        get: operations["track_progress_api_v1_careers__slug__progress_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content/{content_type}/{content_id}/meta": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Where this content came from, its version, status, corrections and trust labels */
+        get: operations["meta_api_v1_content__content_type___content_id__meta_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/careers/{slug}/questions/{question_id}/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A question as it read at an earlier version (for answers written against it) */
+        get: operations["question_version_api_v1_careers__slug__questions__question_id__versions__version__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Report a problem with a question, a coding problem, or the feedback on your answer */
+        post: operations["report_api_v1_reports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your reports and what happened to them (never other people's, never internal notes) */
+        get: operations["my_reports_api_v1_me_reports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reports grouped by content */
+        get: operations["admin_reports_api_v1_admin_reports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/reports/{report_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One report with its audit trail */
+        get: operations["admin_report_api_v1_admin_reports__report_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/reports/{report_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change a report's status */
+        post: operations["admin_status_api_v1_admin_reports__report_id__status_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/reports/{report_id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Group a report under another (or ungroup it) */
+        post: operations["admin_duplicate_api_v1_admin_reports__report_id__duplicate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/content/question/{slug}/{question_id}/corrections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish a correction as a new version (answers keep the version they were written against) */
+        post: operations["admin_correct_api_v1_admin_content_question__slug___question_id__corrections_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/content/{content_type}/{content_id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire content: readable in history and saved items, no longer used for practice or assessment */
+        post: operations["admin_retire_api_v1_admin_content__content_type___content_id__retire_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/content/{content_type}/{content_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undo a retirement */
+        post: operations["admin_restore_api_v1_admin_content__content_type___content_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/careers/{slug}/explore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search and filter a career's questions, with counts per filter option (no personal data) */
+        get: operations["explore_public_api_v1_careers__slug__explore_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/explore/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The explorer with your practice status, bookmark/attempt filters and personal sorts */
+        get: operations["explore_mine_api_v1_me_explore__slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/bookmarks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your bookmarks */
+        get: operations["list_bookmarks_api_v1_me_bookmarks_get"];
+        /** Bookmark a question or problem (idempotent) */
+        put: operations["add_bookmark_api_v1_me_bookmarks_put"];
+        post?: never;
+        /** Remove a bookmark (idempotent; works for items that left the library) */
+        delete: operations["remove_bookmark_api_v1_me_bookmarks_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/collections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your private collections, most recently changed first */
+        get: operations["list_collections_api_v1_me_collections_get"];
+        put?: never;
+        /** Create a collection */
+        post: operations["create_collection_api_v1_me_collections_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/collections/{collection_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A collection with its items in order */
+        get: operations["get_collection_api_v1_me_collections__collection_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete a collection (the questions and your answers are not affected) */
+        delete: operations["delete_collection_api_v1_me_collections__collection_id__delete"];
+        options?: never;
+        head?: never;
+        /** Rename a collection */
+        patch: operations["rename_collection_api_v1_me_collections__collection_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/me/collections/{collection_id}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a question or problem (409 if it's already in this collection) */
+        post: operations["add_collection_item_api_v1_me_collections__collection_id__items_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/collections/{collection_id}/items/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add several items, or remove several, with an outcome for each (docs/BULK_ACTIONS.md) */
+        post: operations["batch_collection_items_api_v1_me_collections__collection_id__items_batch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/collections/{collection_id}/items/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove an item (also how a retired question is cleared out) */
+        delete: operations["remove_collection_item_api_v1_me_collections__collection_id__items__item_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/collections/{collection_id}/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Reorder: send every item id once, in the new order */
+        put: operations["reorder_collection_api_v1_me_collections__collection_id__order_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/collections/{collection_id}/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Start the collection as a practice queue, or move to a position in it */
+        put: operations["set_queue_position_api_v1_me_collections__collection_id__queue_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/collections/{collection_id}/items/{item_id}/done": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Mark an item done in this queue (queue progress only; mastery comes from your answers) */
+        put: operations["mark_item_done_api_v1_me_collections__collection_id__items__item_id__done_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/learn": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Learning units for a career, and which careers have any */
+        get: operations["list_units_api_v1_learn_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/learn/related": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Units that prepare for a question or coding problem */
+        get: operations["related_units_api_v1_learn_related_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/learn/units/{unit_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A learning unit (the check's answers are not included) */
+        get: operations["get_unit_api_v1_learn_units__unit_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/learn": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your progress on every unit of a career */
+        get: operations["my_units_api_v1_me_learn_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/learn/units/{unit_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your progress on a unit (also records 'practiced' when the linked practice has been done) */
+        get: operations["my_progress_api_v1_me_learn_units__unit_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/learn/units/{unit_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record that you opened ('started') or finished reading ('read') the unit version on screen */
+        post: operations["record_event_api_v1_me_learn_units__unit_id__events_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/learn/units/{unit_id}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit the comprehension check; graded on the server under the unit's rule */
+        post: operations["submit_check_api_v1_me_learn_units__unit_id__check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search and filter your notes */
+        get: operations["list_notes_api_v1_me_notes_get"];
+        put?: never;
+        /** Create a note, optionally from a question, problem, lesson or interview */
+        post: operations["create_note_api_v1_me_notes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/notes/{note_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One note */
+        get: operations["get_note_api_v1_me_notes__note_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete a note (restorable for 10 minutes, then purged) */
+        delete: operations["delete_note_api_v1_me_notes__note_id__delete"];
+        options?: never;
+        head?: never;
+        /** Save changes (text changes need base_revision; 409 note_conflict carries the current note) */
+        patch: operations["update_note_api_v1_me_notes__note_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/me/notes/{note_id}/archive-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What archiving it would do (nothing is changed) */
+        get: operations["archive_preview_api_v1_me_notes__note_id__archive_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/notes/{note_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive it as previewed: a changed scope is refused (409 impact_changed) with the new preview */
+        post: operations["archive_as_previewed_api_v1_me_notes__note_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/notes/{note_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undo a delete within the window */
+        post: operations["restore_note_api_v1_me_notes__note_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/notes/{note_id}/key-points": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suggest key points from the note's own sentences (no AI model; nothing is saved) */
+        post: operations["suggest_key_points_api_v1_me_notes__note_id__key_points_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/onboarding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Where you are in the introduction, and a real starter activity for your career */
+        get: operations["get_onboarding_api_v1_me_onboarding_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Record a choice about the introduction (never answer text; never practice progress) */
+        patch: operations["update_onboarding_api_v1_me_onboarding_patch"];
+        trace?: never;
+    };
+    "/api/v1/scenarios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Scenarios for a career */
+        get: operations["list_scenarios_api_v1_scenarios_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scenarios/{scenario_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What a scenario is about before you start (role, objective, time, scope, review) */
+        get: operations["get_scenario_api_v1_scenarios__scenario_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/scenarios/{scenario_id}/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start (or resume) an attempt; mode=exploration with parent_id tries another approach */
+        post: operations["start_attempt_api_v1_me_scenarios__scenario_id__attempts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/scenario-attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your scenario attempts, newest first */
+        get: operations["list_attempts_api_v1_me_scenario_attempts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/scenario-attempts/{attempt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An attempt: where you are, what you've decided, and the debrief once finished */
+        get: operations["get_attempt_api_v1_me_scenario_attempts__attempt_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/scenario-attempts/{attempt_id}/steps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Answer the current node (continue, a choice or a written response); the server picks the next node */
+        post: operations["take_step_api_v1_me_scenario_attempts__attempt_id__steps_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/shares/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** See exactly what a reviewer would see, without creating a link */
+        post: operations["preview_api_v1_me_shares_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/shares": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your shared answers, newest first */
+        get: operations["mine_api_v1_me_shares_get"];
+        put?: never;
+        /** Create an unlisted link to a snapshot of your selection (the link is returned once) */
+        post: operations["create_api_v1_me_shares_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/shares/{share_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One share: the snapshot and the feedback received */
+        get: operations["detail_api_v1_me_shares__share_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete the share, its snapshot and all feedback on it */
+        delete: operations["delete_api_v1_me_shares__share_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/shares/{share_id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop taking feedback (the link still shows the snapshot) */
+        post: operations["close_api_v1_me_shares__share_id__close_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/shares/{share_id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take feedback again on a closed share */
+        post: operations["reopen_api_v1_me_shares__share_id__reopen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/shares/{share_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Turn the link off for good (you keep the snapshot and feedback until you delete them) */
+        post: operations["revoke_api_v1_me_shares__share_id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/shares/{share_id}/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replace the link (the old one stops working); the new link is returned once */
+        post: operations["new_link_api_v1_me_shares__share_id__link_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/shares/{share_id}/feedback/{feedback_id}/useful": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Mark a reviewer's feedback as useful (or not) */
+        put: operations["useful_api_v1_me_shares__share_id__feedback__feedback_id__useful_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/shares/{share_id}/feedback/{feedback_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete one piece of feedback (e.g. abusive or unwanted) */
+        delete: operations["delete_feedback_api_v1_me_shares__share_id__feedback__feedback_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shared/open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Open a shared snapshot with its link secret (sent in the body, never the URL) */
+        post: operations["open_shared_api_v1_shared_open_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shared/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Leave structured feedback on a shared snapshot (retries with the same request id are ignored) */
+        post: operations["leave_feedback_api_v1_shared_feedback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/stories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your stories */
+        get: operations["list_stories_api_v1_me_stories_get"];
+        put?: never;
+        /** Write a new story */
+        post: operations["create_story_api_v1_me_stories_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/stories/{story_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One story */
+        get: operations["get_story_api_v1_me_stories__story_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete a story and its revisions (answers that rehearsed it are kept) */
+        delete: operations["delete_story_api_v1_me_stories__story_id__delete"];
+        options?: never;
+        head?: never;
+        /** Save changes (a new revision; 409 stale_revision if it changed since you opened it) */
+        patch: operations["update_story_api_v1_me_stories__story_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/me/stories/{story_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive */
+        post: operations["archive_story_api_v1_me_stories__story_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/stories/{story_id}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unarchive */
+        post: operations["unarchive_story_api_v1_me_stories__story_id__unarchive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/stories/{story_id}/used-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your applications, interview kits and reflections that use this story (titles and dates only) */
+        get: operations["story_used_in_api_v1_me_stories__story_id__used_in_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/stories/{story_id}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every saved version, newest first */
+        get: operations["story_revisions_api_v1_me_stories__story_id__revisions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/stories/{story_id}/revisions/{revision}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bring back an earlier version (as a new revision; nothing is deleted) */
+        post: operations["restore_revision_api_v1_me_stories__story_id__revisions__revision__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/stories/{story_id}/assist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Built-in writing check: proposals to review and questions (rules, not AI; nothing is saved) */
+        post: operations["assist_story_api_v1_me_stories__story_id__assist_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your applications */
+        get: operations["list_applications_api_v1_me_applications_get"];
+        put?: never;
+        /** Record an application (a retry with the same client_request_id returns the first, 200) */
+        post: operations["create_application_api_v1_me_applications_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One application */
+        get: operations["get_application_api_v1_me_applications__app_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete (older clients; the same plan as the preview, worked out now) */
+        delete: operations["delete_application_api_v1_me_applications__app_id__delete"];
+        options?: never;
+        head?: never;
+        /** Edit details (history keeps the title and employer as they were) */
+        patch: operations["update_application_api_v1_me_applications__app_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/stage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move to a stage (recorded in the history; the same stage again changes nothing) */
+        post: operations["set_stage_api_v1_me_applications__app_id__stage_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive */
+        post: operations["archive_api_v1_me_applications__app_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unarchive */
+        post: operations["unarchive_api_v1_me_applications__app_id__unarchive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/stories/{story_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Link one of your stories (linking a linked one changes nothing) */
+        put: operations["link_story_api_v1_me_applications__app_id__stories__story_id__put"];
+        post?: never;
+        /** Unlink a story (the story itself stays; unlinking one that isn't linked changes nothing) */
+        delete: operations["unlink_story_api_v1_me_applications__app_id__stories__story_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/delete-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What deleting it would delete, unlink, keep or make unavailable (nothing is changed) */
+        get: operations["delete_preview_api_v1_me_applications__app_id__delete_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete it as previewed: a changed scope is refused (409 impact_changed) with the new preview */
+        post: operations["delete_as_previewed_api_v1_me_applications__app_id__delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add an interview or other event (each interview is its own event) */
+        post: operations["add_event_api_v1_me_applications__app_id__events_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/events/{event_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Edit an event */
+        put: operations["update_event_api_v1_me_applications__app_id__events__event_id__put"];
+        post?: never;
+        /** Remove an event */
+        delete: operations["delete_event_api_v1_me_applications__app_id__events__event_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/events/{event_id}/prep": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview: what would happen to this interview's preparation times
+         * @description Read-only. Fixed entries stay; entries that follow the interview get a proposed time (the same elapsed time before it) when both exact times are known.
+         */
+        get: operations["prep_preview_api_v1_me_applications__app_id__events__event_id__prep_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/events/{event_id}/prep/shift": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move the chosen preparation times as previewed (all or none)
+         * @description 409 interview_changed if the interview moved again since the preview; 409 prep_not_movable (nothing moved) if a chosen entry changed or can't move. A resend after a lost response reports those entries as already aligned (nothing moves twice).
+         */
+        post: operations["prep_shift_api_v1_me_applications__app_id__events__event_id__prep_shift_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/events/{event_id}/kit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The interview-day kit (suggestions only, until you change something) */
+        get: operations["get_kit_api_v1_me_applications__app_id__events__event_id__kit_get"];
+        /** Save changes to the kit (lists are saved in the order given) */
+        put: operations["put_kit_api_v1_me_applications__app_id__events__event_id__kit_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/events/{event_id}/kit/stories/{story_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refresh a chosen story to the version you reviewed, or keep it as prepared */
+        post: operations["review_kit_story_api_v1_me_applications__app_id__events__event_id__kit_stories__story_id__review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/events/{event_id}/kit/stories/{story_id}/kept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove what the kit kept from a story deleted since */
+        delete: operations["remove_kept_story_api_v1_me_applications__app_id__events__event_id__kit_stories__story_id__kept_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/restore/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check a backup and show what would be restored (nothing changes) */
+        post: operations["preview_api_v1_me_restore_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add the chosen kinds of records (the same file again changes nothing) */
+        post: operations["apply_api_v1_me_restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/restore/batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your restores */
+        get: operations["batches_api_v1_me_restore_batches_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/restore/batches/{batch_id}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remove what a restore added, except anything you've edited since */
+        post: operations["remove_api_v1_me_restore_batches__batch_id__remove_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/reflections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search your reflections */
+        get: operations["search_api_v1_me_reflections_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/events/{event_id}/reflection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your reflection on this interview */
+        get: operations["get_reflection_api_v1_me_applications__app_id__events__event_id__reflection_get"];
+        /** Save it (every part is optional) */
+        put: operations["put_reflection_api_v1_me_applications__app_id__events__event_id__reflection_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/events/{event_id}/reflection/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suggest next steps from what you wrote (nothing is applied) */
+        post: operations["suggest_api_v1_me_applications__app_id__events__event_id__reflection_suggestions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/events/{event_id}/reflection/actions/{action_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit or dismiss a suggestion */
+        patch: operations["edit_action_api_v1_me_applications__app_id__events__event_id__reflection_actions__action_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/events/{event_id}/reflection/actions/{action_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a step to your notebook, schedule or Saved (again: no duplicate) */
+        post: operations["accept_action_api_v1_me_applications__app_id__events__event_id__reflection_actions__action_id__accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/events/{event_id}/reflection/outcome": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Record what happened; the application changes only if you ask */
+        put: operations["set_outcome_api_v1_me_applications__app_id__events__event_id__reflection_outcome_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/careers/{slug}/questions/{question_id}/criteria": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the coach looks for in this question, before you answer */
+        get: operations["criteria_api_v1_careers__slug__questions__question_id__criteria_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/answers/{answer_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your answer, its feedback and your reflection */
+        get: operations["get_review_api_v1_me_answers__answer_id__review_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/answers/{answer_id}/self-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save (or skip) your own reflection; it never changes the answer or its result */
+        put: operations["put_self_review_api_v1_me_answers__answer_id__self_review_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/answers/{answer_id}/flags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a criterion as unclear or one you disagree with, with a private note */
+        post: operations["add_flag_api_v1_me_answers__answer_id__flags_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/answers/{answer_id}/flags/{flag_id}/reinstate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Count a point you disputed again in your plan (recorded; the flag and its note stay) */
+        post: operations["reinstate_flag_api_v1_me_answers__answer_id__flags__flag_id__reinstate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/answers/{answer_id}/flags/{flag_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a flag */
+        delete: operations["remove_flag_api_v1_me_answers__answer_id__flags__flag_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/answers/{answer_id}/evaluations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check again under the current rubric (only when it could change; the original is kept) */
+        post: operations["reevaluate_api_v1_me_answers__answer_id__evaluations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/drills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The drills, with prompts for your career */
+        get: operations["list_drills_api_v1_me_drills_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/drills/{drill_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One drill */
+        get: operations["get_drill_api_v1_me_drills__drill_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/drills/{drill_id}/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your attempts, newest first */
+        get: operations["attempts_api_v1_me_drills__drill_id__attempts_get"];
+        put?: never;
+        /** Send an attempt (typed, or a transcript you checked); a retry with the same id returns the first */
+        post: operations["submit_api_v1_me_drills__drill_id__attempts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/whiteboard/prompts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Prompts for your career */
+        get: operations["prompts_api_v1_me_whiteboard_prompts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/whiteboard/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check a diagram file before it's loaded (nothing is saved) */
+        post: operations["validate_api_v1_me_whiteboard_validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/whiteboard/{prompt_id}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your working diagram */
+        get: operations["get_draft_api_v1_me_whiteboard__prompt_id__draft_get"];
+        /** Save it (409 if it changed elsewhere) */
+        put: operations["put_draft_api_v1_me_whiteboard__prompt_id__draft_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/whiteboard/{prompt_id}/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your attempts */
+        get: operations["attempts_api_v1_me_whiteboard__prompt_id__attempts_get"];
+        put?: never;
+        /** Freeze this diagram and get feedback (needs your explanation first) */
+        post: operations["attempt_api_v1_me_whiteboard__prompt_id__attempts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/whiteboard/attempts/{attempt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One attempt */
+        get: operations["get_attempt_api_v1_me_whiteboard_attempts__attempt_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/code-reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Code-review exercises */
+        get: operations["exercises_api_v1_code_reviews_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/code-reviews/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One exercise: the code and the task, without the authored review */
+        get: operations["exercise_api_v1_code_reviews__slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/code-reviews/{slug}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your review so far */
+        get: operations["get_draft_api_v1_me_code_reviews__slug__draft_get"];
+        /** Save it (409 if it changed elsewhere) */
+        put: operations["put_draft_api_v1_me_code_reviews__slug__draft_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/code-reviews/{slug}/reveal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Show the authored review (later reviews of this version say they came after it) */
+        post: operations["reveal_api_v1_me_code_reviews__slug__reveal_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/code-reviews/{slug}/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your reviews of this exercise */
+        get: operations["attempts_api_v1_me_code_reviews__slug__attempts_get"];
+        put?: never;
+        /** Send your review and compare it with the authored one */
+        post: operations["attempt_api_v1_me_code_reviews__slug__attempts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/code-reviews/attempts/{attempt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One of your reviews, with the version it was compared against */
+        get: operations["get_attempt_api_v1_me_code_reviews_attempts__attempt_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/test-design": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Test design exercises */
+        get: operations["exercises_api_v1_test_design_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/test-design/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One exercise: the specification, its input shape and limits (not the faulty versions) */
+        get: operations["exercise_api_v1_test_design__slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/test-design/{slug}/variants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The authored faulty versions and their defects (shown when the learner asks) */
+        get: operations["variants_api_v1_test_design__slug__variants_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/test-design/{slug}/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your runs of this exercise */
+        get: operations["runs_api_v1_me_test_design__slug__runs_get"];
+        put?: never;
+        /** Run your cases (asynchronous; poll the run). Without a judge they're saved as not run */
+        post: operations["start_run_api_v1_me_test_design__slug__runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/test-design/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One run: its cases, exercise version and report */
+        get: operations["get_run_api_v1_me_test_design_runs__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/work-samples": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Work-sample briefs and their careers */
+        get: operations["briefs_api_v1_work_samples_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/work-samples/{brief_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One brief: audience, purpose, facts and limits (not the reference artifact) */
+        get: operations["brief_api_v1_work_samples__brief_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/work-samples/{brief_id}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your draft */
+        get: operations["get_draft_api_v1_me_work_samples__brief_id__draft_get"];
+        /** Save it (409 if it changed elsewhere) */
+        put: operations["put_draft_api_v1_me_work_samples__brief_id__draft_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/work-samples/{brief_id}/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your attempts at this brief */
+        get: operations["attempts_api_v1_me_work_samples__brief_id__attempts_get"];
+        put?: never;
+        /** Send the work sample for feedback (a revision names the attempt it revises) */
+        post: operations["attempt_api_v1_me_work_samples__brief_id__attempts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/work-samples/attempts/{attempt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One attempt, with the brief version it was written against */
+        get: operations["get_attempt_api_v1_me_work_samples_attempts__attempt_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/comparisons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sample-answer comparison lessons */
+        get: operations["lessons_api_v1_comparisons_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/comparisons/{lesson_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One lesson: the question, rubric and samples (not the explanation) */
+        get: operations["lesson_api_v1_comparisons__lesson_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/comparisons/{lesson_id}/explanation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The authored explanation (a deliberate reveal) */
+        get: operations["explanation_api_v1_comparisons__lesson_id__explanation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/comparisons/{lesson_id}/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your readings of this lesson */
+        get: operations["attempts_api_v1_me_comparisons__lesson_id__attempts_get"];
+        put?: never;
+        /** Send your reading and compare it with the explanation */
+        post: operations["attempt_api_v1_me_comparisons__lesson_id__attempts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/comparisons/attempts/{attempt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One reading, with the samples and explanation as they were */
+        get: operations["get_attempt_api_v1_me_comparisons_attempts__attempt_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/offer-rehearsals/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fictional offer cases to rehearse */
+        get: operations["cases_api_v1_offer_rehearsals_cases_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/offer-rehearsals/cases/{case_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A fictional fact card */
+        get: operations["case_api_v1_offer_rehearsals_cases__case_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/offer-rehearsals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your rehearsals */
+        get: operations["mine_api_v1_me_offer_rehearsals_get"];
+        put?: never;
+        /** Start (or resume) a rehearsal; with parent_id, a different approach */
+        post: operations["start_api_v1_me_offer_rehearsals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/offer-rehearsals/{rehearsal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A rehearsal */
+        get: operations["one_api_v1_me_offer_rehearsals__rehearsal_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/offer-rehearsals/{rehearsal_id}/turns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Say something; the counterpart answers from the card */
+        post: operations["turn_api_v1_me_offer_rehearsals__rehearsal_id__turns_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/offer-rehearsals/{rehearsal_id}/phase": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move on to the next part */
+        post: operations["advance_api_v1_me_offer_rehearsals__rehearsal_id__phase_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/offer-rehearsals/{rehearsal_id}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop and see the debrief (at any point) */
+        post: operations["finish_api_v1_me_offer_rehearsals__rehearsal_id__finish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/kit-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your kit templates */
+        get: operations["mine_api_v1_me_kit_templates_get"];
+        put?: never;
+        /** Save a template (only the text you send: never done states, links, notes or outcomes) */
+        post: operations["create_api_v1_me_kit_templates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/kit-templates/{template_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One template */
+        get: operations["get_one_api_v1_me_kit_templates__template_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete (kits made from it keep their items) */
+        delete: operations["delete_api_v1_me_kit_templates__template_id__delete"];
+        options?: never;
+        head?: never;
+        /** Rename it or change its items (revision-checked; kits made from it don't change) */
+        patch: operations["update_api_v1_me_kit_templates__template_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/me/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Improvements you accepted */
+        get: operations["mine_api_v1_me_actions_get"];
+        put?: never;
+        /** Accept a suggested improvement (accepting it again returns the same action, 200) */
+        post: operations["accept_api_v1_me_actions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/actions/{action_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One action */
+        get: operations["get_api_v1_me_actions__action_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Rename it or change its notes (409 stale_revision with the saved action if it changed since) */
+        patch: operations["update_api_v1_me_actions__action_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/me/actions/{action_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Say a one-off action is done (changes no score) */
+        post: operations["complete_api_v1_me_actions__action_id__complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/actions/{action_id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undo: a one-off action is open again */
+        post: operations["reopen_api_v1_me_actions__action_id__reopen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/actions/{action_id}/occurrences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Put it on the schedule: once, or weekly for a number of weeks */
+        post: operations["schedule_api_v1_me_actions__action_id__occurrences_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/actions/{action_id}/occurrences/{entry_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Say one occurrence is done (a weekly action's others stay open) */
+        post: operations["complete_occurrence_api_v1_me_actions__action_id__occurrences__entry_id__complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/actions/{action_id}/occurrences/{entry_id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undo one occurrence's completion */
+        post: operations["reopen_occurrence_api_v1_me_actions__action_id__occurrences__entry_id__reopen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/attempt-conditions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The in-app help shown before each of these attempts (yours only) */
+        post: operations["attempt_conditions_api_v1_me_attempt_conditions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/offer-comparisons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your comparisons */
+        get: operations["mine_api_v1_me_offer_comparisons_get"];
+        put?: never;
+        /** Start a comparison (empty, or a fictional example) */
+        post: operations["create_api_v1_me_offer_comparisons_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/offer-comparisons/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The figures for an unsaved draft (nothing is stored) */
+        post: operations["preview_api_v1_me_offer_comparisons_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/offer-comparisons/{comparison_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A comparison */
+        get: operations["one_api_v1_me_offer_comparisons__comparison_id__get"];
+        /** Save against the revision you started from */
+        put: operations["save_api_v1_me_offer_comparisons__comparison_id__put"];
+        post?: never;
+        /** Delete a comparison */
+        delete: operations["delete_api_v1_me_offer_comparisons__comparison_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/offer-comparisons/{comparison_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive: out of the active list, nothing else changes */
+        post: operations["archive_api_v1_me_offer_comparisons__comparison_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/offer-comparisons/{comparison_id}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore to the active list, unchanged */
+        post: operations["unarchive_api_v1_me_offer_comparisons__comparison_id__unarchive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/packet/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assemble the questions, notes and stories you chose, in your order, for a preview (nothing is stored, sent or shared; the file is made on your device from this preview) */
+        post: operations["preview_packet_api_v1_me_packet_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/data-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What's saved to your account, as counts */
+        get: operations["summary_api_v1_me_data_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Entries in a date range */
+        get: operations["list_entries_api_v1_me_schedule_get"];
+        put?: never;
+        /** Schedule an activity (a retry with the same client_request_id returns the first, 200) */
+        post: operations["create_entry_api_v1_me_schedule_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/schedule/schedulable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What you could schedule */
+        get: operations["schedulable_api_v1_me_schedule_schedulable_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/schedule/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Time zone and reminders */
+        get: operations["get_settings_api_v1_me_schedule_settings_get"];
+        /** Change them */
+        put: operations["put_settings_api_v1_me_schedule_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/schedule/export.ics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download selected entries (ids) or a date range as an .ics file */
+        get: operations["export_ics_api_v1_me_schedule_export_ics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/schedule/{entry_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One entry */
+        get: operations["get_entry_api_v1_me_schedule__entry_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Move it */
+        patch: operations["move_entry_api_v1_me_schedule__entry_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/me/schedule/{entry_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel it */
+        post: operations["cancel_entry_api_v1_me_schedule__entry_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/schedule/{entry_id}/follows-interview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Keep interview preparation relative to its interview, or fixed (the default)
+         * @description Following the interview never moves the entry by itself: after a reschedule, GET /me/applications/{app}/events/{event}/prep previews a move and only selected entries move.
+         */
+        put: operations["follow_interview_api_v1_me_schedule__entry_id__follows_interview_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -281,6 +3354,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ai/review/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What a code review would send to the coach, exactly (no provider call, no budget) */
+        post: operations["review_preview_api_v1_ai_review_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/explain-failure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Explain why a judged submission failed (public evidence only; cached per submission) */
+        post: operations["explain_failure_api_v1_ai_explain_failure_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ai/usage": {
         parameters: {
             query?: never;
@@ -315,6 +3422,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/ai-history/{interaction_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One saved hint, review or failure explanation (owner only) */
+        get: operations["ai_history_item_api_v1_me_ai_history__interaction_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/interviews": {
         parameters: {
             query?: never;
@@ -327,6 +3451,23 @@ export interface paths {
         put?: never;
         /** Start a timed mock interview (one active interview per user) */
         post: operations["start_api_v1_interviews_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interviews/formats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Question-round formats for a career and level: which are available, and their structure */
+        get: operations["list_formats_api_v1_interviews_formats_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -361,6 +3502,125 @@ export interface paths {
         put?: never;
         /** Send the candidate's answer (and current code); returns the interviewer's reply */
         post: operations["respond_api_v1_interviews__interview_id__messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interviews/{interview_id}/answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Question rounds: answer the current question (idempotent per question) */
+        post: operations["answer_question_api_v1_interviews__interview_id__answers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interviews/{interview_id}/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Question rounds: skip the current question (idempotent per question) */
+        post: operations["skip_question_api_v1_interviews__interview_id__skip_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interviews/{interview_id}/followup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Question rounds: answer the pending follow-up (then the next question is asked) */
+        post: operations["answer_followup_api_v1_interviews__interview_id__followup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interviews/{interview_id}/followup/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Question rounds: skip the pending follow-up */
+        post: operations["skip_followup_api_v1_interviews__interview_id__followup_skip_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interviews/{interview_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Structured review of a finished interview: timeline, feedback dimensions, improvements */
+        get: operations["review_api_v1_interviews__interview_id__review_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interviews/{interview_id}/questions/{index}/retries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry one question of a finished round; the original answer is kept and compared */
+        post: operations["retry_question_api_v1_interviews__interview_id__questions__index__retries_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interviews/{interview_id}/questions/{index}/comparison": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The original answer to a question next to its retries */
+        get: operations["compare_question_api_v1_interviews__interview_id__questions__index__comparison_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -452,6 +3712,569 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Everything you've practised, newest first, across careers (filterable) */
+        get: operations["activity_api_v1_me_activity_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/activity/facets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Filter options for your activity: careers, types, statuses and (for one career) skills */
+        get: operations["activity_facets_api_v1_me_activity_facets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/careers/{slug}/analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your analytics for one career's questions over a date range (any career, not only your current one) */
+        get: operations["career_analytics_api_v1_me_careers__slug__analytics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/careers/{slug}/analytics/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every answer in an analytics range: in the trend or why not, each compared with the one before it */
+        get: operations["career_chart_attempts_api_v1_me_careers__slug__analytics_attempts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Saved work to continue: an interview in progress, an unsolved problem, your last question */
+        get: operations["resume_api_v1_me_resume_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/requests/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What a request you sent with this key made (read-only)
+         * @description A page that lost a reply, then was reloaded, asks here before offering to send again: did
+         *     the request arrive, and what did it make? Only your own records are searched. It reads and
+         *     never creates; 404 means the server has no record (it never arrived, or what it made has been
+         *     deleted since). 429 `request_in_progress` means a coaching request of yours is still being
+         *     answered (PostgreSQL), so there's no record yet: ask again after `Retry-After`. The key is
+         *     never permission for anything: it only finds your own record.
+         */
+        get: operations["request_outcome_api_v1_me_requests__key__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/recent-work": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A few of your recent records to continue, newest first (titles and times only) */
+        get: operations["recent_api_v1_me_recent_work_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Search your own notes, stories, interview-day kits and applications */
+        post: operations["search_workspace_api_v1_me_search_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/goals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your goals for a career */
+        get: operations["get_goals_api_v1_me_goals_get"];
+        /** Save goals (every field optional; set setup_skipped to start with defaults). Progress is kept. */
+        put: operations["put_goals_api_v1_me_goals_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your practice plan for a career, today's session for the time you have, and your baseline */
+        get: operations["get_plan_api_v1_me_plan_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/plan/items/{item_id}/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set an activity aside (it's recorded as skipped, never as done) */
+        post: operations["skip_item_api_v1_me_plan_items__item_id__skip_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/plan/items/{item_id}/replace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Swap an activity for another one of the same kind and skill; returns the new activity */
+        post: operations["replace_item_api_v1_me_plan_items__item_id__replace_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/plan/items/{item_id}/reviewed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a 'review feedback' activity as read (self-reported; other activities complete from your work) */
+        post: operations["mark_reviewed_api_v1_me_plan_items__item_id__reviewed_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your spaced review queue */
+        get: operations["review_queue_api_v1_me_reviews_get"];
+        put?: never;
+        /** Save a question for spaced review (saving it again is a no-op) */
+        post: operations["add_review_api_v1_me_reviews_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/reviews/{item_id}/snooze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Snooze a review by 1, 3 or 7 days */
+        post: operations["snooze_review_api_v1_me_reviews__item_id__snooze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/reviews/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a question from the queue */
+        delete: operations["remove_review_api_v1_me_reviews__item_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/targets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your saved target roles */
+        get: operations["list_targets_api_v1_targets_get"];
+        put?: never;
+        /** Save a target role from a pasted job description (requirements are extracted by rules; no AI) */
+        post: operations["create_target_api_v1_targets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A target with its preparation map */
+        get: operations["get_target_api_v1_targets__target_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete a target (attempts are kept) */
+        delete: operations["delete_target_api_v1_targets__target_id__delete"];
+        options?: never;
+        head?: never;
+        /** Edit, archive or select a target. Editing the description keeps requirements and attempts */
+        patch: operations["update_target_api_v1_targets__target_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}/extract": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Find requirements in the current description again (adds new ones only) */
+        post: operations["reextract_api_v1_targets__target_id__extract_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}/requirements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save the requirement set against the revision you loaded (409 stale_revision if it changed) */
+        put: operations["save_requirements_api_v1_targets__target_id__requirements_put"];
+        /** Add your own requirement */
+        post: operations["add_requirement_api_v1_targets__target_id__requirements_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}/requirements/{requirement_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Correct, re-map, remove or restore a requirement */
+        patch: operations["patch_requirement_api_v1_targets__target_id__requirements__requirement_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}/requirements/revision/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What saving this requirement set would change: changed, added, removed, unchanged (nothing saved) */
+        post: operations["preview_requirements_api_v1_targets__target_id__requirements_revision_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}/requirements/{requirement_id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every recorded version of a requirement, removed ones too */
+        get: operations["requirement_history_api_v1_targets__target_id__requirements__requirement_id__history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}/experience/{entry_id}/requirements/{requirement_id}/reuse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Use this story for the requirement's current wording (recorded as a reuse) */
+        post: operations["reuse_story_api_v1_targets__target_id__experience__entry_id__requirements__requirement_id__reuse_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}/experience/{entry_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refresh a story's requirement links to the version you reviewed, or keep them as linked */
+        post: operations["review_story_links_api_v1_targets__target_id__experience__entry_id__review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}/actions/{action_id}/requirements/{requirement_id}/reuse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Use this accepted improvement for the requirement's current wording (recorded as a reuse) */
+        post: operations["reuse_action_api_v1_targets__target_id__actions__action_id__requirements__requirement_id__reuse_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}/experience": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add one of your own examples */
+        post: operations["add_experience_api_v1_targets__target_id__experience_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}/experience/{entry_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Edit one of your examples */
+        put: operations["edit_experience_api_v1_targets__target_id__experience__entry_id__put"];
+        post?: never;
+        /** Delete one of your examples */
+        delete: operations["delete_experience_api_v1_targets__target_id__experience__entry_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Features available on this deployment */
+        get: operations["capabilities_api_v1_capabilities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/demo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The demo's fictional sample learners and their example answers (demo servers only)
+         * @description A read-only sample, the same for every visitor; each visitor's own work is in their own
+         *     guest session. Only the sample learners' rows are read.
+         */
+        get: operations["demo_api_v1_demo_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telemetry/ui": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Report how a round action ended in the browser (outcome and timing only) */
+        post: operations["ui_events_api_v1_telemetry_ui_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/traces/{lookup}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin: one action's trace (server spans and browser reports) by trace id or request id */
+        get: operations["get_trace_api_v1_admin_traces__lookup__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -496,6 +4319,194 @@ export interface components {
             /** Provider */
             provider: string;
         };
+        /** AcceptedResponse */
+        AcceptedResponse: {
+            /**
+             * Status
+             * @default accepted
+             */
+            status: string;
+            /** Message */
+            message: string;
+        };
+        /**
+         * ActionAccept
+         * @description Accept one suggested improvement. The suggestion is the identity: accepting it again (a double
+         *     click, another tab, a resend after a lost reply) returns the action it made, never a second one.
+         */
+        ActionAccept: {
+            source: components["schemas"]["ActionSourceIn"];
+            /**
+             * Recurrence
+             * @default once
+             * @enum {string}
+             */
+            recurrence: "once" | "weekly";
+        };
+        /**
+         * ActionLink
+         * @description An accepted improvement that practises a question this requirement maps to, and the version
+         *     of the requirement it was accepted against.
+         */
+        ActionLink: {
+            /** Action Id */
+            action_id: string;
+            /** Title */
+            title: string;
+            /** Requirement Id */
+            requirement_id: string;
+            /**
+             * Linked Version
+             * @description The version in effect when it was accepted; null: not recorded
+             */
+            linked_version: number | null;
+            /** Current Version */
+            current_version: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "current" | "earlier_wording" | "not_recorded" | "removed";
+            /**
+             * Label
+             * @description About the link, never the learner
+             */
+            label: string;
+            /** Reused From */
+            reused_from: number | null;
+        };
+        /** ActionOut */
+        ActionOut: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Notes */
+            notes: string;
+            /** Practice Href */
+            practice_href: string | null;
+            /** Practice Label */
+            practice_label: string | null;
+            /**
+             * Recurrence
+             * @enum {string}
+             */
+            recurrence: "once" | "weekly";
+            /**
+             * Status
+             * @description A one-off is done when you say so; a weekly action stays open (each occurrence is done or not)
+             * @enum {string}
+             */
+            status: "open" | "done";
+            /** Done At */
+            done_at: string | null;
+            source: components["schemas"]["ActionSource"];
+            /** Occurrences */
+            occurrences: components["schemas"]["OccurrenceOut"][];
+            /**
+             * Attempts Since
+             * @description Practice of its target since you accepted it (null when that can't be counted)
+             */
+            attempts_since: number | null;
+            /** @description It came from a feedback point you've disputed since. It stays as it is: you decide (docs/DISPUTES.md) */
+            disputed?: components["schemas"]["DisputeNote"] | null;
+            /** Revision */
+            revision: number;
+            /** @description Only on a save recovered by its key: see SaveReplay */
+            save_replay?: components["schemas"]["SaveReplay"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ActionSource */
+        ActionSource: {
+            /**
+             * Kind
+             * @constant
+             */
+            kind: "interview_improvement";
+            /** Interview Id */
+            interview_id: string;
+            /** Key */
+            key: string;
+            /**
+             * Label
+             * @description The improvement as it was titled when you accepted it
+             */
+            label: string;
+            /**
+             * Why
+             * @description The feedback it came from, as it read when you accepted it
+             */
+            why: string;
+            /** Interview Title */
+            interview_title: string;
+            /** Interview Date */
+            interview_date: string | null;
+            /** Versions */
+            versions?: components["schemas"]["ActionVersion"][];
+            /**
+             * Available
+             * @description False when the interview it came from no longer exists
+             */
+            available: boolean;
+        };
+        /** ActionSourceIn */
+        ActionSourceIn: {
+            /**
+             * Kind
+             * @default interview_improvement
+             * @constant
+             */
+            kind: "interview_improvement";
+            /** Interview Id */
+            interview_id: string;
+            /**
+             * Key
+             * @description The improvement's `key` in the interview review
+             */
+            key: string;
+        };
+        /**
+         * ActionUpdate
+         * @description Rename it or change its notes, against the revision you loaded (409 stale_revision with the
+         *     saved action in details.current if it changed since).
+         */
+        ActionUpdate: {
+            /** Title */
+            title?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Recurrence
+             * @description Once or weekly: only while nothing is on the schedule for it and it isn't marked done
+             */
+            recurrence?: ("once" | "weekly") | null;
+            /** Expected Revision */
+            expected_revision: number;
+            /**
+             * Client Request Id
+             * @description One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before.
+             */
+            client_request_id?: string | null;
+        };
+        /** ActionVersion */
+        ActionVersion: {
+            /** Question */
+            question: string;
+            /**
+             * Version
+             * @description The question's version in the answer the feedback came from
+             */
+            version: number;
+        };
         /** ActivityDay */
         ActivityDay: {
             /**
@@ -506,12 +4517,1199 @@ export interface components {
             /** Events */
             events: number;
         };
+        /** ActivityFacets */
+        ActivityFacets: {
+            /** Careers */
+            careers: components["schemas"]["FacetOption"][];
+            /** Types */
+            types: components["schemas"]["FacetOption"][];
+            /** Statuses */
+            statuses: components["schemas"]["FacetOption"][];
+            /**
+             * Skills
+             * @description For the chosen career, or empty when none is chosen
+             */
+            skills: components["schemas"]["FacetOption"][];
+        };
+        /** ActivityItem */
+        ActivityItem: {
+            /**
+             * Id
+             * @description Stable: '<type>:<source id>'
+             */
+            id: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "problem_opened" | "code_submission" | "coaching" | "written_answer" | "interview";
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /**
+             * Career
+             * @description A career slug, or 'coding' for coding problems
+             */
+            career: string;
+            /** Career Title */
+            career_title: string;
+            /** Title */
+            title: string;
+            /**
+             * Detail
+             * @description e.g. 'Hint, level 2' or 'Interview, 3 of 5 answered'
+             */
+            detail: string | null;
+            /** Skills */
+            skills: string[];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "opened" | "saved_not_judged" | "awaiting_judge" | "passed" | "failed" | "evaluation_unavailable" | "scored" | "too_short" | "completed" | "in_progress" | "expired" | "abandoned";
+            /** Status Label */
+            status_label: string;
+            /**
+             * Score
+             * @description Written answers only: 0-100 rubric score (not correctness)
+             */
+            score: number | null;
+            /**
+             * Session Id
+             * @description The interview this activity was part of, if any
+             */
+            session_id: string | null;
+            target: components["schemas"]["ActivityTarget"];
+        };
+        /**
+         * ActivityTarget
+         * @description Where the row opens: a page path plus the stable ids it refers to.
+         */
+        ActivityTarget: {
+            /** Href */
+            href: string;
+            /** Problem Slug */
+            problem_slug?: string | null;
+            /** Track */
+            track?: string | null;
+            /** Question Id */
+            question_id?: string | null;
+            /** Submission Id */
+            submission_id?: string | null;
+            /** Answer Id */
+            answer_id?: string | null;
+            /** Interview Id */
+            interview_id?: string | null;
+            /** Ai Interaction Id */
+            ai_interaction_id?: string | null;
+        };
+        /** AdminReport */
+        AdminReport: {
+            /** Id */
+            id: string;
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "question" | "problem";
+            /** Content Id */
+            content_id: string;
+            /** Content Title */
+            content_title: string;
+            /** Content Href */
+            content_href: string | null;
+            /** Content Version */
+            content_version: number;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "ambiguous_wording" | "incorrect_example" | "outdated_guidance" | "wrong_career_topic" | "accessibility" | "technical_bug" | "other";
+            /**
+             * Context
+             * @enum {string}
+             */
+            context: "content" | "feedback";
+            /** Details */
+            details: string;
+            /** Excerpt */
+            excerpt: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "investigating" | "resolved" | "not_actionable";
+            /** Resolution */
+            resolution: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Reporter
+             * @description Who reported it: display name or 'A learner'; never an email
+             */
+            reporter: string;
+            /** Duplicate Of */
+            duplicate_of: string | null;
+            /** Duplicates */
+            duplicates: string[];
+            /** Current Version */
+            current_version: number;
+        };
+        /** AdminReportDetail */
+        AdminReportDetail: {
+            /** Id */
+            id: string;
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "question" | "problem";
+            /** Content Id */
+            content_id: string;
+            /** Content Title */
+            content_title: string;
+            /** Content Href */
+            content_href: string | null;
+            /** Content Version */
+            content_version: number;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "ambiguous_wording" | "incorrect_example" | "outdated_guidance" | "wrong_career_topic" | "accessibility" | "technical_bug" | "other";
+            /**
+             * Context
+             * @enum {string}
+             */
+            context: "content" | "feedback";
+            /** Details */
+            details: string;
+            /** Excerpt */
+            excerpt: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "investigating" | "resolved" | "not_actionable";
+            /** Resolution */
+            resolution: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Reporter
+             * @description Who reported it: display name or 'A learner'; never an email
+             */
+            reporter: string;
+            /** Duplicate Of */
+            duplicate_of: string | null;
+            /** Duplicates */
+            duplicates: string[];
+            /** Current Version */
+            current_version: number;
+            /** Audit */
+            audit: components["schemas"]["AuditEntry"][];
+            meta: components["schemas"]["ContentMeta"];
+        };
+        /** Alternative */
+        Alternative: {
+            /** Label */
+            label: string;
+            /**
+             * Quality
+             * @enum {string}
+             */
+            quality: "strong" | "acceptable" | "risky";
+            /** Rule */
+            rule: string;
+        };
+        /** AnswerOut */
+        AnswerOut: {
+            /** Id */
+            id: string;
+            /** Question Id */
+            question_id: string;
+            /** Answer */
+            answer: string;
+            /** Score */
+            score: number;
+            /** Rating */
+            rating: string;
+            /** Summary */
+            summary: string;
+            /** Points */
+            points: components["schemas"]["FeedbackPoint"][];
+            /** Notes */
+            notes: string[];
+            /**
+             * Outline
+             * @description What a strong answer would include
+             */
+            outline: string[];
+            /** Word Count */
+            word_count: number;
+            /**
+             * Coach
+             * @description Which coach graded it: 'built-in (offline)' or the AI provider
+             */
+            coach: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Content Version
+             * @description The question's version when this was answered
+             * @default 1
+             */
+            content_version: number;
+            /**
+             * Story Id
+             * @description The story this answer rehearsed, if any
+             */
+            story_id?: string | null;
+            /**
+             * Rubric Version
+             * @description The rubric the coach used
+             * @default v1
+             */
+            rubric_version: string;
+            /**
+             * Evidence Level
+             * @description insufficient: too short to evaluate, so no score should be shown. unknown: an answer stored without either its evidence level or its word count, so whether it could be scored isn't known; its score counts nowhere (app/careers/eligibility.py)
+             * @default sufficient
+             * @enum {string}
+             */
+            evidence_level: "sufficient" | "insufficient" | "unknown";
+            /**
+             * Track
+             * @description The career this answer was written for
+             */
+            track?: string | null;
+            /**
+             * Evaluation Status
+             * @description Whether this career's written-answer feedback has been measured (app/careers/support.py)
+             * @default not_measured
+             * @enum {string}
+             */
+            evaluation_status: "measured" | "not_measured";
+            /**
+             * Evaluation Note
+             * @description One line for the learner about what that means
+             * @default
+             */
+            evaluation_note: string;
+            /**
+             * Revises Answer Id
+             * @description Your earlier answer to this question that this one explicitly revises (None when it doesn't, for every answer saved before revision links existed, and when that earlier answer was deleted). A link says where a try came from; it doesn't make two scores comparable.
+             */
+            revises_answer_id?: string | null;
+            /**
+             * Follows Up Answer Id
+             * @description The earlier answer to a related question this one was offered after (a reviewed follow-up)
+             */
+            follows_up_answer_id?: string | null;
+            /** @description The in-app help shown for this question and version before this answer (docs/ATTEMPT_CONDITIONS.md). It changes no score. */
+            conditions?: components["schemas"]["AttemptConditions"] | null;
+            /** @description In a question's list of your answers: this answer compared with the one before it (none for the first) */
+            comparison?: components["schemas"]["AttemptComparison"] | null;
+        };
+        /** AnswerPerspective */
+        AnswerPerspective: {
+            /** Criterion */
+            criterion: string;
+            /**
+             * Yours
+             * @description Your rating, if you gave one
+             */
+            yours: ("no" | "partly" | "yes") | null;
+            /**
+             * Coach
+             * @description Whether the coach found it in your words
+             */
+            coach: boolean;
+        };
+        /** AnswerRequest */
+        AnswerRequest: {
+            /** Answer */
+            answer: string;
+            /**
+             * Story Id
+             * @description One of your stories this answer rehearses (it isn't changed)
+             */
+            story_id?: string | null;
+            /**
+             * Client Request Id
+             * @description Your key for this request (e.g. a UUID), when the server says it supports them (`/capabilities` `answer_request_keys`). Resending the same request with the same key returns the answer it saved (200, `Idempotent-Replayed: true`) instead of saving another; the same key with a different request is refused (409 `idempotency_key_reused`). Keys belong to your account: another account's identical key is a different key. Use a new key for a new try.
+             */
+            client_request_id?: string | null;
+            /**
+             * Revises Answer Id
+             * @description One of your own earlier answers to this same question that this answer revises (404 if it isn't yours or doesn't exist; 400 `revision_other_question` if it's for another question). Only set it for an explicit revision.
+             */
+            revises_answer_id?: string | null;
+            /**
+             * Follows Up Answer Id
+             * @description Answering an offered follow-up (docs/FOLLOW_UPS.md): your own earlier answer to the question this one follows up (404 if it isn't yours or doesn't exist; 400 `not_a_follow_up` if no reviewed relationship links the two questions). Both answers keep their own score.
+             */
+            follows_up_answer_id?: string | null;
+        };
+        /** AnswerReviewOut */
+        AnswerReviewOut: {
+            answer: components["schemas"]["AnswerOut"];
+            self_review: components["schemas"]["SelfReviewOut"] | null;
+            /** Perspectives */
+            perspectives: components["schemas"]["AnswerPerspective"][];
+            /** Repeated */
+            repeated: components["schemas"]["RepeatedArea"][];
+            /** Flags */
+            flags: components["schemas"]["FlagOut"][];
+            /**
+             * Evaluations
+             * @description Later evaluations; the original result is never replaced
+             */
+            evaluations: components["schemas"]["EvaluationOut"][];
+            /** Can Reevaluate */
+            can_reevaluate: boolean;
+            /** Reevaluate Note */
+            reevaluate_note: string;
+        };
+        /** ApplicationCreate */
+        ApplicationCreate: {
+            /** Employer */
+            employer: string;
+            /** Role Title */
+            role_title: string;
+            /** Link */
+            link?: string | null;
+            /** Applied On */
+            applied_on?: string | null;
+            /** Next Action */
+            next_action?: string | null;
+            /** Next Action Due */
+            next_action_due?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Target Id */
+            target_id?: string | null;
+            /** Story Ids */
+            story_ids?: string[] | null;
+            /**
+             * Stage
+             * @default saved
+             * @enum {string}
+             */
+            stage: "saved" | "applied" | "interviewing" | "offer" | "closed" | "withdrawn";
+            /**
+             * Client Request Id
+             * @description Repeat the same id to retry safely: one application is created
+             */
+            client_request_id?: string | null;
+        };
+        /** ApplicationEventIn */
+        ApplicationEventIn: {
+            /**
+             * Kind
+             * @default interview
+             * @enum {string}
+             */
+            kind: "phone_screen" | "interview" | "assessment" | "other";
+            /** Title */
+            title: string;
+            /**
+             * On Date
+             * @description Unknown is fine
+             */
+            on_date?: string | null;
+            /**
+             * Local Time
+             * @description 24-hour HH:MM, in `timezone`
+             */
+            local_time?: string | null;
+            /**
+             * Timezone
+             * @description IANA name, e.g. America/Chicago
+             */
+            timezone?: string | null;
+            /**
+             * Fold
+             * @description For a time that happens twice: 0 first, 1 second
+             */
+            fold?: number | null;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+            /** Client Request Id */
+            client_request_id?: string | null;
+        };
+        /** ApplicationEventOut */
+        ApplicationEventOut: {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "phone_screen" | "interview" | "assessment" | "other";
+            /** Title */
+            title: string;
+            /** On Date */
+            on_date: string | null;
+            /** Local Time */
+            local_time: string | null;
+            /** Timezone */
+            timezone: string | null;
+            /**
+             * Starts At
+             * @description Exact instant (UTC), only when date, time and zone are known
+             */
+            starts_at: string | null;
+            /** Notes */
+            notes: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ApplicationOut */
+        ApplicationOut: {
+            /** Id */
+            id: string;
+            /** Employer */
+            employer: string;
+            /** Role Title */
+            role_title: string;
+            /**
+             * Stage
+             * @enum {string}
+             */
+            stage: "saved" | "applied" | "interviewing" | "offer" | "closed" | "withdrawn";
+            /** Applied On */
+            applied_on: string | null;
+            /** Next Action */
+            next_action: string;
+            /** Next Action Due */
+            next_action_due: string | null;
+            /** @description The linked job target */
+            target: components["schemas"]["ApplicationTargetLink"] | null;
+            /** Archived */
+            archived: boolean;
+            next_event: components["schemas"]["ApplicationEventOut"] | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Link */
+            link: string | null;
+            /** Notes */
+            notes: string;
+            /**
+             * Notes Revision
+             * @description Send it back as notes_expected_revision when changing the notes
+             */
+            notes_revision: number;
+            /** @description Only on a save recovered by its key: see SaveReplay */
+            save_replay?: components["schemas"]["SaveReplay"] | null;
+            /** Stories */
+            stories: components["schemas"]["ApplicationStoryLink"][];
+            /** Events */
+            events: components["schemas"]["ApplicationEventOut"][];
+            /** History */
+            history: components["schemas"]["ApplicationStageChangeOut"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ApplicationStageChangeOut */
+        ApplicationStageChangeOut: {
+            /** From Stage */
+            from_stage: ("saved" | "applied" | "interviewing" | "offer" | "closed" | "withdrawn") | null;
+            /**
+             * To Stage
+             * @enum {string}
+             */
+            to_stage: "saved" | "applied" | "interviewing" | "offer" | "closed" | "withdrawn";
+            /** Correction */
+            correction: boolean;
+            /** Note */
+            note: string;
+            /**
+             * Role Title
+             * @description As it was when the stage changed
+             */
+            role_title: string;
+            /**
+             * Employer
+             * @description As it was when the stage changed
+             */
+            employer: string;
+            /**
+             * Changed At
+             * Format: date-time
+             */
+            changed_at: string;
+        };
+        /** ApplicationStageIn */
+        ApplicationStageIn: {
+            /**
+             * Stage
+             * @enum {string}
+             */
+            stage: "saved" | "applied" | "interviewing" | "offer" | "closed" | "withdrawn";
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Correction
+             * @description true: fixing a mistake, not a new development
+             * @default false
+             */
+            correction: boolean;
+        };
+        /** ApplicationStoryLink */
+        ApplicationStoryLink: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /**
+             * Archived
+             * @description Archived in the story bank; still linked here
+             * @default false
+             */
+            archived: boolean;
+        };
+        /** ApplicationSummary */
+        ApplicationSummary: {
+            /** Id */
+            id: string;
+            /** Employer */
+            employer: string;
+            /** Role Title */
+            role_title: string;
+            /**
+             * Stage
+             * @enum {string}
+             */
+            stage: "saved" | "applied" | "interviewing" | "offer" | "closed" | "withdrawn";
+            /** Applied On */
+            applied_on: string | null;
+            /** Next Action */
+            next_action: string;
+            /** Next Action Due */
+            next_action_due: string | null;
+            /** @description The linked job target */
+            target: components["schemas"]["ApplicationTargetLink"] | null;
+            /** Archived */
+            archived: boolean;
+            next_event: components["schemas"]["ApplicationEventOut"] | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ApplicationTargetLink */
+        ApplicationTargetLink: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+        };
+        /** ApplicationUpdate */
+        ApplicationUpdate: {
+            /** Employer */
+            employer?: string | null;
+            /** Role Title */
+            role_title?: string | null;
+            /** Link */
+            link?: string | null;
+            /** Applied On */
+            applied_on?: string | null;
+            /** Next Action */
+            next_action?: string | null;
+            /** Next Action Due */
+            next_action_due?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Target Id */
+            target_id?: string | null;
+            /** Story Ids */
+            story_ids?: string[] | null;
+            /**
+             * Clear
+             * @description Fields to empty (a date or link that turned out to be wrong)
+             */
+            clear?: ("link" | "applied_on" | "next_action_due" | "target_id")[];
+            /**
+             * Notes Expected Revision
+             * @description Required when `notes` changes them (Volume 8, prompt 5): the `notes_revision` your edit started from. A newer one is a 409 `notes_conflict` with your saved notes; without it, a notes change is a 428 `notes_revision_required`. Other fields never need it.
+             */
+            notes_expected_revision?: number | null;
+            /**
+             * Client Request Id
+             * @description One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before.
+             */
+            client_request_id?: string | null;
+        };
+        /** AskQuestion */
+        AskQuestion: {
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+            /**
+             * Group
+             * @default other
+             * @enum {string}
+             */
+            group: "role" | "team" | "training" | "workflow" | "next_steps" | "other";
+            /**
+             * Origin
+             * @enum {string}
+             */
+            origin: "suggested" | "yours";
+            /**
+             * Excluded
+             * @default false
+             */
+            excluded: boolean;
+            /**
+             * Note
+             * @description Why it was suggested, or a caution
+             */
+            note?: string | null;
+        };
+        /** AssessmentOut */
+        AssessmentOut: {
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "building_baseline" | "baseline_ready";
+            /** Note */
+            note: string;
+            /**
+             * Self Reported
+             * @description What you said; not a measurement
+             */
+            self_reported: components["schemas"]["SelfRating"][];
+            /**
+             * Evaluated
+             * @description Rubric scores of your answers; not correctness
+             */
+            evaluated: components["schemas"]["EvaluatedSkill"][];
+            /** @description Judge results only; null for careers without coding */
+            coding: components["schemas"]["CodingEvidence"] | null;
+        };
+        /**
+         * AttemptComparison
+         * @description One attempt compared with the one before it, by the one comparison contract
+         *     (app/careers/comparability.py; docs/COMPARING_ATTEMPTS.md). The same pair reads the same on
+         *     every page.
+         */
+        AttemptComparison: {
+            /**
+             * Against
+             * @description The earlier answer it's compared with (the one it revises, else the one before)
+             */
+            against: string;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "comparable" | "partially_comparable" | "incompatible" | "unknown";
+            /**
+             * Scores Comparable
+             * @description Whether the two scores may be set side by side as a change
+             */
+            scores_comparable: boolean;
+            /**
+             * Points Comparable
+             * @description Whether what was written (the points covered) compares
+             */
+            points_comparable: boolean;
+            /** Reasons */
+            reasons: components["schemas"]["ComparisonReason"][];
+            /** Explanation */
+            explanation: string;
+            /**
+             * Contract Version
+             * @description The version of the comparison rules that decided it
+             */
+            contract_version: number;
+        };
+        /** AttemptConditions */
+        AttemptConditions: {
+            /**
+             * Labels
+             * @description 'Hint shown' and/or 'Solution revealed'; or 'No in-app help recorded'; or 'Not recorded' for an attempt from before recording began with nothing to go on
+             */
+            labels: ("Hint shown" | "Solution revealed" | "No in-app help recorded" | "Not recorded")[];
+            /**
+             * Help
+             * @description Each piece of help shown before this attempt, oldest first
+             */
+            help: components["schemas"]["HelpShown"][];
+            /**
+             * Recorded From
+             * Format: date
+             * @description When recording began
+             */
+            recorded_from: string;
+            /**
+             * Note
+             * @description One line on what isn't observed
+             */
+            note: string;
+        };
+        /** AttemptOut */
+        AttemptOut: {
+            /** Answer Id */
+            answer_id: string;
+            /** Question Title */
+            question_title: string;
+            /** Score */
+            score: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Href */
+            href: string;
+            /** Requirement Ids */
+            requirement_ids: string[];
+            /**
+             * Requirement Versions
+             * @description Each linked requirement's version when this was answered (null: not recorded)
+             */
+            requirement_versions?: {
+                [key: string]: number | null;
+            };
+        };
+        /** AuditEntry */
+        AuditEntry: {
+            /** Action */
+            action: string;
+            /** Actor */
+            actor: string | null;
+            /** Detail */
+            detail: {
+                [key: string]: unknown;
+            };
+            /** Internal Note */
+            internal_note: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** BatchResult */
+        BatchResult: {
+            /**
+             * Key
+             * @description The item as sent: 'type:track:ref' for an add, the item id for a remove
+             */
+            key: string;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "added" | "already_there" | "unavailable" | "full" | "removed" | "not_there" | "repeated";
+            /** Message */
+            message: string;
+        };
+        /** BookmarkOut */
+        BookmarkOut: {
+            /**
+             * Item Type
+             * @enum {string}
+             */
+            item_type: "question" | "problem" | "drill";
+            /** Track */
+            track: string;
+            /** Ref Id */
+            ref_id: string;
+            /** Title */
+            title: string;
+            /** Href */
+            href: string | null;
+            /** Available */
+            available: boolean;
+            /**
+             * Unavailable Reason
+             * @description e.g. 'Retired: …' (still readable)
+             */
+            unavailable_reason?: string | null;
+            /**
+             * Content Version
+             * @description Questions: the version when it was saved
+             */
+            content_version?: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** Capabilities */
+        Capabilities: {
+            /**
+             * Execution Enabled
+             * @description Submissions are judged and `mode: run` is available. When false, submissions are saved but not run, and runs are refused with 503 `execution_disabled`.
+             */
+            execution_enabled: boolean;
+            /**
+             * Ai Provider
+             * @description Which AI coach answers by default
+             * @enum {string}
+             */
+            ai_provider: "offline" | "anthropic";
+            execution: components["schemas"]["ExecutionStatus"];
+            /**
+             * Guest Retention Days
+             * @description Guest accounts inactive this long are deleted with their data (0: kept forever)
+             */
+            guest_retention_days: number;
+            /**
+             * Ui Telemetry
+             * @description The app may report how its round actions ended (outcome and timing only) to POST /api/v1/telemetry/ui
+             * @default false
+             */
+            ui_telemetry: boolean;
+            /**
+             * Emails Delivered
+             * @description False on a development server with no mail server set up: emails (verification codes, reset links) are printed in the server's terminal instead of being sent. Always true in production, which refuses to start without one.
+             * @default true
+             */
+            emails_delivered: boolean;
+            /**
+             * Answer Request Keys
+             * @description Career answers accept `client_request_id`, and this server keeps at most one saved answer per account and key (a resend returns the saved answer). Absent or false (older servers): a key is ignored, so it promises nothing.
+             * @default false
+             */
+            answer_request_keys: boolean;
+            /**
+             * Demo Mode
+             * @description A portfolio demo with fictional data (GET /api/v1/demo): visitors use guest sessions, and nothing that sends email is available.
+             * @default false
+             */
+            demo_mode: boolean;
+        };
+        /** CareerAnalytics */
+        CareerAnalytics: {
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /**
+             * Since
+             * @description Start of the range (inclusive); null means all time
+             */
+            since: string | null;
+            /**
+             * Until
+             * Format: date
+             */
+            until: string;
+            /** Questions Practiced */
+            questions_practiced: number;
+            /** Answers */
+            answers: number;
+            /**
+             * Strong Questions
+             * @description Questions whose best score is 85 or more
+             */
+            strong_questions: number;
+            /** Total Questions */
+            total_questions: number;
+            /**
+             * Skills
+             * @description Every skill this career's questions practise, practised or not
+             */
+            skills: components["schemas"]["SkillStat"][];
+            /** Kinds */
+            kinds: components["schemas"]["FacetOption"][];
+            interviews: components["schemas"]["InterviewCounts"];
+            /** Trends */
+            trends: components["schemas"]["TrendSeries"][];
+            /**
+             * Not In Trend
+             * @description Answers in the range that the trend doesn't count, by reason
+             */
+            not_in_trend?: components["schemas"]["NotCounted"][];
+            /**
+             * Comparison Rules
+             * @description The comparison contract's version that decided this
+             * @default 1
+             */
+            comparison_rules: number;
+            /** By Day */
+            by_day: components["schemas"]["DayCount"][];
+            /** Definitions */
+            definitions: {
+                [key: string]: string;
+            };
+        };
+        /** CareerCount */
+        CareerCount: {
+            /** Track */
+            track: string;
+            /** Title */
+            title: string;
+            /** Scenarios */
+            scenarios: number;
+        };
+        /** CareerCoverage */
+        CareerCoverage: {
+            /** Track */
+            track: string;
+            /** Title */
+            title: string;
+            /** Units */
+            units: number;
+        };
+        /**
+         * CareerIntro
+         * @description Offered once after a career change: how practice works for the new career's format.
+         */
+        CareerIntro: {
+            /** Track */
+            track: string;
+            /** Title */
+            title: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "written" | "coding";
+        };
+        /** CareerSummary */
+        CareerSummary: {
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+            /** Category */
+            category: string;
+            /** Summary */
+            summary: string;
+            /**
+             * Has Coding
+             * @description Also has hands-on coding problems (the code judge)
+             */
+            has_coding: boolean;
+            /** Question Count */
+            question_count: number;
+            /**
+             * Answer Feedback
+             * @description measured: written-answer feedback has been checked against labelled example answers for this career (app/careers/support.py); not_measured: general structure checks only
+             * @default not_measured
+             * @enum {string}
+             */
+            answer_feedback: "measured" | "not_measured";
+        };
+        /** ChangeEmailRequest */
+        ChangeEmailRequest: {
+            /**
+             * New Email
+             * Format: email
+             */
+            new_email: string;
+            /**
+             * Password
+             * @description Your current password
+             */
+            password: string;
+        };
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
             /** Current Password */
             current_password: string;
             /** New Password */
             new_password: string;
+        };
+        /** ChartAttempt */
+        ChartAttempt: {
+            /** Answer Id */
+            answer_id: string;
+            /** Question Id */
+            question_id: string;
+            /** Question Title */
+            question_title: string;
+            /** Href */
+            href: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Score
+             * @description Its own score, on its own scale; never converted
+             */
+            score: number;
+            /**
+             * Scoring
+             * @description Long enough to score, too short, or not recorded (app/careers/eligibility.py)
+             * @enum {string}
+             */
+            scoring: "scored" | "too_short" | "unknown";
+            /** Scale */
+            scale: string;
+            /**
+             * Series
+             * @description The trend series it's in, or null when it isn't counted
+             */
+            series: string | null;
+            /**
+             * Not Counted
+             * @description Why it isn't in the trend, when it isn't
+             */
+            not_counted: string | null;
+            /** @description Compared with your answer before it to the same question, by the same contract as the question page and an interview retry */
+            comparison: components["schemas"]["AttemptComparison"] | null;
+        };
+        /** ChartAttempts */
+        ChartAttempts: {
+            /**
+             * Total
+             * @description Answers in the range
+             */
+            total: number;
+            /**
+             * In Chart
+             * @description Of those, in the trend (equals the trend's attempts)
+             */
+            in_chart: number;
+            /** Offset */
+            offset: number;
+            /** Items */
+            items: components["schemas"]["ChartAttempt"][];
+        };
+        /** Check */
+        Check: {
+            /** Text */
+            text: string;
+            /**
+             * Kind
+             * @default deterministic
+             * @constant
+             */
+            kind: "deterministic";
+        };
+        /** CheckIn */
+        CheckIn: {
+            /** Version */
+            version: number;
+            /**
+             * Answers
+             * @description Check question id -> chosen option index
+             */
+            answers: {
+                [key: string]: number;
+            };
+        };
+        /** CheckItemResult */
+        CheckItemResult: {
+            /** Id */
+            id: string;
+            /** Chosen */
+            chosen: number | null;
+            /** Correct */
+            correct: boolean;
+            /** Answer */
+            answer: number;
+            /** Explanation */
+            explanation: string;
+        };
+        /**
+         * CheckQuestionOut
+         * @description A check question without its answer: answers are graded on the server.
+         */
+        CheckQuestionOut: {
+            /** Id */
+            id: string;
+            /** Prompt */
+            prompt: string;
+            /** Options */
+            options: string[];
+        };
+        /** CheckResult */
+        CheckResult: {
+            /** Passed */
+            passed: boolean;
+            /** Correct */
+            correct: number;
+            /** Total */
+            total: number;
+            /** Pass Rule */
+            pass_rule: string;
+            /** Results */
+            results: components["schemas"]["CheckItemResult"][];
+            progress: components["schemas"]["UnitProgress"];
+        };
+        /** ChecklistItem */
+        ChecklistItem: {
+            /** Id */
+            id: string;
+            /**
+             * Text
+             * @description The item's words. For an accepted action (origin 'action') it's the action's title, read each time; what's sent is ignored.
+             * @default
+             */
+            text: string;
+            /**
+             * Origin
+             * @enum {string}
+             */
+            origin: "suggested" | "yours" | "action";
+            /**
+             * Done
+             * @description Ticked. For an accepted action, its own state is used instead.
+             * @default false
+             */
+            done: boolean;
+            /**
+             * Hidden
+             * @default false
+             */
+            hidden: boolean;
+            /**
+             * Action Id
+             * @description origin 'action': the accepted action this item is
+             */
+            action_id?: string | null;
+            /** @description Read only: the action, as it is now */
+            action?: components["schemas"]["KitAction"] | null;
         };
         /**
          * CodeReview
@@ -534,6 +5732,373 @@ export interface components {
              */
             confidence: "low" | "medium" | "high";
         };
+        /** CodingEvidence */
+        CodingEvidence: {
+            /** Judge Available */
+            judge_available: boolean;
+            /** Judged Attempts */
+            judged_attempts: number;
+            /** Passed */
+            passed: number;
+            /** Saved Not Judged */
+            saved_not_judged: number;
+        };
+        /**
+         * CollectionBatchIn
+         * @description Add several items to a collection, or remove several, in one request (docs/BULK_ACTIONS.md).
+         *     Exactly one of `add` and `remove` is given.
+         */
+        CollectionBatchIn: {
+            /** Add */
+            add?: components["schemas"]["CollectionItemIn"][];
+            /**
+             * Remove
+             * @description Item ids of this collection
+             */
+            remove?: string[];
+        };
+        /** CollectionBatchOut */
+        CollectionBatchOut: {
+            collection: components["schemas"]["CollectionOut"];
+            /**
+             * Results
+             * @description One per item sent, in the order sent
+             */
+            results: components["schemas"]["BatchResult"][];
+        };
+        /** CollectionIn */
+        CollectionIn: {
+            /** Name */
+            name: string;
+        };
+        /** CollectionItemIn */
+        CollectionItemIn: {
+            /**
+             * Item Type
+             * @enum {string}
+             */
+            item_type: "question" | "problem" | "drill";
+            /**
+             * Track
+             * @default
+             */
+            track: string;
+            /** Ref Id */
+            ref_id: string;
+        };
+        /** CollectionItemOut */
+        CollectionItemOut: {
+            /** Id */
+            id: string;
+            /**
+             * Item Type
+             * @enum {string}
+             */
+            item_type: "question" | "problem" | "drill";
+            /** Track */
+            track: string;
+            /** Ref Id */
+            ref_id: string;
+            /** Position */
+            position: number;
+            /** Title */
+            title: string;
+            /** Href */
+            href: string | null;
+            /** Available */
+            available: boolean;
+            /** Unavailable Reason */
+            unavailable_reason: string | null;
+            /**
+             * Queue Done
+             * @description Marked done in this collection's queue (not mastery)
+             */
+            queue_done: boolean;
+            /**
+             * Practiced Since Added
+             * @description An answer or submission exists since it was added
+             */
+            practiced_since_added: boolean;
+        };
+        /** CollectionOut */
+        CollectionOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Items */
+            items: number;
+            /** Queue Position */
+            queue_position: number;
+            /** Queue Started */
+            queue_started: boolean;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Contains
+             * @description Whether it holds the item named in the request (null when none was named)
+             */
+            contains?: boolean | null;
+            /** Item List */
+            item_list: components["schemas"]["CollectionItemOut"][];
+            /** Queue Done */
+            queue_done: number;
+        };
+        /** CollectionSummary */
+        CollectionSummary: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Items */
+            items: number;
+            /** Queue Position */
+            queue_position: number;
+            /** Queue Started */
+            queue_started: boolean;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Contains
+             * @description Whether it holds the item named in the request (null when none was named)
+             */
+            contains?: boolean | null;
+        };
+        /** Comparison */
+        Comparison: {
+            /** Question Title */
+            question_title: string;
+            /** Prompt */
+            prompt: string;
+            /** @description The answer given in the interview (never changed) */
+            original: components["schemas"]["AnswerOut"] | null;
+            /**
+             * Retries
+             * @description Every retry, oldest first
+             */
+            retries: components["schemas"]["AnswerOut"][];
+            latest: components["schemas"]["AnswerOut"] | null;
+            /**
+             * Comparable
+             * @description Whether the two scores may be set side by side as a change, by the comparison contract (docs/COMPARING_ATTEMPTS.md)
+             */
+            comparable: boolean;
+            /**
+             * Comparability Note
+             * @description The contract's explanation (or why there's nothing to compare)
+             */
+            comparability_note: string;
+            /** @description The original and the latest retry, classified by the comparison contract */
+            classification?: components["schemas"]["AttemptComparison"] | null;
+            /**
+             * Improved
+             * @description Points the latest attempt covers that the original missed
+             */
+            improved: string[];
+            /** Still Missing */
+            still_missing: string[];
+            /**
+             * Newly Missing
+             * @description Points the original covered that the latest misses
+             */
+            newly_missing: string[];
+            /** Score Change */
+            score_change: number | null;
+        };
+        /** ComparisonAttemptIn */
+        ComparisonAttemptIn: {
+            /** Selections */
+            selections: components["schemas"]["ComparisonSelectionIn"][];
+            /** Choice */
+            choice?: string | null;
+            /**
+             * Revealed Early
+             * @description The explanation was opened before this was sent
+             * @default false
+             */
+            revealed_early: boolean;
+        };
+        /** ComparisonAttemptOut */
+        ComparisonAttemptOut: {
+            /** Id */
+            id: string;
+            /** Lesson Id */
+            lesson_id: string;
+            /** Lesson Version */
+            lesson_version: number;
+            /** Current Version */
+            current_version: number | null;
+            /** Title */
+            title: string;
+            /** Question */
+            question: string;
+            /**
+             * Samples
+             * @description As they were when this attempt was made
+             */
+            samples: components["schemas"]["ComparisonSample"][];
+            /** Rubric */
+            rubric: components["schemas"]["ComparisonRubricItem"][];
+            /** Selections */
+            selections: {
+                [key: string]: unknown;
+            }[];
+            /** Choice */
+            choice: string | null;
+            /** Feedback */
+            feedback: {
+                [key: string]: unknown;
+            };
+            /** Explanation */
+            explanation: {
+                [key: string]: unknown;
+            };
+            /** Revealed Early */
+            revealed_early: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ComparisonAttemptSummary */
+        ComparisonAttemptSummary: {
+            /** Id */
+            id: string;
+            /** Lesson Version */
+            lesson_version: number;
+            /** Selections */
+            selections: number;
+            /** Matches */
+            matches: number;
+            /** Revealed Early */
+            revealed_early: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ComparisonDoc */
+        ComparisonDoc: {
+            /** Title */
+            title: string;
+            /** Offers */
+            offers?: components["schemas"]["OfferTerms"][];
+            /** Factors */
+            factors?: components["schemas"]["Factor"][];
+            /** Conversions */
+            conversions?: components["schemas"]["Conversion"][];
+            /**
+             * Weights On
+             * @default false
+             */
+            weights_on: boolean;
+            /**
+             * Show In
+             * @description Show converted figures in this currency
+             */
+            show_in?: string | null;
+        };
+        /**
+         * ComparisonLesson
+         * @description The question and the samples, before any reveal: no explanation.
+         */
+        ComparisonLesson: {
+            /** Id */
+            id: string;
+            /** Version */
+            version: number;
+            /** Title */
+            title: string;
+            /** Teaching Goal */
+            teaching_goal: string;
+            /** Question */
+            question: string;
+            /** Rubric */
+            rubric: components["schemas"]["ComparisonRubricItem"][];
+            /**
+             * Kind
+             * @description tradeoff: no single best answer, so no choice is asked
+             * @enum {string}
+             */
+            kind: "clear" | "tradeoff";
+            /** Samples */
+            samples: components["schemas"]["ComparisonSample"][];
+            /** Next Step */
+            next_step: {
+                [key: string]: string;
+            };
+            /** Review Status */
+            review_status: string;
+        };
+        /** ComparisonReason */
+        ComparisonReason: {
+            /**
+             * Rule
+             * @description question, scale, source, rubric, question_version, scoring, format or help
+             */
+            rule: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "incompatible" | "unknown" | "partial_text" | "partial_conditions";
+            /** Text */
+            text: string;
+        };
+        /** ComparisonRubricItem */
+        ComparisonRubricItem: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+        };
+        /** ComparisonSample */
+        ComparisonSample: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Sentences */
+            sentences: components["schemas"]["ComparisonSentence"][];
+        };
+        /** ComparisonSelectionIn */
+        ComparisonSelectionIn: {
+            /** Sample */
+            sample: string;
+            /** Sentence */
+            sentence: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "strength" | "gap";
+            /** Reason */
+            reason: string;
+        };
+        /** ComparisonSentence */
+        ComparisonSentence: {
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+        };
+        /** ComparisonSummary */
+        ComparisonSummary: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Teaching Goal */
+            teaching_goal: string;
+        };
         /** Complexity */
         Complexity: {
             /**
@@ -546,6 +6111,325 @@ export interface components {
              * @description Big-O extra space complexity, e.g. 'O(1)'
              */
             space: string;
+        };
+        /** ConditionsOut */
+        ConditionsOut: {
+            /** Submissions */
+            submissions: {
+                [key: string]: components["schemas"]["AttemptConditions"];
+            };
+            /** Answers */
+            answers: {
+                [key: string]: components["schemas"]["AttemptConditions"];
+            };
+        };
+        /**
+         * ConditionsQuery
+         * @description Which of your attempts to describe: up to 50 of each kind (another account's or unknown ids
+         *     are left out, the same as each other).
+         */
+        ConditionsQuery: {
+            /** Submission Ids */
+            submission_ids?: string[];
+            /** Answer Ids */
+            answer_ids?: string[];
+        };
+        /** ContentChange */
+        ContentChange: {
+            /** Version */
+            version: number;
+            /** Note */
+            note: string;
+            /** Significant */
+            significant: boolean;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+        };
+        /**
+         * ContentMeta
+         * @description What a learner should know about where this content came from and its state.
+         */
+        ContentMeta: {
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "question" | "problem";
+            /** Content Id */
+            content_id: string;
+            /** Version */
+            version: number;
+            /**
+             * Version Label
+             * @description e.g. 'Version 2' or 'Test version 3'
+             */
+            version_label: string;
+            /** Career */
+            career: string | null;
+            /** Topic */
+            topic: string | null;
+            /** Level */
+            level: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "retired";
+            /** Retired Reason */
+            retired_reason: string | null;
+            /** Labels */
+            labels: components["schemas"]["TrustLabel"][];
+            /**
+             * Changes
+             * @description Published corrections, oldest first
+             */
+            changes: components["schemas"]["ContentChange"][];
+        };
+        /**
+         * ContextItem
+         * @description One piece of your private material, exactly as the coach would read it.
+         */
+        ContextItem: {
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "code" | "checks" | "verdict";
+            /**
+             * Label
+             * @description What it is, in plain words
+             */
+            label: string;
+            /**
+             * Source
+             * @description Where it comes from and as of when
+             */
+            source: string;
+            /**
+             * Text
+             * @description Exactly what is sent: after secret-looking strings are replaced and long input cut
+             */
+            text: string;
+            /**
+             * Derived
+             * @description Worked out by CodeCoach from your material, not written by you
+             */
+            derived: boolean;
+            /** Required */
+            required: boolean;
+            /** Why Required */
+            why_required?: string | null;
+            /**
+             * Notes
+             * @description What changed between your material and `text`
+             */
+            notes?: string[];
+        };
+        /** Conversion */
+        Conversion: {
+            /** From Currency */
+            from_currency: string;
+            /** To Currency */
+            to_currency: string;
+            /** Rate */
+            rate: number;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /** CorrectionIn */
+        CorrectionIn: {
+            /** Title */
+            title?: string | null;
+            /** Prompt */
+            prompt?: string | null;
+            /** Tips */
+            tips?: string[] | null;
+            /** Outline */
+            outline?: string[] | null;
+            /**
+             * Change Note
+             * @description Plain language, shown to learners
+             */
+            change_note: string;
+            /**
+             * Significant
+             * @default true
+             */
+            significant: boolean;
+            /** Report Ids */
+            report_ids?: string[];
+            /** Internal Note */
+            internal_note?: string | null;
+        };
+        /** Coverage */
+        Coverage: {
+            /**
+             * Level
+             * @enum {string}
+             */
+            level: "practised" | "some" | "limited" | "gap";
+            /** Label */
+            label: string;
+            /** Answers */
+            answers: number;
+            /** Questions Answered */
+            questions_answered: number;
+            /** Average Best Score */
+            average_best_score: number | null;
+            /**
+             * Judged Attempts
+             * @default 0
+             */
+            judged_attempts: number;
+            /**
+             * Passed
+             * @default 0
+             */
+            passed: number;
+        };
+        /** CriteriaOut */
+        CriteriaOut: {
+            /** Question Id */
+            question_id: string;
+            /** Content Version */
+            content_version: number;
+            /** Rubric Version */
+            rubric_version: string;
+            /** Coach */
+            coach: string;
+            /**
+             * Criteria
+             * @description Qualitative points the coach looks for in your words
+             */
+            criteria: components["schemas"]["Criterion"][];
+            /**
+             * Checks
+             * @description Fixed rules that apply to every answer (length, numbers)
+             */
+            checks: components["schemas"]["Check"][];
+            /** Disclaimer */
+            disclaimer: string;
+        };
+        /** Criterion */
+        Criterion: {
+            /**
+             * Label
+             * @description What a strong answer does
+             */
+            label: string;
+            /**
+             * Description
+             * @description In plain words, what to include
+             */
+            description: string;
+            /** Levels */
+            levels: components["schemas"]["CriterionLevel"][];
+        };
+        /** CriterionLevel */
+        CriterionLevel: {
+            /**
+             * Level
+             * @enum {string}
+             */
+            level: "not_yet" | "there";
+            /** Text */
+            text: string;
+        };
+        /** DataCategoryOut */
+        DataCategoryOut: {
+            /** Key */
+            key: string;
+            /**
+             * Group
+             * @description Your work; sharing and reports; your account and sign-in
+             * @enum {string}
+             */
+            group: "work" | "sharing" | "account";
+            /** Label */
+            label: string;
+            /**
+             * Count
+             * @description How many rows of yours; nothing's content is read to count them
+             */
+            count: number;
+            /** Note */
+            note?: string | null;
+        };
+        /** DataSummaryOut */
+        DataSummaryOut: {
+            /** Categories */
+            categories: components["schemas"]["DataCategoryOut"][];
+        };
+        /** DayCount */
+        DayCount: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Answers */
+            answers: number;
+            /** Interviews */
+            interviews: number;
+        };
+        /** Debrief */
+        Debrief: {
+            /** Outcome */
+            outcome: string;
+            /** Ending Title */
+            ending_title: string;
+            /** Ending Text */
+            ending_text: string;
+            /** Summary */
+            summary: string;
+            /**
+             * Path
+             * @description Titles of the steps you went through, in order
+             */
+            path: string[];
+            /** Decisions */
+            decisions: components["schemas"]["DecisionOut"][];
+            /** Strengths */
+            strengths: string[];
+            /** Written */
+            written: components["schemas"]["WrittenOut"][];
+            /** Plans */
+            plans?: components["schemas"]["QueuePlanOut"][];
+            /** References */
+            references: components["schemas"]["ReferenceOut"][];
+            /** Feedback Source */
+            feedback_source: string;
+            /** Disclaimer */
+            disclaimer: string;
+        };
+        /** DecisionOut */
+        DecisionOut: {
+            /** Step Index */
+            step_index: number;
+            /** Title */
+            title: string;
+            /** Chosen */
+            chosen: string;
+            /**
+             * Quality
+             * @enum {string}
+             */
+            quality: "strong" | "acceptable" | "risky";
+            /** Rule */
+            rule: string;
+            /** Alternatives */
+            alternatives: components["schemas"]["Alternative"][];
         };
         /** DeleteAccountRequest */
         DeleteAccountRequest: {
@@ -561,11 +6445,114 @@ export interface components {
              */
             confirm: string;
         };
+        /** DeletedOut */
+        DeletedOut: {
+            /** Id */
+            id: string;
+            /**
+             * Restorable Until
+             * Format: date-time
+             */
+            restorable_until: string;
+        };
+        /** DeliveryOut */
+        DeliveryOut: {
+            /**
+             * State
+             * @description What became of the latest email. `sent_to_provider`: the mail server accepted it, which isn't proof it reached an inbox. `kept_locally`: a development server printed or saved it instead of sending it. `retrying`: a try failed; it's retried automatically.
+             * @enum {string}
+             */
+            state: "queued" | "retrying" | "sent_to_provider" | "kept_locally" | "failed" | "unknown";
+            /** Requested At */
+            requested_at?: string | null;
+            /**
+             * Updated At
+             * @description When it was sent, or given up on
+             */
+            updated_at?: string | null;
+            /**
+             * Next Try At
+             * @description `retrying` only: the next automatic try
+             */
+            next_try_at?: string | null;
+        };
+        /** DemoExample */
+        DemoExample: {
+            /** Question Id */
+            question_id: string;
+            /** Question Title */
+            question_title: string;
+            /** Answer */
+            answer: string;
+            /** Score */
+            score: number;
+            /** Rating */
+            rating: string;
+            /** Summary */
+            summary: string;
+            /**
+             * Answered At
+             * Format: date-time
+             */
+            answered_at: string;
+            /**
+             * Label
+             * @description Says what this is: an example written for the demo, and who graded it
+             */
+            label: string;
+        };
+        /** DemoOut */
+        DemoOut: {
+            /** Personas */
+            personas: components["schemas"]["DemoPersona"][];
+            /** Notes */
+            notes: string[];
+        };
+        /** DemoPersona */
+        DemoPersona: {
+            /** Key */
+            key: string;
+            /**
+             * Name
+             * @description A fictional learner's name
+             */
+            name: string;
+            /** Career Track */
+            career_track: string;
+            /** Career Title */
+            career_title: string;
+            /** Summary */
+            summary: string;
+            /** Start Question Id */
+            start_question_id: string;
+            /** Start Question Title */
+            start_question_title: string;
+            /** Problem Slug */
+            problem_slug?: string | null;
+            /** Examples */
+            examples: components["schemas"]["DemoExample"][];
+        };
+        /** DerivedOut */
+        DerivedOut: {
+            /** Derived */
+            derived: {
+                [key: string]: unknown;
+            };
+        };
         /**
          * Difficulty
          * @enum {string}
          */
         Difficulty: "easy" | "medium" | "hard";
+        /** DifficultyCounts */
+        DifficultyCounts: {
+            /** Easy */
+            easy: number;
+            /** Medium */
+            medium: number;
+            /** Hard */
+            hard: number;
+        };
         /** DifficultyProgress */
         DifficultyProgress: {
             /** Difficulty */
@@ -574,6 +6561,332 @@ export interface components {
             total_problems: number;
             /** Solved */
             solved: number;
+        };
+        /** Dimension */
+        Dimension: {
+            /**
+             * Name
+             * @description Answer content, Structure and clarity, Reasoning, Spoken delivery, Code execution
+             */
+            name: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "evaluated" | "not_evaluated" | "not_applicable";
+            /** Summary */
+            summary: string;
+            /** Points */
+            points?: string[];
+            /** Evidence */
+            evidence?: components["schemas"]["EvidenceLink"][];
+        };
+        /**
+         * DisputeNote
+         * @description Something derived from feedback the learner disputed. It stays; the learner decides.
+         */
+        DisputeNote: {
+            /**
+             * Text
+             * @description e.g. 'Based on feedback you disputed on 3 November: “Gives a result”.'
+             */
+            text: string;
+            /**
+             * Href
+             * @description The answer whose feedback was disputed
+             */
+            href: string;
+            /** Answer Id */
+            answer_id: string;
+            /** Criterion */
+            criterion: string;
+        };
+        /** DoneIn */
+        DoneIn: {
+            /** Done */
+            done: boolean;
+        };
+        /** DrillAttemptIn */
+        DrillAttemptIn: {
+            /**
+             * Text
+             * @description What you said (a transcript you checked) or typed
+             */
+            text: string;
+            /**
+             * Source
+             * @default typed
+             * @enum {string}
+             */
+            source: "typed" | "voice";
+            /**
+             * Spoken Seconds
+             * @description Only when the browser timed a recording
+             */
+            spoken_seconds?: number | null;
+            /** Client Request Id */
+            client_request_id?: string | null;
+        };
+        /** DrillAttemptOut */
+        DrillAttemptOut: {
+            /** Id */
+            id: string;
+            /** Drill Id */
+            drill_id: string;
+            /** Prompt */
+            prompt: string;
+            /** Text */
+            text: string;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "typed" | "voice";
+            /** Spoken Seconds */
+            spoken_seconds: number | null;
+            /** Rubric Version */
+            rubric_version: number;
+            /** Feedback */
+            feedback: {
+                [key: string]: unknown;
+            };
+            /**
+             * Compared With Previous
+             * @description What changed since your previous attempt at this drill
+             */
+            compared_with_previous: string[] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** DrillOut */
+        DrillOut: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Objective */
+            objective: string;
+            /** Looks For */
+            looks_for: string[];
+            /** Target Seconds */
+            target_seconds: number | null;
+            /**
+             * Prompt
+             * @description For your career
+             */
+            prompt: string;
+            /** Attempts */
+            attempts: number;
+        };
+        /** DuplicateIn */
+        DuplicateIn: {
+            /**
+             * Duplicate Of
+             * @description Another report's id, or null to ungroup
+             */
+            duplicate_of: string | null;
+            /** Internal Note */
+            internal_note?: string | null;
+        };
+        /** Effect */
+        Effect: {
+            /**
+             * Effect
+             * @description archived (reversible), deleted, unlinked (the other record stays), kept, or made unavailable
+             * @enum {string}
+             */
+            effect: "archived" | "deleted" | "unlinked" | "kept" | "unavailable";
+            /**
+             * Kind
+             * @description What it is, in the words the app uses: an event, a kit, a schedule entry…
+             */
+            kind: string;
+            /** Title */
+            title: string;
+            /**
+             * Id
+             * @description The record's id (yours); part of what the fingerprint covers
+             */
+            id?: string | null;
+            /**
+             * Note
+             * @description One line on what this means, when it isn't obvious
+             */
+            note?: string | null;
+        };
+        /**
+         * Engagement
+         * @description A simulated interviewer's read of one answer, built only from what the answer contains.
+         */
+        Engagement: {
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "following" | "more_detail" | "explore_further" | "not_enough_evidence";
+            /**
+             * Label
+             * @description e.g. 'Looking for more detail'
+             */
+            label: string;
+            /**
+             * Reason
+             * @description One actionable sentence that refers to the answer
+             */
+            reason: string;
+            /**
+             * Evidence
+             * @description The signals found in (or missing from) the answer
+             */
+            evidence: string[];
+        };
+        /** EntryIn */
+        EntryIn: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "plan_item" | "review_item" | "question" | "problem" | "application_event" | "drill";
+            /**
+             * Ref
+             * @description The activity's id (question: 'track/question_id')
+             */
+            ref: string;
+            /**
+             * On Date
+             * Format: date
+             */
+            on_date: string;
+            /**
+             * All Day
+             * @default false
+             */
+            all_day: boolean;
+            /**
+             * Local Time
+             * @description HH:MM in `timezone`; required unless all-day
+             */
+            local_time?: string | null;
+            /** Timezone */
+            timezone?: string | null;
+            /**
+             * Fold
+             * @description For a time that happens twice: 0 first, 1 second
+             */
+            fold?: number | null;
+            /**
+             * Duration Min
+             * @default 30
+             */
+            duration_min: number;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+            /** Client Request Id */
+            client_request_id?: string | null;
+        };
+        /** EntryMove */
+        EntryMove: {
+            /**
+             * On Date
+             * Format: date
+             */
+            on_date: string;
+            /**
+             * All Day
+             * @default false
+             */
+            all_day: boolean;
+            /** Local Time */
+            local_time?: string | null;
+            /** Timezone */
+            timezone?: string | null;
+            /** Fold */
+            fold?: number | null;
+            /** Duration Min */
+            duration_min?: number | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** EntryOut */
+        EntryOut: {
+            /** Id */
+            id: string;
+            /** Uid */
+            uid: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "plan_item" | "review_item" | "question" | "problem" | "application_event" | "drill" | "accepted_action";
+            /** Ref */
+            ref: string;
+            /** Title */
+            title: string;
+            /**
+             * Href
+             * @description Where to do the activity
+             */
+            href: string | null;
+            /** All Day */
+            all_day: boolean;
+            /**
+             * On Date
+             * Format: date
+             */
+            on_date: string;
+            /** Local Time */
+            local_time: string | null;
+            /** Timezone */
+            timezone: string | null;
+            /** Starts At */
+            starts_at: string | null;
+            /** Ends At */
+            ends_at: string | null;
+            /** Duration Min */
+            duration_min: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "scheduled" | "cancelled";
+            /**
+             * Done At
+             * @description When the activity was actually done, by its own rules
+             */
+            done_at: string | null;
+            /**
+             * Available
+             * @description False if the activity is gone or retired
+             */
+            available: boolean;
+            /**
+             * Conflicts
+             * @description Ids of other timed entries that overlap this one
+             */
+            conflicts: string[];
+            /** Sequence */
+            sequence: number;
+            /** Notes */
+            notes: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Follows Interview
+             * @description Interview preparation the learner chose to keep relative to its interview. It still never moves by itself: a reschedule offers a preview, and only selected entries move.
+             * @default false
+             */
+            follows_interview: boolean;
+            /** @description What it's for came from feedback you've disputed since: labelled, never moved or cancelled (docs/DISPUTES.md) */
+            disputed?: components["schemas"]["DisputeNote"] | null;
         };
         /** ErrorBody */
         ErrorBody: {
@@ -596,6 +6909,93 @@ export interface components {
         ErrorEnvelope: {
             error: components["schemas"]["ErrorBody"];
         };
+        /** EvaluatedSkill */
+        EvaluatedSkill: {
+            /** Skill */
+            skill: string;
+            /** Questions */
+            questions: number;
+            /** Answers */
+            answers: number;
+            /** Average Best Score */
+            average_best_score: number;
+        };
+        /** EvaluationOut */
+        EvaluationOut: {
+            /** Id */
+            id: number;
+            /** Rubric Version */
+            rubric_version: string;
+            /** Content Version */
+            content_version: number;
+            /** Score */
+            score: number;
+            /** Rating */
+            rating: string;
+            /** Summary */
+            summary: string;
+            /**
+             * Evidence Level
+             * @enum {string}
+             */
+            evidence_level: "sufficient" | "insufficient";
+            /** Points */
+            points: {
+                [key: string]: unknown;
+            }[];
+            /** Reason */
+            reason: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** EventIn */
+        EventIn: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "started" | "read";
+            /**
+             * Version
+             * @description The unit version on screen
+             */
+            version: number;
+        };
+        /** EventOut */
+        EventOut: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "started" | "read" | "check_attempted" | "check_passed" | "practiced";
+            /** Version */
+            version: number;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Detail */
+            detail: string | null;
+        };
+        /** EvidenceLink */
+        EvidenceLink: {
+            /**
+             * Item Key
+             * @description The timeline item (question or turn) it refers to, or 'code'
+             */
+            item_key: string;
+            /** Label */
+            label: string;
+            /**
+             * Excerpt
+             * @description The words (or code line) the feedback is about
+             */
+            excerpt: string | null;
+        };
         /** Example */
         Example: {
             /** Input */
@@ -604,6 +7004,19 @@ export interface components {
             output: string;
             /** Explanation */
             explanation?: string | null;
+        };
+        /** ExampleOut */
+        ExampleOut: {
+            /** Title */
+            title: string;
+            /** Intro */
+            intro: string;
+            /** Code */
+            code: string | null;
+            /** Language */
+            language: string | null;
+            /** Walkthrough */
+            walkthrough: string[];
         };
         /** ExecutionResultOut */
         ExecutionResultOut: {
@@ -627,15 +7040,915 @@ export interface components {
              */
             stderr_excerpt?: string | null;
         };
+        /** ExecutionStatus */
+        ExecutionStatus: {
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "ready" | "unavailable" | "not_configured";
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "ok" | "not_configured" | "judge_unreachable" | "judge_not_ready" | "judge_misconfigured" | "queue_delayed";
+            /**
+             * Message
+             * @description What this means for the learner, in plain words
+             */
+            message: string;
+            /**
+             * Run Available
+             * @description Run (public tests only) can be used right now
+             */
+            run_available: boolean;
+            /**
+             * Submit Mode
+             * @description judged: verdict follows; queued_until_available: judged when the judge is back; saved_only: no judge on this deployment, attempts are saved without a verdict
+             * @enum {string}
+             */
+            submit_mode: "judged" | "queued_until_available" | "saved_only";
+            /**
+             * Checked At
+             * Format: date-time
+             */
+            checked_at: string;
+            /**
+             * Setup Help
+             * @description Development only: how to connect a judge
+             */
+            setup_help: string | null;
+        };
+        /** ExerciseOut */
+        ExerciseOut: {
+            /** Prompt */
+            prompt: string;
+            /** Draft Label */
+            draft_label: string;
+            /**
+             * Guided Steps
+             * @description Think, concept, example, fuller explanation: revealed in order
+             */
+            guided_steps: string[];
+            /**
+             * Solution
+             * @description Shown only when the learner asks for it, behind a spoiler warning
+             */
+            solution: string;
+            /** Solution Language */
+            solution_language: string | null;
+        };
+        /** ExperienceEdit */
+        ExperienceEdit: {
+            /** Title */
+            title: string;
+            /**
+             * Situation
+             * @default
+             */
+            situation: string;
+            /**
+             * Action
+             * @default
+             */
+            action: string;
+            /**
+             * Result
+             * @default
+             */
+            result: string;
+            /** Requirement Ids */
+            requirement_ids?: string[];
+            /**
+             * Expected Revision
+             * @description The story revision you started from (ExperienceOut.revision). If the story changed since, 409 stale_revision with the saved fields (details.current). Optional for older clients, which keep last-write-wins.
+             */
+            expected_revision?: number | null;
+        };
+        /** ExperienceIn */
+        ExperienceIn: {
+            /** Title */
+            title: string;
+            /**
+             * Situation
+             * @default
+             */
+            situation: string;
+            /**
+             * Action
+             * @default
+             */
+            action: string;
+            /**
+             * Result
+             * @default
+             */
+            result: string;
+            /** Requirement Ids */
+            requirement_ids?: string[];
+        };
+        /** ExperienceOut */
+        ExperienceOut: {
+            /** Title */
+            title: string;
+            /**
+             * Situation
+             * @default
+             */
+            situation: string;
+            /**
+             * Action
+             * @default
+             */
+            action: string;
+            /**
+             * Result
+             * @default
+             */
+            result: string;
+            /** Requirement Ids */
+            requirement_ids?: string[];
+            /** Id */
+            id: string;
+            /** Requirement Links */
+            requirement_links?: components["schemas"]["RequirementLink"][];
+            /**
+             * Revision
+             * @description This example is a story in the story bank: its revision there
+             * @default 1
+             */
+            revision: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ExplainFailureRequest */
+        ExplainFailureRequest: {
+            /** Submission Id */
+            submission_id: string;
+        };
+        /** ExplainFailureResponse */
+        ExplainFailureResponse: {
+            /** Submission Id */
+            submission_id: string;
+            /** Status */
+            status: string;
+            explanation: components["schemas"]["FailureExplanation"];
+            /** Provider */
+            provider: string;
+            /**
+             * Cached
+             * @description True when this explanation was saved earlier (no budget used)
+             */
+            cached: boolean;
+            /**
+             * Disclaimer
+             * @default Explanations are based only on the public tests and compiler output. Hidden test inputs are never shown to the AI or to you.
+             */
+            disclaimer: string;
+        };
+        /** ExploreFacets */
+        ExploreFacets: {
+            /** Difficulty */
+            difficulty: components["schemas"]["Facet"][];
+            /** Kind */
+            kind: components["schemas"]["Facet"][];
+            /** Skill */
+            skill: components["schemas"]["Facet"][];
+        };
+        /**
+         * ExploreItem
+         * @description Public description of a question: no personal data.
+         */
+        ExploreItem: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Prompt */
+            prompt: string;
+            /** Difficulty */
+            difficulty: string;
+            /** Kind */
+            kind: string;
+            /** Skills */
+            skills: string[];
+            /** Tags */
+            tags: string[];
+            /**
+             * Estimated Minutes
+             * @description Null: the bank doesn't estimate this question's length
+             */
+            estimated_minutes: number | null;
+        };
+        /** ExploreResult */
+        ExploreResult: {
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /** Items */
+            items: components["schemas"]["ExploreItem"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** @description Counts for each option, given the other active filters */
+            facets: components["schemas"]["ExploreFacets"];
+            /**
+             * Explanation
+             * @description The active filters, in words
+             */
+            explanation: string[];
+            /**
+             * Suggestions
+             * @description Ways to widen a search that found nothing
+             */
+            suggestions: string[];
+            /**
+             * Sorts
+             * @description Sorts available here (personal ones need sign-in)
+             */
+            sorts: ("relevance" | "library" | "last_practiced" | "lowest_score")[];
+        };
+        /** Facet */
+        Facet: {
+            /** Value */
+            value: string;
+            /** Label */
+            label: string;
+            /** Count */
+            count: number;
+        };
+        /** FacetOption */
+        FacetOption: {
+            /** Value */
+            value: string;
+            /** Label */
+            label: string;
+            /** Count */
+            count: number;
+        };
+        /** Factor */
+        Factor: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /**
+             * Weight
+             * @description Optional; used only when weights are on
+             */
+            weight?: number | null;
+            /**
+             * Ratings
+             * @description By offer id
+             */
+            ratings?: {
+                [key: string]: components["schemas"]["Rating"];
+            };
+        };
+        /**
+         * FailureExplanation
+         * @description Schema the model must fill when explaining a failed submission.
+         */
+        FailureExplanation: {
+            /**
+             * Cause
+             * @description The single most likely root-cause category
+             * @enum {string}
+             */
+            cause: "compile-error" | "index-out-of-bounds" | "null-reference" | "arithmetic" | "number-format" | "recursion-depth" | "time-limit" | "memory-limit" | "crash" | "wrong-answer" | "hidden-edge-case" | "overflow" | "other";
+            /**
+             * Headline
+             * @description One plain-English sentence saying what went wrong
+             */
+            headline: string;
+            /**
+             * Explanation
+             * @description Why it happened, grounded in the evidence (test case or compiler message). Explain the bug; do not write the corrected solution.
+             */
+            explanation: string;
+            /**
+             * Evidence
+             * @description The specific test case, exception or compiler message relied on
+             */
+            evidence: string;
+            /**
+             * Line Hint
+             * @description 1-based line in the learner's code, if known
+             */
+            line_hint?: number | null;
+            /**
+             * Next Steps
+             * @description One to three concrete things to check or try
+             */
+            next_steps: string[];
+            /**
+             * Concept
+             * @description Java or DSA concept worth reviewing
+             */
+            concept?: string | null;
+            /**
+             * Confidence
+             * @enum {string}
+             */
+            confidence: "low" | "medium" | "high";
+        };
+        /** FeedbackComment */
+        FeedbackComment: {
+            /**
+             * Sentence
+             * @description Which shared sentence this is about
+             */
+            sentence: number;
+            /** Text */
+            text: string;
+        };
+        /** FeedbackCommentOut */
+        FeedbackCommentOut: {
+            /**
+             * Sentence
+             * @description Which shared sentence this is about
+             */
+            sentence: number;
+            /** Text */
+            text: string;
+            /**
+             * Quote
+             * @description The sentence it refers to, from the snapshot
+             */
+            quote: string;
+        };
+        /** FeedbackIn */
+        FeedbackIn: {
+            /** Token */
+            token: string;
+            /**
+             * Client Request Id
+             * @description A retry with the same id, from the same reviewer with the same words, returns the first receipt (`duplicate`); anything else under that id is refused (409 `idempotency_key_reused`)
+             */
+            client_request_id: string;
+            /**
+             * Clear
+             * @description What was clear?
+             * @default
+             */
+            clear: string;
+            /**
+             * Needs Evidence
+             * @description What needs more evidence?
+             * @default
+             */
+            needs_evidence: string;
+            /**
+             * Next Step
+             * @description One useful next step
+             * @default
+             */
+            next_step: string;
+            /** Comments */
+            comments?: components["schemas"]["FeedbackComment"][];
+            /**
+             * Guest Name
+             * @description Used only when not signed in
+             * @default
+             */
+            guest_name: string;
+        };
+        /** FeedbackOut */
+        FeedbackOut: {
+            /** Id */
+            id: string;
+            reviewer: components["schemas"]["ReviewerIdentity"];
+            /** Clear */
+            clear: string;
+            /** Needs Evidence */
+            needs_evidence: string;
+            /** Next Step */
+            next_step: string;
+            /** Comments */
+            comments: components["schemas"]["FeedbackCommentOut"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Useful */
+            useful: boolean;
+        };
+        /** FeedbackPoint */
+        FeedbackPoint: {
+            /** Label */
+            label: string;
+            /** Covered */
+            covered: boolean;
+            /** Advice */
+            advice: string;
+            /**
+             * Evidence
+             * @description Your own words where it was found, as checked against your answer (none when it couldn't be checked)
+             */
+            evidence?: string | null;
+            /**
+             * Span
+             * @description Where the quote is in `answer`: [start, end) in UTF-16 code units (what JavaScript strings index by). None for older feedback, which stored no position.
+             */
+            span?: number[] | null;
+            /**
+             * Evidence Status
+             * @description verified: the quote is at `span` in your answer; legacy: older feedback, still your words, position not recorded; omitted: a quote was stored but couldn't be checked, so it isn't shown. None when the point has no quote.
+             */
+            evidence_status?: ("verified" | "legacy" | "omitted") | null;
+            /**
+             * Scope Note
+             * @description What the point checks when its wording suggests more (it checks that a subject is discussed, not that what is said is right)
+             */
+            scope_note?: string | null;
+        };
+        /**
+         * FeedbackReceipt
+         * @description What the reviewer sent, echoed back so they can see it was received.
+         */
+        FeedbackReceipt: {
+            feedback: components["schemas"]["FeedbackOut"];
+            /**
+             * Duplicate
+             * @description True when this was a retry of feedback already received
+             */
+            duplicate: boolean;
+        };
+        /** FieldChange */
+        FieldChange: {
+            /**
+             * Field
+             * @description Which part of the story, as the story page names it
+             */
+            field: string;
+            /**
+             * Before
+             * @description As prepared; null if that version isn't kept any more
+             */
+            before: string | null;
+            /**
+             * After
+             * @description As it is now
+             */
+            after: string;
+        };
+        /** FindingIn */
+        FindingIn: {
+            /** Id */
+            id: string;
+            /** Start Line */
+            start_line: number;
+            /** End Line */
+            end_line: number;
+            /**
+             * Problem
+             * @description What's wrong
+             * @default
+             */
+            problem: string;
+            /**
+             * Consequence
+             * @description What happens because of it
+             * @default
+             */
+            consequence: string;
+            /**
+             * Repair
+             * @description A change, or a test that would show it
+             * @default
+             */
+            repair: string;
+        };
+        /** FindingOut */
+        FindingOut: {
+            /** Id */
+            id: string;
+            /** Start Line */
+            start_line: number;
+            /** End Line */
+            end_line: number;
+            /**
+             * Problem
+             * @description What's wrong
+             * @default
+             */
+            problem: string;
+            /**
+             * Consequence
+             * @description What happens because of it
+             * @default
+             */
+            consequence: string;
+            /**
+             * Repair
+             * @description A change, or a test that would show it
+             * @default
+             */
+            repair: string;
+            /**
+             * Excerpt
+             * @description The cited lines as they were when the finding was saved
+             */
+            excerpt: string;
+            /**
+             * Anchor
+             * @description For a draft written against an earlier version: whether the cited lines were found again
+             * @default same
+             * @enum {string}
+             */
+            anchor: "same" | "moved" | "missing";
+        };
+        /** FlagIn */
+        FlagIn: {
+            /** Criterion */
+            criterion: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "unclear" | "disagree";
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /** FlagOut */
+        FlagOut: {
+            /** Id */
+            id: number;
+            /** Criterion */
+            criterion: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "unclear" | "disagree";
+            /** Note */
+            note: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Disputed
+             * @description An 'I disagree' not reinstated: this point doesn't shape automatic recommendations (docs/DISPUTES.md). The feedback and score stay as they were.
+             * @default false
+             */
+            disputed: boolean;
+            /**
+             * Disputed At
+             * @description When it became a dispute (not recorded before)
+             */
+            disputed_at?: string | null;
+            /**
+             * Reinstated At
+             * @description When the point was deliberately counted again
+             */
+            reinstated_at?: string | null;
+        };
+        /** FollowInterviewIn */
+        FollowInterviewIn: {
+            /**
+             * Follows
+             * @description True: keep this preparation relative to its interview; false: a fixed time
+             */
+            follows: boolean;
+            /**
+             * Expected Sequence
+             * @description The entry's sequence you loaded; a newer one is a 409
+             */
+            expected_sequence: number;
+        };
+        /**
+         * FollowUpAnswered
+         * @description A follow-up you answered, kept beside the answer it followed: its own record and score.
+         */
+        FollowUpAnswered: {
+            /** Answer Id */
+            answer_id: string;
+            /** Track */
+            track: string;
+            /** Question Id */
+            question_id: string;
+            /** Title */
+            title: string;
+            /** Score */
+            score: number;
+            /** Rating */
+            rating: string;
+            /**
+             * Evidence Level
+             * @enum {string}
+             */
+            evidence_level: "sufficient" | "insufficient" | "unknown";
+            /** Content Version */
+            content_version: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Follows Up Answer Id */
+            follows_up_answer_id: string;
+            conditions?: components["schemas"]["AttemptConditions"] | null;
+        };
+        /** FollowUpOut */
+        FollowUpOut: {
+            /**
+             * Status
+             * @description offered: a reviewed follow-up is available; not_yet: practise this question more first; none: no reviewed follow-up (or only retired ones)
+             * @enum {string}
+             */
+            status: "offered" | "not_yet" | "none";
+            /** Message */
+            message: string;
+            /**
+             * Threshold
+             * @description Answers long enough to score before a follow-up is offered
+             */
+            threshold: number;
+            /**
+             * Scored Answers
+             * @description Your answers to this question long enough to score
+             */
+            scored_answers: number;
+            /** Offers */
+            offers: components["schemas"]["FollowUpQuestion"][];
+            /**
+             * Answered
+             * @description Follow-ups you answered after this question
+             */
+            answered: components["schemas"]["FollowUpAnswered"][];
+        };
+        /** FollowUpQuestion */
+        FollowUpQuestion: {
+            /** Track */
+            track: string;
+            /** Question Id */
+            question_id: string;
+            /** Title */
+            title: string;
+            /**
+             * Version
+             * @description The question's current version
+             */
+            version: number;
+            /**
+             * Objective
+             * @description What it shares with the question you practised
+             */
+            objective: string;
+            /**
+             * Difference
+             * @description How it differs
+             */
+            difference: string;
+            /**
+             * Exposure
+             * @description 'Not previously attempted in this app', or how many times you answered it here. Never 'new to you': practice elsewhere isn't known.
+             */
+            exposure: string;
+            /**
+             * Attempts
+             * @description Your answers to it in this app
+             */
+            attempts: number;
+        };
+        /** FollowupAnswer */
+        FollowupAnswer: {
+            /** Answer */
+            answer: string;
+            /**
+             * Source
+             * @default typed
+             * @enum {string}
+             */
+            source: "typed" | "voice" | "mixed";
+        };
+        /** FollowupOut */
+        FollowupOut: {
+            /** Question Index */
+            question_index: number;
+            /**
+             * Detail
+             * @description The detail asked about, e.g. result or ownership
+             */
+            detail: string;
+            /** Question */
+            question: string;
+            speaker: components["schemas"]["SpeakerOut"] | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "answered" | "skipped";
+            /** Answer */
+            answer?: string | null;
+            /**
+             * Covered
+             * @description Whether the reply supplied the detail (simple check)
+             */
+            covered?: boolean | null;
+        };
+        /** FormatOption */
+        FormatOption: {
+            /**
+             * Id
+             * @enum {string}
+             */
+            id: "mixed" | "behavioral" | "situational" | "technical" | "panel";
+            /** Title */
+            title: string;
+            /** Practices */
+            practices: string;
+            /** Available */
+            available: boolean;
+            /** Unavailable Reason */
+            unavailable_reason: string | null;
+            /**
+             * Follow Ups
+             * @description Most follow-up questions this format may ask
+             */
+            follow_ups: number;
+            /** Roles */
+            roles: components["schemas"]["SpeakerOut"][];
+            /**
+             * Structure
+             * @description Who asks what, in order (no questions or answers revealed)
+             */
+            structure: components["schemas"]["FormatSlot"][];
+        };
+        /** FormatSlot */
+        FormatSlot: {
+            /** Position */
+            position: number;
+            speaker: components["schemas"]["SpeakerOut"] | null;
+            /** Kind Label */
+            kind_label: string;
+        };
+        /** Freshness */
+        Freshness: {
+            /**
+             * State
+             * @description current (nothing it relies on changed), needs_review, kept (the learner chose to keep it as prepared, until the story changes again), unknown (prepared before versions were recorded), unavailable (the story was deleted)
+             * @enum {string}
+             */
+            state: "current" | "needs_review" | "kept" | "unknown" | "unavailable";
+            /** Text */
+            text: string;
+            /**
+             * Prepared Revision
+             * @description The story's version this was prepared from
+             */
+            prepared_revision: number | null;
+            /**
+             * Current Revision
+             * @description The story's version now; null if it's gone
+             */
+            current_revision: number | null;
+            /**
+             * Changes
+             * @description What changed that this relies on, earlier and now
+             */
+            changes?: components["schemas"]["FieldChange"][];
+            /**
+             * Lineage
+             * @description The learner's decisions about it, newest first
+             */
+            lineage?: components["schemas"]["LineageEntry"][];
+        };
+        /** GoalsIn */
+        GoalsIn: {
+            /**
+             * Track
+             * @description Default: your current career
+             */
+            track?: string | null;
+            /** Specialty */
+            specialty?: string | null;
+            /** Experience */
+            experience?: ("new" | "early" | "mid" | "senior") | null;
+            /**
+             * Target Date
+             * @description Your interview date, if you know it
+             */
+            target_date?: string | null;
+            /** Weekly Minutes */
+            weekly_minutes?: number | null;
+            /**
+             * Focus Areas
+             * @description Skills of this career
+             */
+            focus_areas?: string[];
+            /** Formats */
+            formats?: ("written" | "voice" | "coding")[];
+            /**
+             * Confidence
+             * @description Self-reported confidence per skill, 1-5 (never blended with scores)
+             */
+            confidence?: {
+                [key: string]: number;
+            };
+            /**
+             * Setup Skipped
+             * @default false
+             */
+            setup_skipped: boolean;
+        };
+        /** GoalsOut */
+        GoalsOut: {
+            /** Track */
+            track: string;
+            /** Specialty */
+            specialty?: string | null;
+            /** Experience */
+            experience?: ("new" | "early" | "mid" | "senior") | null;
+            /**
+             * Target Date
+             * @description Your interview date, if you know it
+             */
+            target_date?: string | null;
+            /** Weekly Minutes */
+            weekly_minutes?: number | null;
+            /**
+             * Focus Areas
+             * @description Skills of this career
+             */
+            focus_areas?: string[];
+            /** Formats */
+            formats?: ("written" | "voice" | "coding")[];
+            /**
+             * Confidence
+             * @description Self-reported confidence per skill, 1-5 (never blended with scores)
+             */
+            confidence?: {
+                [key: string]: number;
+            };
+            /**
+             * Setup Skipped
+             * @default false
+             */
+            setup_skipped: boolean;
+            /** Career Title */
+            career_title: string;
+            /** Has Coding */
+            has_coding: boolean;
+            /**
+             * Skills
+             * @description Skills this career's questions practise (for focus and confidence)
+             */
+            skills: string[];
+            /**
+             * Saved
+             * @description False until goals are saved or setup is skipped
+             */
+            saved: boolean;
+        };
         /** GuestSessionRequest */
         GuestSessionRequest: {
             /** Display Name */
             display_name?: string | null;
+            /** Career Track */
+            career_track?: string | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** HelpShown */
+        HelpShown: {
+            /**
+             * Label
+             * @enum {string}
+             */
+            label: "Hint shown" | "Solution revealed";
+            /**
+             * Detail
+             * @description What it was, e.g. 'Level 2 hint (concept)'
+             */
+            detail: string;
+            /**
+             * At
+             * Format: date-time
+             * @description When it was shown: the time it actually arrived
+             */
+            at: string;
         };
         /**
          * HintContent
@@ -674,6 +7987,11 @@ export interface components {
              * @enum {integer}
              */
             level: 1 | 2 | 3 | 4;
+            /**
+             * Client Request Id
+             * @description One key per request: the same request sent again (its response was lost) gets the first answer back, with no second provider call and no second use of the daily budget. The same key for a different request is a 409 `idempotency_key_reused`.
+             */
+            client_request_id?: string | null;
         };
         /** HintResponse */
         HintResponse: {
@@ -696,6 +8014,70 @@ export interface components {
              * @description True when the hint came from the curated hint ladder
              */
             grounded: boolean;
+        };
+        /** Impact */
+        Impact: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "delete_application" | "archive_note";
+            /** Target Id */
+            target_id: string;
+            /** Title */
+            title: string;
+            /**
+             * Summary
+             * @description The action and its reach in words: "Delete this application, its 3 events and 1 kit"
+             */
+            summary: string;
+            /**
+             * Effects
+             * @description Every one of your records it touches, by title and kind
+             */
+            effects: components["schemas"]["Effect"][];
+            /**
+             * Notes
+             * @description What it can't do, e.g. recall a delivered email
+             */
+            notes?: string[];
+            /**
+             * Fingerprint
+             * @description Send it back to carry out exactly this; a changed scope is refused
+             */
+            fingerprint: string;
+        };
+        /** Improvement */
+        Improvement: {
+            /**
+             * Key
+             * @description Stable within this interview: what it was suggested from (a missed point, a dimension). Accepting it uses this key, so accepting again finds the same action.
+             * @default
+             */
+            key: string;
+            /** Title */
+            title: string;
+            /** Why */
+            why: string;
+            /** Evidence */
+            evidence: components["schemas"]["EvidenceLink"][];
+            practice: components["schemas"]["PracticeAction"];
+            /**
+             * Action Id
+             * @description The action you accepted from it, if any
+             */
+            action_id?: string | null;
+        };
+        /** InterviewCounts */
+        InterviewCounts: {
+            /** Completed */
+            completed: number;
+            /** In Progress */
+            in_progress: number;
+            /** Expired */
+            expired: number;
+            /** Abandoned */
+            abandoned: number;
         };
         /**
          * InterviewEvaluation
@@ -738,11 +8120,33 @@ export interface components {
              * @description Current editor contents
              */
             code?: string | null;
+            /**
+             * Source
+             * @description How the text was produced. Recorded for review only
+             * @default typed
+             * @enum {string}
+             */
+            source: "typed" | "voice" | "mixed";
+            /**
+             * Client Request Id
+             * @description Send the same id again for the same message (a response lost after the server took it): you get the current state, the reply included, instead of a second reply. The same id with other words is refused (409 `idempotency_key_reused`)
+             */
+            client_request_id?: string | null;
+            /**
+             * After Seq
+             * @description How many turns the transcript had when this was written. If the interview has moved on since (another tab or device), the message is refused with 409 interview_advanced, not appended
+             */
+            after_seq?: number | null;
         };
         /** InterviewOut */
         InterviewOut: {
             /** Id */
             id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "coding" | "questions";
             status: components["schemas"]["InterviewStatus"];
             phase: components["schemas"]["InterviewPhase"] | null;
             /**
@@ -752,7 +8156,24 @@ export interface components {
             phase_index: number;
             /** Phase Guide */
             phase_guide: string | null;
-            problem: components["schemas"]["InterviewProblem"];
+            /** @description Coding interviews only */
+            problem: components["schemas"]["InterviewProblem"] | null;
+            /**
+             * Track
+             * @description Question rounds: the career
+             */
+            track?: string | null;
+            /** Career Title */
+            career_title?: string | null;
+            /**
+             * Questions
+             * @description Question rounds only; empty for coding interviews
+             */
+            questions: components["schemas"]["RoundQuestion"][];
+            /** @description Question rounds only */
+            round_summary?: components["schemas"]["RoundSummary"] | null;
+            /** @description Question rounds only */
+            round_format?: components["schemas"]["RoundFormatOut"] | null;
             /** Duration Seconds */
             duration_seconds: number;
             /**
@@ -793,18 +8214,117 @@ export interface components {
             title: string;
             difficulty: components["schemas"]["Difficulty"];
         };
+        /** InterviewReview */
+        InterviewReview: {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "coding" | "questions";
+            /** Track */
+            track: string | null;
+            /** Career Title */
+            career_title: string | null;
+            problem: components["schemas"]["InterviewProblem"] | null;
+            status: components["schemas"]["InterviewStatus"];
+            /** Status Label */
+            status_label: string;
+            /**
+             * Completed
+             * @description True only for interviews that ran to the end
+             */
+            completed: boolean;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Ended At */
+            ended_at: string | null;
+            /**
+             * Elapsed Seconds
+             * @description From start to end, as recorded
+             */
+            elapsed_seconds: number | null;
+            /** Time Limit Seconds */
+            time_limit_seconds: number;
+            /**
+             * Notices
+             * @description Incomplete sessions, missing answers, unavailable feedback, transcription
+             */
+            notices: string[];
+            /** Items */
+            items: components["schemas"]["ReviewItem"][];
+            /** Overall */
+            overall: components["schemas"]["Dimension"][];
+            /**
+             * Improvements
+             * @description At most three, each grounded in this interview
+             */
+            improvements: components["schemas"]["Improvement"][];
+            /** Evaluation Available */
+            evaluation_available: boolean;
+            /** Evaluator */
+            evaluator: string | null;
+            /** Disclaimer */
+            disclaimer: string;
+            /** Final Code */
+            final_code: string | null;
+            /** @description Question rounds: format, roles, versions */
+            round_format?: components["schemas"]["RoundFormatOut"] | null;
+            /**
+             * Perspectives
+             * @description Panel only. Not independent judgments: one rubric, split by who asked.
+             */
+            perspectives?: components["schemas"]["Perspective"][];
+        };
         /** InterviewStart */
         InterviewStart: {
             /**
+             * Kind
+             * @description coding: one problem with an AI interviewer. questions: five of a career's questions
+             * @default coding
+             * @enum {string}
+             */
+            kind: "coding" | "questions";
+            /**
              * Problem Slug
-             * @description Omit to let CodeCoach pick a recommended problem
+             * @description coding: omit to let CodeCoach pick a recommended problem
              */
             problem_slug?: string | null;
+            /**
+             * Track
+             * @description questions: the career (default: your own)
+             */
+            track?: string | null;
+            /** @description questions: default easy */
+            difficulty?: components["schemas"]["Difficulty"] | null;
+            /**
+             * Question Ids
+             * @description questions: ask exactly these questions of the career, in this order (a targeted round)
+             */
+            question_ids?: string[] | null;
+            /**
+             * Purpose
+             * @description questions: baseline asks three short questions (knowledge, behavioral, scenario) to start a practice plan
+             * @default practice
+             * @enum {string}
+             */
+            purpose: "practice" | "baseline";
             /**
              * Duration Minutes
              * @default 30
              */
             duration_minutes: number;
+            /**
+             * Format
+             * @description questions: the interview format (see GET /interviews/formats). Can't change once started.
+             * @default mixed
+             * @enum {string}
+             */
+            format: "mixed" | "behavioral" | "situational" | "technical" | "panel";
         };
         /**
          * InterviewStatus
@@ -815,8 +8335,17 @@ export interface components {
         InterviewSummary: {
             /** Id */
             id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "coding" | "questions";
             status: components["schemas"]["InterviewStatus"];
-            problem: components["schemas"]["InterviewProblem"];
+            problem: components["schemas"]["InterviewProblem"] | null;
+            /** Track */
+            track?: string | null;
+            /** Career Title */
+            career_title?: string | null;
             /**
              * Started At
              * Format: date-time
@@ -828,6 +8357,544 @@ export interface components {
             overall: string | null;
             /** Average Score */
             average_score: number | null;
+            /**
+             * Progress Done
+             * @description In progress: questions answered or skipped (a round), or messages sent (coding)
+             */
+            progress_done?: number | null;
+            /**
+             * Progress Total
+             * @description In progress, a round: how many questions
+             */
+            progress_total?: number | null;
+            /**
+             * Seconds Remaining
+             * @description In progress: time left, from the server
+             */
+            seconds_remaining?: number | null;
+            /**
+             * Last Activity At
+             * @description In progress: the latest turn
+             */
+            last_activity_at?: string | null;
+        };
+        /** Interviewer */
+        Interviewer: {
+            /**
+             * Name
+             * @description As you know it; unknown is fine
+             * @default
+             */
+            name: string;
+            /**
+             * Role
+             * @default
+             */
+            role: string;
+        };
+        /**
+         * ItemStatus
+         * @description Private practice status for one question (signed-in explorer only).
+         */
+        ItemStatus: {
+            /**
+             * Best Score
+             * @description Highest stored score, including answers too short to score
+             */
+            best_score: number | null;
+            /**
+             * Best Scored
+             * @description Best score among answers long enough to score; None when there's none
+             */
+            best_scored?: number | null;
+            /**
+             * Score Status
+             * @description None: not answered. Otherwise as in QuestionSummary.score_status
+             */
+            score_status?: ("scored" | "too_short" | "unknown") | null;
+            /** Attempts */
+            attempts: number;
+            /** Last Practiced At */
+            last_practiced_at: string | null;
+            /** Bookmarked */
+            bookmarked: boolean;
+            /** Collection Ids */
+            collection_ids: string[];
+        };
+        /**
+         * KeptStory
+         * @description A chosen story deleted since: what the kit prepared from it is kept until you remove it.
+         */
+        KeptStory: {
+            /** Revision */
+            revision: number;
+            /** Title */
+            title: string;
+            /** Short Version */
+            short_version: string;
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+        };
+        /** KeyPoints */
+        KeyPoints: {
+            /** Points */
+            points: string[];
+            /**
+             * Method
+             * @description How the points were found (no AI model is used)
+             */
+            method: string;
+        };
+        /**
+         * KeyedAnswerRequest
+         * @description The protected route's body: the request key is required (Verification brief 04).
+         */
+        KeyedAnswerRequest: {
+            /** Answer */
+            answer: string;
+            /**
+             * Story Id
+             * @description One of your stories this answer rehearses (it isn't changed)
+             */
+            story_id?: string | null;
+            /**
+             * Client Request Id
+             * @description Your key for this request (required here). Same meaning as on the plain route.
+             */
+            client_request_id: string;
+            /**
+             * Revises Answer Id
+             * @description One of your own earlier answers to this same question that this answer revises (404 if it isn't yours or doesn't exist; 400 `revision_other_question` if it's for another question). Only set it for an explicit revision.
+             */
+            revises_answer_id?: string | null;
+            /**
+             * Follows Up Answer Id
+             * @description Answering an offered follow-up (docs/FOLLOW_UPS.md): your own earlier answer to the question this one follows up (404 if it isn't yours or doesn't exist; 400 `not_a_follow_up` if no reviewed relationship links the two questions). Both answers keep their own score.
+             */
+            follows_up_answer_id?: string | null;
+        };
+        /**
+         * KitAction
+         * @description An accepted improvement on this checklist (docs/ACCEPTED_ACTIONS.md), as it is now.
+         */
+        KitAction: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /**
+             * Recurrence
+             * @enum {string}
+             */
+            recurrence: "once" | "weekly";
+            /**
+             * Done
+             * @description A one-off you said is done
+             */
+            done: boolean;
+            /** Occurrences Done */
+            occurrences_done: number;
+            /**
+             * Occurrences Total
+             * @description Scheduled occurrences, not counting cancelled ones
+             */
+            occurrences_total: number;
+            /** Href */
+            href: string | null;
+        };
+        /** KitOut */
+        KitOut: {
+            /** @description Only on a save recovered by its key: see SaveReplay */
+            save_replay?: components["schemas"]["SaveReplay"] | null;
+            /** Event Id */
+            event_id: string;
+            /** Application Id */
+            application_id: string;
+            /** Role Title */
+            role_title: string;
+            /** Employer */
+            employer: string;
+            /** Event Title */
+            event_title: string;
+            /** Event Kind */
+            event_kind: string;
+            /** On Date */
+            on_date: string | null;
+            /** Local Time */
+            local_time: string | null;
+            /** Timezone */
+            timezone: string | null;
+            /** Starts At */
+            starts_at: string | null;
+            /**
+             * Format
+             * @enum {string}
+             */
+            format: "remote" | "in_person" | "phone" | "unknown";
+            /** Location */
+            location: string;
+            /** Meeting Link */
+            meeting_link: string | null;
+            /** Interviewers */
+            interviewers: components["schemas"]["Interviewer"][];
+            /** Notes */
+            notes: string;
+            /** Checklist */
+            checklist: components["schemas"]["ChecklistItem"][];
+            /** Questions */
+            questions: components["schemas"]["AskQuestion"][];
+            /** Stories */
+            stories: components["schemas"]["KitStory"][];
+            /** Target Title */
+            target_title: string | null;
+            /**
+             * Saved
+             * @description False until you change something: the suggestions aren't stored yet
+             */
+            saved: boolean;
+            /**
+             * Revision
+             * @description Send it back as expected_revision when saving; 0 until saved
+             * @default 0
+             */
+            revision: number;
+            /** @description When the interview was the last time this kit was saved, if it has moved since. Null if it hasn't moved, or if that isn't known (kits saved before this was recorded). */
+            rescheduled_from?: components["schemas"]["KitWhen"] | null;
+            /**
+             * Missing Stories
+             * @description Examples chosen for this kit that were deleted since with nothing kept from them (chosen before the kit kept what it prepared)
+             * @default 0
+             */
+            missing_stories: number;
+            /**
+             * Kept Stories
+             * @description Examples deleted since: what the kit prepared from each is kept until you remove it
+             */
+            kept_stories?: components["schemas"]["KeptStory"][];
+        };
+        /**
+         * KitStory
+         * @description A chosen example, as it is now (it's a live reference), with what the kit prepared from it.
+         */
+        KitStory: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Short Version */
+            short_version: string;
+            /**
+             * Archived
+             * @default false
+             */
+            archived: boolean;
+            /**
+             * Revision
+             * @description The story's current version
+             * @default 1
+             */
+            revision: number;
+            /**
+             * Chosen Revision
+             * @description The story's version when it was chosen for this kit (or last marked as reread); null if that wasn't recorded (kits saved before this existed)
+             */
+            chosen_revision?: number | null;
+            /** @description The story as this kit prepared it; null if that wasn't recorded */
+            prepared?: components["schemas"]["PreparedStory"] | null;
+            /** @description Whether the story changed since in a way that matters here; null until saved */
+            freshness?: components["schemas"]["Freshness"] | null;
+        };
+        /** KitTemplateCreate */
+        KitTemplateCreate: {
+            /** Checklist */
+            checklist?: components["schemas"]["TemplateChecklistItem"][];
+            /** Questions */
+            questions?: components["schemas"]["TemplateQuestion"][];
+            /** Name */
+            name: string;
+            /**
+             * Client Request Id
+             * @description One key per new template: sending the same create again (its reply was lost) returns the template it made
+             */
+            client_request_id?: string | null;
+        };
+        /** KitTemplateOut */
+        KitTemplateOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Checklist */
+            checklist: components["schemas"]["TemplateChecklistItem"][];
+            /** Questions */
+            questions: components["schemas"]["TemplateQuestion"][];
+            /** Revision */
+            revision: number;
+            /** @description Only on a save recovered by its key: see SaveReplay */
+            save_replay?: components["schemas"]["SaveReplay"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** KitTemplateSummary */
+        KitTemplateSummary: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Checklist Count */
+            checklist_count: number;
+            /** Questions Count */
+            questions_count: number;
+            /** Revision */
+            revision: number;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * KitTemplateUpdate
+         * @description Rename, or replace the items. Saved against the revision you loaded (409 stale_revision with
+         *     the saved template in details.current if it changed since).
+         */
+        KitTemplateUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Checklist */
+            checklist?: components["schemas"]["TemplateChecklistItem"][] | null;
+            /** Questions */
+            questions?: components["schemas"]["TemplateQuestion"][] | null;
+            /** Expected Revision */
+            expected_revision: number;
+            /**
+             * Client Request Id
+             * @description One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before.
+             */
+            client_request_id?: string | null;
+        };
+        /**
+         * KitUpdate
+         * @description Replace whichever parts you send. Lists are saved in the order given (that's the priority).
+         */
+        KitUpdate: {
+            /** Format */
+            format?: ("remote" | "in_person" | "phone" | "unknown") | null;
+            /** Location */
+            location?: string | null;
+            /** Meeting Link */
+            meeting_link?: string | null;
+            /**
+             * Clear Meeting Link
+             * @default false
+             */
+            clear_meeting_link: boolean;
+            /** Interviewers */
+            interviewers?: components["schemas"]["Interviewer"][] | null;
+            /** Notes */
+            notes?: string | null;
+            /** Checklist */
+            checklist?: components["schemas"]["ChecklistItem"][] | null;
+            /** Questions */
+            questions?: components["schemas"]["AskQuestion"][] | null;
+            /** Story Ids */
+            story_ids?: string[] | null;
+            /**
+             * Expected Revision
+             * @description The kit revision you loaded (0 if it was never saved). If the kit was saved since, nothing is changed and the answer is 409 stale_revision with the current revision and the saved kit (details.current), so both can be shown.
+             */
+            expected_revision?: number | null;
+            /**
+             * Client Request Id
+             * @description One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before.
+             */
+            client_request_id?: string | null;
+            /**
+             * Reviewed Story Ids
+             * @description Chosen examples you've reread since they changed: their recorded version becomes the current one. Others keep the version they had when you chose them.
+             */
+            reviewed_story_ids?: string[] | null;
+        };
+        /** KitWhen */
+        KitWhen: {
+            /** On Date */
+            on_date: string | null;
+            /** Local Time */
+            local_time: string | null;
+            /** Timezone */
+            timezone: string | null;
+        };
+        /**
+         * LabBrief
+         * @description What a debugging exercise says up front. The defect's explanation and the reference repair
+         *     are only in GET /problems/{slug}/lab/explanation, which the page calls when the learner asks.
+         */
+        LabBrief: {
+            /**
+             * Version
+             * @description The exercise's version; attempts record the version they started from
+             */
+            version: number;
+            /** Intended Behavior */
+            intended_behavior: string;
+            /**
+             * Reproduction Test Ids
+             * @description Public tests the faulty starter fails
+             */
+            reproduction_test_ids: number[];
+            /** Review Status */
+            review_status: string;
+        };
+        /** LabExplanation */
+        LabExplanation: {
+            /** Version */
+            version: number;
+            /** Defect Summary */
+            defect_summary: string;
+            /** Explanation */
+            explanation: string;
+            /**
+             * Why Missed
+             * @description Why a simple case doesn't show the defect
+             */
+            why_missed: string;
+            /**
+             * Reference Repair
+             * @description One correct repair; any repair that passes the tests is accepted
+             */
+            reference_repair: string;
+            /** Follow Up */
+            follow_up: string;
+        };
+        /** LearnCatalog */
+        LearnCatalog: {
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /** Units */
+            units: components["schemas"]["UnitSummary"][];
+            /** Coverage Note */
+            coverage_note: string;
+            /** Careers With Units */
+            careers_with_units: components["schemas"]["CareerCoverage"][];
+        };
+        /** LeftOut */
+        LeftOut: {
+            /**
+             * Key
+             * @constant
+             */
+            key: "verdict";
+            /** Label */
+            label: string;
+            /**
+             * Reason
+             * @description removed: you left it out; unavailable: it no longer exists or isn't yours
+             * @enum {string}
+             */
+            reason: "removed" | "unavailable";
+        };
+        /** LifecycleIn */
+        LifecycleIn: {
+            /**
+             * Expected Fingerprint
+             * @description The preview's fingerprint. If the scope changed since, nothing is done: 409 impact_changed with the new preview (details.current).
+             */
+            expected_fingerprint: string;
+            /** Client Request Id */
+            client_request_id?: string | null;
+        };
+        /** LifecycleOutcome */
+        LifecycleOutcome: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "delete_application" | "archive_note";
+            /** Target Id */
+            target_id: string;
+            /** Title */
+            title: string;
+            /**
+             * Summary
+             * @description The action and its reach in words: "Delete this application, its 3 events and 1 kit"
+             */
+            summary: string;
+            /**
+             * Effects
+             * @description Every one of your records it touches, by title and kind
+             */
+            effects: components["schemas"]["Effect"][];
+            /**
+             * Notes
+             * @description What it can't do, e.g. recall a delivered email
+             */
+            notes?: string[];
+            /**
+             * Fingerprint
+             * @description Send it back to carry out exactly this; a changed scope is refused
+             */
+            fingerprint: string;
+            /**
+             * Done At
+             * Format: date-time
+             */
+            done_at: string;
+            /**
+             * Replayed
+             * @description True when this repeats an earlier request whose reply was lost: nothing was done again
+             * @default false
+             */
+            replayed: boolean;
+            /** Message */
+            message: string;
+        };
+        /** LineageEntry */
+        LineageEntry: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "refreshed" | "kept";
+            /** From Revision */
+            from_revision: number | null;
+            /**
+             * To Revision
+             * @description The revision the learner reviewed
+             */
+            to_revision: number;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Text */
+            text: string;
+        };
+        /** LinkedAction */
+        LinkedAction: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+        };
+        /** LinkedStory */
+        LinkedStory: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -839,10 +8906,962 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** MyExploreResult */
+        MyExploreResult: {
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /** Items */
+            items: components["schemas"]["ExploreItem"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** @description Counts for each option, given the other active filters */
+            facets: components["schemas"]["ExploreFacets"];
+            /**
+             * Explanation
+             * @description The active filters, in words
+             */
+            explanation: string[];
+            /**
+             * Suggestions
+             * @description Ways to widen a search that found nothing
+             */
+            suggestions: string[];
+            /**
+             * Sorts
+             * @description Sorts available here (personal ones need sign-in)
+             */
+            sorts: ("relevance" | "library" | "last_practiced" | "lowest_score")[];
+            /**
+             * Status
+             * @description Your practice status, keyed by question id
+             */
+            status: {
+                [key: string]: components["schemas"]["ItemStatus"];
+            };
+        };
+        /**
+         * MyReport
+         * @description A reporter's view: their own words and the public outcome, never internal notes.
+         */
+        MyReport: {
+            /** Id */
+            id: string;
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "question" | "problem";
+            /** Content Id */
+            content_id: string;
+            /** Content Title */
+            content_title: string;
+            /** Content Href */
+            content_href: string | null;
+            /** Content Version */
+            content_version: number;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "ambiguous_wording" | "incorrect_example" | "outdated_guidance" | "wrong_career_topic" | "accessibility" | "technical_bug" | "other";
+            /**
+             * Context
+             * @enum {string}
+             */
+            context: "content" | "feedback";
+            /** Details */
+            details: string;
+            /** Excerpt */
+            excerpt: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "investigating" | "resolved" | "not_actionable";
+            /** Resolution */
+            resolution: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** NextAction */
+        NextAction: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "read" | "check" | "practice" | "done";
+            /** Label */
+            label: string;
+        };
+        /**
+         * NodeView
+         * @description The node the learner is on. Choice quality and feedback are only revealed after choosing.
+         */
+        NodeView: {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "info" | "choice" | "written" | "prioritize";
+            /** Title */
+            title: string;
+            /** Text */
+            text: string;
+            /** Options */
+            options: components["schemas"]["OptionOut"][];
+            /**
+             * Clock
+             * @description Prioritize: when the queue starts (HH:MM)
+             */
+            clock?: string | null;
+            /**
+             * Tasks
+             * @description Prioritize: in the case's own order
+             */
+            tasks?: components["schemas"]["TaskOut"][];
+        };
+        /** NotCounted */
+        NotCounted: {
+            /** Rule */
+            rule: string;
+            /** Reason */
+            reason: string;
+            /** Count */
+            count: number;
+        };
+        /** NoteIn */
+        NoteIn: {
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+            /**
+             * Body
+             * @description Plain text or Markdown (rendered safely)
+             * @default
+             */
+            body: string;
+            /**
+             * Reflection
+             * @default
+             */
+            reflection: string;
+            /** Tags */
+            tags?: string[];
+            source?: components["schemas"]["SourceIn"] | null;
+            /**
+             * Excerpt
+             * @description A snapshot, not a live reference
+             */
+            excerpt?: string | null;
+            /** Excerpt Kind */
+            excerpt_kind?: ("quote" | "code") | null;
+            /**
+             * Client Request Id
+             * @description One key per new note: sending the same create again returns the note it made
+             */
+            client_request_id?: string | null;
+            /**
+             * Copy Of
+             * @description Keep both after a conflict (Volume 8, prompt 4): the note this is a copy of. Requires `client_request_id` (one per decision). The same key returns the copy it made; a copy made and then deleted is 410 `copy_deleted`, not made again. The question or problem your own note is about comes along; another account's note id is treated as missing. The source isn't changed.
+             */
+            copy_of?: string | null;
+        };
+        /** NoteOut */
+        NoteOut: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Snippet */
+            snippet: string;
+            /** Tags */
+            tags: string[];
+            source: components["schemas"]["SourceOut"] | null;
+            /** Pinned */
+            pinned: boolean;
+            /** Archived */
+            archived: boolean;
+            /** Revision */
+            revision: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** @description Only on a save recovered by its key: see SaveReplay */
+            save_replay?: components["schemas"]["SaveReplay"] | null;
+            /** Body */
+            body: string;
+            /** Reflection */
+            reflection: string;
+            /** Excerpt */
+            excerpt: string | null;
+            /** Excerpt Kind */
+            excerpt_kind: ("quote" | "code") | null;
+            /** Key Points */
+            key_points: string[] | null;
+        };
+        /** NotePage */
+        NotePage: {
+            /** Items */
+            items: components["schemas"]["NoteSummary"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Tags */
+            tags: components["schemas"]["TagCount"][];
+            /**
+             * Careers
+             * @description Careers your notes come from, with counts
+             */
+            careers: components["schemas"]["TagCount"][];
+            /** Pinned Limit */
+            pinned_limit: number;
+        };
+        /** NotePatch */
+        NotePatch: {
+            /**
+             * Base Revision
+             * @description Required when changing text: the revision this edit started from
+             */
+            base_revision?: number | null;
+            /**
+             * Client Request Id
+             * @description One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before.
+             */
+            client_request_id?: string | null;
+            /** Title */
+            title?: string | null;
+            /** Body */
+            body?: string | null;
+            /** Reflection */
+            reflection?: string | null;
+            /** Tags */
+            tags?: string[] | null;
+            /**
+             * Key Points
+             * @description Accepted key points; [] clears
+             */
+            key_points?: string[] | null;
+            /** Pinned */
+            pinned?: boolean | null;
+            /** Archived */
+            archived?: boolean | null;
+        };
+        /** NoteSummary */
+        NoteSummary: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Snippet */
+            snippet: string;
+            /** Tags */
+            tags: string[];
+            source: components["schemas"]["SourceOut"] | null;
+            /** Pinned */
+            pinned: boolean;
+            /** Archived */
+            archived: boolean;
+            /** Revision */
+            revision: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** OccurrenceOut */
+        OccurrenceOut: {
+            /**
+             * Id
+             * @description The schedule entry's id
+             */
+            id: string;
+            /**
+             * On Date
+             * Format: date
+             */
+            on_date: string;
+            /** All Day */
+            all_day: boolean;
+            /** Local Time */
+            local_time: string | null;
+            /** Timezone */
+            timezone: string | null;
+            /** Starts At */
+            starts_at: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "scheduled" | "cancelled";
+            /** Sequence */
+            sequence: number;
+            /**
+             * Completed At
+             * @description When you said this occurrence was done (a one-off: when the action was done)
+             */
+            completed_at: string | null;
+        };
+        /**
+         * OccurrencesIn
+         * @description Put it on the schedule: one occurrence for a one-off, or one a week for `weeks` weeks for a
+         *     weekly action. Moving an occurrence later is the schedule's own move: same entry, same id.
+         */
+        OccurrencesIn: {
+            /**
+             * On Date
+             * Format: date
+             */
+            on_date: string;
+            /**
+             * All Day
+             * @default true
+             */
+            all_day: boolean;
+            /** Local Time */
+            local_time?: string | null;
+            /** Timezone */
+            timezone?: string | null;
+            /** Fold */
+            fold?: number | null;
+            /**
+             * Duration Min
+             * @default 30
+             */
+            duration_min: number;
+            /**
+             * Weeks
+             * @default 1
+             */
+            weeks: number;
+            /**
+             * Client Request Id
+             * @description Sending the same request again (its reply was lost) returns the occurrences it made
+             */
+            client_request_id?: string | null;
+        };
+        /**
+         * OfferCard
+         * @description A fictional fact card: everything here is made up and labelled so.
+         */
+        OfferCard: {
+            /** Id */
+            id: string;
+            /** Version */
+            version: number;
+            /** Title */
+            title: string;
+            /** Role */
+            role: string;
+            /** Employer */
+            employer: string;
+            /** Counterpart */
+            counterpart: string;
+            /** Currency */
+            currency: string | null;
+            /** Terms */
+            terms: components["schemas"]["OfferTermOut"][];
+            /** Phases */
+            phases: components["schemas"]["OfferPhaseOut"][];
+            /** Review Status */
+            review_status: string;
+        };
+        /** OfferCaseSummary */
+        OfferCaseSummary: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Role */
+            role: string;
+            /** Employer */
+            employer: string;
+        };
+        /** OfferComparisonCreate */
+        OfferComparisonCreate: {
+            /**
+             * Title
+             * @default My offers
+             */
+            title: string;
+            /**
+             * Example
+             * @description Start from a fictional example with gaps
+             * @default false
+             */
+            example: boolean;
+        };
+        /** OfferComparisonOut */
+        OfferComparisonOut: {
+            /** @description Only on a save recovered by its key: see SaveReplay */
+            save_replay?: components["schemas"]["SaveReplay"] | null;
+            /** Id */
+            id: string;
+            /** Revision */
+            revision: number;
+            doc: components["schemas"]["ComparisonDoc"];
+            /**
+             * Derived
+             * @description Figures with formulas and assumptions; see docs/OFFER_COMPARISON.md
+             */
+            derived: {
+                [key: string]: unknown;
+            };
+            /**
+             * Applications
+             * @description Linked application ids → 'role at employer' (yours only)
+             */
+            applications: {
+                [key: string]: string;
+            };
+            /**
+             * Archived
+             * @description Out of the active list, not deleted; archiving changes nothing else (docs/ARCHIVE.md)
+             * @default false
+             */
+            archived: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** OfferComparisonSave */
+        OfferComparisonSave: {
+            doc: components["schemas"]["ComparisonDoc"];
+            /** Expected Revision */
+            expected_revision: number;
+            /**
+             * Client Request Id
+             * @description One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before.
+             */
+            client_request_id?: string | null;
+        };
+        /** OfferComparisonSummary */
+        OfferComparisonSummary: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Offers */
+            offers: number;
+            /**
+             * Archived
+             * @default false
+             */
+            archived: boolean;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** OfferPhaseIn */
+        OfferPhaseIn: {
+            /**
+             * From Phase
+             * @enum {string}
+             */
+            from_phase: "clarify" | "request" | "respond";
+        };
+        /** OfferPhaseOut */
+        OfferPhaseOut: {
+            /**
+             * Id
+             * @enum {string}
+             */
+            id: "clarify" | "request" | "respond";
+            /** Title */
+            title: string;
+        };
+        /** OfferRehearsalIn */
+        OfferRehearsalIn: {
+            /** Case Id */
+            case_id: string;
+            /**
+             * Goals
+             * @description What you want from the conversation, in your words
+             */
+            goals?: string[];
+            /**
+             * Parent Id
+             * @description A different approach to this rehearsal
+             */
+            parent_id?: string | null;
+        };
+        /** OfferRehearsalOut */
+        OfferRehearsalOut: {
+            /** Id */
+            id: string;
+            /** Case Id */
+            case_id: string;
+            /** Case Version */
+            case_version: number;
+            /**
+             * Current Version
+             * @description The card's version now; differs when it was edited since
+             */
+            current_version: number | null;
+            /** @description The card as it was when this rehearsal started */
+            card: components["schemas"]["OfferCard"];
+            /** Goals */
+            goals: string[];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "in_progress" | "completed";
+            /**
+             * Phase
+             * @enum {string}
+             */
+            phase: "clarify" | "request" | "respond";
+            /** Turns */
+            turns: components["schemas"]["OfferTurnOut"][];
+            /** Turns Left In Phase */
+            turns_left_in_phase: number;
+            /** Parent Id */
+            parent_id: string | null;
+            /**
+             * Mode
+             * @description Which counterpart ran: authored responses, never AI here
+             */
+            mode: string;
+            /** Debrief */
+            debrief: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Completed At */
+            completed_at: string | null;
+        };
+        /** OfferRehearsalSummary */
+        OfferRehearsalSummary: {
+            /** Id */
+            id: string;
+            /** Case Id */
+            case_id: string;
+            /** Title */
+            title: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "in_progress" | "completed";
+            /** Outcome */
+            outcome: string | null;
+            /** Parent Id */
+            parent_id: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Completed At */
+            completed_at: string | null;
+        };
+        /** OfferTermOut */
+        OfferTermOut: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /**
+             * Value
+             * @description As the card states it; null: the offer doesn't say (unknown)
+             */
+            value: string | null;
+        };
+        /**
+         * OfferTerms
+         * @description One offer, as the learner enters it. Every field can be left unknown; unknown isn't zero.
+         */
+        OfferTerms: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /**
+             * Application Id
+             * @description One of your applications, if linked
+             */
+            application_id?: string | null;
+            /**
+             * Source Note
+             * @description Where these terms came from
+             * @default
+             */
+            source_note: string;
+            /**
+             * Terms As Of
+             * @description The date of the terms entered
+             */
+            terms_as_of?: string | null;
+            /** Currency */
+            currency?: string | null;
+            /** Pay Amount */
+            pay_amount?: number | null;
+            /** Pay Period */
+            pay_period?: ("year" | "month" | "week" | "hour") | null;
+            /**
+             * Months Paid
+             * @description Monthly pay: payments a year
+             */
+            months_paid?: number | null;
+            /** Hours Per Week */
+            hours_per_week?: number | null;
+            /**
+             * Weeks Per Year
+             * @description Weekly or hourly pay: weeks paid a year
+             */
+            weeks_per_year?: number | null;
+            /**
+             * Guaranteed Extra
+             * @description Guaranteed one-off cash; 0 if none
+             */
+            guaranteed_extra?: number | null;
+            /**
+             * Guaranteed Note
+             * @default
+             */
+            guaranteed_note: string;
+            /**
+             * Bonus Amount
+             * @description Conditional bonus, never guaranteed
+             */
+            bonus_amount?: number | null;
+            /**
+             * Bonus Note
+             * @default
+             */
+            bonus_note: string;
+            /**
+             * Equity Note
+             * @description Described only; never valued
+             * @default
+             */
+            equity_note: string;
+            /**
+             * Benefits Note
+             * @default
+             */
+            benefits_note: string;
+        };
+        /** OfferTurnIn */
+        OfferTurnIn: {
+            /** Text */
+            text: string;
+            /**
+             * Source
+             * @default typed
+             * @enum {string}
+             */
+            source: "typed" | "voice" | "mixed";
+            /**
+             * After Seq
+             * @description The last turn you saw; a newer one means another tab moved on
+             */
+            after_seq: number;
+            /** Client Request Id */
+            client_request_id?: string | null;
+        };
+        /** OfferTurnOut */
+        OfferTurnOut: {
+            /** Seq */
+            seq: number;
+            /**
+             * Speaker
+             * @enum {string}
+             */
+            speaker: "learner" | "counterpart";
+            /**
+             * Phase
+             * @enum {string}
+             */
+            phase: "clarify" | "request" | "respond";
+            /** Text */
+            text: string;
+            /** Source */
+            source?: ("typed" | "voice" | "mixed") | null;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+        };
+        /** OnboardingOut */
+        OnboardingOut: {
+            /**
+             * Tour Status
+             * @enum {string}
+             */
+            tour_status: "not_started" | "in_progress" | "paused" | "completed" | "skipped";
+            /** Tour Kind */
+            tour_kind: ("written" | "coding") | null;
+            /** Tour Step */
+            tour_step: number;
+            /**
+             * Tour Steps
+             * @description How many steps the tour for tour_kind has
+             */
+            tour_steps: number;
+            /** Start Choice */
+            start_choice: ("practice" | "intro" | "library" | "later") | null;
+            /**
+             * Welcome Due
+             * @description Hasn't chosen how to start and hasn't practised yet
+             */
+            welcome_due: boolean;
+            /**
+             * Resume Due
+             * @description Left the tour part-way and hasn't dismissed the reminder
+             */
+            resume_due: boolean;
+            career_intro: components["schemas"]["CareerIntro"] | null;
+            /**
+             * First Activity At
+             * @description When the learner first answered a question or submitted code (from their real activity; the tour never counts)
+             */
+            first_activity_at: string | null;
+            starter: components["schemas"]["StarterActivity"] | null;
+            /**
+             * Format
+             * @description The current career's practice format
+             * @enum {string}
+             */
+            format: "written" | "coding";
+        };
+        /**
+         * OnboardingUpdate
+         * @description One change at a time is typical; every field is optional and each is idempotent.
+         */
+        OnboardingUpdate: {
+            /** Start Choice */
+            start_choice?: ("practice" | "intro" | "library" | "later") | null;
+            /** Tour */
+            tour?: ("start" | "step" | "pause" | "complete" | "skip") | null;
+            /**
+             * Tour Kind
+             * @description With tour=start; defaults to the career's format
+             */
+            tour_kind?: ("written" | "coding") | null;
+            /**
+             * Tour Step
+             * @description With tour=start or tour=step
+             */
+            tour_step?: number | null;
+            /** Dismiss */
+            dismiss?: ("welcome" | "resume_tour") | null;
+            /**
+             * Career Intro Seen
+             * @description true: don't offer the current career's format introduction again
+             */
+            career_intro_seen?: boolean | null;
+        };
+        /** OptionOut */
+        OptionOut: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+        };
+        /** OrderIn */
+        OrderIn: {
+            /**
+             * Item Ids
+             * @description Every item id of the collection, in the new order
+             */
+            item_ids: string[];
+        };
+        /** PacketIn */
+        PacketIn: {
+            /**
+             * Title
+             * @default My practice packet
+             */
+            title: string;
+            /**
+             * Items
+             * @description In the order they'll appear. Never empty: nothing is chosen for you
+             */
+            items: components["schemas"]["PacketItemIn"][];
+            /**
+             * Keep Contact Details
+             * @description Keep email addresses and phone numbers in your own text (removed by default)
+             * @default false
+             */
+            keep_contact_details: boolean;
+        };
+        /** PacketItemIn */
+        PacketItemIn: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "question" | "note" | "story";
+            /**
+             * Id
+             * @description A question as track/question_id; a note or story id
+             */
+            id: string;
+            /**
+             * Parts
+             * @description Which parts to include (empty: the usual ones). question: question, your_answer, feedback. note: note, reflection, excerpt. story: situation, task, action, result, reflection, short_version, long_version
+             */
+            parts?: string[];
+        };
+        /** PacketItemOut */
+        PacketItemOut: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "question" | "note" | "story";
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Sections */
+            sections: components["schemas"]["PacketSection"][];
+            /**
+             * Notes
+             * @description Parts you chose that aren't there, and why
+             */
+            notes?: string[];
+        };
+        /** PacketOut */
+        PacketOut: {
+            /** Title */
+            title: string;
+            /**
+             * Assembled At
+             * Format: date-time
+             */
+            assembled_at: string;
+            /** Items */
+            items: components["schemas"]["PacketItemOut"][];
+            /**
+             * Unavailable
+             * @description Chosen but not included: deleted, retired, repeated, or not found (another account's id is just not found)
+             */
+            unavailable: components["schemas"]["PacketUnavailable"][];
+            /**
+             * Redacted
+             * @description Email addresses and phone numbers removed from your own text
+             */
+            redacted: number;
+            /**
+             * Shortened
+             * @description Something was cut short to keep the packet bounded
+             */
+            shortened: boolean;
+            /**
+             * Digest
+             * @description A fingerprint of exactly this content, shown with the preview and in the file
+             */
+            digest: string;
+        };
+        /** PacketSection */
+        PacketSection: {
+            /**
+             * Kind
+             * @description question: authored material from the library; your_*: what you wrote; automated_feedback: what the coach said about an answer (not a grade from a person)
+             * @enum {string}
+             */
+            kind: "question" | "your_answer" | "automated_feedback" | "your_note" | "your_story";
+            /** Heading */
+            heading: string;
+            /** Text */
+            text: string;
+            /**
+             * Provenance
+             * @description Where it comes from, its version and date, as recorded
+             */
+            provenance: string;
+            /**
+             * Shortened
+             * @description Cut short to keep the packet bounded (it says so in the text)
+             * @default false
+             */
+            shortened: boolean;
+        };
+        /** PacketUnavailable */
+        PacketUnavailable: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "question" | "note" | "story";
+            /** Id */
+            id: string;
+            /** Reason */
+            reason: string;
+        };
         /** Page[AIHistoryItem] */
         Page_AIHistoryItem_: {
             /** Items */
             items: components["schemas"]["AIHistoryItem"][];
+            /**
+             * Total
+             * @description Total matching items across all pages
+             */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
+        /** Page[ActivityItem] */
+        Page_ActivityItem_: {
+            /** Items */
+            items: components["schemas"]["ActivityItem"][];
             /**
              * Total
              * @description Total matching items across all pages
@@ -881,6 +9900,20 @@ export interface components {
             /** Page Size */
             page_size: number;
         };
+        /** Page[QuestionSummary] */
+        Page_QuestionSummary_: {
+            /** Items */
+            items: components["schemas"]["QuestionSummary"][];
+            /**
+             * Total
+             * @description Total matching items across all pages
+             */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
         /** Page[SubmissionListItem] */
         Page_SubmissionListItem_: {
             /** Items */
@@ -901,6 +9934,328 @@ export interface components {
             name: string;
             /** Type */
             type: string;
+        };
+        /** PasswordResetConfirm */
+        PasswordResetConfirm: {
+            /** Token */
+            token: string;
+            /** New Password */
+            new_password: string;
+        };
+        /** PasswordResetRequest */
+        PasswordResetRequest: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+        };
+        /**
+         * Perspective
+         * @description One simulated panel role's view: the same rubric, applied to the questions that role asked.
+         */
+        Perspective: {
+            role: components["schemas"]["SpeakerOut"];
+            /** Asked */
+            asked: number;
+            /** Answered */
+            answered: number;
+            /** Average Score */
+            average_score: number | null;
+            /** Summary */
+            summary: string;
+        };
+        /** PlanItemOut */
+        PlanItemOut: {
+            /** Id */
+            id: string;
+            /** Position */
+            position: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "assessment" | "question" | "retry" | "review" | "voice" | "mock" | "coding" | "learn";
+            /** Skill */
+            skill: string;
+            /** Title */
+            title: string;
+            /**
+             * Reason
+             * @description Why this activity was chosen
+             */
+            reason: string;
+            /**
+             * Completion
+             * @description What counts as done
+             */
+            completion: string;
+            /**
+             * Minutes
+             * @description Estimated duration
+             */
+            minutes: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "done" | "skipped" | "replaced";
+            /**
+             * Evidence
+             * @description What completed it, e.g. 'Answered, scored 72/100'
+             */
+            evidence: string | null;
+            /**
+             * Href
+             * @description Where to do it, when it's a page
+             */
+            href: string | null;
+            /** @description When it's a mock-interview round to start */
+            round: components["schemas"]["RoundStart"] | null;
+            /** Can Mark Reviewed */
+            can_mark_reviewed: boolean;
+            /** Can Replace */
+            can_replace: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Resolved At */
+            resolved_at: string | null;
+            /** @description Derived from feedback you've disputed since (it stays; you decide) */
+            disputed?: components["schemas"]["DisputeNote"] | null;
+        };
+        /** PlanOut */
+        PlanOut: {
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /** Version */
+            version: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Changes
+             * @description Why this version differs from the last one
+             */
+            changes: string[];
+            /** Items */
+            items: components["schemas"]["PlanItemOut"][];
+            /**
+             * Withheld
+             * @description Suggestions this version didn't make because of a dispute
+             */
+            withheld?: components["schemas"]["Withheld"][];
+            progress: components["schemas"]["PlanProgress"];
+            today: components["schemas"]["TodayOut"];
+            assessment: components["schemas"]["AssessmentOut"];
+            /** Goals Saved */
+            goals_saved: boolean;
+            /** Target Date */
+            target_date: string | null;
+            /** Days To Interview */
+            days_to_interview: number | null;
+        };
+        /** PlanProgress */
+        PlanProgress: {
+            /** Done This Week */
+            done_this_week: number;
+            /**
+             * Minutes This Week
+             * @description Estimated minutes of activities completed in the last 7 days
+             */
+            minutes_this_week: number;
+            /**
+             * Weekly Minutes
+             * @description Your weekly practice time (default 60)
+             */
+            weekly_minutes: number;
+            /** Done In Plan */
+            done_in_plan: number;
+            /** Open In Plan */
+            open_in_plan: number;
+        };
+        /** PlannedTask */
+        PlannedTask: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Start */
+            start: string;
+            /** Finish */
+            finish: string;
+            /** Due */
+            due?: string | null;
+            /**
+             * Late
+             * @description It finishes after the time the case gives for it
+             */
+            late: boolean;
+        };
+        /** PracticeAction */
+        PracticeAction: {
+            /** Label */
+            label: string;
+            /** Href */
+            href?: string | null;
+            /**
+             * Retry Index
+             * @description Retry this question of the interview
+             */
+            retry_index?: number | null;
+        };
+        /** PracticeLink */
+        PracticeLink: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "question" | "problem";
+            /** Title */
+            title: string;
+            /** Href */
+            href: string;
+            /** Why */
+            why: string;
+            /**
+             * Answered
+             * @default false
+             */
+            answered: boolean;
+            /** Best Score */
+            best_score?: number | null;
+        };
+        /** PracticeOut */
+        PracticeOut: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "question" | "problem";
+            /** Ref Id */
+            ref_id: string;
+            /** Label */
+            label: string;
+            /** Href */
+            href: string;
+        };
+        /** PrepEntryOut */
+        PrepEntryOut: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Sequence */
+            sequence: number;
+            /** Follows Interview */
+            follows_interview: boolean;
+            current: components["schemas"]["PrepTime"];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "can_move" | "aligned" | "fixed" | "untimed" | "interview_time_unknown" | "past" | "would_be_past";
+            /** @description Where it would move to (in its own time zone), if it can */
+            proposal: components["schemas"]["PrepTime"] | null;
+            /**
+             * Note
+             * @description What happens to it, in plain words
+             */
+            note: string;
+        };
+        /** PrepShiftEntryIn */
+        PrepShiftEntryIn: {
+            /** Id */
+            id: string;
+            /**
+             * Sequence
+             * @description The sequence the preview showed
+             */
+            sequence: number;
+        };
+        /** PrepShiftIn */
+        PrepShiftIn: {
+            /**
+             * Event Starts At
+             * @description The interview start the preview showed
+             */
+            event_starts_at: string | null;
+            /**
+             * Entries
+             * @description Only the entries you chose
+             */
+            entries: components["schemas"]["PrepShiftEntryIn"][];
+        };
+        /** PrepShiftOut */
+        PrepShiftOut: {
+            /** Event Id */
+            event_id: string;
+            /** Event Title */
+            event_title: string;
+            /**
+             * Event Starts At
+             * @description The interview's exact start now; send it back when applying, so a newer change is caught
+             */
+            event_starts_at: string | null;
+            /** Event On Date */
+            event_on_date: string | null;
+            /** Event Local Time */
+            event_local_time: string | null;
+            /** Event Timezone */
+            event_timezone: string | null;
+            /** Entries */
+            entries: components["schemas"]["PrepEntryOut"][];
+        };
+        /** PrepShiftResult */
+        PrepShiftResult: {
+            /**
+             * Moved
+             * @description Entries moved now
+             */
+            moved: string[];
+            /**
+             * Already Aligned
+             * @description Chosen entries that already match the interview's current time (moved earlier, by a resend or by hand); not moved now
+             */
+            already_aligned: string[];
+            preview: components["schemas"]["PrepShiftOut"];
+        };
+        /** PrepTime */
+        PrepTime: {
+            /**
+             * On Date
+             * Format: date
+             */
+            on_date: string;
+            /** Local Time */
+            local_time: string | null;
+            /** Timezone */
+            timezone: string | null;
+            /** Starts At */
+            starts_at: string | null;
+            /**
+             * All Day
+             * @default false
+             */
+            all_day: boolean;
+        };
+        /**
+         * PreparedStory
+         * @description A chosen story as this kit prepared it (docs/STORY_FRESHNESS.md).
+         */
+        PreparedStory: {
+            /** Revision */
+            revision: number;
+            /** Title */
+            title: string;
+            /** Short Version */
+            short_version: string;
         };
         /** ProblemDetail */
         ProblemDetail: {
@@ -934,6 +10289,15 @@ export interface components {
              * @description How many progressive hint levels are available
              */
             hint_levels: number;
+            /**
+             * Kind
+             * @description problem: write a solution; debug: fix the deliberately faulty starter
+             * @default problem
+             * @enum {string}
+             */
+            kind: "problem" | "debug";
+            /** @description Only for a debugging exercise (kind 'debug') */
+            lab?: components["schemas"]["LabBrief"] | null;
         };
         /** ProblemStatus */
         ProblemStatus: {
@@ -1029,6 +10393,11 @@ export interface components {
              * @default false
              */
             missing: boolean;
+            /**
+             * Line
+             * @description Line in your code where the exception was thrown
+             */
+            line?: number | null;
             /** Runtime Ms */
             runtime_ms?: number | null;
         };
@@ -1045,6 +10414,215 @@ export interface components {
             };
             /** Expected Output */
             expected_output: unknown;
+        };
+        /** QuestionDetail */
+        QuestionDetail: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Prompt */
+            prompt: string;
+            /** Difficulty */
+            difficulty: string;
+            /**
+             * Kind
+             * @description knowledge, behavioral, situational, leadership or motivation
+             */
+            kind: string;
+            /**
+             * Best Score
+             * @description Your highest stored score on this question, when signed in, including an answer too short to score (its stored score is capped). Kept for compatibility; see best_scored.
+             */
+            best_score?: number | null;
+            /**
+             * Best Scored
+             * @description Your best score among answers long enough to score (app/careers/eligibility.py); None when you haven't answered or none of your answers could be scored. Prefer this to best_score.
+             */
+            best_scored?: number | null;
+            /**
+             * Score Status
+             * @description None: not answered (or signed out). scored: at least one answer has a score. too_short: answered, but every answer was too short to score. unknown: answered, but how it was graded wasn't recorded.
+             */
+            score_status?: ("scored" | "too_short" | "unknown") | null;
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /** Tips */
+            tips: string[];
+            /**
+             * Rubric Labels
+             * @description What a strong answer covers (shown after answering)
+             */
+            rubric_labels: string[];
+        };
+        /** QuestionSummary */
+        QuestionSummary: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Prompt */
+            prompt: string;
+            /** Difficulty */
+            difficulty: string;
+            /**
+             * Kind
+             * @description knowledge, behavioral, situational, leadership or motivation
+             */
+            kind: string;
+            /**
+             * Best Score
+             * @description Your highest stored score on this question, when signed in, including an answer too short to score (its stored score is capped). Kept for compatibility; see best_scored.
+             */
+            best_score?: number | null;
+            /**
+             * Best Scored
+             * @description Your best score among answers long enough to score (app/careers/eligibility.py); None when you haven't answered or none of your answers could be scored. Prefer this to best_score.
+             */
+            best_scored?: number | null;
+            /**
+             * Score Status
+             * @description None: not answered (or signed out). scored: at least one answer has a score. too_short: answered, but every answer was too short to score. unknown: answered, but how it was graded wasn't recorded.
+             */
+            score_status?: ("scored" | "too_short" | "unknown") | null;
+        };
+        /** QuestionVersionOut */
+        QuestionVersionOut: {
+            /** Version */
+            version: number;
+            /** Title */
+            title: string;
+            /** Prompt */
+            prompt: string;
+        };
+        /** QueueIn */
+        QueueIn: {
+            /** Position */
+            position: number;
+        };
+        /**
+         * QueuePlanOut
+         * @description One ordered queue, judged on what the case had said by then.
+         */
+        QueuePlanOut: {
+            /** Step Index */
+            step_index: number;
+            /** Title */
+            title: string;
+            /** Clock */
+            clock: string;
+            /**
+             * Known
+             * @description The tasks and facts as they stood when you ordered them
+             */
+            known: components["schemas"]["TaskOut"][];
+            /**
+             * Learned Before
+             * @description New information shown earlier in this attempt (titles of info steps since the start)
+             */
+            learned_before: string[];
+            /** Plan */
+            plan: components["schemas"]["PlannedTask"][];
+            /** Violations */
+            violations: components["schemas"]["Violation"][];
+            /** Follows */
+            follows: components["schemas"]["StrategyOut"][];
+            /** Others */
+            others: components["schemas"]["StrategyOut"][];
+            /** Response */
+            response: string;
+            /** Covered */
+            covered: string[];
+            /** Missing */
+            missing: string[];
+        };
+        /** Rating */
+        Rating: {
+            /**
+             * State
+             * @default unknown
+             * @enum {string}
+             */
+            state: "rated" | "unknown" | "not_comparable";
+            /**
+             * Value
+             * @description Your rating, 1 to 5, when rated
+             */
+            value?: number | null;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /** RecentItem */
+        RecentItem: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "interview" | "note" | "story" | "kit" | "application" | "offer_comparison";
+            /**
+             * Id
+             * @description The record's id; for a kit, its event's id
+             */
+            id: string;
+            /**
+             * Parent Id
+             * @description For a kit: its application's id
+             */
+            parent_id?: string | null;
+            /** Title */
+            title: string;
+            /**
+             * State
+             * @description Interviews only
+             */
+            state?: ("in_progress" | "time_up" | "finished" | "expired" | "ended_early") | null;
+            /**
+             * Detail
+             * @description A short status: an application's stage, a kit's date
+             */
+            detail?: string | null;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /**
+             * At Meaning
+             * @description saved: last saved to your account; started/finished: the session's own times. Nothing here means 'opened'.
+             * @enum {string}
+             */
+            at_meaning: "saved" | "started" | "finished";
+        };
+        /** RecentWorkOut */
+        RecentWorkOut: {
+            /** Items */
+            items: components["schemas"]["RecentItem"][];
+            /**
+             * Unavailable
+             * @description Kinds of record that couldn't be read just now; the rest are listed
+             */
+            unavailable: string[];
+        };
+        /** RecipientView */
+        RecipientView: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "closed";
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            view: components["schemas"]["SharedView"];
+            /** @description Who the feedback will be attributed to, when the reviewer is signed in */
+            reviewer: components["schemas"]["ReviewerIdentity"] | null;
         };
         /** Recommendation */
         Recommendation: {
@@ -1063,6 +10641,275 @@ export interface components {
              */
             kind: "retry" | "weak_topic" | "next_step" | "interview";
         };
+        /** ReevaluateIn */
+        ReevaluateIn: {
+            /**
+             * Reason
+             * @description Why you'd like it checked again (private)
+             * @default
+             */
+            reason: string;
+        };
+        /** ReferenceOut */
+        ReferenceOut: {
+            /** Title */
+            title: string;
+            /** Publisher */
+            publisher: string;
+            /**
+             * Url
+             * @description Null when no stable link is recorded (links are never guessed)
+             */
+            url: string | null;
+            /** Published */
+            published: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "external" | "repository";
+            /** Note */
+            note: string | null;
+        };
+        /** ReflectionActionAccept */
+        ReflectionActionAccept: {
+            /**
+             * Target
+             * @enum {string}
+             */
+            target: "notebook" | "schedule" | "saved";
+            /**
+             * On Date
+             * @description For the schedule
+             */
+            on_date?: string | null;
+            /** Timezone */
+            timezone?: string | null;
+        };
+        /** ReflectionActionEdit */
+        ReflectionActionEdit: {
+            /** Status */
+            status?: ("suggested" | "dismissed") | null;
+            /** Title */
+            title?: string | null;
+            /** Detail */
+            detail?: string | null;
+        };
+        /** ReflectionActionOut */
+        ReflectionActionOut: {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "practice" | "note" | "gap";
+            /** Title */
+            title: string;
+            /** Detail */
+            detail: string;
+            /** Ref */
+            ref: string | null;
+            /** Href */
+            href: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "suggested" | "accepted" | "dismissed";
+            /**
+             * Targets
+             * @description Where this can go
+             */
+            targets: ("notebook" | "schedule" | "saved")[];
+            /** Target */
+            target: ("notebook" | "schedule" | "saved") | null;
+            /** Applied Ref */
+            applied_ref: string | null;
+            /**
+             * Applied Available
+             * @description For an accepted step: whether what it created is still there (the note, an uncancelled schedule entry, the bookmark). False means you removed it since; accepting again doesn't recreate it.
+             */
+            applied_available?: boolean | null;
+        };
+        /** ReflectionIn */
+        ReflectionIn: {
+            /**
+             * Questions
+             * @description Paraphrased, not copied
+             */
+            questions?: string[];
+            /** Topics */
+            topics?: string[];
+            /**
+             * Clear
+             * @default
+             */
+            clear: string;
+            /**
+             * Difficult
+             * @default
+             */
+            difficult: string;
+            /** Observations */
+            observations?: components["schemas"]["ReflectionObservation"][];
+            /**
+             * Follow Ups
+             * @default
+             */
+            follow_ups: string;
+            /** Practice */
+            practice?: string[];
+            /** Story Ids */
+            story_ids?: string[];
+            /**
+             * Expected Revision
+             * @description 0 for the first save
+             */
+            expected_revision: number;
+            /**
+             * Client Request Id
+             * @description One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before.
+             */
+            client_request_id?: string | null;
+        };
+        /** ReflectionObservation */
+        ReflectionObservation: {
+            /** Text */
+            text: string;
+            /**
+             * Kind
+             * @description observed: what happened ("they asked for another example"); interpretation: what you think it meant
+             * @enum {string}
+             */
+            kind: "observed" | "interpretation";
+        };
+        /** ReflectionOut */
+        ReflectionOut: {
+            /** @description Only on a save recovered by its key: see SaveReplay */
+            save_replay?: components["schemas"]["SaveReplay"] | null;
+            /** Event Id */
+            event_id: string;
+            /** Application Id */
+            application_id: string;
+            /** Application Archived */
+            application_archived: boolean;
+            /** Role Title */
+            role_title: string;
+            /** Employer */
+            employer: string;
+            /** Stage */
+            stage: string;
+            /** Event Title */
+            event_title: string;
+            /** Event On */
+            event_on: string | null;
+            /** Questions */
+            questions: string[];
+            /** Topics */
+            topics: string[];
+            /** Clear */
+            clear: string;
+            /** Difficult */
+            difficult: string;
+            /** Observations */
+            observations: components["schemas"]["ReflectionObservation"][];
+            /** Follow Ups */
+            follow_ups: string;
+            /** Practice */
+            practice: string[];
+            /**
+             * Story Ids
+             * @description Your stories linked to this reflection that still exist
+             */
+            story_ids: string[];
+            /**
+             * Missing Stories
+             * @description Stories linked to this reflection that were deleted since (not listed)
+             * @default 0
+             */
+            missing_stories: number;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "unknown" | "awaiting" | "another_round" | "offer" | "not_selected" | "withdrawn";
+            /** Outcome History */
+            outcome_history: components["schemas"]["ReflectionOutcomeChange"][];
+            /** Revision */
+            revision: number;
+            /** Saved */
+            saved: boolean;
+            /** Updated At */
+            updated_at: string | null;
+            /**
+             * Warnings
+             * @description Things that look like contact details or identifiers; nothing is blocked
+             */
+            warnings: string[];
+            /** Actions */
+            actions: components["schemas"]["ReflectionActionOut"][];
+        };
+        /** ReflectionOutcomeChange */
+        ReflectionOutcomeChange: {
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "unknown" | "awaiting" | "another_round" | "offer" | "not_selected" | "withdrawn";
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Applied To Application */
+            applied_to_application: boolean;
+        };
+        /** ReflectionOutcomeIn */
+        ReflectionOutcomeIn: {
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "unknown" | "awaiting" | "another_round" | "offer" | "not_selected" | "withdrawn";
+            /**
+             * Update Application
+             * @description Also move the application to the matching stage
+             * @default false
+             */
+            update_application: boolean;
+        };
+        /** ReflectionSummary */
+        ReflectionSummary: {
+            /** Event Id */
+            event_id: string;
+            /** Application Id */
+            application_id: string;
+            /** Application Archived */
+            application_archived: boolean;
+            /** Role Title */
+            role_title: string;
+            /** Employer */
+            employer: string;
+            /** Event Title */
+            event_title: string;
+            /** Event On */
+            event_on: string | null;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "unknown" | "awaiting" | "another_round" | "offer" | "not_selected" | "withdrawn";
+            /** Topics */
+            topics: string[];
+            /** Open Actions */
+            open_actions: number;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** RegisterRequest */
         RegisterRequest: {
             /**
@@ -1080,6 +10927,665 @@ export interface components {
              * @example Ada
              */
             display_name?: string | null;
+            /**
+             * Career Track
+             * @description The job you're preparing for (a slug from /careers)
+             * @example registered-nurse
+             */
+            career_track?: string | null;
+        };
+        /** RepeatedArea */
+        RepeatedArea: {
+            /** Criterion */
+            criterion: string;
+            /**
+             * Times
+             * @description How many of your recent answers on this career it wasn't found in
+             */
+            times: number;
+            /** Of */
+            of: number;
+        };
+        /** ReportGroup */
+        ReportGroup: {
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "question" | "problem";
+            /** Content Id */
+            content_id: string;
+            /** Content Title */
+            content_title: string;
+            /** Open Count */
+            open_count: number;
+            /** Reports */
+            reports: components["schemas"]["AdminReport"][];
+        };
+        /** ReportIn */
+        ReportIn: {
+            /**
+             * Content Type
+             * @enum {string}
+             */
+            content_type: "question" | "problem";
+            /**
+             * Content Id
+             * @description 'track/question_id' or a problem slug
+             */
+            content_id: string;
+            /**
+             * Content Version
+             * @description The version the reporter saw
+             */
+            content_version: number;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "ambiguous_wording" | "incorrect_example" | "outdated_guidance" | "wrong_career_topic" | "accessibility" | "technical_bug" | "other";
+            /**
+             * Details
+             * @default
+             */
+            details: string;
+            /**
+             * Context
+             * @default content
+             * @enum {string}
+             */
+            context: "content" | "feedback";
+            /**
+             * Answer Id
+             * @description Feedback reports: your answer
+             */
+            answer_id?: string | null;
+            /**
+             * Excerpt
+             * @description Only what you reviewed and chose to attach
+             */
+            excerpt?: string | null;
+        };
+        /**
+         * RequestOutcome
+         * @description What a request sent with this key made, if anything (Volume 8, prompt 1).
+         */
+        RequestOutcome: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "submission" | "run" | "hint" | "review" | "explain" | "story" | "answer" | "note";
+            /**
+             * State
+             * @description pending: a submission still queued or being judged
+             * @enum {string}
+             */
+            state: "done" | "pending";
+            /**
+             * Id
+             * @description The record it made: a submission, AI interaction, story, answer or note id
+             */
+            id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Problem Slug */
+            problem_slug?: string | null;
+            /** Hint Level */
+            hint_level?: number | null;
+        };
+        /** RequirementChange */
+        RequirementChange: {
+            /** Index */
+            index: number;
+            /** Requirement Id */
+            requirement_id: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "unchanged" | "cosmetic" | "changed" | "added" | "removed" | "restored";
+            /** Text */
+            text: string;
+            /** Previous Text */
+            previous_text: string | null;
+            /** Version From */
+            version_from: number | null;
+            /** Version To */
+            version_to: number | null;
+            /**
+             * Stories
+             * @description Stories linked to it that this change affects
+             */
+            stories: components["schemas"]["LinkedStory"][];
+            /**
+             * Actions
+             * @description Accepted improvements practising it that this change affects
+             */
+            actions?: components["schemas"]["LinkedAction"][];
+        };
+        /** RequirementDraft */
+        RequirementDraft: {
+            /**
+             * Id
+             * @description An existing requirement; omit for a new one
+             */
+            id?: string | null;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "required_skill" | "preferred_skill" | "responsibility" | "experience" | "tool" | "competency";
+            /** Text */
+            text: string;
+            /**
+             * Removed
+             * @default false
+             */
+            removed: boolean;
+        };
+        /** RequirementHistoryEntry */
+        RequirementHistoryEntry: {
+            /** Version */
+            version: number;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "original" | "added" | "changed" | "removed" | "restored";
+            /** Text */
+            text: string;
+            /** Category */
+            category: string;
+            /** At */
+            at: string | null;
+            /** Same As */
+            same_as: string | null;
+        };
+        /** RequirementIn */
+        RequirementIn: {
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "required_skill" | "preferred_skill" | "responsibility" | "experience" | "tool" | "competency";
+            /** Text */
+            text: string;
+            /**
+             * Skills
+             * @description Career skills it maps to (default: matched)
+             */
+            skills?: string[] | null;
+        };
+        /** RequirementLink */
+        RequirementLink: {
+            /** Requirement Id */
+            requirement_id: string;
+            /**
+             * Linked Version
+             * @description The version it was linked to; null: not recorded
+             */
+            linked_version: number | null;
+            /** Current Version */
+            current_version: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "current" | "earlier_wording" | "not_recorded" | "removed";
+            /**
+             * Label
+             * @description About the link, never the learner, e.g. 'Linked to an earlier wording'
+             */
+            label: string;
+            /**
+             * Reused From
+             * @description Deliberately reused for the current wording, from this version
+             */
+            reused_from: number | null;
+            /** @description Whether the story changed since it was linked, in a way that matters (docs/STORY_FRESHNESS.md). Separate from the requirement's own version above. */
+            story_freshness?: components["schemas"]["Freshness"] | null;
+        };
+        /** RequirementOut */
+        RequirementOut: {
+            /** Id */
+            id: string;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "required_skill" | "preferred_skill" | "responsibility" | "experience" | "tool" | "competency";
+            /** Text */
+            text: string;
+            /**
+             * Version
+             * @description 1, plus one for each substantive edit (docs/REQUIREMENT_VERSIONS.md)
+             * @default 1
+             */
+            version: number;
+            /**
+             * Origin
+             * @enum {string}
+             */
+            origin: "explicit" | "inferred" | "user";
+            /**
+             * Quote
+             * @description The line of the posting this came from (explicit only)
+             */
+            quote: string | null;
+            /**
+             * Quote In Description
+             * @description False if the description was edited and the line is gone
+             */
+            quote_in_description: boolean;
+            /** Skills */
+            skills: string[];
+            /** Removed */
+            removed: boolean;
+            coverage: components["schemas"]["Coverage"];
+            /** Practice */
+            practice: components["schemas"]["PracticeLink"][];
+        };
+        /** RequirementPatch */
+        RequirementPatch: {
+            /** Category */
+            category?: ("required_skill" | "preferred_skill" | "responsibility" | "experience" | "tool" | "competency") | null;
+            /** Text */
+            text?: string | null;
+            /** Skills */
+            skills?: string[] | null;
+            /** Removed */
+            removed?: boolean | null;
+        };
+        /**
+         * RequirementSetIn
+         * @description The whole requirement set as you want it, against the revision you loaded.
+         */
+        RequirementSetIn: {
+            /** Expected Revision */
+            expected_revision: number;
+            /** Items */
+            items: components["schemas"]["RequirementDraft"][];
+            /**
+             * Same As
+             * @description Suggested matches you accepted; anything not here stays separate
+             */
+            same_as?: components["schemas"]["SameAs"][];
+        };
+        /** RestoreBatch */
+        RestoreBatch: {
+            /** Id */
+            id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "applied" | "failed" | "removed";
+            /** Categories */
+            categories: string[];
+            /** Counts */
+            counts: {
+                [key: string]: unknown;
+            };
+            /**
+             * Removal
+             * @description After removal: removed, kept_edited, already_gone
+             */
+            removal: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Removed At */
+            removed_at: string | null;
+        };
+        /** RestoreCategory */
+        RestoreCategory: {
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "notes" | "stories" | "bookmarks" | "applications";
+            /** Label */
+            label: string;
+            /**
+             * Found
+             * @description Records of this kind in the file
+             */
+            found: number;
+            /**
+             * New
+             * @description Would be added
+             */
+            new: number;
+            /**
+             * Duplicates
+             * @description Already in your account (or twice in the file): skipped
+             */
+            duplicates: number;
+            /** Skipped */
+            skipped: components["schemas"]["RestoreSkip"][];
+            /**
+             * Samples
+             * @description A few titles, so you can recognise them
+             */
+            samples: string[];
+        };
+        /** RestoreIn */
+        RestoreIn: {
+            /** Internal Note */
+            internal_note?: string | null;
+        };
+        /** RestorePreview */
+        RestorePreview: {
+            /** Export Version */
+            export_version: number;
+            /** Exported At */
+            exported_at: string | null;
+            /** File Sha256 */
+            file_sha256: string;
+            /**
+             * From Other Account
+             * @description The file names a different account; only its content can come into yours
+             */
+            from_other_account: boolean;
+            /** Categories */
+            categories: components["schemas"]["RestoreCategory"][];
+            /** Not Restored */
+            not_restored: components["schemas"]["RestoreUnsupported"][];
+            /**
+             * Ignored Fields
+             * @description Unknown fields inside records, ignored
+             */
+            ignored_fields: number;
+            /**
+             * Previous
+             * @description Earlier restores of this same file
+             */
+            previous: components["schemas"]["RestoreBatch"][];
+        };
+        /** RestoreSkip */
+        RestoreSkip: {
+            /** Reason */
+            reason: string;
+            /** Count */
+            count: number;
+        };
+        /** RestoreUnsupported */
+        RestoreUnsupported: {
+            /** Key */
+            key: string;
+            /** Count */
+            count: number;
+            /** Reason */
+            reason: string;
+        };
+        /** ResumeInterview */
+        ResumeInterview: {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "coding" | "questions";
+            /** Title */
+            title: string;
+            /**
+             * Deadline At
+             * Format: date-time
+             */
+            deadline_at: string;
+            /** Seconds Remaining */
+            seconds_remaining: number;
+        };
+        /** ResumeOut */
+        ResumeOut: {
+            interview: components["schemas"]["ResumeInterview"] | null;
+            /** @description Most recent submitted, never-solved problem */
+            unfinished_problem: components["schemas"]["ResumeProblem"] | null;
+            last_question: components["schemas"]["ResumeQuestion"] | null;
+        };
+        /** ResumeProblem */
+        ResumeProblem: {
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+            /** Last Status */
+            last_status: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+        };
+        /** ResumeQuestion */
+        ResumeQuestion: {
+            /** Track */
+            track: string;
+            /** Question Id */
+            question_id: string;
+            /** Title */
+            title: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+        };
+        /** RetireIn */
+        RetireIn: {
+            /**
+             * Reason
+             * @description Shown to learners
+             */
+            reason: string;
+            /** Report Ids */
+            report_ids?: string[];
+            /** Internal Note */
+            internal_note?: string | null;
+        };
+        /** RetryIn */
+        RetryIn: {
+            /** Answer */
+            answer: string;
+            /**
+             * Source
+             * @default typed
+             * @enum {string}
+             */
+            source: "typed" | "voice" | "mixed";
+        };
+        /** ReviewAdd */
+        ReviewAdd: {
+            /** Track */
+            track: string;
+            /** Question Id */
+            question_id: string;
+            /** Session Id */
+            session_id?: string | null;
+        };
+        /** ReviewAttemptIn */
+        ReviewAttemptIn: {
+            /** Findings */
+            findings?: components["schemas"]["FindingIn"][];
+            /**
+             * Summary
+             * @default
+             */
+            summary: string;
+        };
+        /** ReviewAttemptOut */
+        ReviewAttemptOut: {
+            /** Id */
+            id: string;
+            /** Slug */
+            slug: string;
+            /** Exercise Version */
+            exercise_version: number;
+            /**
+             * Current Version
+             * @description None if the exercise is no longer offered
+             */
+            current_version: number | null;
+            /** Title */
+            title: string;
+            /** Problem Title */
+            problem_title: string;
+            /**
+             * Code
+             * @description The code as it was reviewed
+             */
+            code: string;
+            /** Findings */
+            findings: components["schemas"]["FindingOut"][];
+            /** Summary */
+            summary: string;
+            reference: components["schemas"]["ReviewReference"];
+            /** Feedback */
+            feedback: {
+                [key: string]: unknown;
+            };
+            /**
+             * After Reveal
+             * @description Written after the authored review had been seen
+             */
+            after_reveal: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ReviewAttemptSummary */
+        ReviewAttemptSummary: {
+            /** Id */
+            id: string;
+            /** Exercise Version */
+            exercise_version: number;
+            /** Findings */
+            findings: number;
+            /** Defects Raised */
+            defects_raised: number;
+            /** Defects Total */
+            defects_total: number;
+            /** After Reveal */
+            after_reveal: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ReviewDraftIn */
+        ReviewDraftIn: {
+            /** Findings */
+            findings?: components["schemas"]["FindingIn"][];
+            /**
+             * Summary
+             * @default
+             */
+            summary: string;
+            /**
+             * Expected Revision
+             * @description 0 for the first save
+             */
+            expected_revision: number;
+            /**
+             * Client Request Id
+             * @description One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before.
+             */
+            client_request_id?: string | null;
+        };
+        /** ReviewDraftOut */
+        ReviewDraftOut: {
+            /** @description Only on a save recovered by its key: see SaveReplay */
+            save_replay?: components["schemas"]["SaveReplay"] | null;
+            /** Slug */
+            slug: string;
+            /**
+             * Exercise Version
+             * @description The version the findings were written against
+             */
+            exercise_version: number;
+            /** Current Version */
+            current_version: number;
+            /** Findings */
+            findings: components["schemas"]["FindingOut"][];
+            /** Summary */
+            summary: string;
+            /** Revision */
+            revision: number;
+            /**
+             * Revealed
+             * @description True once you've seen the authored review for this version
+             */
+            revealed: boolean;
+            /** Updated At */
+            updated_at: string | null;
+        };
+        /** ReviewEvidence */
+        ReviewEvidence: {
+            /** Public Test */
+            public_test: number;
+            /** Input */
+            input: {
+                [key: string]: unknown;
+            };
+            /** Expected */
+            expected: unknown;
+            /** Actual */
+            actual: unknown;
+        };
+        /**
+         * ReviewExerciseOut
+         * @description The exercise as the learner sees it before reviewing: no authored findings.
+         */
+        ReviewExerciseOut: {
+            /** Slug */
+            slug: string;
+            /** Version */
+            version: number;
+            /** Title */
+            title: string;
+            /** Context */
+            context: string;
+            /** Code */
+            code: string;
+            /** Line Count */
+            line_count: number;
+            /** Problem Slug */
+            problem_slug: string;
+            /** Problem Title */
+            problem_title: string;
+            difficulty: components["schemas"]["Difficulty"];
+            /** Statement */
+            statement: string;
+            /** Constraints */
+            constraints: string[];
+            /** Public Tests */
+            public_tests: components["schemas"]["ReviewPublicTest"][];
+            /** Review Status */
+            review_status: string;
+        };
+        /** ReviewExerciseSummary */
+        ReviewExerciseSummary: {
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+            difficulty: components["schemas"]["Difficulty"];
+            /** Problem Slug */
+            problem_slug: string;
+            /** Problem Title */
+            problem_title: string;
         };
         /** ReviewIssue */
         ReviewIssue: {
@@ -1109,6 +11615,237 @@ export interface components {
              */
             line_hint?: number | null;
         };
+        /** ReviewItem */
+        ReviewItem: {
+            /** Key */
+            key: string;
+            /** Index */
+            index: number;
+            /** Title */
+            title: string;
+            /** Prompt */
+            prompt: string;
+            /**
+             * Kind
+             * @description Question kind, or the coding interview phase
+             */
+            kind: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "question" | "interviewer" | "candidate";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "answered" | "skipped" | "not_reached" | "said";
+            /**
+             * Asked At
+             * @description Recorded time; null when none was recorded
+             */
+            asked_at: string | null;
+            /** Answer Text */
+            answer_text: string | null;
+            /** Answered At */
+            answered_at: string | null;
+            /** Source */
+            source: ("typed" | "voice" | "mixed") | null;
+            /** Transcription Note */
+            transcription_note: string | null;
+            engagement: components["schemas"]["Engagement"] | null;
+            feedback: components["schemas"]["AnswerOut"] | null;
+            /** Dimensions */
+            dimensions: components["schemas"]["Dimension"][];
+            /** Retries */
+            retries: number;
+            /** In Review Queue */
+            in_review_queue: boolean;
+            /** Question Id */
+            question_id?: string | null;
+            /** @description Panel interviews: the simulated role who asked */
+            speaker?: components["schemas"]["SpeakerOut"] | null;
+            followup?: components["schemas"]["FollowupOut"] | null;
+        };
+        /** ReviewOut */
+        ReviewOut: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "author_reviewed" | "generated_draft";
+            /** By */
+            by: string;
+            /** On */
+            on: string;
+            /** Note */
+            note: string;
+        };
+        /**
+         * ReviewPreview
+         * @description What a code review would send, built the way the review builds it, with no provider call and
+         *     no use of the daily budget (docs/COACH_CONTEXT.md).
+         */
+        ReviewPreview: {
+            /**
+             * Operation
+             * @default code_review
+             * @constant
+             */
+            operation: "code_review";
+            /** Items */
+            items: components["schemas"]["ContextItem"][];
+            /** Left Out */
+            left_out: components["schemas"]["LeftOut"][];
+            /**
+             * Required Public
+             * @description Public material that is always sent, and why
+             */
+            required_public: string[];
+            /**
+             * Instructions
+             * @description One sentence about the coach's fixed instructions (not shown)
+             */
+            instructions: string;
+            /**
+             * Recipient
+             * @description Who reads it
+             */
+            recipient: string;
+            /**
+             * Recipient Kind
+             * @enum {string}
+             */
+            recipient_kind: "built_in" | "external";
+            /**
+             * Fallback
+             * @description Who answers, from the same material, if the coach can't be reached
+             */
+            fallback: string | null;
+            /**
+             * Remaining Today
+             * @description Coaching requests left in the last 24 hours; previews don't use one
+             */
+            remaining_today: number;
+            /**
+             * Context Fingerprint
+             * @description Send it back as `approved_context` to bind the review to this preview
+             */
+            context_fingerprint: string;
+        };
+        /** ReviewPreviewRequest */
+        ReviewPreviewRequest: {
+            /** Problem Slug */
+            problem_slug: string;
+            /** Source Code */
+            source_code: string;
+            /** Submission Id */
+            submission_id?: string | null;
+            /**
+             * Share Verdict
+             * @default true
+             */
+            share_verdict: boolean;
+        };
+        /** ReviewPublicTest */
+        ReviewPublicTest: {
+            /**
+             * Position
+             * @description 1-based, as the authored review cites it
+             */
+            position: number;
+            /** Input */
+            input: {
+                [key: string]: unknown;
+            };
+            /** Expected Output */
+            expected_output: unknown;
+        };
+        /** ReviewQueue */
+        ReviewQueue: {
+            /** Due */
+            due: components["schemas"]["ReviewQueueItem"][];
+            /** Upcoming */
+            upcoming: components["schemas"]["ReviewQueueItem"][];
+            /** Ladder Days */
+            ladder_days: number[];
+            /** Note */
+            note: string;
+        };
+        /** ReviewQueueItem */
+        ReviewQueueItem: {
+            /** Id */
+            id: string;
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /** Question Id */
+            question_id: string;
+            /** Title */
+            title: string;
+            /** Href */
+            href: string;
+            /**
+             * Due At
+             * Format: date-time
+             */
+            due_at: string;
+            /** Due */
+            due: boolean;
+            /**
+             * Why
+             * @description Why it's due now, or when and why it will be
+             */
+            why: string;
+            /** Interval Days */
+            interval_days: number;
+            /** Last Score */
+            last_score: number | null;
+            /** Reviews */
+            reviews: number;
+            /** Snoozed */
+            snoozed: boolean;
+        };
+        /** ReviewReference */
+        ReviewReference: {
+            /** Version */
+            version: number;
+            /** Findings */
+            findings: components["schemas"]["ReviewReferenceFinding"][];
+            /** Repaired Code */
+            repaired_code: string | null;
+            /** Debrief */
+            debrief: string;
+        };
+        /** ReviewReferenceFinding */
+        ReviewReferenceFinding: {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "defect" | "observation";
+            /** Lines */
+            lines: number[];
+            /** Related Lines */
+            related_lines: number[][];
+            /** Excerpt */
+            excerpt: string;
+            /** Title */
+            title: string;
+            /** Explanation */
+            explanation: string;
+            /** Consequence */
+            consequence: string;
+            /** Repair */
+            repair: string;
+            /** Why Preference */
+            why_preference: string | null;
+            /** Evidence */
+            evidence: components["schemas"]["ReviewEvidence"][];
+        };
         /** ReviewRequest */
         ReviewRequest: {
             /** Problem Slug */
@@ -1117,6 +11854,22 @@ export interface components {
             source_code: string;
             /** Submission Id */
             submission_id?: string | null;
+            /**
+             * Share Verdict
+             * @description Send the judge's verdict on `submission_id` with the code (when it has one). False leaves it out of what the coach reads.
+             * @default true
+             */
+            share_verdict: boolean;
+            /**
+             * Approved Context
+             * @description The `context_fingerprint` from POST /ai/review/preview. The review is sent only if the private context rebuilt now is exactly what was previewed; otherwise nothing is sent and the answer is 409 `context_changed` with a fresh preview in `details.preview`. Without it, the review is sent as before (no preview).
+             */
+            approved_context?: string | null;
+            /**
+             * Client Request Id
+             * @description One key per request: the same request sent again (its response was lost) gets the first answer back, with no second provider call and no second use of the daily budget. The same key for a different request is a 409 `idempotency_key_reused`.
+             */
+            client_request_id?: string | null;
         };
         /** ReviewResponse */
         ReviewResponse: {
@@ -1134,6 +11887,145 @@ export interface components {
              * @default AI feedback can be wrong. Pass/fail comes only from the test judge, never from the AI.
              */
             disclaimer: string;
+        };
+        /** ReviewerIdentity */
+        ReviewerIdentity: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "account" | "guest" | "former_account";
+            /**
+             * Label
+             * @description How the reviewer is named, e.g. 'Grace (signed-in CodeCoach user)'
+             */
+            label: string;
+        };
+        /** RevisionPreview */
+        RevisionPreview: {
+            /**
+             * Summary
+             * @description e.g. '2 changed, 1 added, 1 removed, 5 unchanged' (cosmetic edits count as unchanged)
+             */
+            summary: string;
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /** Changes */
+            changes: components["schemas"]["RequirementChange"][];
+            /** Suggestions */
+            suggestions: components["schemas"]["SameAsSuggestion"][];
+            /** Revision */
+            revision: number;
+        };
+        /** RoundAnswer */
+        RoundAnswer: {
+            /**
+             * Question Index
+             * @description Must be the question currently being asked
+             */
+            question_index: number;
+            /** Answer */
+            answer: string;
+            /**
+             * Source
+             * @description How the text was produced. Recorded for review only; it never affects scoring
+             * @default typed
+             * @enum {string}
+             */
+            source: "typed" | "voice" | "mixed";
+        };
+        /** RoundFormatOut */
+        RoundFormatOut: {
+            /**
+             * Id
+             * @enum {string}
+             */
+            id: "mixed" | "behavioral" | "situational" | "technical" | "panel";
+            /** Title */
+            title: string;
+            /** Version */
+            version: string;
+            /** Rubric Version */
+            rubric_version: string;
+            /** Roles */
+            roles: components["schemas"]["SpeakerOut"][];
+            /** Followups Used */
+            followups_used: number;
+            /** Followups Max */
+            followups_max: number;
+            pending_followup: components["schemas"]["FollowupOut"] | null;
+        };
+        /** RoundQuestion */
+        RoundQuestion: {
+            /** Index */
+            index: number;
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Prompt */
+            prompt: string;
+            /** Kind */
+            kind: string;
+            difficulty: components["schemas"]["Difficulty"];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "current" | "answered" | "skipped";
+            answer?: components["schemas"]["AnswerOut"] | null;
+            /** @description Panel interviews: who asks this question */
+            speaker?: components["schemas"]["SpeakerOut"] | null;
+            followup?: components["schemas"]["FollowupOut"] | null;
+        };
+        /** RoundSkip */
+        RoundSkip: {
+            /** Question Index */
+            question_index: number;
+        };
+        /**
+         * RoundStart
+         * @description How to start the round an activity needs (POST /interviews with these fields).
+         */
+        RoundStart: {
+            /** Track */
+            track: string;
+            /** Difficulty */
+            difficulty?: string | null;
+            /** Question Ids */
+            question_ids?: string[] | null;
+            /**
+             * Purpose
+             * @default practice
+             * @enum {string}
+             */
+            purpose: "practice" | "baseline";
+            /** Duration Minutes */
+            duration_minutes: number;
+        };
+        /** RoundSummary */
+        RoundSummary: {
+            /** Answered */
+            answered: number;
+            /** Skipped */
+            skipped: number;
+            /**
+             * Unanswered
+             * @description Never reached, e.g. the interview ended early or time ran out
+             */
+            unanswered: number;
+            /**
+             * Average Score
+             * @description Mean score of answered questions; null if none
+             */
+            average_score: number | null;
+            /**
+             * Focus
+             * @description Rubric points missed most often, most frequent first
+             */
+            focus: string[];
         };
         /** RubricScore */
         RubricScore: {
@@ -1153,6 +12045,642 @@ export interface components {
              */
             evidence: string;
         };
+        /** SameAs */
+        SameAs: {
+            /**
+             * Index
+             * @description A new requirement's position in `items`
+             */
+            index: number;
+            /**
+             * Requirement Id
+             * @description The requirement being removed that it is the same as
+             */
+            requirement_id: string;
+        };
+        /** SameAsSuggestion */
+        SameAsSuggestion: {
+            /** Index */
+            index: number;
+            /** Requirement Id */
+            requirement_id: string;
+            /** Text */
+            text: string;
+            /**
+             * Question
+             * @description A question for you; nothing is linked unless you say so
+             */
+            question: string;
+        };
+        /**
+         * SaveReplay
+         * @description Set when this save had already been accepted under its key (its first reply was lost).
+         */
+        SaveReplay: {
+            /**
+             * Accepted Revision
+             * @description The revision your earlier save produced
+             */
+            accepted_revision: number;
+            /**
+             * Current Revision
+             * @description The revision now. Greater than accepted_revision: it was changed after your save (maybe on another device); what's returned is that newer version, not yours
+             */
+            current_revision: number;
+        };
+        /** ScenarioAttemptOut */
+        ScenarioAttemptOut: {
+            /** Id */
+            id: string;
+            scenario: components["schemas"]["ScenarioSummary"];
+            /** Version */
+            version: number;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "assessed" | "exploration";
+            /** Parent Id */
+            parent_id: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "in_progress" | "completed";
+            /**
+             * Retired
+             * @description The scenario has a newer version; this attempt is kept but can't continue
+             */
+            retired: boolean;
+            current: components["schemas"]["NodeView"] | null;
+            /** Steps */
+            steps: components["schemas"]["StepOut"][];
+            debrief: components["schemas"]["Debrief"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Completed At */
+            completed_at: string | null;
+        };
+        /** ScenarioAttemptSummary */
+        ScenarioAttemptSummary: {
+            /** Id */
+            id: string;
+            /** Scenario Id */
+            scenario_id: string;
+            /** Title */
+            title: string;
+            /** Version */
+            version: number;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "assessed" | "exploration";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "in_progress" | "completed";
+            /** Outcome */
+            outcome: string | null;
+            /** Retired */
+            retired: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Completed At */
+            completed_at: string | null;
+        };
+        /** ScenarioCatalog */
+        ScenarioCatalog: {
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /** Scenarios */
+            scenarios: components["schemas"]["ScenarioSummary"][];
+            /** Coverage Note */
+            coverage_note: string;
+            /** Careers With Scenarios */
+            careers_with_scenarios: components["schemas"]["CareerCount"][];
+        };
+        /** ScenarioDetail */
+        ScenarioDetail: {
+            /** Id */
+            id: string;
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /** Title */
+            title: string;
+            /** Role */
+            role: string;
+            /** Objective */
+            objective: string;
+            /**
+             * Minutes
+             * @description Author's estimate of the time it takes
+             */
+            minutes: number;
+            /** Scope */
+            scope: string;
+            /** Version */
+            version: number;
+            /** Regulated */
+            regulated: boolean;
+            /**
+             * Validated
+             * @description Always false: no scenario has been validated by an outside professional body
+             */
+            validated: boolean;
+            /**
+             * Decisions
+             * @description How many choices (and queues to order) the longest path asks for
+             */
+            decisions: number;
+            /** Endings */
+            endings: number;
+            /**
+             * Queue
+             * @description It asks you to order a work queue
+             * @default false
+             */
+            queue: boolean;
+            review: components["schemas"]["ReviewOut"];
+            /** References */
+            references: components["schemas"]["ReferenceOut"][];
+            /** Changes */
+            changes: string[];
+        };
+        /** ScenarioSummary */
+        ScenarioSummary: {
+            /** Id */
+            id: string;
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /** Title */
+            title: string;
+            /** Role */
+            role: string;
+            /** Objective */
+            objective: string;
+            /**
+             * Minutes
+             * @description Author's estimate of the time it takes
+             */
+            minutes: number;
+            /** Scope */
+            scope: string;
+            /** Version */
+            version: number;
+            /** Regulated */
+            regulated: boolean;
+            /**
+             * Validated
+             * @description Always false: no scenario has been validated by an outside professional body
+             */
+            validated: boolean;
+            /**
+             * Decisions
+             * @description How many choices (and queues to order) the longest path asks for
+             */
+            decisions: number;
+            /** Endings */
+            endings: number;
+            /**
+             * Queue
+             * @description It asks you to order a work queue
+             * @default false
+             */
+            queue: boolean;
+            review: components["schemas"]["ReviewOut"];
+        };
+        /**
+         * SchedulableOut
+         * @description Something you could put on the schedule, from your plan, review queue or applications.
+         */
+        SchedulableOut: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "plan_item" | "review_item" | "question" | "problem" | "application_event" | "drill";
+            /** Ref */
+            ref: string;
+            /** Title */
+            title: string;
+            /** Detail */
+            detail: string;
+            /** Minutes */
+            minutes: number | null;
+        };
+        /** ScheduleSettingsIn */
+        ScheduleSettingsIn: {
+            /** Timezone */
+            timezone?: string | null;
+            /** Reminders */
+            reminders?: boolean | null;
+            /** Reminder Minutes */
+            reminder_minutes?: number | null;
+            /**
+             * Quiet Start
+             * @description HH:MM, or empty to turn quiet hours off
+             */
+            quiet_start?: string | null;
+            /** Quiet End */
+            quiet_end?: string | null;
+        };
+        /** ScheduleSettingsOut */
+        ScheduleSettingsOut: {
+            /**
+             * Timezone
+             * @description The schedule's IANA time zone; null until one is chosen
+             */
+            timezone: string | null;
+            /**
+             * Reminders
+             * @description In-app reminders, shown only while CodeCoach is open in a tab
+             */
+            reminders: boolean;
+            /** Reminder Minutes */
+            reminder_minutes: number;
+            /** Quiet Start */
+            quiet_start: string | null;
+            /** Quiet End */
+            quiet_end: string | null;
+        };
+        /** SelfRating */
+        SelfRating: {
+            /** Skill */
+            skill: string;
+            /** Rating */
+            rating: number;
+        };
+        /** SelfReviewIn */
+        SelfReviewIn: {
+            /**
+             * Went Well
+             * @default
+             */
+            went_well: string;
+            /**
+             * Improve
+             * @default
+             */
+            improve: string;
+            /**
+             * Ratings
+             * @description Criterion label → your rating
+             */
+            ratings?: {
+                [key: string]: "no" | "partly" | "yes";
+            };
+            /**
+             * Skipped
+             * @default false
+             */
+            skipped: boolean;
+            /**
+             * Before Feedback
+             * @description Written before reading the feedback
+             * @default true
+             */
+            before_feedback: boolean;
+        };
+        /** SelfReviewOut */
+        SelfReviewOut: {
+            /** Went Well */
+            went_well: string;
+            /** Improve */
+            improve: string;
+            /** Ratings */
+            ratings: {
+                [key: string]: "no" | "partly" | "yes";
+            };
+            /** Skipped */
+            skipped: boolean;
+            /** Before Feedback */
+            before_feedback: boolean;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** SessionPlan */
+        SessionPlan: {
+            /** Title */
+            title: string;
+            /**
+             * Scope
+             * @description What the session covers, shown before it starts
+             */
+            scope: string;
+            /** @description Null when there's nothing in the bank to practise */
+            round: components["schemas"]["RoundStart"] | null;
+        };
+        /** ShareCreate */
+        ShareCreate: {
+            /**
+             * Answer Id
+             * @description One of your graded answers
+             */
+            answer_id: string;
+            /**
+             * Sentences
+             * @description Which sentences of the answer to include (0-based); null means all of them
+             */
+            sentences?: number[] | null;
+            /**
+             * Include Ai Feedback
+             * @description Add CodeCoach's automated feedback, labelled
+             * @default false
+             */
+            include_ai_feedback: boolean;
+            /**
+             * Include Followup
+             * @description Interview answers: add the follow-up and your reply
+             * @default true
+             */
+            include_followup: boolean;
+            /**
+             * Note
+             * @description A short note to your reviewer
+             * @default
+             */
+            note: string;
+            /**
+             * Expires In Days
+             * @default 7
+             * @enum {integer}
+             */
+            expires_in_days: 1 | 7 | 30;
+            /**
+             * Acknowledge Link Access
+             * @description Must be true: anyone holding the link can see the selected snapshot until it expires or is revoked
+             */
+            acknowledge_link_access: boolean;
+        };
+        /**
+         * ShareCreated
+         * @description The link is in here once. Only a hash is stored, so it can be replaced but never shown again.
+         */
+        ShareCreated: {
+            share: components["schemas"]["ShareDetail"];
+            /** Token */
+            token: string;
+            /**
+             * Path
+             * @description Append to the site's address, e.g. https://example.com/shared#t=…
+             */
+            path: string;
+        };
+        /** ShareDetail */
+        ShareDetail: {
+            /** Id */
+            id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "closed" | "revoked" | "expired";
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "practice_answer" | "interview_answer";
+            /** Career Title */
+            career_title: string;
+            /** Question Title */
+            question_title: string;
+            /** Source Answer Id */
+            source_answer_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Closed At */
+            closed_at: string | null;
+            /** Revoked At */
+            revoked_at: string | null;
+            /**
+             * Last Opened At
+             * @description When the link was last opened by anyone
+             */
+            last_opened_at: string | null;
+            /** Feedback Count */
+            feedback_count: number;
+            /** Last Feedback At */
+            last_feedback_at: string | null;
+            view: components["schemas"]["SharedView"];
+            /** Feedback */
+            feedback: components["schemas"]["FeedbackOut"][];
+            /**
+             * Source Changed
+             * @description The original answer differs from what was shared
+             */
+            source_changed: boolean;
+            /**
+             * Source Missing
+             * @description The original answer is no longer in your history
+             */
+            source_missing: boolean;
+        };
+        /** SharePreview */
+        SharePreview: {
+            /**
+             * Source Sentences
+             * @description Every sentence of the answer, to choose from
+             */
+            source_sentences: components["schemas"]["SharedSentence"][];
+            /** Has Followup */
+            has_followup: boolean;
+            view: components["schemas"]["SharedView"];
+        };
+        /**
+         * ShareSelection
+         * @description What to share from one of your answers. Nothing else from your account is included.
+         */
+        ShareSelection: {
+            /**
+             * Answer Id
+             * @description One of your graded answers
+             */
+            answer_id: string;
+            /**
+             * Sentences
+             * @description Which sentences of the answer to include (0-based); null means all of them
+             */
+            sentences?: number[] | null;
+            /**
+             * Include Ai Feedback
+             * @description Add CodeCoach's automated feedback, labelled
+             * @default false
+             */
+            include_ai_feedback: boolean;
+            /**
+             * Include Followup
+             * @description Interview answers: add the follow-up and your reply
+             * @default true
+             */
+            include_followup: boolean;
+            /**
+             * Note
+             * @description A short note to your reviewer
+             * @default
+             */
+            note: string;
+        };
+        /** ShareSummary */
+        ShareSummary: {
+            /** Id */
+            id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "closed" | "revoked" | "expired";
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "practice_answer" | "interview_answer";
+            /** Career Title */
+            career_title: string;
+            /** Question Title */
+            question_title: string;
+            /** Source Answer Id */
+            source_answer_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Closed At */
+            closed_at: string | null;
+            /** Revoked At */
+            revoked_at: string | null;
+            /**
+             * Last Opened At
+             * @description When the link was last opened by anyone
+             */
+            last_opened_at: string | null;
+            /** Feedback Count */
+            feedback_count: number;
+            /** Last Feedback At */
+            last_feedback_at: string | null;
+        };
+        /**
+         * SharedAIFeedback
+         * @description CodeCoach's automated rubric feedback, included only when the owner chose to.
+         */
+        SharedAIFeedback: {
+            /** Score */
+            score: number;
+            /** Rating */
+            rating: string;
+            /** Summary */
+            summary: string;
+            /** Points */
+            points: components["schemas"]["SharedPoint"][];
+            /** Coach */
+            coach: string;
+        };
+        /** SharedFollowup */
+        SharedFollowup: {
+            /** Asked By */
+            asked_by: string;
+            /** Question */
+            question: string;
+            /** Answer */
+            answer: string;
+        };
+        /** SharedPoint */
+        SharedPoint: {
+            /** Label */
+            label: string;
+            /** Covered */
+            covered: boolean;
+        };
+        /** SharedQuestion */
+        SharedQuestion: {
+            /** Title */
+            title: string;
+            /** Prompt */
+            prompt: string;
+            /** Kind */
+            kind: string;
+            /** Difficulty */
+            difficulty: string;
+        };
+        /** SharedSentence */
+        SharedSentence: {
+            /**
+             * Index
+             * @description Position in the original answer: a stable anchor for comments
+             */
+            index: number;
+            /** Text */
+            text: string;
+        };
+        /**
+         * SharedView
+         * @description Exactly what the reviewer sees. Built from the immutable snapshot.
+         */
+        SharedView: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "practice_answer" | "interview_answer";
+            /** Career Title */
+            career_title: string;
+            question: components["schemas"]["SharedQuestion"];
+            /** Excerpt */
+            excerpt: components["schemas"]["SharedSentence"][];
+            /** Total Sentences */
+            total_sentences: number;
+            /** Omitted Sentences */
+            omitted_sentences: number;
+            followup: components["schemas"]["SharedFollowup"] | null;
+            ai_feedback: components["schemas"]["SharedAIFeedback"] | null;
+            /** Note */
+            note: string;
+            /**
+             * Answered On
+             * @description The day the answer was written (YYYY-MM-DD)
+             */
+            answered_on: string;
+            /**
+             * Prompts
+             * @description The questions the reviewer is asked to answer
+             */
+            prompts: string[];
+        };
         /** Signature */
         Signature: {
             /** Method */
@@ -1161,6 +12689,720 @@ export interface components {
             params: components["schemas"]["Param"][];
             /** Returns */
             returns: string;
+        };
+        /** SkillStat */
+        SkillStat: {
+            /** Skill */
+            skill: string;
+            /**
+             * Total Questions
+             * @description Questions in this career that practise the skill
+             */
+            total_questions: number;
+            /** Questions Answered */
+            questions_answered: number;
+            /** Answers */
+            answers: number;
+            /**
+             * Average Best Score
+             * @description Average of your best scoreable score on each answered question of this skill; None when none of them has an answer long enough to score
+             */
+            average_best_score: number | null;
+            /**
+             * Questions Scored
+             * @description How many of those questions the average covers
+             * @default 0
+             */
+            questions_scored: number;
+        };
+        /** SnoozeIn */
+        SnoozeIn: {
+            /**
+             * Days
+             * @enum {integer}
+             */
+            days: 1 | 3 | 7;
+        };
+        /** SourceIn */
+        SourceIn: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "question" | "problem" | "lesson" | "interview";
+            /**
+             * Id
+             * @description Question id, problem slug, unit id or interview id
+             */
+            id: string;
+            /**
+             * Track
+             * @description Career, for questions
+             */
+            track?: string | null;
+            /**
+             * Question Index
+             * @description Interviews: which question
+             */
+            question_index?: number | null;
+        };
+        /** SourceOut */
+        SourceOut: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "question" | "problem" | "lesson" | "interview";
+            /** Id */
+            id: string;
+            /** Track */
+            track: string | null;
+            /** Version */
+            version: string | null;
+            /**
+             * Title
+             * @description The source's title when the note was captured
+             */
+            title: string | null;
+            /** Href */
+            href: string | null;
+            /**
+             * Available
+             * @description False when the source left the library; the note is kept
+             */
+            available: boolean;
+            /** Career Title */
+            career_title: string | null;
+        };
+        /** SourceReviewIn */
+        SourceReviewIn: {
+            /**
+             * Reviewed Revision
+             * @description The story's revision you reviewed. If it changed since, 409 source_changed and nothing changes: a newer revision is said, never used silently.
+             */
+            reviewed_revision: number;
+            /**
+             * Decision
+             * @description refresh: use the reviewed revision from now on; keep: keep it as prepared (recorded; asked again only if the story changes again)
+             * @enum {string}
+             */
+            decision: "refresh" | "keep";
+        };
+        /** SpeakerOut */
+        SpeakerOut: {
+            /** Id */
+            id: string;
+            /**
+             * Title
+             * @description A simulated role, never a real person or employer
+             */
+            title: string;
+            /** Objective */
+            objective: string;
+        };
+        /** StartIn */
+        StartIn: {
+            /**
+             * Mode
+             * @default assessed
+             * @enum {string}
+             */
+            mode: "assessed" | "exploration";
+            /**
+             * Parent Id
+             * @description Exploration: the completed attempt you're trying another approach to
+             */
+            parent_id?: string | null;
+        };
+        /**
+         * StarterActivity
+         * @description A real, short activity from the learner's own career: never a sample or a demo record.
+         */
+        StarterActivity: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "question" | "problem";
+            /** Track */
+            track: string;
+            /**
+             * Ref
+             * @description Question id or problem slug
+             */
+            ref: string;
+            /** Title */
+            title: string;
+            /** Difficulty */
+            difficulty: string;
+            /** Href */
+            href: string;
+            /**
+             * Minutes
+             * @description A rough estimate of how long it takes, for planning only
+             */
+            minutes: number;
+        };
+        /** StatusIn */
+        StatusIn: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "investigating" | "resolved" | "not_actionable";
+            /**
+             * Resolution
+             * @description Shown to the reporter
+             */
+            resolution?: string | null;
+            /**
+             * Internal Note
+             * @description Admins only
+             */
+            internal_note?: string | null;
+            /**
+             * Include Duplicates
+             * @default true
+             */
+            include_duplicates: boolean;
+        };
+        /** StepIn */
+        StepIn: {
+            /**
+             * Node Id
+             * @description The node you're answering (must be the current one)
+             */
+            node_id: string;
+            /** Choice Id */
+            choice_id?: string | null;
+            /** Text */
+            text?: string | null;
+            /**
+             * Order
+             * @description Prioritize: every task id once, in your order
+             */
+            order?: string[] | null;
+        };
+        /** StepOut */
+        StepOut: {
+            /** Node Id */
+            node_id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "info" | "choice" | "written" | "prioritize";
+            /** Title */
+            title: string;
+            /** Text */
+            text: string;
+            /** Choice Id */
+            choice_id?: string | null;
+            /** Choice Label */
+            choice_label?: string | null;
+            /** Quality */
+            quality?: ("strong" | "acceptable" | "risky") | null;
+            /**
+             * Feedback
+             * @description The authored decision rule for this choice
+             */
+            feedback?: string | null;
+            /** Response */
+            response?: string | null;
+            /** Covered */
+            covered?: string[];
+            /** Missing */
+            missing?: string[];
+            /**
+             * Plan
+             * @description Prioritize: your order, with the case's times
+             */
+            plan?: components["schemas"]["PlannedTask"][];
+            /**
+             * Violations
+             * @description Prioritize: hard constraints it breaks
+             */
+            violations?: components["schemas"]["Violation"][];
+            /**
+             * Follows
+             * @description Prioritize: strategies your order follows
+             */
+            follows?: components["schemas"]["StrategyOut"][];
+            /**
+             * Others
+             * @description Prioritize: other reasonable strategies
+             */
+            others?: components["schemas"]["StrategyOut"][];
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+        };
+        /** StoryAssistIn */
+        StoryAssistIn: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "check" | "shorten" | "clarity";
+            /** Situation */
+            situation?: string | null;
+            /** Task */
+            task?: string | null;
+            /** Action Text */
+            action_text?: string | null;
+            /** Result */
+            result?: string | null;
+            /** Reflection */
+            reflection?: string | null;
+        };
+        /** StoryAssistOut */
+        StoryAssistOut: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "check" | "shorten" | "clarity";
+            /**
+             * Method
+             * @description How the suggestions were made
+             */
+            method: string;
+            /**
+             * Proposals
+             * @description Edits to review; nothing is changed until you accept one
+             */
+            proposals: components["schemas"]["StoryProposal"][];
+            /**
+             * Questions
+             * @description Things only you can answer; nothing is guessed for you
+             */
+            questions: string[];
+        };
+        /** StoryCreate */
+        StoryCreate: {
+            /** Title */
+            title: string;
+            /**
+             * Track
+             * @description Career context (a career slug)
+             */
+            track?: string | null;
+            /** Context */
+            context?: ("work" | "study" | "volunteering" | "personal" | "other") | null;
+            /** Situation */
+            situation?: string | null;
+            /** Task */
+            task?: string | null;
+            /** Action */
+            action?: string | null;
+            /** Result */
+            result?: string | null;
+            /** Reflection */
+            reflection?: string | null;
+            /**
+             * Notes
+             * @description Private supporting notes
+             */
+            notes?: string | null;
+            /**
+             * Evidence
+             * @description Optional evidence of the outcome
+             */
+            evidence?: string | null;
+            /** Competencies */
+            competencies?: ("teamwork" | "conflict" | "leadership" | "prioritization" | "mistakes" | "communication" | "problem_solving" | "adaptability" | "care" | "initiative")[] | null;
+            /** Tags */
+            tags?: string[] | null;
+            /** Short Version */
+            short_version?: string | null;
+            /** Long Version */
+            long_version?: string | null;
+            /**
+             * Target Id
+             * @description Link to one of your job targets
+             */
+            target_id?: string | null;
+            /**
+             * Question Refs
+             * @description 'track/question_id' links
+             */
+            question_refs?: string[] | null;
+            /**
+             * Client Request Id
+             * @description One key per new story: sending the same create again (its response was lost) returns the story it made
+             */
+            client_request_id?: string | null;
+        };
+        /** StoryLinksReviewIn */
+        StoryLinksReviewIn: {
+            /**
+             * Reviewed Revision
+             * @description The story's revision you reviewed. If it changed since, 409 source_changed and nothing changes: a newer revision is said, never used silently.
+             */
+            reviewed_revision: number;
+            /**
+             * Decision
+             * @description refresh: use the reviewed revision from now on; keep: keep it as prepared (recorded; asked again only if the story changes again)
+             * @enum {string}
+             */
+            decision: "refresh" | "keep";
+            /**
+             * Requirement Ids
+             * @description The story's links to review, all with the same decision
+             */
+            requirement_ids: string[];
+        };
+        /** StoryOut */
+        StoryOut: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Track */
+            track: string | null;
+            /** Context */
+            context: ("work" | "study" | "volunteering" | "personal" | "other") | null;
+            /** Competencies */
+            competencies: ("teamwork" | "conflict" | "leadership" | "prioritization" | "mistakes" | "communication" | "problem_solving" | "adaptability" | "care" | "initiative")[];
+            /** Tags */
+            tags: string[];
+            /**
+             * Missing
+             * @description Required sections not written yet
+             */
+            missing: ("situation" | "task" | "action" | "result" | "reflection")[];
+            target: components["schemas"]["StoryTargetLink"] | null;
+            /** Revision */
+            revision: number;
+            /** Archived */
+            archived: boolean;
+            /** Practice Count */
+            practice_count: number;
+            /**
+             * Preview
+             * @description The start of the situation, for the list
+             */
+            preview: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** @description Only on a save recovered by its key: see SaveReplay */
+            save_replay?: components["schemas"]["SaveReplay"] | null;
+            /** Situation */
+            situation: string;
+            /** Task */
+            task: string;
+            /** Action */
+            action: string;
+            /** Result */
+            result: string;
+            /** Reflection */
+            reflection: string;
+            /** Notes */
+            notes: string;
+            /** Evidence */
+            evidence: string;
+            /** Short Version */
+            short_version: string;
+            /** Long Version */
+            long_version: string;
+            /** Questions */
+            questions: components["schemas"]["StoryQuestionLink"][];
+            /** Practice */
+            practice: components["schemas"]["StoryPractice"][];
+            /**
+             * Privacy Hints
+             * @description Possible identifying details, for the learner to review
+             */
+            privacy_hints: string[];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** StoryPractice */
+        StoryPractice: {
+            /** Answer Id */
+            answer_id: string;
+            /** Question Title */
+            question_title: string;
+            /** Href */
+            href: string;
+            /**
+             * Score
+             * @description The stored score (capped when the answer was too short to score)
+             */
+            score: number;
+            /**
+             * Too Short
+             * @description The answer was too short to score: `score` isn't a measurement
+             * @default false
+             */
+            too_short: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** StoryProposal */
+        StoryProposal: {
+            /**
+             * Field
+             * @enum {string}
+             */
+            field: "situation" | "task" | "action" | "result" | "reflection";
+            /** Original */
+            original: string;
+            /** Proposed */
+            proposed: string;
+            /**
+             * Changes
+             * @description What the proposal changes, in plain words
+             */
+            changes: string[];
+        };
+        /** StoryQuestionLink */
+        StoryQuestionLink: {
+            /** Ref */
+            ref: string;
+            /** Title */
+            title: string;
+            /** Href */
+            href: string;
+            /** Available */
+            available: boolean;
+        };
+        /** StoryRestoreIn */
+        StoryRestoreIn: {
+            /** Expected Revision */
+            expected_revision: number;
+        };
+        /** StoryRevisionOut */
+        StoryRevisionOut: {
+            /** Revision */
+            revision: number;
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "created" | "edited" | "assisted" | "restored";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Fields */
+            fields: {
+                [key: string]: unknown;
+            };
+        };
+        /** StorySummary */
+        StorySummary: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Track */
+            track: string | null;
+            /** Context */
+            context: ("work" | "study" | "volunteering" | "personal" | "other") | null;
+            /** Competencies */
+            competencies: ("teamwork" | "conflict" | "leadership" | "prioritization" | "mistakes" | "communication" | "problem_solving" | "adaptability" | "care" | "initiative")[];
+            /** Tags */
+            tags: string[];
+            /**
+             * Missing
+             * @description Required sections not written yet
+             */
+            missing: ("situation" | "task" | "action" | "result" | "reflection")[];
+            target: components["schemas"]["StoryTargetLink"] | null;
+            /** Revision */
+            revision: number;
+            /** Archived */
+            archived: boolean;
+            /** Practice Count */
+            practice_count: number;
+            /**
+             * Preview
+             * @description The start of the situation, for the list
+             */
+            preview: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** StoryTargetLink */
+        StoryTargetLink: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+        };
+        /** StoryUpdate */
+        StoryUpdate: {
+            /** Title */
+            title?: string | null;
+            /**
+             * Track
+             * @description Career context (a career slug)
+             */
+            track?: string | null;
+            /** Context */
+            context?: ("work" | "study" | "volunteering" | "personal" | "other") | null;
+            /** Situation */
+            situation?: string | null;
+            /** Task */
+            task?: string | null;
+            /** Action */
+            action?: string | null;
+            /** Result */
+            result?: string | null;
+            /** Reflection */
+            reflection?: string | null;
+            /**
+             * Notes
+             * @description Private supporting notes
+             */
+            notes?: string | null;
+            /**
+             * Evidence
+             * @description Optional evidence of the outcome
+             */
+            evidence?: string | null;
+            /** Competencies */
+            competencies?: ("teamwork" | "conflict" | "leadership" | "prioritization" | "mistakes" | "communication" | "problem_solving" | "adaptability" | "care" | "initiative")[] | null;
+            /** Tags */
+            tags?: string[] | null;
+            /** Short Version */
+            short_version?: string | null;
+            /** Long Version */
+            long_version?: string | null;
+            /**
+             * Target Id
+             * @description Link to one of your job targets
+             */
+            target_id?: string | null;
+            /**
+             * Question Refs
+             * @description 'track/question_id' links
+             */
+            question_refs?: string[] | null;
+            /**
+             * Expected Revision
+             * @description The revision you edited; a newer one is a 409
+             */
+            expected_revision: number;
+            /**
+             * Client Request Id
+             * @description One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before.
+             */
+            client_request_id?: string | null;
+            /**
+             * Reason
+             * @default edited
+             * @enum {string}
+             */
+            reason: "edited" | "assisted";
+            /**
+             * Clear Target
+             * @default false
+             */
+            clear_target: boolean;
+        };
+        /** StoryUseApplication */
+        StoryUseApplication: {
+            /** Id */
+            id: string;
+            /** Role Title */
+            role_title: string;
+            /** Employer */
+            employer: string;
+            /**
+             * Stage
+             * @enum {string}
+             */
+            stage: "saved" | "applied" | "interviewing" | "offer" | "closed" | "withdrawn";
+            /** Archived */
+            archived: boolean;
+        };
+        /** StoryUseKit */
+        StoryUseKit: {
+            /** Application Id */
+            application_id: string;
+            /** Event Id */
+            event_id: string;
+            /** Event Title */
+            event_title: string;
+            /** Event On */
+            event_on: string | null;
+            /** Role Title */
+            role_title: string;
+            /** Employer */
+            employer: string;
+            /** Application Archived */
+            application_archived: boolean;
+        };
+        /** StoryUseReflection */
+        StoryUseReflection: {
+            /** Application Id */
+            application_id: string;
+            /** Event Id */
+            event_id: string;
+            /**
+             * Event Title
+             * @description As recorded in the reflection
+             */
+            event_title: string;
+            /**
+             * Event On
+             * @description As recorded in the reflection
+             */
+            event_on: string | null;
+            /**
+             * Role Title
+             * @description As recorded in the reflection
+             */
+            role_title: string;
+            /**
+             * Employer
+             * @description As recorded in the reflection
+             */
+            employer: string;
+        };
+        /**
+         * StoryUsedIn
+         * @description Each list holds at most `limit` entries, newest first; the totals count them all.
+         */
+        StoryUsedIn: {
+            /** Applications */
+            applications: components["schemas"]["StoryUseApplication"][];
+            /** Applications Total */
+            applications_total: number;
+            /** Kits */
+            kits: components["schemas"]["StoryUseKit"][];
+            /** Kits Total */
+            kits_total: number;
+            /** Reflections */
+            reflections: components["schemas"]["StoryUseReflection"][];
+            /** Reflections Total */
+            reflections_total: number;
+            /** Limit */
+            limit: number;
+        };
+        /** StrategyOut */
+        StrategyOut: {
+            /** Label */
+            label: string;
+            /** Explanation */
+            explanation: string;
         };
         /** SubmissionCreate */
         SubmissionCreate: {
@@ -1173,6 +13415,16 @@ export interface components {
             language: string;
             /** Source Code */
             source_code: string;
+            /**
+             * @description `submit`: judge against all tests and record the attempt. `run`: public tests only, for quick feedback; never counts as an attempt.
+             * @default submit
+             */
+            mode: components["schemas"]["SubmissionMode"];
+            /**
+             * Client Request Id
+             * @description Idempotency key chosen by the client: resending the same request (e.g. after a network error) returns the original submission instead of judging twice
+             */
+            client_request_id?: string | null;
         };
         /** SubmissionDetail */
         SubmissionDetail: {
@@ -1184,6 +13436,7 @@ export interface components {
             problem_title: string;
             /** Language */
             language: string;
+            mode: components["schemas"]["SubmissionMode"];
             status: components["schemas"]["SubmissionStatus"];
             /** Status Detail */
             status_detail: string | null;
@@ -1202,8 +13455,20 @@ export interface components {
              */
             updated_at: string;
             result?: components["schemas"]["ExecutionResultOut"] | null;
+            /** @description The in-app help shown for this problem and version before this attempt (docs/ATTEMPT_CONDITIONS.md). It changes no verdict. */
+            conditions?: components["schemas"]["AttemptConditions"] | null;
             /** Source Code */
             source_code: string;
+            /**
+             * Starting Code
+             * @description A debugging exercise's faulty code as it was when this attempt was made
+             */
+            starting_code?: string | null;
+            /**
+             * Lab Version
+             * @description The debugging exercise's version for this attempt
+             */
+            lab_version?: number | null;
         };
         /** SubmissionListItem */
         SubmissionListItem: {
@@ -1213,6 +13478,7 @@ export interface components {
             problem_slug: string;
             /** Problem Title */
             problem_title: string;
+            mode: components["schemas"]["SubmissionMode"];
             status: components["schemas"]["SubmissionStatus"];
             /**
              * Created At
@@ -1224,13 +13490,395 @@ export interface components {
              * @description Judge runtime, once execution is enabled
              */
             duration_ms?: number | null;
+            conditions?: components["schemas"]["AttemptConditions"] | null;
         };
+        /**
+         * SubmissionMode
+         * @description `submit` is a real attempt (all tests, counts toward progress). `run` checks the code
+         *     against the public tests only, for quick feedback, and never counts as an attempt.
+         * @enum {string}
+         */
+        SubmissionMode: "submit" | "run";
         /**
          * SubmissionStatus
          * @description Judge status model from the blueprint (section 07).
          * @enum {string}
          */
         SubmissionStatus: "QUEUED" | "RUNNING" | "PASSED" | "FAILED" | "COMPILE_ERROR" | "RUNTIME_ERROR" | "TIME_LIMIT" | "MEMORY_LIMIT" | "INTERNAL_ERROR";
+        /** TagCount */
+        TagCount: {
+            /** Tag */
+            tag: string;
+            /** Count */
+            count: number;
+        };
+        /** TargetIn */
+        TargetIn: {
+            /** Title */
+            title: string;
+            /** Employer */
+            employer?: string | null;
+            /**
+             * Description
+             * @description Pasted job description (plain text)
+             */
+            description: string;
+            /**
+             * Track
+             * @description Default: your current career
+             */
+            track?: string | null;
+            /** Interview Date */
+            interview_date?: string | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** TargetOut */
+        TargetOut: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Employer */
+            employer: string | null;
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /** Interview Date */
+            interview_date: string | null;
+            /** Archived */
+            archived: boolean;
+            /** Selected */
+            selected: boolean;
+            /** Requirements */
+            requirements: number;
+            /** Gaps */
+            gaps: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Description */
+            description: string;
+            /** Notes */
+            notes: string | null;
+            /**
+             * Extractor
+             * @description How requirements were found (rule-based; no AI)
+             */
+            extractor: string;
+            /** Requirement List */
+            requirement_list: components["schemas"]["RequirementOut"][];
+            /**
+             * Requirements Revision
+             * @description The requirement set's revision, sent back when it's saved
+             * @default 1
+             */
+            requirements_revision: number;
+            next_activity: components["schemas"]["PracticeLink"] | null;
+            targeted_session: components["schemas"]["SessionPlan"];
+            mock_interview: components["schemas"]["SessionPlan"];
+            /** Recent Attempts */
+            recent_attempts: components["schemas"]["AttemptOut"][];
+            /** Experience */
+            experience: components["schemas"]["ExperienceOut"][];
+            /**
+             * Action Links
+             * @description Accepted improvements practising a question a requirement maps to, with their version
+             */
+            action_links?: components["schemas"]["ActionLink"][];
+            /** Days To Interview */
+            days_to_interview: number | null;
+        };
+        /** TargetPatch */
+        TargetPatch: {
+            /** Title */
+            title?: string | null;
+            /** Employer */
+            employer?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Interview Date */
+            interview_date?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Archived */
+            archived?: boolean | null;
+            /**
+             * Selected
+             * @description Make this your active target
+             */
+            selected?: boolean | null;
+        };
+        /** TargetSummary */
+        TargetSummary: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Employer */
+            employer: string | null;
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /** Interview Date */
+            interview_date: string | null;
+            /** Archived */
+            archived: boolean;
+            /** Selected */
+            selected: boolean;
+            /** Requirements */
+            requirements: number;
+            /** Gaps */
+            gaps: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * TaskOut
+         * @description A task in a work queue, as the case states it. Dependencies and hard deadlines are in its facts.
+         */
+        TaskOut: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Facts */
+            facts: string[];
+            /** Minutes */
+            minutes: number;
+            /** Due */
+            due?: string | null;
+            /**
+             * Due Is Hard
+             * @default false
+             */
+            due_is_hard: boolean;
+            /** Consequence */
+            consequence?: string | null;
+        };
+        /** TemplateChecklistItem */
+        TemplateChecklistItem: {
+            /** Text */
+            text: string;
+        };
+        /** TemplateQuestion */
+        TemplateQuestion: {
+            /** Text */
+            text: string;
+            /**
+             * Group
+             * @default other
+             * @enum {string}
+             */
+            group: "role" | "team" | "training" | "workflow" | "next_steps" | "other";
+        };
+        /** TestCaseIn */
+        TestCaseIn: {
+            /** Input */
+            input: {
+                [key: string]: unknown;
+            };
+            /**
+             * Expected
+             * @description The output the specification calls for, as you read it
+             */
+            expected: unknown;
+            /** Label */
+            label?: ("boundary" | "equivalence" | "edge" | "other") | null;
+            /**
+             * Note
+             * @description What the case covers, in your words
+             * @default
+             */
+            note: string;
+        };
+        /** TestDesignExample */
+        TestDesignExample: {
+            /** Input */
+            input: {
+                [key: string]: unknown;
+            };
+            /** Expected */
+            expected: unknown;
+        };
+        /**
+         * TestDesignExercise
+         * @description What the learner sees before running anything: the specification, its shape and limits,
+         *     and how many faulty versions there are. Not the versions or their defects.
+         */
+        TestDesignExercise: {
+            /** Slug */
+            slug: string;
+            /** Version */
+            version: number;
+            /** Title */
+            title: string;
+            /** Summary */
+            summary: string;
+            /** Spec */
+            spec: string;
+            /** Method */
+            method: string;
+            /** Params */
+            params: components["schemas"]["TestDesignParam"][];
+            /**
+             * Returns
+             * @enum {string}
+             */
+            returns: "int" | "boolean";
+            limits: components["schemas"]["TestDesignLimits"];
+            /** Examples */
+            examples: components["schemas"]["TestDesignExample"][];
+            /** Variant Count */
+            variant_count: number;
+            /** Review Status */
+            review_status: string;
+            /**
+             * Execution Enabled
+             * @description False: cases can be written and saved, but not run here
+             */
+            execution_enabled: boolean;
+        };
+        /** TestDesignLimits */
+        TestDesignLimits: {
+            /** Max Cases */
+            max_cases: number;
+            /** Max Length */
+            max_length: number;
+            /** Min Value */
+            min_value: number;
+            /** Max Value */
+            max_value: number;
+        };
+        /** TestDesignParam */
+        TestDesignParam: {
+            /** Name */
+            name: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "int[]" | "int";
+        };
+        /** TestDesignRunIn */
+        TestDesignRunIn: {
+            /** Cases */
+            cases: components["schemas"]["TestCaseIn"][];
+            /** Client Request Id */
+            client_request_id?: string | null;
+        };
+        /** TestDesignRunOut */
+        TestDesignRunOut: {
+            /** Id */
+            id: string;
+            /** Slug */
+            slug: string;
+            /** Exercise Version */
+            exercise_version: number;
+            /** Current Version */
+            current_version: number | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "done" | "not_run" | "failed";
+            /** Status Detail */
+            status_detail: string;
+            /** Cases */
+            cases: {
+                [key: string]: unknown;
+            }[];
+            /** Report */
+            report: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Judged At */
+            judged_at: string | null;
+        };
+        /** TestDesignRunSummary */
+        TestDesignRunSummary: {
+            /** Id */
+            id: string;
+            /** Exercise Version */
+            exercise_version: number;
+            /** Status */
+            status: string;
+            /** Cases */
+            cases: number;
+            /** Caught */
+            caught: number | null;
+            /** Total */
+            total: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** TestDesignSummary */
+        TestDesignSummary: {
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+            /** Summary */
+            summary: string;
+            /** Variant Count */
+            variant_count: number;
+        };
+        /** TestDesignVariant */
+        TestDesignVariant: {
+            /**
+             * Key
+             * @description A, B, C…: how the run reports name it
+             */
+            key: string;
+            /** Title */
+            title: string;
+            /** Defect */
+            defect: string;
+        };
+        /** TodayOut */
+        TodayOut: {
+            /** Minutes Available */
+            minutes_available: number;
+            primary: components["schemas"]["PlanItemOut"] | null;
+            follow_up: components["schemas"]["PlanItemOut"] | null;
+            /** Session Minutes */
+            session_minutes: number;
+            /**
+             * Note
+             * @description Explains the choice when nothing fits exactly
+             */
+            note: string | null;
+        };
+        /** TokenIn */
+        TokenIn: {
+            /** Token */
+            token: string;
+        };
         /** TokenResponse */
         TokenResponse: {
             /** Access Token */
@@ -1265,12 +13913,156 @@ export interface components {
             /** Solved */
             solved: number;
         };
+        /** TraceEventOut */
+        TraceEventOut: {
+            /** Source */
+            source: string;
+            /** Action */
+            action: string;
+            /** Outcome */
+            outcome: string;
+            /** Duration Ms */
+            duration_ms: number;
+            /** Request Id */
+            request_id: string | null;
+            /** Status */
+            status: number | null;
+            /** Error Code */
+            error_code: string | null;
+            /**
+             * At
+             * @description Unix time the server received it, seconds
+             */
+            at: number;
+        };
+        /** TraceOut */
+        TraceOut: {
+            /** Trace Id */
+            trace_id: string;
+            /**
+             * Spans
+             * @description Server steps, in start order
+             */
+            spans: components["schemas"]["TraceSpanOut"][];
+            /**
+             * Events
+             * @description What the browser reported for this action
+             */
+            events: components["schemas"]["TraceEventOut"][];
+        };
+        /** TraceSpanOut */
+        TraceSpanOut: {
+            /** Span Id */
+            span_id: string;
+            /** Parent Id */
+            parent_id: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Started At
+             * @description Unix time, seconds
+             */
+            started_at: number;
+            /** Duration Ms */
+            duration_ms: number;
+            /** Outcome */
+            outcome: string;
+            /** Attrs */
+            attrs: {
+                [key: string]: string | number | boolean;
+            };
+            /** Request Id */
+            request_id: string | null;
+            /** Source */
+            source: string;
+        };
+        /** TrackProgress */
+        TrackProgress: {
+            /** Track */
+            track: string;
+            /**
+             * Answered
+             * @description Questions with at least one answer, each counted once
+             */
+            answered: number;
+            /**
+             * Strong
+             * @description Questions with a best score of 85 or more
+             */
+            strong: number;
+            /** By Difficulty */
+            by_difficulty: {
+                [key: string]: number;
+            };
+            /** Total Questions */
+            total_questions: number;
+            /**
+             * Scored
+             * @description Answered questions with at least one answer long enough to score
+             * @default 0
+             */
+            scored: number;
+            /**
+             * Too Short
+             * @description Answered questions where every answer was too short to score (no score yet)
+             * @default 0
+             */
+            too_short: number;
+            /**
+             * Unknown
+             * @description Answered questions whose grading wasn't recorded (no score)
+             * @default 0
+             */
+            unknown: number;
+        };
+        /** TrendPoint */
+        TrendPoint: {
+            /**
+             * Week Start
+             * Format: date
+             */
+            week_start: string;
+            /**
+             * Answers
+             * @description Answers averaged this week: the series' cohort, the average's denominator
+             */
+            answers: number;
+            /** Average Score */
+            average_score: number | null;
+        };
+        /** TrendSeries */
+        TrendSeries: {
+            /**
+             * Evaluator
+             * @description The series: the same scale, kind of evaluator and rubric (docs/COMPARING_ATTEMPTS.md)
+             */
+            evaluator: string;
+            /**
+             * Attempts
+             * @description Answers in this series in the range (the cohort)
+             * @default 0
+             */
+            attempts: number;
+            /** Points */
+            points: components["schemas"]["TrendPoint"][];
+        };
+        /** TrustLabel */
+        TrustLabel: {
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "generated" | "authored" | "not_expert_reviewed" | "reference_verified" | "tests_not_checked" | "corrected";
+            /** Text */
+            text: string;
+        };
         /** TurnOut */
         TurnOut: {
             /** Seq */
             seq: number;
             role: components["schemas"]["TurnRole"];
-            phase: components["schemas"]["InterviewPhase"];
+            /** @description Coding interviews only */
+            phase: components["schemas"]["InterviewPhase"] | null;
             /** Content */
             content: string;
             /**
@@ -1278,16 +14070,240 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Question Index */
+            question_index?: number | null;
+            /**
+             * Source
+             * @description Candidate turns: typed or voice
+             */
+            source?: ("typed" | "voice" | "mixed") | null;
+            /**
+             * Skipped
+             * @default false
+             */
+            skipped: boolean;
+            /** @description Candidate turns: simulated engagement */
+            engagement?: components["schemas"]["Engagement"] | null;
         };
         /**
          * TurnRole
          * @enum {string}
          */
         TurnRole: "interviewer" | "candidate";
-        /** UpdateProfileRequest */
+        /** UiEvent */
+        UiEvent: {
+            /**
+             * Trace Id
+             * @description The action's W3C trace id
+             */
+            trace_id: string;
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "answer" | "skip" | "reply" | "skip_followup";
+            /**
+             * Outcome
+             * @description rendered: the next state was on screen; rejected: the server refused it; server_error: the server failed; network_error: no answer arrived; not_rendered: the server answered but the screen didn't change; ignored: the click didn't send anything
+             * @enum {string}
+             */
+            outcome: "rendered" | "rejected" | "server_error" | "network_error" | "not_rendered" | "ignored";
+            /**
+             * Duration Ms
+             * @description From the click to the outcome, in the browser
+             */
+            duration_ms: number;
+            /** Request Id */
+            request_id?: string | null;
+            /**
+             * Status
+             * @description HTTP status, 0 for no response
+             */
+            status?: number | null;
+            /** Error Code */
+            error_code?: string | null;
+        };
+        /** UiEventBatch */
+        UiEventBatch: {
+            /** Events */
+            events: components["schemas"]["UiEvent"][];
+        };
+        /** UnitLink */
+        UnitLink: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+        };
+        /** UnitOut */
+        UnitOut: {
+            /** Id */
+            id: string;
+            /** Track */
+            track: string;
+            /** Title */
+            title: string;
+            /** Skill */
+            skill: string | null;
+            /** Topics */
+            topics: string[];
+            /** Minutes */
+            minutes: number;
+            /** Objective */
+            objective: string;
+            /** Prerequisites */
+            prerequisites: components["schemas"]["UnitLink"][];
+            /** Version */
+            version: number;
+            /**
+             * Review Status
+             * @enum {string}
+             */
+            review_status: "author_reviewed" | "generated_draft";
+            /**
+             * Regulated
+             * @description Has a scope and jurisdiction note (e.g. nursing)
+             */
+            regulated: boolean;
+            /** Career Title */
+            career_title: string;
+            /**
+             * Changes
+             * @description What changed in each version, oldest first
+             */
+            changes: string[];
+            /** Scope Note */
+            scope_note: string | null;
+            /** Explanation */
+            explanation: string[];
+            example: components["schemas"]["ExampleOut"];
+            /** Mistakes */
+            mistakes: string[];
+            exercise: components["schemas"]["ExerciseOut"];
+            /** Check */
+            check: components["schemas"]["CheckQuestionOut"][];
+            /** Pass Rule */
+            pass_rule: string;
+            practice: components["schemas"]["PracticeOut"];
+            /** References */
+            references: components["schemas"]["ReferenceOut"][];
+            review: components["schemas"]["ReviewOut"];
+            /** Question Ids */
+            question_ids: string[];
+        };
+        /** UnitProgress */
+        UnitProgress: {
+            /** Unit Id */
+            unit_id: string;
+            /** Current Version */
+            current_version: number;
+            /**
+             * Versions Used
+             * @description Unit versions you have events on
+             */
+            versions_used: number[];
+            /** Started */
+            started: boolean;
+            /**
+             * Read
+             * @description Read the current version (reading alone is not mastery)
+             */
+            read: boolean;
+            /** Check Attempts */
+            check_attempts: number;
+            /**
+             * Check Passed
+             * @description Passed the check on the current version
+             */
+            check_passed: boolean;
+            /** Passed Versions */
+            passed_versions: number[];
+            /**
+             * Practiced
+             * @description A real answer or submission to the linked practice since you started
+             */
+            practiced: boolean;
+            /** Practiced Evidence */
+            practiced_evidence: string | null;
+            /** Events */
+            events: components["schemas"]["EventOut"][];
+            next_action: components["schemas"]["NextAction"];
+        };
+        /** UnitSummary */
+        UnitSummary: {
+            /** Id */
+            id: string;
+            /** Track */
+            track: string;
+            /** Title */
+            title: string;
+            /** Skill */
+            skill: string | null;
+            /** Topics */
+            topics: string[];
+            /** Minutes */
+            minutes: number;
+            /** Objective */
+            objective: string;
+            /** Prerequisites */
+            prerequisites: components["schemas"]["UnitLink"][];
+            /** Version */
+            version: number;
+            /**
+             * Review Status
+             * @enum {string}
+             */
+            review_status: "author_reviewed" | "generated_draft";
+            /**
+             * Regulated
+             * @description Has a scope and jurisdiction note (e.g. nursing)
+             */
+            regulated: boolean;
+        };
+        /**
+         * UpdateProfileRequest
+         * @description Only the fields you send are changed. Send display_name: null to clear the name.
+         */
         UpdateProfileRequest: {
             /** Display Name */
             display_name?: string | null;
+            /**
+             * Career Track
+             * @description Switch the job you're preparing for
+             */
+            career_track?: string | null;
+        };
+        /**
+         * UpgradeGuestRequest
+         * @description Same fields and rules as registration; the guest's data is kept.
+         */
+        UpgradeGuestRequest: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /**
+             * Password
+             * @example CorrectHorse42
+             */
+            password: string;
+            /**
+             * Display Name
+             * @example Ada
+             */
+            display_name?: string | null;
+            /**
+             * Career Track
+             * @description The job you're preparing for (a slug from /careers)
+             * @example registered-nurse
+             */
+            career_track?: string | null;
+        };
+        /** UsefulIn */
+        UsefulIn: {
+            /** Useful */
+            useful: boolean;
         };
         /** UserOut */
         UserOut: {
@@ -1304,6 +14320,27 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Email Verified
+             * @description The owner confirmed this email address
+             */
+            email_verified: boolean;
+            /**
+             * Career Track
+             * @description The job this person is preparing for
+             */
+            career_track: string;
+            /**
+             * Is Admin
+             * @description Can triage content reports (granted from the command line)
+             * @default false
+             */
+            is_admin: boolean;
+            /**
+             * Pending Email
+             * @description A new address waiting to be confirmed with the code sent to it. Until then, `email` is still the account's address.
+             */
+            pending_email?: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -1317,6 +14354,598 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** VerificationStatusOut */
+        VerificationStatusOut: {
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "verified" | "pending" | "not_applicable";
+            /**
+             * Changing Email
+             * @description The code confirms a new address (a change of email)
+             */
+            changing_email: boolean;
+            /**
+             * Address Masked
+             * @description Where codes go, masked: the domain is shown
+             */
+            address_masked: string | null;
+            /** @description `pending` only */
+            delivery: components["schemas"]["DeliveryOut"] | null;
+            /**
+             * Transport
+             * @description How this server sends email: `smtp` sends; `console` and `file` (development and tests) keep it on the server's computer
+             * @enum {string}
+             */
+            transport: "console" | "file" | "smtp";
+            /** Link Ttl Hours */
+            link_ttl_hours: number;
+            /**
+             * Code Expires At
+             * @description When the newest code and link stop working; null if none works now
+             */
+            code_expires_at: string | null;
+            /** Code Tries Left */
+            code_tries_left: number | null;
+            /**
+             * Resend Available In Seconds
+             * @description 0 when a new code can be sent now
+             */
+            resend_available_in_seconds: number;
+        };
+        /** VerifyCodeRequest */
+        VerifyCodeRequest: {
+            /**
+             * Code
+             * @description The 6-digit code from the email
+             */
+            code: string;
+        };
+        /** VerifyEmailRequest */
+        VerifyEmailRequest: {
+            /** Token */
+            token: string;
+            /**
+             * Other Account Ok
+             * @description Signed in as a different account than the link's: use the link anyway (it confirms that account's address; this session stays as it is). Without it, such a request gets 409 `verification_link_other_account` and nothing changes.
+             * @default false
+             */
+            other_account_ok: boolean;
+        };
+        /**
+         * VerifyLinkOut
+         * @description A link confirmed an address. Only the account's own signed-in session gets the account back:
+         *     anyone else holding the link learns that it worked, and a masked address, nothing more.
+         */
+        VerifyLinkOut: {
+            /**
+             * Status
+             * @default verified
+             * @constant
+             */
+            status: "verified";
+            /**
+             * Account
+             * @description Whose link, relative to the session that sent it: `this` account, an `other` one (sent with `other_account_ok`), or `signed_out`.
+             * @enum {string}
+             */
+            account: "this" | "other" | "signed_out";
+            /**
+             * Email Masked
+             * @description The address confirmed, masked (a•••e@example.com)
+             */
+            email_masked: string;
+            /**
+             * Changed Email
+             * @description It confirmed a new address: the account's email changed
+             */
+            changed_email: boolean;
+            /** @description The account, only when `account` is `this` */
+            user?: components["schemas"]["UserOut"] | null;
+        };
+        /** Violation */
+        Violation: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "dependency" | "deadline";
+            /** Text */
+            text: string;
+        };
+        /** WhiteboardAttemptIn */
+        WhiteboardAttemptIn: {
+            diagram: components["schemas"]["WhiteboardDiagram"];
+            /**
+             * Explanation
+             * @description Why you made at least one choice, in your words (needed first)
+             */
+            explanation: string;
+        };
+        /** WhiteboardAttemptOut */
+        WhiteboardAttemptOut: {
+            /** Id */
+            id: string;
+            /** Prompt Id */
+            prompt_id: string;
+            /** Prompt Version */
+            prompt_version: number;
+            /** Rubric Version */
+            rubric_version: number;
+            diagram: components["schemas"]["WhiteboardDiagram"];
+            /** Digest */
+            digest: string;
+            /** Explanation */
+            explanation: string;
+            /** Feedback */
+            feedback: {
+                [key: string]: unknown;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** WhiteboardAttemptSummary */
+        WhiteboardAttemptSummary: {
+            /** Id */
+            id: string;
+            /** Prompt Version */
+            prompt_version: number;
+            /** Rubric Version */
+            rubric_version: number;
+            /** Digest */
+            digest: string;
+            /** Addressed */
+            addressed: number;
+            /** Total */
+            total: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** WhiteboardDiagram */
+        WhiteboardDiagram: {
+            /**
+             * Format
+             * @default codecoach-whiteboard
+             * @constant
+             */
+            format: "codecoach-whiteboard";
+            /**
+             * Version
+             * @default 1
+             * @constant
+             */
+            version: 1;
+            /** Nodes */
+            nodes?: components["schemas"]["WhiteboardNode"][];
+            /** Edges */
+            edges?: components["schemas"]["WhiteboardEdge"][];
+            notes?: components["schemas"]["WhiteboardNotes"];
+        };
+        /** WhiteboardDraftIn */
+        WhiteboardDraftIn: {
+            diagram: components["schemas"]["WhiteboardDiagram"];
+            /**
+             * Explanation
+             * @default
+             */
+            explanation: string;
+            /**
+             * Expected Revision
+             * @description 0 for the first save
+             */
+            expected_revision: number;
+            /**
+             * Client Request Id
+             * @description One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before.
+             */
+            client_request_id?: string | null;
+        };
+        /** WhiteboardDraftOut */
+        WhiteboardDraftOut: {
+            /** @description Only on a save recovered by its key: see SaveReplay */
+            save_replay?: components["schemas"]["SaveReplay"] | null;
+            /** Prompt Id */
+            prompt_id: string;
+            diagram: components["schemas"]["WhiteboardDiagram"];
+            /** Explanation */
+            explanation: string;
+            /** Revision */
+            revision: number;
+            /** Updated At */
+            updated_at: string | null;
+            /**
+             * Differs From Last Attempt
+             * @description True if this draft has changed since your last evaluated attempt
+             */
+            differs_from_last_attempt: boolean;
+        };
+        /** WhiteboardEdge */
+        WhiteboardEdge: {
+            /** Id */
+            id: string;
+            /** Source */
+            source: string;
+            /** Target */
+            target: string;
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+        };
+        /** WhiteboardNode */
+        WhiteboardNode: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /**
+             * Kind
+             * @default service
+             * @enum {string}
+             */
+            kind: "client" | "service" | "database" | "cache" | "queue" | "external" | "other";
+            /** X */
+            x: number;
+            /** Y */
+            y: number;
+            /** Group */
+            group?: string | null;
+        };
+        /** WhiteboardNotes */
+        WhiteboardNotes: {
+            /**
+             * Assumptions
+             * @default
+             */
+            assumptions: string;
+            /**
+             * Requirements
+             * @default
+             */
+            requirements: string;
+            /**
+             * Capacity
+             * @default
+             */
+            capacity: string;
+            /**
+             * Tradeoffs
+             * @default
+             */
+            tradeoffs: string;
+        };
+        /** WhiteboardPrompt */
+        WhiteboardPrompt: {
+            /** Id */
+            id: string;
+            /** Version */
+            version: number;
+            /** Title */
+            title: string;
+            /** Objective */
+            objective: string;
+            /** Brief */
+            brief: string;
+            /** Requirements */
+            requirements: components["schemas"]["WhiteboardPromptRequirement"][];
+        };
+        /** WhiteboardPromptList */
+        WhiteboardPromptList: {
+            /** Prompts */
+            prompts: components["schemas"]["WhiteboardPrompt"][];
+            /**
+             * Note
+             * @description What's offered for this career, and what isn't yet
+             */
+            note: string;
+        };
+        /** WhiteboardPromptRequirement */
+        WhiteboardPromptRequirement: {
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+        };
+        /** Withheld */
+        Withheld: {
+            /**
+             * Text
+             * @description One line: 'Not suggested: … you disputed this point on 3 November.'
+             */
+            text: string;
+            /** Href */
+            href: string;
+            /**
+             * Reinstated
+             * @description Reinstated since: it can be suggested again at the plan's next update
+             * @default false
+             */
+            reinstated: boolean;
+        };
+        /** WorkSampleAttemptIn */
+        WorkSampleAttemptIn: {
+            /** Sections */
+            sections: {
+                [key: string]: string;
+            };
+            /**
+             * Revision Of
+             * @description The attempt this revises, if any
+             */
+            revision_of?: string | null;
+        };
+        /** WorkSampleAttemptOut */
+        WorkSampleAttemptOut: {
+            /** Id */
+            id: string;
+            /** Brief Id */
+            brief_id: string;
+            /** Brief Version */
+            brief_version: number;
+            /** Current Version */
+            current_version: number | null;
+            /** Title */
+            title: string;
+            /** Format Label */
+            format_label: string;
+            /** Sections */
+            sections: {
+                [key: string]: string;
+            };
+            /** Section Labels */
+            section_labels: {
+                [key: string]: string;
+            };
+            /** Feedback */
+            feedback: {
+                [key: string]: unknown;
+            };
+            /**
+             * Reference
+             * @description One good approach, shown after an attempt; wording needn't match
+             */
+            reference: {
+                [key: string]: string;
+            };
+            /** Revision Of */
+            revision_of: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** WorkSampleAttemptSummary */
+        WorkSampleAttemptSummary: {
+            /** Id */
+            id: string;
+            /** Brief Version */
+            brief_version: number;
+            /** Covered */
+            covered: number;
+            /** Total */
+            total: number;
+            /** Revision Of */
+            revision_of: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * WorkSampleBrief
+         * @description Everything the learner needs to write the artifact; not the reference artifact.
+         */
+        WorkSampleBrief: {
+            /** Id */
+            id: string;
+            /** Version */
+            version: number;
+            /** Title */
+            title: string;
+            /** Format */
+            format: string;
+            /** Format Label */
+            format_label: string;
+            /** Careers */
+            careers: string[];
+            /** Scenario */
+            scenario: string;
+            /** Audience */
+            audience: string;
+            /** Purpose */
+            purpose: string;
+            /** Facts */
+            facts: string[];
+            /**
+             * Required
+             * @description The points the brief asks for, by name
+             */
+            required: string[];
+            /**
+             * Sections
+             * @description Empty: one plain message
+             */
+            sections: components["schemas"]["WorkSampleSectionOut"][];
+            /** Min Words */
+            min_words: number;
+            /** Max Words */
+            max_words: number;
+            /** Review Status */
+            review_status: string;
+            /** Scope Note */
+            scope_note: string;
+        };
+        /** WorkSampleDraftIn */
+        WorkSampleDraftIn: {
+            /** Sections */
+            sections?: {
+                [key: string]: string;
+            };
+            /**
+             * Expected Revision
+             * @description 0 for the first save
+             */
+            expected_revision: number;
+            /**
+             * Client Request Id
+             * @description One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before.
+             */
+            client_request_id?: string | null;
+        };
+        /** WorkSampleDraftOut */
+        WorkSampleDraftOut: {
+            /** @description Only on a save recovered by its key: see SaveReplay */
+            save_replay?: components["schemas"]["SaveReplay"] | null;
+            /** Brief Id */
+            brief_id: string;
+            /** Sections */
+            sections: {
+                [key: string]: string;
+            };
+            /** Revision */
+            revision: number;
+            /** Updated At */
+            updated_at: string | null;
+        };
+        /** WorkSampleSectionOut */
+        WorkSampleSectionOut: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Hint */
+            hint: string;
+        };
+        /** WorkSampleSummary */
+        WorkSampleSummary: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Format Label */
+            format_label: string;
+            /** Careers */
+            careers: string[];
+        };
+        /** WorkspaceHit */
+        WorkspaceHit: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "note" | "story" | "kit" | "application";
+            /**
+             * Id
+             * @description The record's id; for a kit, its event's id
+             */
+            id: string;
+            /**
+             * Parent Id
+             * @description For a kit: its application's id
+             */
+            parent_id?: string | null;
+            /** Title */
+            title: string;
+            /**
+             * Snippet
+             * @description Plain text around the first word found (or the start of the text): show as text
+             */
+            snippet?: string | null;
+            /**
+             * Matched
+             * @description Where the words were found: title, text, tags, ...
+             */
+            matched: string[];
+            /** State */
+            state?: ("archived" | "pinned") | null;
+            /**
+             * Detail
+             * @description An application's stage; a kit's employer and date
+             */
+            detail?: string | null;
+            /** Tags */
+            tags?: string[];
+            /**
+             * At
+             * Format: date-time
+             * @description When it was last saved to your account
+             */
+            at: string;
+        };
+        /** WorkspaceSearchIn */
+        WorkspaceSearchIn: {
+            /**
+             * Q
+             * @description Words to find; every word must appear
+             */
+            q: string;
+            /**
+             * Kinds
+             * @description notes: title, body, reflection, tags, source_title; stories: title, situation, task, action, result, reflection, notes, evidence, short_version, long_version, tags; kits: event title, employer, role title; applications: employer, role title, next step
+             */
+            kinds?: ("notes" | "stories" | "kits" | "applications")[];
+            /**
+             * Include Archived
+             * @description Also search archived notes, stories and applications
+             * @default false
+             */
+            include_archived: boolean;
+            /**
+             * Limit
+             * @default 20
+             */
+            limit: number;
+        };
+        /** WorkspaceSearchOut */
+        WorkspaceSearchOut: {
+            /** Items */
+            items: components["schemas"]["WorkspaceHit"][];
+            /**
+             * Counts
+             * @description Matches of each kind searched, among your own records
+             */
+            counts: {
+                [key: string]: number;
+            };
+            /**
+             * Capped
+             * @description Kinds with more candidates than were looked at; refine the words
+             */
+            capped: string[];
+            /**
+             * Unavailable
+             * @description Kinds that couldn't be searched just now; the rest were
+             */
+            unavailable: string[];
+            /**
+             * Words
+             * @description The words matched, as folded for matching (for highlighting)
+             */
+            words: string[];
+        };
+        /** WrittenOut */
+        WrittenOut: {
+            /** Step Index */
+            step_index: number;
+            /** Title */
+            title: string;
+            /** Response */
+            response: string;
+            /** Covered */
+            covered: string[];
+            /** Missing */
+            missing: string[];
         };
     };
     responses: never;
@@ -1369,12 +14998,43 @@ export interface operations {
             };
         };
     };
+    create_anchor_api_v1_auth_create_anchor_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                cc_create?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     register_api_v1_auth_register_post: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                cc_create?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -1494,7 +15154,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                cc_create?: string | null;
+            };
         };
         requestBody?: {
             content: {
@@ -1522,6 +15184,504 @@ export interface operations {
             };
             /** @description Conflict with current state */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    upgrade_guest_api_v1_auth_upgrade_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpgradeGuestRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    refresh_api_v1_auth_refresh_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-requested-with"?: string | null;
+                /** @description A random key (22-64 URL-safe characters) the app keeps for this refresh attempt until it learns the outcome. If the response is lost, presenting the same cookie with the same key shortly afterwards returns the same new session instead of ending it. */
+                "x-refresh-attempt"?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                cc_refresh?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_email_api_v1_auth_verify_email_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyEmailRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifyLinkOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    verification_status_api_v1_auth_verify_email_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationStatusOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    verify_email_code_api_v1_auth_verify_email_code_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    resend_verification_api_v1_auth_verify_email_resend_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcceptedResponse"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    change_email_api_v1_auth_email_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeEmailRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    cancel_email_change_api_v1_auth_email_pending_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    request_password_reset_api_v1_auth_password_reset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcceptedResponse"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    confirm_password_reset_api_v1_auth_password_reset_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetConfirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad request */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1728,6 +15888,63 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
+            cookie?: {
+                cc_refresh?: string | null;
+                cc_create?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    logout_all_api_v1_auth_logout_all_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -1843,10 +16060,12 @@ export interface operations {
                 difficulty?: components["schemas"]["Difficulty"] | null;
                 /** @description Exact topic slug, e.g. 'hash-maps' */
                 topic?: string | null;
-                /** @description Case-insensitive search in title and summary */
+                /** @description Keywords or a plain description, e.g. 'reverse words' or 'dp grid'. Matches titles, topics, summaries and statements; results are ranked by relevance. */
                 q?: string | null;
                 page?: number;
                 page_size?: number;
+                /** @description problem: the coding library; debug: the debugging lab's exercises */
+                kind?: "problem" | "debug";
             };
             header?: never;
             path?: never;
@@ -1861,6 +16080,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_ProblemSummary_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    count_problems_api_v1_problems_counts_get: {
+        parameters: {
+            query?: {
+                topic?: string | null;
+                q?: string | null;
+                /** @description problem: the coding library; debug: the debugging lab's exercises */
+                kind?: "problem" | "debug";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DifficultyCounts"];
                 };
             };
             /** @description Validation Error */
@@ -1934,6 +16187,10548 @@ export interface operations {
             };
         };
     };
+    get_lab_explanation_api_v1_problems__slug__lab_explanation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabExplanation"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_careers_api_v1_careers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareerSummary"][];
+                };
+            };
+        };
+    };
+    list_questions_api_v1_careers__slug__questions_get: {
+        parameters: {
+            query?: {
+                difficulty?: string | null;
+                /** @description Keywords or a plain description */
+                q?: string | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_QuestionSummary_"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    count_questions_api_v1_careers__slug__questions_counts_get: {
+        parameters: {
+            query?: {
+                q?: string | null;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DifficultyCounts"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_one_api_v1_careers__slug__questions__question_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionDetail"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_answers_api_v1_careers__slug__questions__question_id__answers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnswerOut"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    answer_question_api_v1_careers__slug__questions__question_id__answers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnswerRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnswerOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    answer_question_keyed_api_v1_careers__slug__questions__question_id__answers_keyed_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KeyedAnswerRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnswerOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    follow_up_api_v1_careers__slug__questions__question_id__follow_up_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FollowUpOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    track_progress_api_v1_careers__slug__progress_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackProgress"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    meta_api_v1_content__content_type___content_id__meta_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                content_type: "question" | "problem";
+                content_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentMeta"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    question_version_api_v1_careers__slug__questions__question_id__versions__version__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                question_id: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionVersionOut"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_api_v1_reports_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyReport"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    my_reports_api_v1_me_reports_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyReport"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    admin_reports_api_v1_admin_reports_get: {
+        parameters: {
+            query?: {
+                /** @description 'open' includes investigating */
+                status?: ("open" | "investigating" | "resolved" | "not_actionable") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportGroup"][];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_report_api_v1_admin_reports__report_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminReportDetail"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_status_api_v1_admin_reports__report_id__status_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatusIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminReportDetail"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    admin_duplicate_api_v1_admin_reports__report_id__duplicate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DuplicateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminReportDetail"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    admin_correct_api_v1_admin_content_question__slug___question_id__corrections_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CorrectionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentMeta"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    admin_retire_api_v1_admin_content__content_type___content_id__retire_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                content_type: "question" | "problem";
+                content_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetireIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentMeta"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    admin_restore_api_v1_admin_content__content_type___content_id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                content_type: "question" | "problem";
+                content_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestoreIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentMeta"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    explore_public_api_v1_careers__slug__explore_get: {
+        parameters: {
+            query?: {
+                /** @description Keywords or a plain description */
+                q?: string | null;
+                difficulty?: string | null;
+                kind?: string | null;
+                skill?: string | null;
+                sort?: ("relevance" | "library") | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExploreResult"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    explore_mine_api_v1_me_explore__slug__get: {
+        parameters: {
+            query?: {
+                /** @description Keywords or a plain description */
+                q?: string | null;
+                difficulty?: string | null;
+                kind?: string | null;
+                skill?: string | null;
+                status?: ("attempted" | "unattempted" | "bookmarked") | null;
+                sort?: ("relevance" | "library" | "last_practiced" | "lowest_score") | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyExploreResult"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_bookmarks_api_v1_me_bookmarks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookmarkOut"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    add_bookmark_api_v1_me_bookmarks_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionItemIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookmarkOut"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    remove_bookmark_api_v1_me_bookmarks_delete: {
+        parameters: {
+            query: {
+                item_type: "question" | "problem" | "drill";
+                ref_id: string;
+                track?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookmarkOut"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_collections_api_v1_me_collections_get: {
+        parameters: {
+            query?: {
+                /** @description With ref_id: report which collections hold it */
+                item_type?: ("question" | "problem" | "drill") | null;
+                track?: string;
+                ref_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_collection_api_v1_me_collections_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_collection_api_v1_me_collections__collection_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_collection_api_v1_me_collections__collection_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rename_collection_api_v1_me_collections__collection_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    add_collection_item_api_v1_me_collections__collection_id__items_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionItemIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    batch_collection_items_api_v1_me_collections__collection_id__items_batch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionBatchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionBatchOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    remove_collection_item_api_v1_me_collections__collection_id__items__item_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reorder_collection_api_v1_me_collections__collection_id__order_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    set_queue_position_api_v1_me_collections__collection_id__queue_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QueueIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    mark_item_done_api_v1_me_collections__collection_id__items__item_id__done_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DoneIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_units_api_v1_learn_get: {
+        parameters: {
+            query?: {
+                track?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnCatalog"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    related_units_api_v1_learn_related_get: {
+        parameters: {
+            query?: {
+                track?: string | null;
+                question_id?: string | null;
+                problem_slug?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnitLink"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_unit_api_v1_learn_units__unit_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                unit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnitOut"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_units_api_v1_me_learn_get: {
+        parameters: {
+            query?: {
+                track?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: components["schemas"]["UnitProgress"];
+                    };
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_progress_api_v1_me_learn_units__unit_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                unit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnitProgress"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    record_event_api_v1_me_learn_units__unit_id__events_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                unit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnitProgress"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    submit_check_api_v1_me_learn_units__unit_id__check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                unit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckResult"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_notes_api_v1_me_notes_get: {
+        parameters: {
+            query?: {
+                /** @description Words in the title, text, reflection or tags */
+                q?: string | null;
+                career?: string | null;
+                source_type?: ("question" | "problem" | "lesson" | "interview") | null;
+                tag?: string | null;
+                /** @description Notes on one item (with source_type) */
+                source_id?: string | null;
+                status?: "active" | "archived" | "all";
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotePage"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_note_api_v1_me_notes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_note_api_v1_me_notes__note_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_note_api_v1_me_notes__note_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletedOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_note_api_v1_me_notes__note_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotePatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    archive_preview_api_v1_me_notes__note_id__archive_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Impact"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_as_previewed_api_v1_me_notes__note_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LifecycleIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LifecycleOutcome"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    restore_note_api_v1_me_notes__note_id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    suggest_key_points_api_v1_me_notes__note_id__key_points_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeyPoints"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_onboarding_api_v1_me_onboarding_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    update_onboarding_api_v1_me_onboarding_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnboardingUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_scenarios_api_v1_scenarios_get: {
+        parameters: {
+            query?: {
+                track?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioCatalog"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_scenario_api_v1_scenarios__scenario_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scenario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioDetail"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_attempt_api_v1_me_scenarios__scenario_id__attempts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scenario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioAttemptOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_attempts_api_v1_me_scenario_attempts_get: {
+        parameters: {
+            query?: {
+                scenario_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioAttemptSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_attempt_api_v1_me_scenario_attempts__attempt_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioAttemptOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    take_step_api_v1_me_scenario_attempts__attempt_id__steps_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StepIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioAttemptOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    preview_api_v1_me_shares_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShareSelection"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharePreview"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    mine_api_v1_me_shares_get: {
+        parameters: {
+            query?: {
+                /** @description Only shares of this answer */
+                answer_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_api_v1_me_shares_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShareCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareCreated"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    detail_api_v1_me_shares__share_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                share_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareDetail"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_api_v1_me_shares__share_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                share_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    close_api_v1_me_shares__share_id__close_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                share_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareDetail"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reopen_api_v1_me_shares__share_id__reopen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                share_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareDetail"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_api_v1_me_shares__share_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                share_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareDetail"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    new_link_api_v1_me_shares__share_id__link_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                share_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareCreated"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    useful_api_v1_me_shares__share_id__feedback__feedback_id__useful_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                share_id: string;
+                feedback_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UsefulIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareDetail"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    delete_feedback_api_v1_me_shares__share_id__feedback__feedback_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                share_id: string;
+                feedback_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareDetail"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    open_shared_api_v1_shared_open_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientView"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    leave_feedback_api_v1_shared_feedback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeedbackIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackReceipt"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_stories_api_v1_me_stories_get: {
+        parameters: {
+            query?: {
+                /** @description true: only archived stories */
+                archived?: boolean;
+                /** @description Words that must all appear in the story */
+                q?: string;
+                competency?: ("teamwork" | "conflict" | "leadership" | "prioritization" | "mistakes" | "communication" | "problem_solving" | "adaptability" | "care" | "initiative") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StorySummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_story_api_v1_me_stories_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoryCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoryOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_story_api_v1_me_stories__story_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoryOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_story_api_v1_me_stories__story_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_story_api_v1_me_stories__story_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoryUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoryOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    archive_story_api_v1_me_stories__story_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoryOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unarchive_story_api_v1_me_stories__story_id__unarchive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoryOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    story_used_in_api_v1_me_stories__story_id__used_in_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoryUsedIn"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    story_revisions_api_v1_me_stories__story_id__revisions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoryRevisionOut"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_revision_api_v1_me_stories__story_id__revisions__revision__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+                revision: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoryRestoreIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoryOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assist_story_api_v1_me_stories__story_id__assist_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoryAssistIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoryAssistOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_applications_api_v1_me_applications_get: {
+        parameters: {
+            query?: {
+                archived?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_application_api_v1_me_applications_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_application_api_v1_me_applications__app_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_application_api_v1_me_applications__app_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_application_api_v1_me_applications__app_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description A required precondition (e.g. the revision an edit started from) was missing */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    set_stage_api_v1_me_applications__app_id__stage_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationStageIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    archive_api_v1_me_applications__app_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unarchive_api_v1_me_applications__app_id__unarchive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    link_story_api_v1_me_applications__app_id__stories__story_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unlink_story_api_v1_me_applications__app_id__stories__story_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_preview_api_v1_me_applications__app_id__delete_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Impact"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_as_previewed_api_v1_me_applications__app_id__delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LifecycleIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LifecycleOutcome"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    add_event_api_v1_me_applications__app_id__events_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationEventIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    update_event_api_v1_me_applications__app_id__events__event_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationEventIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    delete_event_api_v1_me_applications__app_id__events__event_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    prep_preview_api_v1_me_applications__app_id__events__event_id__prep_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrepShiftOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    prep_shift_api_v1_me_applications__app_id__events__event_id__prep_shift_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrepShiftIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrepShiftResult"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_kit_api_v1_me_applications__app_id__events__event_id__kit_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KitOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_kit_api_v1_me_applications__app_id__events__event_id__kit_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KitUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KitOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    review_kit_story_api_v1_me_applications__app_id__events__event_id__kit_stories__story_id__review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                event_id: string;
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourceReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KitOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    remove_kept_story_api_v1_me_applications__app_id__events__event_id__kit_stories__story_id__kept_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                event_id: string;
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KitOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_api_v1_me_restore_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestorePreview"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    apply_api_v1_me_restore_post: {
+        parameters: {
+            query: {
+                /** @description notes, stories, bookmarks, applications */
+                categories: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestoreBatch"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    batches_api_v1_me_restore_batches_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestoreBatch"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    remove_api_v1_me_restore_batches__batch_id__remove_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestoreBatch"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_api_v1_me_reflections_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                outcome?: ("unknown" | "awaiting" | "another_round" | "offer" | "not_selected" | "withdrawn") | null;
+                include_archived?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReflectionSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_reflection_api_v1_me_applications__app_id__events__event_id__reflection_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReflectionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_reflection_api_v1_me_applications__app_id__events__event_id__reflection_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReflectionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReflectionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    suggest_api_v1_me_applications__app_id__events__event_id__reflection_suggestions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReflectionOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_action_api_v1_me_applications__app_id__events__event_id__reflection_actions__action_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                event_id: string;
+                action_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReflectionActionEdit"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReflectionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    accept_action_api_v1_me_applications__app_id__events__event_id__reflection_actions__action_id__accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                event_id: string;
+                action_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReflectionActionAccept"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReflectionOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    set_outcome_api_v1_me_applications__app_id__events__event_id__reflection_outcome_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReflectionOutcomeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReflectionOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    criteria_api_v1_careers__slug__questions__question_id__criteria_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CriteriaOut"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_review_api_v1_me_answers__answer_id__review_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                answer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnswerReviewOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_self_review_api_v1_me_answers__answer_id__self_review_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                answer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SelfReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnswerReviewOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    add_flag_api_v1_me_answers__answer_id__flags_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                answer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlagIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnswerReviewOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    reinstate_flag_api_v1_me_answers__answer_id__flags__flag_id__reinstate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                answer_id: string;
+                flag_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnswerReviewOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_flag_api_v1_me_answers__answer_id__flags__flag_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                answer_id: string;
+                flag_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnswerReviewOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reevaluate_api_v1_me_answers__answer_id__evaluations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                answer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReevaluateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnswerReviewOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_drills_api_v1_me_drills_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DrillOut"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_drill_api_v1_me_drills__drill_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                drill_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DrillOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attempts_api_v1_me_drills__drill_id__attempts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                drill_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DrillAttemptOut"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_api_v1_me_drills__drill_id__attempts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                drill_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DrillAttemptIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DrillAttemptOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    prompts_api_v1_me_whiteboard_prompts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhiteboardPromptList"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    validate_api_v1_me_whiteboard_validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhiteboardDiagram"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhiteboardDiagram"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_draft_api_v1_me_whiteboard__prompt_id__draft_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prompt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhiteboardDraftOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_draft_api_v1_me_whiteboard__prompt_id__draft_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prompt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhiteboardDraftIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhiteboardDraftOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    attempts_api_v1_me_whiteboard__prompt_id__attempts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prompt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhiteboardAttemptSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attempt_api_v1_me_whiteboard__prompt_id__attempts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prompt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhiteboardAttemptIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhiteboardAttemptOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_attempt_api_v1_me_whiteboard_attempts__attempt_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhiteboardAttemptOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    exercises_api_v1_code_reviews_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewExerciseSummary"][];
+                };
+            };
+        };
+    };
+    exercise_api_v1_code_reviews__slug__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewExerciseOut"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_draft_api_v1_me_code_reviews__slug__draft_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewDraftOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_draft_api_v1_me_code_reviews__slug__draft_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewDraftIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewDraftOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    reveal_api_v1_me_code_reviews__slug__reveal_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewReference"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attempts_api_v1_me_code_reviews__slug__attempts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewAttemptSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attempt_api_v1_me_code_reviews__slug__attempts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewAttemptIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewAttemptOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_attempt_api_v1_me_code_reviews_attempts__attempt_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewAttemptOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    exercises_api_v1_test_design_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestDesignSummary"][];
+                };
+            };
+        };
+    };
+    exercise_api_v1_test_design__slug__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestDesignExercise"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    variants_api_v1_test_design__slug__variants_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestDesignVariant"][];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    runs_api_v1_me_test_design__slug__runs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestDesignRunSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_run_api_v1_me_test_design__slug__runs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestDesignRunIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestDesignRunOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Temporarily unavailable (e.g. the judge queue is full). Retry-After is sent only when the server can justify a wait (for the judge's full queue: from its recent completions); none means no credible wait is known */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_run_api_v1_me_test_design_runs__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestDesignRunOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    briefs_api_v1_work_samples_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkSampleSummary"][];
+                };
+            };
+        };
+    };
+    brief_api_v1_work_samples__brief_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                brief_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkSampleBrief"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_draft_api_v1_me_work_samples__brief_id__draft_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                brief_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkSampleDraftOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_draft_api_v1_me_work_samples__brief_id__draft_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                brief_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkSampleDraftIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkSampleDraftOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    attempts_api_v1_me_work_samples__brief_id__attempts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                brief_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkSampleAttemptSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attempt_api_v1_me_work_samples__brief_id__attempts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                brief_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkSampleAttemptIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkSampleAttemptOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_attempt_api_v1_me_work_samples_attempts__attempt_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkSampleAttemptOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lessons_api_v1_comparisons_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonSummary"][];
+                };
+            };
+        };
+    };
+    lesson_api_v1_comparisons__lesson_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lesson_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonLesson"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    explanation_api_v1_comparisons__lesson_id__explanation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lesson_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attempts_api_v1_me_comparisons__lesson_id__attempts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lesson_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonAttemptSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attempt_api_v1_me_comparisons__lesson_id__attempts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lesson_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComparisonAttemptIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonAttemptOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_attempt_api_v1_me_comparisons_attempts__attempt_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonAttemptOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cases_api_v1_offer_rehearsals_cases_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferCaseSummary"][];
+                };
+            };
+        };
+    };
+    case_api_v1_offer_rehearsals_cases__case_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferCard"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mine_api_v1_me_offer_rehearsals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferRehearsalSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    start_api_v1_me_offer_rehearsals_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferRehearsalIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferRehearsalOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    one_api_v1_me_offer_rehearsals__rehearsal_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rehearsal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferRehearsalOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turn_api_v1_me_offer_rehearsals__rehearsal_id__turns_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rehearsal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferTurnIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferRehearsalOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    advance_api_v1_me_offer_rehearsals__rehearsal_id__phase_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rehearsal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferPhaseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferRehearsalOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    finish_api_v1_me_offer_rehearsals__rehearsal_id__finish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rehearsal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferRehearsalOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mine_api_v1_me_kit_templates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KitTemplateSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_api_v1_me_kit_templates_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KitTemplateCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KitTemplateOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_one_api_v1_me_kit_templates__template_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KitTemplateOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_api_v1_me_kit_templates__template_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_api_v1_me_kit_templates__template_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KitTemplateUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KitTemplateOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    mine_api_v1_me_actions_get: {
+        parameters: {
+            query?: {
+                state?: "open" | "done" | "all";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionOut"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    accept_api_v1_me_actions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActionAccept"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_api_v1_me_actions__action_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_api_v1_me_actions__action_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    complete_api_v1_me_actions__action_id__complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reopen_api_v1_me_actions__action_id__reopen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    schedule_api_v1_me_actions__action_id__occurrences_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OccurrencesIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    complete_occurrence_api_v1_me_actions__action_id__occurrences__entry_id__complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action_id: string;
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reopen_occurrence_api_v1_me_actions__action_id__occurrences__entry_id__reopen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action_id: string;
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attempt_conditions_api_v1_me_attempt_conditions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConditionsQuery"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConditionsOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    mine_api_v1_me_offer_comparisons_get: {
+        parameters: {
+            query?: {
+                /** @description true: only archived comparisons (docs/ARCHIVE.md) */
+                archived?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferComparisonSummary"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_api_v1_me_offer_comparisons_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferComparisonCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferComparisonOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    preview_api_v1_me_offer_comparisons_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComparisonDoc"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DerivedOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    one_api_v1_me_offer_comparisons__comparison_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                comparison_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferComparisonOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_api_v1_me_offer_comparisons__comparison_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                comparison_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferComparisonSave"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferComparisonOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    delete_api_v1_me_offer_comparisons__comparison_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                comparison_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_api_v1_me_offer_comparisons__comparison_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                comparison_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferComparisonOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unarchive_api_v1_me_offer_comparisons__comparison_id__unarchive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                comparison_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferComparisonOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_packet_api_v1_me_packet_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PacketIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PacketOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    summary_api_v1_me_data_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One count per kind of record you have; no content, titles or amounts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataSummaryOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_entries_api_v1_me_schedule_get: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                include_cancelled?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"][];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_entry_api_v1_me_schedule_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntryIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    schedulable_api_v1_me_schedule_schedulable_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchedulableOut"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_settings_api_v1_me_schedule_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleSettingsOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    put_settings_api_v1_me_schedule_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleSettingsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleSettingsOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    export_ics_api_v1_me_schedule_export_ics_get: {
+        parameters: {
+            query?: {
+                /** @description Comma-separated entry ids */
+                ids?: string | null;
+                from?: string | null;
+                to?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description An iCalendar file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    "text/calendar": unknown;
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_entry_api_v1_me_schedule__entry_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    move_entry_api_v1_me_schedule__entry_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntryMove"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    cancel_entry_api_v1_me_schedule__entry_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    follow_interview_api_v1_me_schedule__entry_id__follows_interview_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FollowInterviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     create_submission_api_v1_submissions_post: {
         parameters: {
             query?: never;
@@ -2001,7 +26796,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Temporarily unavailable (e.g. the judge queue is full) */
+            /** @description Temporarily unavailable (e.g. the judge queue is full). Retry-After is sent only when the server can justify a wait (for the judge's full queue: from its recent completions); none means no credible wait is known */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -2077,7 +26872,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Temporarily unavailable (e.g. the judge queue is full) */
+            /** @description Temporarily unavailable (e.g. the judge queue is full). Retry-After is sent only when the server can justify a wait (for the judge's full queue: from its recent completions); none means no credible wait is known */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -2093,6 +26888,8 @@ export interface operations {
             query?: {
                 problem_slug?: string | null;
                 status?: components["schemas"]["SubmissionStatus"] | null;
+                /** @description `submit` (default): attempts. `run`: public-test runs. */
+                mode?: components["schemas"]["SubmissionMode"];
                 page?: number;
                 page_size?: number;
             };
@@ -2156,7 +26953,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Temporarily unavailable (e.g. the judge queue is full) */
+            /** @description Temporarily unavailable (e.g. the judge queue is full). Retry-After is sent only when the server can justify a wait (for the judge's full queue: from its recent completions); none means no credible wait is known */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -2305,6 +27102,144 @@ export interface operations {
             };
         };
     };
+    review_preview_api_v1_ai_review_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewPreview"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    explain_failure_api_v1_ai_explain_failure_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExplainFailureRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExplainFailureResponse"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     usage_api_v1_ai_usage_get: {
         parameters: {
             query?: never;
@@ -2391,6 +27326,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_AIHistoryItem_"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    ai_history_item_api_v1_me_ai_history__interaction_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interaction_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIHistoryItem"];
                 };
             };
             /** @description Missing, invalid, expired or revoked access token */
@@ -2595,6 +27597,47 @@ export interface operations {
             };
         };
     };
+    list_formats_api_v1_interviews_formats_get: {
+        parameters: {
+            query?: {
+                track?: string;
+                difficulty?: "easy" | "medium" | "hard";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormatOption"][];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     get_interview_api_v1_interviews__interview_id__get: {
         parameters: {
             query?: never;
@@ -2693,6 +27736,556 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InterviewOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    answer_question_api_v1_interviews__interview_id__answers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoundAnswer"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    skip_question_api_v1_interviews__interview_id__skip_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoundSkip"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    answer_followup_api_v1_interviews__interview_id__followup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FollowupAnswer"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    skip_followup_api_v1_interviews__interview_id__followup_skip_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    review_api_v1_interviews__interview_id__review_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewReview"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    retry_question_api_v1_interviews__interview_id__questions__index__retries_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+                index: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetryIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Comparison"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    compare_question_api_v1_interviews__interview_id__questions__index__comparison_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+                index: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Comparison"];
                 };
             };
             /** @description Bad request */
@@ -2978,7 +28571,10 @@ export interface operations {
     };
     export_api_v1_me_export_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 1 (default; what restore reads) or 2: the same data plus record ids and typed links between records (applications, events, targets, stories, notes, schedule entries, kits, reflections and their steps). Version 2 can't be restored yet. */
+                version?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3001,6 +28597,2115 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    activity_api_v1_me_activity_get: {
+        parameters: {
+            query?: {
+                /** @description A career slug, or 'coding' */
+                career?: string | null;
+                type?: ("problem_opened" | "code_submission" | "coaching" | "written_answer" | "interview") | null;
+                /** @description Inclusive (UTC) */
+                since?: string | null;
+                /** @description Inclusive (UTC) */
+                until?: string | null;
+                skill?: string | null;
+                status?: ("opened" | "saved_not_judged" | "awaiting_judge" | "passed" | "failed" | "evaluation_unavailable" | "scored" | "too_short" | "completed" | "in_progress" | "expired" | "abandoned") | null;
+                q?: string | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ActivityItem_"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    activity_facets_api_v1_me_activity_facets_get: {
+        parameters: {
+            query?: {
+                career?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityFacets"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    career_analytics_api_v1_me_careers__slug__analytics_get: {
+        parameters: {
+            query?: {
+                /** @description Inclusive; omit for all time */
+                since?: string | null;
+                /** @description Inclusive; default today (UTC) */
+                until?: string | null;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareerAnalytics"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    career_chart_attempts_api_v1_me_careers__slug__analytics_attempts_get: {
+        parameters: {
+            query?: {
+                /** @description Inclusive; omit for all time */
+                since?: string | null;
+                /** @description Inclusive; default today (UTC) */
+                until?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChartAttempts"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    resume_api_v1_me_resume_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    request_outcome_api_v1_me_requests__key__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestOutcome"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    recent_api_v1_me_recent_work_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecentWorkOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_workspace_api_v1_me_search_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceSearchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceSearchOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_goals_api_v1_me_goals_get: {
+        parameters: {
+            query?: {
+                /** @description Default: your current career */
+                track?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoalsOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_goals_api_v1_me_goals_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoalsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoalsOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_plan_api_v1_me_plan_get: {
+        parameters: {
+            query?: {
+                track?: string | null;
+                /** @description Time available today */
+                minutes?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    skip_item_api_v1_me_plan_items__item_id__skip_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanItemOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replace_item_api_v1_me_plan_items__item_id__replace_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanItemOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_reviewed_api_v1_me_plan_items__item_id__reviewed_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanItemOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    review_queue_api_v1_me_reviews_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewQueue"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    add_review_api_v1_me_reviews_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewAdd"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewQueue"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    snooze_review_api_v1_me_reviews__item_id__snooze_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SnoozeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewQueue"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    remove_review_api_v1_me_reviews__item_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewQueue"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_targets_api_v1_targets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetSummary"][];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_target_api_v1_targets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TargetIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_target_api_v1_targets__target_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    delete_target_api_v1_targets__target_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    update_target_api_v1_targets__target_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TargetPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    reextract_api_v1_targets__target_id__extract_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    save_requirements_api_v1_targets__target_id__requirements_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequirementSetIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    add_requirement_api_v1_targets__target_id__requirements_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequirementIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    patch_requirement_api_v1_targets__target_id__requirements__requirement_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+                requirement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequirementPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    preview_requirements_api_v1_targets__target_id__requirements_revision_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequirementSetIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevisionPreview"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    requirement_history_api_v1_targets__target_id__requirements__requirement_id__history_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+                requirement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequirementHistoryEntry"][];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    reuse_story_api_v1_targets__target_id__experience__entry_id__requirements__requirement_id__reuse_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+                entry_id: string;
+                requirement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    review_story_links_api_v1_targets__target_id__experience__entry_id__review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoryLinksReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    reuse_action_api_v1_targets__target_id__actions__action_id__requirements__requirement_id__reuse_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+                action_id: string;
+                requirement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    add_experience_api_v1_targets__target_id__experience_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExperienceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    edit_experience_api_v1_targets__target_id__experience__entry_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExperienceEdit"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    delete_experience_api_v1_targets__target_id__experience__entry_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    capabilities_api_v1_capabilities_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Capabilities"];
+                };
+            };
+        };
+    };
+    demo_api_v1_demo_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoOut"];
+                };
+            };
+            /** @description Not a demo server */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Demo not set up */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ui_events_api_v1_telemetry_ui_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UiEventBatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_trace_api_v1_admin_traces__lookup__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lookup: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TraceOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

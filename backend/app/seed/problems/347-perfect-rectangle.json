@@ -1,0 +1,262 @@
+{
+  "order": 347,
+  "slug": "perfect-rectangle",
+  "title": "Do Rectangles Tile a Perfect Rectangle?",
+  "difficulty": "hard",
+  "topics": [
+    "math",
+    "hash-sets"
+  ],
+  "summary": "Check that axis-aligned rectangles exactly cover one big rectangle.",
+  "statement": "`rectangles[i] = [x1, y1, x2, y2]` (bottom-left and top-right corners). Return `true` if together they\nexactly cover a single rectangular region with no gaps and no overlaps.",
+  "constraints": [
+    "1 <= rectangles.length <= 2 * 10^4",
+    "-10^5 <= coordinates <= 10^5"
+  ],
+  "examples": [
+    {
+      "input": "rectangles = [[1, 1, 3, 3], [3, 1, 4, 2], [3, 2, 4, 4], [1, 3, 2, 4], [2, 3, 3, 4]]",
+      "output": "true"
+    },
+    {
+      "input": "rectangles = [[1, 1, 2, 3], [1, 3, 2, 4], [3, 1, 4, 2], [3, 2, 4, 4]]",
+      "output": "false"
+    },
+    {
+      "input": "rectangles = [[1, 1, 3, 3], [3, 1, 4, 2], [1, 3, 2, 4], [2, 2, 4, 4]]",
+      "output": "false"
+    }
+  ],
+  "signature": {
+    "method": "isRectangleCover",
+    "params": [
+      {
+        "name": "rectangles",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean isRectangleCover(int[][] rectangles) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "Two checks together are enough: total area, and how corners appear.",
+    "The total area must equal the bounding box area. Every corner point must appear an even number of times, except the bounding box's four corners, which appear exactly once.",
+    "area = sum of areas; bound = min/max of all corners\ncorners = set toggled for each rectangle's 4 corners\nreturn area == bound area and corners == the 4 bounding corners",
+    "O(n) with a hash set. Overlaps make the area too large or leave extra odd corners; gaps do the opposite."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "rectangles": [
+          [
+            1,
+            1,
+            3,
+            3
+          ],
+          [
+            3,
+            1,
+            4,
+            2
+          ],
+          [
+            3,
+            2,
+            4,
+            4
+          ],
+          [
+            1,
+            3,
+            2,
+            4
+          ],
+          [
+            2,
+            3,
+            3,
+            4
+          ]
+        ]
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "rectangles": [
+          [
+            1,
+            1,
+            2,
+            3
+          ],
+          [
+            1,
+            3,
+            2,
+            4
+          ],
+          [
+            3,
+            1,
+            4,
+            2
+          ],
+          [
+            3,
+            2,
+            4,
+            4
+          ]
+        ]
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "rectangles": [
+          [
+            1,
+            1,
+            3,
+            3
+          ],
+          [
+            3,
+            1,
+            4,
+            2
+          ],
+          [
+            1,
+            3,
+            2,
+            4
+          ],
+          [
+            2,
+            2,
+            4,
+            4
+          ]
+        ]
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "rectangles": [
+          [
+            0,
+            0,
+            1,
+            1
+          ]
+        ]
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "rectangles": [
+          [
+            0,
+            0,
+            1,
+            4
+          ],
+          [
+            1,
+            0,
+            2,
+            4
+          ],
+          [
+            2,
+            0,
+            3,
+            4
+          ],
+          [
+            3,
+            0,
+            4,
+            4
+          ]
+        ]
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "rectangles": [
+          [
+            0,
+            0,
+            1,
+            4
+          ],
+          [
+            1,
+            0,
+            2,
+            4
+          ]
+        ]
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "rectangles": [
+          [
+            0,
+            0,
+            1,
+            2
+          ],
+          [
+            1,
+            0,
+            2,
+            2
+          ],
+          [
+            2,
+            0,
+            3,
+            2
+          ]
+        ]
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "rectangles": [
+          [
+            0,
+            0,
+            3,
+            3
+          ]
+        ]
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -1,12 +1,21 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
-import { ApiError } from "@/api/client";
 import { useAIHistory, useAIUsage, useHint, useReview } from "@/api/queries";
-import type { CodeReview, HintLevel, HintResponse, ReviewResponse } from "@/api/types";
+import { api } from "@/api/endpoints";
+import type { CodeReview, HintLevel, HintResponse, ReviewPreview, ReviewResponse } from "@/api/types";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
-import { InlineError } from "@/components/States";
+import { ActionError } from "@/components/ActionError";
+import { ApiError } from "@/api/client";
+import { useAuth } from "@/auth/useAuth";
+import { EarlierActionNotice } from "@/features/recovery/EarlierActionNotice";
+import { useEarlierAction } from "@/features/recovery/useEarlierAction";
+import { useRetryWait } from "@/hooks/useCountdown";
+import { fingerprint, forgetIntent, keyForIntent, type IntentKind } from "@/lib/pendingIntents";
 import { Tabs } from "@/components/Tabs";
+import { FallbackNotice } from "@/components/FallbackNotice";
+import { CoachContext } from "@/features/workspace/CoachContext";
 
 const LEVELS: { level: HintLevel; name: string; blurb: string }[] = [
   { level: 1, name: "Nudge", blurb: "A question that points you in the right direction" },
@@ -81,18 +90,31 @@ function HintLadder({ problemSlug, maxLevel, code }: { problemSlug: string; maxL
 
   const highest = hints.reduce((m, h) => Math.max(m, h.level), 0);
   const next = LEVELS.find((l) => l.level === highest + 1 && l.level <= maxLevel);
-  const budgetExhausted = hint.error instanceof ApiError && hint.error.code === "rate_limited";
+  // The server's wait (today's budget used up, or another request still running): only the hint
+  // button waits, with a countdown; the editor, Run and Submit stay usable.
+  const wait = useRetryWait(hint.error);
+  const { user } = useAuth();
+  // One key per level and code until it's answered, kept in this browser (Volume 8, prompts 1-2):
+  // pressing again after a lost response, even after a reload or from another tab, gets the first
+  // answer back, without a second AI call or a second use of the budget. Changed code is a new
+  // request with a new key (the server refuses an old key with different code).
+  const earlier = useEarlierAction("hint", problemSlug);
 
   async function request(level: HintLevel) {
-    const response = await hint.mutateAsync({ problem_slug: problemSlug, level, source_code: code });
+    if (earlier.status !== "none") earlier.dismiss();
+    const response = await keyed(user?.id, "hint", problemSlug, fingerprint(problemSlug, level, code), (key) =>
+      hint.mutateAsync({ problem_slug: problemSlug, level, source_code: code, client_request_id: key }));
     setFresh((f) => [...f.filter((h) => h.level !== response.level), response]);
   }
 
   return (
     <div className="hints stack">
+      <EarlierActionNotice earlier={earlier} noun="hint request"
+        found={<>{earlier.status === "found" && earlier.outcome.hint_level ? `The level ${earlier.outcome.hint_level} hint is below.` : "It's below."} It wasn't asked for again.</>} />
       {hints.length === 0 && !history.isPending && (
         <p className="muted">Stuck? Hints unlock one level at a time, so you only see as much as you need.</p>
       )}
+      <FallbackNotice provider={fresh.find((f) => f.provider.includes("fallback"))?.provider} />
       <ol className="hint-list">
         {hints.map((h) => (
           <li key={h.level} className="hint">
@@ -107,7 +129,7 @@ function HintLadder({ problemSlug, maxLevel, code }: { problemSlug: string; maxL
       </ol>
       {next ? (
         <div className="hint-next">
-          <Button variant={highest === 0 ? "primary" : "secondary"} loading={hint.isPending} disabled={budgetExhausted}
+          <Button variant={highest === 0 ? "primary" : "secondary"} loading={hint.isPending} disabled={wait > 0}
             onClick={() => void request(next.level).catch(() => undefined)}>
             {highest === 0 ? "Get a hint" : `Unlock level ${next.level}: ${next.name}`}
           </Button>
@@ -117,7 +139,10 @@ function HintLadder({ problemSlug, maxLevel, code }: { problemSlug: string; maxL
       ) : (
         hints.length > 0 && <p className="subtle">You've unlocked every hint for this problem.</p>
       )}
-      <InlineError error={hint.error} />
+      {!hint.isPending && (
+        <ActionError error={hint.error} action="The hint" repeatSafe
+          onRetry={next ? () => void request(next.level).catch(() => undefined) : undefined} />
+      )}
     </div>
   );
 }
@@ -129,22 +154,82 @@ function ReviewTab({ problemSlug, code, submissionId, onHighlightLine }: {
 }) {
   const review = useReview();
   const [result, setResult] = useState<ReviewResponse | null>(null);
+  // Check, then send (docs/COACH_CONTEXT.md): the preview shows exactly what the coach would read,
+  // and the review is sent bound to it, so it goes only if what's sent is what was shown.
+  const [preview, setPreview] = useState<{ data: ReviewPreview; code: string } | null>(null);
+  const [share, setShare] = useState(true);
+  const [checking, setChecking] = useState(false);
+  const [checkError, setCheckError] = useState<unknown>(null);
+  const [changed, setChanged] = useState<string | null>(null);
+  const [cancelled, setCancelled] = useState(false);
+  const wait = useRetryWait(review.error);
+  const { user } = useAuth();
+  // The same approved material, not answered yet (a lost response, even across a reload): the same
+  // key, so the server gives back the review it already made. Anything else is a new review.
+  const earlier = useEarlierAction("review", problemSlug);
 
-  async function run() {
+  async function check(withVerdict = share) {
+    setChecking(true);
+    setCheckError(null);
+    setCancelled(false);
+    try {
+      const data = await api.reviewPreview({ problem_slug: problemSlug, source_code: code, submission_id: submissionId, share_verdict: withVerdict });
+      setPreview({ data, code });
+      setChanged(null);
+    } catch (e) {
+      setCheckError(e);
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  async function send() {
+    if (!preview) return;
     onHighlightLine(null);
-    setResult(await review.mutateAsync({ problem_slug: problemSlug, source_code: code, submission_id: submissionId }));
+    if (earlier.status !== "none") earlier.dismiss();
+    const approved = preview.data.context_fingerprint;
+    try {
+      setResult(await keyed(user?.id, "review", problemSlug, fingerprint(problemSlug, preview.code, submissionId, share ? 1 : 0, approved), (key) =>
+        review.mutateAsync({ problem_slug: problemSlug, source_code: preview.code, submission_id: submissionId, share_verdict: share, approved_context: approved, client_request_id: key })));
+      setPreview(null);
+    } catch (e) {
+      if (e instanceof ApiError && e.code === "context_changed") {
+        // Nothing was sent: show what would be sent now, to check before sending again.
+        const fresh = (e.details as { preview?: ReviewPreview } | undefined)?.preview;
+        if (fresh) setPreview({ data: fresh, code: preview.code });
+        setChanged("What the coach would read changed since you checked it, so nothing was sent. This is what it would read now.");
+        review.reset();
+      }
+    }
   }
 
   return (
     <div className="review stack">
-      <div className="row">
-        <Button variant="primary" loading={review.isPending} onClick={() => void run().catch(() => undefined)}
-          disabled={!code.trim()}>
-          {result ? "Review again" : "Review my code"}
-        </Button>
-        <span className="subtle">Checks correctness risks, edge cases, complexity and readability.</span>
-      </div>
-      <InlineError error={review.error} />
+      {!preview && (
+        <div className="row">
+          <Button variant="primary" loading={checking} onClick={() => void check()}
+            disabled={!code.trim() || wait > 0}>
+            {result ? "Review again" : "Review my code"}
+          </Button>
+          <span className="subtle">You'll see exactly what the coach will read before anything is sent.</span>
+        </div>
+      )}
+      {cancelled && !preview && <p className="subtle" role="status">Cancelled. Nothing was sent.</p>}
+      <ActionError error={checkError} action="Checking what would be sent" onRetry={() => void check()} />
+      {preview && (
+        <CoachContext preview={preview.data} share={share} stale={preview.code !== code} changed={changed}
+          busy={review.isPending || checking}
+          onShare={(next) => { setShare(next); void check(next); }}
+          onSend={() => void send()}
+          onCancel={() => { setPreview(null); setChanged(null); setCancelled(true); }}
+          onCheckAgain={() => void check()} />
+      )}
+      <EarlierActionNotice earlier={earlier} noun="code review"
+        found={earlier.status === "found"
+          ? <>It wasn't asked for again. <Link to={`/history/coaching/${earlier.outcome.id}`}>Open that review</Link>.</> : null} />
+      {!review.isPending && preview && (
+        <ActionError error={review.error} action="The code review" repeatSafe onRetry={() => void send()} />
+      )}
       {result && <ReviewResult data={result} onHighlightLine={onHighlightLine} />}
     </div>
   );
@@ -203,7 +288,27 @@ export function ReviewResult({ data, onHighlightLine }: { data: ReviewResponse; 
       )}
 
       <div className="banner banner--success"><strong>Next step:</strong> {r.next_step}</div>
-      <p className="subtle">{data.disclaimer}{data.provider.includes("fallback") ? " (Answered by the offline coach.)" : ""}</p>
+      <FallbackNotice provider={data.provider} />
+      <p className="subtle">{data.disclaimer}</p>
     </div>
   );
+}
+
+/**
+ * Send a keyed AI request whose key is kept in this browser until it's answered: written before
+ * sending (so a reload can check it), forgotten once there's a definite answer, kept when no reply
+ * came back (the same request again reuses it).
+ */
+async function keyed<T>(userId: string | undefined, kind: IntentKind, target: string, print: string,
+  send: (key: string) => Promise<T>): Promise<T> {
+  if (!userId) throw new Error("not signed in");
+  const { key } = keyForIntent(userId, kind, target, print);
+  try {
+    const result = await send(key);
+    forgetIntent(userId, kind, target, key);
+    return result;
+  } catch (e) {
+    if (!(e instanceof ApiError && e.code === "network_error")) forgetIntent(userId, kind, target, key);
+    throw e;
+  }
 }

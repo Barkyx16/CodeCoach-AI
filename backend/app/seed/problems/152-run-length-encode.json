@@ -1,0 +1,110 @@
+{
+  "order": 152,
+  "slug": "run-length-encode",
+  "title": "Run-Length Encoding",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "two-pointers"
+  ],
+  "summary": "Compress runs of repeated letters as letter + count.",
+  "statement": "Compress `s` by replacing each run of the same letter with the letter followed by the run\nlength, for example `\"aaabcc\"` becomes `\"a3b1c2\"`.",
+  "constraints": [
+    "0 <= s.length <= 10^4",
+    "lower-case English letters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"aaabcc\"",
+      "output": "\"a3b1c2\""
+    },
+    {
+      "input": "s = \"abc\"",
+      "output": "\"a1b1c1\""
+    },
+    {
+      "input": "s = \"\"",
+      "output": "\"\""
+    }
+  ],
+  "signature": {
+    "method": "encode",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String encode(String s) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "Find where each run starts and ends.",
+    "Walk with index `i`; move `j` forward while `s[j] == s[i]`; the run length is `j - i`.",
+    "i = 0\nwhile i < len(s):\n    j = i\n    while j < len(s) and s[j] == s[i]: j += 1\n    out += s[i] + str(j - i)\n    i = j\nreturn out",
+    "Each character is visited once by `j`, so it's O(n). Use a StringBuilder in Java."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "aaabcc"
+      },
+      "expected_output": "a3b1c2",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "abc"
+      },
+      "expected_output": "a1b1c1",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": ""
+      },
+      "expected_output": "",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "zzzzzzzzzzzz"
+      },
+      "expected_output": "z12",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "aaacbbbb"
+      },
+      "expected_output": "a3c1b4",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bbbbc"
+      },
+      "expected_output": "b4c1",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "aabbbbbbbcccbbbbccc"
+      },
+      "expected_output": "a2b7c3b4c3",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "c"
+      },
+      "expected_output": "c1",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

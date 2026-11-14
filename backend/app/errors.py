@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import logging
+import math
 from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import TimeoutError as SQLAlchemyTimeoutError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 logger = logging.getLogger("codecoach.errors")
@@ -35,14 +38,51 @@ class UnauthorizedError(AppError):
     code = "unauthorized"
 
 
+class ForbiddenError(AppError):
+    status_code = 403
+    code = "forbidden"
+
+
 class ConflictError(AppError):
     status_code = 409
     code = "conflict"
 
 
+class GoneError(AppError):
+    """The thing existed but has been turned off for good (e.g. a revoked or expired share link)."""
+
+    status_code = 410
+    code = "gone"
+
+
+class PreconditionRequiredError(AppError):
+    """A write that must say which version it started from didn't (e.g. a notes change without its
+    revision): refused rather than guessed, so nothing newer is overwritten."""
+
+    status_code = 428
+    code = "precondition_required"
+
+
 class RateLimitedError(AppError):
     status_code = 429
     code = "rate_limited"
+
+    @classmethod
+    def wait(
+        cls, message: str, retry_after: float, *, code: str | None = None, **details: Any
+    ) -> RateLimitedError:
+        """A 429 that says how long to wait: whole seconds, at least 1, in the body and in a
+        Retry-After header."""
+        seconds = max(1, math.ceil(retry_after))
+        return cls(message, code=code, details={"retry_after_seconds": seconds, **details})
+
+
+def _retry_after(details: Any) -> str | None:
+    """Whole seconds for a Retry-After header, from a 429's or 503's details (never less than 1)."""
+    value = details.get("retry_after_seconds") if isinstance(details, dict) else None
+    if isinstance(value, int | float) and not isinstance(value, bool):
+        return str(max(1, math.ceil(value)))
+    return None
 
 
 def _envelope(request: Request, status: int, code: str, message: str, details: Any = None):
@@ -51,7 +91,17 @@ def _envelope(request: Request, status: int, code: str, message: str, details: A
     headers = {"X-Request-ID": request_id} if request_id else None
     if status == 401:
         headers = {**(headers or {}), "WWW-Authenticate": "Bearer"}
+    if status in (429, 503) and (wait := _retry_after(details)) is not None:
+        # Standard header (RFC 9110) as well as the body field, so clients and proxies can back off.
+        # A 503 carries one only when the server can justify it (the judge's full queue, below).
+        headers = {**(headers or {}), "Retry-After": wait}
     return JSONResponse(status_code=status, content=body, headers=headers)
+
+
+def error_response(request: Request, exc: AppError) -> JSONResponse:
+    """The standard envelope for an AppError, for routes that must also modify the response
+    (e.g. clear a cookie) instead of just raising."""
+    return _envelope(request, exc.status_code, exc.code, exc.message, exc.details)
 
 
 _HTTP_CODES = {
@@ -65,6 +115,25 @@ _HTTP_CODES = {
     429: "rate_limited",
     503: "unavailable",
 }
+
+
+# SQLSTATE classes that mean "try again": 08 connection exception, 40 transaction rollback
+# (deadlock, serialization), 53 insufficient resources (too many connections), 57 operator
+# intervention (query cancelled, admin shutdown, cannot connect now).
+_RETRYABLE_SQLSTATE = ("08", "40", "53", "57")
+
+
+def _retryable(exc: OperationalError) -> bool:
+    if getattr(exc, "connection_invalidated", False):
+        return True
+    orig = getattr(exc, "orig", None)
+    module = type(orig).__module__ if orig is not None else ""
+    if module.startswith("psycopg"):
+        sqlstate = getattr(orig, "sqlstate", None)
+        return sqlstate is None or sqlstate[:2] in _RETRYABLE_SQLSTATE  # None: refused before any SQL ran
+    if module.startswith("sqlite3"):
+        return "locked" in str(orig).lower()
+    return False
 
 
 def install_error_handlers(app: FastAPI) -> None:
@@ -83,6 +152,40 @@ def install_error_handlers(app: FastAPI) -> None:
     async def _http_error(request: Request, exc: StarletteHTTPException):
         code = _HTTP_CODES.get(exc.status_code, "http_error")
         return _envelope(request, exc.status_code, code, str(exc.detail))
+
+    @app.exception_handler(SQLAlchemyTimeoutError)
+    async def _busy(request: Request, exc: SQLAlchemyTimeoutError):
+        # Every database connection stayed busy for DB_POOL_TIMEOUT_SECONDS: overloaded. Shed the
+        # request with a clear, retryable answer rather than a generic failure. Nothing was done.
+        logger.warning(
+            "database pool exhausted", extra={"request_id": getattr(request.state, "request_id", None)}
+        )
+        response = _envelope(
+            request, 503, "server_busy", "The server is very busy right now. Please try again in a moment."
+        )
+        response.headers["Retry-After"] = "2"
+        return response
+
+    @app.exception_handler(OperationalError)
+    async def _database_unavailable(request: Request, exc: OperationalError):
+        # Retryable database trouble (the server unreachable, restarting or out of connections, a
+        # statement cancelled or timed out, a deadlock): say "try again", not "unexpected error".
+        # Anything else (a missing table, bad SQL) is a bug and goes to the 500 handler below.
+        if not _retryable(exc):
+            raise exc
+        logger.warning(
+            "database unavailable: %s",
+            type(getattr(exc, "orig", exc)).__name__,
+            extra={"request_id": getattr(request.state, "request_id", None)},
+        )
+        response = _envelope(
+            request,
+            503,
+            "database_unavailable",
+            "We can't reach our database right now. Please try again in a moment.",
+        )
+        response.headers["Retry-After"] = "5"
+        return response
 
     @app.exception_handler(Exception)
     async def _unhandled(request: Request, exc: Exception):

@@ -1,0 +1,116 @@
+{
+  "order": 187,
+  "slug": "day-of-year",
+  "title": "Day of the Year",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "math"
+  ],
+  "summary": "Turn a date into its day number within the year.",
+  "statement": "`date` is a valid date `\"YYYY-MM-DD\"` in the Gregorian calendar. Return its day number in the\nyear (January 1 is day 1). Remember leap years: divisible by 4, except centuries not divisible by 400.",
+  "constraints": [
+    "date is between 1900-01-01 and 2100-12-31"
+  ],
+  "examples": [
+    {
+      "input": "date = \"2019-01-09\"",
+      "output": "9"
+    },
+    {
+      "input": "date = \"2019-02-10\"",
+      "output": "41"
+    },
+    {
+      "input": "date = \"2020-12-31\"",
+      "output": "366"
+    }
+  ],
+  "signature": {
+    "method": "dayOfYear",
+    "params": [
+      {
+        "name": "date",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int dayOfYear(String date) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Add up the lengths of the months before this one, then add the day.",
+    "February has 29 days in leap years: `(y % 4 == 0 && y % 100 != 0) || y % 400 == 0`.",
+    "days = [31,28,31,30,31,30,31,31,30,31,30,31]\nif leap(year): days[1] = 29\nreturn sum(days[:month-1]) + day",
+    "Constant work: at most 11 additions. The leap-year rule is the part people get wrong (1900 is not a leap year; 2000 is)."
+  ],
+  "expected_complexity": {
+    "time": "O(1)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "date": "2019-01-09"
+      },
+      "expected_output": 9,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "date": "2019-02-10"
+      },
+      "expected_output": 41,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "date": "2020-12-31"
+      },
+      "expected_output": 366,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "date": "1900-03-01"
+      },
+      "expected_output": 60,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "date": "2000-03-01"
+      },
+      "expected_output": 61,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "date": "2044-05-14"
+      },
+      "expected_output": 135,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "date": "1929-01-12"
+      },
+      "expected_output": 12,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "date": "1956-08-22"
+      },
+      "expected_output": 235,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "date": "2015-05-20"
+      },
+      "expected_output": 140,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

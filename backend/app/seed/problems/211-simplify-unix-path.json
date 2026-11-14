@@ -1,0 +1,117 @@
+{
+  "order": 211,
+  "slug": "simplify-unix-path",
+  "title": "Simplify a File Path",
+  "difficulty": "medium",
+  "topics": [
+    "stacks",
+    "strings"
+  ],
+  "summary": "Resolve . and .. in an absolute Unix path.",
+  "statement": "Simplify the absolute Unix-style path `path`: `.` means the current folder, `..` means the parent\n(staying at `/` if already there), and repeated slashes count as one. Return the canonical path,\nwhich starts with `/`, has single slashes, and no trailing slash (except the root `/`).",
+  "constraints": [
+    "1 <= path.length <= 3000",
+    "path starts with '/'"
+  ],
+  "examples": [
+    {
+      "input": "path = \"/home/\"",
+      "output": "\"/home\""
+    },
+    {
+      "input": "path = \"/../\"",
+      "output": "\"/\""
+    },
+    {
+      "input": "path = \"/home//foo/\"",
+      "output": "\"/home/foo\""
+    }
+  ],
+  "signature": {
+    "method": "simplifyPath",
+    "params": [
+      {
+        "name": "path",
+        "type": "String"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String simplifyPath(String path) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "Split the path on `/` and handle one piece at a time.",
+    "Use a stack of folder names: skip empty pieces and `.`, pop for `..`, push anything else.",
+    "stack = []\nfor part in path.split('/'):\n    if part in ('', '.'): continue\n    if part == '..': stack.pop() if stack else None\n    else: stack.append(part)\nreturn '/' + '/'.join(stack)",
+    "O(n). Names like `...` are ordinary folder names, not special."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "path": "/home/"
+      },
+      "expected_output": "/home",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "path": "/../"
+      },
+      "expected_output": "/",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "path": "/home//foo/"
+      },
+      "expected_output": "/home/foo",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "path": "/a/./b/../../c/"
+      },
+      "expected_output": "/c",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "path": "/.../a/../b"
+      },
+      "expected_output": "/.../b",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "path": "/"
+      },
+      "expected_output": "/",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "path": "/b/.///a/../a/c"
+      },
+      "expected_output": "/b/a/c",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "path": "/a/a/b/../c/"
+      },
+      "expected_output": "/a/a/c",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "path": "////./a"
+      },
+      "expected_output": "/a",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

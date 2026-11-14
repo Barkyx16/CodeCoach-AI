@@ -1,0 +1,120 @@
+import { Link } from "react-router-dom";
+
+import { useQuestions } from "@/api/queries";
+import type { AttemptComparison, Difficulty, InterviewAnswer, QuestionSummary } from "@/api/types";
+import { Button } from "@/components/Button";
+import { timeAgo } from "@/lib/format";
+
+import { pointsChange, revisionTarget } from "./tries";
+
+/** The library lists at most this many questions per request; no level holds more. */
+const LEVEL_PAGE = 100;
+
+/** The next unanswered question at this level, after this one in library order (wrapping round). */
+function nextUnanswered(items: QuestionSummary[], currentId: string): QuestionSummary | null {
+  const at = items.findIndex((x) => x.id === currentId);
+  const ordered = at < 0 ? items : [...items.slice(at + 1), ...items.slice(0, at)];
+  return ordered.find((x) => x.id !== currentId && x.best_score == null) ?? null;
+}
+
+function list(labels: string[]): string {
+  const quoted = labels.map((l) => `“${l}”`);
+  return quoted.length <= 1 ? quoted.join("") : `${quoted.slice(0, -1).join(", ")} and ${quoted.at(-1)}`;
+}
+
+/**
+ * What happened in this try and one way on, from the answer record alone: the points it covered
+ * (structure, not whether the details are right), how it compares with the try before when the two
+ * were graded the same way, and a revision aimed at one missing point or the next question.
+ */
+export function AnswerRecap({ answer, tryNo, previous, previousNo, previousIsParent = false, compared, track, questionId, difficulty, backTo, canRevise, onRevise }: {
+  answer: InterviewAnswer;
+  /** This try compared with `previous` by the server's contract (none while the list is loading). */
+  compared: AttemptComparison | null;
+  tryNo: number | null;
+  /** The try to compare with: the one this revises when it's listed, else the one before it. */
+  previous: InterviewAnswer | null;
+  previousNo: number | null;
+  /** `previous` is the answer this one explicitly revises (a stored link, not a guess). */
+  previousIsParent?: boolean;
+  track: string;
+  questionId: string;
+  difficulty: Difficulty;
+  /** The list this question was opened from (the breadcrumb at the top already leads there). */
+  backTo: string;
+  /** Signed in, online and the question still graded. */
+  canRevise: boolean;
+  onRevise: (target: { label: string; advice: string } | null) => void;
+}) {
+  const level = useQuestions(track, { difficulty, page: 1, page_size: LEVEL_PAGE });
+  const next = level.data ? nextUnanswered(level.data.items, questionId) : null;
+  const insufficient = answer.evidence_level === "insufficient";
+  const target = revisionTarget(answer);
+  const covered = answer.points.filter((p) => p.covered).length;
+  const total = answer.points.length;
+  const reviseFirst = canRevise && (insufficient || target !== null);
+  const which = tryNo ? `try ${tryNo}` : "this try";
+
+  const outcome = insufficient
+    ? `${which[0]!.toUpperCase()}${which.slice(1)} was too short to score yet (${answer.word_count} ${answer.word_count === 1 ? "word" : "words"}).`
+    : answer.evidence_level === "unknown"
+      ? `How ${which} was graded wasn't recorded, so its score isn't counted.`
+      : target
+      ? `${which[0]!.toUpperCase()}${which.slice(1)} covered ${covered} of ${total} points the rubric looks for. To add: “${target.label}”.`
+      : `${which[0]!.toUpperCase()}${which.slice(1)} covered all ${total} points the rubric looks for.`;
+
+  // Where this try came from, only from a stored link. A link doesn't make two scores comparable:
+  // the comparison below keeps its own rules.
+  const origin = !answer.revises_answer_id
+    ? null
+    : previousIsParent && previous
+      ? `${which[0]!.toUpperCase()}${which.slice(1)} revises ${previousNo ? `try ${previousNo}` : `your answer from ${timeAgo(previous.created_at)}`}.`
+      : `${which[0]!.toUpperCase()}${which.slice(1)} revises an earlier answer that isn't in this list.`;
+
+  // How this try compares with the one before it is the server's contract, word for word, the same
+  // as in the progress chart's list; only what changed in the points and scores is added here.
+  let comparison: string | null = null;
+  let changes: string | null = null;
+  if (previous && compared) {
+    const before = (previousNo ? `try ${previousNo}` : `your answer from ${timeAgo(previous.created_at)}`) + (previousIsParent ? ", which it revises" : "");
+    comparison = `Compared with ${before}. ${compared.explanation}`;
+    const parts: string[] = [];
+    if (compared.points_comparable) {
+      const c = pointsChange(previous, answer);
+      parts.push(c.gained.length || c.lost.length
+        ? [c.gained.length ? `now covers ${list(c.gained)}` : null, c.lost.length ? `no longer covers ${list(c.lost)}` : null].filter(Boolean).join("; ")
+        : "covers the same points");
+    }
+    if (compared.scores_comparable) {
+      parts.push(previous.score === answer.score ? `score ${answer.score} both times` : `score ${previous.score}, now ${answer.score}`);
+    }
+    changes = parts.length ? `${parts.join("; ")}.` : null;
+    if (changes) changes = changes.charAt(0).toUpperCase() + changes.slice(1);
+  }
+
+  const revise = (
+    <Button variant={reviseFirst ? "primary" : "secondary"} onClick={() => onRevise(insufficient ? null : target)}>
+      {insufficient ? "Add to this answer" : target ? "Revise this answer" : "Revise anyway"}
+    </Button>
+  );
+  const nextLink = next
+    ? <Link to={`/careers/${track}/questions/${next.id}`} state={{ listFrom: backTo }} className={`btn btn--${reviseFirst ? "secondary" : "primary"} btn--md`}>Next question: {next.title}</Link>
+    : null;
+
+  return (
+    <section className="card stack answer-recap" aria-labelledby="recap-title">
+      <h2 className="section-title" id="recap-title">What next</h2>
+      <p>{outcome}</p>
+      {origin && <p className="subtle">{origin}</p>}
+      {comparison && <p className="subtle answer-recap__comparison">{comparison}{changes ? <> {changes}</> : null}</p>}
+      <div className="row answer-recap__actions">
+        {canRevise && reviseFirst && revise}
+        {nextLink}
+        {canRevise && !reviseFirst && revise}
+      </div>
+      {!next && level.data && level.data.items.length >= level.data.total && (
+        <p className="subtle">Every other {difficulty} question here has an answer; the <Link to={backTo}>question library</Link> has the other levels.</p>
+      )}
+    </section>
+  );
+}

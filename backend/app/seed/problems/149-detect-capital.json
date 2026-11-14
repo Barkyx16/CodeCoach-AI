@@ -1,0 +1,123 @@
+{
+  "order": 149,
+  "slug": "detect-capital",
+  "title": "Correct Use of Capitals",
+  "difficulty": "easy",
+  "topics": [
+    "strings"
+  ],
+  "summary": "Check a word's capitalization.",
+  "statement": "A word uses capitals correctly if it is all upper case (`\"USA\"`), all lower case (`\"leet\"`),\nor only its first letter is upper case (`\"Google\"`). Return whether `word` does.",
+  "constraints": [
+    "1 <= word.length <= 100",
+    "English letters"
+  ],
+  "examples": [
+    {
+      "input": "word = \"USA\"",
+      "output": "true"
+    },
+    {
+      "input": "word = \"FlaG\"",
+      "output": "false"
+    },
+    {
+      "input": "word = \"Google\"",
+      "output": "true"
+    }
+  ],
+  "signature": {
+    "method": "detectCapitalUse",
+    "params": [
+      {
+        "name": "word",
+        "type": "String"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean detectCapitalUse(String word) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "Count the capitals and note whether the first letter is one.",
+    "Valid when the number of capitals is 0, equals the length, or is 1 with the first letter capital.",
+    "caps = count of upper-case letters\nreturn caps == 0 or caps == len(word) or (caps == 1 and word[0].isupper())",
+    "A single count pass decides it: O(n)."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "word": "USA"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "word": "FlaG"
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "word": "Google"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "word": "leetcode"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "word": "g"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "word": "gO"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "word": "BB"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "word": "bbaa"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "word": "ABAB"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "word": "abAaba"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

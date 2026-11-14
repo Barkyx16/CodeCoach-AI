@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Generic, Protocol, TypeVar
 
 from app.models import InterviewPhase
-from app.schemas.ai import CodeReview, HintContent
+from app.schemas.ai import CodeReview, FailureExplanation, HintContent
 from app.schemas.interview import InterviewerReply, InterviewEvaluation
 from app.services.ai.static_analysis import Analysis
 
@@ -44,6 +44,34 @@ class ReviewContext:
 
 
 @dataclass(frozen=True)
+class FailingCase:
+    """One failing PUBLIC test. Hidden tests are never described beyond counts."""
+
+    index: int
+    input: dict | None
+    expected: object | None
+    actual: object | None
+    exception: str | None
+    message: str | None
+    line: int | None
+    missing: bool
+
+
+@dataclass(frozen=True)
+class FailureContext:
+    problem: ProblemContext
+    code: str
+    analysis: Analysis
+    status: str  # a failing SubmissionStatus value
+    compile_output: str | None
+    failing_case: FailingCase | None  # first failing public test, if any
+    public_passed: int
+    public_total: int
+    hidden_passed: int
+    hidden_total: int
+
+
+@dataclass(frozen=True)
 class TranscriptTurn:
     role: str  # "interviewer" | "candidate"
     phase: InterviewPhase
@@ -71,10 +99,19 @@ class ProviderResult(Generic[T]):
     input_tokens: int = 0
     output_tokens: int = 0
     latency_ms: int = 0
+    attempts: int = 1  # requests sent to the provider for this answer (retries included)
 
 
 class ProviderError(Exception):
-    """The provider could not produce a usable answer (network, quota, refusal, bad output)."""
+    """The provider could not produce a usable answer (network, quota, refusal, bad output).
+
+    `reason` is a short, safe code for logs and metrics (no learner text): timeout, connection,
+    rate_limited, http_5xx, http_4xx, refusal, cut_off, invalid_output, invalid_body.
+    `attempts` is how many requests were sent before giving up."""
+
+    def __init__(self, message: str, *, reason: str = "error", attempts: int = 1) -> None:
+        super().__init__(message)
+        self.reason, self.attempts = reason, attempts
 
 
 class CoachProvider(Protocol):
@@ -84,6 +121,8 @@ class CoachProvider(Protocol):
     def hint(self, ctx: HintContext) -> ProviderResult[HintContent]: ...
 
     def review(self, ctx: ReviewContext) -> ProviderResult[CodeReview]: ...
+
+    def explain_failure(self, ctx: FailureContext) -> ProviderResult[FailureExplanation]: ...
 
     def interview_turn(self, ctx: InterviewContext) -> ProviderResult[InterviewerReply]: ...
 

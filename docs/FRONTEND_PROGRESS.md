@@ -76,11 +76,16 @@ built-in coach and gVisor judge; they are not fabricated preview data.
   320/375/768/1024/1280/1440 px layouts and desktop workspace height, also without overflow.
   No uncaught browser errors were observed in the product capture or main page sample.
   These checks supplement keyboard tests; they are not a full accessibility certification.
+  *After merge (session 4):* these scans are now automated in `e2e/a11y.spec.ts` and run in CI.
+  Scanning the mobile header found one issue the sample missed: the menu button showed "Menu"
+  but was named "Open navigation" (WCAG 2.5.3). Fixed; the 404 page also gained an `<h1>`.
 - The initial audit already ran all 232 backend tests successfully. No backend or runner
   source changed in this implementation, so those unrelated suites were not repeated.
 - One pre-existing runner assertion still expects `gvisor` in the reported kernel version;
   this installed `runsc release-20260413.0` reports `4.4.0`. Its serial audit result remains
   15 threat tests passed, one failed; see FRONTEND_AUDIT.md. Isolation was not weakened.
+  *Resolved after merge (session 4):* the test now asserts the sandbox kernel is not the host
+  kernel, which holds for every gVisor release and fails under plain runc (checked both ways).
 
 Intermediate failures were investigated: select controls needed separate labels for exact
 accessible names; the History browser selector needed scoping after adding a second history

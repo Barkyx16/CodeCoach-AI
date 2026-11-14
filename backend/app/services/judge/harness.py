@@ -30,7 +30,7 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-SUPPORTED_TYPES = {"int", "long", "boolean", "char", "String", "int[]", "String[]"}
+SUPPORTED_TYPES = {"int", "long", "boolean", "char", "String", "int[]", "String[]", "int[][]"}
 MAX_MESSAGE_CHARS = 300
 
 
@@ -67,6 +67,8 @@ def java_literal(value: Any, java_type: str) -> str:
             return "new int[] {" + ", ".join(java_literal(v, "int") for v in value) + "}"
         case "String[]":
             return "new String[] {" + ", ".join(java_literal(v, "String") for v in value) + "}"
+        case "int[][]":
+            return "new int[][] {" + ", ".join(java_literal(row, "int[]") for row in value) + "}"
     raise UnsupportedTypeError(f"unsupported Java type: {java_type}")
 
 
@@ -106,10 +108,21 @@ __CALLS__
             String message = t.getMessage() == null ? "" : t.getMessage();
             if (message.length() > __MAX_MESSAGE__) message = message.substring(0, __MAX_MESSAGE__);
             sb.append(", \"ok\": false, \"exception\": ").append(toJson(t.getClass().getSimpleName()))
-              .append(", \"message\": ").append(toJson(message)).append(", \"ms\": ").append(ms);
+              .append(", \"message\": ").append(toJson(message))
+              .append(", \"line\": ").append(learnerLine(t)).append(", \"ms\": ").append(ms);
         }
         out.println(sb.append("}"));
         out.flush();
+    }
+
+    // Line of the innermost frame in the learner's file, so feedback can point at it.
+    private static String learnerLine(Throwable t) {
+        for (StackTraceElement e : t.getStackTrace()) {
+            if ("Solution.java".equals(e.getFileName()) && e.getLineNumber() > 0) {
+                return String.valueOf(e.getLineNumber());
+            }
+        }
+        return "null";
     }
 
     private static String toJson(Object o) {
@@ -120,6 +133,11 @@ __CALLS__
         if (o instanceof int[] arr) {
             StringBuilder sb = new StringBuilder("[");
             for (int i = 0; i < arr.length; i++) sb.append(i == 0 ? "" : ", ").append(arr[i]);
+            return sb.append("]").toString();
+        }
+        if (o instanceof int[][] grid) {
+            StringBuilder sb = new StringBuilder("[");
+            for (int i = 0; i < grid.length; i++) sb.append(i == 0 ? "" : ", ").append(toJson(grid[i]));
             return sb.append("]").toString();
         }
         if (o instanceof String[] arr) {
@@ -151,17 +169,24 @@ __CALLS__
 """
 
 
-def build_driver(signature: dict, test_inputs: list[dict]) -> str:
-    """Return Main.java source that calls Solution.<method> once per test input."""
+def build_driver(signature: dict, test_inputs: list[dict], targets: list[str] | None = None) -> str:
+    """Return Main.java source that calls Solution.<method> once per test input. `targets`, if
+    given, names the class to call for each input instead (test design runs the reference and its
+    faulty versions, as classes in one Solution.java, through the same driver)."""
     method = signature["method"]
     params = signature["params"]
     for t in [p["type"] for p in params] + [signature["returns"]]:
         if t not in SUPPORTED_TYPES:
             raise UnsupportedTypeError(f"unsupported Java type: {t}")
+    if targets is not None and len(targets) != len(test_inputs):
+        raise ValueError("one target class per input")
     calls = []
     for index, case_input in enumerate(test_inputs):
         args = ", ".join(java_literal(case_input[p["name"]], p["type"]) for p in params)
-        calls.append(f"        run(out, prefix, {index}, () -> new Solution().{method}({args}));")
+        cls = targets[index] if targets is not None else "Solution"
+        if not cls.isidentifier():
+            raise ValueError(f"not a Java class name: {cls!r}")
+        calls.append(f"        run(out, prefix, {index}, () -> new {cls}().{method}({args}));")
     return (
         _DRIVER_TEMPLATE.replace("__CALLS__", "\n".join(calls))
         .replace("__MAX_MESSAGE__", str(MAX_MESSAGE_CHARS))
@@ -178,6 +203,7 @@ class CaseOutcome:
     message: str | None = None
     missing: bool = False
     ms: float | None = None
+    line: int | None = None  # learner's source line where an exception was thrown
 
 
 def parse_driver_output(stdout: str, nonce: str = "") -> dict[int, dict]:
@@ -219,7 +245,15 @@ def judge_cases(expected_outputs: list[Any], stdout: str, nonce: str = "") -> li
         else:
             exc = row.get("exception")
             passed = expects_throw and exc == expected["throws"]
+            line = row.get("line")
             outcomes.append(
-                CaseOutcome(index=index, passed=passed, exception=exc, message=row.get("message"), ms=ms)
+                CaseOutcome(
+                    index=index,
+                    passed=passed,
+                    exception=exc,
+                    message=row.get("message"),
+                    ms=ms,
+                    line=line if isinstance(line, int) and not isinstance(line, bool) and line > 0 else None,
+                )
             )
     return outcomes

@@ -1,58 +1,48 @@
 from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
+from app import tracing
 from app.api.deps import get_current_user, get_db, get_settings_dep
 from app.config import Settings
-from app.errors import AppError, NotFoundError
+from app.errors import AppError, ConflictError, NotFoundError
 from app.models import (
     Problem,
     ProgressEvent,
     ProgressEventType,
     Submission,
+    SubmissionMode,
     SubmissionStatus,
-    TestVisibility,
     User,
 )
 from app.schemas.common import Page, error_responses
+from app.schemas.conditions import AttemptConditions
 from app.schemas.submission import (
-    ExecutionResultOut,
-    PublicCaseResult,
     SubmissionCreate,
     SubmissionDetail,
     SubmissionListItem,
 )
+from app.services.conditions import Conditions, problem_version
+from app.services.content import is_problem_retired
+from app.services.judge.backends import ExecutionDisabledError, JudgeUnavailableError
+from app.services.judge.health import MESSAGES
+from app.services.judge.views import public_result_view
 
 router = APIRouter(prefix="/api/v1", tags=["submissions"])
 _ERRORS = error_responses(400, 401, 404, 422, 429, 503)
 
 
-def to_detail(sub: Submission, execution_enabled: bool) -> SubmissionDetail:
-    result = None
-    if sub.result is not None:
-        # public_results are only ever written for PUBLIC tests; re-check defensively so a
-        # runner bug can never leak hidden test data through this endpoint.
-        public_inputs = {
-            i: t
-            for i, t in enumerate(t for t in sub.problem.test_cases if t.visibility == TestVisibility.PUBLIC)
-        }
-        rows = [PublicCaseResult(**r) for r in sub.result.public_results if r.get("index") in public_inputs]
-        public_passed = sum(r.passed for r in rows)
-        result = ExecutionResultOut(
-            runtime_ms=sub.result.runtime_ms,
-            memory_kb=sub.result.memory_kb,
-            passed_count=sub.result.passed_count,
-            total_count=sub.result.total_count,
-            hidden_passed=max(0, sub.result.passed_count - public_passed),
-            hidden_total=max(0, sub.result.total_count - len(public_inputs)),
-            public_results=rows,
-            stderr_excerpt=sub.result.stderr_excerpt,
-        )
+def to_detail(
+    sub: Submission, execution_enabled: bool, conditions: AttemptConditions | None = None
+) -> SubmissionDetail:
+    result = public_result_view(sub)
     return SubmissionDetail(
         id=sub.id,
         problem_slug=sub.problem.slug,
         problem_title=sub.problem.title,
         language=sub.language,
+        mode=sub.mode,
         status=sub.status,
         status_detail=sub.status_detail,
         is_terminal=sub.status.is_terminal,
@@ -61,6 +51,9 @@ def to_detail(sub: Submission, execution_enabled: bool) -> SubmissionDetail:
         updated_at=sub.updated_at,
         result=result,
         source_code=sub.source_code,
+        starting_code=sub.starting_code,
+        lab_version=sub.lab_version,
+        conditions=conditions,
     )
 
 
@@ -88,21 +81,79 @@ def create_submission(
     if problem is None:
         raise NotFoundError(f"Problem '{body.problem_slug}' not found")
     backend = request.app.state.execution_backend
+    if body.client_request_id:
+        existing = _by_request_id(db, user, body.client_request_id)
+        if existing is not None:
+            return _replay(existing, problem, body, backend.enabled)
+    if is_problem_retired(problem.slug):
+        raise ConflictError(
+            "This problem was retired and isn't used for practice any more. Your earlier submissions are kept.",
+            code="content_retired",
+        )
+    if body.mode == SubmissionMode.RUN and not backend.enabled:
+        # A queued run that can never execute is useless; a submission is still worth saving.
+        raise ExecutionDisabledError(
+            "Running code isn't available on this deployment. Submit to save your attempt."
+        )
+    if body.mode == SubmissionMode.RUN:
+        state, reason, _ = request.app.state.execution_health.check(db)
+        if state != "ready" and reason != "queue_delayed":
+            # Run is for quick feedback; queueing it behind an outage helps no one. Submit still queues.
+            raise JudgeUnavailableError(MESSAGES[reason])
     backend.admit(db, user)
     sub = Submission(
         user_id=user.id,
         problem_id=problem.id,
         language=body.language,
         source_code=body.source_code,
+        mode=body.mode,
         status=SubmissionStatus.QUEUED,
+        client_request_id=body.client_request_id,
+        trace_id=tracing.current_trace_id(),
+        # The problem's version now, so the attempt's conditions match help for this version only.
+        content_version=problem_version(db, problem.id),
+        # A debugging exercise: what this attempt started from, kept as it is now.
+        starting_code=problem.starter_code if problem.kind == "debug" else None,
+        lab_version=(problem.lab or {}).get("version") if problem.kind == "debug" else None,
     )
     db.add(sub)
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError:
+        # The same request is being handled concurrently: answer with that submission.
+        db.rollback()
+        existing = _by_request_id(db, user, body.client_request_id or "")
+        if existing is None:
+            raise
+        return _replay(existing, problem, body, backend.enabled)
     backend.enqueue(db, sub)
-    db.add(ProgressEvent(user_id=user.id, problem_id=problem.id, event_type=ProgressEventType.SUBMITTED))
+    if body.mode == SubmissionMode.SUBMIT:
+        db.add(ProgressEvent(user_id=user.id, problem_id=problem.id, event_type=ProgressEventType.SUBMITTED))
     db.commit()
     db.refresh(sub)
     return to_detail(sub, backend.enabled)
+
+
+def _by_request_id(db: Session, user: User, key: str) -> Submission | None:
+    return db.scalar(
+        select(Submission)
+        .options(selectinload(Submission.result))
+        .where(Submission.user_id == user.id, Submission.client_request_id == key)
+    )
+
+
+def _replay(
+    existing: Submission, problem: Problem, body: SubmissionCreate, enabled: bool
+) -> SubmissionDetail:
+    if (
+        existing.problem_id != problem.id
+        or existing.mode != body.mode
+        or existing.source_code != body.source_code
+    ):
+        raise ConflictError(
+            "That request id was already used for a different submission.", code="idempotency_key_reused"
+        )
+    return to_detail(existing, enabled)
 
 
 @router.get(
@@ -125,7 +176,9 @@ def get_submission(
     # 404 (not 403) for other users' submissions: don't confirm that the id exists.
     if sub is None or sub.user_id != user.id:
         raise NotFoundError("Submission not found")
-    return to_detail(sub, request.app.state.execution_backend.enabled)
+    return to_detail(
+        sub, request.app.state.execution_backend.enabled, Conditions(db, user).for_submission(sub)
+    )
 
 
 @router.get(
@@ -139,10 +192,13 @@ def list_my_submissions(
     db: Session = Depends(get_db),
     problem_slug: str | None = Query(default=None, max_length=80),
     status_filter: SubmissionStatus | None = Query(default=None, alias="status"),
+    mode: SubmissionMode = Query(
+        default=SubmissionMode.SUBMIT, description="`submit` (default): attempts. `run`: public-test runs."
+    ),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
 ) -> Page[SubmissionListItem]:
-    stmt = select(Submission).join(Problem).where(Submission.user_id == user.id)
+    stmt = select(Submission).join(Problem).where(Submission.user_id == user.id, Submission.mode == mode)
     if problem_slug:
         stmt = stmt.where(Problem.slug == problem_slug)
     if status_filter:
@@ -154,14 +210,17 @@ def list_my_submissions(
         .offset((page - 1) * page_size)
         .limit(page_size)
     ).all()
+    found = Conditions(db, user).for_submissions(rows)
     items = [
         SubmissionListItem(
             id=s.id,
             problem_slug=s.problem.slug,
             problem_title=s.problem.title,
+            mode=s.mode,
             status=s.status,
             created_at=s.created_at,
             duration_ms=s.result.runtime_ms if s.result else None,
+            conditions=found[s.id],
         )
         for s in rows
     ]

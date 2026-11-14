@@ -1,0 +1,51 @@
+{
+  "slug": "review-second-largest",
+  "version": 1,
+  "title": "Review: Second Largest Value",
+  "problem": "second-largest",
+  "context": "A teammate's single-pass solution to Second Largest Value, sent for review. The problem asks for the second-largest distinct value.",
+  "code": "class Solution {\n    public int secondLargest(int[] nums) {\n        int first = -1;\n        int second = -1;\n        for (int n : nums) {\n            if (n > first) {\n                second = first;\n                first = n;\n            } else if (n > second) {\n                second = n;\n            }\n        }\n        return second;\n    }\n}\n",
+  "findings": [
+    {
+      "id": "duplicate-of-largest",
+      "kind": "defect",
+      "lines": [
+        9,
+        10
+      ],
+      "related_lines": [],
+      "title": "A repeat of the largest value becomes the second largest",
+      "explanation": "A value equal to first isn't greater than first, so it reaches the else-if, where it is greater than second and gets stored. The answer must be distinct from the largest.",
+      "consequence": "Arrays where the largest value repeats get the largest value back. Public tests 2 and 3 show it: [5, 5, 3] gets 5 instead of 3, and [8, 8] gets 8 instead of -1.",
+      "repair": "Only take values below the largest: } else if (n < first && n > second) {",
+      "evidence": [
+        {
+          "public_test": 2,
+          "actual": 5
+        },
+        {
+          "public_test": 3,
+          "actual": 8
+        }
+      ]
+    },
+    {
+      "id": "minus-one-sentinel",
+      "kind": "observation",
+      "lines": [
+        3,
+        4
+      ],
+      "related_lines": [],
+      "title": "-1 means \"none yet\" only because values are never negative",
+      "explanation": "first and second start at -1, which is also the answer for \"no second value\". That's safe because the problem says 0 <= nums[i], but a reader has to know that.",
+      "consequence": "None with these constraints. If negative values were ever allowed, -1 could collide with a real value.",
+      "repair": "Optional: a short comment naming the constraint, or a named constant such as NONE.",
+      "why_preference": "With the stated constraints -1 can't be a real value, and no test fails because of it.",
+      "evidence": []
+    }
+  ],
+  "repaired_code": "class Solution {\n    public int secondLargest(int[] nums) {\n        int first = -1;\n        int second = -1;\n        for (int n : nums) {\n            if (n > first) {\n                second = first;\n                first = n;\n            } else if (n < first && n > second) {\n                second = n;\n            }\n        }\n        return second;\n    }\n}\n",
+  "debrief": "One defect, shown by two public tests: duplicates of the largest value slip into second place. The -1 starting value is safe under the problem's constraints; suggesting a comment is a fair maintainability note, not a bug report.",
+  "review_status": "Written for practice and machine-checked: the code and the repair were run against every test of the problem."
+}

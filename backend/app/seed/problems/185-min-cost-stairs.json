@@ -1,0 +1,143 @@
+{
+  "order": 185,
+  "slug": "min-cost-stairs",
+  "title": "Cheapest Way Up the Stairs",
+  "difficulty": "easy",
+  "topics": [
+    "dynamic-programming"
+  ],
+  "summary": "Climb stairs paying a cost per step; minimize the total.",
+  "statement": "`cost[i]` is the cost of stepping on stair `i`. From a stair you may climb one or two stairs.\nYou may start on stair 0 or 1. Return the minimum cost to reach the top (just past the last stair).",
+  "constraints": [
+    "2 <= cost.length <= 1000",
+    "0 <= cost[i] <= 999"
+  ],
+  "examples": [
+    {
+      "input": "cost = [10, 15, 20]",
+      "output": "15"
+    },
+    {
+      "input": "cost = [1, 100, 1, 1, 1, 100, 1, 1, 100, 1]",
+      "output": "6"
+    },
+    {
+      "input": "cost = [0, 0]",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "minCostClimbingStairs",
+    "params": [
+      {
+        "name": "cost",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int minCostClimbingStairs(int[] cost) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "The cheapest way to reach a stair depends only on the two stairs below it.",
+    "best[i] = cost[i] + min(best[i-1], best[i-2]); the answer is min of the last two.",
+    "a, b = cost[0], cost[1]\nfor i in 2..n-1:\n    a, b = b, cost[i] + min(a, b)\nreturn min(a, b)",
+    "Bottom-up DP with two variables: O(n) time, O(1) space."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "cost": [
+          10,
+          15,
+          20
+        ]
+      },
+      "expected_output": 15,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "cost": [
+          1,
+          100,
+          1,
+          1,
+          1,
+          100,
+          1,
+          1,
+          100,
+          1
+        ]
+      },
+      "expected_output": 6,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "cost": [
+          0,
+          0
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "cost": [
+          14,
+          0,
+          22,
+          14,
+          3,
+          13,
+          14,
+          16,
+          28,
+          3,
+          16,
+          7
+        ]
+      },
+      "expected_output": 53,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "cost": [
+          20,
+          6
+        ]
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "cost": [
+          24,
+          3,
+          16
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "cost": [
+          16,
+          8
+        ]
+      },
+      "expected_output": 8,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

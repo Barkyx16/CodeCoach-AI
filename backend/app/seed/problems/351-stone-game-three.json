@@ -1,0 +1,163 @@
+{
+  "order": 351,
+  "slug": "stone-game-three",
+  "title": "Stone Game: Take 1 to 3",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "math"
+  ],
+  "summary": "Two optimal players take 1-3 stones from the front; who wins?",
+  "statement": "Stones in a row have values `values`. Alice and Bob alternate, Alice first; on each turn a player takes the\nfirst 1, 2 or 3 remaining stones and adds their values to their score. Both play optimally. Return `\"Alice\"`,\n`\"Bob\"` or `\"Tie\"` depending on who ends with more points.",
+  "constraints": [
+    "1 <= values.length <= 5 * 10^4",
+    "-1000 <= values[i] <= 1000"
+  ],
+  "examples": [
+    {
+      "input": "values = [1, 2, 3, 7]",
+      "output": "\"Bob\""
+    },
+    {
+      "input": "values = [1, 2, 3, -9]",
+      "output": "\"Alice\""
+    },
+    {
+      "input": "values = [1, 2, 3, 6]",
+      "output": "\"Tie\""
+    }
+  ],
+  "signature": {
+    "method": "stoneGameIII",
+    "params": [
+      {
+        "name": "values",
+        "type": "int[]"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String stoneGameIII(int[] values) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "Score difference is all that matters, from the point of view of whoever moves next.",
+    "best[i] = max over taking 1-3 stones of (sum taken) - best[i + taken]: your gain minus the opponent's best difference afterwards.",
+    "best = [0]*(n+3)\nfor i from n-1 down to 0:\n    best[i] = max(sum(values[i:i+t]) - best[i+t] for t in 1..3 if i + t <= n)\nreturn 'Alice' if best[0] > 0 else 'Bob' if best[0] < 0 else 'Tie'",
+    "A minimax DP that tracks the score difference: O(n) time. Negative values mean taking fewer stones can be better."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "values": [
+          1,
+          2,
+          3,
+          7
+        ]
+      },
+      "expected_output": "Bob",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "values": [
+          1,
+          2,
+          3,
+          -9
+        ]
+      },
+      "expected_output": "Alice",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "values": [
+          1,
+          2,
+          3,
+          6
+        ]
+      },
+      "expected_output": "Tie",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "values": [
+          -1,
+          -2,
+          -3
+        ]
+      },
+      "expected_output": "Tie",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "values": [
+          -1,
+          3,
+          3,
+          -3,
+          -4,
+          1,
+          4,
+          3,
+          -3
+        ]
+      },
+      "expected_output": "Alice",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "values": [
+          -1
+        ]
+      },
+      "expected_output": "Bob",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "values": [
+          -2,
+          3,
+          2,
+          6,
+          1,
+          0,
+          6,
+          -4
+        ]
+      },
+      "expected_output": "Alice",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "values": [
+          6,
+          -6,
+          -3,
+          6,
+          -5,
+          2,
+          -3,
+          6,
+          -6,
+          -3,
+          -2,
+          -5
+        ]
+      },
+      "expected_output": "Bob",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

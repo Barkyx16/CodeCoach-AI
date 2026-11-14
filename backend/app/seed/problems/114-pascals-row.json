@@ -1,0 +1,238 @@
+{
+  "order": 114,
+  "slug": "pascals-row",
+  "title": "Row of Pascal's Triangle",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "dynamic-programming"
+  ],
+  "summary": "Return row n of Pascal's triangle.",
+  "statement": "Return row `n` (0-indexed) of Pascal's triangle. Row 0 is `[1]`, row 1 is `[1, 1]`, and\neach inner value is the sum of the two values above it.",
+  "constraints": [
+    "0 <= n <= 30"
+  ],
+  "examples": [
+    {
+      "input": "n = 3",
+      "output": "[1, 3, 3, 1]",
+      "explanation": "Rows: [1], [1,1], [1,2,1], [1,3,3,1]."
+    },
+    {
+      "input": "n = 0",
+      "output": "[1]"
+    },
+    {
+      "input": "n = 1",
+      "output": "[1, 1]"
+    }
+  ],
+  "signature": {
+    "method": "pascalRow",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] pascalRow(int n) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "Build each row from the previous one.",
+    "You can update a single array from right to left so you never overwrite a value you still need.",
+    "row = [1]\nrepeat n times:\n    row.append(1)\n    for j from len(row)-2 down to 1: row[j] += row[j-1]\nreturn row",
+    "Updating right-to-left in one array gives O(n^2) time and O(n) space. Row 30's largest value fits in an int (155117520)."
+  ],
+  "expected_complexity": {
+    "time": "O(n^2)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 3
+      },
+      "expected_output": [
+        1,
+        3,
+        3,
+        1
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 0
+      },
+      "expected_output": [
+        1
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 1
+      },
+      "expected_output": [
+        1,
+        1
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 5
+      },
+      "expected_output": [
+        1,
+        5,
+        10,
+        10,
+        5,
+        1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 30
+      },
+      "expected_output": [
+        1,
+        30,
+        435,
+        4060,
+        27405,
+        142506,
+        593775,
+        2035800,
+        5852925,
+        14307150,
+        30045015,
+        54627300,
+        86493225,
+        119759850,
+        145422675,
+        155117520,
+        145422675,
+        119759850,
+        86493225,
+        54627300,
+        30045015,
+        14307150,
+        5852925,
+        2035800,
+        593775,
+        142506,
+        27405,
+        4060,
+        435,
+        30,
+        1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 21
+      },
+      "expected_output": [
+        1,
+        21,
+        210,
+        1330,
+        5985,
+        20349,
+        54264,
+        116280,
+        203490,
+        293930,
+        352716,
+        352716,
+        293930,
+        203490,
+        116280,
+        54264,
+        20349,
+        5985,
+        1330,
+        210,
+        21,
+        1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 12
+      },
+      "expected_output": [
+        1,
+        12,
+        66,
+        220,
+        495,
+        792,
+        924,
+        792,
+        495,
+        220,
+        66,
+        12,
+        1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 7
+      },
+      "expected_output": [
+        1,
+        7,
+        21,
+        35,
+        35,
+        21,
+        7,
+        1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 24
+      },
+      "expected_output": [
+        1,
+        24,
+        276,
+        2024,
+        10626,
+        42504,
+        134596,
+        346104,
+        735471,
+        1307504,
+        1961256,
+        2496144,
+        2704156,
+        2496144,
+        1961256,
+        1307504,
+        735471,
+        346104,
+        134596,
+        42504,
+        10626,
+        2024,
+        276,
+        24,
+        1
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

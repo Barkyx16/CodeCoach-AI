@@ -1,0 +1,4 @@
+{
+  "release": 2,
+  "note": "The release this build is. Raise it in the same change that adds the What's new entries shipping in it (docs/WHATS_NEW.md)."
+}

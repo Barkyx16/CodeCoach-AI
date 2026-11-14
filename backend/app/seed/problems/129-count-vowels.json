@@ -1,0 +1,117 @@
+{
+  "order": 129,
+  "slug": "count-vowels",
+  "title": "Count the Vowels",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "counting"
+  ],
+  "summary": "Count the vowels in a string.",
+  "statement": "Return how many characters of `s` are vowels (`a, e, i, o, u`, in either case).",
+  "constraints": [
+    "0 <= s.length <= 10^4",
+    "s contains printable ASCII characters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"Hello World\"",
+      "output": "3"
+    },
+    {
+      "input": "s = \"rhythm\"",
+      "output": "0"
+    },
+    {
+      "input": "s = \"\"",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "countVowels",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int countVowels(String s) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Look at each character once.",
+    "Lower-case the character (or check both cases) and test membership in \"aeiou\".",
+    "count = 0\nfor c in s:\n    if lower(c) in 'aeiou': count += 1\nreturn count",
+    "One pass, O(n) time and O(1) space. Forgetting upper-case vowels is the usual bug."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "Hello World"
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "rhythm"
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": ""
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "AEIOUaeiou"
+      },
+      "expected_output": 10,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "Queue!"
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "cdAXaooAAcaE eeoZbec "
+      },
+      "expected_output": 12,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "EZoXcZi  ubAAodeZAaoiEoaYiYob"
+      },
+      "expected_output": 17,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "XoEc EaeAEdEY uAE"
+      },
+      "expected_output": 11,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "uYuAecicAiYeiZab d cbXY AAZ Yi"
+      },
+      "expected_output": 13,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

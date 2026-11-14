@@ -1,0 +1,135 @@
+# One realistic production layout on a single server: PostgreSQL on a named volume, a one-shot
+# migrate job as the table owner, and the API as an app role that owns nothing. PREPARED, not a
+# deployment: nothing here buys hosting, opens DNS or sends email. docs/STORAGE.md explains each
+# part and the procedure; docs/EMAIL.md covers the mail settings it needs.
+#
+#   cp deploy/production.env.example deploy/.env.production   # database passwords (compose only)
+#   cp deploy/app.env.example deploy/.env.app                 # the API's settings
+#   docker compose --env-file deploy/.env.production -f deploy/docker-compose.production.yml up -d --build
+#
+# Two files on purpose: .env.production is read by compose itself to fill in the database URLs,
+# and its values reach a container only where this file names them. So the API gets the app
+# role's password and never the owner's or the superuser's. .env.app goes into the migrate and
+# api containers whole. Both are excluded by .gitignore (.env.*).
+#
+# Data lives in the volume `codecoach_pgdata`. Restarting, recreating or upgrading containers keeps
+# it, and so does `docker compose down`. Only `down -v`, or removing the volume by name, deletes it:
+# never do either outside a disposable rehearsal (`down -v` also deletes the backups volume).
+# Take a backup first (docs/BACKUP.md).
+# TLS: put an https reverse proxy (or the host's load balancer) in front of `web` and `api`.
+# Production refuses a non-https APP_BASE_URL.
+
+name: codecoach
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      # The image's bootstrap superuser: used once, by deploy/postgres-init, to make the two roles.
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?set POSTGRES_SUPERUSER_PASSWORD}
+      POSTGRES_DB: codecoach
+      CODECOACH_OWNER_PASSWORD: ${CODECOACH_OWNER_PASSWORD:?set CODECOACH_OWNER_PASSWORD}
+      CODECOACH_APP_PASSWORD: ${CODECOACH_APP_PASSWORD:?set CODECOACH_APP_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    # No `ports:`: only the services on this compose network can reach the database.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d codecoach"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    # Runs to completion on every `up`, then exits; the API waits for it to succeed.
+    build: ../backend
+    restart: "no"
+    env_file: [.env.app]
+    environment:
+      ENVIRONMENT: production
+      AUTO_MIGRATE: "false"
+      DATABASE_URL: postgresql+psycopg://codecoach_owner:${CODECOACH_OWNER_PASSWORD}@db:5432/codecoach
+    command: >-
+      sh -c "alembic upgrade head
+      && python -m app.cli seed
+      && python -m app.cli grant-app-role codecoach_app"
+    healthcheck: {disable: true}
+    depends_on:
+      db: {condition: service_healthy}
+
+  api:
+    build: ../backend
+    restart: unless-stopped
+    env_file: [.env.app]
+    environment:
+      ENVIRONMENT: production
+      AUTO_MIGRATE: "false"
+      # The app role: row access only. The owner's password is not in this container.
+      DATABASE_URL: postgresql+psycopg://codecoach_app:${CODECOACH_APP_PASSWORD}@db:5432/codecoach
+      # Whose X-Forwarded-For to believe. A proxy on the host reaches this container through
+      # Docker's gateway (e.g. 172.18.0.1), never 127.0.0.1, so uvicorn's default would make every
+      # visitor share the gateway's address, and its sign-in rate limit (10 a minute, for everyone).
+      # Private ranges cover the gateway on any Docker network. That's safe here because the port
+      # below is published on 127.0.0.1 only: nothing outside this host can reach the API directly.
+      # Narrow it in .env.production if you like (e.g. FORWARDED_ALLOW_IPS=172.18.0.1).
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
+    ports: ["127.0.0.1:8000:8000"]   # for the reverse proxy on this host
+    healthcheck:
+      # Ready = the database answers and its schema isn't behind this code (/health/ready).
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3).status == 200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+
+  backup:
+    # Not started by `up`. A scheduler on the host runs it nightly (docs/BACKUP.md "Scheduling"):
+    #   docker compose --env-file deploy/.env.production -f deploy/docker-compose.production.yml \
+    #     --profile backup run --rm -T backup
+    # It backs up (encrypted to the public keys in deploy/backup-recipients.txt), prunes to 7 daily,
+    # 4 weekly and 3 monthly, then checks the newest; a failure exits non-zero for the scheduler.
+    # As the table owner, like migrate: a backup must see every row. The API never gets this
+    # password, and can't see the backups volume.
+    profiles: ["backup"]
+    build: {context: ../backend, target: backup}
+    restart: "no"
+    env_file: [.env.app]
+    environment:
+      ENVIRONMENT: production
+      AUTO_MIGRATE: "false"
+      DATABASE_URL: postgresql+psycopg://codecoach_owner:${CODECOACH_OWNER_PASSWORD}@db:5432/codecoach
+    volumes:
+      - backups:/backups
+      - type: bind
+        source: ./backup-recipients.txt   # age PUBLIC keys only; the private key never comes here
+        target: /run/codecoach/recipients.txt
+        read_only: true
+        bind: {create_host_path: false}
+    command: >-
+      sh -c "python -m app.cli backup-database --out /backups --recipients /run/codecoach/recipients.txt
+      && python -m app.cli prune-backups --dir /backups --apply
+      && python -m app.cli check-backups --dir /backups"
+    healthcheck: {disable: true}
+    depends_on:
+      db: {condition: service_healthy}
+
+  web:
+    build:
+      context: ../frontend
+      args:
+        VITE_API_BASE_URL: ${PUBLIC_API_URL:?set PUBLIC_API_URL (the https address of the API)}
+    restart: unless-stopped
+    ports: ["127.0.0.1:3000:8080"]
+    depends_on: [api]
+
+volumes:
+  pgdata:
+    name: codecoach_pgdata   # a fixed name, so another project's `down -v` can't match it by accident
+  backups:
+    # On the same disk as the database: it guards against a bad change or a dropped table, NOT a
+    # lost disk. Copy each new backup off the host (docs/BACKUP.md "Off-site copies").
+    name: codecoach_backups

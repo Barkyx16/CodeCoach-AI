@@ -1,0 +1,172 @@
+{
+  "order": 166,
+  "slug": "mountain-peak-index",
+  "title": "Peak of a Mountain Array",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "binary-search"
+  ],
+  "summary": "Find the top of an array that rises then falls.",
+  "statement": "`nums` strictly increases to a single peak and then strictly decreases. Return the index of the\npeak, in O(log n).",
+  "constraints": [
+    "3 <= nums.length <= 10^5",
+    "nums is a mountain array"
+  ],
+  "examples": [
+    {
+      "input": "nums = [0, 1, 0]",
+      "output": "1"
+    },
+    {
+      "input": "nums = [0, 2, 1, 0]",
+      "output": "1"
+    },
+    {
+      "input": "nums = [0, 10, 5, 2]",
+      "output": "1"
+    }
+  ],
+  "signature": {
+    "method": "peakIndex",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int peakIndex(int[] nums) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Compare a middle value with its right neighbor. What does that tell you?",
+    "If `nums[mid] < nums[mid + 1]` you're still climbing, so the peak is to the right; otherwise it's at `mid` or left.",
+    "lo, hi = 0, n-1\nwhile lo < hi:\n    mid = (lo + hi) // 2\n    if nums[mid] < nums[mid+1]: lo = mid + 1\n    else: hi = mid\nreturn lo",
+    "Each comparison discards half the array: O(log n)."
+  ],
+  "expected_complexity": {
+    "time": "O(log n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          0,
+          1,
+          0
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          2,
+          1,
+          0
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          10,
+          5,
+          2
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          3
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          4,
+          7,
+          10,
+          23,
+          34,
+          36,
+          42,
+          46,
+          -13,
+          -18,
+          -21,
+          -22,
+          -26
+        ]
+      },
+      "expected_output": 7,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          8,
+          9,
+          20,
+          22,
+          33,
+          43,
+          -1
+        ]
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          4,
+          5,
+          9,
+          29,
+          33,
+          -3,
+          -19,
+          -22,
+          -28,
+          -33,
+          -34,
+          -36,
+          -50
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          16,
+          36,
+          42,
+          -39
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

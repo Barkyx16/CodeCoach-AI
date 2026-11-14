@@ -1,0 +1,117 @@
+{
+  "order": 119,
+  "slug": "happy-number",
+  "title": "Happy Number",
+  "difficulty": "easy",
+  "topics": [
+    "math",
+    "hash-sets"
+  ],
+  "summary": "Repeatedly sum squared digits; does it reach 1?",
+  "statement": "Start with a positive integer `n` and repeatedly replace it with the sum of the squares of\nits digits. If this process reaches `1`, the number is **happy**. If it loops forever without\nreaching `1`, it isn't. Return whether `n` is happy.",
+  "constraints": [
+    "1 <= n <= 2^31 - 1"
+  ],
+  "examples": [
+    {
+      "input": "n = 19",
+      "output": "true",
+      "explanation": "1+81=82, 64+4=68, 36+64=100, 1+0+0=1."
+    },
+    {
+      "input": "n = 2",
+      "output": "false"
+    },
+    {
+      "input": "n = 1",
+      "output": "true"
+    }
+  ],
+  "signature": {
+    "method": "isHappy",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean isHappy(int n) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "If it never reaches 1, the sequence must start repeating. How can you notice a repeat?",
+    "Remember every number you've seen (a set), or use slow/fast pointers on the sequence.",
+    "seen = set()\nwhile n != 1 and n not in seen:\n    seen.add(n)\n    n = sum of squares of n's digits\nreturn n == 1",
+    "Values quickly drop below a few hundred, so the loop is short. A set detects the cycle; Floyd's slow/fast pointers do it in O(1) space."
+  ],
+  "expected_complexity": {
+    "time": "O(log n)",
+    "space": "O(log n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 19
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 2
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 1
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 7
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 2147483647
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 924377
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 977113
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 474868
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 936624
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

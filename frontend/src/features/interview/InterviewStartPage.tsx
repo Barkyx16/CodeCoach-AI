@@ -5,13 +5,19 @@ import { ApiError } from "@/api/client";
 import { useInterviews, useProblems, useStartInterview } from "@/api/queries";
 import type { InterviewSummary } from "@/api/types";
 import { Badge, DifficultyBadge } from "@/components/Badge";
+import { ActionError } from "@/components/ActionError";
+import { useRetryWait } from "@/hooks/useCountdown";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
 import { timeAgo } from "@/lib/format";
 import { Icon } from "@/components/Icon";
+import { BrowseNote } from "@/features/careers/BrowseNote";
 
 import { DIMENSION_LABELS, OVERALL_LABELS, PHASES } from "./phases";
+import { ResumeCard } from "./ResumeCard";
+import { conflictInterview } from "./resumeContext";
+import { useActiveInterview } from "./useActiveInterview";
 
 const DURATIONS = [15, 30, 45];
 
@@ -21,14 +27,20 @@ export function InterviewStartPage() {
   const start = useStartInterview();
   const [slug, setSlug] = useState("");
   const [minutes, setMinutes] = useState(30);
-  const activeId = start.error instanceof ApiError && start.error.code === "interview_in_progress"
-    ? (start.error.details as { interview_id?: string } | null)?.interview_id ?? null
+  const running = useActiveInterview();
+  // A Start refused because one is already live (another tab or device): that one, with context.
+  const conflict = start.error instanceof ApiError && start.error.code === "interview_in_progress"
+    ? conflictInterview(start.error.details)
     : null;
+  const activeId = conflict?.id ?? running?.id ?? null;
+  // Busy or out of AI budget: only Start waits, for as long as the server said.
+  const startWait = useRetryWait(start.error);
+  const activeSummary = conflict ? conflict.summary : running;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     try {
-      const iv = await start.mutateAsync({ problem_slug: slug || null, duration_minutes: minutes });
+      const iv = await start.mutateAsync({ kind: "coding", purpose: "practice", problem_slug: slug || null, duration_minutes: minutes });
       navigate(`/interviews/${iv.id}`);
     } catch {
       /* rendered below */
@@ -42,6 +54,8 @@ export function InterviewStartPage() {
           <p className="eyebrow">THINK CLEARLY. EXPLAIN CONFIDENTLY.</p>
           <h1 className="page__title">Mock interview</h1>
           <p className="page__subtitle">A timed, realistic coding interview with an AI interviewer, then rubric feedback.</p>
+          <BrowseNote what="coding interviews" back="/interviews" backWhat="mock interviews" scope="A round you start here is saved to your history as a coding interview." />
+          <p className="subtle">Or practise decisions in a <Link to="/scenarios">branching scenario</Link>.</p>
         </div>
       </div>
       <div className="interview-overview"><span><Icon name="clock" size={18} />15–45 minutes</span><span><Icon name="code" size={18} />Java workspace</span><span><Icon name="chart" size={18} />Feedback on {Object.keys(DIMENSION_LABELS).length} skills</span></div>
@@ -70,14 +84,9 @@ export function InterviewStartPage() {
                 ))}
               </div>
             </fieldset>
-            {activeId ? (
-              <div className="banner banner--warning" role="alert">
-                You already have an interview in progress. <Link to={`/interviews/${activeId}`}>Resume it</Link>
-              </div>
-            ) : (
-              <InlineError error={start.error} />
-            )}
-            <Button type="submit" variant="primary" loading={start.isPending}>Start interview <Icon name="arrow" size={16} /></Button>
+            {activeId ? <ResumeCard id={activeId} summary={activeSummary} alert={Boolean(conflict)} />
+              : !start.isPending && <ActionError error={start.error} action="Starting the interview" repeatSafe />}
+            <Button type="submit" variant="primary" loading={start.isPending} disabled={Boolean(activeId) || startWait > 0}>Start interview <Icon name="arrow" size={16} /></Button>
           </form>
         </Card>
 
@@ -88,6 +97,13 @@ export function InterviewStartPage() {
           </ol>
           <p className="subtle">The interviewer never writes code for you. Each reply uses one request from your daily AI budget;
             the final feedback is always free.</p>
+        </Card>
+
+        <Card className="stack">
+          <h2 className="section-title"><Icon name="book" size={17} />Question round</h2>
+          <p className="subtle">Practice the rest of the interview: five questions on why this job, what you know, a scenario,
+            a time you did it, and leading others. Scored as you go.</p>
+          <Link to="/interviews/questions" className="btn btn--secondary btn--md">Start a question round <Icon name="arrow" size={15} /></Link>
         </Card>
       </div>
 
@@ -112,7 +128,7 @@ function PastInterviews() {
       {q.isPending ? <LoadingState label="Loading interviews…" /> : q.isError ? <ErrorState error={q.error} onRetry={() => void q.refetch()} />
         : q.data.total === 0 ? <EmptyState title="Your next interview starts with practice">Pick a problem and a time limit above. Your sessions and feedback will be saved here.</EmptyState>
           : <><ul className="interview-list">{q.data.items.map((iv) => <InterviewRow key={iv.id} iv={iv} />)}</ul>
-            {q.data.total > 5 && <Link to="/history?tab=interviews">See all interviews</Link>}</>}
+            {q.data.total > 5 && <Link to="/history?type=interview">See all interviews</Link>}</>}
     </section>
   );
 }
@@ -123,11 +139,12 @@ export function InterviewRow({ iv }: { iv: InterviewSummary }) {
     <li>
       <Link to={`/interviews/${iv.id}`} className="interview-row">
         <span className="row">
-          <strong>{iv.problem.title}</strong>
-          <DifficultyBadge difficulty={iv.problem.difficulty} />
+          <strong>{iv.problem ? iv.problem.title : `${iv.career_title ?? "Career"} question round`}</strong>
+          {iv.problem && <DifficultyBadge difficulty={iv.problem.difficulty} />}
         </span>
         <span className="row">
-          {iv.status === "in_progress" ? <Badge tone="info">In progress</Badge> : overall && <Badge tone={overall.tone}>{overall.label}</Badge>}
+          {iv.status === "in_progress" ? <Badge tone="info">In progress</Badge> : overall ? <Badge tone={overall.tone}>{overall.label}</Badge>
+            : iv.status === "completed" && <Badge>Completed</Badge>}
           {iv.average_score !== null && iv.average_score !== undefined && <span className="subtle">{iv.average_score.toFixed(1)}/4</span>}
           {iv.status === "expired" && <span className="subtle">time ran out</span>}
           {iv.status === "abandoned" && <span className="subtle">ended early</span>}

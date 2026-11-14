@@ -1,0 +1,211 @@
+{
+  "order": 159,
+  "slug": "stock-profit-once",
+  "title": "Best Time to Buy and Sell Once",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "greedy"
+  ],
+  "summary": "Buy one day, sell a later day, maximize the profit.",
+  "statement": "`prices[i]` is a stock's price on day `i`. Choose one day to buy and a later day to sell.\nReturn the largest possible profit, or `0` if no profit is possible.",
+  "constraints": [
+    "1 <= prices.length <= 10^5",
+    "0 <= prices[i] <= 10^4"
+  ],
+  "examples": [
+    {
+      "input": "prices = [7, 1, 5, 3, 6, 4]",
+      "output": "5",
+      "explanation": "Buy at 1, sell at 6."
+    },
+    {
+      "input": "prices = [7, 6, 4, 3, 1]",
+      "output": "0"
+    },
+    {
+      "input": "prices = [5]",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "maxProfit",
+    "params": [
+      {
+        "name": "prices",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int maxProfit(int[] prices) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "For each selling day, the best buy is the cheapest price seen before it.",
+    "Track the minimum price so far and the best profit so far in one pass.",
+    "low = infinity\nbest = 0\nfor p in prices:\n    low = min(low, p)\n    best = max(best, p - low)\nreturn best",
+    "One pass, O(n) time and O(1) space, versus O(n^2) for trying every pair of days."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "prices": [
+          7,
+          1,
+          5,
+          3,
+          6,
+          4
+        ]
+      },
+      "expected_output": 5,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "prices": [
+          7,
+          6,
+          4,
+          3,
+          1
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "prices": [
+          5
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "prices": [
+          2,
+          4,
+          1,
+          7
+        ]
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "prices": [
+          18,
+          5,
+          47,
+          44,
+          25,
+          20,
+          26,
+          39,
+          28,
+          23,
+          9,
+          15,
+          41,
+          22,
+          9,
+          4,
+          23,
+          20,
+          3,
+          21,
+          45,
+          22,
+          18,
+          36,
+          4
+        ]
+      },
+      "expected_output": 42,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "prices": [
+          39,
+          19,
+          45,
+          21,
+          49,
+          20,
+          37,
+          15,
+          7,
+          19,
+          15,
+          14,
+          34,
+          44,
+          48
+        ]
+      },
+      "expected_output": 41,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "prices": [
+          49,
+          45,
+          4,
+          17,
+          0,
+          44,
+          16,
+          27,
+          15,
+          46,
+          37,
+          48,
+          6,
+          24,
+          11,
+          43,
+          48,
+          15,
+          45,
+          45
+        ]
+      },
+      "expected_output": 48,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "prices": [
+          44,
+          39,
+          26,
+          25,
+          45,
+          25,
+          29,
+          14,
+          31,
+          46,
+          18,
+          27,
+          5,
+          13,
+          2,
+          48
+        ]
+      },
+      "expected_output": 46,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

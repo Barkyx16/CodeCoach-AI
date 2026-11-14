@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import { useCapabilities, useCareers } from "@/api/queries";
 import { useAuth } from "@/auth/useAuth";
+import { DEFAULT_TRACK } from "@/features/careers/practiceTrack";
 import { Button } from "@/components/Button";
 import { InlineError } from "@/components/States";
 import { BrandMark } from "@/components/BrandMark";
@@ -15,8 +17,11 @@ const STEPS = [
 ];
 
 export function LandingPage() {
-  const { isAuthenticated, continueAsGuest } = useAuth();
+  const { isAuthenticated, continueAsGuest, user } = useAuth();
+  const careers = useCareers();
+  const codingLearner = careers.data?.find((c) => c.slug === user?.career_track)?.has_coding ?? (user?.career_track ?? DEFAULT_TRACK) === DEFAULT_TRACK;
   const navigate = useNavigate();
+  const demoMode = useCapabilities().data?.demo_mode === true;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
 
@@ -24,8 +29,16 @@ export function LandingPage() {
     setBusy(true);
     setError(null);
     try {
-      if (!isAuthenticated) await continueAsGuest();
-      navigate("/problems/two-sum");
+      if (demoMode && !isAuthenticated) {
+        navigate("/demo"); // the demo server's own entry: pick a sample learner's career
+      } else if (isAuthenticated) {
+        // A coding learner opens a problem; anyone else, their own career's questions.
+        navigate(codingLearner ? "/problems/two-sum" : "/problems?view=questions");
+      } else {
+        // A deliberate demo: a guest session, then the optional welcome to choose how to start.
+        await continueAsGuest();
+        navigate("/welcome");
+      }
     } catch (e) {
       setError(e);
     } finally {
@@ -35,6 +48,12 @@ export function LandingPage() {
 
   return (
     <div className="landing">
+      {demoMode && (
+        <p className="banner banner--info landing__demo" role="note">
+          <strong>This is a demo with fictional data.</strong> Nothing here is anyone's real practice, and no email is sent.{" "}
+          <Link to="/demo">Start the guided demo</Link>
+        </p>
+      )}
       <section className="landing__hero">
         <p className="landing__eyebrow"><span />YOUR NEXT CHAPTER STARTS WITH PRACTICE</p>
         <h1 className="landing__title">Practice like it's{" "}<br />the <span>real interview.</span></h1>
@@ -44,7 +63,7 @@ export function LandingPage() {
         </p>
         <div className="row landing__cta">
           <Button variant="primary" onClick={tryDemo} loading={busy}>
-            {isAuthenticated ? "Open a problem" : "Try it now, no sign-up"}
+            {!isAuthenticated ? "Try it now, no sign-up" : codingLearner ? "Open a problem" : "Practise your questions"}
           </Button>
           <Link to="/problems" className="btn btn--secondary btn--md">Browse problems</Link>
         </div>

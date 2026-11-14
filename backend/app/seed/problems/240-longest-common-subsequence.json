@@ -1,0 +1,122 @@
+{
+  "order": 240,
+  "slug": "longest-common-subsequence",
+  "title": "Longest Common Subsequence",
+  "difficulty": "medium",
+  "topics": [
+    "dynamic-programming",
+    "strings"
+  ],
+  "summary": "Length of the longest sequence both strings contain in order.",
+  "statement": "Return the length of the longest subsequence common to `a` and `b` (characters in the same order,\nnot necessarily contiguous).",
+  "constraints": [
+    "1 <= a.length, b.length <= 1000",
+    "lower-case letters"
+  ],
+  "examples": [
+    {
+      "input": "a = \"abcde\", b = \"ace\"",
+      "output": "3"
+    },
+    {
+      "input": "a = \"abc\", b = \"abc\"",
+      "output": "3"
+    },
+    {
+      "input": "a = \"abc\", b = \"def\"",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "longestCommonSubsequence",
+    "params": [
+      {
+        "name": "a",
+        "type": "String"
+      },
+      {
+        "name": "b",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int longestCommonSubsequence(String a, String b) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Compare the last characters of the two prefixes.",
+    "dp[i][j] = dp[i-1][j-1] + 1 if `a[i-1] == b[j-1]`, else max(dp[i-1][j], dp[i][j-1]).",
+    "dp = (n+1) x (m+1) zeros\nfor i in 1..n:\n    for j in 1..m:\n        dp[i][j] = dp[i-1][j-1] + 1 if a[i-1] == b[j-1] else max(dp[i-1][j], dp[i][j-1])\nreturn dp[n][m]",
+    "Classic 2-D DP: O(n m) time. Keeping only two rows makes it O(m) space."
+  ],
+  "expected_complexity": {
+    "time": "O(n m)",
+    "space": "O(n m)"
+  },
+  "tests": [
+    {
+      "input": {
+        "a": "abcde",
+        "b": "ace"
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": "abc",
+        "b": "abc"
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": "abc",
+        "b": "def"
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": "bsbininm",
+        "b": "jmjkbkjkv"
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": "cdbdbda",
+        "b": "abdba"
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": "acbb",
+        "b": "acbdbb"
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": "cbcbadcdab",
+        "b": "acabadcb"
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": "dacdaabac",
+        "b": "dc"
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

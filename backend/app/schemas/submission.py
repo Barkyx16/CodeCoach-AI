@@ -2,14 +2,28 @@ from datetime import datetime
 
 from pydantic import Field, field_validator
 
-from app.models import SubmissionStatus
-from app.schemas.common import APIModel
+from app.models import SubmissionMode, SubmissionStatus
+from app.schemas.common import APIModel, OptionalKey
+from app.schemas.conditions import AttemptConditions
 
 
 class SubmissionCreate(APIModel):
     problem_slug: str = Field(min_length=1, max_length=80)
     language: str = Field(default="java", pattern="^java$")
     source_code: str = Field(min_length=1)
+    mode: SubmissionMode = Field(
+        default=SubmissionMode.SUBMIT,
+        description="`submit`: judge against all tests and record the attempt. "
+        "`run`: public tests only, for quick feedback; never counts as an attempt.",
+    )
+    client_request_id: OptionalKey = Field(
+        default=None,
+        min_length=8,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9_-]+$",
+        description="Idempotency key chosen by the client: resending the same request (e.g. after a network "
+        "error) returns the original submission instead of judging twice",
+    )
 
     @field_validator("source_code")
     @classmethod
@@ -30,6 +44,7 @@ class PublicCaseResult(APIModel):
     exception: str | None = Field(default=None, description="Simple class name, e.g. ArithmeticException")
     exception_message: str | None = None
     missing: bool = Field(default=False, description="The test never reported (crash or time limit first)")
+    line: int | None = Field(default=None, description="Line in your code where the exception was thrown")
     runtime_ms: float | None = None
 
 
@@ -49,6 +64,7 @@ class SubmissionOut(APIModel):
     problem_slug: str
     problem_title: str
     language: str
+    mode: SubmissionMode
     status: SubmissionStatus
     status_detail: str | None
     is_terminal: bool
@@ -56,16 +72,29 @@ class SubmissionOut(APIModel):
     created_at: datetime
     updated_at: datetime
     result: ExecutionResultOut | None = None
+    conditions: AttemptConditions | None = Field(
+        default=None,
+        description="The in-app help shown for this problem and version before this attempt "
+        "(docs/ATTEMPT_CONDITIONS.md). It changes no verdict.",
+    )
 
 
 class SubmissionDetail(SubmissionOut):
     source_code: str
+    starting_code: str | None = Field(
+        default=None, description="A debugging exercise's faulty code as it was when this attempt was made"
+    )
+    lab_version: int | None = Field(
+        default=None, description="The debugging exercise's version for this attempt"
+    )
 
 
 class SubmissionListItem(APIModel):
     id: str
     problem_slug: str
     problem_title: str
+    mode: SubmissionMode
     status: SubmissionStatus
     created_at: datetime
     duration_ms: int | None = Field(default=None, description="Judge runtime, once execution is enabled")
+    conditions: AttemptConditions | None = None

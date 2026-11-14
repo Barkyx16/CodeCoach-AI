@@ -1,0 +1,132 @@
+{
+  "id": "cmp-relevance",
+  "version": 1,
+  "title": "Answering the question, or the one next to it?",
+  "teaching_goal": "Notice when an answer spends its time on context instead of the question asked.",
+  "question": "How do you decide what to work on first when several things are urgent?",
+  "rubric": [
+    {
+      "id": "relevance",
+      "label": "Answers the question that was asked"
+    },
+    {
+      "id": "method",
+      "label": "A way of deciding someone else could follow"
+    },
+    {
+      "id": "example",
+      "label": "An example that shows it in use"
+    }
+  ],
+  "kind": "clear",
+  "samples": [
+    {
+      "id": "A",
+      "label": "Answer A",
+      "sentences": [
+        {
+          "id": "a1",
+          "text": "I check three things: what's blocking other people, what has a fixed deadline, and what's quick to finish."
+        },
+        {
+          "id": "a2",
+          "text": "Anything blocking others goes first, because waiting multiplies the cost."
+        },
+        {
+          "id": "a3",
+          "text": "Last month, at a fictional clinic's front desk, two booking errors and a supplier call came in at once."
+        },
+        {
+          "id": "a4",
+          "text": "I fixed the error stopping a doctor's list first, called the supplier before their 4pm cutoff, and did the second booking after."
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "label": "Answer B",
+      "sentences": [
+        {
+          "id": "b1",
+          "text": "I've always been someone who thrives under pressure, ever since my first job in a busy café."
+        },
+        {
+          "id": "b2",
+          "text": "That café taught me a lot about people, teamwork and staying calm."
+        },
+        {
+          "id": "b3",
+          "text": "We had a manager who believed in everyone pitching in, which I still think is the right attitude."
+        },
+        {
+          "id": "b4",
+          "text": "So when things are urgent, I just stay calm and get on with it."
+        }
+      ]
+    }
+  ],
+  "explanation": {
+    "summary": "Answer A answers the question with a method and an example of it in use. Answer B is pleasant background, but only its last sentence touches the question, and it doesn't say how anything gets decided.",
+    "samples": {
+      "A": {
+        "strengths": [
+          {
+            "sentences": [
+              "a1",
+              "a2"
+            ],
+            "criterion": "method",
+            "why": "A rule someone else could follow, with a reason."
+          },
+          {
+            "sentences": [
+              "a3",
+              "a4"
+            ],
+            "criterion": "example",
+            "why": "An example that applies the rule, in order."
+          }
+        ],
+        "gaps": [],
+        "uncertain": "Whether three checks are always enough isn't discussed; an interviewer might ask about a tie."
+      },
+      "B": {
+        "strengths": [
+          {
+            "sentences": [
+              "b4"
+            ],
+            "criterion": "relevance",
+            "why": "Staying calm is relevant, and it's the one sentence that addresses the question."
+          }
+        ],
+        "gaps": [
+          {
+            "sentences": [
+              "b1",
+              "b2",
+              "b3"
+            ],
+            "criterion": "relevance",
+            "why": "Most of the answer is background that doesn't answer how you decide."
+          },
+          {
+            "sentences": [
+              "b4"
+            ],
+            "criterion": "method",
+            "why": "'Get on with it' isn't a way of deciding what comes first."
+          }
+        ],
+        "uncertain": "The speaker may well prioritise well; the answer just doesn't show how."
+      }
+    },
+    "preferred": "A",
+    "alternatives": "A brief bit of context is fine when it explains the method. The test is whether each part helps answer the question."
+  },
+  "next_step": {
+    "to": "/problems?view=questions",
+    "label": "Answer a question for your career"
+  },
+  "review_status": "Written for practice with fictional details; checked for consistency, not reviewed by an outside interviewer."
+}

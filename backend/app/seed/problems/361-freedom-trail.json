@@ -1,0 +1,114 @@
+{
+  "order": 361,
+  "slug": "freedom-trail",
+  "title": "Spell a Word on a Rotating Dial",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "strings"
+  ],
+  "summary": "Fewest rotations and presses to spell a key on a ring of letters.",
+  "statement": "`ring` is written around a dial; the letter at index 0 starts at the 12 o'clock position. To spell `key`, for each\ncharacter rotate the ring one step at a time (either direction) until that character is at 12 o'clock, then\npress the button (one step). Return the minimum total steps. Every character of `key` is in `ring`.",
+  "constraints": [
+    "1 <= ring.length, key.length <= 100",
+    "lower-case letters"
+  ],
+  "examples": [
+    {
+      "input": "ring = \"godding\", key = \"gd\"",
+      "output": "4"
+    },
+    {
+      "input": "ring = \"godding\", key = \"godding\"",
+      "output": "13"
+    },
+    {
+      "input": "ring = \"a\", key = \"aaa\"",
+      "output": "3"
+    }
+  ],
+  "signature": {
+    "method": "findRotateSteps",
+    "params": [
+      {
+        "name": "ring",
+        "type": "String"
+      },
+      {
+        "name": "key",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int findRotateSteps(String ring, String key) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "After spelling a character, where you are on the ring matters for the next one.",
+    "dp over (position in key, current ring index): try every ring index holding the next character, paying the circular distance.",
+    "dp = {0: 0}   # ring index -> cost\nfor c in key:\n    new = {}\n    for j where ring[j] == c:\n        new[j] = min(cost + circular distance(i, j) for i, cost in dp) + 1\n    dp = new\nreturn min(dp.values())",
+    "O(len(key) \u00d7 len(ring)^2) in the worst case. Circular distance is `min(|i - j|, n - |i - j|)`."
+  ],
+  "expected_complexity": {
+    "time": "O(k \u00b7 r^2)",
+    "space": "O(r)"
+  },
+  "tests": [
+    {
+      "input": {
+        "ring": "godding",
+        "key": "gd"
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "ring": "godding",
+        "key": "godding"
+      },
+      "expected_output": 13,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "ring": "a",
+        "key": "aaa"
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "ring": "dddbcbba",
+        "key": "cc"
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "ring": "bcd",
+        "key": "dc"
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "ring": "a",
+        "key": "aaaaa"
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "ring": "abc",
+        "key": "cbbc"
+      },
+      "expected_output": 7,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

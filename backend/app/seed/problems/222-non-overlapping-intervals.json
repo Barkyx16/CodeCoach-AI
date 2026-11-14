@@ -1,0 +1,190 @@
+{
+  "order": 222,
+  "slug": "non-overlapping-intervals",
+  "title": "Fewest Removals for No Overlap",
+  "difficulty": "medium",
+  "topics": [
+    "intervals",
+    "greedy",
+    "sorting"
+  ],
+  "summary": "Remove the fewest intervals so the rest don't overlap.",
+  "statement": "Return the minimum number of intervals to remove so the remaining ones don't overlap. Intervals that\nonly touch (`[1,2]` and `[2,3]`) don't overlap.",
+  "constraints": [
+    "1 <= intervals.length <= 10^5"
+  ],
+  "examples": [
+    {
+      "input": "intervals = [[1, 2], [2, 3], [3, 4], [1, 3]]",
+      "output": "1"
+    },
+    {
+      "input": "intervals = [[1, 2], [1, 2], [1, 2]]",
+      "output": "2"
+    },
+    {
+      "input": "intervals = [[1, 2], [2, 3]]",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "eraseOverlapIntervals",
+    "params": [
+      {
+        "name": "intervals",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int eraseOverlapIntervals(int[][] intervals) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Flip it: keep as many non-overlapping intervals as possible.",
+    "Sort by end time and greedily keep each interval that starts at or after the last kept end.",
+    "sort by end\nkept, end = 0, -infinity\nfor a, b in intervals:\n    if a >= end: kept += 1; end = b\nreturn n - kept",
+    "Choosing the interval that ends earliest leaves the most room for the rest (the classic activity-selection argument). O(n log n) for the sort."
+  ],
+  "expected_complexity": {
+    "time": "O(n log n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "intervals": [
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            1,
+            3
+          ]
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "intervals": [
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "intervals": [
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "intervals": [
+          [
+            1,
+            1
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            12,
+            18
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            0,
+            5
+          ]
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "intervals": [
+          [
+            6,
+            6
+          ],
+          [
+            0,
+            1
+          ]
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "intervals": [
+          [
+            1,
+            4
+          ]
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "intervals": [
+          [
+            8,
+            9
+          ],
+          [
+            6,
+            12
+          ],
+          [
+            4,
+            7
+          ]
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

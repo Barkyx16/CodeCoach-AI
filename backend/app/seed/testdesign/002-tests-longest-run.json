@@ -1,0 +1,95 @@
+{
+  "slug": "tests-longest-run",
+  "version": 1,
+  "title": "Test design: Longest Run",
+  "summary": "The length of the longest stretch of equal neighbours, including at the edges.",
+  "spec": "`longestRun(nums)` returns the length of the longest run of **equal adjacent values** in `nums`. For `[7, 7, 3, 3, 3, 1]` that's `3` (the three 3s).\n\nA single value is a run of length 1. An empty array has no run: the answer is `0`.",
+  "signature": {
+    "method": "longestRun",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "limits": {
+    "max_cases": 12,
+    "max_length": 20,
+    "min_value": -1000,
+    "max_value": 1000
+  },
+  "examples": [
+    {
+      "input": {
+        "nums": [
+          7,
+          7,
+          3,
+          3,
+          3,
+          1
+        ]
+      },
+      "expected": 3
+    },
+    {
+      "input": {
+        "nums": [
+          5,
+          5,
+          9,
+          9,
+          9,
+          1
+        ]
+      },
+      "expected": 3
+    }
+  ],
+  "reference": "class Solution {\n    public int longestRun(int[] nums) {\n        if (nums.length == 0) {\n            return 0;\n        }\n        int best = 1;\n        int current = 1;\n        for (int i = 1; i < nums.length; i++) {\n            if (nums[i] == nums[i - 1]) {\n                current++;\n            } else {\n                current = 1;\n            }\n            best = Math.max(best, current);\n        }\n        return best;\n    }\n}\n",
+  "variants": [
+    {
+      "id": "final-run-ignored",
+      "title": "Doesn't count the run at the end",
+      "defect": "It only updates the best length when the value changes, so a longest run that reaches the end of the array is never counted.",
+      "gap": "In your cases, the longest run always ends before the array does. What if it's the last thing in the array?",
+      "witness": {
+        "nums": [
+          1,
+          2,
+          2,
+          2
+        ]
+      },
+      "code": "class Solution {\n    public int longestRun(int[] nums) {\n        if (nums.length == 0) {\n            return 0;\n        }\n        int best = 1;\n        int current = 1;\n        for (int i = 1; i < nums.length; i++) {\n            if (nums[i] == nums[i - 1]) {\n                current++;\n            } else {\n                best = Math.max(best, current);\n                current = 1;\n            }\n        }\n        return best;\n    }\n}\n"
+    },
+    {
+      "id": "empty-is-one",
+      "title": "Says an empty array has a run of 1",
+      "defect": "It starts best at 1 without checking for an empty array, which has no run at all: the answer is 0.",
+      "gap": "The smallest possible input is worth a case of its own. What should an empty array give?",
+      "witness": {
+        "nums": []
+      },
+      "code": "class Solution {\n    public int longestRun(int[] nums) {\n        int best = 1;\n        int current = 1;\n        for (int i = 1; i < nums.length; i++) {\n            if (nums[i] == nums[i - 1]) {\n                current++;\n            } else {\n                current = 1;\n            }\n            best = Math.max(best, current);\n        }\n        return best;\n    }\n}\n"
+    },
+    {
+      "id": "near-equal",
+      "title": "Treats neighbours that differ by 1 as equal",
+      "defect": "It compares Math.abs(nums[i] - nums[i - 1]) <= 1, so 4, 5, 6 counts as one run of 3 although no two values are equal.",
+      "gap": "All the neighbours in your cases are either equal or far apart. Values that are close but not equal are a different class of input.",
+      "witness": {
+        "nums": [
+          4,
+          5,
+          6
+        ]
+      },
+      "code": "class Solution {\n    public int longestRun(int[] nums) {\n        if (nums.length == 0) {\n            return 0;\n        }\n        int best = 1;\n        int current = 1;\n        for (int i = 1; i < nums.length; i++) {\n            if (Math.abs(nums[i] - nums[i - 1]) <= 1) {\n                current++;\n            } else {\n                current = 1;\n            }\n            best = Math.max(best, current);\n        }\n        return best;\n    }\n}\n"
+    }
+  ],
+  "lesson": null,
+  "review_status": "Written for practice and machine-checked: the reference and every faulty version were compiled and run with a real JDK, and each version's defect was shown on a case."
+}

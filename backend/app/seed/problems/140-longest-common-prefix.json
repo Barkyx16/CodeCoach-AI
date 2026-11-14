@@ -1,0 +1,151 @@
+{
+  "order": 140,
+  "slug": "longest-common-prefix",
+  "title": "Longest Common Prefix",
+  "difficulty": "easy",
+  "topics": [
+    "strings"
+  ],
+  "summary": "Find the longest start shared by all strings.",
+  "statement": "Return the longest string that is a prefix of every string in `words`. If there is none,\nreturn `\"\"`.",
+  "constraints": [
+    "1 <= words.length <= 200",
+    "0 <= words[i].length <= 200"
+  ],
+  "examples": [
+    {
+      "input": "words = [\"flower\", \"flow\", \"flight\"]",
+      "output": "\"fl\""
+    },
+    {
+      "input": "words = [\"dog\", \"racecar\", \"car\"]",
+      "output": "\"\""
+    },
+    {
+      "input": "words = [\"alone\"]",
+      "output": "\"alone\""
+    }
+  ],
+  "signature": {
+    "method": "longestCommonPrefix",
+    "params": [
+      {
+        "name": "words",
+        "type": "String[]"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String longestCommonPrefix(String[] words) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "Compare the strings one column (character position) at a time.",
+    "Stop at the first position where some string ends or has a different character.",
+    "for i in range(len(words[0])):\n    for w in words[1:]:\n        if i == len(w) or w[i] != words[0][i]: return words[0][:i]\nreturn words[0]",
+    "Vertical scanning stops as soon as the prefix ends: O(total characters) in the worst case, O(1) extra space."
+  ],
+  "expected_complexity": {
+    "time": "O(S)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "words": [
+          "flower",
+          "flow",
+          "flight"
+        ]
+      },
+      "expected_output": "fl",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "words": [
+          "dog",
+          "racecar",
+          "car"
+        ]
+      },
+      "expected_output": "",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "words": [
+          "alone"
+        ]
+      },
+      "expected_output": "alone",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "words": [
+          "",
+          "a"
+        ]
+      },
+      "expected_output": "",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "words": [
+          "ab",
+          "a"
+        ]
+      },
+      "expected_output": "a",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "words": [
+          "baayx",
+          "baa",
+          "baayy",
+          "baaxx",
+          "baaxxy"
+        ]
+      },
+      "expected_output": "baa",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "words": [
+          ""
+        ]
+      },
+      "expected_output": "",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "words": [
+          "bbaaxx",
+          "bbaayy",
+          "bbaax",
+          "bbaa",
+          "bbaax"
+        ]
+      },
+      "expected_output": "bbaa",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "words": [
+          "byxx",
+          "bxxxy",
+          "bx",
+          "bxyxy"
+        ]
+      },
+      "expected_output": "b",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

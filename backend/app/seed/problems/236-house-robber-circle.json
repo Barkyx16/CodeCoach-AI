@@ -1,0 +1,163 @@
+{
+  "order": 236,
+  "slug": "house-robber-circle",
+  "title": "House Robber on a Circle",
+  "difficulty": "medium",
+  "topics": [
+    "dynamic-programming"
+  ],
+  "summary": "Same as house robber, but the first and last houses are neighbors.",
+  "statement": "The houses form a circle, so the first and last are adjacent. You can't rob two adjacent houses.\nReturn the most money you can rob.",
+  "constraints": [
+    "1 <= nums.length <= 100",
+    "0 <= nums[i] <= 1000"
+  ],
+  "examples": [
+    {
+      "input": "nums = [2, 3, 2]",
+      "output": "3"
+    },
+    {
+      "input": "nums = [1, 2, 3, 1]",
+      "output": "4"
+    },
+    {
+      "input": "nums = [1, 2, 3]",
+      "output": "3"
+    }
+  ],
+  "signature": {
+    "method": "robCircle",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int robCircle(int[] nums) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "You can't take both the first and the last house.",
+    "Solve the straight-line version twice: without the last house, and without the first. Take the better.",
+    "if n == 1: return nums[0]\nreturn max(robLine(nums[0:n-1]), robLine(nums[1:n]))",
+    "Two linear passes: O(n) time, O(1) space."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          2,
+          3,
+          2
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3,
+          1
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          7
+        ]
+      },
+      "expected_output": 7,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          23,
+          6,
+          10,
+          24
+        ]
+      },
+      "expected_output": 33,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          11,
+          25,
+          23,
+          6,
+          23,
+          24,
+          13,
+          18,
+          1,
+          1,
+          25
+        ]
+      },
+      "expected_output": 98,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          20,
+          6,
+          10,
+          8,
+          3,
+          1,
+          29,
+          4,
+          21,
+          25
+        ]
+      },
+      "expected_output": 83,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          6,
+          0,
+          0,
+          30,
+          22,
+          12,
+          22,
+          24,
+          27,
+          27
+        ]
+      },
+      "expected_output": 93,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

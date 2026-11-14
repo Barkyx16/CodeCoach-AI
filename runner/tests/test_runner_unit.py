@@ -14,6 +14,7 @@ from app.sandbox import (
     _Capped,
     build_command,
     classify,
+    docker_reachable,
     pack_sources,
 )
 from tests.conftest import TOKEN, make_settings
@@ -94,6 +95,11 @@ def test_classification():
     assert c(0, truncated=True).status == "output_limit"
     assert c(125).status == "sandbox_error"  # docker itself failed
     assert c(90).status == "sandbox_error"
+    # The code never started: always infrastructure, whatever the exit code.
+    daemon_down = "Cannot connect to the Docker daemon at unix:///var/run/docker.sock."
+    assert c(1, stderr=daemon_down).status == "sandbox_error"
+    assert c(0).status == "sandbox_error"
+    assert c(None).status == "sandbox_error"
 
 
 def test_run_marker_is_stripped_from_stderr():
@@ -186,3 +192,104 @@ def test_health_and_no_public_docs():
     c_ = client()
     assert c_.get("/health").json() == {"status": "ok"}
     assert c_.get("/docs").status_code == 404 and c_.get("/openapi.json").status_code == 404
+
+
+def test_startup_warms_the_sandbox_once_before_serving():
+    sandbox = FakeSandbox()
+    app = create_app(make_settings(warmup_on_start=True), sandbox=sandbox, cleanup=False)
+    with TestClient(app) as c_:  # entering the client runs the lifespan (startup)
+        assert len(sandbox.calls) == 1
+        files, nonce, _ = sandbox.calls[0]
+        assert set(files) == {"Solution.java", "Main.java"} and nonce == "warmup"
+        assert c_.get("/health").status_code == 200
+
+
+def test_a_failed_warm_up_does_not_stop_the_runner():
+    class Broken(FakeSandbox):
+        def run(self, files, nonce, time_limit_s=None):
+            raise RuntimeError("docker is not ready")
+
+    app = create_app(make_settings(warmup_on_start=True), sandbox=Broken(), cleanup=False)
+    with TestClient(app) as c_:
+        assert c_.get("/health").status_code == 200
+
+
+def test_ready_reports_whether_docker_answers(monkeypatch):
+    import app.main as main_module
+
+    monkeypatch.setattr(main_module, "docker_reachable", lambda settings: False)
+    r = client().get("/ready")
+    assert r.status_code == 503 and r.json() == {"status": "unavailable"}
+    monkeypatch.setattr(main_module, "docker_reachable", lambda settings: True)
+    assert client().get("/ready").json() == {"status": "ok"}
+
+
+def test_docker_reachable_is_false_when_the_cli_is_missing():
+    assert docker_reachable(make_settings(docker_bin="/nonexistent/docker")) is False
+
+
+def test_a_docker_cli_failure_is_an_infrastructure_error_not_a_crash():
+    """Seen for real: with the Docker daemon down, `docker run` exits 1 within milliseconds. The
+    learner's code never ran, so this must not reach the API as an ordinary exit (which the judge
+    would report as the learner's runtime error)."""
+    from app.sandbox import DockerSandbox
+
+    res = DockerSandbox(make_settings(docker_bin="/bin/false")).run(FILES, "0123456789abcdef", 5)
+    assert res.status == "sandbox_error" and not res.run_started
+
+
+class _FakeProc:
+    """A `docker run` stand-in: canned output, and a wait() that can outlast the deadline once
+    (as `docker kill` sometimes does under gVisor on a slow CI machine)."""
+
+    def __init__(self, stdout: bytes, *, slow_first_wait: bool, returncode: int = 137):
+        import subprocess
+
+        self.stdin, self.stdout, self.stderr = (
+            io.BytesIO(),
+            io.BytesIO(stdout),
+            io.BytesIO(RUN_MARKER.encode() + b"\n"),
+        )
+        self._slow, self._expired, self.returncode = slow_first_wait, subprocess.TimeoutExpired, returncode
+
+    def wait(self, timeout=None):
+        if self._slow:
+            self._slow = False
+            raise self._expired("docker run", timeout)
+        return self.returncode
+
+    def kill(self):
+        pass
+
+
+def _sandbox_with(proc):
+    from app.sandbox import DockerSandbox
+
+    # /bin/true stands in for `docker kill` / `docker rm`.
+    return DockerSandbox(make_settings(docker_bin="/bin/true"), popen=lambda *a, **k: proc)
+
+
+def test_a_flood_is_reported_as_output_limit_even_if_the_kill_outlasts_the_deadline():
+    """Regression for a CI flake: the flood triggers the kill first, then the wall clock also
+    expires while the kill is in progress. The flood is what stopped the run."""
+    proc = _FakeProc(b"x" * (200 * 1024), slow_first_wait=True)
+    res = _sandbox_with(proc).run(FILES, "0123456789abcdef", 5)
+    assert res.status == "output_limit" and res.output_truncated
+
+
+def test_a_silent_infinite_loop_is_still_a_timeout():
+    res = _sandbox_with(_FakeProc(b"", slow_first_wait=True)).run(FILES, "0123456789abcdef", 5)
+    assert res.status == "timeout" and not res.output_truncated
+
+
+def test_status_requires_the_token_and_reveals_only_readiness(monkeypatch):
+    import app.main as main_mod
+
+    monkeypatch.setattr(main_mod, "docker_reachable", lambda _settings: True)
+    c_ = client()
+    assert c_.get("/v1/status").status_code == 401
+    assert c_.get("/v1/status", headers={"Authorization": "Bearer " + "x" * 40}).status_code == 401
+    r = c_.get("/v1/status", headers=AUTH)
+    assert r.status_code == 200 and r.json() == {"ready": True}
+    monkeypatch.setattr(main_mod, "docker_reachable", lambda _settings: False)
+    assert c_.get("/v1/status", headers=AUTH).json() == {"ready": False}

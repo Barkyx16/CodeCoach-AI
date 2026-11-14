@@ -1,0 +1,175 @@
+{
+  "order": 17,
+  "slug": "longest-increasing-subsequence",
+  "title": "Longest Increasing Subsequence",
+  "difficulty": "medium",
+  "topics": [
+    "dynamic-programming",
+    "binary-search"
+  ],
+  "summary": "Find the length of the longest strictly increasing subsequence.",
+  "statement": "Given an integer array `nums`, return the length of the longest **strictly increasing subsequence**.\n\nA subsequence keeps the original order but may skip elements: `[3, 6, 7]` is a subsequence of `[3, 5, 6, 2, 7]`.",
+  "constraints": [
+    "1 <= nums.length <= 2500",
+    "-10^4 <= nums[i] <= 10^4"
+  ],
+  "examples": [
+    {
+      "input": "nums = [10, 9, 2, 5, 3, 7, 101, 18]",
+      "output": "4",
+      "explanation": "One longest increasing subsequence is [2, 3, 7, 101]."
+    },
+    {
+      "input": "nums = [7, 7, 7, 7]",
+      "output": "1",
+      "explanation": "Strictly increasing: equal values don't count."
+    }
+  ],
+  "signature": {
+    "method": "lengthOfLIS",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int lengthOfLIS(int[] nums) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "For each position, ask: how long is the longest increasing subsequence that ends exactly at this element? Which earlier elements could it be extending?",
+    "Dynamic programming: len[i] = 1 + max(len[j]) over all j < i with nums[j] < nums[i], and the answer is the largest len[i]. That's O(n^2). A faster idea keeps, for each possible length, the smallest value that can end a subsequence of that length, and updates it with binary search.",
+    "tails = empty list   // tails[k] = smallest tail of an increasing subsequence of length k + 1\nfor x in nums:\n    i = first index in tails with tails[i] >= x   (binary search)\n    if i == size of tails: append x\n    else: tails[i] = x\nreturn size of tails",
+    "Trying every subsequence is O(2^n). The O(n^2) DP checks every earlier element for every element. The O(n log n) version maintains `tails`, which is always sorted: a small tail is better because more future values can extend it. Each new value either extends the longest subsequence (append) or makes some tail smaller (replace), found by binary search. tails isn't itself a valid subsequence, but its length is the answer. Use 'first index >= x' (not >) so equal values don't extend, keeping it strictly increasing."
+  ],
+  "expected_complexity": {
+    "time": "O(n log n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          10,
+          9,
+          2,
+          5,
+          3,
+          7,
+          101,
+          18
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          1,
+          0,
+          3,
+          2,
+          3
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          7,
+          7,
+          7,
+          7
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          5
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          5,
+          4,
+          3,
+          2,
+          1
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          4,
+          10,
+          4,
+          3,
+          8,
+          9
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          5,
+          6,
+          2,
+          5,
+          4,
+          19,
+          5,
+          6,
+          7,
+          12
+        ]
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -2,
+          -1,
+          -3,
+          0,
+          -4,
+          1
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    }
+  ]
+}

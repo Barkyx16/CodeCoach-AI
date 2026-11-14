@@ -1,0 +1,173 @@
+{
+  "order": 256,
+  "slug": "combination-sum",
+  "title": "Combination Sum",
+  "difficulty": "medium",
+  "topics": [
+    "backtracking"
+  ],
+  "summary": "All combinations of candidates (reusable) that sum to a target.",
+  "statement": "`candidates` are distinct positive integers. Return every combination (values may repeat) that sums to\n`target`. Each combination is in ascending order, and the list of combinations is in lexicographic order.",
+  "constraints": [
+    "1 <= candidates.length <= 30",
+    "2 <= candidates[i] <= 40",
+    "1 <= target <= 40"
+  ],
+  "examples": [
+    {
+      "input": "candidates = [2, 3, 6, 7], target = 7",
+      "output": "[[2, 2, 3], [7]]"
+    },
+    {
+      "input": "candidates = [2, 3, 5], target = 8",
+      "output": "[[2, 2, 2, 2], [2, 3, 3], [3, 5]]"
+    },
+    {
+      "input": "candidates = [2], target = 1",
+      "output": "[]"
+    }
+  ],
+  "signature": {
+    "method": "combinationSum",
+    "params": [
+      {
+        "name": "candidates",
+        "type": "int[]"
+      },
+      {
+        "name": "target",
+        "type": "int"
+      }
+    ],
+    "returns": "int[][]"
+  },
+  "starter_code": "class Solution {\n    public int[][] combinationSum(int[] candidates, int target) {\n        // TODO: write your solution here\n        return new int[0][];\n    }\n}\n",
+  "hints": [
+    "To avoid counting [2,3] and [3,2] separately, only ever add values in non-decreasing order.",
+    "Sort, then backtrack from a start index: you may reuse the current value or move to a later one.",
+    "sort candidates\ndef build(start, remaining, path):\n    if remaining == 0: record path\n    for i in start..n-1:\n        if candidates[i] > remaining: break\n        build(i, remaining - candidates[i], path + [candidates[i]])",
+    "Passing `i` (not `i + 1`) allows reuse; breaking early on a too-large value prunes the search. Output is exponential in the worst case."
+  ],
+  "expected_complexity": {
+    "time": "O(answer size)",
+    "space": "O(target)"
+  },
+  "tests": [
+    {
+      "input": {
+        "candidates": [
+          2,
+          3,
+          6,
+          7
+        ],
+        "target": 7
+      },
+      "expected_output": [
+        [
+          2,
+          2,
+          3
+        ],
+        [
+          7
+        ]
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "candidates": [
+          2,
+          3,
+          5
+        ],
+        "target": 8
+      },
+      "expected_output": [
+        [
+          2,
+          2,
+          2,
+          2
+        ],
+        [
+          2,
+          3,
+          3
+        ],
+        [
+          3,
+          5
+        ]
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "candidates": [
+          2
+        ],
+        "target": 1
+      },
+      "expected_output": [],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "candidates": [
+          3
+        ],
+        "target": 13
+      },
+      "expected_output": [],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "candidates": [
+          6
+        ],
+        "target": 12
+      },
+      "expected_output": [
+        [
+          6,
+          6
+        ]
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "candidates": [
+          8,
+          6,
+          3
+        ],
+        "target": 10
+      },
+      "expected_output": [],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "candidates": [
+          8,
+          3,
+          2,
+          6
+        ],
+        "target": 5
+      },
+      "expected_output": [
+        [
+          2,
+          3
+        ]
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

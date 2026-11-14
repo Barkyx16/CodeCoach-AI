@@ -14,10 +14,10 @@ describe("Problem workspace", () => {
     expect((editor as HTMLTextAreaElement).value).toContain("public int[] twoSum");
   });
 
-  it("shows a friendly not-found state", async () => {
+  it("shows a friendly not-found state with a way back", async () => {
     renderApp("/problems/does-not-exist");
-    expect(await screen.findByText("Problem 'does-not-exist' not found")).toBeInTheDocument();
-    expect(screen.getByText("Reference:")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "This problem isn't available" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Browse coding problems" })).toHaveAttribute("href", "/problems?career=software-engineer"); // coding, whatever the account's career
   });
 
   it("autosaves the draft and restores it", async () => {
@@ -31,7 +31,7 @@ describe("Problem workspace", () => {
     editor.focus();
     await user.type(editor, "class Solution {{}", { skipClick: true });
     expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
-    expect(await screen.findByText("Draft saved", {}, { timeout: 2000 })).toBeInTheDocument();
+    expect(await screen.findByText("Saved on device", {}, { timeout: 2000 })).toBeInTheDocument();
     unmount();
     renderApp("/problems/two-sum", { signedIn: true });
     expect(((await screen.findByLabelText(/java code editor/i)) as HTMLTextAreaElement).value).toBe("class Solution {}");
@@ -45,7 +45,8 @@ describe("Problem workspace", () => {
       return HttpResponse.json(queuedSubmission, { status: 202 });
     }));
     const { user } = renderApp("/problems/two-sum", { signedIn: true });
-    await user.click(await screen.findByRole("button", { name: "Submit" }));
+    // No judge on this server: once the page knows, the button says what it will do.
+    await user.click(await screen.findByRole("button", { name: /^Save attempt/ }));
     expect(await screen.findByText("Saved, but not run yet.")).toBeInTheDocument();
     expect(screen.getByText("Queued")).toBeInTheDocument();
     expect(posted).toMatchObject({ problem_slug: "two-sum", language: "java" });
@@ -53,7 +54,7 @@ describe("Problem workspace", () => {
 
   it("sends signed-out users to login when they submit", async () => {
     const { user, router } = renderApp("/problems/two-sum");
-    await user.click(await screen.findByRole("button", { name: "Submit" }));
+    await user.click(await screen.findByRole("button", { name: /^Save attempt/ }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
   });
 
@@ -82,19 +83,23 @@ describe("Problem workspace", () => {
     const { user } = renderApp("/problems/two-sum", { signedIn: true });
     await user.click(await screen.findByRole("tab", { name: "Code review" }));
     await user.click(screen.getByRole("button", { name: "Review my code" }));
+    await user.click(await screen.findByRole("button", { name: "Send for review" }));
     expect(await screen.findByText("Nested loops make this roughly O(n^2).")).toBeInTheDocument();
     expect(screen.getAllByText("target O(n)")).toHaveLength(2); // time and space targets
     expect(screen.getByRole("button", { name: "line 3" })).toBeInTheDocument();
     expect(screen.getByText(/never from the AI/)).toBeInTheDocument();
   });
 
-  it("shows the budget error when the daily AI limit is hit", async () => {
+  it("shows the budget error when the daily AI limit is hit, and how long until it resets", async () => {
     server.use(http.post(`${API}/api/v1/ai/hint`, () => HttpResponse.json({ error: { code: "rate_limited",
-      message: "You've used today's AI coaching budget.", request_id: null, details: { daily_limit: 50 } } }, { status: 429 })));
+      message: "You've used today's AI coaching budget.", request_id: null, details: { daily_limit: 50, retry_after_seconds: 7200 } } },
+    { status: 429, headers: { "Retry-After": "7200" } })));
     const { user } = renderApp("/problems/two-sum", { signedIn: true });
     await user.click(await screen.findByRole("button", { name: "Get a hint" }));
-    expect(await screen.findByText("You've used today's AI coaching budget.")).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent("The hint didn't go through. You've used today's AI coaching budget.");
+    expect(screen.getByText("You can try again in about 2 h.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Get a hint" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeDisabled();
   });
 
   it("asks signed-out users to sign in before using the coach", async () => {

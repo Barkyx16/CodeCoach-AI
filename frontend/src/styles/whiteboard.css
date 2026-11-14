@@ -1,0 +1,39 @@
+/* Whiteboard: canvas, outline and feedback. */
+
+.wb-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr); gap: var(--space-4); align-items: start; margin: var(--space-4) 0; }
+@media (max-width: 960px) { .wb-layout { grid-template-columns: minmax(0, 1fr); } }
+.wb-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.wb-canvas-wrap { border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface-sunken); overflow: hidden; }
+.wb-canvas { display: block; width: 100%; height: clamp(260px, 50vh, 520px); }
+/* Only a component captures touch, so a finger elsewhere on the canvas still scrolls the page. */
+.wb-node { cursor: grab; touch-action: none; }
+.wb-node rect { fill: var(--color-surface-raised); stroke: var(--color-border-strong); stroke-width: 1.5; }
+.wb-node--client rect { stroke-dasharray: 5 3; }
+.wb-node--database rect, .wb-node--cache rect { stroke: var(--color-info); }
+.wb-node--queue rect { stroke: var(--color-warning); }
+.wb-node--selected rect { stroke: var(--color-primary); stroke-width: 3; }
+.wb-node--highlight rect { stroke: var(--color-success); stroke-width: 4; }
+.wb-node text { fill: var(--color-text); font-size: 13px; pointer-events: none; user-select: none; }
+.wb-node__kind { fill: var(--color-text-muted) !important; font-size: 11px !important; }
+.wb-edge line { stroke: var(--color-text-muted); stroke-width: 1.5; }
+.wb-edge text { fill: var(--color-text-muted); font-size: 11px; }
+.wb-edge--highlight line { stroke: var(--color-success); stroke-width: 3; }
+.wb-arrow { fill: var(--color-text-muted); }
+.wb-group rect { fill: none; stroke: var(--color-border-strong); stroke-dasharray: 6 4; }
+.wb-group text { fill: var(--color-text-muted); font-size: 12px; font-weight: 600; }
+@media (forced-colors: active) {
+  .wb-node rect { stroke: CanvasText; fill: Canvas; }
+  .wb-node--highlight rect, .wb-node--selected rect { stroke: Highlight; }
+  .wb-edge line { stroke: CanvasText; }
+  .wb-node text, .wb-edge text, .wb-group text { fill: CanvasText; }
+  .wb-group rect { stroke: CanvasText; }
+}
+.wb-outline { border: 1px solid var(--color-border); border-radius: 12px; padding: var(--space-3); background: var(--color-surface); }
+.wb-list { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-2); }
+.wb-list > li { display: grid; gap: var(--space-1); padding: var(--space-2); border: 1px solid var(--color-border); border-radius: 8px; }
+.wb-list__selected { border-color: var(--color-primary) !important; }
+.wb-move { flex-wrap: wrap; }
+.wb-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: var(--space-3) 0; }
+.wb-rubric { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-2); }
+.wb-summary summary { cursor: pointer; }
+.wb-export pre { max-height: 240px; overflow: auto; font-size: 0.8125rem; background: var(--color-surface-sunken); padding: var(--space-2); border-radius: 8px; white-space: pre-wrap; overflow-wrap: anywhere; }

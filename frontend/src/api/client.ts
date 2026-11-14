@@ -6,41 +6,127 @@
  *   `error.code`, so UI code branches on codes, never on message text.
  * - Network failures become ApiError("network_error") so callers have one error type.
  */
+import { diag, diagPath } from "@/lib/diagnostics";
+import { clearFailures, recordFailure } from "@/lib/supportLog";
+
 import type { ErrorEnvelope } from "./types";
 
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000").replace(/\/$/, "");
+
+/** The longest wait taken at its word: a day. Anything longer reads as a fault, not a plan, and
+ * is treated as no wait at all (the page then offers a deliberate retry, never a countdown). */
+export const MAX_RETRY_AFTER_SECONDS = 86_400;
+
+/**
+ * Seconds to wait from a Retry-After header: either a number of seconds or an HTTP date
+ * (RFC 9110). Null when absent, unreadable, or longer than a day; never negative. An HTTP date
+ * is read against the server's own clock (`serverDate`, the response's Date header) when there
+ * is one, so a wrong clock on this device doesn't stretch or skip the wait.
+ */
+export function parseRetryAfter(value: string | null | undefined, now: number = Date.now(),
+  serverDate?: string | null): number | null {
+  const v = (value ?? "").trim();
+  if (!v) return null;
+  const bounded = (seconds: number) => (seconds > MAX_RETRY_AFTER_SECONDS ? null : seconds);
+  if (/^\d+$/.test(v)) return v.length > 6 ? null : bounded(Number(v));
+  if (!/[A-Za-z]/.test(v)) return null; // an HTTP date names its day and month; "-5" isn't one
+  const at = Date.parse(v);
+  if (Number.isNaN(at)) return null;
+  const sent = serverDate ? Date.parse(serverDate) : NaN;
+  const from = Number.isNaN(sent) ? now : sent;
+  return bounded(Math.max(0, Math.ceil((at - from) / 1000)));
+}
 
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
   readonly details: unknown;
   readonly requestId: string | null;
+  /** How long the server asked us to wait before trying again (a 429 or 503), if it said. */
+  readonly retryAfterSeconds: number | null;
+  /** When this answer arrived (ms since the epoch): a wait counts from here. */
+  readonly receivedAt: number = Date.now();
 
-  constructor(status: number, code: string, message: string, details: unknown = null, requestId: string | null = null) {
+  constructor(status: number, code: string, message: string, details: unknown = null, requestId: string | null = null,
+    retryAfterSeconds: number | null = null) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
     this.details = details;
     this.requestId = requestId;
+    // The body's figure is the more precise one; the header is the standard one (and the only one
+    // a proxy or a server without our error envelope sends).
+    const fromBody = (details as { retry_after_seconds?: unknown } | null)?.retry_after_seconds;
+    this.retryAfterSeconds = typeof fromBody === "number" && fromBody >= 0 && fromBody <= MAX_RETRY_AFTER_SECONDS
+      ? Math.ceil(fromBody) : retryAfterSeconds;
   }
 
   get isAuthError(): boolean {
     return this.status === 401;
   }
+
+  /** When the server's wait is over (ms since the epoch), or null if it asked for none. */
+  get retryAt(): number | null {
+    return this.retryAfterSeconds === null ? null : this.receivedAt + this.retryAfterSeconds * 1000;
+  }
 }
 
 type TokenGetter = () => string | null;
 type UnauthorizedHandler = (error: ApiError) => void;
+/**
+ * Get a fresh access token from the refresh cookie; null when the session can't continue. Throws
+ * an ApiError("network_error") when the server couldn't be reached: the session isn't over then.
+ */
+type Refresher = () => Promise<string | null>;
 
 let getToken: TokenGetter = () => null;
 let onUnauthorized: UnauthorizedHandler = () => {};
+let refreshToken: Refresher = async () => null;
+/**
+ * Which session a request belongs to. It moves on whenever a session starts or ends (sign-in,
+ * sign-out, a session that expired) and whenever auth is wired up again. A 401 that comes back for
+ * a request of an earlier session isn't about the session open now: it must not refresh (that
+ * would sign a signed-out user back in, or resend one account's request as another's) and must
+ * not end the current session. Nor is its data: a successful response to a request sent with an
+ * earlier session's token is set aside (`session_changed`), so one account's answers or progress
+ * can't be shown to, or cached for, the account that signed in next.
+ */
+let generation = 0;
 
 /** Wired up once by AuthProvider so the client never imports React state directly. */
-export function configureAuth(tokenGetter: TokenGetter, unauthorizedHandler: UnauthorizedHandler): void {
+export function configureAuth(
+  tokenGetter: TokenGetter,
+  unauthorizedHandler: UnauthorizedHandler,
+  refresher: Refresher = async () => null,
+): void {
   getToken = tokenGetter;
   onUnauthorized = unauthorizedHandler;
+  refreshToken = refresher;
+  generation += 1;
 }
+
+/** A session started or ended: requests already on their way belong to the previous one. */
+export function startAuthGeneration(): void {
+  generation += 1;
+  clearFailures(); // another session: the earlier one's failures don't belong in this one's report
+}
+
+/**
+ * The session the cache belongs to right now. A change that writes back to the cache when it
+ * answers (putting an optimistic update back after a failure) takes this before it starts and
+ * writes back only while `isSameSession` says it's still on: otherwise the previous account's
+ * snapshot would land in the cache of the account that signed in next.
+ */
+export function sessionMark(): number {
+  return generation;
+}
+
+export function isSameSession(mark: number): boolean {
+  return mark === generation;
+}
+
+const AUTH_PATH = "/api/v1/auth/";
 
 export interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -49,6 +135,19 @@ export interface RequestOptions {
   signal?: AbortSignal;
   /** Send the bearer token if we have one (default true). */
   auth?: boolean;
+  /** Let the request finish even if the page is being unloaded (saving on navigation). */
+  keepalive?: boolean;
+  /** Send this JSON text as the body exactly as it is (a backup file), instead of serializing `body`. */
+  rawBody?: string;
+  /** Return the body as text (for files such as .ics) instead of parsing JSON. */
+  raw?: boolean;
+  /** A GET's deadline in ms, when the default (READ_DEADLINE_MS) is too short (a full export). */
+  readDeadlineMs?: number;
+  headers?: Record<string, string>;
+  /** W3C trace context of the user action this request belongs to (lib/trace.ts). */
+  traceparent?: string;
+  /** Never refresh the session or sign out on a 401 (background telemetry). */
+  noRefresh?: boolean;
 }
 
 export function buildUrl(path: string, query?: RequestOptions["query"]): string {
@@ -64,46 +163,161 @@ function isErrorEnvelope(value: unknown): value is ErrorEnvelope {
     typeof (value as { error: unknown }).error === "object";
 }
 
-export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, query, signal, auth = true } = options;
-  const headers: Record<string, string> = { Accept: "application/json" };
-  if (body !== undefined) headers["Content-Type"] = "application/json";
-  const token = auth ? getToken() : null;
-  if (token) headers.Authorization = `Bearer ${token}`;
-
-  let response: Response;
+/**
+ * Is the API answering? A cheap GET with no credentials. Used after the network comes back,
+ * before spending the one-use refresh cookie: a first request on a connection that died while
+ * offline can be resent by the browser, and a resent refresh looks like a stolen cookie.
+ */
+export async function serverReachable(timeoutMs = 5000): Promise<boolean> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    response = await fetch(buildUrl(path, query), {
-      method,
-      headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
-      signal,
-    });
-  } catch (cause) {
-    if (cause instanceof DOMException && cause.name === "AbortError") throw cause;
-    throw new ApiError(0, "network_error", "Can't reach the CodeCoach server. Check your connection and try again.");
+    const response = await fetch(`${API_BASE_URL}/health`, { cache: "no-store", credentials: "omit", signal: controller.signal });
+    return response.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
   }
+}
 
-  if (response.status === 204) return undefined as T;
+/**
+ * How long a read (a GET) may wait for the whole answer before it's given up as a temporary
+ * failure: ApiError("read_timeout"), shown with Try again (Volume 9, prompt 9). Without it, a read
+ * that never answered left its page loading for good. Only reads: a write's outcome would then be
+ * unknown, and Volume 8 handles uncertain writes with request keys. A deadline bounds the wait;
+ * it doesn't explain why an answer was slow.
+ */
+export const READ_DEADLINE_MS = 30_000;
+let readDeadline = READ_DEADLINE_MS;
+/** Tests only: a shorter read deadline (null restores the real one). */
+export function setReadDeadlineForTests(ms: number | null): void {
+  readDeadline = ms ?? READ_DEADLINE_MS;
+}
 
-  const text = await response.text();
-  let data: unknown = null;
-  if (text) {
+/** Aborted when either is (AbortSignal.any where the browser has it). */
+function eitherSignal(a: AbortSignal | undefined, b: AbortSignal): AbortSignal {
+  if (!a) return b;
+  const any = (AbortSignal as unknown as { any?: (signals: AbortSignal[]) => AbortSignal }).any;
+  if (typeof any === "function") return any([a, b]);
+  const both = new AbortController();
+  const abort = () => both.abort();
+  if (a.aborted || b.aborted) both.abort();
+  else {
+    a.addEventListener("abort", abort, { once: true });
+    b.addEventListener("abort", abort, { once: true });
+  }
+  return both.signal;
+}
+
+export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  return send<T>(path, options, false);
+}
+
+async function send<T>(path: string, options: RequestOptions, isRetry: boolean): Promise<T> {
+  const { method = "GET", body, query, signal, auth = true } = options;
+  const headers: Record<string, string> = { Accept: "application/json", ...options.headers };
+  if (body !== undefined || options.rawBody !== undefined) headers["Content-Type"] = "application/json";
+  const token = auth ? getToken() : null;
+  const sentIn = generation;
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (options.traceparent) headers.traceparent = options.traceparent;
+
+  const started = performance.now();
+  const where = { method, path: diagPath(path), retry: isRetry };
+  // A read's deadline covers the whole answer, body included; a write has none.
+  const deadline = method === "GET" ? new AbortController() : null;
+  const timer = deadline ? setTimeout(() => deadline.abort(), options.readDeadlineMs ?? readDeadline) : undefined;
+  const timedOut = () => Boolean(deadline?.signal.aborted) && !signal?.aborted;
+  const timeout = () => {
+    diag("http", { ...where, status: 0, outcome: "timeout", ms: Math.round(performance.now() - started) });
+    recordFailure({ method, path, status: 0, code: "read_timeout", request_id: null });
+    return new ApiError(0, "read_timeout", "The server is taking too long to answer. Try again.");
+  };
+  try {
+    let response: Response;
     try {
-      data = JSON.parse(text);
-    } catch {
-      data = null;
+      response = await fetch(buildUrl(path, query), {
+        method,
+        headers,
+        body: options.rawBody ?? (body === undefined ? undefined : JSON.stringify(body)),
+        signal: deadline ? eitherSignal(signal, deadline.signal) : signal,
+        keepalive: options.keepalive,
+        // The refresh cookie is path-scoped to /api/v1/auth; only those calls need credentials.
+        credentials: path.startsWith(AUTH_PATH) ? "include" : "same-origin",
+      });
+    } catch (cause) {
+      if (timedOut()) throw timeout();
+      // The caller's own cancel (its signal says so, whichever realm the error came from).
+      const aborted = Boolean(signal?.aborted) || (cause instanceof DOMException && cause.name === "AbortError");
+      diag("http", { ...where, status: 0, outcome: aborted ? "aborted" : "network_error", ms: Math.round(performance.now() - started) });
+      if (aborted) throw signal?.aborted && signal.reason !== undefined ? signal.reason : cause;
+      recordFailure({ method, path, status: 0, code: "network_error", request_id: null });
+      throw new ApiError(0, "network_error", "Can't reach the CodeCoach server. Check your connection and try again.");
     }
-  }
+    diag("http", {
+      ...where, status: response.status, ms: Math.round(performance.now() - started), requestId: response.headers.get("X-Request-ID"),
+      traceId: response.headers.get("X-Trace-ID"),
+    });
 
-  if (!response.ok) {
-    const requestId = response.headers.get("X-Request-ID");
-    const error = isErrorEnvelope(data)
-      ? new ApiError(response.status, data.error.code, data.error.message, data.error.details ?? null,
-          data.error.request_id ?? requestId)
-      : new ApiError(response.status, "http_error", `Request failed with status ${response.status}`, null, requestId);
-    if (error.status === 401 && token) onUnauthorized(error);
-    throw error;
+    if (response.ok && token && sentIn !== generation) {
+      // Sent with the token of a session that has since ended or been replaced: what it brings back
+      // belongs to that session. (The server may still have done the work; only delivery stops.)
+      diag("auth", { event: "stale_response", path: diagPath(path) });
+      throw new ApiError(0, "session_changed", "This was sent before you signed in or out, so it was set aside.");
+    }
+    if (response.status === 204) return undefined as T;
+
+    let text: string;
+    try {
+      text = await response.text();
+    } catch (cause) {
+      if (timedOut()) throw timeout();
+      throw cause;
+    }
+    if (options.raw && response.ok) return text as T;
+    let data: unknown = null;
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = null;
+      }
+    }
+
+    if (!response.ok) {
+      const requestId = response.headers.get("X-Request-ID");
+      const retryAfter = parseRetryAfter(response.headers.get("Retry-After"), Date.now(), response.headers.get("Date"));
+      // A refused session check is how "signed out" is learned, not a failure (the report says signed out).
+      if (!(response.status === 401 && path.startsWith("/api/v1/auth/refresh"))) {
+        recordFailure({ method, path, status: response.status, code: isErrorEnvelope(data) ? data.error.code : "http_error",
+          request_id: (isErrorEnvelope(data) ? data.error.request_id : null) ?? requestId });
+      }
+      const error = isErrorEnvelope(data)
+        ? new ApiError(response.status, data.error.code, data.error.message, data.error.details ?? null,
+            data.error.request_id ?? requestId, retryAfter)
+        : new ApiError(response.status, "http_error", `Request failed with status ${response.status}`, null, requestId,
+            retryAfter);
+      if (error.status === 401 && token && !options.noRefresh) {
+        if (sentIn !== generation) {
+          // Sent in a session that has since ended or been replaced: not this session's 401.
+          diag("auth", { event: "stale_401", path: diagPath(path) });
+          throw error;
+        }
+        // The access token expired or was revoked: try the refresh cookie once, then retry. If the
+        // refresh couldn't reach the server, that network error is thrown instead (still signed in).
+        if (!isRetry && !path.startsWith(AUTH_PATH) && (await refreshToken())) {
+          if (sentIn === generation) return send<T>(path, options, true);
+          diag("auth", { event: "stale_401", path: diagPath(path) });
+          throw error;
+        }
+        // Only the session this request was sent in can end because of it.
+        if (sentIn === generation) onUnauthorized(error);
+      }
+      throw error;
+    }
+    return data as T;
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
   }
-  return data as T;
 }

@@ -36,5 +36,27 @@ Thumbs.db
 
 # E2E artifacts (screenshots used in docs are copied to docs/screenshots)
 frontend/e2e/screenshots/
-backend/e2e.db
+frontend/e2e-demo/screenshots/
+backend/e2e.db*
+# E2E_PORT_OFFSET runs get their own database and outbox
+backend/e2e-*.db*
 runner/.pytest_cache/
+
+# Password-reset emails written by the e2e backend
+backend/e2e-outbox/
+backend/e2e-outbox-*/
+backend/e2e-access*.log
+backend/e2e-demo-outbox-*/
+backend/e2e-demo-fingerprint-*.txt
+backend/outbox/
+
+# Generated label-review packets (python -m evals.review_packet)
+backend/evals/reviews/out/
+
+# Case-level results of sealed runs: kept out of the repository (the reports in
+# backend/evals/results keep aggregates only). Regenerate from the frozen commit if needed;
+# opening them consumes the sealed sets (backend/evals/sealed/ACCESS.md).
+backend/evals/sealed/results/
+deploy/.rehearsal.override.yml
+# Host-specific: the backup service's age public keys (not secret, but not this repository's).
+deploy/backup-recipients.txt

@@ -1,6 +1,9 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+
+import { ApiError } from "@/api/client";
+import { api } from "@/api/endpoints";
 
 import {
   queryKeys,
@@ -10,18 +13,25 @@ import {
   useInterviewMessage,
   useProblem,
 } from "@/api/queries";
-import type { Interview } from "@/api/types";
+import type { AnswerSource, Interview } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
-import { Badge, DifficultyBadge } from "@/components/Badge";
+import { DifficultyBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
-import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { PrivateUnavailable } from "@/components/Unavailable";
+import { isGone } from "@/lib/errors";
+import { FocusToggle } from "@/features/display/FocusToggle";
 import { CodeEditor } from "@/features/workspace/CodeEditor";
 import { useDraft } from "@/features/workspace/useDraft";
+import { clearStoredDraft, useStoredDraft } from "@/hooks/useStoredDraft";
+import { EngagementMeter } from "@/features/voice/EngagementMeter";
+import { useInterviewerVoice } from "@/features/voice/useInterviewerVoice";
+import { VoiceComposer } from "@/features/voice/VoiceComposer";
+import { useVoicePrefs } from "@/features/voice/voicePrefs";
 
 import { PhaseStepper } from "./PhaseStepper";
-import { OVERALL_LABELS } from "./phases";
-import { RubricChart } from "./RubricChart";
+import { LiveRound } from "./QuestionRound";
+import { ReviewWorkspace } from "@/features/review/ReviewWorkspace";
 import { Transcript } from "./Transcript";
 import { formatClock, useCountdown } from "./useCountdown";
 import { Icon } from "@/components/Icon";
@@ -30,22 +40,60 @@ export default function InterviewSessionPage() {
   const { id = "" } = useParams();
   const interview = useInterview(id);
   if (interview.isPending) return <LoadingState label="Loading interview…" />;
-  if (interview.isError) return <div className="page"><ErrorState error={interview.error} onRetry={() => interview.refetch()} /></div>;
-  return interview.data.status === "in_progress"
-    ? <LiveInterview key={interview.data.id} iv={interview.data} />
-    : <InterviewResults iv={interview.data} />;
+  // Nothing loaded: the error is all there is. Once the interview is on screen, a failed refresh
+  // (focus, the clock running out, the check after a dropped send) keeps it there, with a notice.
+  if (interview.isError && !interview.data && isGone(interview.error)) {
+    return <PrivateUnavailable what="interview" list={{ to: "/history?type=interview", label: "All your interviews" }} />;
+  }
+  if (interview.isError && !interview.data) {
+    return <div className="page"><ErrorState error={interview.error} onRetry={() => interview.refetch()} /></div>;
+  }
+  const iv = interview.data;
+  const stale = interview.isError && (
+    <div className="page page--notice">
+      <div className="banner banner--warning row" role="status">
+        <span>We couldn't check this interview for updates just now. This is how it was last loaded; what you type is kept.</span>
+        <Button size="sm" loading={interview.isFetching} onClick={() => void interview.refetch()}>Check again</Button>
+      </div>
+    </div>
+  );
+  const live = iv.status === "in_progress";
+  if (!live) return <>{stale}<ReviewWorkspace iv={iv} /></>;
+  if (iv.kind === "questions") return <>{stale}<LiveRound key={iv.id} iv={iv} /></>;
+  if (!iv.problem) return <div className="page"><ErrorState error={new Error("This interview's problem is no longer available.")} /></div>;
+  return <>{stale}<LiveInterview key={iv.id} iv={iv} problemSlug={iv.problem.slug} /></>;
 }
 
-function LiveInterview({ iv }: { iv: Interview }) {
+function LiveInterview({ iv, problemSlug }: { iv: Interview; problemSlug: string }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const problem = useProblem(iv.problem.slug);
+  const problem = useProblem(problemSlug);
+  const [prefs, setPrefs] = useVoicePrefs();
+  const voice = useInterviewerVoice(prefs);
   const draft = useDraft(`interview-${iv.id}`, problem.data?.starter_code ?? "", user?.id ?? "anon");
   const send = useInterviewMessage(iv.id);
   const finish = useFinishInterview(iv.id);
   const abandon = useAbandonInterview(iv.id);
-  const [message, setMessage] = useState("");
-  const [pending, setPending] = useState<string | null>(null);
+  const messageKey = `codecoach.interview-message.${iv.id}`;
+  const [message, setMessage] = useStoredDraft(messageKey);
+  // The message being sent, and how many turns the transcript had when it was sent. It is shown
+  // only until the transcript grows: the server's copy replaces it in the same render, so the
+  // message never appears twice (the cache update and clearing this state are separate steps).
+  const [pending, setPending] = useState<{ text: string; baseline: number } | null>(null);
+  const pendingText = pending && iv.turns.length === pending.baseline ? pending.text : null;
+  // Which candidate turns this tab sent (by position). Any other new one came from another tab or
+  // device: the page says so, and the unsent text here stays in the box. The server refuses a
+  // message written against an older transcript (409 interview_advanced), so nothing is appended
+  // out of context.
+  const [mine, setMine] = useState<ReadonlySet<number>>(() => new Set());
+  const [seenAtOpen] = useState(iv.turns.length);
+  const fromElsewhere = iv.turns.filter((t) => t.role === "candidate" && t.seq >= seenAtOpen && !mine.has(t.seq)).length;
+  const markMine = (seq: number, sent: boolean) =>
+    setMine((m) => { const next = new Set(m); if (sent) next.add(seq); else next.delete(seq); return next; });
+  const [acknowledged, setAcknowledged] = useState(0);
+  // A resend of the same text (after a lost response) keeps its request id: the server answers it
+  // with what it already did, instead of a second reply.
+  const request = useRef<{ text: string; id: string } | null>(null);
   const seconds = useCountdown(iv.deadline_at, true);
   const ready = iv.phase === null; // interviewer wrapped up
   const busy = send.isPending || finish.isPending || abandon.isPending;
@@ -56,25 +104,53 @@ function LiveInterview({ iv }: { iv: Interview }) {
     if (seconds === 0) void queryClient.invalidateQueries({ queryKey: queryKeys.interview(iv.id) });
   }, [seconds, iv.id, queryClient]);
 
-  async function onSend(e?: FormEvent) {
-    e?.preventDefault();
+  const lastInterviewer = [...iv.turns].reverse().find((t) => t.role === "interviewer");
+  const lastEngagement = [...iv.turns].reverse().find((t) => t.role === "candidate" && t.engagement)?.engagement ?? null;
+  const { autoSpeak } = voice;
+  // The code editor's Ctrl/⌘+Enter sends through the answer box's own checks (not while the
+  // microphone is on, never twice, with the right typed/spoken record).
+  const composerSubmit = useRef<(() => void) | null>(null);
+  // Read each new interviewer message aloud, if chosen.
+  useEffect(() => {
+    if (prefs.readAloud && lastInterviewer) autoSpeak(lastInterviewer.content);
+  }, [lastInterviewer?.seq, prefs.readAloud, autoSpeak]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function onSend(source: AnswerSource = "typed"): Promise<boolean> {
     const text = message.trim();
-    if (!text || !canSend) return;
-    setPending(text);
+    if (!text || !canSend) return false;
+    const baseline = iv.turns.length;
+    if (request.current?.text !== text) request.current = { text, id: requestId() };
+    setPending({ text, baseline });
     setMessage("");
+    markMine(baseline, true);
     try {
-      await send.mutateAsync({ message: text, code: draft.code });
-    } catch {
-      setMessage(text); // give the text back so nothing is lost
+      await send.mutateAsync({ message: text, code: draft.code, source, after_seq: baseline, client_request_id: request.current.id });
+      request.current = null;
+      clearStoredDraft(messageKey);
+      return true;
+    } catch (err) {
+      markMine(baseline, false);
+      if (err instanceof ApiError && err.code === "network_error") {
+        // The server may have taken it before the line dropped: look, rather than send it again.
+        const fresh = await queryClient
+          .fetchQuery({ queryKey: queryKeys.interview(iv.id), queryFn: () => api.interview(iv.id), staleTime: 0 })
+          .catch(() => null);
+        const landed = fresh?.turns.find((t) => t.seq === baseline && t.role === "candidate");
+        if (landed && landed.content.trim() === text) {
+          markMine(baseline, true);
+          request.current = null;
+          clearStoredDraft(messageKey);
+          send.reset();
+          return true;
+        }
+      }
+      if (err instanceof ApiError && err.code === "interview_advanced") {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.interview(iv.id) }); // show the latest
+      }
+      setMessage(text); // give the text back (and save it again) so nothing is lost
+      return false;
     } finally {
       setPending(null);
-    }
-  }
-
-  function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      void onSend();
     }
   }
 
@@ -83,9 +159,9 @@ function LiveInterview({ iv }: { iv: Interview }) {
     <div className="interview">
       <header className="interview__bar">
         <div className="row">
-          <h1 className="interview__title">{iv.problem.title}</h1>
-          <DifficultyBadge difficulty={iv.problem.difficulty} />
-          <Link to={`/problems/${iv.problem.slug}`} target="_blank" rel="noreferrer" className="subtle interview__statement-link">Problem statement <Icon name="arrow" size={14} /><span className="visually-hidden">(opens in a new tab)</span></Link>
+          <h1 className="interview__title">{iv.problem?.title}</h1>
+          {iv.problem && <DifficultyBadge difficulty={iv.problem.difficulty} />}
+          <Link to={`/problems/${problemSlug}`} target="_blank" rel="noreferrer" className="subtle interview__statement-link">Problem statement <Icon name="arrow" size={14} /><span className="visually-hidden">(opens in a new tab)</span></Link>
         </div>
         <PhaseStepper phaseIndex={iv.phase_index} />
         <div className="row">
@@ -93,8 +169,12 @@ function LiveInterview({ iv }: { iv: Interview }) {
             <Icon name="clock" size={17} />
             {formatClock(seconds)}
           </span>
+          <FocusToggle />
+          <Link to="/interviews" className="btn btn--ghost btn--sm">Leave for now</Link>
           <Button size="sm" variant="ghost" loading={abandon.isPending} disabled={busy}
-            onClick={() => { if (window.confirm("End the interview now? You'll still get feedback.")) abandon.mutate(); }}>
+            onClick={() => {
+              if (window.confirm("End the interview for good? You'll get feedback on what you've covered so far. To come back to it later instead, choose Leave for now: the timer keeps running.")) abandon.mutate();
+            }}>
             End early
           </Button>
           <Button size="sm" variant={ready ? "primary" : "secondary"} loading={finish.isPending} disabled={busy}
@@ -107,19 +187,33 @@ function LiveInterview({ iv }: { iv: Interview }) {
       <div className="interview__body">
         <section className="interview__chat" aria-label="Conversation">
           {iv.phase_guide && <p className="interview__guide subtle">Now: {iv.phase_guide}</p>}
-          <Transcript turns={iv.turns} pending={pending} />
-          <form className="composer" onSubmit={onSend}>
-            <label className="visually-hidden" htmlFor="iv-message">Your answer</label>
-            <textarea id="iv-message" className="input composer__input" rows={3} maxLength={4000}
-              disabled={ready || seconds === 0 || iv.candidate_turns_remaining === 0 || finish.isPending || abandon.isPending}
-              placeholder={ready ? "The interviewer has wrapped up. Click Finish to see your feedback." : "Think out loud… (Ctrl/⌘ + Enter to send)"}
-              value={message} onChange={(e) => setMessage(e.target.value)} onKeyDown={onKeyDown} />
-            <div className="composer__actions">
-              <span className="subtle">{iv.candidate_turns_remaining} messages left</span>
-              <Button type="submit" variant="primary" loading={send.isPending} disabled={!message.trim() || !canSend}>Send</Button>
+          <p className="subtle interview__leave-note">The timer keeps running on the server if you leave. Resume from any tab or device.</p>
+          {fromElsewhere > acknowledged && (
+            <div className="banner row" role="status">
+              <span>Updated from another tab or device: the latest is above. Your unsent text here is still in the box.</span>
+              <Button size="sm" variant="ghost" onClick={() => setAcknowledged(fromElsewhere)}>OK</Button>
             </div>
-            <InlineError error={send.error ?? finish.error ?? abandon.error} />
-          </form>
+          )}
+          <Transcript turns={iv.turns} pending={pendingText} />
+          {prefs.captions && voice.speaking && voice.caption && (
+            <p className="voice-caption"><span className="voice-caption__who">Interviewer:</span> {voice.caption}</p>
+          )}
+          <div className="focus-hide display-contents">
+            <EngagementMeter engagement={lastEngagement} visible={prefs.showEngagement}
+              onToggle={() => setPrefs({ showEngagement: !prefs.showEngagement })} />
+          </div>
+          <VoiceComposer
+            id="iv-message" label="Your answer" value={message} onChange={setMessage} onSubmit={onSend}
+            submitting={send.isPending} rows={3} maxLength={4000} submitLabel="Send" voice={voice} submitRef={composerSubmit}
+            disabled={ready || seconds === 0 || iv.candidate_turns_remaining === 0 || finish.isPending || abandon.isPending}
+            placeholder={ready ? "The interviewer has wrapped up. Click Finish to see your feedback." : "Think out loud… (Ctrl/⌘ + Enter to send)"}
+            hint={`${iv.candidate_turns_remaining} messages left`} errorId={send.error ?? finish.error ?? abandon.error ? "iv-error" : undefined}
+            extraActions={voice.supported ? (
+              <Button type="button" variant="ghost" disabled={!lastInterviewer || voice.speaking}
+                onClick={() => lastInterviewer && voice.speak(lastInterviewer.content)}>Replay interviewer</Button>
+            ) : undefined}
+          />
+          <InlineError id="iv-error" error={send.error ?? finish.error ?? abandon.error} />
         </section>
         <section className="interview__code" aria-label="Your code">
           <div className="editor-toolbar">
@@ -127,7 +221,7 @@ function LiveInterview({ iv }: { iv: Interview }) {
             <span className="subtle">Your code is shared with the interviewer when you send a message.</span>
           </div>
           {problem.isError ? <ErrorState error={problem.error} onRetry={() => void problem.refetch()} />
-            : problem.data ? <CodeEditor value={draft.code} onChange={draft.setCode} onSubmit={() => void onSend()} />
+            : problem.data ? <CodeEditor value={draft.code} onChange={draft.setCode} onSubmit={() => composerSubmit.current?.()} />
               : <LoadingState label="Loading editor…" />}
         </section>
       </div>
@@ -135,58 +229,8 @@ function LiveInterview({ iv }: { iv: Interview }) {
   );
 }
 
-function InterviewResults({ iv }: { iv: Interview }) {
-  const ev = iv.evaluation;
-  const overall = ev ? OVERALL_LABELS[ev.overall] : null;
-  const [showTranscript, setShowTranscript] = useState(false);
-  const ending = { completed: "Completed", expired: "Time ran out", abandoned: "Ended early", in_progress: "" }[iv.status];
-  return (
-    <div className="page interview-results">
-      <div className="page__header">
-        <div>
-          <h1 className="page__title">Interview feedback</h1>
-          <p className="page__subtitle">{iv.problem.title} · {ending}</p>
-        </div>
-        <div className="row">
-          <Link to="/interviews" className="btn btn--primary btn--md">Start another</Link>
-          <Link to={`/problems/${iv.problem.slug}`} className="btn btn--secondary btn--md">Practice this problem</Link>
-        </div>
-      </div>
-
-      {ev ? (
-        <div className="interview-results__grid">
-          <Card className="stack">
-            <div className="row">
-              <h2 className="section-title">Overall</h2>
-              {overall && <Badge tone={overall.tone}>{overall.label}</Badge>}
-              <span className="subtle">confidence: {ev.confidence}</span>
-            </div>
-            <p className="interview-results__summary">{ev.summary}</p>
-            <RubricChart scores={ev.scores} />
-          </Card>
-          <div className="stack">
-            <Card className="stack">
-              <h2 className="section-title">What went well</h2>
-              <ul className="strengths">{ev.strengths.map((s) => <li key={s}>{s}</li>)}</ul>
-            </Card>
-            <Card className="stack">
-              <h2 className="section-title">Focus next time</h2>
-              <ul className="strengths">{ev.improvements.map((s) => <li key={s}>{s}</li>)}</ul>
-            </Card>
-            <p className="subtle">Feedback by: {iv.provider ?? "offline"}. It's a practice signal, not a hiring decision.</p>
-          </div>
-        </div>
-      ) : (
-        <p className="muted">No feedback was recorded for this interview.</p>
-      )}
-
-      <div className="stack interview-results__transcript">
-        <Button variant="ghost" onClick={() => setShowTranscript((s) => !s)} aria-expanded={showTranscript}>
-          {showTranscript ? "Hide transcript" : `Show transcript (${iv.turns.length} messages)`}
-        </Button>
-        {showTranscript && <Transcript turns={iv.turns} />}
-        {showTranscript && iv.final_code && <pre className="final-code">{iv.final_code}</pre>}
-      </div>
-    </div>
-  );
+function requestId(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `msg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }

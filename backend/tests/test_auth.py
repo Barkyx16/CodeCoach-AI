@@ -44,10 +44,10 @@ def test_me_requires_valid_token(client):
     assert bad.headers["WWW-Authenticate"] == "Bearer"
 
 
-def test_logout_revokes_existing_tokens(client):
+def test_logout_all_revokes_existing_tokens(client):
     headers = auth_headers(register(client))
     assert client.get("/api/v1/auth/me", headers=headers).status_code == 200
-    assert client.post("/api/v1/auth/logout", headers=headers).status_code == 204
+    assert client.post("/api/v1/auth/logout-all", headers=headers).status_code == 204
     assert client.get("/api/v1/auth/me", headers=headers).status_code == 401
 
 
@@ -96,3 +96,50 @@ def test_tokens_signed_with_other_secret_or_expired_are_rejected():
     assert decode_access_token(secret, expired) is None
     good, _ = issue_access_token(secret, user_id="u1", token_version=3, ttl=timedelta(minutes=5))
     assert decode_access_token(secret, good)["ver"] == 3
+
+
+def test_a_guest_can_become_a_full_account_and_keep_everything(client):
+    g = client.post("/api/v1/auth/guest").json()
+    h = {"Authorization": f"Bearer {g['access_token']}"}
+    client.post("/api/v1/ai/hint", headers=h, json={"problem_slug": "two-sum", "level": 1})
+    r = client.post(
+        "/api/v1/auth/upgrade",
+        headers=h,
+        json={"email": "Grace@Example.com", "password": "CorrectHorse42", "display_name": "Grace"},
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["user"]["id"] == g["user"]["id"]  # same account, same data
+    assert body["user"]["is_guest"] is False and body["user"]["email"] == "grace@example.com"
+    assert "cc_refresh=" in r.headers["set-cookie"]
+    history = client.get("/api/v1/me/ai-history", headers={"Authorization": f"Bearer {body['access_token']}"})
+    assert history.json()["total"] == 1
+    login = client.post(
+        "/api/v1/auth/login", json={"email": "grace@example.com", "password": "CorrectHorse42"}
+    )
+    assert login.status_code == 200 and login.json()["user"]["id"] == g["user"]["id"]
+
+
+def test_upgrade_rules(client):
+    taken = register(client)
+    g = client.post("/api/v1/auth/guest").json()
+    h = {"Authorization": f"Bearer {g['access_token']}"}
+    r = client.post(
+        "/api/v1/auth/upgrade", headers=h, json={"email": "ada@example.com", "password": "CorrectHorse42"}
+    )
+    assert r.status_code == 409 and r.json()["error"]["code"] == "email_taken"
+    r = client.post("/api/v1/auth/upgrade", headers=h, json={"email": "new@example.com", "password": "weak"})
+    assert r.status_code == 422
+    member = {"Authorization": f"Bearer {taken['access_token']}"}
+    r = client.post(
+        "/api/v1/auth/upgrade",
+        headers=member,
+        json={"email": "other@example.com", "password": "CorrectHorse42"},
+    )
+    assert r.status_code == 409 and r.json()["error"]["code"] == "not_a_guest"
+    assert (
+        client.post(
+            "/api/v1/auth/upgrade", json={"email": "x@example.com", "password": "CorrectHorse42"}
+        ).status_code
+        == 401
+    )

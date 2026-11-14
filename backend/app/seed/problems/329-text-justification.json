@@ -1,0 +1,239 @@
+{
+  "order": 329,
+  "slug": "text-justification",
+  "title": "Text Justification",
+  "difficulty": "hard",
+  "topics": [
+    "strings",
+    "simulation",
+    "greedy"
+  ],
+  "summary": "Lay out words into fully justified lines of a fixed width.",
+  "statement": "Format `words` into lines of exactly `maxWidth` characters. Pack as many words as fit on each line (with at\nleast one space between words). Spread extra spaces as evenly as possible between words; if they don't\ndivide evenly, the leftmost gaps get more. The last line, and any line with a single word, is\nleft-justified with single spaces and padded with spaces on the right.",
+  "constraints": [
+    "1 <= words.length <= 300",
+    "1 <= words[i].length <= maxWidth <= 100"
+  ],
+  "examples": [
+    {
+      "input": "words = [\"This\", \"is\", \"an\", \"example\", \"of\", \"text\", \"justification.\"], maxWidth = 16",
+      "output": "[\"This    is    an\", \"example  of text\", \"justification.  \"]"
+    },
+    {
+      "input": "words = [\"What\", \"must\", \"be\", \"acknowledgment\", \"shall\", \"be\"], maxWidth = 16",
+      "output": "[\"What   must   be\", \"acknowledgment  \", \"shall be        \"]"
+    },
+    {
+      "input": "words = [\"Science\", \"is\", \"what\", \"we\", \"understand\", \"well\", \"enough\", \"to\", \"explain\", \"to\", \"a\", \"computer.\", \"Art\", \"is\", \"everything\", \"else\", \"we\", \"do\"], maxWidth = 20",
+      "output": "[\"Science  is  what we\", \"understand      well\", \"enough to explain to\", \"a  computer.  Art is\", \"everything  else  we\", \"do                  \"]"
+    }
+  ],
+  "signature": {
+    "method": "fullJustify",
+    "params": [
+      {
+        "name": "words",
+        "type": "String[]"
+      },
+      {
+        "name": "maxWidth",
+        "type": "int"
+      }
+    ],
+    "returns": "String[]"
+  },
+  "starter_code": "class Solution {\n    public String[] fullJustify(String[] words, int maxWidth) {\n        // TODO: write your solution here\n        return new String[0];\n    }\n}\n",
+  "hints": [
+    "Decide which words go on each line first, then worry about spacing.",
+    "Greedily add words while `letters + (words - 1) <= maxWidth`. For a normal line, spread `maxWidth - letters` spaces over `words - 1` gaps.",
+    "while words remain:\n    take as many as fit\n    if last line or one word: join with ' ' and pad right\n    else: gaps = count - 1; each gap gets spaces // gaps, and the first spaces % gaps gaps get one more\nreturn lines",
+    "O(total characters). The two special cases (last line, single word) are where most bugs hide."
+  ],
+  "expected_complexity": {
+    "time": "O(n \u00b7 maxWidth)",
+    "space": "O(n \u00b7 maxWidth)"
+  },
+  "tests": [
+    {
+      "input": {
+        "words": [
+          "This",
+          "is",
+          "an",
+          "example",
+          "of",
+          "text",
+          "justification."
+        ],
+        "maxWidth": 16
+      },
+      "expected_output": [
+        "This    is    an",
+        "example  of text",
+        "justification.  "
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "words": [
+          "What",
+          "must",
+          "be",
+          "acknowledgment",
+          "shall",
+          "be"
+        ],
+        "maxWidth": 16
+      },
+      "expected_output": [
+        "What   must   be",
+        "acknowledgment  ",
+        "shall be        "
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "words": [
+          "Science",
+          "is",
+          "what",
+          "we",
+          "understand",
+          "well",
+          "enough",
+          "to",
+          "explain",
+          "to",
+          "a",
+          "computer.",
+          "Art",
+          "is",
+          "everything",
+          "else",
+          "we",
+          "do"
+        ],
+        "maxWidth": 20
+      },
+      "expected_output": [
+        "Science  is  what we",
+        "understand      well",
+        "enough to explain to",
+        "a  computer.  Art is",
+        "everything  else  we",
+        "do                  "
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "words": [
+          "a"
+        ],
+        "maxWidth": 1
+      },
+      "expected_output": [
+        "a"
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "words": [
+          "u",
+          "qckxnbk",
+          "zcyny",
+          "qyzmp",
+          "lwvyfcmrp",
+          "tbx",
+          "ecalrb",
+          "fxq",
+          "srtwaxm",
+          "tdofnlwsk"
+        ],
+        "maxWidth": 9
+      },
+      "expected_output": [
+        "u qckxnbk",
+        "zcyny    ",
+        "qyzmp    ",
+        "lwvyfcmrp",
+        "tbx      ",
+        "ecalrb   ",
+        "fxq      ",
+        "srtwaxm  ",
+        "tdofnlwsk"
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "words": [
+          "atl",
+          "tjs",
+          "z",
+          "si",
+          "wpy",
+          "g",
+          "w",
+          "dls"
+        ],
+        "maxWidth": 3
+      },
+      "expected_output": [
+        "atl",
+        "tjs",
+        "z  ",
+        "si ",
+        "wpy",
+        "g w",
+        "dls"
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "words": [
+          "g",
+          "roy",
+          "lxfjkyz",
+          "woyk",
+          "yncswtxw",
+          "aty",
+          "vlxf"
+        ],
+        "maxWidth": 9
+      },
+      "expected_output": [
+        "g     roy",
+        "lxfjkyz  ",
+        "woyk     ",
+        "yncswtxw ",
+        "aty vlxf "
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "words": [
+          "rlygwnqpe",
+          "dmytq",
+          "kn",
+          "gvgauth",
+          "uelmynby"
+        ],
+        "maxWidth": 12
+      },
+      "expected_output": [
+        "rlygwnqpe   ",
+        "dmytq     kn",
+        "gvgauth     ",
+        "uelmynby    "
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

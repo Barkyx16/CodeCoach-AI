@@ -1,0 +1,246 @@
+{
+  "order": 171,
+  "slug": "diagonal-sum",
+  "title": "Matrix Diagonal Sum",
+  "difficulty": "easy",
+  "topics": [
+    "matrix"
+  ],
+  "summary": "Add up both diagonals of a square matrix.",
+  "statement": "Return the sum of the primary diagonal and the secondary diagonal of the square matrix `mat`.\nIf the size is odd, count the center cell only once.",
+  "constraints": [
+    "1 <= n <= 100",
+    "1 <= mat[i][j] <= 100"
+  ],
+  "examples": [
+    {
+      "input": "mat = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]",
+      "output": "25"
+    },
+    {
+      "input": "mat = [[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]",
+      "output": "8"
+    },
+    {
+      "input": "mat = [[5]]",
+      "output": "5"
+    }
+  ],
+  "signature": {
+    "method": "diagonalSum",
+    "params": [
+      {
+        "name": "mat",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int diagonalSum(int[][] mat) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Row `i` touches the primary diagonal at column `i` and the secondary at column `n-1-i`.",
+    "Add both for each row, but when they're the same cell (odd n, middle row) add it once.",
+    "total = 0\nfor i in range(n):\n    total += mat[i][i]\n    if i != n-1-i: total += mat[i][n-1-i]\nreturn total",
+    "One pass over rows: O(n), not O(n^2)."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "mat": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            4,
+            5,
+            6
+          ],
+          [
+            7,
+            8,
+            9
+          ]
+        ]
+      },
+      "expected_output": 25,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "mat": [
+          [
+            1,
+            1,
+            1,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            1
+          ]
+        ]
+      },
+      "expected_output": 8,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "mat": [
+          [
+            5
+          ]
+        ]
+      },
+      "expected_output": 5,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "mat": [
+          [
+            9,
+            1
+          ],
+          [
+            2,
+            1
+          ]
+        ]
+      },
+      "expected_output": 13,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "mat": [
+          [
+            4,
+            1,
+            6,
+            6
+          ],
+          [
+            1,
+            9,
+            9,
+            9
+          ],
+          [
+            2,
+            4,
+            8,
+            4
+          ],
+          [
+            6,
+            6,
+            8,
+            9
+          ]
+        ]
+      },
+      "expected_output": 55,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "mat": [
+          [
+            9,
+            4,
+            8,
+            5,
+            3,
+            4
+          ],
+          [
+            6,
+            2,
+            7,
+            7,
+            4,
+            7
+          ],
+          [
+            5,
+            6,
+            7,
+            7,
+            8,
+            3
+          ],
+          [
+            6,
+            7,
+            7,
+            3,
+            9,
+            1
+          ],
+          [
+            7,
+            8,
+            2,
+            9,
+            7,
+            9
+          ],
+          [
+            4,
+            7,
+            5,
+            2,
+            7,
+            5
+          ]
+        ]
+      },
+      "expected_output": 67,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "mat": [
+          [
+            8,
+            5,
+            4
+          ],
+          [
+            1,
+            9,
+            1
+          ],
+          [
+            5,
+            7,
+            5
+          ]
+        ]
+      },
+      "expected_output": 31,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

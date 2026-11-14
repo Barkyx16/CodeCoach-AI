@@ -1,30 +1,30 @@
 /*
  * Design tokens: the single source of truth for the visual system.
  * The design pass (docs/FRONTEND_HANDOFF.md) should change values HERE, not in components.
- * Direction from the blueprint: deep navy workspace, high-contrast text, restrained
- * cyan/blue actions, semantic success/error colors, crisp type, generous spacing.
+ * Direction: near-black workspace with violet surfaces, high-contrast text, a pink-to-violet
+ * brand sweep for actions and accents, semantic success/error colors, crisp type, generous spacing.
  */
 :root {
   /* Surfaces */
-  --color-bg: #080d18;
-  --color-surface: #101a2b;
-  --color-surface-raised: #17243a;
-  --color-surface-sunken: #0b1220;
-  --color-border: #25344b;
-  --color-border-strong: #3c5272;
+  --color-bg: #07060c;
+  --color-surface: #110e1b;
+  --color-surface-raised: #1b1729;
+  --color-surface-sunken: #0b0912;
+  --color-border: #2b2541;
+  --color-border-strong: #463c6b;
 
   /* Text */
-  --color-text: #f3f6fc;
-  --color-text-muted: #a8b7ce;
-  --color-text-subtle: #99aac4;
+  --color-text: #f6f3ff;
+  --color-text-muted: #bdb5d6;
+  --color-text-subtle: #aca3cb;
   --color-text-inverse: #ffffff;
 
   /* Brand / actions */
-  --color-primary: #2f6feb;
-  --color-primary-hover: #2864d6;
-  --color-primary-soft: rgba(47, 111, 235, 0.12);
-  --color-link: #8cb8ff;
-  --color-accent: #8cb8ff;
+  --color-primary: #7c3aed;
+  --color-primary-hover: #6d28d9;
+  --color-primary-soft: rgba(139, 92, 246, 0.16);
+  --color-link: #c4b5fd;
+  --color-accent: #f0abfc;
 
   /* Semantic */
   --color-success: #34d399;
@@ -33,7 +33,7 @@
   --color-warning-soft: rgba(251, 191, 36, 0.12);
   --color-danger: #f08086;
   --color-danger-soft: rgba(248, 113, 113, 0.12);
-  --color-info: #60a5fa;
+  --color-info: #7cb4fb;
   --color-info-soft: rgba(96, 165, 250, 0.12);
 
   /* Difficulty */
@@ -41,16 +41,16 @@
   --color-medium: var(--color-warning);
   --color-hard: var(--color-danger);
 
-  /* Data visualization: validated with the dataviz skill's palette checker against
-     --color-surface (#101a2b). Ordinal blue ramp; change values here, re-run the validator. */
-  --viz-solved: #8cb8ff;      /* ordinal step 400 */
-  --viz-attempted: #3266a8;   /* ordinal step 600, clears 2:1 vs surface */
-  --viz-track: #15223b;       /* unfilled track: one step off the surface */
-  --viz-heat-0: #15223b;      /* zero activity: recedes toward the surface (sequential rule) */
-  --viz-heat-1: #3266a8;
-  --viz-heat-2: #5388ca;
-  --viz-heat-3: #8cb8ff;
-  --viz-heat-4: #c8dcff;
+  /* Data visualization: validated with the dataviz skill's palette checker (--ordinal) against
+     --color-surface (#110e1b; light: #ffffff). Ordinal violet ramp; change values here, re-run the validator. */
+  --viz-solved: #b39cfb;      /* ordinal step 400 */
+  --viz-attempted: #6446b8;   /* ordinal step 600, clears 2:1 vs surface */
+  --viz-track: #1e1830;       /* unfilled track: one step off the surface */
+  --viz-heat-0: #1e1830;      /* zero activity: recedes toward the surface (sequential rule) */
+  --viz-heat-1: #6446b8;
+  --viz-heat-2: #8667d6;
+  --viz-heat-3: #b39cfb;
+  --viz-heat-4: #ddd2ff;
 
   /* Typography */
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -88,7 +88,7 @@
   --radius-full: 999px;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
-  --focus-ring: 0 0 0 3px #a9caff;
+  --focus-ring: 0 0 0 3px #c4b5fd;
 
   /* Motion */
   --duration-fast: 120ms;
@@ -96,13 +96,184 @@
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 
   /* Layout */
-  --header-height: 72px;
+  --header-height: 3.75rem; /* 60px at default text size; grows with the text-size preference */
   --content-max-width: 1240px;
+
+  /* Tints: decorative washes and hairlines, themed like everything else */
+  --color-header-bg: rgba(7, 6, 12, 0.86);
+  --tint-panel: #1b172999;
+  --tint-hover: #1b172990;
+  --tint-link-border: #c4b5fd40;
+  --tint-link-faint: #c4b5fd0d;
+  --tint-success-border: #34d39940;
+  --tint-warning-border: #fbbf2440;
+  --tint-info-border: #60a5fa40;
+  --tint-danger-border: rgba(240, 128, 134, 0.4);
+  --tint-hairline: #ffffff0a;
+  /* Purple-and-black brand: a pink-to-violet sweep. Decorative (gradients, glows, the active
+     marker); buttons use the darker sweep, where white text stays >= 4.5:1 on every stop. */
+  --gradient-brand: linear-gradient(100deg, #f472b6 0%, #c084fc 45%, #8b5cf6 75%, #6d28d9 100%);
+  --gradient-button: linear-gradient(110deg, #c026d3 0%, #9333ea 50%, #6d28d9 100%);
+  --gradient-button-hover: linear-gradient(110deg, #a21caf 0%, #7e22ce 50%, #5b21b6 100%);
+  --color-primary-border: rgba(167, 139, 250, 0.35);
+  --color-panel-bg: linear-gradient(180deg, #0d0b16 0%, #0a0911 100%);
+  --glow-brand: 0 0 0 1px rgba(167, 139, 250, 0.22), 0 12px 40px -12px rgba(139, 92, 246, 0.5);
+  --gradient-text: linear-gradient(100deg, #f9a8d4 0%, #d8b4fe 50%, #a78bfa 100%); /* >= 7:1 on --color-bg */
+  --page-glow: radial-gradient(1100px 520px at 12% -10%, rgba(139, 92, 246, 0.16), transparent 60%),
+    radial-gradient(900px 480px at 100% 0%, rgba(236, 72, 153, 0.09), transparent 55%);
+  color-scheme: dark;
+}
+
+/*
+ * Light theme. Every text/background pair used in the app was checked (WCAG 2.x relative
+ * luminance): text, muted, subtle, link and semantic colors are >= 4.5:1 on bg, surface and
+ * raised; white on primary is >= 4.5:1. src/test/contrast.test.ts re-checks these values.
+ */
+:root[data-theme="light"] {
+  --color-bg: #f7f5fc;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f1edfa;
+  --color-surface-sunken: #f4f1fb;
+  --color-border: #ddd6ee;
+  --color-border-strong: #a89cc8;
+  --color-text: #140f24;
+  --color-text-muted: #463d5e;
+  --color-text-subtle: #51486a;
+  --color-text-inverse: #ffffff;
+  --color-primary: #6d28d9;
+  --color-primary-hover: #5b21b6;
+  --color-primary-soft: rgba(109, 40, 217, 0.1);
+  --color-link: #5b21b6;
+  --color-accent: #5b21b6;
+  --color-success: #0b6b44;
+  --color-success-soft: rgba(11, 107, 68, 0.1);
+  --color-warning: #7a4f00;
+  --color-warning-soft: rgba(176, 116, 0, 0.12);
+  --color-danger: #a8202d;
+  --color-danger-soft: rgba(168, 32, 45, 0.08);
+  --color-info: #1a56a8;
+  --color-info-soft: rgba(26, 86, 168, 0.1);
+  --viz-solved: #5f33c4;
+  --viz-attempted: #a68bea;
+  --viz-track: #ece6f8;
+  --viz-heat-0: #ece6f8;
+  --viz-heat-1: #a68bea;
+  --viz-heat-2: #835fdc;
+  --viz-heat-3: #5f33c4;
+  --viz-heat-4: #3c138c;
+  --shadow-sm: 0 1px 2px rgba(15, 26, 43, 0.12);
+  --shadow-md: 0 8px 24px rgba(15, 26, 43, 0.12);
+  --focus-ring: 0 0 0 3px #5b21b6;
+  --color-header-bg: rgba(255, 255, 255, 0.96);
+  --tint-panel: #f1edfa;
+  --tint-hover: #ebe5f8;
+  --tint-link-border: #5b21b640;
+  --tint-link-faint: #5b21b60d;
+  --tint-success-border: #0b6b4440;
+  --tint-warning-border: #7a4f0040;
+  --tint-info-border: #1a56a840;
+  --tint-danger-border: rgba(168, 32, 45, 0.35);
+  --tint-hairline: #140f2414;
+  color-scheme: light;
+  --gradient-brand: linear-gradient(100deg, #db2777 0%, #9333ea 50%, #6d28d9 100%);
+  --color-primary-border: rgba(109, 40, 217, 0.3);
+  --color-panel-bg: #ffffff;
+  --glow-brand: 0 0 0 1px rgba(109, 40, 217, 0.18), 0 12px 32px -14px rgba(109, 40, 217, 0.35);
+  --page-glow: radial-gradient(1100px 520px at 12% -10%, rgba(139, 92, 246, 0.10), transparent 60%);
+  --gradient-text: linear-gradient(100deg, #be185d 0%, #7e22ce 50%, #5b21b6 100%); /* >= 4.5:1 on white */
+}
+
+/* Higher contrast (dark): text >= 7:1 on every surface, stronger borders, no faint washes. */
+:root[data-contrast="high"] {
+  --color-bg: #000000;
+  --color-surface: #0b0912;
+  --color-surface-raised: #17131f;
+  --color-surface-sunken: #05040a;
+  --color-border: #7d8ca3;
+  --color-border-strong: #c3cede;
+  --color-text: #ffffff;
+  --color-text-muted: #e9e4f7;
+  --color-text-subtle: #ddd6f0;
+  --color-primary: #5b21b6;
+  --color-primary-hover: #4c1d95;
+  --color-link: #ddd3ff;
+  --color-accent: #ddd3ff;
+  --color-success: #5ef0b4;
+  --color-warning: #ffd34d;
+  --color-danger: #ffa3a8;
+  --color-info: #9cc8ff;
+  --focus-ring: 0 0 0 3px #ffffff;
+  --tint-panel: transparent;
+  --tint-hover: #17131f;
+  --tint-link-border: #ddd3ff;
+  --tint-hairline: #ffffff33;
+  --gradient-button: linear-gradient(110deg, #5b21b6 0%, #4c1d95 100%);
+  --gradient-button-hover: linear-gradient(110deg, #4c1d95 0%, #3b0764 100%);
+  --page-glow: none;
+  --gradient-text: linear-gradient(var(--color-link), var(--color-link));
+}
+
+/* Higher contrast (light) */
+:root[data-theme="light"][data-contrast="high"] {
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f4f1fa;
+  --color-surface-sunken: #f7f8fa;
+  --color-border: #4b5563;
+  --color-border-strong: #1f2937;
+  --color-text: #000000;
+  --color-text-muted: #1f1a2e;
+  --color-text-subtle: #2a2340;
+  --color-primary: #4c1d95;
+  --color-primary-hover: #3b0764;
+  --color-link: #3b1580;
+  --color-accent: #3b1580;
+  --color-success: #064d31;
+  --color-warning: #5c3b00;
+  --color-danger: #7f1520;
+  --color-info: #0b3f88;
+  --focus-ring: 0 0 0 3px #000000;
+  --tint-panel: transparent;
+  --tint-hover: #f2f4f8;
+  --tint-link-border: #0a3a99;
+  --tint-hairline: #00000033;
+  --gradient-button: linear-gradient(110deg, #4c1d95 0%, #3b0764 100%);
+  --gradient-button-hover: linear-gradient(110deg, #3b0764 0%, #2e1065 100%);
+  --page-glow: none;
+  --gradient-text: linear-gradient(var(--color-link), var(--color-link));
+}
+
+/* Reading preferences: bounded text size (the code editor keeps its own font size). */
+:root[data-text="large"] { font-size: 112.5%; }
+:root[data-text="larger"] { font-size: 125%; }
+
+/* A more spacious reading layout: more line height and room between paragraphs and list items. */
+:root[data-spacing="spacious"] { --leading-normal: 1.8; }
+:root[data-spacing="spacious"] #main p,
+:root[data-spacing="spacious"] #main li { line-height: 1.8; letter-spacing: 0.01em; }
+:root[data-spacing="spacious"] #main p + p { margin-top: var(--space-4); }
+:root[data-spacing="spacious"] #main li + li { margin-top: var(--space-2); }
+
+/* Reduced motion, chosen in Settings (the device setting is honored below either way). */
+:root[data-motion="reduce"] { --duration-fast: 0ms; --duration-normal: 0ms; }
+:root[data-motion="reduce"] *,
+:root[data-motion="reduce"] *::before,
+:root[data-motion="reduce"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
   :root {
     --duration-fast: 0ms;
     --duration-normal: 0ms;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

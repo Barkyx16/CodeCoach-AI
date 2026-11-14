@@ -1,0 +1,153 @@
+{
+  "order": 355,
+  "slug": "tallest-billboard",
+  "title": "Tallest Billboard",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming"
+  ],
+  "summary": "Build two equal-height supports from rods; maximize the height.",
+  "statement": "You have rods of lengths `rods`. Weld some of them into two supports of equal height (each rod used at most\nonce, some may go unused). Return the largest possible height, or `0` if no positive height is possible.",
+  "constraints": [
+    "1 <= rods.length <= 20",
+    "1 <= rods[i] <= 1000",
+    "sum(rods) <= 5000"
+  ],
+  "examples": [
+    {
+      "input": "rods = [1, 2, 3, 6]",
+      "output": "6"
+    },
+    {
+      "input": "rods = [1, 2, 3, 4, 5, 6]",
+      "output": "10"
+    },
+    {
+      "input": "rods = [1, 2]",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "tallestBillboard",
+    "params": [
+      {
+        "name": "rods",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int tallestBillboard(int[] rods) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Each rod goes on the left, on the right, or nowhere. 3^20 is too many choices.",
+    "Track only the difference between the two sides: best[diff] = the tallest shorter side achieving that difference.",
+    "best = {0: 0}\nfor r in rods:\n    for diff, short in snapshot of best:\n        put r on the taller side: best[diff + r] = max(.., short)\n        put r on the shorter side: new diff |diff - r|, shorter side short + min(r, diff)\nreturn best[0]",
+    "There are at most sum(rods) differences: O(n \u00d7 sum) time and O(sum) space."
+  ],
+  "expected_complexity": {
+    "time": "O(n \u00b7 S)",
+    "space": "O(S)"
+  },
+  "tests": [
+    {
+      "input": {
+        "rods": [
+          1,
+          2,
+          3,
+          6
+        ]
+      },
+      "expected_output": 6,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "rods": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "expected_output": 10,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "rods": [
+          1,
+          2
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "rods": [
+          5,
+          5
+        ]
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "rods": [
+          2,
+          8,
+          5,
+          9,
+          4
+        ]
+      },
+      "expected_output": 14,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "rods": [
+          3,
+          6,
+          5,
+          7,
+          9,
+          4
+        ]
+      },
+      "expected_output": 17,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "rods": [
+          3,
+          3,
+          1,
+          6,
+          9
+        ]
+      },
+      "expected_output": 9,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "rods": [
+          5,
+          8,
+          4,
+          4,
+          3
+        ]
+      },
+      "expected_output": 12,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

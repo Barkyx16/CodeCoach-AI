@@ -8,6 +8,46 @@ def test_readiness_checks_database(client):
     r = client.get("/health/ready")
     assert r.status_code == 200
     assert r.json()["checks"]["database"] == "ok"
+    assert r.json()["checks"]["schema"] == "unmanaged"  # tests make tables with create_all
+
+
+def test_readiness_says_when_the_schema_is_behind_this_code(client):
+    """Release Readiness brief 02: new code on the previous schema fails on columns the migration
+    adds, so it isn't ready until the migration has run. An unknown (newer) revision is an
+    application revert onto an expanded schema, which the additive migrations support."""
+    from sqlalchemy import text
+
+    from app.api.routes.health import _revisions
+
+    heads, everything = _revisions()
+    head = next(iter(heads))
+    older = next(iter(everything - heads))
+    db = client.app.state.session_factory()
+    db.execute(text("CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL)"))
+    db.commit()
+    try:
+        for at, status, schema in (
+            (head, 200, "current"),
+            (older, 503, "behind"),
+            ("f00dfeedbeef", 200, "newer"),
+        ):
+            db.execute(text("DELETE FROM alembic_version"))
+            db.execute(text("INSERT INTO alembic_version (version_num) VALUES (:v)"), {"v": at})
+            db.commit()
+            r = client.get("/health/ready")
+            assert (r.status_code, r.json()["checks"]["schema"]) == (status, schema)
+            assert at not in r.text  # no revision is named
+    finally:
+        db.execute(text("DROP TABLE alembic_version"))
+        db.commit()
+        db.close()
+
+
+def test_the_code_knows_its_own_migration_head():
+    from app.api.routes.health import _revisions
+
+    heads, everything = _revisions()
+    assert heads == {"d2e5f7a9c643"} and {"a5d3e9c1b7f2", "b8e4c2a7d915", "c3f7a9d2e614"} <= everything
 
 
 def test_request_id_is_generated_and_echoed(client):
@@ -93,3 +133,22 @@ def test_anthropic_provider_requires_key():
 
     with pytest.raises(ValueError, match="ANTHROPIC_API_KEY"):
         Settings(ai_provider="anthropic", anthropic_api_key=None, _env_file=None)
+
+
+def test_readiness_is_503_not_an_error_when_the_database_is_down(client, monkeypatch):
+    """Verification brief 05: through a real server the unreachable database came back as 500,
+    because the request dependency read content state before the check. Readiness now opens its
+    own session inside its own error handling."""
+    from sqlalchemy.exc import OperationalError
+
+    class Down:
+        def execute(self, *a, **k):
+            raise OperationalError("SELECT 1", {}, Exception("connection refused"))
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(client.app.state, "session_factory", lambda: Down())
+    r = client.get("/health/ready")
+    assert (r.status_code, r.json()) == (503, {"status": "unavailable", "checks": {"database": "fail"}})
+    assert client.get("/health").status_code == 200  # liveness is its own, separate policy

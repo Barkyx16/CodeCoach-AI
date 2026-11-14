@@ -1,0 +1,206 @@
+{
+  "order": 356,
+  "slug": "profitable-schemes",
+  "title": "Profitable Schemes",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming"
+  ],
+  "summary": "Count crime plans that need at most n people and make at least minProfit.",
+  "statement": "Crime `i` needs `group[i]` members and makes `profit[i]`. A member can take part in only one crime. Count the\nsubsets of crimes that use at most `n` members in total and make at least `minProfit`, modulo `10^9 + 7`.",
+  "constraints": [
+    "1 <= n <= 100",
+    "0 <= minProfit <= 100",
+    "1 <= group.length <= 100"
+  ],
+  "examples": [
+    {
+      "input": "n = 5, minProfit = 3, group = [2, 2], profit = [2, 3]",
+      "output": "2"
+    },
+    {
+      "input": "n = 10, minProfit = 5, group = [2, 3, 5], profit = [6, 7, 8]",
+      "output": "7"
+    },
+    {
+      "input": "n = 1, minProfit = 1, group = [2], profit = [5]",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "profitableSchemes",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      },
+      {
+        "name": "minProfit",
+        "type": "int"
+      },
+      {
+        "name": "group",
+        "type": "int[]"
+      },
+      {
+        "name": "profit",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int profitableSchemes(int n, int minProfit, int[] group, int[] profit) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "It's a knapsack with two dimensions: people used and profit made.",
+    "Cap profit at `minProfit` (more profit doesn't change anything): dp[people][profit] counts subsets.",
+    "dp[0][0] = 1\nfor each crime (g, p):\n    for people from n down to g:\n        for pr from minProfit down to 0:\n            dp[people][min(minProfit, pr + p)] += dp[people - g][pr]\nreturn sum(dp[people][minProfit] for all people)",
+    "O(crimes \u00d7 n \u00d7 minProfit). Capping profit keeps the table small."
+  ],
+  "expected_complexity": {
+    "time": "O(k n P)",
+    "space": "O(n P)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 5,
+        "minProfit": 3,
+        "group": [
+          2,
+          2
+        ],
+        "profit": [
+          2,
+          3
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 10,
+        "minProfit": 5,
+        "group": [
+          2,
+          3,
+          5
+        ],
+        "profit": [
+          6,
+          7,
+          8
+        ]
+      },
+      "expected_output": 7,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 1,
+        "minProfit": 1,
+        "group": [
+          2
+        ],
+        "profit": [
+          5
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 4,
+        "minProfit": 3,
+        "group": [
+          5,
+          2,
+          4,
+          5,
+          3,
+          1
+        ],
+        "profit": [
+          2,
+          1,
+          3,
+          5,
+          4,
+          2
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 2,
+        "minProfit": 6,
+        "group": [
+          5,
+          2,
+          1,
+          3,
+          1,
+          1,
+          4
+        ],
+        "profit": [
+          5,
+          2,
+          2,
+          1,
+          3,
+          0,
+          4
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 10,
+        "minProfit": 7,
+        "group": [
+          2,
+          5
+        ],
+        "profit": [
+          4,
+          0
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 3,
+        "minProfit": 0,
+        "group": [
+          1,
+          3,
+          4,
+          2,
+          1,
+          2,
+          3
+        ],
+        "profit": [
+          4,
+          0,
+          0,
+          1,
+          5,
+          3,
+          3
+        ]
+      },
+      "expected_output": 12,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

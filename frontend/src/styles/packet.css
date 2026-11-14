@@ -1,0 +1,31 @@
+/* A practice packet (docs/PACKET.md) */
+.packet-page__layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-4); align-items: start; }
+@media (max-width: 760px) { .packet-page__layout { grid-template-columns: minmax(0, 1fr); } }
+.packet-page__choose, .packet-page__parts { border: 0; padding: 0; margin: 0; min-width: 0; }
+.packet-page__choose .checkbox input, .packet-page__parts .checkbox input { flex-shrink: 0; }
+.packet-page__parts { display: flex; flex-wrap: wrap; gap: 0 var(--space-3); }
+.packet-page__order { margin: 0; padding-left: 1.2em; display: grid; gap: var(--space-3); }
+.packet-page__row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--space-2); overflow-wrap: anywhere; }
+.print-packet { overflow-wrap: anywhere; }
+.print-packet__title { margin: 0; }
+.print-packet__items { margin: 0; padding-left: 1.4em; display: grid; gap: var(--space-5); }
+.print-packet__item h3 { margin: 0; }
+.print-packet__section { border-left: 3px solid var(--color-border-strong); padding-left: var(--space-3); }
+.print-packet__section--automated_feedback { border-left-style: dashed; }
+.print-packet__section h4 { margin: 0; font-size: var(--text-sm); }
+.print-packet__source { font-weight: normal; color: var(--color-text-muted); }
+.print-packet__provenance { margin: 0; font-size: var(--text-xs); }
+.print-packet__text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
+
+/* Printing the packet page: only the packet, black on white, items starting on a fresh page when long. */
+@media print {
+  body:has(.print-packet) * { visibility: hidden; }
+  body:has(.print-packet) .print-packet, body:has(.print-packet) .print-packet * { visibility: visible; }
+  html:has(.print-packet), body:has(.print-packet) { background: #fff !important; }
+  .print-packet, .print-packet.card { position: absolute; inset: 0 auto auto 0; width: 100%; border: 0; padding: 0; background: #fff !important; color: #000; box-shadow: none; }
+  .print-packet * { color: #000; }
+  .print-packet .subtle, .print-packet__source { color: #333; }
+  .print-packet__section { break-inside: avoid-page; border-left-color: #000; }
+  .print-packet__text { font-size: 11pt; }
+  body:has(.print-packet) .no-print, body:has(.print-packet) .header, body:has(.print-packet) .reminders { display: none !important; }
+}

@@ -12,13 +12,56 @@ from collections.abc import Callable, Iterator
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, make_url
 
 from app.config import Settings
 from app.db.session import Base
 from app.main import create_app
 
 TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
+# The suite drops every table in that database before each test. Refuse one that isn't plainly a
+# test database, so a development, staging or production URL pasted here by mistake stays intact.
+if TEST_DATABASE_URL and "test" not in (make_url(TEST_DATABASE_URL).database or ""):
+    raise pytest.UsageError(
+        "TEST_DATABASE_URL must name a database with 'test' in its name: the suite empties it"
+    )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _test_database_has_no_migration_state() -> None:
+    """The suite makes its tables with create_all, and the readiness tests read the schema state
+    from there ("unmanaged"). An alembic_version table left in the shared test database (a
+    migration run pointed at it, or a readiness test killed before its cleanup) would read as
+    "readiness is broken". Stop with the actual reason instead; the suite doesn't drop tables it
+    didn't make. Migration checks use databases of their own (scripts/check_migrations.py)."""
+    if not TEST_DATABASE_URL:
+        return
+    from sqlalchemy import inspect
+
+    engine = create_engine(TEST_DATABASE_URL)
+    try:
+        with engine.connect() as c:
+            leftover = inspect(c).has_table("alembic_version")
+    finally:
+        engine.dispose()
+    if leftover:
+        pytest.exit(
+            f"{make_url(TEST_DATABASE_URL).database} has an alembic_version table: migration state left by "
+            "a migration run pointed at the test database, or an interrupted readiness test. Drop it "
+            "(DROP TABLE alembic_version) or use another test database; run migration checks with "
+            "scripts/check_migrations.py, which makes its own.",
+            returncode=4,
+        )
+
+
+@pytest.fixture(autouse=True)
+def _fresh_content_state() -> Iterator[None]:
+    """Corrections and retirements are cached per process; never let one test's leak into the next."""
+    from app.content import state as content_state
+
+    content_state.invalidate()
+    yield
+    content_state.invalidate()
 
 
 @pytest.fixture
@@ -32,6 +75,21 @@ def database_url(tmp_path) -> Iterator[str]:
         yield f"sqlite:///{tmp_path / 'test.db'}"
 
 
+# A production configuration that passes every startup guard (synthetic values only). Tests of
+# one guard start from this and change one thing.
+PRODUCTION_BASE: dict = {
+    "environment": "production",
+    "secret_key": "Zq7vR2mK9pX4tL8wN3cJ6hB1yF5dG0sA-uE_iO2kM7nQ",
+    "database_url": "postgresql+psycopg://app:Tq83-unique-db-password@db.internal:5432/codecoach",
+    "cors_origins": ["https://app.example"],
+    "email_backend": "smtp",
+    "smtp_host": "smtp.example.com",
+    "app_base_url": "https://app.example",
+    "email_from": "CodeCoach AI <no-reply@app.example>",
+    "metrics_token": "metrics-synthetic-scrape-token-0123456789abcdef",
+}
+
+
 @pytest.fixture
 def make_settings(database_url) -> Callable[..., Settings]:
     def _make(**overrides) -> Settings:
@@ -43,6 +101,9 @@ def make_settings(database_url) -> Callable[..., Settings]:
             ai_daily_request_limit=50,
             auth_rate_limit_per_minute=1000,
             metrics_enabled=True,
+            # The jobs thread is tested on its own (test_background_jobs.py); here it would only
+            # add timing noise. Emails still get their first attempt right after the response.
+            background_jobs_in_api=False,
             _env_file=None,
         )
         base.update(overrides)
@@ -77,10 +138,12 @@ def register(
     email: str = "ada@example.com",
     password: str = "CorrectHorse42",
     display_name: str | None = "Ada",
+    career_track: str | None = None,
 ) -> dict:
-    r = client.post(
-        "/api/v1/auth/register", json={"email": email, "password": password, "display_name": display_name}
-    )
+    body = {"email": email, "password": password, "display_name": display_name}
+    if career_track:
+        body["career_track"] = career_track
+    r = client.post("/api/v1/auth/register", json=body)
     assert r.status_code == 201, r.text
     return r.json()
 
@@ -92,3 +155,20 @@ def auth_headers(token_response: dict) -> dict:
 @pytest.fixture
 def user_headers(client) -> dict:
     return auth_headers(register(client))
+
+
+@pytest.fixture
+def judged(make_client):
+    """App with execution enabled + a worker bound to a fake runner (see tests/judge_fakes.py)."""
+    from app.worker import JudgeWorker
+    from tests.judge_fakes import TOKEN, FakeRunner
+
+    def _make(script, **settings):
+        c = make_client(execution_enabled=True, runner_token=TOKEN, **settings)
+        c.app.state.execution_health.probe = lambda: True  # the fake runner is "up"
+        runner = FakeRunner(script)
+        worker = JudgeWorker(c.app.state.session_factory, runner, c.app.state.settings)
+        headers = auth_headers(register(c))
+        return c, runner, worker, headers
+
+    return _make

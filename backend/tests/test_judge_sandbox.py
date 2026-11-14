@@ -11,21 +11,26 @@ import socket
 import subprocess
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from types import SimpleNamespace
 
 import httpx
 import pytest
 from sqlalchemy import select
 
 from app.db.seed import SEED_DIR
-from app.models import Problem
-from app.services.judge.runner_client import HttpRunner
+from app.models import Problem, SubmissionMode, SubmissionStatus
+from app.models import TestVisibility as Visibility  # aliased: pytest would collect Test*
+from app.services.judge.judge import Verdict, judge_submission
+from app.services.judge.runner_client import HttpRunner, RunnerUnavailable
 from app.worker import JudgeWorker
 from tests.conftest import auth_headers, register
 
 RUNNER_DIR = Path(__file__).resolve().parents[2] / "runner"
 REFERENCE_DIR = Path(__file__).resolve().parents[1] / "app" / "seed" / "reference"
 TOKEN = "s" * 40
+RUNNER_CONCURRENCY = 4
 
 
 def _sandbox_ready() -> bool:
@@ -49,7 +54,12 @@ def runner_url():
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
         port = s.getsockname()[1]
-    env = {**os.environ, "RUNNER_TOKEN": TOKEN, "MAX_CONCURRENCY": "4", "WALL_TIMEOUT_S": "20"}
+    env = {
+        **os.environ,
+        "RUNNER_TOKEN": TOKEN,
+        "MAX_CONCURRENCY": str(RUNNER_CONCURRENCY),
+        "WALL_TIMEOUT_S": "20",
+    }
     proc = subprocess.Popen(
         [
             sys.executable,
@@ -66,7 +76,7 @@ def runner_url():
         env=env,
     )
     url = f"http://127.0.0.1:{port}"
-    for _ in range(100):
+    for _ in range(600):  # up to ~60 s: the runner warms the sandbox up before it serves
         try:
             if httpx.get(url + "/health", timeout=1).status_code == 200:
                 break
@@ -93,21 +103,73 @@ def judge(make_client, runner_url):
     worker = JudgeWorker(c.app.state.session_factory, HttpRunner(runner_url, TOKEN), c.app.state.settings)
     headers = auth_headers(register(c))
 
-    def run(slug: str, code: str) -> dict:
-        sub = c.post("/api/v1/submissions", headers=headers, json={"problem_slug": slug, "source_code": code})
+    def run(slug: str, code: str, mode: str = "submit") -> dict:
+        sub = c.post(
+            "/api/v1/submissions",
+            headers=headers,
+            json={"problem_slug": slug, "source_code": code, "mode": mode},
+        )
         assert sub.status_code == 202, sub.text
         assert worker.process_one()
         return c.get(f"/api/v1/submissions/{sub.json()['id']}", headers=headers).json()
 
     run.client = c
+    run.headers = headers
     return run
 
 
-@pytest.mark.parametrize("slug", sorted(json.loads(p.read_text())["slug"] for p in SEED_DIR.glob("*.json")))
-def test_every_reference_solution_passes_in_the_sandbox(judge, slug):
-    done = judge(slug, (REFERENCE_DIR / f"{slug}.java").read_text())
-    assert done["status"] == "PASSED", done
-    assert done["result"]["passed_count"] == done["result"]["total_count"]
+SEED_PROBLEMS = {
+    seed["slug"]: seed for seed in (json.loads(f.read_text()) for f in sorted(SEED_DIR.glob("*.json")))
+}
+JUDGE_TIME_LIMIT_S = 8  # same as the `judge` fixture
+
+
+def _judge_reference(runner: HttpRunner, slug: str) -> Verdict:
+    """The production judge (`judge_submission`) on a reference solution, minus the database."""
+    seed = SEED_PROBLEMS[slug]
+    tests = [
+        SimpleNamespace(
+            input=t["input"], expected_output=t["expected_output"], visibility=Visibility(t["visibility"])
+        )
+        for t in seed["tests"]
+    ]
+    submission = SimpleNamespace(
+        mode=SubmissionMode.SUBMIT,
+        source_code=(REFERENCE_DIR / f"{slug}.java").read_text(),
+        problem=SimpleNamespace(signature=seed["signature"], test_cases=tests),
+    )
+    for attempt in range(10):
+        try:
+            return judge_submission(submission, runner, JUDGE_TIME_LIMIT_S)
+        except RunnerUnavailable:  # at capacity: back off and retry, like the worker does
+            time.sleep(0.5 * (attempt + 1))
+    return judge_submission(submission, runner, JUDGE_TIME_LIMIT_S)
+
+
+@pytest.fixture(scope="module")
+def reference_verdicts(runner_url) -> dict[str, Verdict]:
+    """Judge all references in the real sandbox, as many at once as the runner allows.
+
+    One by one through the API (a fresh app and seeded database per problem) took ~5 s each,
+    about half an hour for 300 problems. The API → worker path is covered by the tests below.
+    """
+    runner = HttpRunner(runner_url, TOKEN)
+    try:
+        with ThreadPoolExecutor(max_workers=RUNNER_CONCURRENCY) as pool:
+            return dict(
+                zip(
+                    SEED_PROBLEMS, pool.map(lambda s: _judge_reference(runner, s), SEED_PROBLEMS), strict=True
+                )
+            )
+    finally:
+        runner.close()
+
+
+@pytest.mark.parametrize("slug", sorted(SEED_PROBLEMS))
+def test_every_reference_solution_passes_in_the_sandbox(reference_verdicts, slug):
+    verdict = reference_verdicts[slug]
+    assert verdict.status == SubmissionStatus.PASSED, (verdict.status, verdict.result)
+    assert verdict.result.passed_count == verdict.result.total_count == len(SEED_PROBLEMS[slug]["tests"])
 
 
 def test_starter_code_fails(judge):
@@ -164,7 +226,7 @@ def _eval_samples() -> list[dict]:
     evals = Path(__file__).resolve().parents[1] / "evals"
     return [
         s
-        for f in ("review_set.json", "holdout_set.json")
+        for f in ("review_set.json", "holdout_set.json", "medium_set.json")
         for s in json.loads((evals / f).read_text())["samples"]
     ]
 
@@ -174,3 +236,236 @@ def test_eval_set_verdict_labels_match_the_real_judge(judge, sample):
     """The AI-eval ground truth is itself verified: every labelled sample is judged in gVisor."""
     done = judge(sample["problem"], sample["code"])
     assert done["status"] == sample["verdict"], (sample["id"], done["status"], done["result"])
+
+
+# --- "Explain my failure" on real javac and JVM output -----------------------------------------
+# (slug, code, expected verdict, expected cause, expected line_hint, text the headline must contain)
+FAILURES = [
+    (
+        "find-largest-number",
+        "class Solution {\n    public int max(int[] nums) {\n        int best = nums[0];\n"
+        "        for (int x : nums) if (x > best) bset = x;\n        return best;\n    }\n}",
+        "COMPILE_ERROR",
+        "compile-error",
+        4,
+        "`bset`",
+    ),
+    (
+        "contains-duplicate",
+        "class Solution {\n    public boolean containsDuplicate(int[] nums) {\n"
+        "        HashSet<Integer> seen = new HashSet<>();\n"
+        "        for (int x : nums) if (!seen.add(x)) return true;\n        return false;\n    }\n}",
+        "COMPILE_ERROR",
+        "compile-error",
+        3,
+        "import",
+    ),
+    (
+        "find-largest-number",
+        "class Solution {\n    public int maximum(int[] nums) {\n        return 0;\n    }\n}",
+        "COMPILE_ERROR",
+        "compile-error",
+        None,
+        "signature",
+    ),
+    (
+        "find-largest-number",
+        "class Solution {\n    public int max(int[] nums) {\n        int best = Integer.MIN_VALUE;\n"
+        "        for (int i = 0; i <= nums.length; i++) {\n            best = Math.max(best, nums[i]);\n"
+        "        }\n        return best;\n    }\n}",
+        "FAILED",
+        "index-out-of-bounds",
+        5,
+        "out of range",
+    ),
+    (
+        "climbing-stairs",
+        "class Solution {\n    public int climbStairs(int n) {\n"
+        "        return climbStairs(n - 1) + climbStairs(n - 2);\n    }\n}",
+        "RUNTIME_ERROR",
+        "recursion-depth",
+        3,
+        "stack overflow",
+    ),
+    (
+        "first-unique-character",
+        "import java.util.*;\nclass Solution {\n    public int firstUniqChar(String s) {\n"
+        "        Map<Character, Integer> count = new HashMap<>();\n"
+        "        for (char c : s.toCharArray()) count.put(c, count.get(c) + 1);\n"
+        "        for (int i = 0; i < s.length(); i++) if (count.get(s.charAt(i)) == 1) return i;\n"
+        "        return -1;\n    }\n}",
+        "FAILED",
+        "null-reference",
+        5,
+        "null",
+    ),
+    (
+        "two-sum",
+        "import java.util.*;\nclass Solution {\n    public int[] twoSum(int[] nums, int target) {\n"
+        "        Map<Integer, Integer> seen = new HashMap<>();\n"
+        "        for (int i = 0; i < nums.length; i++) {\n"
+        "            Integer j = seen.get(target - nums[i]);\n"
+        "            if (j != null) return new int[] {i, j};\n            seen.put(nums[i], i);\n"
+        "        }\n        return null;\n    }\n}",
+        "FAILED",
+        "wrong-answer",
+        None,
+        "reversed",
+    ),
+    (
+        "binary-search",
+        "class Solution {\n    public int search(int[] nums, int target) {\n"
+        "        int lo = 0, hi = nums.length - 1;\n        while (lo <= hi) {\n"
+        "            int mid = (lo + hi) / 2;\n            if (nums[mid] == target) return mid;\n"
+        "            if (nums[mid] < target) lo = mid; else hi = mid;\n        }\n        return -1;\n    }\n}",
+        "TIME_LIMIT",
+        "time-limit",
+        4,
+        "infinite loop",
+    ),
+    (
+        "binary-search",
+        "class Solution {\n    public int search(int[] nums, int target) {\n"
+        "        int lo = 0, hi = nums.length - 1;\n        while (lo < hi) {\n"
+        "            int mid = lo + (hi - lo) / 2;\n            if (nums[mid] == target) return mid;\n"
+        "            if (nums[mid] < target) lo = mid + 1; else hi = mid - 1;\n"
+        "        }\n        return -1;\n    }\n}",
+        "FAILED",
+        "hidden-edge-case",
+        None,
+        "hidden edge case",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    ("slug", "code", "verdict", "cause", "line", "headline"),
+    FAILURES,
+    ids=[f"{f[0]}-{f[3]}" for f in FAILURES],
+)
+def test_explain_failure_on_real_judge_output(judge, slug, code, verdict, cause, line, headline):
+    done = judge(slug, code)
+    assert done["status"] == verdict, done
+    c = judge.client
+    r = c.post("/api/v1/ai/explain-failure", headers=judge.headers, json={"submission_id": done["id"]})
+    assert r.status_code == 200, r.text
+    e = r.json()["explanation"]
+    assert e["cause"] == cause, e
+    assert e["line_hint"] == line, e
+    assert headline.lower() in e["headline"].lower(), e
+    # Neither the submission result nor the explanation may contain a hidden test's input.
+    with c.app.state.session_factory() as db:
+        p = db.scalar(select(Problem).where(Problem.slug == slug))
+        hidden = [t.input for t in p.test_cases if t.visibility.value == "hidden"]
+    blob = json.dumps(done) + json.dumps(e)
+    for h in hidden:
+        for value in h.values():
+            if isinstance(value, list) and len(value) >= 2:
+                assert json.dumps(value) not in blob, f"hidden input {value} leaked"
+                assert ", ".join(map(str, value)) not in blob, f"hidden input {value} leaked"
+
+
+def test_run_mode_executes_public_tests_only_in_the_sandbox(judge):
+    """Run: the reference solution passes exactly the public tests; nothing counts as solved."""
+    done = judge("binary-search", (REFERENCE_DIR / "binary-search.java").read_text(), mode="run")
+    assert done["status"] == "PASSED" and done["mode"] == "run"
+    r = done["result"]
+    assert r["total_count"] == r["passed_count"] == len(r["public_results"]) == 3
+    assert r["hidden_total"] == 0
+    assert judge.client.get("/api/v1/me/progress", headers=judge.headers).json()["solved"] == 0
+    # A code bug is reported the same way as for a submission, with the line it threw on.
+    bad = judge(
+        "find-largest-number",
+        "class Solution {\n    public int max(int[] nums) {\n        return nums[nums.length];\n    }\n}",
+        mode="run",
+    )
+    assert bad["status"] == "FAILED" and bad["result"]["public_results"][0]["line"] == 3
+
+
+def test_judge_check_passes_against_the_real_runner(runner_url, make_settings):
+    """The operator command proves the real gVisor judge accepts the token and judges correctly."""
+    from app.services.judge.check import judge_check
+
+    lines: list[str] = []
+    settings = make_settings(execution_enabled=True, runner_token=TOKEN, runner_url=runner_url)
+    assert judge_check(settings, out=lines.append) == 0, lines
+    assert lines[-1] == "Judge check passed." and any("known-wrong solution was rejected" in x for x in lines)
+    lines.clear()
+    bad = make_settings(execution_enabled=True, runner_token="w" * 40, runner_url=runner_url)
+    assert judge_check(bad, out=lines.append) == 1 and "rejected RUNNER_TOKEN" in lines[-1]
+
+
+def test_capabilities_report_ready_only_when_the_real_runner_answers(judge, runner_url, make_client):
+    c = make_client(execution_enabled=True, runner_token=TOKEN, runner_url=runner_url)
+    e = c.get("/api/v1/capabilities").json()["execution"]
+    assert e["state"] == "ready" and e["run_available"]
+    wrong = make_client(execution_enabled=True, runner_token="w" * 40, runner_url=runner_url)
+    e = wrong.get("/api/v1/capabilities").json()["execution"]
+    assert e["state"] == "unavailable" and e["reason"] == "judge_misconfigured"
+
+
+DEBUGGING = {
+    p.stem.split("-", 1)[1]: json.loads(p.read_text())
+    for p in sorted((SEED_DIR.parent / "debugging").glob("*.json"))
+}
+
+
+@pytest.mark.parametrize("slug", sorted(DEBUGGING))
+def test_debugging_exercise_in_the_real_judge(judge, slug):
+    """The debugging lab (Volume 10, prompt 2) through API -> worker -> runner -> gVisor: the faulty
+    starter fails on exactly its reproduction cases (a logic failure, not a compile error); an
+    alternative repair, not the reference text, passes every test, hidden ones included; and the
+    attempt records the code it started from."""
+    seed = DEBUGGING[slug]
+    faulty = judge(slug, seed["starter_code"])
+    assert faulty["status"] == "FAILED", faulty
+    public_inputs = [t["input"] for t in seed["tests"] if t["visibility"] == "public"]
+    failing = [r["input"] for r in faulty["result"]["public_results"] if not r["passed"]]
+    assert failing == [seed["tests"][i]["input"] for i in seed["lab"]["reproduction"]]
+    assert all(r["input"] in public_inputs for r in faulty["result"]["public_results"])
+    assert faulty["starting_code"] == seed["starter_code"] and faulty["lab_version"] == seed["lab"]["version"]
+
+    alternative = (SEED_DIR.parent / "debugging" / "alternatives" / f"{slug}.1.java").read_text()
+    fixed = judge(slug, alternative)
+    assert fixed["status"] == "PASSED", fixed
+    assert fixed["result"]["hidden_passed"] == fixed["result"]["hidden_total"] > 0
+    assert fixed["starting_code"] == seed["starter_code"]
+
+
+def test_test_design_in_the_real_judge(judge):
+    """Test design (Volume 10, prompt 4) through API -> worker -> runner -> gVisor: the reference
+    and every faulty version run in one sandbox job, and the report is read off its outputs. Five
+    ordinary cases tell no version apart; one boundary case tells two apart; a case whose expected
+    output disagrees with the specification counts against nothing."""
+    c, h = judge.client, judge.headers
+    c.app.state.execution_health.probe = lambda: True
+    worker = JudgeWorker(
+        c.app.state.session_factory, HttpRunner(c.app.state.settings.runner_url, TOKEN), c.app.state.settings
+    )
+
+    def run(cases: list[dict]) -> dict:
+        made = c.post("/api/v1/me/test-design/tests-count-in-range/runs", json={"cases": cases}, headers=h)
+        assert made.status_code == 202, made.text
+        assert worker.process_one()
+        return c.get(f"/api/v1/me/test-design/runs/{made.json()['id']}", headers=h).json()
+
+    ordinary = [
+        {"input": {"nums": [1, 5, 9], "lo": 2, "hi": 8}, "expected": 1},
+        {"input": {"nums": [3, 40], "lo": 0, "hi": 10}, "expected": 1},
+        {"input": {"nums": [10, 20, 30], "lo": 15, "hi": 25}, "expected": 1},
+        {"input": {"nums": [-3, 0, 3], "lo": -10, "hi": -1}, "expected": 1},
+        {"input": {"nums": [7], "lo": 0, "hi": 5}, "expected": 0},
+    ]
+    first = run(ordinary)
+    assert first["status"] == "done", first
+    assert (first["report"]["caught"], first["report"]["total"]) == (0, 4)
+    second = run(
+        [
+            {"input": {"nums": [3, 7], "lo": 1, "hi": 7}, "expected": 2, "label": "boundary"},
+            {"input": {"nums": [3, 7], "lo": 0, "hi": 9}, "expected": 5},
+        ]
+    )
+    rep = second["report"]
+    assert rep["cases"][0]["distinguishes"] == ["A", "C"]
+    assert rep["cases"][1]["status"] == "disagrees" and rep["cases"][1]["reference_output"] == "2"
+    assert rep["caught"] == 2

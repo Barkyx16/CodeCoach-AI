@@ -1,0 +1,141 @@
+{
+  "order": 177,
+  "slug": "pivot-index",
+  "title": "Find the Pivot Index",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "prefix-sums"
+  ],
+  "summary": "Find where the left and right sums balance.",
+  "statement": "Return the leftmost index `i` where the sum of values strictly to its left equals the sum of\nvalues strictly to its right. Return `-1` if there is none.",
+  "constraints": [
+    "1 <= nums.length <= 10^4",
+    "-1000 <= nums[i] <= 1000"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 7, 3, 6, 5, 6]",
+      "output": "3"
+    },
+    {
+      "input": "nums = [1, 2, 3]",
+      "output": "-1"
+    },
+    {
+      "input": "nums = [2, 1, -1]",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "pivotIndex",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int pivotIndex(int[] nums) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "If you know the total, the right sum follows from the left sum.",
+    "right = total - left - nums[i]. Walk left to right keeping `left`.",
+    "total = sum(nums)\nleft = 0\nfor i, x in enumerate(nums):\n    if left == total - left - x: return i\n    left += x\nreturn -1",
+    "One pass after computing the total: O(n) time, O(1) space."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          7,
+          3,
+          6,
+          5,
+          6
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3
+        ]
+      },
+      "expected_output": -1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          1,
+          -1
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          2,
+          0,
+          3
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          -3,
+          1
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          2
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -1,
+          -3
+        ]
+      },
+      "expected_output": -1,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

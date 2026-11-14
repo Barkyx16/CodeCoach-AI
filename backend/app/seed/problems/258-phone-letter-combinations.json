@@ -1,0 +1,226 @@
+{
+  "order": 258,
+  "slug": "phone-letter-combinations",
+  "title": "Phone Keypad Letter Combinations",
+  "difficulty": "medium",
+  "topics": [
+    "backtracking",
+    "strings"
+  ],
+  "summary": "Every word a digit string could spell on a phone keypad.",
+  "statement": "On a phone keypad, 2=abc, 3=def, 4=ghi, 5=jkl, 6=mno, 7=pqrs, 8=tuv, 9=wxyz. Return every letter\nstring `digits` could represent, in lexicographic order. Return an empty list for an empty input.",
+  "constraints": [
+    "0 <= digits.length <= 4",
+    "digits in 2-9"
+  ],
+  "examples": [
+    {
+      "input": "digits = \"23\"",
+      "output": "[\"ad\", \"ae\", \"af\", \"bd\", \"be\", \"bf\", \"cd\", \"ce\", \"cf\"]"
+    },
+    {
+      "input": "digits = \"\"",
+      "output": "[]"
+    },
+    {
+      "input": "digits = \"2\"",
+      "output": "[\"a\", \"b\", \"c\"]"
+    }
+  ],
+  "signature": {
+    "method": "letterCombinations",
+    "params": [
+      {
+        "name": "digits",
+        "type": "String"
+      }
+    ],
+    "returns": "String[]"
+  },
+  "starter_code": "class Solution {\n    public String[] letterCombinations(String digits) {\n        // TODO: write your solution here\n        return new String[0];\n    }\n}\n",
+  "hints": [
+    "Each digit multiplies the number of results by its letter count.",
+    "Build results digit by digit: extend each partial string with each letter of the next digit.",
+    "if not digits: return []\nresults = ['']\nfor d in digits:\n    results = [r + c for r in results for c in letters[d]]\nreturn results",
+    "Up to 4^n results of length n: O(n \u00b7 4^n). Extending in keypad order keeps results lexicographic."
+  ],
+  "expected_complexity": {
+    "time": "O(n \u00b7 4^n)",
+    "space": "O(n \u00b7 4^n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "digits": "23"
+      },
+      "expected_output": [
+        "ad",
+        "ae",
+        "af",
+        "bd",
+        "be",
+        "bf",
+        "cd",
+        "ce",
+        "cf"
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "digits": ""
+      },
+      "expected_output": [],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "digits": "2"
+      },
+      "expected_output": [
+        "a",
+        "b",
+        "c"
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "digits": "79"
+      },
+      "expected_output": [
+        "pw",
+        "px",
+        "py",
+        "pz",
+        "qw",
+        "qx",
+        "qy",
+        "qz",
+        "rw",
+        "rx",
+        "ry",
+        "rz",
+        "sw",
+        "sx",
+        "sy",
+        "sz"
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "digits": "439"
+      },
+      "expected_output": [
+        "gdw",
+        "gdx",
+        "gdy",
+        "gdz",
+        "gew",
+        "gex",
+        "gey",
+        "gez",
+        "gfw",
+        "gfx",
+        "gfy",
+        "gfz",
+        "hdw",
+        "hdx",
+        "hdy",
+        "hdz",
+        "hew",
+        "hex",
+        "hey",
+        "hez",
+        "hfw",
+        "hfx",
+        "hfy",
+        "hfz",
+        "idw",
+        "idx",
+        "idy",
+        "idz",
+        "iew",
+        "iex",
+        "iey",
+        "iez",
+        "ifw",
+        "ifx",
+        "ify",
+        "ifz"
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "digits": "64"
+      },
+      "expected_output": [
+        "mg",
+        "mh",
+        "mi",
+        "ng",
+        "nh",
+        "ni",
+        "og",
+        "oh",
+        "oi"
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "digits": "835"
+      },
+      "expected_output": [
+        "tdj",
+        "tdk",
+        "tdl",
+        "tej",
+        "tek",
+        "tel",
+        "tfj",
+        "tfk",
+        "tfl",
+        "udj",
+        "udk",
+        "udl",
+        "uej",
+        "uek",
+        "uel",
+        "ufj",
+        "ufk",
+        "ufl",
+        "vdj",
+        "vdk",
+        "vdl",
+        "vej",
+        "vek",
+        "vel",
+        "vfj",
+        "vfk",
+        "vfl"
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "digits": "33"
+      },
+      "expected_output": [
+        "dd",
+        "de",
+        "df",
+        "ed",
+        "ee",
+        "ef",
+        "fd",
+        "fe",
+        "ff"
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

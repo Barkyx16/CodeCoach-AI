@@ -1,0 +1,214 @@
+{
+  "order": 244,
+  "slug": "grid-paths-obstacles",
+  "title": "Grid Paths Around Obstacles",
+  "difficulty": "medium",
+  "topics": [
+    "dynamic-programming",
+    "matrix"
+  ],
+  "summary": "Count right/down paths that avoid blocked cells.",
+  "statement": "`grid[r][c]` is `1` for an obstacle and `0` for open. Moving only right or down from the top-left,\nreturn the number of paths to the bottom-right that avoid obstacles. The answer fits in an int.",
+  "constraints": [
+    "1 <= m, n <= 100"
+  ],
+  "examples": [
+    {
+      "input": "grid = [[0, 0, 0], [0, 1, 0], [0, 0, 0]]",
+      "output": "2"
+    },
+    {
+      "input": "grid = [[0, 1], [0, 0]]",
+      "output": "1"
+    },
+    {
+      "input": "grid = [[1]]",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "uniquePathsWithObstacles",
+    "params": [
+      {
+        "name": "grid",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int uniquePathsWithObstacles(int[][] grid) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Same counting as without obstacles, except blocked cells contribute nothing.",
+    "A blocked cell has 0 paths; otherwise paths = from above + from the left.",
+    "row = [0]*n; row[0] = 1 if grid[0][0] == 0 else 0\nfor each row r:\n    for c in 0..n-1:\n        if grid[r][c]: row[c] = 0\n        elif c > 0: row[c] += row[c-1]\nreturn row[n-1]",
+    "O(m n) time with a single rolling row. A blocked start or end gives 0."
+  ],
+  "expected_complexity": {
+    "time": "O(m n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "grid": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ]
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            1
+          ]
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            0
+          ]
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            0,
+            0,
+            0,
+            0,
+            1
+          ]
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            1
+          ]
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

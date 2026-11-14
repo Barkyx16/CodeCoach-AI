@@ -1,9 +1,9 @@
 import { screen } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
-import type { Submission } from "@/api/types";
+import type { ExplainFailureResponse, Submission } from "@/api/types";
 
-import { queuedSubmission } from "../fixtures";
+import { executionStatus, queuedSubmission } from "../fixtures";
 import { renderApp } from "../render";
 import { API, server } from "../server";
 
@@ -26,8 +26,13 @@ function serveSequence(states: Submission[]) {
 }
 
 async function submitTwoSum() {
+  // These submissions are judged, so this server has a judge (the button says Submit).
+  server.use(http.get(`${API}/api/v1/capabilities`, () => HttpResponse.json({
+    execution_enabled: true, ai_provider: "offline", execution: executionStatus("ready"), guest_retention_days: 30,
+  })));
   const ctx = renderApp("/problems/two-sum", { signedIn: true });
-  await ctx.user.click(await ctx.findByRole("button", { name: "Submit" }));
+  // The problem page is loaded on demand: on a busy machine its first render can take over a second.
+  await ctx.user.click(await ctx.findByRole("button", { name: "Submit" }, { timeout: 5000 }));
   return ctx;
 }
 
@@ -72,7 +77,8 @@ describe("Judge results", () => {
         stderr_excerpt: null,
         public_results: [
           { index: 0, passed: false, input: { nums: [2, 7], target: 9 }, expected_output: [0, 1], actual_output: null,
-            exception: "ArrayIndexOutOfBoundsException", exception_message: "Index 2 out of bounds for length 2", missing: false, runtime_ms: 0.1 },
+            exception: "ArrayIndexOutOfBoundsException", exception_message: "Index 2 out of bounds for length 2", missing: false,
+            line: 5, runtime_ms: 0.1 },
           { index: 1, passed: false, input: { nums: [3, 2, 4], target: 6 }, expected_output: [1, 2], actual_output: null,
             exception: null, exception_message: null, missing: true, runtime_ms: null },
         ] },
@@ -82,5 +88,100 @@ describe("Judge results", () => {
     expect(await screen.findByText("ArrayIndexOutOfBoundsException")).toBeInTheDocument();
     expect(screen.getByText(/Index 2 out of bounds for length 2/)).toBeInTheDocument();
     expect(screen.getByText(/this test never ran/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "line 5" })).toBeInTheDocument(); // jumps to the crashing line
+  });
+
+  const explanation: ExplainFailureResponse = {
+    submission_id: "sub-1", status: "FAILED", provider: "offline", cached: false,
+    disclaimer: "Explanations are based only on the public tests and compiler output.",
+    explanation: {
+      cause: "index-out-of-bounds", headline: "An index went out of range at line 5.",
+      explanation: "Valid indexes are 0 to length - 1, so check `i + 1` on the last element.",
+      evidence: "Public test 1 (nums = [2, 7], target = 9) threw ArrayIndexOutOfBoundsException at line 5",
+      line_hint: 5, next_steps: ["Check each loop bound.", "Handle empty input first."],
+      concept: "Array bounds and off-by-one errors", confidence: "high",
+    },
+  };
+  const failed = judged({
+    status: "FAILED", status_detail: "Some tests failed.",
+    result: { runtime_ms: 1, memory_kb: null, passed_count: 0, total_count: 7, hidden_passed: 0, hidden_total: 4,
+      stderr_excerpt: null,
+      public_results: [{ index: 0, passed: false, input: { nums: [2, 7], target: 9 }, expected_output: [0, 1],
+        actual_output: null, exception: "ArrayIndexOutOfBoundsException", exception_message: "Index 2 out of bounds for length 2",
+        missing: false, line: 5, runtime_ms: 0.1 }] },
+  });
+
+  it("explains a failed submission on request", async () => {
+    let body: unknown = null;
+    server.use(http.post(`${API}/api/v1/ai/explain-failure`, async ({ request }) => {
+      body = await request.json();
+      return HttpResponse.json(explanation);
+    }));
+    serveSequence([failed]);
+    const ctx = await submitTwoSum();
+    await ctx.user.click(await screen.findByRole("button", { name: "Explain this failure" }));
+    expect(await screen.findByText("An index went out of range at line 5.")).toBeInTheDocument();
+    expect(body).toEqual({ submission_id: failed.id });
+    const why = screen.getByRole("region", { name: "Why it failed" });
+    expect(why).toHaveTextContent("Index out of bounds");
+    expect(why.querySelector("code")?.textContent).toBe("i + 1"); // backticks render as code, never as HTML
+    expect(screen.getByRole("button", { name: "Go to line 5" })).toBeInTheDocument();
+    expect(screen.getByText("Check each loop bound.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Explain this failure" })).not.toBeInTheDocument();
+  });
+
+  it("shows budget errors from the explainer", async () => {
+    server.use(http.post(`${API}/api/v1/ai/explain-failure`, () => HttpResponse.json(
+      { error: { code: "rate_limited", message: "You've used today's AI coaching budget.", request_id: "r", details: null } },
+      { status: 429 })));
+    serveSequence([failed]);
+    const ctx = await submitTwoSum();
+    await ctx.user.click(await screen.findByRole("button", { name: "Explain this failure" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/budget/i);
+  });
+
+  it("offers no explanation for passing or still-running submissions", async () => {
+    serveSequence([judged({ status: "PASSED", status_detail: "All tests passed.", result: null })]);
+    await submitTwoSum();
+    expect(await screen.findByText("All tests passed. Nice work.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Explain this failure" })).not.toBeInTheDocument();
+  });
+
+  describe("Run (public tests only)", () => {
+    const enableExecution = () => server.use(
+      http.get(`${API}/api/v1/capabilities`, () => HttpResponse.json({ execution_enabled: true, ai_provider: "offline", execution: executionStatus("ready"), guest_retention_days: 30 })));
+
+    it("is hidden when this deployment can't run code", async () => {
+      renderApp("/problems/two-sum", { signedIn: true });
+      // With no judge, the main button says what it really does, and the page explains why.
+      expect(await screen.findByRole("button", { name: "Save attempt" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Run" })).not.toBeInTheDocument();
+      expect(screen.getByText("Code can't run on this server.")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Ask the coach for a code review" })).toBeInTheDocument();
+    });
+
+    it("runs the public tests and says the attempt isn't recorded", async () => {
+      enableExecution();
+      let body: { mode?: string } = {};
+      const ranOk = judged({
+        mode: "run", status: "PASSED", status_detail: "All tests passed.",
+        result: { runtime_ms: 1, memory_kb: null, passed_count: 3, total_count: 3, hidden_passed: 0, hidden_total: 0,
+          stderr_excerpt: null, public_results: [] },
+      });
+      server.use(
+        http.post(`${API}/api/v1/submissions`, async ({ request }) => {
+          body = (await request.json()) as { mode?: string };
+          return HttpResponse.json({ ...ranOk, status: "QUEUED", is_terminal: false }, { status: 202 });
+        }),
+        http.get(`${API}/api/v1/submissions/:id`, () => HttpResponse.json(ranOk)),
+      );
+      const ctx = renderApp("/problems/two-sum", { signedIn: true });
+      await ctx.user.click(await screen.findByRole("button", { name: "Run" }));
+      expect(body.mode).toBe("run");
+      expect(await screen.findByText("Run · public tests only")).toBeInTheDocument();
+      expect(screen.getByText("All public tests passed. Submit to check the hidden tests and record the attempt.")).toBeInTheDocument();
+      expect(screen.queryByText(/^hidden:/)).not.toBeInTheDocument();
+    });
   });
 });
+

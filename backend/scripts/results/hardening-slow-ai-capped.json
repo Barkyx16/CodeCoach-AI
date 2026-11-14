@@ -1,0 +1,60 @@
+{
+  "scenario": "slow-ai",
+  "at": "2026-11-06T19:59:38+00:00",
+  "duration_s": 30.0,
+  "args": {
+    "scenario": "slow-ai",
+    "base_url": "http://127.0.0.1:8000",
+    "clients": 8,
+    "duration": 30.0,
+    "ai_users": 40,
+    "readers": 8,
+    "label": "capped",
+    "note": "1 process, fake provider 10 s, AI_MAX_CONCURRENT_CALLS=8 (default)"
+  },
+  "machine": {
+    "cpus": 4,
+    "python": "3.13.18",
+    "platform": "Linux-6.18.44-fc-v242-x86_64-with-glibc2.39"
+  },
+  "results": {
+    "GET /me/notes (reader)": {
+      "requests": 193,
+      "per_second": 6.4,
+      "status": {
+        "200": 193
+      },
+      "p50_ms": 526.1,
+      "p95_ms": 952.1,
+      "p99_ms": 1253.7,
+      "max_ms": 1501.5
+    },
+    "GET /me/progress (reader)": {
+      "requests": 208,
+      "per_second": 6.9,
+      "status": {
+        "200": 208
+      },
+      "p50_ms": 564.8,
+      "p95_ms": 1149.6,
+      "p99_ms": 1342.6,
+      "max_ms": 1463.9
+    },
+    "POST /ai/hint (slow provider)": {
+      "requests": 1646,
+      "per_second": 54.9,
+      "status": {
+        "200": 1646
+      },
+      "p50_ms": 542.0,
+      "p95_ms": 1071.0,
+      "p99_ms": 10541.9,
+      "max_ms": 10859.0,
+      "outcomes": {
+        "offline (fallback)": 1622,
+        "slow-fake": 24
+      }
+    }
+  },
+  "wall_s": 35.2
+}

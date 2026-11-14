@@ -1,0 +1,115 @@
+{
+  "order": 218,
+  "slug": "bulls-and-cows",
+  "title": "Bulls and Cows",
+  "difficulty": "medium",
+  "topics": [
+    "strings",
+    "hash-maps",
+    "counting"
+  ],
+  "summary": "Score a guess against a secret: right place vs right digit.",
+  "statement": "`secret` and `guess` are digit strings of the same length. Bulls are digits in the right position.\nCows are digits that are in the secret but in a different position (each secret digit can match only\nonce). Return the hint `\"xAyB\"` with `x` bulls and `y` cows.",
+  "constraints": [
+    "1 <= length <= 1000",
+    "digits only"
+  ],
+  "examples": [
+    {
+      "input": "secret = \"1807\", guess = \"7810\"",
+      "output": "\"1A3B\""
+    },
+    {
+      "input": "secret = \"1123\", guess = \"0111\"",
+      "output": "\"1A1B\""
+    },
+    {
+      "input": "secret = \"1\", guess = \"1\"",
+      "output": "\"1A0B\""
+    }
+  ],
+  "signature": {
+    "method": "getHint",
+    "params": [
+      {
+        "name": "secret",
+        "type": "String"
+      },
+      {
+        "name": "guess",
+        "type": "String"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String getHint(String secret, String guess) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "Count the bulls first; they're simple position matches.",
+    "For the rest, count unmatched digits on each side; each digit contributes `min(secretCount, guessCount)` cows.",
+    "bulls = sum(s == g for s, g in zip(secret, guess))\nfor unmatched positions: count digits in secret and guess separately\ncows = sum(min(cs[d], cg[d]) for d in 0..9)\nreturn f'{bulls}A{cows}B'",
+    "One pass plus 10 digit counts: O(n). Excluding bull positions from the counts avoids double counting."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "secret": "1807",
+        "guess": "7810"
+      },
+      "expected_output": "1A3B",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "secret": "1123",
+        "guess": "0111"
+      },
+      "expected_output": "1A1B",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "secret": "1",
+        "guess": "1"
+      },
+      "expected_output": "1A0B",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "secret": "211",
+        "guess": "313"
+      },
+      "expected_output": "1A0B",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "secret": "123003",
+        "guess": "311133"
+      },
+      "expected_output": "1A2B",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "secret": "0100300",
+        "guess": "2101021"
+      },
+      "expected_output": "2A1B",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "secret": "30231",
+        "guess": "03113"
+      },
+      "expected_output": "0A4B",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

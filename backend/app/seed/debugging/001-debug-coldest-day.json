@@ -1,0 +1,150 @@
+{
+  "order": 2001,
+  "slug": "debug-coldest-day",
+  "title": "Fix: Coldest Reading",
+  "difficulty": "easy",
+  "topics": [
+    "debugging",
+    "arrays",
+    "edge-cases"
+  ],
+  "summary": "A method meant to return the lowest temperature reading returns 0 on warm days. Find out why and fix it.",
+  "statement": "`coldest(temps)` should return the lowest value in `temps`, a non-empty array of whole-degree readings.\n\nThe code below was written for a winter dashboard and seemed fine there. On a warm day it reports a temperature that was never measured.\n\nReproduce the problem with the public cases, work out which line causes it, and fix it. Any correct fix is accepted: it doesn't have to match a reference.",
+  "constraints": [
+    "1 <= temps.length <= 10^4",
+    "-90 <= temps[i] <= 60"
+  ],
+  "examples": [
+    {
+      "input": "temps = [-3, 4, 1]",
+      "output": "-3",
+      "explanation": "-3 is the lowest reading."
+    },
+    {
+      "input": "temps = [12, 15, 9]",
+      "output": "9",
+      "explanation": "Every reading is above 0; the lowest is still one of them."
+    }
+  ],
+  "signature": {
+    "method": "coldest",
+    "params": [
+      {
+        "name": "temps",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int coldest(int[] temps) {\n        int coldest = 0;\n        for (int t : temps) {\n            if (t < coldest) {\n                coldest = t;\n            }\n        }\n        return coldest;\n    }\n}\n",
+  "hints": [
+    "Run the public cases. Which one fails, and what do the readings in the passing cases have that the failing one doesn't?",
+    "Look at the value `coldest` holds before the loop sees any reading. Can a reading ever beat it if every reading is above it?",
+    "Start from a value that really is one of the readings, such as temps[0], or from the largest int, so the first reading always replaces it."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "temps": [
+          -3,
+          4,
+          1
+        ]
+      },
+      "expected_output": -3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "temps": [
+          -8
+        ]
+      },
+      "expected_output": -8,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "temps": [
+          12,
+          15,
+          9
+        ]
+      },
+      "expected_output": 9,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "temps": [
+          0,
+          5
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "temps": [
+          21
+        ]
+      },
+      "expected_output": 21,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "temps": [
+          30,
+          30,
+          31
+        ]
+      },
+      "expected_output": 30,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "temps": [
+          7,
+          -2,
+          3
+        ]
+      },
+      "expected_output": -2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "temps": [
+          60,
+          59,
+          58,
+          57
+        ]
+      },
+      "expected_output": 57,
+      "visibility": "hidden"
+    }
+  ],
+  "kind": "debug",
+  "lab": {
+    "version": 1,
+    "intended_behavior": "Return the lowest reading in a non-empty array, whatever the season.",
+    "reproduction": [
+      2
+    ],
+    "defect": {
+      "summary": "The running minimum starts at 0, a value that isn't one of the readings.",
+      "explanation": "`coldest` begins at 0, and a reading only replaces it when it's lower. When every reading is above 0, none of them is lower, so the method returns the 0 it started with: a temperature nobody measured.",
+      "why_missed": "The code was tried on winter data. With at least one reading below 0, that reading replaces the starting 0 straight away, so the bad starting value never shows."
+    },
+    "follow_up": "Whenever code keeps a running best (a minimum, a maximum, a first match), check what it starts from and try a case where no input beats that start.",
+    "review_status": "Authored for CodeCoach and machine-checked (the starter fails exactly its reproduction cases; the repair and an alternative pass every test). Not yet reviewed by an outside instructor."
+  }
+}

@@ -1,0 +1,236 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+
+import { api } from "@/api/endpoints";
+import { useNote } from "@/api/queries";
+import type { KeyPoints, LifecycleOutcome, Note } from "@/api/types";
+import { useAuth } from "@/auth/useAuth";
+import { BackLink } from "@/components/BackLink";
+import { Badge } from "@/components/Badge";
+import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
+import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { PrivateUnavailable } from "@/components/Unavailable";
+import { isGone } from "@/lib/errors";
+import { useLeaveWarning } from "@/hooks/useLeaveWarning";
+import { formatDateTime, timeAgo } from "@/lib/format";
+import { CodeBlock } from "@/features/learn/UnitParts";
+
+import { ImpactPreview } from "@/features/lifecycle/ImpactPreview";
+import { EarlierActionNotice } from "@/features/recovery/EarlierActionNotice";
+import { useEarlierAction } from "@/features/recovery/useEarlierAction";
+
+import { NoteEditor } from "./NoteEditor";
+import { useNoteAutosave } from "./useNoteAutosave";
+
+/** One note: autosaving editor, its source and snapshot, pin/archive/delete and key points. */
+export function NotePage() {
+  const { id = "" } = useParams();
+  if (id === "new") return <NoteScreen key="new" note={null} />;
+  return <ExistingNote id={id} />;
+}
+
+function ExistingNote({ id }: { id: string }) {
+  const note = useNote(id);
+  if (note.isPending) return <LoadingState label="Loading note…" />;
+  if (note.isError && isGone(note.error)) return <PrivateUnavailable what="note" list={{ to: "/notes", label: "Your notebook" }} />;
+  if (note.isError) return <div className="page"><BackLink fallback={{ to: "/notes", label: "Your notebook" }} /><ErrorState error={note.error} onRetry={() => void note.refetch()} /></div>;
+  return <NoteScreen key={note.data.id} note={note.data} />;
+}
+
+function NoteScreen({ note }: { note: Note | null }) {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const editor = useNoteAutosave({
+    initial: note,
+    draftKey: `note-draft:${user?.id ?? "anon"}:${note?.id ?? "new"}`,
+    onSaved: (n) => {
+      qc.setQueryData(["me", "note", n.id], n);
+      void qc.invalidateQueries({ queryKey: ["me", "notes"] });
+      // The new note's own address, keeping where it was opened from ("Back to your notebook",
+      // with its filters): the first autosave used to drop it.
+      if (!note) navigate(`/notes/${n.id}`, { replace: true, state: location.state });
+    },
+  });
+  // Text that's neither on the server nor kept in this browser (storage refused it), or caught
+  // in a conflict: leaving would lose it, so leaving asks first.
+  useLeaveWarning(!editor.kept && ["unsaved", "error", "pending", "offline", "conflict"].includes(editor.state));
+  const current = editor.server;
+  const [flagError, setFlagError] = useState<unknown>(null);
+  const [points, setPoints] = useState<KeyPoints | null>(null);
+  const [pointsError, setPointsError] = useState<unknown>(null);
+  const [deleting, setDeleting] = useState(false);
+  // Archiving shows what it does first, from the plan that archives it (docs/LIFECYCLE.md).
+  const [previewArchive, setPreviewArchive] = useState(false);
+  const [archived, setArchivedOutcome] = useState<LifecycleOutcome | null>(null);
+  const outcome = useRef<HTMLParagraphElement>(null);
+  useEffect(() => { if (archived) outcome.current?.focus(); }, [archived]);
+  const noteId = current?.id ?? "";
+  const loadArchive = useCallback(() => api.noteArchivePreview(noteId), [noteId]);
+  const runArchive = useCallback(
+    (fingerprint: string, key: string) => api.archiveNoteAsPreviewed(noteId, { expected_fingerprint: fingerprint, client_request_id: key }),
+    [noteId],
+  );
+
+  async function setFlags(flags: { pinned?: boolean; archived?: boolean }) {
+    if (!current) return;
+    setFlagError(null);
+    try {
+      const n = await api.updateNote(current.id, flags);
+      editor.adopt({ ...n, title: editor.server?.title ?? n.title, body: editor.server?.body ?? n.body, reflection: editor.server?.reflection ?? n.reflection, tags: editor.server?.tags ?? n.tags });
+      qc.setQueryData(["me", "note", n.id], n);
+      void qc.invalidateQueries({ queryKey: ["me", "notes"] });
+    } catch (e) { setFlagError(e); }
+  }
+
+  return (
+    <div className="page note-page">
+      <BackLink fallback={{ to: "/notes", label: "Your notebook" }} />
+      <div className="page__header">
+        <div>
+          <p className="eyebrow">NOTE</p>
+          <h1 className="page__title">{editor.fields.title.trim() || (note ? "Untitled note" : "New note")}</h1>
+          {current && <p className="page__subtitle">Created {formatDateTime(current.created_at)} · updated {timeAgo(current.updated_at)}</p>}
+        </div>
+        {current && (
+          <div className="row">
+            {current.pinned && <Badge tone="info">Pinned</Badge>}
+            {current.archived && <Badge>Archived</Badge>}
+          </div>
+        )}
+      </div>
+
+      <div className="note-page__layout">
+        <div className="stack">
+          {note && <EarlierCopy noteId={note.id} />}
+          <NoteEditor editor={editor} autoFocus={!note} />
+          {current && current.key_points && current.key_points.length > 0 && (
+            <Card className="stack-sm">
+              <h2 className="section-title">Key points</h2>
+              <ul className="mini-list">{current.key_points.map((p) => <li key={p}>{p}</li>)}</ul>
+            </Card>
+          )}
+        </div>
+
+        <aside className="stack">
+          {current?.source && (
+            <Card className="stack-sm">
+              <h2 className="section-title">Source</h2>
+              {current.source.available && current.source.href
+                ? <Link to={current.source.href} state={{ from: `/notes/${current.id}`, fromLabel: "Back to the note" }}>{current.source.title}</Link>
+                : <p>{current.source.title} <span className="subtle">(no longer available; your note is kept)</span></p>}
+              <p className="subtle">
+                {current.source.career_title ? `${current.source.career_title} · ` : ""}
+                {current.source.version ? `version ${current.source.version} when captured` : "no version recorded"}
+              </p>
+            </Card>
+          )}
+          {current?.excerpt && (
+            <Card className="stack-sm">
+              <h2 className="section-title">Snapshot</h2>
+              <p className="subtle">Copied on {formatDateTime(current.created_at)}. It doesn't change if the source does.</p>
+              {current.excerpt_kind === "code"
+                ? <CodeBlock code={current.excerpt} language="java" label="snapshot" />
+                : <blockquote className="note-quote">{current.excerpt}</blockquote>}
+            </Card>
+          )}
+          {current && (
+            <Card className="stack-sm">
+              <h2 className="section-title">Organize</h2>
+              <span className="row">
+                <Button size="sm" aria-pressed={current.pinned} onClick={() => void setFlags({ pinned: !current.pinned })} disabled={current.archived}>
+                  {current.pinned ? "Unpin" : "Pin"}
+                </Button>
+{current.archived
+                  ? <Button size="sm" onClick={() => { setArchivedOutcome(null); void setFlags({ archived: false }); }}>Unarchive</Button>
+                  : <Button size="sm" aria-expanded={previewArchive} onClick={() => { setArchivedOutcome(null); setPreviewArchive((v) => !v); }}>Archive…</Button>}
+                <Button size="sm" variant="danger" loading={deleting} onClick={async () => {
+                  setDeleting(true);
+                  try {
+                    await editor.save();
+                    await api.deleteNote(current.id);
+                    void qc.invalidateQueries({ queryKey: ["me", "notes"] });
+                    navigate("/notes", { replace: true, state: { deleted: { id: current.id, title: current.title } } });
+                  } catch (e) { setFlagError(e); setDeleting(false); }
+                }}>Delete</Button>
+              </span>
+              {previewArchive && !current.archived && (
+                <ImpactPreview
+                  load={loadArchive}
+                  run={async (fingerprint, key) => {
+                    await editor.save(); // what you typed is kept with it
+                    return runArchive(fingerprint, key);
+                  }}
+                  onCancel={() => setPreviewArchive(false)}
+                  onDone={async (out) => {
+                    setPreviewArchive(false);
+                    const n = await api.note(current.id);
+                    editor.adopt({ ...n, title: editor.server?.title ?? n.title, body: editor.server?.body ?? n.body, reflection: editor.server?.reflection ?? n.reflection, tags: editor.server?.tags ?? n.tags });
+                    qc.setQueryData(["me", "note", n.id], n);
+                    void qc.invalidateQueries({ queryKey: ["me", "notes"] });
+                    void qc.invalidateQueries({ queryKey: ["me", "recent-work"] });
+                    setArchivedOutcome(out);
+                  }}
+                />
+              )}
+              {archived && current.archived && (
+                <p className="banner banner--success" role="status" tabIndex={-1} ref={outcome}>
+                  {archived.message} It's hidden from your notes list, Continue and search; nothing is erased. Unarchive brings it back.
+                </p>
+              )}
+              <InlineError error={flagError} />
+            </Card>
+          )}
+          {current && (
+            <Card className="stack-sm" role="region" aria-label="Key points helper">
+              <h2 className="section-title">Pull out key points</h2>
+              <p className="subtle">Lists your own sentences that state an action or a lesson. No AI model is used, and nothing is saved unless you choose to.</p>
+              {points ? (
+                <div className="stack-sm">
+                  {points.points.length === 0 ? <p>No action or lesson sentences found. Try “Next time I'll…” or a list.</p>
+                    : <ul className="mini-list">{points.points.map((p) => <li key={p}>{p}</li>)}</ul>}
+                  <span className="row">
+                    {points.points.length > 0 && (
+                      <Button size="sm" variant="primary" onClick={async () => {
+                        try {
+                          await editor.save();
+                          const base = editor.server ?? current;
+                          const n = await api.updateNote(current.id, { base_revision: base.revision, key_points: points.points });
+                          editor.adopt(n);
+                          qc.setQueryData(["me", "note", n.id], n);
+                          setPoints(null);
+                        } catch (e) { setPointsError(e); }
+                      }}>Save these key points</Button>
+                    )}
+                    <Button size="sm" variant="ghost" onClick={() => setPoints(null)}>Discard</Button>
+                  </span>
+                </div>
+              ) : (
+                <Button size="sm" onClick={async () => {
+                  setPointsError(null);
+                  await editor.save();
+                  try { setPoints(await api.keyPoints(current.id)); } catch (e) { setPointsError(e); }
+                }}>Suggest key points</Button>
+              )}
+              <InlineError error={pointsError} />
+            </Card>
+          )}
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+/** A "Keep both" copy whose reply was lost before the page reloaded (Volume 8, prompt 4): checked,
+ * never sent again. Made: a link to it. Never arrived: said, and the learner's text is wherever it
+ * was kept (this browser's draft). */
+function EarlierCopy({ noteId }: { noteId: string }) {
+  const earlier = useEarlierAction("note_copy", noteId);
+  return (
+    <EarlierActionNotice earlier={earlier} noun="copy of your version"
+      found={earlier.status === "found" ? <Link to={`/notes/${earlier.outcome.id}`}>Open the copy</Link> : null} />
+  );
+}

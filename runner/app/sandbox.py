@@ -139,17 +139,24 @@ class DockerSandbox:
             stderr=subprocess.PIPE,
         )
         killed = threading.Event()
+        # Which limit stopped the run first. A flood triggers `docker kill`, which can take a few
+        # seconds under gVisor; if the wall clock also runs out meanwhile, the flood still wins.
+        first_limit: list[str] = []
+        lock = threading.Lock()
 
-        def kill() -> None:
-            if not killed.is_set():
+        def kill(reason: str) -> None:
+            with lock:
+                if killed.is_set():
+                    return
                 killed.set()
-                subprocess.run([self.settings.docker_bin, "kill", name], capture_output=True, check=False)
+                first_limit.append(reason)
+            subprocess.run([self.settings.docker_bin, "kill", name], capture_output=True, check=False)
 
         out = _Capped(self.settings.output_limit_bytes)
         err = _Capped(self.settings.output_limit_bytes)
         readers = [
-            threading.Thread(target=out.pump, args=(proc.stdout, kill), daemon=True),
-            threading.Thread(target=err.pump, args=(proc.stderr, kill), daemon=True),
+            threading.Thread(target=out.pump, args=(proc.stdout, lambda: kill("output")), daemon=True),
+            threading.Thread(target=err.pump, args=(proc.stderr, lambda: kill("output")), daemon=True),
         ]
         for r in readers:
             r.start()
@@ -159,12 +166,10 @@ class DockerSandbox:
         except (BrokenPipeError, OSError):
             pass  # container exited early; the exit code tells us why
 
-        timed_out = False
         try:
             proc.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
-            timed_out = True
-            kill()
+            kill("timeout")
             try:
                 proc.wait(timeout=10)
             except subprocess.TimeoutExpired:
@@ -176,6 +181,7 @@ class DockerSandbox:
             subprocess.run([self.settings.docker_bin, "rm", "-f", name], capture_output=True, check=False)
 
         duration_ms = int((self._clock() - start) * 1000)
+        timed_out = first_limit[:1] == ["timeout"]
         stdout = out.data.decode("utf-8", errors="replace")
         stderr = err.data.decode("utf-8", errors="replace")
         return classify(
@@ -204,8 +210,12 @@ def classify(
         status = "memory_limit"
     elif exit_code == EXIT_SIGKILL:
         status = "memory_limit"  # killed by the cgroup OOM killer (we didn't time it out)
-    elif exit_code == EXIT_BAD_INPUT or (exit_code is not None and exit_code >= 125 and not run_started):
-        status = "sandbox_error"  # bad payload, or docker itself failed (125/126/127)
+    elif exit_code == EXIT_BAD_INPUT or not run_started:
+        # Learner code only runs after the entrypoint prints RUN_MARKER. Ending without it (and
+        # without a compile error, timeout, output flood or OOM kill) means the code never ran:
+        # Docker unreachable (exit 1), image missing or docker itself failing (125/126/127), or
+        # a bad payload (90). Never the learner's fault, so the API retries it as infrastructure.
+        status = "sandbox_error"
     else:
         status = "ok"  # includes non-zero exits from learner code; the API judges
     return SandboxResult(
@@ -218,6 +228,22 @@ def classify(
         output_truncated=truncated,
         duration_ms=duration_ms,
     )
+
+
+def docker_reachable(settings: RunnerSettings, timeout_s: float = 3.0) -> bool:
+    """True when the Docker daemon answers. Used by the readiness probe."""
+    try:
+        return (
+            subprocess.run(
+                [settings.docker_bin, "version", "--format", "{{.Server.Version}}"],
+                capture_output=True,
+                timeout=timeout_s,
+                check=False,
+            ).returncode
+            == 0
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
 
 
 def cleanup_stale(settings: RunnerSettings) -> int:

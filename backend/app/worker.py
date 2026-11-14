@@ -18,31 +18,71 @@ from __future__ import annotations
 import logging
 import signal
 import time
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload, sessionmaker
+from sqlalchemy.orm.exc import StaleDataError
 
+from app import tracing
 from app.config import Settings, get_settings
+from app.db import rls
 from app.db.session import make_engine, make_session_factory
-from app.models import ProgressEvent, ProgressEventType, Submission, SubmissionStatus
+from app.metrics import Metrics
+from app.models import ProgressEvent, ProgressEventType, Submission, SubmissionMode, SubmissionStatus
 from app.observability import configure_logging
+from app.services import test_design_judge
 from app.services.judge.judge import STATUS_DETAIL, JudgeInfrastructureError, judge_submission
 from app.services.judge.runner_client import HttpRunner, Runner, RunnerUnavailable
 
 logger = logging.getLogger("codecoach.worker")
 
 
+def _as_utc(value: datetime) -> datetime:
+    return value if value.tzinfo else value.replace(tzinfo=UTC)
+
+
 def _now() -> datetime:
     return datetime.now(UTC)
 
 
+def judge_queue_state(session_factory: sessionmaker[Session]) -> tuple[int, float]:
+    """(queued submissions, age in seconds of the oldest one): for metrics, read at scrape time."""
+    with session_factory() as db:
+        count, oldest = db.execute(
+            select(func.count(), func.min(Submission.created_at)).where(
+                Submission.status == SubmissionStatus.QUEUED
+            )
+        ).one()
+    age = (_now() - _as_utc(oldest)).total_seconds() if oldest is not None else 0.0
+    return int(count), max(0.0, age)
+
+
 class JudgeWorker:
-    def __init__(self, session_factory: sessionmaker[Session], runner: Runner, settings: Settings):
-        self.session_factory = session_factory
+    def __init__(
+        self,
+        session_factory: Callable[[], Session],
+        runner: Runner,
+        settings: Settings,
+        traces: tracing.TraceStore | None = None,
+        metrics: Metrics | None = None,
+    ):
+        # Worker scope: submissions aren't covered by row-level security, learners' rows are hidden
+        # unless a step binds the one learner it's working for (recording a solved problem).
+        self.session_factory = rls.scoped(session_factory, rls.WORKER)
         self.runner = runner
         self.settings = settings
+        # Each job continues the trace of the request that queued it (Submission.trace_id). An
+        # embedded worker shares the API's trace store and metrics; a separate worker process
+        # writes its spans to its own log.
+        self.traces = traces
+        self.metrics = metrics
         self._stop = False
+
+    def _trace(self, trace_id: str | None):
+        return tracing.start_trace(trace_id=trace_id, store=self.traces, metrics=self.metrics)
 
     def stop(self, *_: object) -> None:
         self._stop = True
@@ -76,9 +116,13 @@ class JudgeWorker:
             )
         ).all()
         for sub in stale:
-            self._retry_or_fail(sub, "worker stopped while judging")
+            # The job ran past its time without a result: a timeout, recorded on its own trace.
+            with self._trace(sub.trace_id), tracing.span("judge.recover", attempt=sub.attempts) as step:
+                step.outcome = "timeout"
+                self._retry_or_fail(sub, "worker stopped while judging")
+                step.set(result="requeued" if sub.status == SubmissionStatus.QUEUED else "failed")
         db.commit()
-        return len(stale)
+        return len(stale) + test_design_judge.recover_stale(db, self.settings)
 
     def _retry_or_fail(self, sub: Submission, reason: str) -> None:
         if sub.attempts < self.settings.judge_max_attempts:
@@ -94,40 +138,85 @@ class JudgeWorker:
     # --- main loop ----------------------------------------------------------------------
 
     def process_one(self) -> bool:
-        """Judge at most one submission. Returns True if a job was processed."""
+        """Judge at most one submission, or else one test-design run. Returns True if a job was
+        processed. Submissions go first: they're what a learner is waiting on in the editor."""
         with self.session_factory() as db:
             sub = self.claim(db)
             if sub is None:
-                return False
-            sub_id = sub.id
-        with self.session_factory() as db:
-            sub = db.scalar(
-                select(Submission).options(selectinload(Submission.problem)).where(Submission.id == sub_id)
-            )
-            assert sub is not None
+                return self._process_test_design(db)
+            sub_id, trace_id, attempt, language = sub.id, sub.trace_id, sub.attempts, sub.language
+            waited = (sub.judge_started_at or _now()) - _as_utc(sub.created_at)
+        with (
+            self.session_factory() as db,
+            self._trace(trace_id),
+            tracing.span(
+                "judge.run",
+                language=language,
+                attempt=attempt,
+                queue_wait_ms=max(0, round(waited.total_seconds() * 1000)),
+            ) as step,
+        ):
+            return self._judge(db, sub_id, step)
+
+    def _process_test_design(self, db: Session) -> bool:
+        run = test_design_judge.claim(db)
+        if run is None:
+            return False
+        run_id, trace_id, attempt = run.id, run.trace_id, run.attempts
+        with (
+            self.session_factory() as job_db,
+            self._trace(trace_id),
+            tracing.span("judge.test_design", attempt=attempt) as step,
+        ):
+            status = test_design_judge.execute(job_db, run_id, self.runner, self.settings)
+            step.set(result=status)
+            logger.info("test design run %s -> %s", run_id, status)
+        return True
+
+    def _judge(self, db: Session, sub_id: str, step: tracing.Span) -> bool:
+        sub = db.scalar(
+            select(Submission).options(selectinload(Submission.problem)).where(Submission.id == sub_id)
+        )
+        if sub is not None:
             tests = sub.problem.test_cases
             try:
                 verdict = judge_submission(sub, self.runner, self.settings.judge_time_limit_s)
             except (RunnerUnavailable, JudgeInfrastructureError) as exc:
                 self._retry_or_fail(sub, str(exc))
                 db.commit()
+                step.outcome = "judge_unavailable"
+                step.set(result="requeued" if sub.status == SubmissionStatus.QUEUED else "failed")
                 return True
+            step.set(verdict=verdict.status.value)
             sub.status = verdict.status
             sub.status_detail = STATUS_DETAIL[verdict.status]
             sub.judged_at = _now()
             sub.test_version = max((t.version for t in tests), default=None)
             sub.result = verdict.result
-            if verdict.status == SubmissionStatus.PASSED:
+            if verdict.status == SubmissionStatus.PASSED and sub.mode == SubmissionMode.SUBMIT:
+                rls.bind_user(db, sub.user_id)  # the one learner whose work this is
                 db.add(
                     ProgressEvent(
                         user_id=sub.user_id, problem_id=sub.problem_id, event_type=ProgressEventType.SOLVED
                     )
                 )
-            db.commit()
+            try:
+                db.commit()
+            except (IntegrityError, StaleDataError):
+                # The submission went while it was being judged: its account was deleted. The
+                # result is discarded; nothing is written back for an account that's gone.
+                db.rollback()
+                step.outcome = "discarded"
+                logger.info(
+                    "submission %s disappeared while judging (account deleted): result discarded", sub_id
+                )
+                return True
             logger.info("judged submission %s -> %s", sub_id, verdict.status.value)
-            return True
+        return True
 
     def run_forever(self) -> None:
+        # Housekeeping (guest retention among it) lives in app/jobs.py now, so it runs whether or
+        # not the judge does; main() starts it next to this loop.
         last_recovery = 0.0
         while not self._stop:
             if time.monotonic() - last_recovery > 30:
@@ -144,17 +233,38 @@ class JudgeWorker:
 
 
 def main() -> None:  # pragma: no cover - process entry point
+    """Background jobs (email retries, housekeeping) always; the judge too when code execution is
+    configured. Without it, this is a jobs-only worker."""
+    from app.jobs import JobsRunner
+    from app.services.email import build_email_sender
+
     settings = get_settings()
     configure_logging()
+    session_factory = make_session_factory(
+        make_engine(
+            settings.database_url, pool_timeout=settings.db_pool_timeout_seconds, pool_size=2, max_overflow=2
+        )
+    )
+    jobs = JobsRunner(session_factory, settings, build_email_sender(settings))
     if not settings.execution_enabled or not settings.runner_token:
-        raise SystemExit("EXECUTION_ENABLED=true and RUNNER_TOKEN are required to run the judge worker")
+        logger.info("background jobs worker started (no judge: EXECUTION_ENABLED is off)")
+        signal.signal(signal.SIGTERM, lambda *_: jobs.stop())
+        signal.signal(signal.SIGINT, lambda *_: jobs.stop())
+        jobs.run_forever()
+        return
     worker = JudgeWorker(
-        make_session_factory(make_engine(settings.database_url)),
-        HttpRunner(settings.runner_url, settings.runner_token),
+        session_factory,
+        HttpRunner(settings.runner_url, settings.runner_token_value, ca_bundle=settings.runner_ca_bundle),
         settings,
     )
-    signal.signal(signal.SIGTERM, worker.stop)
-    signal.signal(signal.SIGINT, worker.stop)
+
+    def stop(*_: object) -> None:
+        jobs.stop()
+        worker.stop()
+
+    signal.signal(signal.SIGTERM, stop)
+    signal.signal(signal.SIGINT, stop)
+    jobs.start()
     logger.info("judge worker started")
     worker.run_forever()
 
