@@ -77,7 +77,63 @@ run's steps, checks, ids and facts (scores, provider).
 
 ## Record
 
-Filled in from a run on a committed candidate; see the commit after the one that added this file.
+**Candidate**: `c150811` (the commit that added the journey), on 14 November 2026, in a clean
+checkout of it. Before and after each run the e2e runner reported "runtime inputs unchanged from
+the commit" (`differs_at_start` and `changed_during_run` empty in `e2e-provenance.json`), so the
+results are evidence for that commit.
+
+**Environment**: a Linux container; Playwright's Chromium at 1440×900 (desktop) and emulating a
+Pixel 7 (phone); the API under uvicorn on a fresh SQLite database; port offset 60.
+
+| Run | Tests | Outcome |
+|---|---|---|
+| The journey and its branches, desktop, twice (`--repeat-each=2`) | 14 passed | passed |
+| The journey at phone size, twice | 2 passed | passed |
+| The full browser suite, every project (includes the journey once on each viewport) | 177 passed, 5 skipped | passed |
+
+**Steps**, the same in all six journey runs (two desktop, two phone, and one of each in the full
+suite), with the same checks and the same scores:
+
+| # | Step | Outcome |
+|---|---|---|
+| 1 | A target requirement | passed |
+| 2 | Approved coach context | absent (not part of this career's path; above) |
+| 3 | A baseline attempt | passed: 72/100 |
+| 4 | Its recorded assistance | passed: "No in-app help recorded" |
+| 5 | Feedback review | passed: "Explains why it matters", missing in 3 of 3 |
+| 6 | An accepted improvement | passed |
+| 7 | Its calendar placement | passed: two weeks |
+| 8 | A related follow-up attempt | passed: the retry 92/100, partly comparable; the follow-up **52/100, lower than the baseline**, shown as that |
+| 9 | Final preparation material | passed |
+| 10 | Found again (reload, second tab, fresh sign-in, API with a new token) | passed |
+| 11 | No secret in the logs | passed |
+
+Every id the journey created was found again with the same links: the target and its 8
+requirement ids, the interview, the action and its 2 occurrences, the 3 answers (baseline, retry,
+follow-up, linked to the retry), the story (linked to the patient-assessment requirement), the
+application, the interview event and its kit.
+
+**Substitutes and skips**: the coach was the built-in offline coach (`ai_provider: offline`, no
+outside provider called); the judge wasn't used (`code_execution: false`, real judge off); no email
+was sent. Skipped: step 2 (absent for this career); in the full suite, the four judge tests (they
+need Docker, gVisor and the sandbox image) and the opt-in controls audit.
+
+**Canary**: not in the API's access log, the e2e outbox, or anything the three runs printed
+(including the API server's own output). With every log at DEBUG and traces on,
+`test_journey_canary.py` passes on SQLite and PostgreSQL.
+
+**Negative controls**: 7, each caught: one per branch in the browser, and the logs check.
+
+**Found on the way**, both fixed before this candidate (test only), and both in it:
+- The first full browser run (on an earlier candidate) failed two older specs, learner-journey.spec.ts
+  and review.spec.ts, which still expected comparison wording from before prompt 6; CI run 314 failed
+  the same two. Fixed in `87fc649`.
+- CI run 315 failed disputes.spec.ts once: on a slow runner the dashboard's plan request built the
+  plan before the spec's weak answer existed, and a plan isn't rebuilt for an answer outside it.
+  Fixed in `020eeb1`; the spec now holds that request until the answer is saved.
+
+An earlier candidate with the same journey code, `66e9418`, gave the same results before those
+hashes changed (the commits were replayed on top of the fixes).
 
 ## Limits
 
