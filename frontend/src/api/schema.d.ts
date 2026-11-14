@@ -1833,6 +1833,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/applications/{app_id}/events/{event_id}/kit/stories/{story_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refresh a chosen story to the version you reviewed, or keep it as prepared */
+        post: operations["review_kit_story_api_v1_me_applications__app_id__events__event_id__kit_stories__story_id__review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/events/{event_id}/kit/stories/{story_id}/kept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove what the kit kept from a story deleted since */
+        delete: operations["remove_kept_story_api_v1_me_applications__app_id__events__event_id__kit_stories__story_id__kept_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/restore/preview": {
         parameters: {
             query?: never;
@@ -4026,6 +4060,23 @@ export interface paths {
         put?: never;
         /** Use this story for the requirement's current wording (recorded as a reuse) */
         post: operations["reuse_story_api_v1_targets__target_id__experience__entry_id__requirements__requirement_id__reuse_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}/experience/{entry_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refresh a story's requirement links to the version you reviewed, or keep them as linked */
+        post: operations["review_story_links_api_v1_targets__target_id__experience__entry_id__review_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7342,6 +7393,24 @@ export interface components {
              */
             duplicate: boolean;
         };
+        /** FieldChange */
+        FieldChange: {
+            /**
+             * Field
+             * @description Which part of the story, as the story page names it
+             */
+            field: string;
+            /**
+             * Before
+             * @description As prepared; null if that version isn't kept any more
+             */
+            before: string | null;
+            /**
+             * After
+             * @description As it is now
+             */
+            after: string;
+        };
         /** FindingIn */
         FindingIn: {
             /** Id */
@@ -7637,6 +7706,37 @@ export interface components {
             speaker: components["schemas"]["SpeakerOut"] | null;
             /** Kind Label */
             kind_label: string;
+        };
+        /** Freshness */
+        Freshness: {
+            /**
+             * State
+             * @description current (nothing it relies on changed), needs_review, kept (the learner chose to keep it as prepared, until the story changes again), unknown (prepared before versions were recorded), unavailable (the story was deleted)
+             * @enum {string}
+             */
+            state: "current" | "needs_review" | "kept" | "unknown" | "unavailable";
+            /** Text */
+            text: string;
+            /**
+             * Prepared Revision
+             * @description The story's version this was prepared from
+             */
+            prepared_revision: number | null;
+            /**
+             * Current Revision
+             * @description The story's version now; null if it's gone
+             */
+            current_revision: number | null;
+            /**
+             * Changes
+             * @description What changed that this relies on, earlier and now
+             */
+            changes?: components["schemas"]["FieldChange"][];
+            /**
+             * Lineage
+             * @description The learner's decisions about it, newest first
+             */
+            lineage?: components["schemas"]["LineageEntry"][];
         };
         /** GoalsIn */
         GoalsIn: {
@@ -8195,6 +8295,22 @@ export interface components {
             /** Collection Ids */
             collection_ids: string[];
         };
+        /**
+         * KeptStory
+         * @description A chosen story deleted since: what the kit prepared from it is kept until you remove it.
+         */
+        KeptStory: {
+            /** Revision */
+            revision: number;
+            /** Title */
+            title: string;
+            /** Short Version */
+            short_version: string;
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+        };
         /** KeyPoints */
         KeyPoints: {
             /** Points */
@@ -8322,14 +8438,19 @@ export interface components {
             rescheduled_from?: components["schemas"]["KitWhen"] | null;
             /**
              * Missing Stories
-             * @description Examples chosen for this kit that were deleted since (they aren't shown)
+             * @description Examples chosen for this kit that were deleted since with nothing kept from them (chosen before the kit kept what it prepared)
              * @default 0
              */
             missing_stories: number;
+            /**
+             * Kept Stories
+             * @description Examples deleted since: what the kit prepared from each is kept until you remove it
+             */
+            kept_stories?: components["schemas"]["KeptStory"][];
         };
         /**
          * KitStory
-         * @description A chosen example, as it is now (it's a live reference, not a copy).
+         * @description A chosen example, as it is now (it's a live reference), with what the kit prepared from it.
          */
         KitStory: {
             /** Id */
@@ -8354,6 +8475,10 @@ export interface components {
              * @description The story's version when it was chosen for this kit (or last marked as reread); null if that wasn't recorded (kits saved before this existed)
              */
             chosen_revision?: number | null;
+            /** @description The story as this kit prepared it; null if that wasn't recorded */
+            prepared?: components["schemas"]["PreparedStory"] | null;
+            /** @description Whether the story changed since in a way that matters here; null until saved */
+            freshness?: components["schemas"]["Freshness"] | null;
         };
         /** KitTemplateCreate */
         KitTemplateCreate: {
@@ -8553,6 +8678,28 @@ export interface components {
              * @enum {string}
              */
             reason: "removed" | "unavailable";
+        };
+        /** LineageEntry */
+        LineageEntry: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "refreshed" | "kept";
+            /** From Revision */
+            from_revision: number | null;
+            /**
+             * To Revision
+             * @description The revision the learner reviewed
+             */
+            to_revision: number;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Text */
+            text: string;
         };
         /** LinkedAction */
         LinkedAction: {
@@ -9917,6 +10064,18 @@ export interface components {
              */
             all_day: boolean;
         };
+        /**
+         * PreparedStory
+         * @description A chosen story as this kit prepared it (docs/STORY_FRESHNESS.md).
+         */
+        PreparedStory: {
+            /** Revision */
+            revision: number;
+            /** Title */
+            title: string;
+            /** Short Version */
+            short_version: string;
+        };
         /** ProblemDetail */
         ProblemDetail: {
             /** Slug */
@@ -10806,6 +10965,8 @@ export interface components {
              * @description Deliberately reused for the current wording, from this version
              */
             reused_from: number | null;
+            /** @description Whether the story changed since it was linked, in a way that matters (docs/STORY_FRESHNESS.md). Separate from the requirement's own version above. */
+            story_freshness?: components["schemas"]["Freshness"] | null;
         };
         /** RequirementOut */
         RequirementOut: {
@@ -12432,6 +12593,20 @@ export interface components {
             /** Career Title */
             career_title: string | null;
         };
+        /** SourceReviewIn */
+        SourceReviewIn: {
+            /**
+             * Reviewed Revision
+             * @description The story's revision you reviewed. If it changed since, 409 source_changed and nothing changes: a newer revision is said, never used silently.
+             */
+            reviewed_revision: number;
+            /**
+             * Decision
+             * @description refresh: use the reviewed revision from now on; keep: keep it as prepared (recorded; asked again only if the story changes again)
+             * @enum {string}
+             */
+            decision: "refresh" | "keep";
+        };
         /** SpeakerOut */
         SpeakerOut: {
             /** Id */
@@ -12678,6 +12853,25 @@ export interface components {
              * @description One key per new story: sending the same create again (its response was lost) returns the story it made
              */
             client_request_id?: string | null;
+        };
+        /** StoryLinksReviewIn */
+        StoryLinksReviewIn: {
+            /**
+             * Reviewed Revision
+             * @description The story's revision you reviewed. If it changed since, 409 source_changed and nothing changes: a newer revision is said, never used silently.
+             */
+            reviewed_revision: number;
+            /**
+             * Decision
+             * @description refresh: use the reviewed revision from now on; keep: keep it as prepared (recorded; asked again only if the story changes again)
+             * @enum {string}
+             */
+            decision: "refresh" | "keep";
+            /**
+             * Requirement Ids
+             * @description The story's links to review, all with the same decision
+             */
+            requirement_ids: string[];
         };
         /** StoryOut */
         StoryOut: {
@@ -21027,6 +21221,130 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    review_kit_story_api_v1_me_applications__app_id__events__event_id__kit_stories__story_id__review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                event_id: string;
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourceReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KitOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    remove_kept_story_api_v1_me_applications__app_id__events__event_id__kit_stories__story_id__kept_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+                event_id: string;
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KitOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -29494,6 +29812,78 @@ export interface operations {
             };
             /** @description Not found (also returned for resources owned by another user) */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    review_story_links_api_v1_targets__target_id__experience__entry_id__review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoryLinksReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

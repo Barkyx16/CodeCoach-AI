@@ -9606,6 +9606,206 @@
         }
       }
     },
+    "/api/v1/me/applications/{app_id}/events/{event_id}/kit/stories/{story_id}/review": {
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Refresh a chosen story to the version you reviewed, or keep it as prepared",
+        "operationId": "review_kit_story_api_v1_me_applications__app_id__events__event_id__kit_stories__story_id__review_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "App Id"
+            }
+          },
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          },
+          {
+            "name": "story_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Story Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceReviewIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KitOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/applications/{app_id}/events/{event_id}/kit/stories/{story_id}/kept": {
+      "delete": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Remove what the kit kept from a story deleted since",
+        "operationId": "remove_kept_story_api_v1_me_applications__app_id__events__event_id__kit_stories__story_id__kept_delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "App Id"
+            }
+          },
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          },
+          {
+            "name": "story_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Story Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KitOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/restore/preview": {
       "post": {
         "tags": [
@@ -21593,6 +21793,112 @@
         }
       }
     },
+    "/api/v1/targets/{target_id}/experience/{entry_id}/review": {
+      "post": {
+        "tags": [
+          "targets"
+        ],
+        "summary": "Refresh a story's requirement links to the version you reviewed, or keep them as linked",
+        "operationId": "review_story_links_api_v1_targets__target_id__experience__entry_id__review_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "target_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Target Id"
+            }
+          },
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Entry Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StoryLinksReviewIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TargetOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/targets/{target_id}/actions/{action_id}/requirements/{requirement_id}/reuse": {
       "post": {
         "tags": [
@@ -29793,6 +30099,39 @@
         "title": "FeedbackReceipt",
         "description": "What the reviewer sent, echoed back so they can see it was received."
       },
+      "FieldChange": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "title": "Field",
+            "description": "Which part of the story, as the story page names it"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before",
+            "description": "As prepared; null if that version isn't kept any more"
+          },
+          "after": {
+            "type": "string",
+            "title": "After",
+            "description": "As it is now"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field",
+          "before",
+          "after"
+        ],
+        "title": "FieldChange"
+      },
       "FindingIn": {
         "properties": {
           "id": {
@@ -30401,6 +30740,74 @@
           "kind_label"
         ],
         "title": "FormatSlot"
+      },
+      "Freshness": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "current",
+              "needs_review",
+              "kept",
+              "unknown",
+              "unavailable"
+            ],
+            "title": "State",
+            "description": "current (nothing it relies on changed), needs_review, kept (the learner chose to keep it as prepared, until the story changes again), unknown (prepared before versions were recorded), unavailable (the story was deleted)"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "prepared_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prepared Revision",
+            "description": "The story's version this was prepared from"
+          },
+          "current_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Revision",
+            "description": "The story's version now; null if it's gone"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/FieldChange"
+            },
+            "type": "array",
+            "title": "Changes",
+            "description": "What changed that this relies on, earlier and now"
+          },
+          "lineage": {
+            "items": {
+              "$ref": "#/components/schemas/LineageEntry"
+            },
+            "type": "array",
+            "title": "Lineage",
+            "description": "The learner's decisions about it, newest first"
+          }
+        },
+        "type": "object",
+        "required": [
+          "state",
+          "text",
+          "prepared_revision",
+          "current_revision"
+        ],
+        "title": "Freshness"
       },
       "GoalsIn": {
         "properties": {
@@ -31849,6 +32256,40 @@
         "title": "ItemStatus",
         "description": "Private practice status for one question (signed-in explorer only)."
       },
+      "KeptStory": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "short_version": {
+            "type": "string",
+            "title": "Short Version"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "revision",
+          "title",
+          "short_version",
+          "id",
+          "text"
+        ],
+        "title": "KeptStory",
+        "description": "A chosen story deleted since: what the kit prepared from it is kept until you remove it."
+      },
       "KeyPoints": {
         "properties": {
           "points": {
@@ -32168,8 +32609,16 @@
           "missing_stories": {
             "type": "integer",
             "title": "Missing Stories",
-            "description": "Examples chosen for this kit that were deleted since (they aren't shown)",
+            "description": "Examples chosen for this kit that were deleted since with nothing kept from them (chosen before the kit kept what it prepared)",
             "default": 0
+          },
+          "kept_stories": {
+            "items": {
+              "$ref": "#/components/schemas/KeptStory"
+            },
+            "type": "array",
+            "title": "Kept Stories",
+            "description": "Examples deleted since: what the kit prepared from each is kept until you remove it"
           }
         },
         "type": "object",
@@ -32233,6 +32682,28 @@
             ],
             "title": "Chosen Revision",
             "description": "The story's version when it was chosen for this kit (or last marked as reread); null if that wasn't recorded (kits saved before this existed)"
+          },
+          "prepared": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PreparedStory"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The story as this kit prepared it; null if that wasn't recorded"
+          },
+          "freshness": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Freshness"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whether the story changed since in a way that matters here; null until saved"
           }
         },
         "type": "object",
@@ -32242,7 +32713,7 @@
           "short_version"
         ],
         "title": "KitStory",
-        "description": "A chosen example, as it is now (it's a live reference, not a copy)."
+        "description": "A chosen example, as it is now (it's a live reference), with what the kit prepared from it."
       },
       "KitTemplateCreate": {
         "properties": {
@@ -32819,6 +33290,52 @@
           "reason"
         ],
         "title": "LeftOut"
+      },
+      "LineageEntry": {
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "refreshed",
+              "kept"
+            ],
+            "title": "Decision"
+          },
+          "from_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Revision"
+          },
+          "to_revision": {
+            "type": "integer",
+            "title": "To Revision",
+            "description": "The revision the learner reviewed"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "decision",
+          "from_revision",
+          "to_revision",
+          "at",
+          "text"
+        ],
+        "title": "LineageEntry"
       },
       "LinkedAction": {
         "properties": {
@@ -36222,6 +36739,30 @@
         ],
         "title": "PrepTime"
       },
+      "PreparedStory": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "short_version": {
+            "type": "string",
+            "title": "Short Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "revision",
+          "title",
+          "short_version"
+        ],
+        "title": "PreparedStory",
+        "description": "A chosen story as this kit prepared it (docs/STORY_FRESHNESS.md)."
+      },
       "ProblemDetail": {
         "properties": {
           "slug": {
@@ -38513,6 +39054,17 @@
             ],
             "title": "Reused From",
             "description": "Deliberately reused for the current wording, from this version"
+          },
+          "story_freshness": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Freshness"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whether the story changed since it was linked, in a way that matters (docs/STORY_FRESHNESS.md). Separate from the requirement's own version above."
           }
         },
         "type": "object",
@@ -42451,6 +43003,31 @@
         ],
         "title": "SourceOut"
       },
+      "SourceReviewIn": {
+        "properties": {
+          "reviewed_revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Reviewed Revision",
+            "description": "The story's revision you reviewed. If it changed since, 409 source_changed and nothing changes: a newer revision is said, never used silently."
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "refresh",
+              "keep"
+            ],
+            "title": "Decision",
+            "description": "refresh: use the reviewed revision from now on; keep: keep it as prepared (recorded; asked again only if the story changes again)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reviewed_revision",
+          "decision"
+        ],
+        "title": "SourceReviewIn"
+      },
       "SpeakerOut": {
         "properties": {
           "id": {
@@ -43165,6 +43742,42 @@
           "title"
         ],
         "title": "StoryCreate"
+      },
+      "StoryLinksReviewIn": {
+        "properties": {
+          "reviewed_revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Reviewed Revision",
+            "description": "The story's revision you reviewed. If it changed since, 409 source_changed and nothing changes: a newer revision is said, never used silently."
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "refresh",
+              "keep"
+            ],
+            "title": "Decision",
+            "description": "refresh: use the reviewed revision from now on; keep: keep it as prepared (recorded; asked again only if the story changes again)"
+          },
+          "requirement_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Requirement Ids",
+            "description": "The story's links to review, all with the same decision"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reviewed_revision",
+          "decision",
+          "requirement_ids"
+        ],
+        "title": "StoryLinksReviewIn"
       },
       "StoryOut": {
         "properties": {

@@ -55,11 +55,14 @@ when chosen or last marked as reread); a reflection outcome's history.
   - Kits saved before the migration have `event_when = NULL`, so they make no claim.
   - Event edits and deletions invalidate the cached kit and reflection.
 - **Stories.** Each story has `revision` and `chosen_revision`.
-  - The page lists stories edited after they were chosen, with "Read it" and "I've reread it" (sent
-    as `reviewed_story_ids`).
-  - Saving for any other reason doesn't mark a change as reread.
-  - Archived chosen stories stay in the picker as "(archived)". Deleted ones are counted
-    (`missing_stories`) and said, not silently dropped.
+  - A story that changed since it was chosen, in words the kit relies on, asks for a review with what
+    changed side by side; "Use version N" or "Keep version M" is its own request, bound to the
+    version shown (docs/STORY_FRESHNESS.md). Tags and other details don't ask. Older clients'
+    `reviewed_story_ids` still work and are recorded as a refresh.
+  - Saving for any other reason doesn't mark a change as reviewed.
+  - Archived chosen stories stay in the picker as "(archived)". A deleted one keeps what the kit
+    prepared from it, said, until removed (`kept_stories`); kits saved before that was recorded
+    count it (`missing_stories`).
   - A save from a page opened before a story was deleted drops that id instead of failing.
     Another account's story id, or one never chosen, is still a 404.
 - **Suggestions.** Each suggested question's note names its source by the requirement's `origin`.

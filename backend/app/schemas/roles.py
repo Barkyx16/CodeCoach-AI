@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import Field, field_validator
 
 from app.schemas.common import APIModel
+from app.schemas.freshness import Freshness, SourceReviewIn
 from app.schemas.roadmap import RoundStart
 
 Category = Literal["required_skill", "preferred_skill", "responsibility", "experience", "tool", "competency"]
@@ -136,6 +137,17 @@ class RequirementLink(APIModel):
     label: str = Field(description="About the link, never the learner, e.g. 'Linked to an earlier wording'")
     reused_from: int | None = Field(
         description="Deliberately reused for the current wording, from this version"
+    )
+    story_freshness: Freshness | None = Field(
+        default=None,
+        description="Whether the story changed since it was linked, in a way that matters "
+        "(docs/STORY_FRESHNESS.md). Separate from the requirement's own version above.",
+    )
+
+
+class StoryLinksReviewIn(SourceReviewIn):
+    requirement_ids: list[str] = Field(
+        min_length=1, max_length=20, description="The story's links to review, all with the same decision"
     )
 
 

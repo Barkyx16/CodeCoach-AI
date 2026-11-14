@@ -818,6 +818,32 @@ class StoryRevision(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
 
+class SourceReview(Base):
+    """A deliberate decision about a changed source behind a piece of preparation
+    (docs/STORY_FRESHNESS.md): refreshed to the revision the learner reviewed, or kept as prepared.
+    Only added to, never changed. A kit's chosen story: holder_kind "kit", holder_id the event; a
+    requirement link: "requirement_link", the requirement."""
+
+    __tablename__ = "source_reviews"
+    __table_args__ = (
+        UniqueConstraint(
+            "holder_kind", "holder_id", "source_id", "to_revision", "decision", name="uq_source_review"
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    holder_kind: Mapped[str] = mapped_column(String(20))  # kit | requirement_link
+    holder_id: Mapped[str] = mapped_column(String(64))
+    source_kind: Mapped[str] = mapped_column(String(16))  # story
+    source_id: Mapped[str] = mapped_column(String(36))
+    from_revision: Mapped[int | None] = mapped_column(Integer, nullable=True)  # as prepared (null: unknown)
+    to_revision: Mapped[int] = mapped_column(Integer)  # the revision the learner reviewed
+    to_digest: Mapped[str] = mapped_column(String(64))  # its content then
+    decision: Mapped[str] = mapped_column(String(12))  # refreshed | kept
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
 class InterviewRetry(Base):
     """A new attempt at one question of a finished question round. The original answer is never
     changed; the retry is its own graded PracticeAnswer."""
@@ -1371,6 +1397,9 @@ class InterviewKit(Base):
     # saved before these existed: then it's unknown, and nothing is claimed.
     event_when: Mapped[str | None] = mapped_column(String(80), nullable=True)  # "date|HH:MM|zone"
     story_revisions: Mapped[dict | None] = mapped_column(JSONType, nullable=True)  # {story id: revision}
+    # Each chosen story as this kit prepared it (docs/STORY_FRESHNESS.md): {story id: {revision,
+    # digest, title, short_version}}. Kept if the story is deleted; NULL on kits from before.
+    story_snapshots: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
 
     __mapper_args__ = {"version_id_col": revision}
 

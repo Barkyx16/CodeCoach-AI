@@ -38,6 +38,7 @@ from app.schemas.applications import (
 )
 from app.schemas.common import SaveReplay
 from app.services import request_keys, update_receipts
+from app.services.story_freshness import forget
 from app.services.timeutil import local_to_utc, parse_hhmm, zone
 
 MAX_APPLICATIONS = 300
@@ -397,7 +398,10 @@ class Applications:
         return self.get(a.id)
 
     def delete(self, app_id: str) -> None:
-        self.db.delete(self._get(app_id))
+        a = self._get(app_id)
+        # Its kits go with its events; so do the decisions about their stories (STORY_FRESHNESS.md).
+        forget(self.db, self.user.id, holder_kind="kit", holder_ids=[e.id for e in a.events])
+        self.db.delete(a)
         self.db.commit()
 
     # --- events -------------------------------------------------------------------------------
@@ -471,6 +475,7 @@ class Applications:
         e = next((x for x in a.events if x.id == event_id), None)
         if e is None:
             raise NotFoundError("Event not found")
+        forget(self.db, self.user.id, holder_kind="kit", holder_ids=[e.id])
         a.events.remove(e)
         self.db.commit()
         return self.get(a.id)

@@ -276,6 +276,10 @@ export type PrepShiftResult = S["PrepShiftResult"];
 export type Schedulable = S["SchedulableOut"];
 
 export type Kit = S["KitOut"];
+export type KitStory = S["KitStory"];
+export type Freshness = S["Freshness"];
+export type SourceReviewIn = S["SourceReviewIn"];
+export type StoryLinksReviewIn = S["StoryLinksReviewIn"];
 export type KitQuestion = S["AskQuestion"];
 export type KitChecklistItem = S["ChecklistItem"];
 export type KitTemplate = S["KitTemplateOut"];

@@ -29,17 +29,21 @@ from app.models import (
     User,
 )
 from app.schemas.common import SaveReplay
+from app.schemas.freshness import SourceReviewIn
 from app.schemas.kits import (
     AskQuestion,
     ChecklistItem,
     Interviewer,
+    KeptStory,
     KitAction,
     KitOut,
     KitStory,
     KitUpdate,
     KitWhen,
+    PreparedStory,
 )
 from app.services import update_receipts
+from app.services.story_freshness import Prepared, StoryFreshness, digest, digest_of, forget
 
 _CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
@@ -220,11 +224,15 @@ class Kits:
     ) -> KitOut:
         stories, missing = [], 0
         chosen = (row.story_revisions if row is not None else None) or {}
+        snaps = (row.story_snapshots if row is not None else None) or {}
+        fresh = StoryFreshness(self.db, self.user.id)
         for sid in story_ids:
             s = self.db.get(ExperienceEntry, sid)
             if s is None or s.user_id != self.user.id:
-                missing += 1  # deleted since it was chosen: said, not silently dropped
+                if sid not in snaps:
+                    missing += 1  # deleted since it was chosen, nothing kept: said, not silently dropped
                 continue
+            snap = snaps.get(sid)
             stories.append(
                 KitStory(
                     id=s.id,
@@ -233,8 +241,29 @@ class Kits:
                     archived=s.archived,
                     revision=s.revision,
                     chosen_revision=chosen.get(s.id),
+                    prepared=PreparedStory(**{k: snap[k] for k in ("revision", "title", "short_version")})
+                    if snap
+                    else None,
+                    freshness=fresh.assess(
+                        "kit", ev.id, s, self._prepared(chosen, snaps, sid), "you chose it for this kit"
+                    )
+                    if row is not None
+                    else None,
                 )
             )
+        kept = []
+        for sid, snap in snaps.items():
+            s = self.db.get(ExperienceEntry, sid)
+            if s is None or s.user_id != self.user.id:
+                kept.append(
+                    KeptStory(
+                        id=sid,
+                        revision=snap["revision"],
+                        title=snap["title"],
+                        short_version=snap["short_version"],
+                        text="This story is no longer available. What the kit prepared from it is kept here.",
+                    )
+                )
         moved = None
         if row is not None and row.event_when is not None and row.event_when != when_key(ev):
             moved = _when(row.event_when)
@@ -262,6 +291,7 @@ class Kits:
             revision=row.revision if row is not None else 0,
             rescheduled_from=moved,
             missing_stories=missing,
+            kept_stories=kept,
         )
 
     def _stored_item(self, c: ChecklistItem) -> dict:
@@ -429,7 +459,21 @@ class Kits:
                 else:
                     raise NotFoundError("Story not found")
             kit.story_ids = ids
-        kit.story_revisions = self._story_revisions(kit, before, set(body.reviewed_story_ids or []))
+        prev_revs = dict(kit.story_revisions or {})
+        reviewed = set(body.reviewed_story_ids or [])
+        kit.story_revisions = self._story_revisions(kit, before, reviewed)
+        kit.story_snapshots = self._story_snapshots(kit.story_revisions, dict(kit.story_snapshots or {}))
+        # Older clients' "I've reread it": a refresh to the story as it is now, recorded like one.
+        stories = StoryFreshness(self.db, self.user.id)
+        for sid in reviewed & set(kit.story_ids or []):
+            s = self.db.get(ExperienceEntry, sid)
+            if (
+                s is not None
+                and s.user_id == self.user.id
+                and sid in before
+                and prev_revs.get(sid) != s.revision
+            ):
+                stories.decide("kit", ev.id, s, Prepared(prev_revs.get(sid)), s.revision, "refresh")
         kit.event_when = when_key(ev)  # saved on this page, where a move is shown
         kit.updated_at = datetime.now(UTC)
         try:
@@ -470,6 +514,98 @@ class Kits:
                 out[sid] = prev[sid]
         return out
 
+    def _snapshot_at(self, s: ExperienceEntry, revision: int) -> dict | None:
+        """The story at `revision` as a kit shows it, with a digest of the content it relies on."""
+        if revision == s.revision:
+            return {
+                "revision": s.revision,
+                "digest": digest(s),
+                "title": s.title,
+                "short_version": s.short_version,
+            }
+        fields = StoryFreshness(self.db, self.user.id).fields_at(s.id, revision)
+        if fields is None:
+            return None  # that version isn't kept any more: nothing is made up
+        return {
+            "revision": revision,
+            "digest": digest_of(fields),
+            "title": fields.get("title") or "",
+            "short_version": fields.get("short_version") or "",
+        }
+
+    def _story_snapshots(self, revisions: dict, prev: dict) -> dict:
+        """Each chosen story as prepared (its recorded version), and those deleted since, kept."""
+        out: dict[str, dict] = {}
+        for sid, rev in revisions.items():
+            s = self.db.get(ExperienceEntry, sid)
+            if s is None or s.user_id != self.user.id:
+                continue
+            snap = prev.get(sid)
+            if snap is not None and snap.get("revision") == rev:
+                out[sid] = snap
+            elif (made := self._snapshot_at(s, rev)) is not None:
+                out[sid] = made
+        for sid, snap in prev.items():
+            if sid in out:
+                continue
+            s = self.db.get(ExperienceEntry, sid)
+            if s is None or s.user_id != self.user.id:
+                out[sid] = snap  # deleted since: what the kit prepared from it stays until removed
+        return out
+
+    @staticmethod
+    def _prepared(revisions: dict, snaps: dict, sid: str) -> Prepared:
+        rev = revisions.get(sid)
+        snap = snaps.get(sid)
+        return Prepared(rev, snap.get("digest") if snap and snap.get("revision") == rev else None)
+
+    def review_story(self, app_id: str, event_id: str, story_id: str, body: SourceReviewIn) -> KitOut:
+        """Refresh a chosen story to the revision the learner reviewed, or keep it as prepared
+        (docs/STORY_FRESHNESS.md). One transaction: a failure leaves the kit exactly as it was."""
+        ev, _app = self._event(app_id, event_id)
+        kit = self.db.get(InterviewKit, ev.id)
+        if kit is None or story_id not in (kit.story_ids or []):
+            raise NotFoundError("Story not found")
+        s = self.db.get(ExperienceEntry, story_id)
+        revs = dict(kit.story_revisions or {})
+        snaps = dict(kit.story_snapshots or {})
+        row = StoryFreshness(self.db, self.user.id).decide(
+            "kit", ev.id, s, self._prepared(revs, snaps, story_id), body.reviewed_revision, body.decision
+        )
+        if row is None:
+            return self.get(app_id, event_id)  # already so: nothing recorded twice
+        if row.decision == "refreshed":
+            assert s is not None
+            revs[story_id] = s.revision
+            snaps[story_id] = self._snapshot_at(s, s.revision) or {}
+            kit.story_revisions, kit.story_snapshots = revs, snaps
+            kit.updated_at = datetime.now(UTC)
+        try:
+            self.db.commit()
+        except (StaleDataError, IntegrityError):  # the same decision from another tab got there first
+            self.db.rollback()
+        return self.get(app_id, event_id)
+
+    def remove_kept(self, app_id: str, event_id: str, story_id: str) -> KitOut:
+        """Remove what the kit kept from a story deleted since. Only that: nothing else changes."""
+        ev, _app = self._event(app_id, event_id)
+        kit = self.db.get(InterviewKit, ev.id)
+        snaps = dict((kit.story_snapshots if kit is not None else None) or {})
+        s = self.db.get(ExperienceEntry, story_id)
+        if kit is None or story_id not in snaps or (s is not None and s.user_id == self.user.id):
+            raise NotFoundError("Nothing kept for that story")
+        del snaps[story_id]
+        forget(self.db, self.user.id, holder_kind="kit", holder_ids=[ev.id], source_id=story_id)
+        kit.story_snapshots = snaps
+        kit.story_ids = [i for i in kit.story_ids or [] if i != story_id]
+        kit.story_revisions = {k: v for k, v in (kit.story_revisions or {}).items() if k != story_id}
+        kit.updated_at = datetime.now(UTC)
+        try:
+            self.db.commit()
+        except StaleDataError:
+            raise self._stale(app_id, event_id) from None
+        return self.get(app_id, event_id)
+
     @staticmethod
     def new_id() -> str:
         return f"u-{uuid.uuid4().hex[:8]}"
@@ -491,6 +627,8 @@ class Kits:
                 "revision": k.revision,
                 "saved_for_event_time": k.event_when,
                 "story_versions_when_chosen": k.story_revisions,
+                # Each chosen story as the kit prepared it (docs/STORY_FRESHNESS.md).
+                "stories_as_prepared": k.story_snapshots,
             }
             for k in self.db.scalars(
                 select(InterviewKit)

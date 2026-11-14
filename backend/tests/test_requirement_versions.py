@@ -430,7 +430,14 @@ def test_versions_history_and_links_are_exported(client):
         (2, "changed"),
     ]
     [s] = [x for x in doc["stories"] if x["id"] == t["experience"][0]["id"]]
-    assert s["requirement_versions"][rid] == {"version": 1, "reused_from": None}
+    rec = s["requirement_versions"][rid]
+    # The requirement's version, and the story's own revision and content digest when it was linked
+    # (docs/STORY_FRESHNESS.md): two separate things.
+    assert {k: rec[k] for k in ("version", "reused_from", "story_revision")} == {
+        "version": 1,
+        "reused_from": None,
+        "story_revision": 1,
+    } and len(rec["story_digest"]) == 64
     [a] = [x for x in doc["accepted_actions"] if x["id"] == action["id"]]
     assert a["requirement_reuse"] == {r["id"]: {"version": 2, "reused_from": 1}}
 

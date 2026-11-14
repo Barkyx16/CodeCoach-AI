@@ -7,6 +7,7 @@ from pydantic import Field, field_validator, model_validator
 
 from app.schemas.applications import _http_link
 from app.schemas.common import APIModel, OptionalKey, SaveReplay, save_replay_field, update_key_field
+from app.schemas.freshness import Freshness
 
 KitFormat = Literal["remote", "in_person", "phone", "unknown"]
 QuestionGroup = Literal["role", "team", "training", "workflow", "next_steps", "other"]
@@ -99,8 +100,23 @@ class KitUpdate(APIModel):
         return _http_link(v)
 
 
+class PreparedStory(APIModel):
+    """A chosen story as this kit prepared it (docs/STORY_FRESHNESS.md)."""
+
+    revision: int
+    title: str
+    short_version: str
+
+
+class KeptStory(PreparedStory):
+    """A chosen story deleted since: what the kit prepared from it is kept until you remove it."""
+
+    id: str
+    text: str
+
+
 class KitStory(APIModel):
-    """A chosen example, as it is now (it's a live reference, not a copy)."""
+    """A chosen example, as it is now (it's a live reference), with what the kit prepared from it."""
 
     id: str
     title: str
@@ -111,6 +127,13 @@ class KitStory(APIModel):
         default=None,
         description="The story's version when it was chosen for this kit (or last marked as reread); "
         "null if that wasn't recorded (kits saved before this existed)",
+    )
+    prepared: PreparedStory | None = Field(
+        default=None, description="The story as this kit prepared it; null if that wasn't recorded"
+    )
+    freshness: Freshness | None = Field(
+        default=None,
+        description="Whether the story changed since in a way that matters here; null until saved",
     )
 
 
@@ -151,5 +174,11 @@ class KitOut(APIModel):
         "it hasn't moved, or if that isn't known (kits saved before this was recorded).",
     )
     missing_stories: int = Field(
-        default=0, description="Examples chosen for this kit that were deleted since (they aren't shown)"
+        default=0,
+        description="Examples chosen for this kit that were deleted since with nothing kept from them "
+        "(chosen before the kit kept what it prepared)",
+    )
+    kept_stories: list[KeptStory] = Field(
+        default_factory=list,
+        description="Examples deleted since: what the kit prepared from each is kept until you remove it",
     )

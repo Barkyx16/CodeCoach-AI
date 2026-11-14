@@ -775,6 +775,7 @@ All under `/api/v1/targets` 🔒 and scoped to the owner (another user's id is a
   …/experience/{eid}/requirements/{rid}/reuse` and `POST …/actions/{aid}/requirements/{rid}/reuse`
   move a link to the current wording, recorded as a reuse.
 - `PUT /targets/{id}/experience/{eid}` takes an optional `expected_revision` (the story's revision, `ExperienceOut.revision`): if the story changed since, `409 stale_revision`, as in the story bank.
+- Each requirement link has `story_freshness` (docs/STORY_FRESHNESS.md): whether the story changed since the link was made, apart from the requirement's own version. `POST /targets/{id}/experience/{eid}/review {reviewed_revision, decision: refresh|keep, requirement_ids}` → the target: one decision for those links, recorded once; `409 source_changed` if the story moved on; a link the story doesn't have, or another account's story, is `404`.
 - `POST|PUT|DELETE /targets/{id}/experience[/{eid}]`: your own examples, linkable only to this
   target's requirements. Targets, requirements and examples are in the data export and are
   deleted with the account.
@@ -902,6 +903,13 @@ One kit per recorded interview event ([INTERVIEW_KIT.md](INTERVIEW_KIT.md)). Own
   checklist?, questions?, story_ids?}` → the kit. Lists are saved in the order sent (priority).
   A new format swaps untouched suggestions only. Links must be `http(s)` (`422`); someone else's
   story `404`.
+- Each chosen story also has `prepared` (the story as this kit prepared it: revision, title, short
+  version) and `freshness` (docs/STORY_FRESHNESS.md: `current`, `needs_review` with what changed,
+  `kept`, `unknown`); the kit has `kept_stories` (stories deleted since, with what was kept).
+- `POST …/kit/stories/{story_id}/review {reviewed_revision, decision: refresh|keep}` 🔒 → the kit:
+  refresh to the revision reviewed, or keep it as prepared; recorded once. `409 source_changed` (with
+  `current_revision`) if the story moved on meanwhile; nothing changes. `DELETE
+  …/kit/stories/{story_id}/kept` removes what the kit kept from a deleted story.
 
 ### How answers are evaluated, and your reflection
 

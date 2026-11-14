@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_db
 from app.models import User
 from app.schemas.common import error_responses
+from app.schemas.freshness import SourceReviewIn
 from app.schemas.kits import KitOut, KitUpdate
 from app.services.kits import Kits
 
@@ -50,3 +51,40 @@ def put_kit(
 ) -> KitOut:
     _private(response)
     return Kits(db, user).update(app_id, event_id, body)
+
+
+@router.post(
+    "/{app_id}/events/{event_id}/kit/stories/{story_id}/review",
+    response_model=KitOut,
+    responses=error_responses(401, 404, 409, 422),
+    summary="Refresh a chosen story to the version you reviewed, or keep it as prepared",
+)
+def review_kit_story(
+    app_id: str,
+    event_id: str,
+    story_id: str,
+    body: SourceReviewIn,
+    response: Response,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> KitOut:
+    _private(response)
+    return Kits(db, user).review_story(app_id, event_id, story_id, body)
+
+
+@router.delete(
+    "/{app_id}/events/{event_id}/kit/stories/{story_id}/kept",
+    response_model=KitOut,
+    responses=error_responses(401, 404, 409),
+    summary="Remove what the kit kept from a story deleted since",
+)
+def remove_kept_story(
+    app_id: str,
+    event_id: str,
+    story_id: str,
+    response: Response,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> KitOut:
+    _private(response)
+    return Kits(db, user).remove_kept(app_id, event_id, story_id)

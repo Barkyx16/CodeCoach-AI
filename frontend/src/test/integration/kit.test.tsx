@@ -159,28 +159,89 @@ describe("the kit stays truthful when things change", () => {
     expect(screen.getByRole("checkbox", { name: "Confirm the date, time and time zone" })).toBeChecked();
   });
 
-  it("flags an example edited after it was chosen, and saving after rereading records it", async () => {
+  // Linked evidence freshness (Volume 12, prompt 8; docs/STORY_FRESHNESS.md).
+  const NEEDS = {
+    state: "needs_review" as const, text: "The story changed since you chose it for this kit (version 1, now 3). Review whether it still fits.",
+    prepared_revision: 1, current_revision: 3, changes: [{ field: "Result", before: "Both were safe.", after: "Both were safe within ten minutes." }], lineage: [],
+  };
+  const PREPARED = { revision: 1, title: "Two call lights", short_version: "I triaged by risk." };
+  const changed = () => story({ revision: 3, chosen_revision: 1, title: "Two call lights at once", short_version: "I triaged two call lights by risk.", prepared: PREPARED, freshness: NEEDS });
+  const KEPT = { id: "st9", revision: 2, title: "Family meeting", short_version: "I explained the plan.", text: "This story is no longer available. What the kit prepared from it is kept here." };
+
+  it("asks for a review when an example changed in a way that matters, shows both versions, and refreshes only when asked", async () => {
     asUser();
-    let body: Record<string, unknown> | null = null;
+    let sent: Record<string, unknown> | null = null;
+    let saves = 0;
     server.use(
-      http.get(KIT, () => HttpResponse.json(kit({ saved: true, revision: 1, stories: [story({ revision: 3, chosen_revision: 1 }), story({ id: "st2", title: "Night handover", archived: true })], missing_stories: 1 }))),
-      http.get(`${API}/api/v1/me/stories`, () => HttpResponse.json([{ id: "st1", title: "Two call lights" }])),
-      http.put(KIT, async ({ request }) => {
-        body = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json(kit({ saved: true, revision: 2, stories: [story({ revision: 3, chosen_revision: 3 })] }));
+      http.get(KIT, () => HttpResponse.json(kit({ saved: true, revision: 1, stories: [changed(), story({ id: "st2", title: "Night handover", archived: true })], kept_stories: [KEPT] }))),
+      http.get(`${API}/api/v1/me/stories`, () => HttpResponse.json([{ id: "st1", title: "Two call lights at once" }])),
+      http.put(KIT, () => { saves += 1; return HttpResponse.json(kit()); }),
+      http.post(`${KIT}/stories/st1/review`, async ({ request }) => {
+        sent = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(kit({ saved: true, revision: 2, stories: [story({
+          revision: 3, chosen_revision: 3, title: "Two call lights at once", short_version: "I triaged two call lights by risk.",
+          prepared: { revision: 3, title: "Two call lights at once", short_version: "I triaged two call lights by risk." },
+          freshness: { ...NEEDS, state: "current", text: "Up to date with the story (version 3).", prepared_revision: 3, changes: [] },
+        })] }));
       }),
     );
     const { user } = renderApp(URL, { signedIn: true });
-    const changes = await screen.findByRole("list", { name: "Examples edited since you chose them" });
-    expect(changes).toHaveTextContent("“Two call lights” was edited after you chose it (version 1 then, 3 now).");
-    expect(within(changes).getByRole("link", { name: "Read it" })).toHaveAttribute("href", "/stories/st1");
-    expect(screen.getByText(/An example you chose was deleted/)).toBeInTheDocument();
+    const box = (await screen.findByText(/The story changed since you chose it for this kit \(version 1, now 3\)/)).closest(".freshness") as HTMLElement;
+    const table = within(box).getByRole("table");
+    expect(within(table).getByRole("columnheader", { name: "As prepared (version 1)" })).toBeInTheDocument();
+    expect(within(table).getByRole("columnheader", { name: "Now (version 3)" })).toBeInTheDocument();
+    expect(within(table).getByRole("row", { name: /Result Both were safe\. Both were safe within ten minutes\./ })).toBeInTheDocument();
+    expect(within(box).getByRole("link", { name: "Open the story" })).toHaveAttribute("href", "/stories/st1");
+    // What the kit prepared is what it summarises and prints, with a note; a deleted one is kept, said and removable.
+    const pack = screen.getByRole("article", { name: "Your interview pack" });
+    expect(pack).toHaveTextContent("Two call lights: I triaged by risk. (version 1; the story has changed since)");
+    expect(pack).toHaveTextContent("Family meeting: I explained the plan. (no longer in your story bank)");
+    const kept = screen.getByRole("list", { name: "Examples deleted since you chose them" });
+    expect(kept).toHaveTextContent("This story is no longer available. What the kit prepared from it is kept here.");
+    expect(within(kept).getByRole("button", { name: "Remove it from this kit" })).toBeEnabled();
     // An archived example stays tickable, so it can be removed from the kit.
     expect(screen.getByRole("checkbox", { name: "Night handover (archived)" })).toBeChecked();
-    await user.click(within(changes).getByRole("button", { name: "I've reread it" }));
-    await user.click(screen.getByRole("button", { name: "Save kit" }));
-    await waitFor(() => expect(body).toMatchObject({ reviewed_story_ids: ["st1"], expected_revision: 1 }));
-    await waitFor(() => expect(screen.queryByRole("list", { name: "Examples edited since you chose them" })).toBeNull());
+    expect(sent).toBeNull(); // nothing refreshes by itself
+    await user.click(within(box).getByRole("button", { name: "Use version 3 in this kit" }));
+    await waitFor(() => expect(sent).toEqual({ reviewed_revision: 3, decision: "refresh" }));
+    expect(await screen.findByText("This kit now uses version 3 of “Two call lights at once”.")).toBeInTheDocument();
+    expect(screen.queryByText(/The story changed since you chose it/)).toBeNull();
+    expect(saves).toBe(0); // a review is its own save, not the kit's
+  });
+
+  it("keeping the earlier version is a choice; a newer version meanwhile is said and the kit reloaded; edits first", async () => {
+    asUser();
+    const sent: Record<string, unknown>[] = [];
+    let reads = 0;
+    server.use(
+      http.get(KIT, () => {
+        reads += 1;
+        // After the 409, the story is at version 4: the page must show that, not version 3.
+        const now = sent.length === 0 ? changed() : { ...changed(), revision: 4, freshness: { ...NEEDS, current_revision: 4, text: "The story changed since you chose it for this kit (version 1, now 4). Review whether it still fits." } };
+        return HttpResponse.json(kit({ saved: true, revision: 1, stories: [now] }));
+      }),
+      http.get(`${API}/api/v1/me/stories`, () => HttpResponse.json([{ id: "st1", title: "Two call lights at once" }])),
+      http.post(`${KIT}/stories/st1/review`, async ({ request }) => {
+        sent.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ error: { code: "source_changed", message: "The story changed again while you were reviewing it (now version 4; you reviewed version 3). Nothing was changed: review version 4.", request_id: "r", details: { current_revision: 4 } } }, { status: 409 });
+      }),
+    );
+    const { user } = renderApp(URL, { signedIn: true });
+    const box = (await screen.findByText(/The story changed since you chose it/)).closest(".freshness") as HTMLElement;
+    // With unsaved edits, a review waits: it's saved on its own.
+    await user.type(screen.getByLabelText("Private notes"), " more");
+    expect(within(box).getByRole("button", { name: "Use version 3 in this kit" })).toBeDisabled();
+    expect(within(box).getByText("Save the kit first: a review is saved on its own.")).toBeInTheDocument();
+    await user.clear(screen.getByLabelText("Private notes"));
+    await user.type(screen.getByLabelText("Private notes"), "Ask about parking.");
+    const before = reads;
+    await user.click(within(box).getByRole("button", { name: "Keep version 1" }));
+    await waitFor(() => expect(sent).toEqual([{ reviewed_revision: 3, decision: "keep" }]));
+    expect(await screen.findByText(/now version 4; you reviewed version 3/)).toBeInTheDocument();
+    await waitFor(() => expect(reads).toBeGreaterThan(before));
+    // Reloaded: the newer version is what's shown, with its own choices.
+    expect(await screen.findByText(/The story changed since you chose it for this kit \(version 1, now 4\)/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Use version 4 in this kit" })).toBeEnabled();
   });
 
   it("with unsaved changes the printout is only a notice, never the unsaved kit", async () => {

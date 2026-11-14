@@ -2,6 +2,7 @@ import type { Kit } from "@/api/types";
 import { describeWhen } from "@/features/applications/dates";
 
 import { FORMAT_LABEL, type PrintChoice } from "./labels";
+import { preparedExamples } from "./prepared";
 
 /**
  * The printable pack: shown on screen as the preview and the only thing that prints, so the two
@@ -12,6 +13,7 @@ import { FORMAT_LABEL, type PrintChoice } from "./labels";
 export function PrintPack({ kit, choice, unsaved = false }: { kit: Kit; choice: PrintChoice; unsaved?: boolean }) {
   const remaining = kit.checklist.filter((c) => !c.done && !c.hidden);
   const asking = kit.questions.filter((q) => !q.excluded);
+  const examples = preparedExamples(kit);
   return (
     <article className={`print-pack${unsaved ? " print-pack--unsaved" : ""}`} aria-label="Your interview pack">
       {unsaved && (
@@ -29,8 +31,8 @@ export function PrintPack({ kit, choice, unsaved = false }: { kit: Kit; choice: 
       {choice.interviewers && kit.interviewers.some((p) => p.name || p.role) && (
         <section><h3>Interviewers</h3><ul>{kit.interviewers.filter((p) => p.name || p.role).map((p, i) => <li key={i}>{[p.name, p.role].filter(Boolean).join(", ")}</li>)}</ul></section>
       )}
-      {choice.stories && kit.stories.length > 0 && (
-        <section><h3>Examples</h3><ul>{kit.stories.map((s) => <li key={s.id}><strong>{s.title}</strong>{s.short_version ? `: ${s.short_version}` : ""}</li>)}</ul></section>
+      {choice.stories && examples.length > 0 && (
+        <section><h3>Examples</h3><ul>{examples.map((s) => <li key={s.id}><strong>{s.title}</strong>{s.short_version ? `: ${s.short_version}` : ""}{s.note && <em> ({s.note})</em>}</li>)}</ul></section>
       )}
       {choice.questions && asking.length > 0 && <section><h3>Questions to ask</h3><ol>{asking.map((q) => <li key={q.id}>{q.text}</li>)}</ol></section>}
       {choice.checklist && remaining.length > 0 && <section><h3>Still to do</h3><ul>{remaining.map((c) => <li key={c.id}>☐ {c.text}</li>)}</ul></section>}

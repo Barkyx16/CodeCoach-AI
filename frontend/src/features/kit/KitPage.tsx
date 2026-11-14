@@ -21,6 +21,8 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { DEFAULT_PRINT, FORMAT_LABEL, GROUP_LABEL, PRINT_LABEL, type KitFormat, type PrintChoice, type QuestionGroup } from "./labels";
 import { KitTemplatesCard } from "./KitTemplatesCard";
 import { PrintPack } from "./PrintPack";
+import { preparedExamples } from "./prepared";
+import { FreshnessReview, type Decision } from "@/features/stories/FreshnessReview";
 import { recoveredSave, savedVersion } from "@/lib/conflict";
 import { externalHref } from "@/lib/links";
 import { useRequestKey } from "@/lib/requestKey";
@@ -48,7 +50,6 @@ function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
   const stories = useStories({});
   const [saved, setSaved] = useState(initial);
   const [kit, setKit] = useState(initial);
-  const [reviewed, setReviewed] = useState<string[]>([]);
   // A refused stale save: the kit saved elsewhere, shown beside this page's.
   const [conflict, setConflict] = useState<Kit | null>(null);
   // One key per exact save: a retry after a lost reply is told "went through", not "changed elsewhere".
@@ -58,7 +59,7 @@ function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
   const [error, setError] = useState<unknown>(null);
   const [notice, setNotice] = useState("");
   const [print, setPrint] = useState<PrintChoice>(DEFAULT_PRINT);
-  const dirty = JSON.stringify(kit) !== JSON.stringify(saved) || reviewed.length > 0;
+  const dirty = JSON.stringify(kit) !== JSON.stringify(saved);
   // The kit as last rendered, for a save that resolves after newer edits (it must not undo them).
   const latest = useRef(kit);
   useEffect(() => { latest.current = kit; }, [kit]);
@@ -75,7 +76,7 @@ function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
       const update = {
         format: sent.format, location: sent.location, meeting_link: sent.meeting_link || null, clear_meeting_link: !sent.meeting_link,
         interviewers: sent.interviewers, notes: sent.notes, checklist: sent.checklist, questions: sent.questions, story_ids: sent.stories.map((s) => s.id),
-        expected_revision: over ?? saved.revision, reviewed_story_ids: reviewed,
+        expected_revision: over ?? saved.revision,
       };
       const next = await api.saveKit(sent.application_id, sent.event_id, { ...update, client_request_id: saveKey.keyFor([sent.event_id, update]) });
       saveKey.done();
@@ -93,7 +94,6 @@ function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
       } else {
         // Edited while it was saving: keep those edits, now unsaved against the version just saved.
         setSaved(next);
-        setReviewed([]);
         setConflict(null);
         qc.setQueryData(["me", "kit", next.application_id, next.event_id], next);
       }
@@ -109,10 +109,42 @@ function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
     }
   }
 
+  // Refresh or keep a changed story (docs/STORY_FRESHNESS.md): its own request, bound to the version
+  // shown. A newer version meanwhile is refused and said; the kit is reloaded so it's shown.
+  const [reviewing, setReviewing] = useState<string | null>(null);
+  const [reviewError, setReviewError] = useState<unknown>(null);
+  async function decide(storyId: string, title: string, decision: Decision, reviewedRevision: number) {
+    setReviewing(storyId);
+    setReviewError(null);
+    try {
+      replaceWith(await api.reviewKitStory(live.application_id, live.event_id, storyId, { reviewed_revision: reviewedRevision, decision }));
+      setNotice(decision === "refresh" ? `This kit now uses version ${reviewedRevision} of “${title}”.` : `Kept “${title}” as you prepared it.`);
+    } catch (e) {
+      setReviewError(e);
+      if (e instanceof ApiError && e.code === "source_changed") {
+        const fresh = await api.kit(live.application_id, live.event_id).catch(() => null);
+        if (fresh) replaceWith(fresh);
+      }
+    } finally {
+      setReviewing(null);
+    }
+  }
+  async function removeKept(storyId: string) {
+    setReviewing(storyId);
+    setReviewError(null);
+    try {
+      replaceWith(await api.removeKeptKitStory(live.application_id, live.event_id, storyId));
+      setNotice("Removed from this kit.");
+    } catch (e) {
+      setReviewError(e);
+    } finally {
+      setReviewing(null);
+    }
+  }
+
   function replaceWith(next: Kit) {
     setSaved(next);
     setKit(next);
-    setReviewed([]);
     setConflict(null);
     setEarlierSave(null);
     qc.setQueryData(["me", "kit", next.application_id, next.event_id], next);
@@ -147,7 +179,9 @@ function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
     ...(stories.data ?? []).map((s) => ({ id: s.id, title: s.title, archived: false })),
     ...kit.stories.filter((s) => s.archived && !(stories.data ?? []).some((x) => x.id === s.id)).map((s) => ({ id: s.id, title: s.title, archived: true })),
   ];
-  const changed = kit.stories.filter((s) => s.chosen_revision != null && s.revision > s.chosen_revision);
+  // Chosen stories that changed since (docs/STORY_FRESHNESS.md), from the kit as saved: reviewing one
+  // is its own save, so it waits until this page's edits are saved.
+  const toReview = live.stories.filter((s) => s.freshness && s.freshness.state !== "current");
 
   const remaining = kit.checklist.filter((c) => !c.done && !c.hidden);
   const asking = kit.questions.filter((q) => !q.excluded);
@@ -216,7 +250,7 @@ function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
         <div className="before-view__grid">
           <div>
             <h3 className="section-title">Examples to bring</h3>
-            {kit.stories.length === 0 ? <p className="subtle">None chosen yet.</p> : <ul className="mini-list">{kit.stories.map((s) => <li key={s.id}><Link to={`/stories/${s.id}`} state={fromHere}>{s.title}</Link>{s.short_version && <span className="subtle"> · {s.short_version}</span>}</li>)}</ul>}
+            {preparedExamples(live).length === 0 ? <p className="subtle">None chosen yet.</p> : <ul className="mini-list">{preparedExamples(live).map((s) => <li key={s.id}><Link to={`/stories/${s.id}`} state={fromHere}>{s.title}</Link>{s.short_version && <span className="subtle"> · {s.short_version}</span>}{s.note && <span className="subtle"> ({s.note})</span>}</li>)}</ul>}
           </div>
           <div>
             <h3 className="section-title">Questions you'll ask</h3>
@@ -325,19 +359,29 @@ function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
                 from your story bank since, so {live.missing_stories === 1 ? "it isn't" : "they aren't"} in this kit any more.
               </p>
             )}
-            {changed.length > 0 && (
-              <ul className="kit-story-changes" aria-label="Examples edited since you chose them">
-                {changed.map((s) => (
-                  <li key={s.id}>
-                    <span>“{s.title}” was edited after you chose it (version {s.chosen_revision} then, {s.revision} now).</span>{" "}
-                    <Link to={`/stories/${s.id}`} state={fromHere}>Read it</Link>{" "}
-                    {reviewed.includes(s.id)
-                      ? <span className="subtle">Marked as reread; save the kit to keep that.</span>
-                      : <Button size="sm" variant="ghost" onClick={() => { setReviewed((r) => [...r, s.id]); setNotice(""); }}>I've reread it</Button>}
+            {toReview.length > 0 && (
+              <div className="stack-sm" aria-label="Examples to review">
+                {toReview.map((st) => (
+                  <FreshnessReview key={st.id} f={st.freshness!} title={st.title} href={`/stories/${st.id}`} linkState={fromHere}
+                    what="in this kit" busy={reviewing === st.id}
+                    disabledNote={dirty ? "Save the kit first: a review is saved on its own." : undefined}
+                    onDecide={(d, rev) => void decide(st.id, st.title, d, rev)} />
+                ))}
+              </div>
+            )}
+            {(live.kept_stories ?? []).length > 0 && (
+              <ul className="mini-list kit-kept" aria-label="Examples deleted since you chose them">
+                {(live.kept_stories ?? []).map((k) => (
+                  <li key={k.id} className="stack-sm">
+                    <span><strong>“{k.title}”</strong> (version {k.revision}). {k.text}</span>
+                    {k.short_version && <span className="subtle">{k.short_version}</span>}
+                    <span><Button size="sm" variant="ghost" loading={reviewing === k.id} disabled={dirty}
+                      onClick={() => void removeKept(k.id)}>Remove it from this kit</Button></span>
                   </li>
                 ))}
               </ul>
             )}
+            <InlineError error={reviewError} />
             {pickable.length === 0 ? <p className="subtle">No stories yet. <Link to="/stories/new">Write one</Link>.</p> : (
               <fieldset className="stack-sm">
                 <legend className="visually-hidden">Stories</legend>

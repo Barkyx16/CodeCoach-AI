@@ -140,6 +140,16 @@ def test_links_are_checked_and_stories_must_be_yours(client):
             "archived": False,
             "revision": 1,
             "chosen_revision": 1,  # the version it was when chosen
+            # As the kit prepared it, and whether that still matches (docs/STORY_FRESHNESS.md).
+            "prepared": {"revision": 1, "title": "Two call lights", "short_version": "I triaged by risk."},
+            "freshness": {
+                "state": "current",
+                "text": "Up to date with the story (version 1).",
+                "prepared_revision": 1,
+                "current_revision": 1,
+                "changes": [],
+                "lineage": [],
+            },
         }
     ]
 
@@ -298,7 +308,7 @@ def test_a_kit_saved_before_snapshots_existed_claims_nothing(client):
     assert client.get(url, headers=h).json()["rescheduled_from"] is None  # unknown, not guessed
 
 
-def test_story_changes_after_choosing_are_visible_and_deleted_ones_are_counted(client):
+def test_story_changes_after_choosing_are_visible_and_deleted_ones_are_kept(client):
     h = nurse(client)
     _, _, url = event(client, h)
     s1 = client.post("/api/v1/me/stories", headers=h, json={"title": "Two call lights"}).json()
@@ -321,7 +331,11 @@ def test_story_changes_after_choosing_are_visible_and_deleted_ones_are_counted(c
     assert by_id[s1["id"]]["title"] == "Two call lights at once"  # a live reference, not a copy
     assert (by_id[s1["id"]]["revision"], by_id[s1["id"]]["chosen_revision"]) == (2, 1)
     assert by_id[s2["id"]]["archived"] is True  # still shown, so it can be unticked
-    assert s3["id"] not in by_id and now["missing_stories"] == 1
+    # Deleted: no longer a live story, but what the kit prepared from it is kept (STORY_FRESHNESS.md).
+    assert s3["id"] not in by_id and now["missing_stories"] == 0
+    assert [(k["id"], k["title"], k["revision"]) for k in now["kept_stories"]] == [
+        (s3["id"], "Family meeting", 1)
+    ]
     # Saving something else doesn't quietly mark the change as reread...
     kept = client.put(url, headers=h, json={"notes": "x", "expected_revision": 1}).json()
     assert next(s for s in kept["stories"] if s["id"] == s1["id"])["chosen_revision"] == 1
@@ -330,6 +344,7 @@ def test_story_changes_after_choosing_are_visible_and_deleted_ones_are_counted(c
         url, headers=h, json={"story_ids": [s1["id"], s2["id"], s3["id"]], "expected_revision": 2}
     )
     assert stale_list.status_code == 200 and stale_list.json()["missing_stories"] == 0
+    assert [k["id"] for k in stale_list.json()["kept_stories"]] == [s3["id"]]  # until it's removed
     # ...saying so does.
     reread = client.put(
         url, headers=h, json={"reviewed_story_ids": [s1["id"]], "expected_revision": 3}

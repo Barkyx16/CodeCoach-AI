@@ -12,6 +12,7 @@ from app.schemas.roles import (
     RequirementPatch,
     RequirementSetIn,
     RevisionPreview,
+    StoryLinksReviewIn,
     TargetIn,
     TargetOut,
     TargetPatch,
@@ -192,6 +193,23 @@ def reuse_story(
     db: Session = Depends(get_db),
 ) -> TargetOut:
     return _svc(request, db).reuse_story(user, target_id, entry_id, requirement_id)
+
+
+@router.post(
+    "/{target_id}/experience/{entry_id}/review",
+    response_model=TargetOut,
+    responses=error_responses(400, 401, 404, 409, 422),
+    summary="Refresh a story's requirement links to the version you reviewed, or keep them as linked",
+)
+def review_story_links(
+    target_id: str,
+    entry_id: str,
+    body: StoryLinksReviewIn,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> TargetOut:
+    return _svc(request, db).review_story_links(user, target_id, entry_id, body)
 
 
 @router.post(

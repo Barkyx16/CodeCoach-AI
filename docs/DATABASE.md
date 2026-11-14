@@ -397,7 +397,14 @@ The cases are code (`backend/app/offers`, docs/OFFER_REHEARSAL.md), not rows.
 - `interview_kits`: one row per interview event (primary key `event_id`, cascading with the event
   and so with its application; `user_id` cascades with the account), created on the first save:
   `format`, `location`, `meeting_link` (http(s), never fetched), `interviewers`, `notes`,
-  `checklist`, `questions` and `story_ids` (JSON, in the learner's order).
+  `checklist`, `questions` and `story_ids` (JSON, in the learner's order). `story_snapshots`
+  (JSON): each chosen story as the kit prepared it (revision, content digest, title, short
+  version), kept if the story is deleted (docs/STORY_FRESHNESS.md).
+- `source_reviews`: the learner's decisions about a story that changed after a kit or a requirement
+  link was prepared from it: `holder_kind` (kit | requirement_link), `holder_id`, `source_id` (the
+  story), `from_revision`, `to_revision` (the one reviewed), `to_digest`, `decision` (refreshed |
+  kept), `created_at`; one per holder, story, revision and decision (unique). Owner-only under
+  row-level security; deleted with the account. Only added to.
 
 ### Schedule
 - `schedule_settings`: one row per account (cascade): `timezone` (IANA), `reminders` (off by
@@ -495,6 +502,7 @@ The cases are code (`backend/app/offers`, docs/OFFER_REHEARSAL.md), not rows.
 | `f7d1b3e5a209` follow-up answers | Adds `practice_answers.follows_up_answer_id` (nullable, indexed, ON DELETE SET NULL): the earlier answer to a related question that this one followed up (docs/FOLLOW_UPS.md). Existing answers stay unlinked; row-level security covers it; downgrade drops it |
 | `a8e2c4f6b310` requirement versions | Adds `target_requirements.version` (default 1), `role_targets.requirements_revision` (default 1, checked when the set is saved), `experience_entries.requirement_versions` and `accepted_actions.requirement_reuse` (nullable JSON: a link's version and any deliberate reuse), and `requirement_versions`, one row per recorded state of a requirement (original, added, changed, removed, restored) with its words, group and skills then, owner-only, under row-level security, deleted with the target and the account (docs/REQUIREMENT_VERSIONS.md). Existing requirements stay version 1 and existing links say "version not recorded"; nothing existing is rewritten; downgrade drops all five |
 | `b9f3d5e7a421` feedback disputes | Adds `answer_flags.disputed_at` and `reinstated_at` (nullable timestamps), `plan_items.derived_from` (nullable JSON: the `{answer_id, criterion}` pairs an activity came from) and `practice_plans.withheld` (nullable JSON: what a version didn't suggest because of a dispute). Existing flags have no dispute date ("the date wasn't recorded") and existing activities no derivation, so they're never labelled; nothing existing is rewritten; covered by the tables' existing row-level security; downgrade drops all four (docs/DISPUTES.md) |
+| `c1d4e6a8b532` source reviews | Adds `source_reviews` (decisions about a changed story behind a kit or a requirement link: refreshed to the revision reviewed, or kept; unique per holder, story, revision and decision; owner-only under row-level security; cascades with the account) and `interview_kits.story_snapshots` (nullable JSON: each chosen story as prepared). Requirement links record the story's revision and digest in the existing `experience_entries.requirement_versions` JSON. Kits and links from before have none: their freshness is read from the story's kept revisions or is unknown, never guessed; nothing existing is rewritten; downgrade drops both (docs/STORY_FRESHNESS.md) |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

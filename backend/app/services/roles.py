@@ -19,6 +19,7 @@ from datetime import UTC, datetime
 
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.careers import CATALOG
@@ -53,6 +54,7 @@ from app.schemas.roles import (
     RequirementSetIn,
     RevisionPreview,
     SessionPlan,
+    StoryLinksReviewIn,
     TargetIn,
     TargetOut,
     TargetPatch,
@@ -62,6 +64,7 @@ from app.services.content import retired_problem_slugs
 from app.services.jd_extract import extract, map_skills
 from app.services.requirement_versions import RequirementVersions
 from app.services.stories import record_revision, snapshot
+from app.services.story_freshness import StoryFreshness, forget, link_prepared, stamp_links
 
 MAX_TARGETS = 20
 MAX_REQUIREMENTS = 60
@@ -212,6 +215,7 @@ class RoleTargets:
 
     def delete(self, user: User, target_id: str) -> None:
         t = self._load(user, target_id)
+        forget(self.db, user.id, holder_kind="requirement_link", holder_ids=[r.id for r in t.requirements])
         self.db.delete(t)  # requirements go with it; its stories stay in the story bank, unlinked
         self.db.commit()
 
@@ -354,6 +358,7 @@ class RoleTargets:
         self.db.add(entry)
         self.db.flush()
         record_revision(self.db, entry, "created", bump=False)  # it's a story in the story bank too
+        stamp_links(entry)
         self.db.commit()
         return self.get(user, t.id)
 
@@ -375,11 +380,53 @@ class RoleTargets:
         e.updated_at = datetime.now(UTC)
         if snapshot(e) != before:
             record_revision(self.db, e, "edited", bump=True)
+        stamp_links(e)  # new links: made with the story as saved now; others keep theirs
         self.db.commit()
         return self.get(user, t.id)
 
+    def review_story_links(
+        self, user: User, target_id: str, entry_id: str, body: StoryLinksReviewIn
+    ) -> TargetOut:
+        """Refresh a story's requirement links to the revision the learner reviewed, or keep them as
+        linked (docs/STORY_FRESHNESS.md). One transaction; another account's story is 404."""
+        t = self._load(user, target_id)
+        e = self._entry(user, t, entry_id)
+        rids = list(dict.fromkeys(body.requirement_ids))
+        if any(rid not in (e.requirement_ids or []) for rid in rids):
+            raise NotFoundError("That story isn't linked to this requirement.")
+        fresh = StoryFreshness(self.db, user.id)
+        for rid in rids:
+            decisions = fresh.decisions("requirement_link", rid, e.id)
+            fresh.decide(
+                "requirement_link",
+                rid,
+                e,
+                link_prepared(e, rid, decisions),
+                body.reviewed_revision,
+                body.decision,
+            )
+        try:
+            self.db.commit()
+        except IntegrityError:  # the same decision from another tab got there first: one result
+            self.db.rollback()
+        return self.get(user, t.id)
+
+    def _link_freshness(self, fresh: StoryFreshness, e: ExperienceEntry, links: list) -> list:
+        for link in links:
+            decisions = fresh.decisions("requirement_link", link.requirement_id, e.id)
+            link.story_freshness = fresh.assess(
+                "requirement_link",
+                link.requirement_id,
+                e,
+                link_prepared(e, link.requirement_id, decisions),
+                "you linked it",
+                decisions,
+            )
+        return links
+
     def delete_experience(self, user: User, target_id: str, entry_id: str) -> TargetOut:
         t = self._load(user, target_id)
+        forget(self.db, user.id, holder_kind="requirement_link", source_id=entry_id)  # its links go with it
         self.db.delete(self._entry(user, t, entry_id))
         self.db.commit()
         return self.get(user, t.id)
@@ -694,6 +741,7 @@ class RoleTargets:
             )
             if len(recent) >= 6:
                 break
+        fresh = StoryFreshness(self.db, user.id)
         experience = self.db.scalars(
             select(ExperienceEntry)
             .where(ExperienceEntry.target_id == t.id)
@@ -720,7 +768,7 @@ class RoleTargets:
                     action=e.action,
                     result=e.result,
                     requirement_ids=list(e.requirement_ids),
-                    requirement_links=RequirementVersions.links(e, t),
+                    requirement_links=self._link_freshness(fresh, e, RequirementVersions.links(e, t)),
                     revision=e.revision,
                     created_at=e.created_at,
                     updated_at=e.updated_at,

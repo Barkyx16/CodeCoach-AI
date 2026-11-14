@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
-import type { Requirement, RequirementSetIn, RevisionPreview, Target } from "@/api/types";
+import type { Freshness, Requirement, RequirementSetIn, RevisionPreview, Target } from "@/api/types";
 
 import { tokenResponse, user as baseUser } from "../fixtures";
 import { renderApp } from "../render";
@@ -356,5 +356,43 @@ describe("Versioned requirements", () => {
     expect(await within(triage).findByText(/Version 1, before the first change: “Perform patient assessment”/)).toBeInTheDocument();
     expect(within(triage).getByText(/Version 2, changed: “Perform patient assessment and triage”/)).toBeInTheDocument();
     expect(screen.getByText(/answered against an earlier wording of “Perform patient assessment and triage” \(version 1; now 2\)/)).toBeInTheDocument();
+  });
+});
+
+describe("Story freshness on requirement links (docs/STORY_FRESHNESS.md)", () => {
+  const needs = {
+    state: "needs_review" as const, text: "The story changed since you linked it (version 1, now 2). Review whether it still fits.",
+    prepared_revision: 1, current_revision: 2, changes: [{ field: "Result", before: "Stable.", after: "Stable within the hour." }], lineage: [],
+  };
+  const link = (rid: string, f: Freshness | null) => ({
+    requirement_id: rid, linked_version: 1, current_version: 1, status: "current" as const, label: "Linked to the current wording (version 1)", reused_from: null, story_freshness: f,
+  });
+  const story = {
+    id: "x-1", revision: 2, created_at: now, updated_at: now, title: "Night shift escalation", situation: "", action: "", result: "Stable within the hour.",
+    requirement_ids: ["r-1", "r-3"], requirement_links: [link("r-1", needs), link("r-3", needs)],
+  };
+
+  it("names the links prepared from the earlier version, shows what changed, and refreshes them together when asked", async () => {
+    let sent: Record<string, unknown> | null = null;
+    targetServer({ experience: [story] });
+    server.use(
+      http.post(`${API}/api/v1/targets/t-1/experience/x-1/review`, async ({ request }) => {
+        sent = (await request.json()) as Record<string, unknown>;
+        const done = { ...needs, state: "current" as const, text: "Up to date with the story (version 2).", prepared_revision: 2, changes: [] };
+        return HttpResponse.json({ ...makeTarget(), experience: [{ ...story, requirement_links: [link("r-1", done), link("r-3", done)] }] });
+      }),
+    );
+    const { user } = renderApp("/targets/t-1", { signedIn: true });
+    const note = await screen.findByText("For “Perform patient assessment and triage”, “Care planning”:");
+    const box = note.parentElement!.querySelector(".freshness") as HTMLElement;
+    expect(box).toHaveTextContent("The story changed since you linked it (version 1, now 2). Review whether it still fits.");
+    expect(within(box).getByRole("columnheader", { name: "As linked (version 1)" })).toBeInTheDocument();
+    expect(within(box).getByRole("row", { name: /Result Stable\. Stable within the hour\./ })).toBeInTheDocument();
+    // The requirement's own version is shown apart, unchanged.
+    expect(screen.getAllByText(/Linked to the current wording \(version 1\)/)).toHaveLength(2);
+    expect(sent).toBeNull();
+    await user.click(within(box).getByRole("button", { name: "Use version 2 for these links" }));
+    await waitFor(() => expect(sent).toEqual({ reviewed_revision: 2, decision: "refresh", requirement_ids: ["r-1", "r-3"] }));
+    await waitFor(() => expect(screen.queryByText(/The story changed since you linked it/)).toBeNull());
   });
 });

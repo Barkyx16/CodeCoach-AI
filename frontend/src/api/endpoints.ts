@@ -145,6 +145,8 @@ import type {
   SubmissionCreate,
   SubmissionListItem,
   SubmissionStatus,
+  SourceReviewIn,
+  StoryLinksReviewIn,
   Target,
   TargetInput,
   TargetPatch,
@@ -437,6 +439,9 @@ export const api = {
     apiRequest<RequirementHistoryEntry[]>(`/api/v1/targets/${encodeURIComponent(id)}/requirements/${encodeURIComponent(rid)}/history`),
   reuseStory: (id: string, eid: string, rid: string) =>
     apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}/experience/${encodeURIComponent(eid)}/requirements/${encodeURIComponent(rid)}/reuse`, { method: "POST" }),
+  // review a story's requirement links after the story changed (docs/STORY_FRESHNESS.md)
+  reviewStoryLinks: (id: string, eid: string, body: StoryLinksReviewIn) =>
+    apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}/experience/${encodeURIComponent(eid)}/review`, { method: "POST", body }),
   reuseAction: (id: string, aid: string, rid: string) =>
     apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}/actions/${encodeURIComponent(aid)}/requirements/${encodeURIComponent(rid)}/reuse`, { method: "POST" }),
   addExperience: (id: string, body: ExperienceInput) =>
@@ -710,6 +715,10 @@ export const api = {
 
   // interview-day kits
   kit: (appId: string, eventId: string) => apiRequest<Kit>(`/api/v1/me/applications/${encodeURIComponent(appId)}/events/${encodeURIComponent(eventId)}/kit`),
+  reviewKitStory: (appId: string, eventId: string, storyId: string, body: SourceReviewIn) =>
+    apiRequest<Kit>(`/api/v1/me/applications/${encodeURIComponent(appId)}/events/${encodeURIComponent(eventId)}/kit/stories/${encodeURIComponent(storyId)}/review`, { method: "POST", body }),
+  removeKeptKitStory: (appId: string, eventId: string, storyId: string) =>
+    apiRequest<Kit>(`/api/v1/me/applications/${encodeURIComponent(appId)}/events/${encodeURIComponent(eventId)}/kit/stories/${encodeURIComponent(storyId)}/kept`, { method: "DELETE" }),
   // a practice packet (docs/PACKET.md): assembled for a preview, nothing stored
   previewPacket: (body: PacketIn) => apiRequest<Packet>("/api/v1/me/packet/preview", { method: "POST", body }),
   // your kit templates (docs/TEMPLATES.md)

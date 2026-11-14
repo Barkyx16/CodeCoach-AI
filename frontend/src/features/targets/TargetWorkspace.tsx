@@ -1,10 +1,11 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
 import { useStartInterview, useTarget, useTargetMutation } from "@/api/queries";
-import type { Experience, Requirement, Target } from "@/api/types";
+import type { Experience, Requirement, StoryLinksReviewIn, Target } from "@/api/types";
 import { BackLink } from "@/components/BackLink";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
@@ -20,6 +21,7 @@ import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { formatDateTime } from "@/lib/format";
 import { ActionLinks, RequirementHistory, RequirementSetEditor } from "@/features/targets/RequirementVersions";
 import { useRequirementChange } from "@/features/targets/useRequirementChange";
+import { FreshnessReview } from "@/features/stories/FreshnessReview";
 
 type Category = Requirement["category"];
 const GROUPS: { id: Category; label: string }[] = [
@@ -286,6 +288,41 @@ function ReuseButton({ t, entryId, requirementId }: { t: Target; entryId: string
   );
 }
 
+/**
+ * The story behind some requirement links changed since they were made (docs/STORY_FRESHNESS.md):
+ * one review per group of links prepared from the same version, with the requirements named. The
+ * decision is bound to the version shown; a newer one meanwhile is refused and the target reloaded.
+ */
+function StoryLinksReview({ t, e }: { t: Target; e: Experience }) {
+  const qc = useQueryClient();
+  const review = useTargetMutation((body: StoryLinksReviewIn) => api.reviewStoryLinks(t.id, e.id, body));
+  const open = (e.requirement_links ?? []).filter((lk) => lk.story_freshness && lk.story_freshness.state !== "current");
+  if (open.length === 0) return null;
+  const groups = new Map<string, typeof open>();
+  for (const lk of open) {
+    const f = lk.story_freshness!;
+    const key = `${f.state}:${f.prepared_revision ?? "?"}`;
+    groups.set(key, [...(groups.get(key) ?? []), lk]);
+  }
+  const name = (rid: string) => t.requirement_list.find((r) => r.id === rid)?.text ?? "a requirement";
+  return (
+    <div className="stack-sm">
+      {[...groups.values()].map((links) => (
+        <div key={links.map((l) => l.requirement_id).join()} className="stack-sm">
+          <p className="subtle">For {links.map((l) => `“${name(l.requirement_id)}”`).join(", ")}:</p>
+          <FreshnessReview f={links[0]!.story_freshness!} title={e.title} href={`/stories/${e.id}`} what="for these links" preparedLabel="As linked"
+            busy={review.isPending}
+            onDecide={(decision, rev) => review.mutate(
+              { reviewed_revision: rev, decision, requirement_ids: links.map((l) => l.requirement_id) },
+              { onError: (err) => { if (err instanceof ApiError && err.code === "source_changed") void qc.invalidateQueries({ queryKey: ["me", "target", t.id] }); } },
+            )} />
+        </div>
+      ))}
+      <InlineError error={review.error} />
+    </div>
+  );
+}
+
 const EMPTY = { title: "", situation: "", action: "", result: "", requirement_ids: [] as string[] };
 
 function ExperienceSection({ t }: { t: Target }) {
@@ -313,6 +350,7 @@ function ExperienceSection({ t }: { t: Target }) {
               ))}
             </ul>
           )}
+          <StoryLinksReview t={t} e={e} />
           <span className="row">
             <Button size="sm" variant="ghost" onClick={() => setEditing(e)}>Edit</Button>
             <Link to={`/stories/${e.id}`}>Open in your story bank</Link>

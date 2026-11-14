@@ -51,6 +51,7 @@ from app.services.restore import Restore
 from app.services.schedule import Schedule
 from app.services.shares import status_of
 from app.services.stories import snapshot
+from app.services.story_freshness import StoryFreshness
 from app.services.test_design import TestDesign
 from app.services.whiteboard import Whiteboard
 from app.services.work_samples import WorkSamples
@@ -496,6 +497,9 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
         "interview_kits": Kits(db, user).export(with_ids=with_ids),
         # Your kit templates: their names, checklist items and questions (docs/TEMPLATES.md).
         "kit_templates": KitTemplates(db, user).export(),
+        # Your decisions about stories that changed after a kit or a requirement link was prepared from
+        # them: refreshed to a version you reviewed, or kept as prepared (docs/STORY_FRESHNESS.md).
+        "source_reviews": StoryFreshness(db, user.id).export(),
         # Improvements you accepted from feedback: where each came from, its occurrences and what you
         # said was done (docs/ACCEPTED_ACTIONS.md).
         "accepted_actions": Actions(db, user).export(with_ids=with_ids),

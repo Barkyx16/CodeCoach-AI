@@ -410,7 +410,12 @@ class RequirementVersions:
         before = rec.get("version") if isinstance(rec, dict) else None
         if before == r.version:
             return
-        recorded[rid] = {"version": r.version, "reused_from": before}
+        # The story's own revision for the link stays as it was (docs/STORY_FRESHNESS.md).
+        recorded[rid] = {
+            **(rec if isinstance(rec, dict) else {}),
+            "version": r.version,
+            "reused_from": before,
+        }
         e.requirement_versions = recorded
 
     # --- accepted improvements ---------------------------------------------------------------------
