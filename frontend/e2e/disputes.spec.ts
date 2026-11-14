@@ -34,6 +34,12 @@ test("a disputed point stops shaping the plan, what came from it is labelled, an
   await chooseJob(page, "registered-nurse");
   await page.locator("#main").getByRole("button", { name: "Create account" }).click();
   await page.getByRole("link", { name: "Do this later" }).click();
+  // The plan's first version must come from the weak answer. A plan is rebuilt when something in it
+  // is done or the goals change, not when an answer elsewhere is added, so if the dashboard's own
+  // plan request reached the server first (CI run 315, on a slow runner), the plan never had the
+  // retry. Hold that request until the answer is saved.
+  const planRequest = (url: URL) => url.pathname === "/api/v1/me/plan";
+  await page.route(planRequest, (route) => route.abort());
   await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
 
@@ -44,6 +50,7 @@ test("a disputed point stops shaping the plan, what came from it is labelled, an
   const score = feedback.getByLabel(/^Score \d+ out of 100/);
   await expect(score).toBeVisible();
   const scoreLabel = await score.getAttribute("aria-label");
+  await page.unroute(planRequest);
 
   // The plan before: the retry names both missed points.
   await page.goto("/plan");
