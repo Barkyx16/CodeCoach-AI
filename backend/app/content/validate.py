@@ -143,6 +143,22 @@ def _learn(report: Report, retired: set[tuple[str, str]], seed_slugs: set[str]) 
     report.counts["lessons"] = len(UNIT_INDEX)
 
 
+def _followups(report: Report, retired: set[tuple[str, str]]) -> None:
+    """Reviewed follow-up questions (docs/FOLLOW_UPS.md): both questions in the bank, reviewed."""
+    from app.careers.followups import RELATIONSHIPS, problems
+
+    def exists(track: str, qid: str) -> bool:
+        return track in CATALOG and get_question(track, qid) is not None
+
+    report.errors.extend(problems(RELATIONSHIPS, exists))
+    for r in RELATIONSHIPS:
+        if ("question", f"{r.target_track}/{r.to_id}") in retired:
+            report.warnings.append(
+                f"follow-up {r.track}/{r.from_id}: {r.to_id!r} is retired, so it isn't offered"
+            )
+    report.counts["follow-ups"] = len(RELATIONSHIPS)
+
+
 def _scenarios(report: Report) -> None:
     for scenario in SCENARIO_INDEX.values():
         try:
@@ -623,6 +639,7 @@ def run(db: Session | None, *, run_reference: bool = False, record: bool = False
             if slug not in seeds:
                 report.warnings.append(f"problem {slug}: in the database but not in the seed files")
     _learn(report, retired, set(seeds))
+    _followups(report, retired)
     _scenarios(report)
 
     if run_reference:

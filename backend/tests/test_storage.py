@@ -501,15 +501,22 @@ def test_copy_moves_accounts_and_work_and_refuses_what_it_cant_do_safely(make_se
 
 def test_rows_that_point_at_each_other_are_copied_parents_first():
     table = Base.metadata.tables["practice_answers"]
+    # Both of its references to itself: a revision of an earlier answer, and a follow-up answer
+    # pointing at the answer it follows (docs/FOLLOW_UPS.md).
     rows = [
-        {"id": "c", "revises_answer_id": "b"},
-        {"id": "b", "revises_answer_id": "a"},
-        {"id": "a", "revises_answer_id": None},
+        {"id": "d", "revises_answer_id": None, "follows_up_answer_id": "c"},
+        {"id": "c", "revises_answer_id": "b", "follows_up_answer_id": None},
+        {"id": "b", "revises_answer_id": "a", "follows_up_answer_id": None},
+        {"id": "a", "revises_answer_id": None, "follows_up_answer_id": None},
     ]
-    assert [r["id"] for r in dbcopy._parents_first(table, rows)] == ["a", "b", "c"]
+    assert [r["id"] for r in dbcopy._parents_first(table, rows)] == ["a", "b", "c", "d"]
     with pytest.raises(ValueError, match="cycle"):
         dbcopy._parents_first(
-            table, [{"id": "x", "revises_answer_id": "y"}, {"id": "y", "revises_answer_id": "x"}]
+            table,
+            [
+                {"id": "x", "revises_answer_id": "y", "follows_up_answer_id": None},
+                {"id": "y", "revises_answer_id": None, "follows_up_answer_id": "x"},
+            ],
         )
 
 

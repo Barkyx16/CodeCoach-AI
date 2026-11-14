@@ -2370,6 +2370,82 @@
         }
       }
     },
+    "/api/v1/careers/{slug}/questions/{question_id}/follow-up": {
+      "get": {
+        "tags": [
+          "careers"
+        ],
+        "summary": "A reviewed follow-up question, after repeated practice on this one (docs/FOLLOW_UPS.md)",
+        "operationId": "follow_up_api_v1_careers__slug__questions__question_id__follow_up_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "question_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Question Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowUpOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/careers/{slug}/progress": {
       "get": {
         "tags": [
@@ -22632,6 +22708,18 @@
             "title": "Revises Answer Id",
             "description": "Your earlier answer to this question that this one explicitly revises (None when it doesn't, for every answer saved before revision links existed, and when that earlier answer was deleted). A link says where a try came from; it doesn't make two scores comparable."
           },
+          "follows_up_answer_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Follows Up Answer Id",
+            "description": "The earlier answer to a related question this one was offered after (a reviewed follow-up)"
+          },
           "conditions": {
             "anyOf": [
               {
@@ -22746,6 +22834,19 @@
             ],
             "title": "Revises Answer Id",
             "description": "One of your own earlier answers to this same question that this answer revises (404 if it isn't yours or doesn't exist; 400 `revision_other_question` if it's for another question). Only set it for an explicit revision."
+          },
+          "follows_up_answer_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 36
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Follows Up Answer Id",
+            "description": "Answering an offered follow-up (docs/FOLLOW_UPS.md): your own earlier answer to the question this one follows up (404 if it isn't yours or doesn't exist; 400 `not_a_follow_up` if no reviewed relationship links the two questions). Both answers keep their own score."
           }
         },
         "type": "object",
@@ -28843,6 +28944,187 @@
         ],
         "title": "FollowInterviewIn"
       },
+      "FollowUpAnswered": {
+        "properties": {
+          "answer_id": {
+            "type": "string",
+            "title": "Answer Id"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "question_id": {
+            "type": "string",
+            "title": "Question Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "score": {
+            "type": "integer",
+            "title": "Score"
+          },
+          "rating": {
+            "type": "string",
+            "title": "Rating"
+          },
+          "evidence_level": {
+            "type": "string",
+            "enum": [
+              "sufficient",
+              "insufficient",
+              "unknown"
+            ],
+            "title": "Evidence Level"
+          },
+          "content_version": {
+            "type": "integer",
+            "title": "Content Version"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "follows_up_answer_id": {
+            "type": "string",
+            "title": "Follows Up Answer Id"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptConditions"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer_id",
+          "track",
+          "question_id",
+          "title",
+          "score",
+          "rating",
+          "evidence_level",
+          "content_version",
+          "created_at",
+          "follows_up_answer_id"
+        ],
+        "title": "FollowUpAnswered",
+        "description": "A follow-up you answered, kept beside the answer it followed: its own record and score."
+      },
+      "FollowUpOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "offered",
+              "not_yet",
+              "none"
+            ],
+            "title": "Status",
+            "description": "offered: a reviewed follow-up is available; not_yet: practise this question more first; none: no reviewed follow-up (or only retired ones)"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "threshold": {
+            "type": "integer",
+            "title": "Threshold",
+            "description": "Answers long enough to score before a follow-up is offered"
+          },
+          "scored_answers": {
+            "type": "integer",
+            "title": "Scored Answers",
+            "description": "Your answers to this question long enough to score"
+          },
+          "offers": {
+            "items": {
+              "$ref": "#/components/schemas/FollowUpQuestion"
+            },
+            "type": "array",
+            "title": "Offers"
+          },
+          "answered": {
+            "items": {
+              "$ref": "#/components/schemas/FollowUpAnswered"
+            },
+            "type": "array",
+            "title": "Answered",
+            "description": "Follow-ups you answered after this question"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "message",
+          "threshold",
+          "scored_answers",
+          "offers",
+          "answered"
+        ],
+        "title": "FollowUpOut"
+      },
+      "FollowUpQuestion": {
+        "properties": {
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "question_id": {
+            "type": "string",
+            "title": "Question Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "The question's current version"
+          },
+          "objective": {
+            "type": "string",
+            "title": "Objective",
+            "description": "What it shares with the question you practised"
+          },
+          "difference": {
+            "type": "string",
+            "title": "Difference",
+            "description": "How it differs"
+          },
+          "exposure": {
+            "type": "string",
+            "title": "Exposure",
+            "description": "'Not previously attempted in this app', or how many times you answered it here. Never 'new to you': practice elsewhere isn't known."
+          },
+          "attempts": {
+            "type": "integer",
+            "title": "Attempts",
+            "description": "Your answers to it in this app"
+          }
+        },
+        "type": "object",
+        "required": [
+          "track",
+          "question_id",
+          "title",
+          "version",
+          "objective",
+          "difference",
+          "exposure",
+          "attempts"
+        ],
+        "title": "FollowUpQuestion"
+      },
       "FollowupAnswer": {
         "properties": {
           "answer": {
@@ -30545,6 +30827,19 @@
             ],
             "title": "Revises Answer Id",
             "description": "One of your own earlier answers to this same question that this answer revises (404 if it isn't yours or doesn't exist; 400 `revision_other_question` if it's for another question). Only set it for an explicit revision."
+          },
+          "follows_up_answer_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 36
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Follows Up Answer Id",
+            "description": "Answering an offered follow-up (docs/FOLLOW_UPS.md): your own earlier answer to the question this one follows up (404 if it isn't yours or doesn't exist; 400 `not_a_follow_up` if no reviewed relationship links the two questions). Both answers keep their own score."
           }
         },
         "type": "object",

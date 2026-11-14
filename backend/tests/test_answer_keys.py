@@ -254,11 +254,11 @@ def test_a_reply_lost_after_commit_is_recovered_by_the_resend(make_client, monke
     real = answers_module.answer_out
     calls = {"n": 0}
 
-    def fails_once(row):
+    def fails_once(*args, **kwargs):
         calls["n"] += 1
         if calls["n"] == 1:
             raise RuntimeError("the reply was lost after the answer was saved")
-        return real(row)
+        return real(*args, **kwargs)
 
     monkeypatch.setattr("app.api.routes.careers.answer_out", fails_once)
     with pytest.raises(RuntimeError):

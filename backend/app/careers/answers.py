@@ -25,10 +25,16 @@ FINGERPRINT_VERSION = "v1"
 
 
 def request_fingerprint(
-    track: str, question_id: str, answer: str, story_id: str | None, revises_answer_id: str | None
+    track: str,
+    question_id: str,
+    answer: str,
+    story_id: str | None,
+    revises_answer_id: str | None,
+    follows_up_answer_id: str | None = None,
 ) -> str:
     """v1: sha256 of the request's own fields exactly as sent (answer text unnormalized, so a
-    changed answer is a different request)."""
+    changed answer is a different request). A follow-up's link is included only when set, so every
+    earlier fingerprint stays the same."""
     payload = {
         "track": track,
         "question_id": question_id,
@@ -36,6 +42,8 @@ def request_fingerprint(
         "story_id": story_id,
         "revises_answer_id": revises_answer_id,
     }
+    if follows_up_answer_id is not None:
+        payload["follows_up_answer_id"] = follows_up_answer_id
     digest = hashlib.sha256(
         json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()
     ).hexdigest()
@@ -155,5 +163,6 @@ def answer_out(row: PracticeAnswer, conditions: AttemptConditions | None = None)
         evaluation_status=evaluation_for(row.track).status,
         evaluation_note=evaluation_for(row.track).note,
         revises_answer_id=row.revises_answer_id,
+        follows_up_answer_id=row.follows_up_answer_id,
         conditions=conditions,
     )

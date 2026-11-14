@@ -13,6 +13,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Icon } from "@/components/Icon";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
+import { FollowUpCard } from "@/features/careers/FollowUpCard";
 import { AttemptConditionsView } from "@/features/conditions/AttemptConditions";
 import { conditionsSummary } from "@/features/conditions/summary";
 import { answerDraftKey } from "@/features/dashboard/savedWork";
@@ -110,6 +111,7 @@ function QuestionPageFor() {
   // answers"); without it, the answer sent from this page is shown. Each keeps its own identity.
   const [params, setParams] = useSearchParams();
   const wanted = params.get("answer");
+  const followUpOf = params.get("followUpOf");
   const [sent, setSent] = useState<InterviewAnswer | null>(null);
   const selected = wanted ? answers.data?.find((a) => a.id === wanted) ?? (sent?.id === wanted ? sent : null) : null;
   const shown = wanted ? selected : sent;
@@ -197,15 +199,17 @@ function QuestionPageFor() {
     const known = new Set(answers.data?.map((a) => a.id));
     // An explicit revision says which try it revises; anything else is a new try.
     const revisesAnswerId = revising?.fromId ?? null;
+    // Answering an offered follow-up names the answer it followed (docs/FOLLOW_UPS.md).
+    const followsUpAnswerId = followUpOf;
     // The same send resent (no reply, a failure) keeps its key; a changed or new send gets a new one.
     const send = keyed
-      ? keyFor(pendingSend.current, sendSignature({ account: user?.id ?? "", track, questionId: id, answer: text, storyId, revisesAnswerId }))
+      ? keyFor(pendingSend.current, sendSignature({ account: user?.id ?? "", track, questionId: id, answer: text, storyId, revisesAnswerId, followsUpAnswerId }))
       : null;
     pendingSend.current = send;
     setUnconfirmed(null);
     setKeyRefused(false);
     let failure: unknown = null;
-    let result = await submit.mutateAsync({ answer: text, storyId, requestKey: send?.key ?? null, revisesAnswerId })
+    let result = await submit.mutateAsync({ answer: text, storyId, requestKey: send?.key ?? null, revisesAnswerId, followsUpAnswerId })
       .catch((err: unknown) => { failure = err; return null; });
     // No reply at all (a dropped connection): the server may still have saved it. Look at the saved
     // answers before suggesting a resend that would save it twice.
@@ -280,6 +284,11 @@ function QuestionPageFor() {
 
           <form className="card stack" onSubmit={onSubmit} aria-labelledby="answer-title">
             <h2 className="section-title" id="answer-title">Write your answer</h2>
+            {followUpOf && (
+              <p className="banner banner--info">
+                A follow-up to your answer to a related question. That answer stays as it is; this one gets its own score.
+              </p>
+            )}
             {revising && (
               <div className="banner banner--info revise-note">
                 <p>
@@ -417,6 +426,11 @@ function QuestionPageFor() {
               </ul>
               {rubrics.size > 1 && <p className="subtle">These were graded with different rubric versions, so their scores aren't directly comparable.</p>}
             </Card>
+          )}
+          {isAuthenticated && user && answers.data && (
+            <div className="focus-hide">
+              <FollowUpCard track={track} questionId={id} userId={user.id} latestAnswerId={answers.data[0]?.id ?? null} answeredCount={answers.data.length} />
+            </div>
           )}
         </aside>
       </div>

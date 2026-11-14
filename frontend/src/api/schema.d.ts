@@ -583,6 +583,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/careers/{slug}/questions/{question_id}/follow-up": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A reviewed follow-up question, after repeated practice on this one (docs/FOLLOW_UPS.md) */
+        get: operations["follow_up_api_v1_careers__slug__questions__question_id__follow_up_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/careers/{slug}/progress": {
         parameters: {
             query?: never;
@@ -4549,6 +4566,11 @@ export interface components {
              * @description Your earlier answer to this question that this one explicitly revises (None when it doesn't, for every answer saved before revision links existed, and when that earlier answer was deleted). A link says where a try came from; it doesn't make two scores comparable.
              */
             revises_answer_id?: string | null;
+            /**
+             * Follows Up Answer Id
+             * @description The earlier answer to a related question this one was offered after (a reviewed follow-up)
+             */
+            follows_up_answer_id?: string | null;
             /** @description The in-app help shown for this question and version before this answer (docs/ATTEMPT_CONDITIONS.md). It changes no score. */
             conditions?: components["schemas"]["AttemptConditions"] | null;
         };
@@ -4586,6 +4608,11 @@ export interface components {
              * @description One of your own earlier answers to this same question that this answer revises (404 if it isn't yours or doesn't exist; 400 `revision_other_question` if it's for another question). Only set it for an explicit revision.
              */
             revises_answer_id?: string | null;
+            /**
+             * Follows Up Answer Id
+             * @description Answering an offered follow-up (docs/FOLLOW_UPS.md): your own earlier answer to the question this one follows up (404 if it isn't yours or doesn't exist; 400 `not_a_follow_up` if no reviewed relationship links the two questions). Both answers keep their own score.
+             */
+            follows_up_answer_id?: string | null;
         };
         /** AnswerReviewOut */
         AnswerReviewOut: {
@@ -7132,6 +7159,101 @@ export interface components {
              */
             expected_sequence: number;
         };
+        /**
+         * FollowUpAnswered
+         * @description A follow-up you answered, kept beside the answer it followed: its own record and score.
+         */
+        FollowUpAnswered: {
+            /** Answer Id */
+            answer_id: string;
+            /** Track */
+            track: string;
+            /** Question Id */
+            question_id: string;
+            /** Title */
+            title: string;
+            /** Score */
+            score: number;
+            /** Rating */
+            rating: string;
+            /**
+             * Evidence Level
+             * @enum {string}
+             */
+            evidence_level: "sufficient" | "insufficient" | "unknown";
+            /** Content Version */
+            content_version: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Follows Up Answer Id */
+            follows_up_answer_id: string;
+            conditions?: components["schemas"]["AttemptConditions"] | null;
+        };
+        /** FollowUpOut */
+        FollowUpOut: {
+            /**
+             * Status
+             * @description offered: a reviewed follow-up is available; not_yet: practise this question more first; none: no reviewed follow-up (or only retired ones)
+             * @enum {string}
+             */
+            status: "offered" | "not_yet" | "none";
+            /** Message */
+            message: string;
+            /**
+             * Threshold
+             * @description Answers long enough to score before a follow-up is offered
+             */
+            threshold: number;
+            /**
+             * Scored Answers
+             * @description Your answers to this question long enough to score
+             */
+            scored_answers: number;
+            /** Offers */
+            offers: components["schemas"]["FollowUpQuestion"][];
+            /**
+             * Answered
+             * @description Follow-ups you answered after this question
+             */
+            answered: components["schemas"]["FollowUpAnswered"][];
+        };
+        /** FollowUpQuestion */
+        FollowUpQuestion: {
+            /** Track */
+            track: string;
+            /** Question Id */
+            question_id: string;
+            /** Title */
+            title: string;
+            /**
+             * Version
+             * @description The question's current version
+             */
+            version: number;
+            /**
+             * Objective
+             * @description What it shares with the question you practised
+             */
+            objective: string;
+            /**
+             * Difference
+             * @description How it differs
+             */
+            difference: string;
+            /**
+             * Exposure
+             * @description 'Not previously attempted in this app', or how many times you answered it here. Never 'new to you': practice elsewhere isn't known.
+             */
+            exposure: string;
+            /**
+             * Attempts
+             * @description Your answers to it in this app
+             */
+            attempts: number;
+        };
         /** FollowupAnswer */
         FollowupAnswer: {
             /** Answer */
@@ -7793,6 +7915,11 @@ export interface components {
              * @description One of your own earlier answers to this same question that this answer revises (404 if it isn't yours or doesn't exist; 400 `revision_other_question` if it's for another question). Only set it for an explicit revision.
              */
             revises_answer_id?: string | null;
+            /**
+             * Follows Up Answer Id
+             * @description Answering an offered follow-up (docs/FOLLOW_UPS.md): your own earlier answer to the question this one follows up (404 if it isn't yours or doesn't exist; 400 `not_a_follow_up` if no reviewed relationship links the two questions). Both answers keep their own score.
+             */
+            follows_up_answer_id?: string | null;
         };
         /**
          * KitAction
@@ -15543,6 +15670,56 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    follow_up_api_v1_careers__slug__questions__question_id__follow_up_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FollowUpOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

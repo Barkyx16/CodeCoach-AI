@@ -409,3 +409,6 @@ export type DrillAttemptIn = S["DrillAttemptIn"];
 export type AttemptConditions = S["AttemptConditions"];
 export type ConditionsOut = S["ConditionsOut"];
 export type ConditionsQuery = S["ConditionsQuery"];
+export type FollowUpOut = S["FollowUpOut"];
+export type FollowUpQuestion = S["FollowUpQuestion"];
+export type FollowUpAnswered = S["FollowUpAnswered"];

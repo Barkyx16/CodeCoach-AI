@@ -112,6 +112,7 @@ it("every file that writes to this browser's storage directly is a known one (dr
     "auth/deviceUser.ts", // which account last used this device
     "auth/emailVerified.ts", // where to go after verifying
     "auth/pendingSignOut.ts", // a sign-out to finish
+    "features/careers/FollowUpCard.tsx", // related questions dismissed with "Not now": pairs of question ids, per account, listed on "Your data"
     "features/careers/QuestionPage.tsx", // the "reflect first" setting; the answer itself uses useStoredDraft
     "features/dashboard/ContinueCard.tsx", // whether "Continue your work" is hidden on this device
     "features/dashboard/shortcuts.ts", // the dashboard's shortcuts: page ids only, per account

@@ -107,6 +107,7 @@ import type {
   ReviewPreviewRequest,
   ConditionsOut,
   ConditionsQuery,
+  FollowUpOut,
   ReviewRequest,
   ReviewResponse,
   SavedItemRef,
@@ -348,7 +349,7 @@ export const api = {
    * answer goes to the protected route, which a server that ignores keys doesn't have: it refuses
    * the request (404) instead of saving it unprotected. */
   answerQuestion: (track: string, id: string, answer: string, storyId: string | null = null,
-    opts: { requestKey?: string | null; revisesAnswerId?: string | null } = {}) =>
+    opts: { requestKey?: string | null; revisesAnswerId?: string | null; followsUpAnswerId?: string | null } = {}) =>
     apiRequest<InterviewAnswer>(`/api/v1/careers/${encodeURIComponent(track)}/questions/${encodeURIComponent(id)}/answers${opts.requestKey ? "/keyed" : ""}`, {
       method: "POST",
       body: {
@@ -356,8 +357,12 @@ export const api = {
         ...(storyId ? { story_id: storyId } : {}),
         ...(opts.requestKey ? { client_request_id: opts.requestKey } : {}),
         ...(opts.revisesAnswerId ? { revises_answer_id: opts.revisesAnswerId } : {}),
+        ...(opts.followsUpAnswerId ? { follows_up_answer_id: opts.followsUpAnswerId } : {}),
       },
     }),
+  /** A reviewed follow-up question after repeated practice on this one (docs/FOLLOW_UPS.md). */
+  followUp: (track: string, id: string) =>
+    apiRequest<FollowUpOut>(`/api/v1/careers/${encodeURIComponent(track)}/questions/${encodeURIComponent(id)}/follow-up`),
   myAnswers: (track: string, id: string) =>
     apiRequest<InterviewAnswer[]>(`/api/v1/careers/${encodeURIComponent(track)}/questions/${encodeURIComponent(id)}/answers`),
   trackProgress: (track: string) =>

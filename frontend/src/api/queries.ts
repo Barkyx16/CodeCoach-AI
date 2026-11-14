@@ -104,10 +104,10 @@ export function useMyAnswers(track: string, id: string, enabled: boolean) {
 export function useAnswerQuestion(track: string, id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: string | { answer: string; storyId: string | null; requestKey?: string | null; revisesAnswerId?: string | null }) =>
+    mutationFn: (input: string | { answer: string; storyId: string | null; requestKey?: string | null; revisesAnswerId?: string | null; followsUpAnswerId?: string | null }) =>
       typeof input === "string"
         ? api.answerQuestion(track, id, input)
-        : api.answerQuestion(track, id, input.answer, input.storyId, { requestKey: input.requestKey, revisesAnswerId: input.revisesAnswerId }),
+        : api.answerQuestion(track, id, input.answer, input.storyId, { requestKey: input.requestKey, revisesAnswerId: input.revisesAnswerId, followsUpAnswerId: input.followsUpAnswerId }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["careers", track] });
       void qc.invalidateQueries({ queryKey: ["me"] }); // activity, analytics, resume

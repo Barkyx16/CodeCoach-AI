@@ -77,6 +77,13 @@ class AnswerRequest(APIModel):
         "(404 if it isn't yours or doesn't exist; 400 `revision_other_question` if it's for another "
         "question). Only set it for an explicit revision.",
     )
+    follows_up_answer_id: str | None = Field(
+        default=None,
+        max_length=36,
+        description="Answering an offered follow-up (docs/FOLLOW_UPS.md): your own earlier answer to the "
+        "question this one follows up (404 if it isn't yours or doesn't exist; 400 `not_a_follow_up` "
+        "if no reviewed relationship links the two questions). Both answers keep their own score.",
+    )
 
 
 class KeyedAnswerRequest(AnswerRequest):
@@ -152,6 +159,10 @@ class AnswerOut(APIModel):
         description="Your earlier answer to this question that this one explicitly revises (None when it "
         "doesn't, for every answer saved before revision links existed, and when that earlier answer was "
         "deleted). A link says where a try came from; it doesn't make two scores comparable.",
+    )
+    follows_up_answer_id: str | None = Field(
+        default=None,
+        description="The earlier answer to a related question this one was offered after (a reviewed follow-up)",
     )
     conditions: AttemptConditions | None = Field(
         default=None,

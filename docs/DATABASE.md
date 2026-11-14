@@ -491,6 +491,7 @@ The cases are code (`backend/app/offers`, docs/OFFER_REHEARSAL.md), not rows.
 | `c3f7a9d2e614` kit templates | Adds `kit_templates`, cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
 | `d4a8b6c1f2e3` accepted actions | Adds `accepted_actions`, cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b), and the nullable `schedule_entries.completed_at` (NULL for every existing row); downgrade drops both |
 | `e5c9a2b7d103` attempt conditions | Adds nullable `content_version` to `ai_interactions` and `submissions`: the coding problem's version when a hint was shown and an attempt was made (docs/ATTEMPT_CONDITIONS.md). Older rows stay null; both tables' row-level security covers the columns; downgrade drops them |
+| `f7d1b3e5a209` follow-up answers | Adds `practice_answers.follows_up_answer_id` (nullable, indexed, ON DELETE SET NULL): the earlier answer to a related question that this one followed up (docs/FOLLOW_UPS.md). Existing answers stay unlinked; row-level security covers it; downgrade drops it |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

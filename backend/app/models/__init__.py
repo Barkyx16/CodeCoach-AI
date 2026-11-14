@@ -604,6 +604,13 @@ class PracticeAnswer(Base):
         nullable=True,
         index=True,
     )
+    # The learner's own earlier answer to a related question that this one was offered after: a
+    # reviewed follow-up (docs/FOLLOW_UPS.md). Set only from that offer, never inferred.
+    follows_up_answer_id: Mapped[str | None] = mapped_column(
+        ForeignKey("practice_answers.id", ondelete="SET NULL", name="fk_answer_follows_up"),
+        nullable=True,
+        index=True,
+    )
 
 
 class PracticeGoal(Base):

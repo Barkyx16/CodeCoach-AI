@@ -28,9 +28,11 @@ from app.schemas.careers import (
     TrackProgress,
 )
 from app.schemas.common import Page, error_responses
+from app.schemas.followups import FollowUpOut
 from app.schemas.problem import DifficultyCounts
 from app.services import search
 from app.services.conditions import Conditions
+from app.services.followups import FollowUps
 from app.services.stories import check_story_owner
 
 router = APIRouter(prefix="/api/v1", tags=["careers"])
@@ -266,7 +268,9 @@ def _save_answer(
     question_id = question.id
     key = body.client_request_id
     fingerprint = (
-        request_fingerprint(slug, question_id, body.answer, body.story_id, body.revises_answer_id)
+        request_fingerprint(
+            slug, question_id, body.answer, body.story_id, body.revises_answer_id, body.follows_up_answer_id
+        )
         if key
         else ""
     )
@@ -291,9 +295,11 @@ def _save_answer(
         )
     story_id = check_story_owner(db, user, body.story_id)  # your own story, or 404
     parent_id = _revision_parent(db, user, slug, question_id, body.revises_answer_id)
+    follows = FollowUps(db, user).check_link(slug, question_id, body.follows_up_answer_id)
     row = graded_answer(user.id, question, body.answer)
     row.story_id = story_id
     row.revises_answer_id = parent_id
+    row.follows_up_answer_id = follows
     if key:
         row.client_request_id = key
         row.request_fingerprint = fingerprint
@@ -338,6 +344,20 @@ def my_answers(
     ).all()
     found = Conditions(db, user).for_answers(rows)
     return [answer_out(r, found[r.id]) for r in rows]
+
+
+@router.get(
+    "/careers/{slug}/questions/{question_id}/follow-up",
+    response_model=FollowUpOut,
+    responses=error_responses(401, 404),
+    summary="A reviewed follow-up question, after repeated practice on this one (docs/FOLLOW_UPS.md)",
+)
+def follow_up(
+    slug: str, question_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> FollowUpOut:
+    if get_question(_track_or_404(slug), question_id) is None:
+        raise NotFoundError(f"Question '{question_id}' not found")
+    return FollowUps(db, user).offer(slug, question_id)
 
 
 @router.get(

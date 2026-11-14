@@ -230,6 +230,7 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 | POST | `/api/v1/submissions` | 🔒 | Submit a solution, or `mode: run` to check the public tests only (async job) |
 | GET | `/api/v1/submissions/{id}` | 🔒 | Poll a submission |
 | GET | `/api/v1/me/submissions` | 🔒 | Attempt history |
+| GET | `/api/v1/careers/{slug}/questions/{question_id}/follow-up` | 🔒 | A reviewed follow-up question after repeated practice (docs/FOLLOW_UPS.md) |
 | POST | `/api/v1/me/attempt-conditions` | 🔒 | The in-app help shown before each of up to 50 submissions and answers (docs/ATTEMPT_CONDITIONS.md) |
 | POST | `/api/v1/ai/hint` | 🔒 | Progressive hint |
 | POST | `/api/v1/ai/review/preview` | 🔒 | What a review would send, exactly (no coach call, no budget) |

@@ -63,6 +63,10 @@ test("signed-in screens have no WCAG 2.1 A/AA violations", async ({ page }) => {
     await expect(page.getByText(/level 1/i).first()).toBeVisible();
     await page.getByRole("tab", { name: "Code review" }).click();
     await page.getByRole("button", { name: /review my code/i }).click();
+    // What the coach will read comes first (docs/COACH_CONTEXT.md); nothing is sent until asked.
+    await expect(page.getByRole("heading", { name: "What the coach will read" })).toBeVisible();
+    await expectNoViolations(page, "workspace with the review's preview");
+    await page.getByRole("button", { name: "Send for review" }).click();
     await expect(page.getByText(/AI feedback can be wrong/)).toBeVisible();
     await expectNoViolations(page, "workspace with hint and review");
   }

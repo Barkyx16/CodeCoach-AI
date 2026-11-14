@@ -171,10 +171,14 @@ class Conditions:
         answers = list(answers)
         if not answers:
             return {}
+        # Only lessons that prepare one of these questions can count; most questions have none, and
+        # then there's nothing to look up.
         units: dict[str, Unit] = {}
         for track in {a.track for a in answers}:
+            asked = {a.question_id for a in answers if a.track == track}
             for u in units_for(track):
-                units[u.id] = u
+                if any(self._prepares(u, qid) for qid in asked):
+                    units[u.id] = u
         reads: dict[str, list[LearnEvent]] = defaultdict(list)
         if units:
             for e in self.db.scalars(

@@ -139,6 +139,7 @@ export function YourDataPage() {
           <li>Display, editor and voice settings: device settings, not account data. <Link to="/settings#display">Settings</Link></li>
           <li>Your dashboard shortcuts: which pages you keep there, by name, for this account. Kept when you sign out; Reset to defaults on the dashboard clears them. <Link to="/dashboard">Dashboard</Link></li>
           <li>Which version&apos;s changes you&apos;ve looked at in What&apos;s new, for this account: one number, nothing about what you read. Kept when you sign out. <Link to="/whats-new">What&apos;s new</Link></li>
+          <li>Related questions you hid with Not now, for this account: which pairs of questions, nothing you wrote. Kept when you sign out.</li>
           <li>Public pages you saved for offline reading. <Link to="/offline">Manage saved items</Link></li>
           <li>Your sign-in: a cookie this page can't read. Nothing here touches it; signing out ends it.</li>
           <li>Which account last used this device (its id and name, no password or token), so drafts still show offline. Removed when you sign out.</li>

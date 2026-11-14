@@ -15,8 +15,11 @@ export interface PendingSend {
 
 export function sendSignature(parts: {
   account: string; track: string; questionId: string; answer: string; storyId: string | null; revisesAnswerId: string | null;
+  followsUpAnswerId?: string | null;
 }): string {
-  return JSON.stringify([parts.account, parts.track, parts.questionId, parts.answer, parts.storyId, parts.revisesAnswerId]);
+  // A follow-up's link is added only when there is one, so every other send keeps its signature.
+  return JSON.stringify([parts.account, parts.track, parts.questionId, parts.answer, parts.storyId, parts.revisesAnswerId,
+    ...(parts.followsUpAnswerId ? [parts.followsUpAnswerId] : [])]);
 }
 
 function newKey(): string {

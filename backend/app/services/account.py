@@ -243,6 +243,8 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
                 "story": a.story_id,
                 # The earlier answer (by "id") this one explicitly revises; None when it doesn't.
                 "revises": a.revises_answer_id,
+                # The earlier answer (by "id") to a related question this one followed up, if any.
+                "follows_up": a.follows_up_answer_id,
                 "created_at": iso(a.created_at),
                 "conditions": answer_conditions.get(a.id),
             }
