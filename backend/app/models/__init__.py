@@ -348,6 +348,9 @@ class Submission(Base):
     # The trace of the request that queued it, so the judge worker continues the same trace.
     # An opaque random id: it says nothing about the user or the code.
     trace_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # The problem's version when this attempt was made (docs/ATTEMPT_CONDITIONS.md); `test_version`
+    # is only set once it's judged. None on attempts from before it was recorded.
+    content_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, onupdate=utcnow)
 
@@ -405,6 +408,9 @@ class AIInteraction(Base):
     # of the action, problem, hint level, code and submission). The same key with other inputs is
     # refused. None on rows from before it existed (checked by action, problem and level only).
     request_fingerprint: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    # The problem's version (its tests' version) when this was shown (docs/ATTEMPT_CONDITIONS.md).
+    # None on rows from before it was recorded: their version isn't known.
+    content_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
 

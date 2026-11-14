@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 
+import { useQuery } from "@tanstack/react-query";
+
+import { api } from "@/api/endpoints";
 import { useActivity, useActivityFacets } from "@/api/queries";
-import type { ActivityItem } from "@/api/types";
+import type { ActivityItem, ConditionsOut } from "@/api/types";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useScrollMemory } from "@/hooks/useScrollMemory";
+import { conditionsSummary } from "@/features/conditions/summary";
 import { formatDateTime, timeAgo } from "@/lib/format";
 
 import { PAGE_SIZE, filtersFromParams, hasFilters } from "./historyState";
@@ -41,6 +45,16 @@ export function HistoryPage() {
   const q = useDebouncedValue(search.trim(), 300);
   const facets = useActivityFacets(filters.career);
   const activity = useActivity({ ...filters, page_size: PAGE_SIZE });
+  // The in-app help before each attempt on this page (docs/ATTEMPT_CONDITIONS.md): one request for
+  // the rows shown, so the list itself stays as it was.
+  const items = activity.data?.items ?? [];
+  const submissionIds = items.flatMap((i) => (i.type === "code_submission" && i.target.submission_id ? [i.target.submission_id] : []));
+  const answerIds = items.flatMap((i) => (i.type === "written_answer" && i.target.answer_id ? [i.target.answer_id] : []));
+  const conditions = useQuery({
+    queryKey: ["me", "attempt-conditions", submissionIds, answerIds],
+    queryFn: () => api.attemptConditions({ submission_ids: submissionIds, answer_ids: answerIds }),
+    enabled: submissionIds.length + answerIds.length > 0,
+  });
   // Back from an item: the same scroll position, and focus on the item it came back from.
   useScrollMemory(Boolean(activity.data) && !activity.isPlaceholderData && !activity.isFetching);
 
@@ -139,7 +153,7 @@ export function HistoryPage() {
             : <EmptyState title="Your practice will appear here" action={<Link className="btn btn--primary btn--md" to="/problems">Start practising</Link>}>Open a problem, answer a question or start a mock interview. Every attempt is saved here with its result.</EmptyState>
         ) : (
           <>
-            <ul className="activity-list">{activity.data.items.map((item) => <ActivityRow key={item.id} item={item} />)}</ul>
+            <ul className="activity-list">{activity.data.items.map((item) => <ActivityRow key={item.id} item={item} conditions={conditions.data ? labelsFor(conditions.data, item) : null} />)}</ul>
             {pages > 1 && (
               <nav className="pager" aria-label="History pages">
                 <Button variant="secondary" size="sm" disabled={filters.page <= 1} onClick={() => update({ page: String(filters.page - 1) }, false)}>Previous</Button>
@@ -153,7 +167,13 @@ export function HistoryPage() {
   );
 }
 
-function ActivityRow({ item }: { item: ActivityItem }) {
+function labelsFor(found: ConditionsOut, item: ActivityItem): string | null {
+  const c = item.type === "code_submission" ? found.submissions[item.target.submission_id ?? ""]
+    : item.type === "written_answer" ? found.answers[item.target.answer_id ?? ""] : undefined;
+  return conditionsSummary(c);
+}
+
+function ActivityRow({ item, conditions }: { item: ActivityItem; conditions: string | null }) {
   const location = useLocation();
   return (
     <li>
@@ -167,6 +187,7 @@ function ActivityRow({ item }: { item: ActivityItem }) {
             {item.career_title}
             {item.detail ? ` · ${item.detail}` : ""}
             {item.skills.length > 0 ? ` · ${item.skills.slice(0, 3).join(", ")}${item.skills.length > 3 ? "…" : ""}` : ""}
+            {conditions ? ` · In-app help: ${conditions}` : ""}
           </span>
         </span>
         <span className="activity-row__side">

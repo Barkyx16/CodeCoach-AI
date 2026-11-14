@@ -13,6 +13,7 @@ from app.careers.questions import Question
 from app.careers.support import evaluation_for, scope_note
 from app.models import PracticeAnswer
 from app.schemas.careers import AnswerOut, FeedbackPoint
+from app.schemas.conditions import AttemptConditions
 
 OFFLINE_COACH = "built-in (offline)"
 
@@ -129,7 +130,7 @@ def _evidence_level(fb: dict) -> str:
     return _LEVEL[feedback_eligibility(fb)]
 
 
-def answer_out(row: PracticeAnswer) -> AnswerOut:
+def answer_out(row: PracticeAnswer, conditions: AttemptConditions | None = None) -> AnswerOut:
     fb = row.feedback
     return AnswerOut(
         id=row.id,
@@ -154,4 +155,5 @@ def answer_out(row: PracticeAnswer) -> AnswerOut:
         evaluation_status=evaluation_for(row.track).status,
         evaluation_note=evaluation_for(row.track).note,
         revises_answer_id=row.revises_answer_id,
+        conditions=conditions,
     )

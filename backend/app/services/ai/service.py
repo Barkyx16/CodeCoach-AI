@@ -63,6 +63,7 @@ from app.services.ai.bounded import BoundedProvider
 from app.services.ai.context_text import analysis_text
 from app.services.ai.offline import OfflineCoach
 from app.services.ai.static_analysis import analyze
+from app.services.conditions import problem_version
 from app.services.judge.views import public_result_view
 
 T = TypeVar("T")
@@ -348,6 +349,8 @@ class CoachService:
             hint_level=req.level,
             client_request_id=req.client_request_id,
             request_fingerprint=print_ if req.client_request_id else None,
+            # Which version of the problem this hint was for (docs/ATTEMPT_CONDITIONS.md).
+            content_version=problem_version(self.db, problem.id),
         )
         self._event(user, problem, ProgressEventType.HINT_USED)
         if (
@@ -763,10 +766,12 @@ class CoachService:
         store_response: bool = True,
         client_request_id: str | None = None,
         request_fingerprint: str | None = None,
+        content_version: int | None = None,
     ) -> None:
         self.db.add(
             AIInteraction(
                 user_id=user.id,
+                content_version=content_version,
                 client_request_id=client_request_id,
                 request_fingerprint=request_fingerprint,
                 problem_id=problem.id,

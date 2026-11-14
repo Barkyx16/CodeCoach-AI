@@ -490,6 +490,7 @@ The cases are code (`backend/app/offers`, docs/OFFER_REHEARSAL.md), not rows.
 | `b8e4c2a7d915` offer comparison archived | Adds `offer_comparisons.archived` (not null, server default false): the archive flag the other kinds already have (docs/ARCHIVE.md). Existing rows stay active; the table's row-level security covers it; downgrade drops it |
 | `c3f7a9d2e614` kit templates | Adds `kit_templates`, cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
 | `d4a8b6c1f2e3` accepted actions | Adds `accepted_actions`, cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b), and the nullable `schedule_entries.completed_at` (NULL for every existing row); downgrade drops both |
+| `e5c9a2b7d103` attempt conditions | Adds nullable `content_version` to `ai_interactions` and `submissions`: the coding problem's version when a hint was shown and an attempt was made (docs/ATTEMPT_CONDITIONS.md). Older rows stay null; both tables' row-level security covers the columns; downgrade drops them |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

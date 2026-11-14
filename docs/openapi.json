@@ -14931,6 +14931,62 @@
         }
       }
     },
+    "/api/v1/me/attempt-conditions": {
+      "post": {
+        "tags": [
+          "progress"
+        ],
+        "summary": "The in-app help shown before each of these attempts (yours only)",
+        "operationId": "attempt_conditions_api_v1_me_attempt_conditions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConditionsQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConditionsOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/me/offer-comparisons": {
       "get": {
         "tags": [
@@ -22575,6 +22631,17 @@
             ],
             "title": "Revises Answer Id",
             "description": "Your earlier answer to this question that this one explicitly revises (None when it doesn't, for every answer saved before revision links existed, and when that earlier answer was deleted). A link says where a try came from; it doesn't make two scores comparable."
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptConditions"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The in-app help shown for this question and version before this answer (docs/ATTEMPT_CONDITIONS.md). It changes no score."
           }
         },
         "type": "object",
@@ -23758,6 +23825,51 @@
           "coding"
         ],
         "title": "AssessmentOut"
+      },
+      "AttemptConditions": {
+        "properties": {
+          "labels": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "Hint shown",
+                "Solution revealed",
+                "No in-app help recorded",
+                "Not recorded"
+              ]
+            },
+            "type": "array",
+            "title": "Labels",
+            "description": "'Hint shown' and/or 'Solution revealed'; or 'No in-app help recorded'; or 'Not recorded' for an attempt from before recording began with nothing to go on"
+          },
+          "help": {
+            "items": {
+              "$ref": "#/components/schemas/HelpShown"
+            },
+            "type": "array",
+            "title": "Help",
+            "description": "Each piece of help shown before this attempt, oldest first"
+          },
+          "recorded_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Recorded From",
+            "description": "When recording began"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note",
+            "description": "One line on what isn't observed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "labels",
+          "help",
+          "recorded_from",
+          "note"
+        ],
+        "title": "AttemptConditions"
       },
       "AttemptOut": {
         "properties": {
@@ -25424,6 +25536,53 @@
           "space"
         ],
         "title": "Complexity"
+      },
+      "ConditionsOut": {
+        "properties": {
+          "submissions": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AttemptConditions"
+            },
+            "type": "object",
+            "title": "Submissions"
+          },
+          "answers": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AttemptConditions"
+            },
+            "type": "object",
+            "title": "Answers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "submissions",
+          "answers"
+        ],
+        "title": "ConditionsOut"
+      },
+      "ConditionsQuery": {
+        "properties": {
+          "submission_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Submission Ids"
+          },
+          "answer_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Answer Ids"
+          }
+        },
+        "type": "object",
+        "title": "ConditionsQuery",
+        "description": "Which of your attempts to describe: up to 50 of each kind (another account's or unknown ids\nare left out, the same as each other)."
       },
       "ContentChange": {
         "properties": {
@@ -29156,6 +29315,36 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "HelpShown": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "enum": [
+              "Hint shown",
+              "Solution revealed"
+            ],
+            "title": "Label"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail",
+            "description": "What it was, e.g. 'Level 2 hint (concept)'"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At",
+            "description": "When it was shown: the time it actually arrived"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "detail",
+          "at"
+        ],
+        "title": "HelpShown"
       },
       "HintContent": {
         "properties": {
@@ -42241,6 +42430,17 @@
               }
             ]
           },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptConditions"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The in-app help shown for this problem and version before this attempt (docs/ATTEMPT_CONDITIONS.md). It changes no verdict."
+          },
           "source_code": {
             "type": "string",
             "title": "Source Code"
@@ -42323,6 +42523,16 @@
             ],
             "title": "Duration Ms",
             "description": "Judge runtime, once execution is enabled"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptConditions"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",

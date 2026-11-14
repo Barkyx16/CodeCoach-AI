@@ -4,6 +4,7 @@ from pydantic import Field, field_validator
 
 from app.models import SubmissionMode, SubmissionStatus
 from app.schemas.common import APIModel, OptionalKey
+from app.schemas.conditions import AttemptConditions
 
 
 class SubmissionCreate(APIModel):
@@ -71,6 +72,11 @@ class SubmissionOut(APIModel):
     created_at: datetime
     updated_at: datetime
     result: ExecutionResultOut | None = None
+    conditions: AttemptConditions | None = Field(
+        default=None,
+        description="The in-app help shown for this problem and version before this attempt "
+        "(docs/ATTEMPT_CONDITIONS.md). It changes no verdict.",
+    )
 
 
 class SubmissionDetail(SubmissionOut):
@@ -91,3 +97,4 @@ class SubmissionListItem(APIModel):
     status: SubmissionStatus
     created_at: datetime
     duration_ms: int | None = Field(default=None, description="Judge runtime, once execution is enabled")
+    conditions: AttemptConditions | None = None

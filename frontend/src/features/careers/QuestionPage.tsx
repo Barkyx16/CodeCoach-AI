@@ -13,6 +13,8 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Icon } from "@/components/Icon";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
+import { AttemptConditionsView } from "@/features/conditions/AttemptConditions";
+import { conditionsSummary } from "@/features/conditions/summary";
 import { answerDraftKey } from "@/features/dashboard/savedWork";
 import { FocusToggle } from "@/features/display/FocusToggle";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
@@ -369,6 +371,7 @@ function QuestionPageFor() {
                 <FeedbackCard answer={shown} track={track} draft={draft}
                   title={isNew ? "Feedback" : `Feedback on ${tryOf(shown) ? `try ${tryOf(shown)}` : "your answer"} from ${timeAgo(shown.created_at)}`} />
               </div>
+              {shown.conditions && <div className="card"><AttemptConditionsView conditions={shown.conditions} /></div>}
               <AnswerRecap answer={shown} tryNo={tryOf(shown)} previous={previous} previousNo={tryOf(previous)} previousIsParent={!!parent}
                 track={track} questionId={id} difficulty={q.difficulty as Difficulty} backTo={listTo}
                 canRevise={canRevise} onRevise={revise} />
@@ -406,6 +409,7 @@ function QuestionPageFor() {
                         {numbers ? ` · ${timeAgo(a.created_at)}` : ""}
                         {rubrics.size > 1 ? ` · rubric ${a.rubric_version}` : ""}
                         {a.revises_answer_id ? ` · revised from ${numbers?.get(a.revises_answer_id) ? `try ${numbers.get(a.revises_answer_id)}` : "an earlier answer"}` : ""}
+                        {a.conditions ? ` · ${conditionsSummary(a.conditions)}` : ""}
                       </span>
                     </button>
                   </li>

@@ -105,6 +105,8 @@ import type {
   ReviewQueue,
   ReviewPreview,
   ReviewPreviewRequest,
+  ConditionsOut,
+  ConditionsQuery,
   ReviewRequest,
   ReviewResponse,
   SavedItemRef,
@@ -381,6 +383,9 @@ export const api = {
   // AI coach
   hint: (body: HintRequest) => apiRequest<HintResponse>("/api/v1/ai/hint", { method: "POST", body }),
   review: (body: ReviewRequest) => apiRequest<ReviewResponse>("/api/v1/ai/review", { method: "POST", body }),
+  /** The in-app help shown before each of these attempts (docs/ATTEMPT_CONDITIONS.md). */
+  attemptConditions: (body: ConditionsQuery) =>
+    apiRequest<ConditionsOut>("/api/v1/me/attempt-conditions", { method: "POST", body }),
   /** What a review would send, exactly; no provider call and no budget (docs/COACH_CONTEXT.md). */
   reviewPreview: (body: ReviewPreviewRequest) =>
     apiRequest<ReviewPreview>("/api/v1/ai/review/preview", { method: "POST", body }),

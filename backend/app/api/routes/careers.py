@@ -30,6 +30,7 @@ from app.schemas.careers import (
 from app.schemas.common import Page, error_responses
 from app.schemas.problem import DifficultyCounts
 from app.services import search
+from app.services.conditions import Conditions
 from app.services.stories import check_story_owner
 
 router = APIRouter(prefix="/api/v1", tags=["careers"])
@@ -274,7 +275,9 @@ def _save_answer(
         # anything that could refuse or regrade it (rate limit, retirement since).
         existing = _answer_by_key(db, user, key)
         if existing is not None:
-            return _replay(existing, fingerprint, response, step, "replayed")
+            return _replay(existing, fingerprint, response, step, "replayed").model_copy(
+                update={"conditions": Conditions(db, user).for_answer(existing)}
+            )
     if is_retired(slug, question_id):
         raise ConflictError(
             "This question was retired and isn't used for practice any more. Earlier answers to it are kept.",
@@ -304,10 +307,12 @@ def _save_answer(
         existing = _answer_by_key(db, user, key) if key else None
         if existing is None:
             raise
-        return _replay(existing, fingerprint, response, step, "replayed_concurrent")
+        return _replay(existing, fingerprint, response, step, "replayed_concurrent").model_copy(
+            update={"conditions": Conditions(db, user).for_answer(existing)}
+        )
     db.commit()
     step.set(result="created")
-    return answer_out(row)
+    return answer_out(row, Conditions(db, user).for_answer(row))
 
 
 @router.get(
@@ -331,7 +336,8 @@ def my_answers(
         .order_by(PracticeAnswer.created_at.desc())
         .limit(20)
     ).all()
-    return [answer_out(r) for r in rows]
+    found = Conditions(db, user).for_answers(rows)
+    return [answer_out(r, found[r.id]) for r in rows]
 
 
 @router.get(

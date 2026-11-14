@@ -17,11 +17,13 @@ from app.models import (
     User,
 )
 from app.schemas.common import Page, error_responses
+from app.schemas.conditions import AttemptConditions
 from app.schemas.submission import (
     SubmissionCreate,
     SubmissionDetail,
     SubmissionListItem,
 )
+from app.services.conditions import Conditions, problem_version
 from app.services.content import is_problem_retired
 from app.services.judge.backends import ExecutionDisabledError, JudgeUnavailableError
 from app.services.judge.health import MESSAGES
@@ -31,7 +33,9 @@ router = APIRouter(prefix="/api/v1", tags=["submissions"])
 _ERRORS = error_responses(400, 401, 404, 422, 429, 503)
 
 
-def to_detail(sub: Submission, execution_enabled: bool) -> SubmissionDetail:
+def to_detail(
+    sub: Submission, execution_enabled: bool, conditions: AttemptConditions | None = None
+) -> SubmissionDetail:
     result = public_result_view(sub)
     return SubmissionDetail(
         id=sub.id,
@@ -49,6 +53,7 @@ def to_detail(sub: Submission, execution_enabled: bool) -> SubmissionDetail:
         source_code=sub.source_code,
         starting_code=sub.starting_code,
         lab_version=sub.lab_version,
+        conditions=conditions,
     )
 
 
@@ -105,6 +110,8 @@ def create_submission(
         status=SubmissionStatus.QUEUED,
         client_request_id=body.client_request_id,
         trace_id=tracing.current_trace_id(),
+        # The problem's version now, so the attempt's conditions match help for this version only.
+        content_version=problem_version(db, problem.id),
         # A debugging exercise: what this attempt started from, kept as it is now.
         starting_code=problem.starter_code if problem.kind == "debug" else None,
         lab_version=(problem.lab or {}).get("version") if problem.kind == "debug" else None,
@@ -169,7 +176,9 @@ def get_submission(
     # 404 (not 403) for other users' submissions: don't confirm that the id exists.
     if sub is None or sub.user_id != user.id:
         raise NotFoundError("Submission not found")
-    return to_detail(sub, request.app.state.execution_backend.enabled)
+    return to_detail(
+        sub, request.app.state.execution_backend.enabled, Conditions(db, user).for_submission(sub)
+    )
 
 
 @router.get(
@@ -201,6 +210,7 @@ def list_my_submissions(
         .offset((page - 1) * page_size)
         .limit(page_size)
     ).all()
+    found = Conditions(db, user).for_submissions(rows)
     items = [
         SubmissionListItem(
             id=s.id,
@@ -210,6 +220,7 @@ def list_my_submissions(
             status=s.status,
             created_at=s.created_at,
             duration_ms=s.result.runtime_ms if s.result else None,
+            conditions=found[s.id],
         )
         for s in rows
     ]

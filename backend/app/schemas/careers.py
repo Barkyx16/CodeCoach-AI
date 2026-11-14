@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import Field
 
 from app.schemas.common import APIModel, OptionalKey
+from app.schemas.conditions import AttemptConditions
 
 
 class CareerSummary(APIModel):
@@ -151,6 +152,11 @@ class AnswerOut(APIModel):
         description="Your earlier answer to this question that this one explicitly revises (None when it "
         "doesn't, for every answer saved before revision links existed, and when that earlier answer was "
         "deleted). A link says where a try came from; it doesn't make two scores comparable.",
+    )
+    conditions: AttemptConditions | None = Field(
+        default=None,
+        description="The in-app help shown for this question and version before this answer "
+        "(docs/ATTEMPT_CONDITIONS.md). It changes no score.",
     )
 
 

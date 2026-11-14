@@ -37,6 +37,7 @@ from app.services.answer_review import AnswerReview
 from app.services.applications import Applications
 from app.services.code_reviews import CodeReviews
 from app.services.comparisons import Comparisons
+from app.services.conditions import Conditions
 from app.services.drills import Drills
 from app.services.kit_templates import KitTemplates
 from app.services.kits import Kits
@@ -140,6 +141,12 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
     def iso(dt: datetime | None) -> str | None:
         return dt.isoformat() if dt else None
 
+    # The in-app help shown before each attempt, worked out the way the app shows it
+    # (docs/ATTEMPT_CONDITIONS.md). A description, never a change to a verdict or score.
+    finder = Conditions(db, user)
+    sub_conditions = {k: v.model_dump(mode="json") for k, v in finder.for_submissions(subs).items()}
+    answer_conditions = {k: v.model_dump(mode="json") for k, v in finder.for_answers(answers).items()}
+
     return {
         "export_version": EXPORT_VERSION,
         "exported_at": datetime.now(UTC).isoformat(),
@@ -171,6 +178,7 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
                     "public_results": s.result.public_results,
                     "compiler_output": s.result.stderr_excerpt,
                 },
+                "conditions": sub_conditions.get(s.id),
             }
             for s in subs
         ],
@@ -180,6 +188,7 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
                 "problem": slugs.get(a.problem_id),
                 "action": a.action.value,
                 "hint_level": a.hint_level,
+                "problem_version": a.content_version,
                 "provider": a.provider,
                 "model": a.model,
                 "input_tokens": a.input_tokens,
@@ -235,6 +244,7 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
                 # The earlier answer (by "id") this one explicitly revises; None when it doesn't.
                 "revises": a.revises_answer_id,
                 "created_at": iso(a.created_at),
+                "conditions": answer_conditions.get(a.id),
             }
             for a in answers
         ],

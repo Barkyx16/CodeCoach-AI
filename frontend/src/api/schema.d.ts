@@ -2869,6 +2869,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/attempt-conditions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The in-app help shown before each of these attempts (yours only) */
+        post: operations["attempt_conditions_api_v1_me_attempt_conditions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/offer-comparisons": {
         parameters: {
             query?: never;
@@ -4532,6 +4549,8 @@ export interface components {
              * @description Your earlier answer to this question that this one explicitly revises (None when it doesn't, for every answer saved before revision links existed, and when that earlier answer was deleted). A link says where a try came from; it doesn't make two scores comparable.
              */
             revises_answer_id?: string | null;
+            /** @description The in-app help shown for this question and version before this answer (docs/ATTEMPT_CONDITIONS.md). It changes no score. */
+            conditions?: components["schemas"]["AttemptConditions"] | null;
         };
         /** AnswerPerspective */
         AnswerPerspective: {
@@ -4923,6 +4942,30 @@ export interface components {
             evaluated: components["schemas"]["EvaluatedSkill"][];
             /** @description Judge results only; null for careers without coding */
             coding: components["schemas"]["CodingEvidence"] | null;
+        };
+        /** AttemptConditions */
+        AttemptConditions: {
+            /**
+             * Labels
+             * @description 'Hint shown' and/or 'Solution revealed'; or 'No in-app help recorded'; or 'Not recorded' for an attempt from before recording began with nothing to go on
+             */
+            labels: ("Hint shown" | "Solution revealed" | "No in-app help recorded" | "Not recorded")[];
+            /**
+             * Help
+             * @description Each piece of help shown before this attempt, oldest first
+             */
+            help: components["schemas"]["HelpShown"][];
+            /**
+             * Recorded From
+             * Format: date
+             * @description When recording began
+             */
+            recorded_from: string;
+            /**
+             * Note
+             * @description One line on what isn't observed
+             */
+            note: string;
         };
         /** AttemptOut */
         AttemptOut: {
@@ -5650,6 +5693,28 @@ export interface components {
              * @description Big-O extra space complexity, e.g. 'O(1)'
              */
             space: string;
+        };
+        /** ConditionsOut */
+        ConditionsOut: {
+            /** Submissions */
+            submissions: {
+                [key: string]: components["schemas"]["AttemptConditions"];
+            };
+            /** Answers */
+            answers: {
+                [key: string]: components["schemas"]["AttemptConditions"];
+            };
+        };
+        /**
+         * ConditionsQuery
+         * @description Which of your attempts to describe: up to 50 of each kind (another account's or unknown ids
+         *     are left out, the same as each other).
+         */
+        ConditionsQuery: {
+            /** Submission Ids */
+            submission_ids?: string[];
+            /** Answer Ids */
+            answer_ids?: string[];
         };
         /** ContentChange */
         ContentChange: {
@@ -7237,6 +7302,25 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** HelpShown */
+        HelpShown: {
+            /**
+             * Label
+             * @enum {string}
+             */
+            label: "Hint shown" | "Solution revealed";
+            /**
+             * Detail
+             * @description What it was, e.g. 'Level 2 hint (concept)'
+             */
+            detail: string;
+            /**
+             * At
+             * Format: date-time
+             * @description When it was shown: the time it actually arrived
+             */
+            at: string;
         };
         /**
          * HintContent
@@ -12366,6 +12450,8 @@ export interface components {
              */
             updated_at: string;
             result?: components["schemas"]["ExecutionResultOut"] | null;
+            /** @description The in-app help shown for this problem and version before this attempt (docs/ATTEMPT_CONDITIONS.md). It changes no verdict. */
+            conditions?: components["schemas"]["AttemptConditions"] | null;
             /** Source Code */
             source_code: string;
             /**
@@ -12399,6 +12485,7 @@ export interface components {
              * @description Judge runtime, once execution is enabled
              */
             duration_ms?: number | null;
+            conditions?: components["schemas"]["AttemptConditions"] | null;
         };
         /**
          * SubmissionMode
@@ -24099,6 +24186,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attempt_conditions_api_v1_me_attempt_conditions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConditionsQuery"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConditionsOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

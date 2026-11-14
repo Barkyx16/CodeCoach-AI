@@ -10,6 +10,7 @@ import { ErrorState, LoadingState } from "@/components/States";
 import { PrivateUnavailable } from "@/components/Unavailable";
 import { isGone } from "@/lib/errors";
 import { formatDateTime } from "@/lib/format";
+import { AttemptConditionsView } from "@/features/conditions/AttemptConditions";
 import { ReviewResult } from "@/features/workspace/CoachPanel";
 import { FailureExplanationView } from "@/features/workspace/FailureExplanation";
 
@@ -52,6 +53,7 @@ export function SubmissionDetailPage() {
           <p><Badge>Saved, not judged</Badge> The code judge isn't available on this server (it needs Linux with gVisor), so this attempt was saved without a verdict. It is not counted as passed or failed.</p>
         )}
       </Card>
+      {s.conditions && <Card className="stack"><h2 className="section-title">In-app help</h2><AttemptConditionsView conditions={s.conditions} /></Card>}
       <Card className="stack">
         {s.starting_code != null && (
           <>
