@@ -27,10 +27,11 @@ written.
   nothing (a double click or a second tab).
 - **Corrections**: "This corrects a mistake" records the fix as its own entry, marked
   *Correction*.
-- **Archive** hides an application without losing anything; **Delete** asks first and removes the
-  application, its events and its history, and each event's interview kit and reflection (with
-  their accepted steps' records). Stories, notes, bookmarks and schedule entries are kept; a
-  preparation entry whose interview is gone shows as unavailable.
+- **Archive** hides an application without losing anything; **Delete** first lists everything it
+  reaches (docs/LIFECYCLE.md) and removes the application, its events and its history, and each
+  event's interview kit and reflection (with their accepted steps' records). Stories, notes,
+  bookmarks and schedule entries are kept; a preparation entry whose interview is gone shows as
+  unavailable; an offer comparison that named it keeps its figures without the link.
 
 ## Board and list
 

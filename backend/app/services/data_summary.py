@@ -165,7 +165,7 @@ CATEGORIES: tuple[Category, ...] = (
         "recovery",
         "account",
         "Recovery records: which of your requests were saved (ids only, no content)",
-        ("update_receipts", "create_intents"),
+        ("update_receipts", "create_intents", "lifecycle_receipts"),
     ),
 )
 

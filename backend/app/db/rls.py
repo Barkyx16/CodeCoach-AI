@@ -30,6 +30,7 @@ before the user is known); `shares`/`share_feedback` (read by the recipient); co
 (admin); `create_intents` (looked up by a browser's anchor before the user is known, like the sign-in
 tokens); `update_receipts` (no content, only ids, revision numbers and a digest; purged across
 learners by housekeeping, which runs in the worker scope; every lookup filters by user);
+`lifecycle_receipts` (the same: what an archive or a delete did by kind and id, no titles or text);
 `test_design_runs` (queued and claimed by the judge worker across learners, like submissions; every
 request-side lookup filters by user); and child tables without a `user_id` column (reached through
 a covered parent).

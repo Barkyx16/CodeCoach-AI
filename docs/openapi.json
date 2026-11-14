@@ -5756,6 +5756,160 @@
         }
       }
     },
+    "/api/v1/me/notes/{note_id}/archive-preview": {
+      "get": {
+        "tags": [
+          "notes"
+        ],
+        "summary": "What archiving it would do (nothing is changed)",
+        "operationId": "archive_preview_api_v1_me_notes__note_id__archive_preview_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "note_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Note Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Impact"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/notes/{note_id}/archive": {
+      "post": {
+        "tags": [
+          "notes"
+        ],
+        "summary": "Archive it as previewed: a changed scope is refused (409 impact_changed) with the new preview",
+        "operationId": "archive_as_previewed_api_v1_me_notes__note_id__archive_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "note_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Note Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LifecycleIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LifecycleOutcome"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/notes/{note_id}/restore": {
       "post": {
         "tags": [
@@ -8579,7 +8733,7 @@
         "tags": [
           "applications"
         ],
-        "summary": "Delete",
+        "summary": "Delete (older clients; the same plan as the preview, worked out now)",
         "operationId": "delete_application_api_v1_me_applications__app_id__delete",
         "security": [
           {
@@ -8998,6 +9152,160 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/applications/{app_id}/delete-preview": {
+      "get": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "What deleting it would delete, unlink, keep or make unavailable (nothing is changed)",
+        "operationId": "delete_preview_api_v1_me_applications__app_id__delete_preview_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "App Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Impact"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/applications/{app_id}/delete": {
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Delete it as previewed: a changed scope is refused (409 impact_changed) with the new preview",
+        "operationId": "delete_as_previewed_api_v1_me_applications__app_id__delete_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "App Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LifecycleIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LifecycleOutcome"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -28333,6 +28641,62 @@
         ],
         "title": "DuplicateIn"
       },
+      "Effect": {
+        "properties": {
+          "effect": {
+            "type": "string",
+            "enum": [
+              "archived",
+              "deleted",
+              "unlinked",
+              "kept",
+              "unavailable"
+            ],
+            "title": "Effect",
+            "description": "archived (reversible), deleted, unlinked (the other record stays), kept, or made unavailable"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind",
+            "description": "What it is, in the words the app uses: an event, a kit, a schedule entry\u2026"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "The record's id (yours); part of what the fingerprint covers"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note",
+            "description": "One line on what this means, when it isn't obvious"
+          }
+        },
+        "type": "object",
+        "required": [
+          "effect",
+          "kind",
+          "title"
+        ],
+        "title": "Effect"
+      },
       "Engagement": {
         "properties": {
           "state": {
@@ -31242,6 +31606,62 @@
         ],
         "title": "HintResponse"
       },
+      "Impact": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "delete_application",
+              "archive_note"
+            ],
+            "title": "Action"
+          },
+          "target_id": {
+            "type": "string",
+            "title": "Target Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary",
+            "description": "The action and its reach in words: \"Delete this application, its 3 events and 1 kit\""
+          },
+          "effects": {
+            "items": {
+              "$ref": "#/components/schemas/Effect"
+            },
+            "type": "array",
+            "title": "Effects",
+            "description": "Every one of your records it touches, by title and kind"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes",
+            "description": "What it can't do, e.g. recall a delivered email"
+          },
+          "fingerprint": {
+            "type": "string",
+            "title": "Fingerprint",
+            "description": "Send it back to carry out exactly this; a changed scope is refused"
+          }
+        },
+        "type": "object",
+        "required": [
+          "action",
+          "target_id",
+          "title",
+          "summary",
+          "effects",
+          "fingerprint"
+        ],
+        "title": "Impact"
+      },
       "Improvement": {
         "properties": {
           "key": {
@@ -33290,6 +33710,106 @@
           "reason"
         ],
         "title": "LeftOut"
+      },
+      "LifecycleIn": {
+        "properties": {
+          "expected_fingerprint": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 16,
+            "title": "Expected Fingerprint",
+            "description": "The preview's fingerprint. If the scope changed since, nothing is done: 409 impact_changed with the new preview (details.current)."
+          },
+          "client_request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Request Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "expected_fingerprint"
+        ],
+        "title": "LifecycleIn"
+      },
+      "LifecycleOutcome": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "delete_application",
+              "archive_note"
+            ],
+            "title": "Action"
+          },
+          "target_id": {
+            "type": "string",
+            "title": "Target Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary",
+            "description": "The action and its reach in words: \"Delete this application, its 3 events and 1 kit\""
+          },
+          "effects": {
+            "items": {
+              "$ref": "#/components/schemas/Effect"
+            },
+            "type": "array",
+            "title": "Effects",
+            "description": "Every one of your records it touches, by title and kind"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes",
+            "description": "What it can't do, e.g. recall a delivered email"
+          },
+          "fingerprint": {
+            "type": "string",
+            "title": "Fingerprint",
+            "description": "Send it back to carry out exactly this; a changed scope is refused"
+          },
+          "done_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Done At"
+          },
+          "replayed": {
+            "type": "boolean",
+            "title": "Replayed",
+            "description": "True when this repeats an earlier request whose reply was lost: nothing was done again",
+            "default": false
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "action",
+          "target_id",
+          "title",
+          "summary",
+          "effects",
+          "fingerprint",
+          "done_at",
+          "message"
+        ],
+        "title": "LifecycleOutcome"
       },
       "LineageEntry": {
         "properties": {

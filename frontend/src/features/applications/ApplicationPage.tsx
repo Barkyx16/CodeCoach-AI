@@ -18,6 +18,7 @@ import { dropCopy, useCopySince, writeCopy } from "@/lib/deviceCopies";
 
 import { browserTimeZone, describeWhen, formatDay } from "./dates";
 import { ScheduleLink } from "@/features/schedule/ScheduleLink";
+import { ImpactPreview } from "@/features/lifecycle/ImpactPreview";
 
 import { DraftComposer } from "./DraftComposer";
 import { EVENT_KIND_LABEL, STAGE_HINT, STAGE_LABEL, STAGES } from "./labels";
@@ -49,6 +50,13 @@ function Detail({ a }: { a: Application }) {
   // Archiving with an interview still to come asks first: the interview isn't cancelled, it just
   // leaves the board and the upcoming list (docs/ARCHIVE.md).
   const [confirmArchive, setConfirmArchive] = useState(false);
+  // Deleting shows what it reaches first, from the plan that deletes it (docs/LIFECYCLE.md).
+  const [previewDelete, setPreviewDelete] = useState(false);
+  const loadDelete = useCallback(() => api.applicationDeletePreview(a.id), [a.id]);
+  const runDelete = useCallback(
+    (fingerprint: string, key: string) => api.deleteApplicationAsPreviewed(a.id, { expected_fingerprint: fingerprint, client_request_id: key }),
+    [a.id],
+  );
   const setArchived = async (archived: boolean) => {
     setConfirmArchive(false);
     done(await api.archiveApplication(a.id, archived));
@@ -89,16 +97,26 @@ function Detail({ a }: { a: Application }) {
             <p className="subtle">Archiving hides it from your board; nothing is lost. Deleting removes it, its events and its history, and each event's interview kit and reflection. Your stories, notes and schedule entries stay.</p>
             <span className="row">
               <Button size="sm" aria-expanded={a.next_event && !a.archived ? confirmArchive : undefined}
-                onClick={() => (a.archived ? void setArchived(false) : a.next_event ? setConfirmArchive(true) : void setArchived(true))}>
+                onClick={() => { setPreviewDelete(false); if (a.archived) void setArchived(false); else if (a.next_event) setConfirmArchive(true); else void setArchived(true); }}>
                 {a.archived ? "Unarchive" : "Archive"}
               </Button>
-              <Button size="sm" variant="danger" onClick={async () => {
-                if (!window.confirm(`Delete ${a.role_title} at ${a.employer}, its events and its history, and the interview kits and reflections for those events? Your stories, notes and schedule entries stay. This can't be undone. (Archive keeps it out of the way instead.)`)) return;
-                await api.deleteApplication(a.id);
-                void qc.invalidateQueries({ queryKey: ["me", "applications"] });
-                navigate("/applications", { replace: true });
-              }}>Delete…</Button>
+              <Button size="sm" variant="danger" aria-expanded={previewDelete} onClick={() => { setConfirmArchive(false); setPreviewDelete((v) => !v); }}>
+                Delete…
+              </Button>
             </span>
+            {previewDelete && (
+              <ImpactPreview
+                danger
+                load={loadDelete}
+                run={runDelete}
+                onCancel={() => setPreviewDelete(false)}
+                onDone={(out) => {
+                  qc.removeQueries({ queryKey: ["me", "application", a.id] });
+                  void qc.invalidateQueries({ queryKey: ["me"] }); // stories, schedule, comparisons and the rest read it
+                  navigate("/applications", { replace: true, state: { lifecycle: { message: out.message, summary: out.summary, replayed: out.replayed } } });
+                }}
+              />
+            )}
             {confirmArchive && a.next_event && (
               <div className="banner banner--warning stack-sm" role="group" aria-label="Archive with an interview coming up">
                 <p>

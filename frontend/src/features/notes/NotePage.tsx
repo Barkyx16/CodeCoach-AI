@@ -1,10 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
 import { useNote } from "@/api/queries";
-import type { KeyPoints, Note } from "@/api/types";
+import type { KeyPoints, LifecycleOutcome, Note } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { BackLink } from "@/components/BackLink";
 import { Badge } from "@/components/Badge";
@@ -17,6 +17,7 @@ import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { formatDateTime, timeAgo } from "@/lib/format";
 import { CodeBlock } from "@/features/learn/UnitParts";
 
+import { ImpactPreview } from "@/features/lifecycle/ImpactPreview";
 import { EarlierActionNotice } from "@/features/recovery/EarlierActionNotice";
 import { useEarlierAction } from "@/features/recovery/useEarlierAction";
 
@@ -62,6 +63,17 @@ function NoteScreen({ note }: { note: Note | null }) {
   const [points, setPoints] = useState<KeyPoints | null>(null);
   const [pointsError, setPointsError] = useState<unknown>(null);
   const [deleting, setDeleting] = useState(false);
+  // Archiving shows what it does first, from the plan that archives it (docs/LIFECYCLE.md).
+  const [previewArchive, setPreviewArchive] = useState(false);
+  const [archived, setArchivedOutcome] = useState<LifecycleOutcome | null>(null);
+  const outcome = useRef<HTMLParagraphElement>(null);
+  useEffect(() => { if (archived) outcome.current?.focus(); }, [archived]);
+  const noteId = current?.id ?? "";
+  const loadArchive = useCallback(() => api.noteArchivePreview(noteId), [noteId]);
+  const runArchive = useCallback(
+    (fingerprint: string, key: string) => api.archiveNoteAsPreviewed(noteId, { expected_fingerprint: fingerprint, client_request_id: key }),
+    [noteId],
+  );
 
   async function setFlags(flags: { pinned?: boolean; archived?: boolean }) {
     if (!current) return;
@@ -132,7 +144,9 @@ function NoteScreen({ note }: { note: Note | null }) {
                 <Button size="sm" aria-pressed={current.pinned} onClick={() => void setFlags({ pinned: !current.pinned })} disabled={current.archived}>
                   {current.pinned ? "Unpin" : "Pin"}
                 </Button>
-                <Button size="sm" onClick={() => void setFlags({ archived: !current.archived })}>{current.archived ? "Unarchive" : "Archive"}</Button>
+{current.archived
+                  ? <Button size="sm" onClick={() => { setArchivedOutcome(null); void setFlags({ archived: false }); }}>Unarchive</Button>
+                  : <Button size="sm" aria-expanded={previewArchive} onClick={() => { setArchivedOutcome(null); setPreviewArchive((v) => !v); }}>Archive…</Button>}
                 <Button size="sm" variant="danger" loading={deleting} onClick={async () => {
                   setDeleting(true);
                   try {
@@ -143,6 +157,30 @@ function NoteScreen({ note }: { note: Note | null }) {
                   } catch (e) { setFlagError(e); setDeleting(false); }
                 }}>Delete</Button>
               </span>
+              {previewArchive && !current.archived && (
+                <ImpactPreview
+                  load={loadArchive}
+                  run={async (fingerprint, key) => {
+                    await editor.save(); // what you typed is kept with it
+                    return runArchive(fingerprint, key);
+                  }}
+                  onCancel={() => setPreviewArchive(false)}
+                  onDone={async (out) => {
+                    setPreviewArchive(false);
+                    const n = await api.note(current.id);
+                    editor.adopt({ ...n, title: editor.server?.title ?? n.title, body: editor.server?.body ?? n.body, reflection: editor.server?.reflection ?? n.reflection, tags: editor.server?.tags ?? n.tags });
+                    qc.setQueryData(["me", "note", n.id], n);
+                    void qc.invalidateQueries({ queryKey: ["me", "notes"] });
+                    void qc.invalidateQueries({ queryKey: ["me", "recent-work"] });
+                    setArchivedOutcome(out);
+                  }}
+                />
+              )}
+              {archived && current.archived && (
+                <p className="banner banner--success" role="status" tabIndex={-1} ref={outcome}>
+                  {archived.message} It's hidden from your notes list, Continue and search; nothing is erased. Unarchive brings it back.
+                </p>
+              )}
               <InlineError error={flagError} />
             </Card>
           )}

@@ -44,6 +44,7 @@ from app.schemas.notes import (
     TagCount,
 )
 from app.services import request_keys, update_receipts
+from app.services.lifecycle import archive_note_now
 
 UNDO_WINDOW = timedelta(minutes=10)
 MAX_NOTES = 2_000
@@ -424,9 +425,10 @@ class Notebook:
         if patch.pinned is not None:
             n.pinned = patch.pinned
         if patch.archived is not None:
-            n.archived = patch.archived
             if patch.archived:
-                n.pinned = False
+                archive_note_now(n)  # what the archive preview lists (docs/LIFECYCLE.md)
+            else:
+                n.archived = False
         if text:
             n.revision += 1  # pin/archive never conflict with text edits in another tab
             assert patch.base_revision is not None

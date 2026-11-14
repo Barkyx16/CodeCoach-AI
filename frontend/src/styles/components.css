@@ -173,3 +173,12 @@
 .action-error__message { margin: 0; }
 .action-error__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .page.page--notice { padding-bottom: 0; }
+
+/* What an archive or a delete will do, before it's done (features/lifecycle/ImpactPreview.tsx). */
+.impact { padding: var(--space-3); border: 1px solid var(--color-border); border-left: 3px solid var(--color-warning, var(--color-border)); border-radius: 8px; }
+.impact p { margin: 0; }
+.impact__title { margin: 0; font-size: var(--text-md); }
+.impact__group { display: grid; gap: var(--space-1); }
+.impact__heading { margin: 0; font-size: var(--text-sm); font-weight: 600; }
+.impact .mini-list { margin: 0; }
+.impact__note { display: block; font-size: var(--text-sm); }

@@ -144,6 +144,22 @@ The address then becomes `users.email`, verified at that moment. Migration `dd8a
 | `key`, `window` | varchar(160), integer; composite PK | e.g. `auth:<client ip>` and epoch-seconds ÷ 60 |
 | `count` | integer | Incremented by an atomic `INSERT … ON CONFLICT DO UPDATE … RETURNING`; windows older than the previous one are deleted on the next hit |
 
+### `lifecycle_receipts`
+What a keyed archive or delete did (Volume 12, prompt 9; docs/LIFECYCLE.md), so the same request
+sent again after a lost reply is answered with the earlier outcome; and the create key of each
+deleted application (`action` = `tombstone:application`), so a late retry of that create isn't made
+again. By kind and id only, no titles or text. Kept 7 days, purged by housekeeping; not exported;
+copied by `copy-db`; outside row-level security like `update_receipts`. Migration `d2e5f7a9c643`.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | varchar(36) PK | |
+| `user_id` | FK → users (cascade), indexed | |
+| `client_request_id` | varchar(64) | unique per user (`uq_lifecycle_receipt`) |
+| `action`, `target_id` | varchar(32), varchar(36) | `delete_application` \| `archive_note` \| `tombstone:application`, and the record's id |
+| `impact` | JSON | the outcome with titles and notes blanked: action, summary, effects by kind and id, fingerprint, `done_at` |
+| `created_at` | timestamptz | |
+
 ### `update_receipts`
 Evidence that one keyed update (a story, note, kit, whiteboard draft or reflection save) was
 accepted, written in the same transaction as the update (Volume 8, prompt 3; docs/RECOVERY.md).

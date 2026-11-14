@@ -24,6 +24,8 @@ the application takes its kits out of active views), interviews, answers, attemp
   anything else, so it can't overwrite an edit made on another device, and an edit made elsewhere
   keeps the record archived. Asking twice is the same as asking once. (For offer comparisons the
   "saved" time doesn't change either; the older kinds set their last-changed time, as before.)
+  One exception: an archived **note** is also unpinned, and unarchiving doesn't pin it again. The
+  note page shows this before it archives (docs/LIFECYCLE.md).
 - **Owner only.** Archive and restore look the record up by its owner first: another account's id
   is "not found" and nothing changes. Archiving never makes anything public or shared.
 - **History and stages stay.** An application keeps its stage and stage history (archived isn't a

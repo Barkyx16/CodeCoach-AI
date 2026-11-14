@@ -278,6 +278,11 @@ export type Schedulable = S["SchedulableOut"];
 export type Kit = S["KitOut"];
 export type KitStory = S["KitStory"];
 export type Freshness = S["Freshness"];
+/** What an archive or a delete will do, from the plan that carries it out (docs/LIFECYCLE.md). */
+export type Impact = S["Impact"];
+export type ImpactEffect = S["Effect"];
+export type LifecycleOutcome = S["LifecycleOutcome"];
+export type LifecycleIn = S["LifecycleIn"];
 export type SourceReviewIn = S["SourceReviewIn"];
 export type StoryLinksReviewIn = S["StoryLinksReviewIn"];
 export type KitQuestion = S["AskQuestion"];

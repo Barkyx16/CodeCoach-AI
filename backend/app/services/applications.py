@@ -38,6 +38,7 @@ from app.schemas.applications import (
 )
 from app.schemas.common import SaveReplay
 from app.services import request_keys, update_receipts
+from app.services.lifecycle import Lifecycle, deleted_earlier
 from app.services.story_freshness import forget
 from app.services.timeutil import local_to_utc, parse_hhmm, zone
 
@@ -264,6 +265,7 @@ class Applications:
         if body.client_request_id and (made := self._by_request(body.client_request_id)) is not None:
             request_keys.check(made.request_fingerprint, print_, "application")
             return self.get(made.id), False
+        deleted_earlier(self.db, self.user, body.client_request_id)  # a late retry doesn't make it again
         count = len(self.db.scalars(select(Application.id).where(Application.user_id == self.user.id)).all())
         if count >= MAX_APPLICATIONS:
             raise AppError(
@@ -398,11 +400,8 @@ class Applications:
         return self.get(a.id)
 
     def delete(self, app_id: str) -> None:
-        a = self._get(app_id)
-        # Its kits go with its events; so do the decisions about their stories (STORY_FRESHNESS.md).
-        forget(self.db, self.user.id, holder_kind="kit", holder_ids=[e.id for e in a.events])
-        self.db.delete(a)
-        self.db.commit()
+        """An older client's delete, sent without a preview: the plan as it is now (LIFECYCLE.md)."""
+        Lifecycle(self.db, self.user).delete_application(app_id, None)
 
     # --- events -------------------------------------------------------------------------------
 

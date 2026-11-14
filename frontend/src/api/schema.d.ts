@@ -1152,6 +1152,40 @@ export interface paths {
         patch: operations["update_note_api_v1_me_notes__note_id__patch"];
         trace?: never;
     };
+    "/api/v1/me/notes/{note_id}/archive-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What archiving it would do (nothing is changed) */
+        get: operations["archive_preview_api_v1_me_notes__note_id__archive_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/notes/{note_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive it as previewed: a changed scope is refused (409 impact_changed) with the new preview */
+        post: operations["archive_as_previewed_api_v1_me_notes__note_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/notes/{note_id}/restore": {
         parameters: {
             query?: never;
@@ -1663,7 +1697,7 @@ export interface paths {
         get: operations["get_application_api_v1_me_applications__app_id__get"];
         put?: never;
         post?: never;
-        /** Delete */
+        /** Delete (older clients; the same plan as the preview, worked out now) */
         delete: operations["delete_application_api_v1_me_applications__app_id__delete"];
         options?: never;
         head?: never;
@@ -1735,6 +1769,40 @@ export interface paths {
         post?: never;
         /** Unlink a story (the story itself stays; unlinking one that isn't linked changes nothing) */
         delete: operations["unlink_story_api_v1_me_applications__app_id__stories__story_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/delete-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What deleting it would delete, unlink, keep or make unavailable (nothing is changed) */
+        get: operations["delete_preview_api_v1_me_applications__app_id__delete_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete it as previewed: a changed scope is refused (409 impact_changed) with the new preview */
+        post: operations["delete_as_previewed_api_v1_me_applications__app_id__delete_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -6623,6 +6691,32 @@ export interface components {
             /** Internal Note */
             internal_note?: string | null;
         };
+        /** Effect */
+        Effect: {
+            /**
+             * Effect
+             * @description archived (reversible), deleted, unlinked (the other record stays), kept, or made unavailable
+             * @enum {string}
+             */
+            effect: "archived" | "deleted" | "unlinked" | "kept" | "unavailable";
+            /**
+             * Kind
+             * @description What it is, in the words the app uses: an event, a kit, a schedule entry…
+             */
+            kind: string;
+            /** Title */
+            title: string;
+            /**
+             * Id
+             * @description The record's id (yours); part of what the fingerprint covers
+             */
+            id?: string | null;
+            /**
+             * Note
+             * @description One line on what this means, when it isn't obvious
+             */
+            note?: string | null;
+        };
         /**
          * Engagement
          * @description A simulated interviewer's read of one answer, built only from what the answer contains.
@@ -7921,6 +8015,38 @@ export interface components {
              */
             grounded: boolean;
         };
+        /** Impact */
+        Impact: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "delete_application" | "archive_note";
+            /** Target Id */
+            target_id: string;
+            /** Title */
+            title: string;
+            /**
+             * Summary
+             * @description The action and its reach in words: "Delete this application, its 3 events and 1 kit"
+             */
+            summary: string;
+            /**
+             * Effects
+             * @description Every one of your records it touches, by title and kind
+             */
+            effects: components["schemas"]["Effect"][];
+            /**
+             * Notes
+             * @description What it can't do, e.g. recall a delivered email
+             */
+            notes?: string[];
+            /**
+             * Fingerprint
+             * @description Send it back to carry out exactly this; a changed scope is refused
+             */
+            fingerprint: string;
+        };
         /** Improvement */
         Improvement: {
             /**
@@ -8678,6 +8804,61 @@ export interface components {
              * @enum {string}
              */
             reason: "removed" | "unavailable";
+        };
+        /** LifecycleIn */
+        LifecycleIn: {
+            /**
+             * Expected Fingerprint
+             * @description The preview's fingerprint. If the scope changed since, nothing is done: 409 impact_changed with the new preview (details.current).
+             */
+            expected_fingerprint: string;
+            /** Client Request Id */
+            client_request_id?: string | null;
+        };
+        /** LifecycleOutcome */
+        LifecycleOutcome: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "delete_application" | "archive_note";
+            /** Target Id */
+            target_id: string;
+            /** Title */
+            title: string;
+            /**
+             * Summary
+             * @description The action and its reach in words: "Delete this application, its 3 events and 1 kit"
+             */
+            summary: string;
+            /**
+             * Effects
+             * @description Every one of your records it touches, by title and kind
+             */
+            effects: components["schemas"]["Effect"][];
+            /**
+             * Notes
+             * @description What it can't do, e.g. recall a delivered email
+             */
+            notes?: string[];
+            /**
+             * Fingerprint
+             * @description Send it back to carry out exactly this; a changed scope is refused
+             */
+            fingerprint: string;
+            /**
+             * Done At
+             * Format: date-time
+             */
+            done_at: string;
+            /**
+             * Replayed
+             * @description True when this repeats an earlier request whose reply was lost: nothing was done again
+             * @default false
+             */
+            replayed: boolean;
+            /** Message */
+            message: string;
         };
         /** LineageEntry */
         LineageEntry: {
@@ -18476,6 +18657,117 @@ export interface operations {
             };
         };
     };
+    archive_preview_api_v1_me_notes__note_id__archive_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Impact"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_as_previewed_api_v1_me_notes__note_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LifecycleIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LifecycleOutcome"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     restore_note_api_v1_me_notes__note_id__restore_post: {
         parameters: {
             query?: never;
@@ -20820,6 +21112,117 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_preview_api_v1_me_applications__app_id__delete_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Impact"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_as_previewed_api_v1_me_applications__app_id__delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LifecycleIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LifecycleOutcome"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

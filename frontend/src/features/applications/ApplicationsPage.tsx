@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useId, useMemo, useState, type DragEvent, type FormEvent } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useEffect, useId, useMemo, useRef, useState, type DragEvent, type FormEvent } from "react";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 
 import { isSameSession, sessionMark } from "@/api/client";
 import { api } from "@/api/endpoints";
@@ -28,6 +28,23 @@ const SORTS: { key: SortKey; label: string }[] = [
 ];
 
 /** Your applications as a board (by stage) or a sortable list. View, filters and sort live in the URL. */
+/** After a delete: what was done, where focus lands (docs/LIFECYCLE.md). */
+function DeletedNotice() {
+  const done = (useLocation().state as { lifecycle?: { message: string; summary: string; replayed: boolean } } | null)?.lifecycle;
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (done) ref.current?.focus(); }, [done]);
+  if (!done) return null;
+  const reach = done.summary.match(/^Delete this application, (.+)$/)?.[1];
+  return (
+    <div className="banner banner--success" role="status" tabIndex={-1} ref={ref}>
+      <p>
+        {done.message}
+        {!done.replayed && `${reach ? ` With it went ${reach}.` : ""} Everything listed as kept or unlinked is where it was.`}
+      </p>
+    </div>
+  );
+}
+
 export function ApplicationsPage() {
   const back = useReturnHere("Back to your applications");
   const [params, setParams] = useSearchParams();
@@ -96,6 +113,7 @@ export function ApplicationsPage() {
         </div>
         <Button variant="primary" aria-expanded={adding} onClick={() => setAdding((v) => !v)}>{adding ? "Close" : "Add an application"}</Button>
       </div>
+      <DeletedNotice />
       {adding && <NewApplication onDone={() => setAdding(false)} />}
 
       {upcoming.length > 0 && !archived && (

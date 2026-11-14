@@ -2,6 +2,9 @@
 import { apiRequest } from "./client";
 import type {
   AcceptedAction,
+  Impact,
+  LifecycleIn,
+  LifecycleOutcome,
   ActionAccept,
   ActionOccurrencesIn,
   ActionUpdate,
@@ -541,6 +544,9 @@ export const api = {
   createNote: (body: NoteInput) => apiRequest<Note>("/api/v1/me/notes", { method: "POST", body }),
   updateNote: (id: string, body: NotePatch, keepalive = false) =>
     apiRequest<Note>(`/api/v1/me/notes/${encodeURIComponent(id)}`, { method: "PATCH", body, keepalive }),
+  noteArchivePreview: (id: string) => apiRequest<Impact>(`/api/v1/me/notes/${encodeURIComponent(id)}/archive-preview`),
+  archiveNoteAsPreviewed: (id: string, body: LifecycleIn) =>
+    apiRequest<LifecycleOutcome>(`/api/v1/me/notes/${encodeURIComponent(id)}/archive`, { method: "POST", body }),
   deleteNote: (id: string) => apiRequest<{ id: string; restorable_until: string }>(`/api/v1/me/notes/${encodeURIComponent(id)}`, { method: "DELETE" }),
   restoreNote: (id: string) => apiRequest<Note>(`/api/v1/me/notes/${encodeURIComponent(id)}/restore`, { method: "POST" }),
   keyPoints: (id: string) => apiRequest<KeyPoints>(`/api/v1/me/notes/${encodeURIComponent(id)}/key-points`, { method: "POST" }),
@@ -599,6 +605,10 @@ export const api = {
   archiveApplication: (id: string, archived: boolean) =>
     apiRequest<Application>(`/api/v1/me/applications/${encodeURIComponent(id)}/${archived ? "archive" : "unarchive"}`, { method: "POST" }),
   deleteApplication: (id: string) => apiRequest<void>(`/api/v1/me/applications/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  /** What deleting it would reach, worked out by the plan that deletes it (docs/LIFECYCLE.md). */
+  applicationDeletePreview: (id: string) => apiRequest<Impact>(`/api/v1/me/applications/${encodeURIComponent(id)}/delete-preview`),
+  deleteApplicationAsPreviewed: (id: string, body: LifecycleIn) =>
+    apiRequest<LifecycleOutcome>(`/api/v1/me/applications/${encodeURIComponent(id)}/delete`, { method: "POST", body }),
   addApplicationEvent: (id: string, body: ApplicationEventIn) => apiRequest<Application>(`/api/v1/me/applications/${encodeURIComponent(id)}/events`, { method: "POST", body }),
   updateApplicationEvent: (id: string, eventId: string, body: ApplicationEventIn) =>
     apiRequest<Application>(`/api/v1/me/applications/${encodeURIComponent(id)}/events/${encodeURIComponent(eventId)}`, { method: "PUT", body }),

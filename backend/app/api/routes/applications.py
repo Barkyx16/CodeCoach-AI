@@ -14,8 +14,10 @@ from app.schemas.applications import (
     ApplicationUpdate,
 )
 from app.schemas.common import error_responses
+from app.schemas.lifecycle import Impact, LifecycleIn, LifecycleOutcome
 from app.schemas.schedule import PrepShiftIn, PrepShiftOut, PrepShiftResult
 from app.services.applications import Applications
+from app.services.lifecycle import Lifecycle
 from app.services.schedule import Schedule
 
 router = APIRouter(prefix="/api/v1/me/applications", tags=["applications"])
@@ -135,8 +137,35 @@ def unlink_story(
     return Applications(db, user).link_story(app_id, story_id, False)
 
 
+@router.get(
+    "/{app_id}/delete-preview",
+    response_model=Impact,
+    responses=error_responses(401, 404),
+    summary="What deleting it would delete, unlink, keep or make unavailable (nothing is changed)",
+)
+def delete_preview(
+    app_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> Impact:
+    return Lifecycle(db, user).plan_delete_application(app_id)
+
+
+@router.post(
+    "/{app_id}/delete",
+    response_model=LifecycleOutcome,
+    responses=error_responses(401, 404, 409, 422),
+    summary="Delete it as previewed: a changed scope is refused (409 impact_changed) with the new preview",
+)
+def delete_as_previewed(
+    app_id: str, body: LifecycleIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> LifecycleOutcome:
+    return Lifecycle(db, user).delete_application(app_id, body)
+
+
 @router.delete(
-    "/{app_id}", status_code=status.HTTP_204_NO_CONTENT, responses=error_responses(401, 404), summary="Delete"
+    "/{app_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses=error_responses(401, 404),
+    summary="Delete (older clients; the same plan as the preview, worked out now)",
 )
 def delete_application(
     app_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)

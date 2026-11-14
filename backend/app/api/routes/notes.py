@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_db
 from app.models import User
 from app.schemas.common import error_responses
+from app.schemas.lifecycle import Impact, LifecycleIn, LifecycleOutcome
 from app.schemas.notes import (
     DeletedOut,
     KeyPoints,
@@ -16,6 +17,7 @@ from app.schemas.notes import (
     NoteStatus,
     SourceType,
 )
+from app.services.lifecycle import Lifecycle
 from app.services.notes import Notebook
 
 router = APIRouter(prefix="/api/v1/me/notes", tags=["notes"])
@@ -69,6 +71,30 @@ def create_note(
 @router.get("/{note_id}", response_model=NoteOut, responses=error_responses(401, 404), summary="One note")
 def get_note(note_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> NoteOut:
     return Notebook(db).get(user, note_id)
+
+
+@router.get(
+    "/{note_id}/archive-preview",
+    response_model=Impact,
+    responses=error_responses(401, 404),
+    summary="What archiving it would do (nothing is changed)",
+)
+def archive_preview(
+    note_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> Impact:
+    return Lifecycle(db, user).plan_archive_note(note_id)
+
+
+@router.post(
+    "/{note_id}/archive",
+    response_model=LifecycleOutcome,
+    responses=error_responses(401, 404, 409, 422),
+    summary="Archive it as previewed: a changed scope is refused (409 impact_changed) with the new preview",
+)
+def archive_as_previewed(
+    note_id: str, body: LifecycleIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> LifecycleOutcome:
+    return Lifecycle(db, user).archive_note(note_id, body)
 
 
 @router.patch(

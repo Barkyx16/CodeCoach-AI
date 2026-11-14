@@ -852,6 +852,10 @@ All under `/api/v1/me/notes` 🔒; a note is only ever visible to its owner (any
   don't conflict. `source.available` is false once the source leaves the library; the note stays.
 - `DELETE` starts a 10-minute undo window (`{restorable_until}`); `POST /me/notes/{id}/restore`
   undoes it; afterwards the note is purged.
+- `GET /me/notes/{id}/archive-preview` → `Impact`; `POST /me/notes/{id}/archive`
+  `{expected_fingerprint, client_request_id?}` → `LifecycleOutcome` (archived and unpinned; a
+  changed scope is `409 impact_changed`). Setting `archived` with `PATCH` does the same change
+  (docs/LIFECYCLE.md).
 - `POST /me/notes/{id}/key-points` → `{points, method}`: a deterministic, non-AI helper that
   lists the note's own action or lesson sentences. Nothing is saved until the client sends them
   as `key_points` in a `PATCH`.
@@ -1067,6 +1071,13 @@ anyone else). Nothing is sent or submitted anywhere.
 - `POST …/{id}/stage {stage: saved|applied|interviewing|offer|closed|withdrawn, note, correction}`
   → appended to the history; the same stage again is a no-op.
 - `POST …/{id}/archive`, `…/unarchive`; `DELETE …/{id}` (`204`).
+- `GET …/{id}/delete-preview` → `Impact`: every record deleting it would delete, unlink, keep or
+  make unavailable, by kind and title, with a `fingerprint`; nothing is changed. `POST …/{id}/delete`
+  `{expected_fingerprint, client_request_id?}` → `LifecycleOutcome`: carries out the same plan,
+  worked out again; a changed scope is `409 impact_changed` with the new preview in
+  `details.current`, and nothing is done; a repeated key answers `replayed: true`. `DELETE …/{id}`
+  carries out the plan as it is now. A create sent again after its application was deleted is
+  `410 deleted_earlier` (docs/LIFECYCLE.md).
 - `POST …/{id}/events {kind: phone_screen|interview|assessment|other, title, on_date?,
   local_time? (HH:MM), timezone? (IANA), fold? (0|1), notes, client_request_id?}`, `PUT
   …/events/{event_id}`, `DELETE …/events/{event_id}`. `starts_at` (UTC) is set only when date,

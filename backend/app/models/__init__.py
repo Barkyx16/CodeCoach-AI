@@ -844,6 +844,22 @@ class SourceReview(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
 
+class LifecycleReceipt(Base):
+    """What a keyed delete or archive carried out (docs/LIFECYCLE.md): the same request sent again
+    after a lost reply is answered with this, never acted on twice. Purged after a week."""
+
+    __tablename__ = "lifecycle_receipts"
+    __table_args__ = (UniqueConstraint("user_id", "client_request_id", name="uq_lifecycle_receipt"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    client_request_id: Mapped[str] = mapped_column(String(64))
+    action: Mapped[str] = mapped_column(String(32))  # delete_application | archive_note
+    target_id: Mapped[str] = mapped_column(String(36))
+    impact: Mapped[dict] = mapped_column(JSONType)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
 class InterviewRetry(Base):
     """A new attempt at one question of a finished question round. The original answer is never
     changed; the retry is its own graded PracticeAnswer."""
