@@ -49,7 +49,11 @@ test("review a round, retry one question, compare, queue it, and come back to Hi
   await page.getByRole("button", { name: "Get feedback and compare" }).click();
   const comparison = page.getByRole("region", { name: "How your latest attempt compares" });
   await expect(comparison).toContainText(WEAK);
-  await expect(comparison).toContainText(/Latest retry · \d+\/100 \(\+\d+\)/);
+  // The original was too short to score, so the comparison is by what was written, not by numbers:
+  // no score change is shown (docs/COMPARING_ATTEMPTS.md).
+  await expect(comparison).toContainText("Partly comparable: one was too short to score: compare what you wrote, not the numbers");
+  await expect(comparison).toContainText(/Latest retry · \d+\/100/);
+  await expect(comparison).not.toContainText(/Latest retry · \d+\/100 \(/);
   await expect(comparison.getByRole("heading", { name: "Improved" })).toBeVisible();
   await page.getByRole("link", { name: "Back to the review" }).click();
   await expect(page.locator("#review-detail")).toContainText(WEAK); // original answer untouched
