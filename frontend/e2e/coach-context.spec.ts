@@ -74,7 +74,10 @@ test("a code review shows what the coach will read, and sends only that", async 
   await expect(panel.getByLabel("Exactly what's sent: Your code")).toBeVisible();
   await page.locator(".monaco-editor").first().click();
   await page.keyboard.press("ControlOrMeta+End");
-  await page.keyboard.type("\n// checked again");
+  // Inserted as typed text arrives: key by key, the editor's completions can take characters (CI
+  // run 311 got "// checkeain").
+  await page.keyboard.press("Enter");
+  await page.keyboard.insertText("// checked again");
   await expect(panel.getByText(/Your code changed since this was checked/)).toBeVisible();
   await expect(panel.getByRole("button", { name: "Send for review" })).toBeDisabled();
   expect(await used()).toBe(before);

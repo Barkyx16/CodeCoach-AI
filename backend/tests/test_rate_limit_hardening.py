@@ -4,7 +4,6 @@ in-memory limiter and the counter table can't grow without bound, and AI request
 multiplied by concurrency. Synthetic accounts only."""
 
 import threading
-import time
 from types import SimpleNamespace
 
 import pytest
@@ -142,10 +141,14 @@ class SlowProvider:
     def __init__(self):
         self.entered = threading.Event()
         self.release = threading.Event()
+        self.calls = 0
 
     def hint(self, ctx):
+        self.calls += 1
         self.entered.set()
-        self.release.wait(5)
+        # Holds the only slot until the test lets go, however slow the machine (CI run 311: with
+        # a 5 s hold, the slot came free before the request got there).
+        self.release.wait(60)
         raise ProviderError("synthetic: not a real provider", reason="timeout")
 
 
@@ -159,14 +162,15 @@ def test_a_full_provider_answers_at_once_with_the_offline_coach(client, user_hea
         bounded.hint(None)
     assert busy.value.reason == "busy" and busy.value.attempts == 0
     client.app.state.ai_provider = bounded  # the API, while the only slot is taken
-    started = time.perf_counter()
     r = client.post(
         "/api/v1/ai/hint",
         headers=user_headers,
         json={"problem_slug": "two-sum", "level": 1, "source_code": ""},
     )
     assert r.status_code == 200 and r.json()["provider"] == "offline (fallback)"
-    assert time.perf_counter() - started < 2  # didn't wait for the slow call
+    # It didn't wait for the slow call: it never reached the provider (only the worker's call did).
+    # A wall-clock bound measured the runner too (21 s on a loaded one, most of it outside the coach).
+    assert slow.calls == 1
     slow.release.set()
     worker.join(5)
     ok = BoundedProvider(
