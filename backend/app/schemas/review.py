@@ -34,10 +34,16 @@ class PracticeAction(APIModel):
 
 
 class Improvement(APIModel):
+    key: str = Field(
+        default="",
+        description="Stable within this interview: what it was suggested from (a missed point, a dimension). "
+        "Accepting it uses this key, so accepting again finds the same action.",
+    )
     title: str
     why: str
     evidence: list[EvidenceLink]
     practice: PracticeAction
+    action_id: str | None = Field(default=None, description="The action you accepted from it, if any")
 
 
 class Dimension(APIModel):

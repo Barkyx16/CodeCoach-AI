@@ -26,9 +26,9 @@ downloads version 2. It's the version 1 document with every section and field un
 
 - `export_version: 2` and an `identities` note (scope, restore support, the link states).
 - An `id` on the records others point to: applications, their `events`, `target_roles` and their
-  `requirements`, `stories` (already had one), `notes`, `schedule.entries`, `interview_kits` and
-  `interview_reflections` (each identified by its interview event's id), reflection `actions`,
-  and `bookmarks` (`question:career/id`, made from fields already there).
+  `requirements`, `stories` (already had one), `notes`, `schedule.entries`, `accepted_actions`,
+  `interview_kits` and `interview_reflections` (each identified by its interview event's id),
+  reflection `actions`, and `bookmarks` (`question:career/id`, made from fields already there).
 - A `links` object on the records that point to others, each link a typed reference:
 
 ```json
@@ -38,10 +38,11 @@ downloads version 2. It's the version 1 document with every section and field un
 | Record | `links` |
 |---|---|
 | application | `target`, `stories[]` |
-| interview kit | `event`, `stories[]` (each with `version_when_chosen`: a number, or `"unknown"` for kits saved before versions were kept) |
+| interview kit | `event`, `stories[]` (each with `version_when_chosen`: a number, or `"unknown"` for kits saved before versions were kept), `actions[]`: the accepted improvements on its checklist |
 | interview reflection | `application`, `event`, `stories[]` |
 | reflection step (`actions[]`) | `created`: the note, schedule entry or bookmark it made, or `null` if it wasn't accepted |
-| schedule entry | `activity`: the interview event, a question/problem/drill, or a plan/review item |
+| schedule entry | `activity`: the interview event, a question/problem/drill, a plan/review item, or an accepted action |
+| accepted action | `source`: the interview it came from (`not_exported`); `occurrences[]`: its schedule entries |
 | note | `source`: the lesson, question, problem or practice session it was written from |
 
 | `state` | Meaning |
@@ -100,7 +101,7 @@ dated now.
 | `profile`, `onboarding` | Account details, sign-in and roles are never restored. The account stays exactly as it is, whatever the file says (an `is_admin` in a file changes nothing). |
 | `submissions`, `practice_sessions`, `answers`, `ai_interactions`, `drill_attempts`, `whiteboard`, `code_reviews`, `test_design_runs`, `work_samples`, `comparisons`, `offer_rehearsals`, `offer_comparisons` (not restored: re-enter them), `scenario_attempts`, `learn_events`, `answer_reviews`, plans, goals and the review queue | Practice results and evaluations can't be verified from a file, so an edited backup can't create a passing verdict, a score, progress or readiness. |
 | `shares`, `shared_feedback`, `schedule`, sessions | They could share data or start something (links, sessions, reminders). |
-| `targets`, `collections`, `interview_kits`, `kit_templates`, `interview_reflections`, `content_reports` | Not restorable yet (they depend on other records by id); listed in the preview. |
+| `targets`, `collections`, `interview_kits`, `kit_templates`, `accepted_actions`, `interview_reflections`, `content_reports` | Not restorable yet (they depend on other records by id); listed in the preview. |
 | Anything else | Not recognised, ignored, and listed. |
 
 ## How a restore runs

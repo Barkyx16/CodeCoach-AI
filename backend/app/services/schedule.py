@@ -20,6 +20,7 @@ from app.careers.questions import get_question, is_retired
 from app.drills import BY_ID as DRILLS_BY_ID
 from app.errors import AppError, ConflictError, NotFoundError
 from app.models import (
+    AcceptedAction,
     Application,
     ApplicationEvent,
     DrillAttempt,
@@ -166,10 +167,25 @@ class Schedule:
             ev, app = row
             # Preparing for an interview happens in its kit (which links back to the application).
             return f"Prepare: {ev.title} ({app.employer})", f"/applications/{app.id}/events/{ev.id}/kit", True
+        if kind == "accepted_action":
+            # One of an accepted action's occurrences: its title is the action's, read now, so a
+            # rename shows here and in a calendar file (docs/ACCEPTED_ACTIONS.md).
+            action = self.db.scalar(
+                select(AcceptedAction).where(AcceptedAction.id == ref, AcceptedAction.user_id == self.user.id)
+            )
+            if action is None:
+                raise NotFoundError("Action not found")
+            return action.title, action.practice_href or "/plan#accepted-actions", True
         raise AppError("Unknown kind.", code="unknown_kind")  # pragma: no cover - the schema limits it
 
     def _done_at(self, e: ScheduleEntry) -> datetime | None:
         """When the activity was actually done, by its own rules. Scheduling never counts."""
+        if e.kind == "accepted_action":
+            # The learner says so: a one-off on the action, a weekly action per occurrence.
+            action = self.db.get(AcceptedAction, e.ref)
+            if action is None or action.user_id != self.user.id:
+                return None
+            return action.done_at if action.recurrence == "once" else e.completed_at
         if e.kind == "plan_item":
             item = self.db.get(PlanItem, e.ref)
             return item.resolved_at if item is not None and item.status == "done" else None
@@ -210,8 +226,11 @@ class Schedule:
         return None
 
     def _out(self, e: ScheduleEntry, conflicts: list[str]) -> EntryOut:
+        title = e.title
         try:
-            _, href, available = self._resolve(e.kind, e.ref)
+            resolved, href, available = self._resolve(e.kind, e.ref)
+            if e.kind == "accepted_action":
+                title = resolved  # the action's own title, never a copy
         except NotFoundError:
             href, available = None, False
         ends = e.starts_at + timedelta(minutes=e.duration_min) if e.starts_at else None
@@ -220,7 +239,7 @@ class Schedule:
             uid=e.uid,
             kind=e.kind,
             ref=e.ref,
-            title=e.title,
+            title=title,
             href=href,
             all_day=e.all_day,
             on_date=e.on_date,
@@ -671,7 +690,7 @@ class Schedule:
             IcsEvent(
                 uid=e.uid,
                 sequence=e.sequence,
-                summary=f"CodeCoach: {e.title}",
+                summary=f"CodeCoach: {self._title(e)}",
                 status="CANCELLED" if e.status == "cancelled" else "CONFIRMED",
                 all_day=e.all_day,
                 on_date=e.on_date,
@@ -683,6 +702,15 @@ class Schedule:
             for e in rows
         ]
         return calendar(events)
+
+    def _title(self, e: ScheduleEntry) -> str:
+        """An entry's title: an accepted action's own, read now; anything else as recorded."""
+        if e.kind == "accepted_action":
+            try:
+                return self._resolve(e.kind, e.ref)[0]
+            except NotFoundError:
+                pass
+        return e.title
 
     def export(self, *, with_ids: bool = False) -> dict:
         return {

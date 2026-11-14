@@ -100,7 +100,8 @@ function SaveAsTemplate({ kit, fromHere }: { kit: Kit; fromHere: { from: string;
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(`${kit.role_title} interviews`);
-  const ticks = kit.checklist.filter((c) => !c.hidden);
+  // An accepted improvement is a link to the action, not words to copy: never part of a template.
+  const ticks = kit.checklist.filter((c) => !c.hidden && c.origin !== "action");
   const asks = kit.questions.filter((q) => !q.excluded);
   // Everything is kept unless unticked here (so an item added to the kit meanwhile is kept too).
   const [dropTicks, setDropTicks] = useState<Set<string>>(() => new Set());

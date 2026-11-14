@@ -8,14 +8,17 @@ notifications.
 
 Existing activities only, by their ids: a step from your **practice plan**, a question in your
 **review queue**, any **question** or **coding problem** (from its page: "Add to schedule"), or
-**preparation** for an interview event of one of your **applications**. Nothing new is invented;
+**preparation** for an interview event of one of your **applications**, or an **improvement you
+accepted** from an interview review (from the plan page). Nothing new is invented;
 the entry links back to the activity (for interview preparation, that interview's kit). A
 preparation entry is a time slot of its own: rescheduling the interview doesn't move it.
 
 **Scheduling something isn't doing it.** An entry shows as *Done* only when the activity itself
 was done by its own rules: the plan step was completed by the plan, or you answered the question
 (or submitted the problem) after you scheduled it. Interview preparation has no completion rule,
-so it never claims to be done.
+so it never claims to be done. An **accepted improvement** (docs/ACCEPTED_ACTIONS.md) is the
+exception that's said out loud: it's done when you say so, from its entry, the plan page or a kit,
+and it's the same action in all three.
 
 - Moving an entry changes its date, time, zone or length. Cancelling keeps it (shown with "Show
   cancelled") so a calendar file can cancel it too. A cancelled entry isn't moved back; schedule

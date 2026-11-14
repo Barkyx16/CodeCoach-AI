@@ -22,6 +22,7 @@ import { screenChanged } from "@/features/interview/roundDiag";
 import { roundDraftKey } from "@/features/interview/roundDrafts";
 import { EngagementNote } from "@/features/voice/EngagementMeter";
 import { NoteCapture } from "@/features/notes/NoteCapture";
+import { AcceptImprovement } from "@/features/actions/AcceptImprovement";
 
 const STATUS_TEXT: Record<ReviewEntry["status"], string> = {
   answered: "Answered", skipped: "Skipped", not_reached: "Not reached", said: "",
@@ -119,7 +120,7 @@ function Review({ iv, r }: { iv: Interview; r: InterviewReview }) {
               <h2 className="section-title">Work on next</h2>
               <ol className="review__improvements">
                 {r.improvements.map((imp) => (
-                  <li key={imp.title} className="stack">
+                  <li key={imp.key || imp.title} className="stack">
                     <strong>{imp.title}</strong>
                     <p className="subtle">{imp.why}</p>
                     {imp.evidence.length > 0 && (
@@ -133,6 +134,7 @@ function Review({ iv, r }: { iv: Interview; r: InterviewReview }) {
                     {imp.practice.retry_index !== null && imp.practice.retry_index !== undefined
                       ? <Link className="btn btn--secondary btn--sm review__practice" to={`/interviews/${r.id}/retry/${imp.practice.retry_index}`}>{imp.practice.label}</Link>
                       : imp.practice.href && <Link className="btn btn--secondary btn--sm review__practice" to={imp.practice.href}>{imp.practice.label}</Link>}
+                    <AcceptImprovement interviewId={r.id} improvementKey={imp.key} actionId={imp.action_id} title={imp.title} />
                   </li>
                 ))}
               </ol>

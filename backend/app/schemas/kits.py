@@ -3,7 +3,7 @@
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from app.schemas.applications import _http_link
 from app.schemas.common import APIModel, OptionalKey, SaveReplay, save_replay_field, update_key_field
@@ -17,12 +17,44 @@ class Interviewer(APIModel):
     role: str = Field(default="", max_length=80)
 
 
+class KitAction(APIModel):
+    """An accepted improvement on this checklist (docs/ACCEPTED_ACTIONS.md), as it is now."""
+
+    id: str
+    title: str
+    recurrence: Literal["once", "weekly"]
+    done: bool = Field(description="A one-off you said is done")
+    occurrences_done: int
+    occurrences_total: int = Field(description="Scheduled occurrences, not counting cancelled ones")
+    href: str | None
+
+
 class ChecklistItem(APIModel):
     id: str = Field(max_length=40)
-    text: str = Field(min_length=1, max_length=200)
-    origin: Literal["suggested", "yours"]
-    done: bool = False
+    text: str = Field(
+        default="",
+        max_length=200,
+        description="The item's words. For an accepted action (origin 'action') it's the action's title, "
+        "read each time; what's sent is ignored.",
+    )
+    origin: Literal["suggested", "yours", "action"]
+    done: bool = Field(
+        default=False, description="Ticked. For an accepted action, its own state is used instead."
+    )
     hidden: bool = False
+    action_id: str | None = Field(
+        default=None, max_length=36, description="origin 'action': the accepted action this item is"
+    )
+    action: KitAction | None = Field(default=None, description="Read only: the action, as it is now")
+
+    @model_validator(mode="after")
+    def _shape(self) -> "ChecklistItem":
+        if self.origin == "action":
+            if not self.action_id:
+                raise ValueError("An accepted-action item needs action_id.")
+        elif not self.text:
+            raise ValueError("A checklist item needs text.")
+        return self
 
 
 class AskQuestion(APIModel):

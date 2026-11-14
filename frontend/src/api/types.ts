@@ -258,7 +258,10 @@ export type ApplicationEventIn = S["ApplicationEventIn"];
 
 export type ScheduleEntry = S["EntryOut"];
 export type ScheduleSettings = S["ScheduleSettingsOut"];
-export type ScheduleKind = S["EntryOut"]["kind"];
+// What can be put on the schedule directly. An entry can also be an accepted action's occurrence
+// ("accepted_action"), made from the action (docs/ACCEPTED_ACTIONS.md), never through this create.
+export type ScheduleKind = S["EntryIn"]["kind"];
+export type ScheduleEntryKind = S["EntryOut"]["kind"];
 export type ScheduleEntryIn = S["EntryIn"];
 export type ScheduleMove = S["EntryMove"];
 export type PrepShift = S["PrepShiftOut"];
@@ -270,6 +273,12 @@ export type Kit = S["KitOut"];
 export type KitQuestion = S["AskQuestion"];
 export type KitChecklistItem = S["ChecklistItem"];
 export type KitTemplate = S["KitTemplateOut"];
+// improvements you accepted (docs/ACCEPTED_ACTIONS.md)
+export type AcceptedAction = S["ActionOut"];
+export type ActionAccept = S["ActionAccept"];
+export type ActionUpdate = S["ActionUpdate"];
+export type ActionOccurrencesIn = S["OccurrencesIn"];
+export type KitAction = S["KitAction"];
 export type PacketIn = S["PacketIn"];
 export type PacketItemIn = S["PacketItemIn"];
 export type Packet = S["PacketOut"];

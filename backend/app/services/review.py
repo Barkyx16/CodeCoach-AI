@@ -20,6 +20,7 @@ from app.careers.answers import answer_out, graded_answer
 from app.careers.questions import Question, get_question, is_retired
 from app.errors import ConflictError, NotFoundError, RateLimitedError
 from app.models import (
+    AcceptedAction,
     InterviewPhase,
     InterviewRetry,
     InterviewStatus,
@@ -117,7 +118,20 @@ class InterviewReviews:
                 code="interview_in_progress",
                 details={"interview_id": s.id},
             )
-        return self._round(user, s) if s.mode == PracticeMode.QUESTIONS else self._coding(s)
+        review = self._round(user, s) if s.mode == PracticeMode.QUESTIONS else self._coding(s)
+        # Which improvements were accepted as actions (docs/ACCEPTED_ACTIONS.md): by key, this account's.
+        accepted = dict(
+            self.db.execute(
+                select(AcceptedAction.source_key, AcceptedAction.id).where(
+                    AcceptedAction.user_id == user.id,
+                    AcceptedAction.source_kind == "interview_improvement",
+                    AcceptedAction.source_id == s.id,
+                )
+            ).all()
+        )
+        for imp in review.improvements:
+            imp.action_id = accepted.get(imp.key)
+        return review
 
     # --- question rounds --------------------------------------------------------------------
 
@@ -212,6 +226,7 @@ class InterviewReviews:
             worst = min(its, key=lambda i: i.feedback.score if i.feedback else 0)
             improvements.append(
                 Improvement(
+                    key=f"point:{label}"[:200],
                     title=label,
                     why=f"{advice[label]} Missing in {len(its)} of {len(answered)} answers.",
                     evidence=[
@@ -226,6 +241,7 @@ class InterviewReviews:
             first = unanswered[0]
             improvements.append(
                 Improvement(
+                    key="unanswered",
                     title="Answer the questions you didn't get to",
                     why="Unanswered questions give no evidence either way. Answering them shows where you stand.",
                     evidence=[
@@ -491,6 +507,7 @@ class InterviewReviews:
                 break
             improvements.append(
                 Improvement(
+                    key=f"dimension:{dim}"[:200],
                     title=DIMENSION_TITLE.get(dim, dim),
                     why=x["evidence"],
                     evidence=evidence_for(dim, x["evidence"]),
@@ -500,6 +517,7 @@ class InterviewReviews:
         if not improvements and ev.get("improvements"):
             improvements.append(
                 Improvement(
+                    key="next-time",
                     title="Next time",
                     why=ev["improvements"][0],
                     evidence=[],

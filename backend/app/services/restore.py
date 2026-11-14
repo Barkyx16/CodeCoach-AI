@@ -97,6 +97,7 @@ NOT_RESTORED: dict[str, str] = {
     "offer_rehearsals": _RESULTS,
     "offer_comparisons": "Offer comparisons aren't restored from a file: they hold pay you entered privately; re-enter them.",
     "kit_templates": "Kit templates aren't restored yet: save them again from a kit.",
+    "accepted_actions": "Accepted improvements aren't restored yet: accept them again from the interview review.",
     "answer_reviews": _RESULTS,
     "targets": "Job targets aren't restored yet; their requirements link to postings by id.",
     "collections": "Collections aren't restored yet. Bookmarks are.",

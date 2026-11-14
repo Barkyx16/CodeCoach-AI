@@ -8,6 +8,11 @@ from pydantic import Field
 from app.schemas.common import APIModel, OptionalKey
 
 ScheduleKind = Literal["plan_item", "review_item", "question", "problem", "application_event", "drill"]
+# What an entry can be. An accepted action's occurrences (docs/ACCEPTED_ACTIONS.md) are made from the
+# action, never through the schedule's own create, so EntryIn keeps ScheduleKind.
+EntryKind = Literal[
+    "plan_item", "review_item", "question", "problem", "application_event", "drill", "accepted_action"
+]
 
 
 class ScheduleSettingsOut(APIModel):
@@ -56,7 +61,7 @@ class EntryMove(APIModel):
 class EntryOut(APIModel):
     id: str
     uid: str
-    kind: ScheduleKind
+    kind: EntryKind
     ref: str
     title: str
     href: str | None = Field(description="Where to do the activity")

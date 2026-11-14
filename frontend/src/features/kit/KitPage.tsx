@@ -4,8 +4,8 @@ import { Link, useLocation, useParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
-import { useKit, useStories } from "@/api/queries";
-import type { Kit, KitQuestion } from "@/api/types";
+import { invalidateActionViews, useActions, useKit, useStories } from "@/api/queries";
+import type { AcceptedAction, Kit, KitQuestion } from "@/api/types";
 import { BackLink } from "@/components/BackLink";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
@@ -116,6 +116,26 @@ function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
     setConflict(null);
     setEarlierSave(null);
     qc.setQueryData(["me", "kit", next.application_id, next.event_id], next);
+  }
+
+  // An accepted improvement on the checklist is the action itself (docs/ACCEPTED_ACTIONS.md): ticking it
+  // says the action is done everywhere, at once, not as part of this kit's save.
+  const [actionBusy, setActionBusy] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<unknown>(null);
+  async function toggleAction(actionId: string, done: boolean) {
+    setActionBusy(actionId);
+    setActionError(null);
+    try {
+      const a = await api.setActionDone(actionId, done);
+      const patch = (k: Kit): Kit => ({ ...k, checklist: k.checklist.map((x) => (x.action_id === a.id ? { ...x, ...actionItem(a), id: x.id, hidden: x.hidden } : x)) });
+      setKit(patch);
+      setSaved(patch);
+      invalidateActionViews(qc);
+    } catch (e) {
+      setActionError(e);
+    } finally {
+      setActionBusy(null);
+    }
   }
 
   const people = (k: Kit) => k.interviewers.map((i) => [i.name, i.role].filter(Boolean).join(", ")).join("\n");
@@ -247,6 +267,18 @@ function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
                 <li key={c.id} className={c.hidden ? "kit-checklist__hidden" : undefined}>
                   {c.hidden ? (
                     <span className="subtle">Hidden: {c.text} <Button size="sm" variant="ghost" onClick={() => set("checklist", kit.checklist.map((x, j) => (j === i ? { ...x, hidden: false } : x)))}>Restore</Button></span>
+                  ) : c.origin === "action" ? (
+                    <>
+                      {c.action?.recurrence === "weekly" ? (
+                        <span>{c.text}<span className="subtle"> · {c.action.occurrences_done} of {c.action.occurrences_total} weeks done</span></span>
+                      ) : c.action ? (
+                        <label className="checkbox"><input type="checkbox" checked={c.action.done} disabled={actionBusy === c.action.id}
+                          onChange={(e) => void toggleAction(c.action!.id, e.target.checked)} />{c.text}</label>
+                      ) : <span className="subtle">{c.text}</span>}
+                      <Badge>Accepted improvement</Badge>
+                      <Link className="subtle" to="/plan#accepted-actions" state={fromHere}>On your plan</Link>
+                      <Button size="sm" variant="ghost" aria-label={`Hide “${c.text}”`} onClick={() => set("checklist", kit.checklist.map((x, j) => (j === i ? { ...x, hidden: true } : x)))}>Hide</Button>
+                    </>
                   ) : (
                     <>
                       <label className="checkbox"><input type="checkbox" checked={c.done} onChange={(e) => set("checklist", kit.checklist.map((x, j) => (j === i ? { ...x, done: e.target.checked } : x)))} />{c.text}</label>
@@ -258,6 +290,8 @@ function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
               ))}
             </ul>
             <AddLine label="Add a checklist item" onAdd={(text) => set("checklist", [...kit.checklist, { id: newId(), text, origin: "yours", done: false, hidden: false }])} max={200} />
+            <AddAction kit={kit} onAdd={(a) => set("checklist", [...kit.checklist, actionItem(a)])} />
+            <InlineError error={actionError} />
           </Card>
 
           <Card className="stack-sm">
@@ -371,5 +405,42 @@ function AddLine({ label, onAdd, max }: { label: string; onAdd: (text: string) =
       <label className="field"><span className="field__label">{label}</span><input className="input" maxLength={max} value={text} onChange={(e) => setText(e.target.value)} /></label>
       <Button type="submit" size="sm" disabled={!text.trim()}>Add</Button>
     </form>
+  );
+}
+
+/** A checklist item for an accepted action: its id only is saved; the words and state are the action's. */
+function actionItem(a: AcceptedAction): Kit["checklist"][number] {
+  const live = a.occurrences.filter((o) => o.status !== "cancelled");
+  return {
+    id: newId(), origin: "action", action_id: a.id, text: a.title, done: a.status === "done", hidden: false,
+    action: {
+      id: a.id, title: a.title, recurrence: a.recurrence, done: a.status === "done", href: a.practice_href ?? null,
+      occurrences_done: live.filter((o) => o.completed_at).length, occurrences_total: live.length,
+    },
+  };
+}
+
+/** Put an improvement you accepted on this checklist (saved with the kit). */
+function AddAction({ kit, onAdd }: { kit: Kit; onAdd: (a: AcceptedAction) => void }) {
+  const actions = useActions();
+  const [choice, setChoice] = useState("");
+  const here = new Set(kit.checklist.map((c) => c.action_id).filter(Boolean));
+  const open = (actions.data ?? []).filter((a) => a.status === "open" && !here.has(a.id));
+  if (open.length === 0) return null;
+  return (
+    <div className="row">
+      <label className="field">
+        <span className="field__label">Add an improvement you accepted</span>
+        <select value={choice} onChange={(e) => setChoice(e.target.value)}>
+          <option value="">Choose one…</option>
+          {open.map((a) => <option key={a.id} value={a.id}>{a.title}</option>)}
+        </select>
+      </label>
+      <Button size="sm" disabled={!choice} onClick={() => {
+        const a = open.find((x) => x.id === choice);
+        if (a) onAdd(a);
+        setChoice("");
+      }}>Add to checklist</Button>
+    </div>
   );
 }

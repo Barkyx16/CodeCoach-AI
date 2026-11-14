@@ -361,6 +361,19 @@ The cases are code (`backend/app/offers`, docs/OFFER_REHEARSAL.md), not rows.
   one; unique per account), `created_at`, `updated_at`. Never ticks, links, notes or which interview
   it came from (docs/TEMPLATES.md).
 
+### Accepted actions
+- `accepted_actions`: improvements a learner accepted from feedback (cascade with the account):
+  `source_kind` (`interview_improvement`), `source_id` (the interview), `source_key` (the
+  improvement's key in its review; unique per account with the other two, so accepting again finds
+  the same row), `source` (JSON: the improvement's title and feedback as they read when accepted,
+  the interview's title and date, and the question versions of the answers it came from), `title`,
+  `notes`, `practice_href`, `recurrence` (`once` | `weekly`), `done_at` (a one-off the learner said is
+  done), `revision` (checked on edit, with update receipts), `created_at`, `updated_at`. Its
+  occurrences are `schedule_entries` rows of kind `accepted_action` whose `ref` is the action's id;
+  `schedule_entries.completed_at` is when the learner said a weekly occurrence was done (NULL for
+  every other kind). A kit checklist item of origin `action` holds `action_id` only
+  (docs/ACCEPTED_ACTIONS.md).
+
 ### Restores
 - `import_batches`: one per restore (cascade with the account): `file_sha256` (to recognise the
   same file; the file itself isn't stored), `export_version`, `categories`, `status`
@@ -476,6 +489,7 @@ The cases are code (`backend/app/offers`, docs/OFFER_REHEARSAL.md), not rows.
 | `a5d3e9c1b7f2` offer comparisons | Adds `offer_comparisons`, cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
 | `b8e4c2a7d915` offer comparison archived | Adds `offer_comparisons.archived` (not null, server default false): the archive flag the other kinds already have (docs/ARCHIVE.md). Existing rows stay active; the table's row-level security covers it; downgrade drops it |
 | `c3f7a9d2e614` kit templates | Adds `kit_templates`, cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b) |
+| `d4a8b6c1f2e3` accepted actions | Adds `accepted_actions`, cascading with the user and under row-level security on PostgreSQL (the same policies as 7c1d2e3f4a5b), and the nullable `schedule_entries.completed_at` (NULL for every existing row); downgrade drops both |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

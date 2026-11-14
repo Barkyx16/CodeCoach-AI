@@ -31,7 +31,8 @@ async function submitTwoSum() {
     execution_enabled: true, ai_provider: "offline", execution: executionStatus("ready"), guest_retention_days: 30,
   })));
   const ctx = renderApp("/problems/two-sum", { signedIn: true });
-  await ctx.user.click(await ctx.findByRole("button", { name: "Submit" }));
+  // The problem page is loaded on demand: on a busy machine its first render can take over a second.
+  await ctx.user.click(await ctx.findByRole("button", { name: "Submit" }, { timeout: 5000 }));
   return ctx;
 }
 

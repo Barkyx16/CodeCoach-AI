@@ -4,7 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
-import { useSchedule, useSchedulable, useScheduleSettings } from "@/api/queries";
+import { invalidateActionViews, useSchedule, useSchedulable, useScheduleSettings } from "@/api/queries";
 import type { ScheduleEntry, ScheduleKind, ScheduleSettings } from "@/api/types";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
@@ -120,6 +120,7 @@ function Entry({ e, tz, titles }: { e: ScheduleEntry; tz: string; titles: Map<st
       <span className="schedule-entry__body">
         {e.href && e.available ? <Link to={e.href}>{e.title}</Link> : <span>{e.title}</span>}
         <span className="subtle"> · {e.duration_min} min</span>
+        {e.kind === "accepted_action" && <Badge>Accepted improvement</Badge>}
         {e.done_at && <Badge tone="success">Done</Badge>}
         {e.status === "cancelled" && <Badge tone="warning">Cancelled</Badge>}
         {!e.available && <span className="subtle"> · No longer available</span>}
@@ -142,6 +143,13 @@ function Entry({ e, tz, titles }: { e: ScheduleEntry; tz: string; titles: Map<st
             try { await api.cancelScheduleEntry(e.id); refresh(); } catch (err) { setError(err); }
           }}>Cancel</Button>
           <Button size="sm" variant="ghost" onClick={() => void download({ ids: e.id }, `codecoach-${e.on_date}.ics`)}>.ics</Button>
+          {e.kind === "accepted_action" && e.available && (
+            // The action's own completion (docs/ACCEPTED_ACTIONS.md): the plan and any kit say the same.
+            <Button size="sm" variant="ghost" aria-label={`${e.done_at ? "Mark not done" : "Mark done"}: ${e.title}`} onClick={async () => {
+              setError(null);
+              try { await api.setOccurrenceDone(e.ref, e.id, !e.done_at); invalidateActionViews(qc); } catch (err) { setError(err); }
+            }}>{e.done_at ? "Mark not done" : "Mark done"}</Button>
+          )}
           {e.kind === "application_event" && !e.all_day && e.available && (
             <Button size="sm" variant="ghost" onClick={async () => {
               setError(null);

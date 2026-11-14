@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
 from app.api.routes import (
+    actions,
     ai,
     answer_review,
     applications,
@@ -353,6 +354,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         comparisons.router,
         offers.router,
         kit_templates.router,
+        actions.router,
         offer_comparisons.router,
         packet.router,
         data_summary.router,

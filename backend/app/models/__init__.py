@@ -1267,7 +1267,7 @@ class ScheduleEntry(Base):
     uid: Mapped[str] = mapped_column(String(80), unique=True)
     kind: Mapped[str] = mapped_column(
         String(20)
-    )  # plan_item | review_item | question | problem | application_event
+    )  # plan_item | review_item | question | problem | application_event | accepted_action
     ref: Mapped[str] = mapped_column(String(200))
     title: Mapped[str] = mapped_column(String(200))
     all_day: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -1276,6 +1276,10 @@ class ScheduleEntry(Base):
     timezone: Mapped[str | None] = mapped_column(String(64), nullable=True)
     fold: Mapped[int | None] = mapped_column(Integer, nullable=True)
     starts_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    # An occurrence of an accepted action (kind "accepted_action", Volume 12 prompt 1): when the
+    # learner said this occurrence was done. NULL for every other kind: their completion comes from
+    # the activity's own rules, never from the schedule.
+    completed_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     # Interview preparation only, and only if the learner chose it: the interview's start this
     # entry is kept relative to. NULL (every entry by default) means a fixed time. It never moves
     # by itself: a reschedule offers a preview, and only entries the learner selects move.
@@ -1738,13 +1742,54 @@ class UpdateReceipt(Base):
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     entity: Mapped[str] = mapped_column(
         String(16)
-    )  # story | note | kit | whiteboard | reflection | code_review | work_sample | offer_comparison
+    )  # story | note | kit | whiteboard | reflection | code_review | work_sample | offer_comparison | action
     entity_id: Mapped[str] = mapped_column(String(80))
     client_request_id: Mapped[str] = mapped_column(String(64))
     base_revision: Mapped[int] = mapped_column(Integer)
     accepted_revision: Mapped[int] = mapped_column(Integer)
     request_fingerprint: Mapped[str] = mapped_column(String(80))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class AcceptedAction(Base):
+    """An improvement the learner chose to act on (Volume 12, prompt 1; docs/ACCEPTED_ACTIONS.md).
+
+    One accepted suggestion is one action, whatever shows it: the plan page, the schedule (each
+    occurrence is a schedule entry of kind "accepted_action" pointing at this id) and an interview
+    kit's checklist (an item holding this id). None of them copies its text. Accepting the same
+    suggestion again finds this row (the source is unique per account), so a double click, a
+    second tab or a resend after a lost reply never makes a second action.
+
+    Kept apart: the suggestion (derived from feedback, never stored), this action (the learner's
+    commitment), its occurrences (schedule entries), the practice actually done (attempts, in their
+    own tables) and completion, which the learner states: on the action for a one-off, on each
+    occurrence for a weekly one. Completing never changes a score or claims mastery."""
+
+    __tablename__ = "accepted_actions"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "source_kind", "source_id", "source_key", name="uq_accepted_action_source"
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    # Where it came from: an interview review's improvement (the interview's id and the
+    # improvement's key), as it read when accepted. The feedback itself is never changed.
+    source_kind: Mapped[str] = mapped_column(String(32))  # interview_improvement
+    source_id: Mapped[str] = mapped_column(String(36))
+    source_key: Mapped[str] = mapped_column(String(200))
+    source: Mapped[dict] = mapped_column(JSONType, default=dict)  # {label, title, why, versions, ...}
+    title: Mapped[str] = mapped_column(String(200))
+    notes: Mapped[str] = mapped_column(Text, default="")
+    practice_href: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    recurrence: Mapped[str] = mapped_column(String(8), default="once")  # once | weekly
+    done_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)  # one-off only
+    revision: Mapped[int] = mapped_column(Integer, default=1)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+    __mapper_args__ = {"version_id_col": revision}
 
 
 class CreateIntent(Base):

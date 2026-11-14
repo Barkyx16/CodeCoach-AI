@@ -32,6 +32,7 @@ from app.models import (
     Submission,
     User,
 )
+from app.services.actions import Actions
 from app.services.answer_review import AnswerReview
 from app.services.applications import Applications
 from app.services.code_reviews import CodeReviews
@@ -448,6 +449,9 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
         "interview_kits": Kits(db, user).export(with_ids=with_ids),
         # Your kit templates: their names, checklist items and questions (docs/TEMPLATES.md).
         "kit_templates": KitTemplates(db, user).export(),
+        # Improvements you accepted from feedback: where each came from, its occurrences and what you
+        # said was done (docs/ACCEPTED_ACTIONS.md).
+        "accepted_actions": Actions(db, user).export(with_ids=with_ids),
         # Applications you recorded, with their interview events and stage history.
         "applications": Applications(db, user).export(with_ids=with_ids),
         # Your choices about the first-session introduction (no answer text is part of it).

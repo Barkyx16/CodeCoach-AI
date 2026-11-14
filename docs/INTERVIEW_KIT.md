@@ -29,6 +29,11 @@ choosing examples and questions. Items are labelled **Suggested** or **Yours**, 
 hidden and restored, and the learner can add their own. Switching the format swaps the untouched
 suggestions and keeps the learner's own items and anything they ticked or hid.
 
+An **improvement you accepted** from an interview review can be added too ("Add an improvement
+you accepted"). The item holds only the action's id: its words and its state are the action's
+(docs/ACCEPTED_ACTIONS.md), so ticking it marks the action done everywhere, a weekly one shows how
+many weeks are done, and kit templates leave it out.
+
 **A tick means the learner ticked it.** CodeCoach doesn't check a camera, a network, documents
 or travel. For the microphone, the kit links to the existing check in the mock interview setup
 instead of duplicating it.

@@ -45,6 +45,7 @@ Entity = Literal[
     "work_sample",
     "offer_comparison",
     "kit_template",
+    "action",
 ]
 
 

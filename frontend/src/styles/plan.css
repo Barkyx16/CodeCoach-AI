@@ -34,3 +34,13 @@
   .today__time .chip { flex: 1 1 auto; justify-content: center; }
   .activity-card__actions .btn { flex: 1 1 auto; }
 }
+
+/* Improvements you accepted, beside the plan (docs/ACCEPTED_ACTIONS.md). */
+.accepted-actions__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-4); }
+.accepted-action { padding-top: var(--space-3); border-top: 1px solid var(--color-border); }
+.accepted-action:first-child { padding-top: 0; border-top: 0; }
+.accepted-action__title { margin: 0; font-size: var(--text-md); }
+.accepted-action__why { margin: 0; }
+.accepted-action p { margin: 0; }
+.accepted-action__weeks { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); }
+.review__accepted { margin: 0; }

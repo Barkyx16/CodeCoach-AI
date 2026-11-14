@@ -40,6 +40,7 @@ const roundReview: InterviewReview = {
   ],
   overall: [{ name: "Answer content", status: "evaluated", summary: "Average 65/100 across 2 answered questions.", points: [], evidence: [] }],
   improvements: [{
+    key: "point:Explains what you personally did",
     title: "Explains what you personally did", why: "Say “I” for your own actions. Missing in 1 of 2 answers.",
     evidence: [{ item_key: "q1", label: "A hard shift", excerpt: "We handled it as a team." }],
     practice: { label: "Retry “A hard shift”", retry_index: 1, href: null },

@@ -18,12 +18,22 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
 from app.errors import ConflictError, NotFoundError
-from app.models import Application, ApplicationEvent, ExperienceEntry, InterviewKit, RoleTarget, User
+from app.models import (
+    AcceptedAction,
+    Application,
+    ApplicationEvent,
+    ExperienceEntry,
+    InterviewKit,
+    RoleTarget,
+    ScheduleEntry,
+    User,
+)
 from app.schemas.common import SaveReplay
 from app.schemas.kits import (
     AskQuestion,
     ChecklistItem,
     Interviewer,
+    KitAction,
     KitOut,
     KitStory,
     KitUpdate,
@@ -184,7 +194,7 @@ class Kits:
             kit.meeting_link,
             [Interviewer(**i) for i in kit.interviewers],
             kit.notes,
-            [ChecklistItem(**c) for c in kit.checklist],
+            self._checklist(kit.checklist),
             [AskQuestion(**q) for q in kit.questions],
             kit.story_ids,
             saved=True,
@@ -254,6 +264,86 @@ class Kits:
             missing_stories=missing,
         )
 
+    def _stored_item(self, c: ChecklistItem) -> dict:
+        """What a checklist item saves as. An accepted action is kept by id only (never its words or
+        its state, which stay the action's); another account's id is refused like a missing one."""
+        if c.origin == "action":
+            action = self.db.scalar(
+                select(AcceptedAction).where(
+                    AcceptedAction.id == c.action_id, AcceptedAction.user_id == self.user.id
+                )
+            )
+            if action is None:
+                raise NotFoundError("Action not found")
+            return {
+                "id": c.id,
+                "origin": "action",
+                "action_id": action.id,
+                "text": "",
+                "done": False,
+                "hidden": c.hidden,
+            }
+        return {"id": c.id, "text": clean(c.text), "origin": c.origin, "done": c.done, "hidden": c.hidden}
+
+    def _checklist(self, stored: list[dict]) -> list[ChecklistItem]:
+        """The saved checklist, with each accepted action read as it is now."""
+        out = []
+        for c in stored:
+            if c.get("origin") != "action":
+                out.append(ChecklistItem(**c))
+                continue
+            action = self.db.scalar(
+                select(AcceptedAction).where(
+                    AcceptedAction.id == c.get("action_id"), AcceptedAction.user_id == self.user.id
+                )
+            )
+            if action is None:
+                out.append(
+                    ChecklistItem(
+                        id=c["id"],
+                        origin="action",
+                        action_id=c.get("action_id"),
+                        text="An improvement that's no longer available",
+                        hidden=c.get("hidden", False),
+                    )
+                )
+                continue
+            entries = [
+                e
+                for e in self.db.scalars(
+                    select(ScheduleEntry).where(
+                        ScheduleEntry.user_id == self.user.id,
+                        ScheduleEntry.kind == "accepted_action",
+                        ScheduleEntry.ref == action.id,
+                        ScheduleEntry.status != "cancelled",
+                    )
+                )
+            ]
+            once = action.recurrence == "once"
+            done = once and action.done_at is not None
+            out.append(
+                ChecklistItem(
+                    id=c["id"],
+                    origin="action",
+                    action_id=action.id,
+                    text=action.title,
+                    done=done,
+                    hidden=c.get("hidden", False),
+                    action=KitAction(
+                        id=action.id,
+                        title=action.title,
+                        recurrence="once" if once else "weekly",
+                        done=done,
+                        occurrences_done=sum(
+                            1 for e in entries if (done if once else e.completed_at is not None)
+                        ),
+                        occurrences_total=len(entries),
+                        href=action.practice_href,
+                    ),
+                )
+            )
+        return out
+
     def _stale(self, app_id: str, event_id: str) -> ConflictError:
         self.db.rollback()
         saved = self.get(app_id, event_id)
@@ -310,7 +400,7 @@ class Kits:
         if body.notes is not None:
             kit.notes = clean(body.notes)
         if body.checklist is not None:
-            kit.checklist = [{**c.model_dump(), "text": clean(c.text)} for c in body.checklist]
+            kit.checklist = [self._stored_item(c) for c in body.checklist]
         if body.questions is not None:
             kit.questions = [{**q.model_dump(), "text": clean(q.text)} for q in body.questions]
         # After the learner's own list is in, a new format swaps only the untouched suggestions.
@@ -318,7 +408,9 @@ class Kits:
             kit.format = body.format
             # Switching format swaps the untouched suggestions for that format's; the learner's own
             # items, and suggestions they ticked or changed, stay.
-            kept = [c for c in kit.checklist if c["origin"] == "yours" or c["done"] or c["hidden"]]
+            kept = [
+                c for c in kit.checklist if c["origin"] in ("yours", "action") or c["done"] or c["hidden"]
+            ]
             fresh = [
                 c.model_dump()
                 for c in self._suggested_checklist(body.format)

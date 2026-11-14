@@ -84,6 +84,12 @@ CATEGORIES: tuple[Category, ...] = (
         "Goals, practice plans and target roles",
         ("practice_goals", "practice_plans", "role_targets"),
     ),
+    Category(
+        "accepted_actions",
+        "work",
+        "Improvements you accepted from feedback (their occurrences are schedule entries)",
+        ("accepted_actions",),
+    ),
     Category("schedule", "work", "Schedule entries", ("schedule_entries",)),
     Category(
         "saved",

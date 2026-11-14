@@ -4,6 +4,7 @@ import { usePlan } from "@/api/queries";
 import type { Plan } from "@/api/types";
 import { Card } from "@/components/Card";
 import { ErrorState, LoadingState } from "@/components/States";
+import { AcceptedActions } from "@/features/actions/AcceptedActions";
 
 import { ActivityCard } from "./ActivityCard";
 import { PlanChanges } from "./PlanChanges";
@@ -53,7 +54,10 @@ export function PlanPage() {
             </section>
           )}
         </div>
-        <aside className="stack"><Assessment plan={p} /></aside>
+        <aside className="stack">
+          <AcceptedActions />
+          <Assessment plan={p} />
+        </aside>
       </div>
     </div>
   );

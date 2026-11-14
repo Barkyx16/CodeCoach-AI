@@ -776,6 +776,19 @@ export function useKitTemplate(id: string | undefined) {
   return useQuery({ queryKey: ["me", "kit-templates", id], queryFn: () => api.kitTemplate(id!), enabled: !!id, staleTime: 0 });
 }
 
+/** Improvements you accepted (docs/ACCEPTED_ACTIONS.md): one action each, shared by the plan,
+ * the schedule and kits. */
+export function useActions(enabled = true) {
+  return useQuery({ queryKey: ["me", "actions"], queryFn: api.actions, staleTime: 0, enabled });
+}
+
+/** After an action changed: every view that shows it reads it again (they hold its id, not a copy). */
+export function invalidateActionViews(qc: QueryClient) {
+  for (const key of [["me", "actions"], ["me", "schedule"], ["me", "kit"], ["me", "interview-review"]]) {
+    void qc.invalidateQueries({ queryKey: key });
+  }
+}
+
 export function useKit(appId: string, eventId: string) {
   return useQuery({ queryKey: ["me", "kit", appId, eventId], queryFn: () => api.kit(appId, eventId), staleTime: 0 });
 }

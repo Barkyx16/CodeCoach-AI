@@ -2748,6 +2748,127 @@ export interface paths {
         patch: operations["update_api_v1_me_kit_templates__template_id__patch"];
         trace?: never;
     };
+    "/api/v1/me/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Improvements you accepted */
+        get: operations["mine_api_v1_me_actions_get"];
+        put?: never;
+        /** Accept a suggested improvement (accepting it again returns the same action, 200) */
+        post: operations["accept_api_v1_me_actions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/actions/{action_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One action */
+        get: operations["get_api_v1_me_actions__action_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Rename it or change its notes (409 stale_revision with the saved action if it changed since) */
+        patch: operations["update_api_v1_me_actions__action_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/me/actions/{action_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Say a one-off action is done (changes no score) */
+        post: operations["complete_api_v1_me_actions__action_id__complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/actions/{action_id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undo: a one-off action is open again */
+        post: operations["reopen_api_v1_me_actions__action_id__reopen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/actions/{action_id}/occurrences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Put it on the schedule: once, or weekly for a number of weeks */
+        post: operations["schedule_api_v1_me_actions__action_id__occurrences_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/actions/{action_id}/occurrences/{entry_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Say one occurrence is done (a weekly action's others stay open) */
+        post: operations["complete_occurrence_api_v1_me_actions__action_id__occurrences__entry_id__complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/actions/{action_id}/occurrences/{entry_id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undo one occurrence's completion */
+        post: operations["reopen_occurrence_api_v1_me_actions__action_id__occurrences__entry_id__reopen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/offer-comparisons": {
         parameters: {
             query?: never;
@@ -3935,6 +4056,150 @@ export interface components {
             /** Message */
             message: string;
         };
+        /**
+         * ActionAccept
+         * @description Accept one suggested improvement. The suggestion is the identity: accepting it again (a double
+         *     click, another tab, a resend after a lost reply) returns the action it made, never a second one.
+         */
+        ActionAccept: {
+            source: components["schemas"]["ActionSourceIn"];
+            /**
+             * Recurrence
+             * @default once
+             * @enum {string}
+             */
+            recurrence: "once" | "weekly";
+        };
+        /** ActionOut */
+        ActionOut: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Notes */
+            notes: string;
+            /** Practice Href */
+            practice_href: string | null;
+            /** Practice Label */
+            practice_label: string | null;
+            /**
+             * Recurrence
+             * @enum {string}
+             */
+            recurrence: "once" | "weekly";
+            /**
+             * Status
+             * @description A one-off is done when you say so; a weekly action stays open (each occurrence is done or not)
+             * @enum {string}
+             */
+            status: "open" | "done";
+            /** Done At */
+            done_at: string | null;
+            source: components["schemas"]["ActionSource"];
+            /** Occurrences */
+            occurrences: components["schemas"]["OccurrenceOut"][];
+            /**
+             * Attempts Since
+             * @description Practice of its target since you accepted it (null when that can't be counted)
+             */
+            attempts_since: number | null;
+            /** Revision */
+            revision: number;
+            /** @description Only on a save recovered by its key: see SaveReplay */
+            save_replay?: components["schemas"]["SaveReplay"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ActionSource */
+        ActionSource: {
+            /**
+             * Kind
+             * @constant
+             */
+            kind: "interview_improvement";
+            /** Interview Id */
+            interview_id: string;
+            /** Key */
+            key: string;
+            /**
+             * Label
+             * @description The improvement as it was titled when you accepted it
+             */
+            label: string;
+            /**
+             * Why
+             * @description The feedback it came from, as it read when you accepted it
+             */
+            why: string;
+            /** Interview Title */
+            interview_title: string;
+            /** Interview Date */
+            interview_date: string | null;
+            /** Versions */
+            versions?: components["schemas"]["ActionVersion"][];
+            /**
+             * Available
+             * @description False when the interview it came from no longer exists
+             */
+            available: boolean;
+        };
+        /** ActionSourceIn */
+        ActionSourceIn: {
+            /**
+             * Kind
+             * @default interview_improvement
+             * @constant
+             */
+            kind: "interview_improvement";
+            /** Interview Id */
+            interview_id: string;
+            /**
+             * Key
+             * @description The improvement's `key` in the interview review
+             */
+            key: string;
+        };
+        /**
+         * ActionUpdate
+         * @description Rename it or change its notes, against the revision you loaded (409 stale_revision with the
+         *     saved action in details.current if it changed since).
+         */
+        ActionUpdate: {
+            /** Title */
+            title?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Recurrence
+             * @description Once or weekly: only while nothing is on the schedule for it and it isn't marked done
+             */
+            recurrence?: ("once" | "weekly") | null;
+            /** Expected Revision */
+            expected_revision: number;
+            /**
+             * Client Request Id
+             * @description One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before.
+             */
+            client_request_id?: string | null;
+        };
+        /** ActionVersion */
+        ActionVersion: {
+            /** Question */
+            question: string;
+            /**
+             * Version
+             * @description The question's version in the answer the feedback came from
+             */
+            version: number;
+        };
         /** ActivityDay */
         ActivityDay: {
             /**
@@ -4958,15 +5223,20 @@ export interface components {
         ChecklistItem: {
             /** Id */
             id: string;
-            /** Text */
+            /**
+             * Text
+             * @description The item's words. For an accepted action (origin 'action') it's the action's title, read each time; what's sent is ignored.
+             * @default
+             */
             text: string;
             /**
              * Origin
              * @enum {string}
              */
-            origin: "suggested" | "yours";
+            origin: "suggested" | "yours" | "action";
             /**
              * Done
+             * @description Ticked. For an accepted action, its own state is used instead.
              * @default false
              */
             done: boolean;
@@ -4975,6 +5245,13 @@ export interface components {
              * @default false
              */
             hidden: boolean;
+            /**
+             * Action Id
+             * @description origin 'action': the accepted action this item is
+             */
+            action_id?: string | null;
+            /** @description Read only: the action, as it is now */
+            action?: components["schemas"]["KitAction"] | null;
         };
         /**
          * CodeReview
@@ -5960,7 +6237,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "plan_item" | "review_item" | "question" | "problem" | "application_event" | "drill";
+            kind: "plan_item" | "review_item" | "question" | "problem" | "application_event" | "drill" | "accepted_action";
             /** Ref */
             ref: string;
             /** Title */
@@ -6971,6 +7248,12 @@ export interface components {
         };
         /** Improvement */
         Improvement: {
+            /**
+             * Key
+             * @description Stable within this interview: what it was suggested from (a missed point, a dimension). Accepting it uses this key, so accepting again finds the same action.
+             * @default
+             */
+            key: string;
             /** Title */
             title: string;
             /** Why */
@@ -6978,6 +7261,11 @@ export interface components {
             /** Evidence */
             evidence: components["schemas"]["EvidenceLink"][];
             practice: components["schemas"]["PracticeAction"];
+            /**
+             * Action Id
+             * @description The action you accepted from it, if any
+             */
+            action_id?: string | null;
         };
         /** InterviewCounts */
         InterviewCounts: {
@@ -7364,6 +7652,35 @@ export interface components {
              * @description One of your own earlier answers to this same question that this answer revises (404 if it isn't yours or doesn't exist; 400 `revision_other_question` if it's for another question). Only set it for an explicit revision.
              */
             revises_answer_id?: string | null;
+        };
+        /**
+         * KitAction
+         * @description An accepted improvement on this checklist (docs/ACCEPTED_ACTIONS.md), as it is now.
+         */
+        KitAction: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /**
+             * Recurrence
+             * @enum {string}
+             */
+            recurrence: "once" | "weekly";
+            /**
+             * Done
+             * @description A one-off you said is done
+             */
+            done: boolean;
+            /** Occurrences Done */
+            occurrences_done: number;
+            /**
+             * Occurrences Total
+             * @description Scheduled occurrences, not counting cancelled ones
+             */
+            occurrences_total: number;
+            /** Href */
+            href: string | null;
         };
         /** KitOut */
         KitOut: {
@@ -7937,6 +8254,77 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** OccurrenceOut */
+        OccurrenceOut: {
+            /**
+             * Id
+             * @description The schedule entry's id
+             */
+            id: string;
+            /**
+             * On Date
+             * Format: date
+             */
+            on_date: string;
+            /** All Day */
+            all_day: boolean;
+            /** Local Time */
+            local_time: string | null;
+            /** Timezone */
+            timezone: string | null;
+            /** Starts At */
+            starts_at: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "scheduled" | "cancelled";
+            /** Sequence */
+            sequence: number;
+            /**
+             * Completed At
+             * @description When you said this occurrence was done (a one-off: when the action was done)
+             */
+            completed_at: string | null;
+        };
+        /**
+         * OccurrencesIn
+         * @description Put it on the schedule: one occurrence for a one-off, or one a week for `weeks` weeks for a
+         *     weekly action. Moving an occurrence later is the schedule's own move: same entry, same id.
+         */
+        OccurrencesIn: {
+            /**
+             * On Date
+             * Format: date
+             */
+            on_date: string;
+            /**
+             * All Day
+             * @default true
+             */
+            all_day: boolean;
+            /** Local Time */
+            local_time?: string | null;
+            /** Timezone */
+            timezone?: string | null;
+            /** Fold */
+            fold?: number | null;
+            /**
+             * Duration Min
+             * @default 30
+             */
+            duration_min: number;
+            /**
+             * Weeks
+             * @default 1
+             */
+            weeks: number;
+            /**
+             * Client Request Id
+             * @description Sending the same request again (its reply was lost) returns the occurrences it made
+             */
+            client_request_id?: string | null;
         };
         /**
          * OfferCard
@@ -23036,6 +23424,531 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    mine_api_v1_me_actions_get: {
+        parameters: {
+            query?: {
+                state?: "open" | "done" | "all";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionOut"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    accept_api_v1_me_actions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActionAccept"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_api_v1_me_actions__action_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_api_v1_me_actions__action_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    complete_api_v1_me_actions__action_id__complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reopen_api_v1_me_actions__action_id__reopen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    schedule_api_v1_me_actions__action_id__occurrences_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OccurrencesIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    complete_occurrence_api_v1_me_actions__action_id__occurrences__entry_id__complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action_id: string;
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reopen_occurrence_api_v1_me_actions__action_id__occurrences__entry_id__reopen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action_id: string;
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

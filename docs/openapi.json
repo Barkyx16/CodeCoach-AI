@@ -14205,6 +14205,732 @@
         }
       }
     },
+    "/api/v1/me/actions": {
+      "get": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "Improvements you accepted",
+        "operationId": "mine_api_v1_me_actions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "open",
+                "done",
+                "all"
+              ],
+              "type": "string",
+              "default": "all",
+              "title": "State"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActionOut"
+                  },
+                  "title": "Response Mine Api V1 Me Actions Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "Accept a suggested improvement (accepting it again returns the same action, 200)",
+        "operationId": "accept_api_v1_me_actions_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActionAccept"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/actions/{action_id}": {
+      "get": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "One action",
+        "operationId": "get_api_v1_me_actions__action_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Action Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "Rename it or change its notes (409 stale_revision with the saved action if it changed since)",
+        "operationId": "update_api_v1_me_actions__action_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Action Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActionUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/actions/{action_id}/complete": {
+      "post": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "Say a one-off action is done (changes no score)",
+        "operationId": "complete_api_v1_me_actions__action_id__complete_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Action Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/actions/{action_id}/reopen": {
+      "post": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "Undo: a one-off action is open again",
+        "operationId": "reopen_api_v1_me_actions__action_id__reopen_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Action Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/actions/{action_id}/occurrences": {
+      "post": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "Put it on the schedule: once, or weekly for a number of weeks",
+        "operationId": "schedule_api_v1_me_actions__action_id__occurrences_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Action Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OccurrencesIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/actions/{action_id}/occurrences/{entry_id}/complete": {
+      "post": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "Say one occurrence is done (a weekly action's others stay open)",
+        "operationId": "complete_occurrence_api_v1_me_actions__action_id__occurrences__entry_id__complete_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Action Id"
+            }
+          },
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Entry Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/actions/{action_id}/occurrences/{entry_id}/reopen": {
+      "post": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "Undo one occurrence's completion",
+        "operationId": "reopen_occurrence_api_v1_me_actions__action_id__occurrences__entry_id__reopen_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Action Id"
+            }
+          },
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Entry Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/offer-comparisons": {
       "get": {
         "tags": [
@@ -20664,6 +21390,345 @@
         ],
         "title": "AcceptedResponse"
       },
+      "ActionAccept": {
+        "properties": {
+          "source": {
+            "$ref": "#/components/schemas/ActionSourceIn"
+          },
+          "recurrence": {
+            "type": "string",
+            "enum": [
+              "once",
+              "weekly"
+            ],
+            "title": "Recurrence",
+            "default": "once"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source"
+        ],
+        "title": "ActionAccept",
+        "description": "Accept one suggested improvement. The suggestion is the identity: accepting it again (a double\nclick, another tab, a resend after a lost reply) returns the action it made, never a second one."
+      },
+      "ActionOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "notes": {
+            "type": "string",
+            "title": "Notes"
+          },
+          "practice_href": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Practice Href"
+          },
+          "practice_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Practice Label"
+          },
+          "recurrence": {
+            "type": "string",
+            "enum": [
+              "once",
+              "weekly"
+            ],
+            "title": "Recurrence"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "done"
+            ],
+            "title": "Status",
+            "description": "A one-off is done when you say so; a weekly action stays open (each occurrence is done or not)"
+          },
+          "done_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Done At"
+          },
+          "source": {
+            "$ref": "#/components/schemas/ActionSource"
+          },
+          "occurrences": {
+            "items": {
+              "$ref": "#/components/schemas/OccurrenceOut"
+            },
+            "type": "array",
+            "title": "Occurrences"
+          },
+          "attempts_since": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attempts Since",
+            "description": "Practice of its target since you accepted it (null when that can't be counted)"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "save_replay": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SaveReplay"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only on a save recovered by its key: see SaveReplay"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "notes",
+          "practice_href",
+          "practice_label",
+          "recurrence",
+          "status",
+          "done_at",
+          "source",
+          "occurrences",
+          "attempts_since",
+          "revision",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ActionOut"
+      },
+      "ActionSource": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "interview_improvement",
+            "title": "Kind"
+          },
+          "interview_id": {
+            "type": "string",
+            "title": "Interview Id"
+          },
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "The improvement as it was titled when you accepted it"
+          },
+          "why": {
+            "type": "string",
+            "title": "Why",
+            "description": "The feedback it came from, as it read when you accepted it"
+          },
+          "interview_title": {
+            "type": "string",
+            "title": "Interview Title"
+          },
+          "interview_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interview Date"
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/ActionVersion"
+            },
+            "type": "array",
+            "title": "Versions"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available",
+            "description": "False when the interview it came from no longer exists"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "interview_id",
+          "key",
+          "label",
+          "why",
+          "interview_title",
+          "interview_date",
+          "available"
+        ],
+        "title": "ActionSource"
+      },
+      "ActionSourceIn": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "interview_improvement",
+            "title": "Kind",
+            "default": "interview_improvement"
+          },
+          "interview_id": {
+            "type": "string",
+            "maxLength": 36,
+            "title": "Interview Id"
+          },
+          "key": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Key",
+            "description": "The improvement's `key` in the interview review"
+          }
+        },
+        "type": "object",
+        "required": [
+          "interview_id",
+          "key"
+        ],
+        "title": "ActionSourceIn"
+      },
+      "ActionUpdate": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "recurrence": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "once",
+                  "weekly"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recurrence",
+            "description": "Once or weekly: only while nothing is on the schedule for it and it isn't marked done"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expected Revision"
+          },
+          "client_request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 8,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Request Id",
+            "description": "One key per save (Volume 8, prompt 3). Sent again with the same base revision and content after its reply was lost, it's answered with `save_replay` instead of a conflict with your own save. Another entity, base or content under the same key is a 409 `idempotency_key_reused`. Without a key, a stale save is a conflict, as before."
+          }
+        },
+        "type": "object",
+        "required": [
+          "expected_revision"
+        ],
+        "title": "ActionUpdate",
+        "description": "Rename it or change its notes, against the revision you loaded (409 stale_revision with the\nsaved action in details.current if it changed since)."
+      },
+      "ActionVersion": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "The question's version in the answer the feedback came from"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question",
+          "version"
+        ],
+        "title": "ActionVersion"
+      },
       "ActivityDay": {
         "properties": {
           "day": {
@@ -23300,32 +24365,58 @@
           "text": {
             "type": "string",
             "maxLength": 200,
-            "minLength": 1,
-            "title": "Text"
+            "title": "Text",
+            "description": "The item's words. For an accepted action (origin 'action') it's the action's title, read each time; what's sent is ignored.",
+            "default": ""
           },
           "origin": {
             "type": "string",
             "enum": [
               "suggested",
-              "yours"
+              "yours",
+              "action"
             ],
             "title": "Origin"
           },
           "done": {
             "type": "boolean",
             "title": "Done",
+            "description": "Ticked. For an accepted action, its own state is used instead.",
             "default": false
           },
           "hidden": {
             "type": "boolean",
             "title": "Hidden",
             "default": false
+          },
+          "action_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 36
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Id",
+            "description": "origin 'action': the accepted action this item is"
+          },
+          "action": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/KitAction"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Read only: the action, as it is now"
           }
         },
         "type": "object",
         "required": [
           "id",
-          "text",
           "origin"
         ],
         "title": "ChecklistItem"
@@ -25730,7 +26821,8 @@
               "question",
               "problem",
               "application_event",
-              "drill"
+              "drill",
+              "accepted_action"
             ],
             "title": "Kind"
           },
@@ -28036,6 +29128,12 @@
       },
       "Improvement": {
         "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "Stable within this interview: what it was suggested from (a missed point, a dimension). Accepting it uses this key, so accepting again finds the same action.",
+            "default": ""
+          },
           "title": {
             "type": "string",
             "title": "Title"
@@ -28053,6 +29151,18 @@
           },
           "practice": {
             "$ref": "#/components/schemas/PracticeAction"
+          },
+          "action_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Id",
+            "description": "The action you accepted from it, if any"
           }
         },
         "type": "object",
@@ -29102,6 +30212,63 @@
         ],
         "title": "KeyedAnswerRequest",
         "description": "The protected route's body: the request key is required (Verification brief 04)."
+      },
+      "KitAction": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "recurrence": {
+            "type": "string",
+            "enum": [
+              "once",
+              "weekly"
+            ],
+            "title": "Recurrence"
+          },
+          "done": {
+            "type": "boolean",
+            "title": "Done",
+            "description": "A one-off you said is done"
+          },
+          "occurrences_done": {
+            "type": "integer",
+            "title": "Occurrences Done"
+          },
+          "occurrences_total": {
+            "type": "integer",
+            "title": "Occurrences Total",
+            "description": "Scheduled occurrences, not counting cancelled ones"
+          },
+          "href": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Href"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "recurrence",
+          "done",
+          "occurrences_done",
+          "occurrences_total",
+          "href"
+        ],
+        "title": "KitAction",
+        "description": "An accepted improvement on this checklist (docs/ACCEPTED_ACTIONS.md), as it is now."
       },
       "KitOut": {
         "properties": {
@@ -30699,6 +31866,182 @@
           "updated_at"
         ],
         "title": "NoteSummary"
+      },
+      "OccurrenceOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "The schedule entry's id"
+          },
+          "on_date": {
+            "type": "string",
+            "format": "date",
+            "title": "On Date"
+          },
+          "all_day": {
+            "type": "boolean",
+            "title": "All Day"
+          },
+          "local_time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Local Time"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone"
+          },
+          "starts_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starts At"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "cancelled"
+            ],
+            "title": "Status"
+          },
+          "sequence": {
+            "type": "integer",
+            "title": "Sequence"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At",
+            "description": "When you said this occurrence was done (a one-off: when the action was done)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "on_date",
+          "all_day",
+          "local_time",
+          "timezone",
+          "starts_at",
+          "status",
+          "sequence",
+          "completed_at"
+        ],
+        "title": "OccurrenceOut"
+      },
+      "OccurrencesIn": {
+        "properties": {
+          "on_date": {
+            "type": "string",
+            "format": "date",
+            "title": "On Date"
+          },
+          "all_day": {
+            "type": "boolean",
+            "title": "All Day",
+            "default": true
+          },
+          "local_time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{2}:\\d{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Local Time"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone"
+          },
+          "fold": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fold"
+          },
+          "duration_min": {
+            "type": "integer",
+            "maximum": 480.0,
+            "minimum": 5.0,
+            "title": "Duration Min",
+            "default": 30
+          },
+          "weeks": {
+            "type": "integer",
+            "maximum": 8.0,
+            "minimum": 1.0,
+            "title": "Weeks",
+            "default": 1
+          },
+          "client_request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 60,
+                "minLength": 8,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Request Id",
+            "description": "Sending the same request again (its reply was lost) returns the occurrences it made"
+          }
+        },
+        "type": "object",
+        "required": [
+          "on_date"
+        ],
+        "title": "OccurrencesIn",
+        "description": "Put it on the schedule: one occurrence for a one-off, or one a week for `weeks` weeks for a\nweekly action. Moving an occurrence later is the schedule's own move: same entry, same id."
       },
       "OfferCard": {
         "properties": {

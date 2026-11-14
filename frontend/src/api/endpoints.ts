@@ -1,6 +1,10 @@
 /** One function per backend endpoint. See docs/API.md for behavior and error codes. */
 import { apiRequest } from "./client";
 import type {
+  AcceptedAction,
+  ActionAccept,
+  ActionOccurrencesIn,
+  ActionUpdate,
   RequestOutcome,
   ActivityFacets,
   ActivityItem,
@@ -679,6 +683,21 @@ export const api = {
   updateKitTemplate: (id: string, body: KitTemplateUpdate) =>
     apiRequest<KitTemplate>(`/api/v1/me/kit-templates/${encodeURIComponent(id)}`, { method: "PATCH", body }),
   deleteKitTemplate: (id: string) => apiRequest<void>(`/api/v1/me/kit-templates/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  // improvements you accepted (docs/ACCEPTED_ACTIONS.md): one action each, shown by the plan, schedule and kit
+  actions: () => apiRequest<AcceptedAction[]>("/api/v1/me/actions"),
+  action: (id: string) => apiRequest<AcceptedAction>(`/api/v1/me/actions/${encodeURIComponent(id)}`),
+  acceptAction: (body: ActionAccept) => apiRequest<AcceptedAction>("/api/v1/me/actions", { method: "POST", body }),
+  updateAction: (id: string, body: ActionUpdate) =>
+    apiRequest<AcceptedAction>(`/api/v1/me/actions/${encodeURIComponent(id)}`, { method: "PATCH", body }),
+  setActionDone: (id: string, done: boolean) =>
+    apiRequest<AcceptedAction>(`/api/v1/me/actions/${encodeURIComponent(id)}/${done ? "complete" : "reopen"}`, { method: "POST" }),
+  scheduleAction: (id: string, body: ActionOccurrencesIn) =>
+    apiRequest<AcceptedAction>(`/api/v1/me/actions/${encodeURIComponent(id)}/occurrences`, { method: "POST", body }),
+  setOccurrenceDone: (id: string, entryId: string, done: boolean) =>
+    apiRequest<AcceptedAction>(
+      `/api/v1/me/actions/${encodeURIComponent(id)}/occurrences/${encodeURIComponent(entryId)}/${done ? "complete" : "reopen"}`,
+      { method: "POST" },
+    ),
   saveKit: (appId: string, eventId: string, body: KitUpdate) =>
     apiRequest<Kit>(`/api/v1/me/applications/${encodeURIComponent(appId)}/events/${encodeURIComponent(eventId)}/kit`, { method: "PUT", body }),
 

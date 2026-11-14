@@ -26,7 +26,7 @@ export function reviewFor(iv: Interview): InterviewReview {
       dimensions: [], retries: 0, in_review_queue: false,
     }));
   const improvements = isRound ? [] : (iv.evaluation?.improvements ?? []).slice(0, 1).map((why) => ({
-    title: "Next time", why, evidence: [], practice: { label: "Practise this problem", href: `/problems/${iv.problem?.slug ?? ""}` },
+    key: "next-time", title: "Next time", why, evidence: [], practice: { label: "Practise this problem", href: `/problems/${iv.problem?.slug ?? ""}` },
   }));
   return {
     id: iv.id, kind: iv.kind, track: iv.track ?? null, career_title: iv.career_title ?? null, problem: iv.problem,

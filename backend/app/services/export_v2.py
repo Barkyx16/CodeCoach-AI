@@ -42,6 +42,7 @@ TYPES = (
     "story",
     "note",
     "schedule_entry",
+    "accepted_action",
     "interview_kit",
     "interview_reflection",
     "reflection_step",
@@ -94,6 +95,7 @@ def export_v2(db: Session, user: User) -> dict:
         "story": {s["id"] for s in doc["stories"]},
         "note": {n["id"] for n in doc["notes"]},
         "schedule_entry": {e["id"] for e in doc["schedule"]["entries"]},
+        "accepted_action": {a["id"] for a in doc["accepted_actions"]},
         "interview_kit": {k["id"] for k in doc["interview_kits"]},
         "interview_reflection": {r["event_id"] for r in doc["interview_reflections"]},
         "reflection_step": {a["id"] for r in doc["interview_reflections"] for a in r["actions"]},
@@ -136,7 +138,16 @@ def export_v2(db: Session, user: User) -> dict:
                 # The story's version when it was chosen, or "unknown" for kits saved before that was kept.
                 link["version_when_chosen"] = versions.get(sid, "unknown")
                 stories.append(link)
-        k["links"] = {"event": ref("application_event", k["event"]), "stories": stories}
+        k["links"] = {
+            "event": ref("application_event", k["event"]),
+            "stories": stories,
+            # Accepted improvements on its checklist, by id (their words are the action's).
+            "actions": [
+                ref("accepted_action", c.get("action_id"))
+                for c in k.get("checklist") or []
+                if c.get("origin") == "action"
+            ],
+        }
     kind_of = {
         "plan_item": "plan_activity",
         "review_item": "review_item",
@@ -144,9 +155,15 @@ def export_v2(db: Session, user: User) -> dict:
         "problem": "problem",
         "drill": "drill",
         "application_event": "application_event",
+        "accepted_action": "accepted_action",
     }
     for e in doc["schedule"]["entries"]:
         e["links"] = {"activity": ref(kind_of.get(e["kind"], e["kind"]), e["ref"])}
+    for a in doc["accepted_actions"]:
+        a["links"] = {
+            "source": ref("practice_session", a["source"]["interview"]),
+            "occurrences": [ref("schedule_entry", o.get("schedule_entry")) for o in a["occurrences"]],
+        }
     for n in doc["notes"]:
         src = n["source"]
         n["links"] = {
@@ -178,6 +195,7 @@ def _records(doc: dict) -> list[tuple[str, str, dict]]:
         ("stories", "story"),
         ("notes", "note"),
         ("interview_kits", "interview_kit"),
+        ("accepted_actions", "accepted_action"),
         ("interview_reflections", "interview_reflection"),
         ("bookmarks", "bookmark"),
     ):
