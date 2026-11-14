@@ -182,6 +182,13 @@ def test_the_same_key_raced_by_a_different_request_is_refused_not_returned(clien
     assert used(client, h) == 2
 
 
+# How long a gated step may take before the test calls it a hang. Only a guard: the order is
+# fixed by the gate itself, never by timing. It's generous because a request on a loaded CI runner
+# can take a while to reach the provider (CI run 312: 16 s, during a 248-second database
+# checkpoint); a shorter guard measured the runner, not the request.
+HANG = 120
+
+
 class GatedCoach:
     """A synthetic provider that waits until the test lets it answer, so two requests overlap
     for certain (synchronized, no sleeping)."""
@@ -198,7 +205,7 @@ class GatedCoach:
         with self._lock:
             self.calls += 1
         self.entered.release()
-        assert self.release.wait(10)
+        assert self.release.wait(HANG)
         result = OfflineCoach().hint(ctx)
         return ProviderResult(result.content, self.name, self.model)
 
@@ -216,7 +223,7 @@ def test_simultaneous_copies_of_one_request_are_admitted_once(make_client):
     threads = [threading.Thread(target=send, args=("first",), daemon=True)]
     threads[0].start()
     try:
-        assert gate.entered.acquire(timeout=10)  # the first copy is inside the provider call
+        assert gate.entered.acquire(timeout=HANG)  # the first copy is inside the provider call
         if PG:
             # The per-user turn is held for the whole call: the second copy isn't admitted at all.
             second = hint(c, h, key="twin-key-0001")
@@ -231,13 +238,13 @@ def test_simultaneous_copies_of_one_request_are_admitted_once(make_client):
             # keeps one answer, one row and one budget use. The provider may be called twice here.
             threads.append(threading.Thread(target=send, args=("second",), daemon=True))
             threads[1].start()
-            assert gate.entered.acquire(timeout=10)
+            assert gate.entered.acquire(timeout=HANG)
     finally:
         # Whatever happened above, let the gated calls finish, so a failure is reported as one
         # and never leaves a request waiting.
         gate.release.set()
         for t in threads:
-            t.join(15)
+            t.join(HANG)
     if not PG:
         second = out["second"]
         assert second.status_code == 200 and second.json() == out["first"].json()  # type: ignore[union-attr]
