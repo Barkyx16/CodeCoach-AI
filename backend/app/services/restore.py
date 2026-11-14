@@ -404,6 +404,7 @@ class Restore:
                 "revisions",
                 "question_refs",
                 "requirement_ids",
+                "requirement_versions",  # links to a target's requirements, which aren't restored
                 "target_id",
             }
         )

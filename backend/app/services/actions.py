@@ -463,6 +463,10 @@ class Actions:
 
     def export(self, *, with_ids: bool = False) -> list[dict]:
         out = []
+        reuse = {
+            row.id: row.requirement_reuse or {}
+            for row in self.db.scalars(select(AcceptedAction).where(AcceptedAction.user_id == self.user.id))
+        }
         for a in self.mine():
             out.append(
                 {
@@ -470,6 +474,8 @@ class Actions:
                     "title": a.title,
                     "notes": a.notes,
                     "recurrence": a.recurrence,
+                    # Deliberate reuse for a job requirement's newer wording (docs/REQUIREMENT_VERSIONS.md).
+                    "requirement_reuse": reuse.get(a.id, {}),
                     "status": a.status,
                     "done_at": a.done_at.isoformat() if a.done_at else None,
                     "practice": a.practice_href,

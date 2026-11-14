@@ -412,3 +412,7 @@ export type ConditionsQuery = S["ConditionsQuery"];
 export type FollowUpOut = S["FollowUpOut"];
 export type FollowUpQuestion = S["FollowUpQuestion"];
 export type FollowUpAnswered = S["FollowUpAnswered"];
+export type RequirementSetIn = S["RequirementSetIn"];
+export type RevisionPreview = S["RevisionPreview"];
+export type RequirementHistoryEntry = S["RequirementHistoryEntry"];
+export type ActionLink = S["ActionLink"];

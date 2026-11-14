@@ -81,8 +81,9 @@ CATEGORIES: tuple[Category, ...] = (
     Category(
         "plans",
         "work",
-        "Goals, practice plans and target roles",
+        "Goals, practice plans and target roles, with their requirements' history",
         ("practice_goals", "practice_plans", "role_targets"),
+        includes=("requirement_versions",),
     ),
     Category(
         "accepted_actions",

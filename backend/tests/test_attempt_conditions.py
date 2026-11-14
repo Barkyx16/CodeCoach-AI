@@ -217,7 +217,7 @@ def test_coding_conditions_are_exported(client):
 
 
 def test_a_list_asks_for_its_rows_conditions_in_one_bounded_request(client):
-    from tests.test_query_budgets import statements
+    from tests.test_query_budgets import fresh_content, statements
 
     h = nurse(client)
     read_lesson(client, h)
@@ -225,6 +225,7 @@ def test_a_list_asks_for_its_rows_conditions_in_one_bounded_request(client):
     other = nurse(client, email="ola@example.com")
     theirs = answer(client, other)["id"]
     body = {"answer_ids": [*ids, theirs, "no-such-id"], "submission_ids": ["no-such-id"]}
+    fresh_content(client)  # the corrections snapshot reloads every 5 s: not inside a measurement
     with statements(client) as few:
         r = client.post("/api/v1/me/attempt-conditions", headers=h, json=body)
     assert r.status_code == 200
@@ -238,6 +239,7 @@ def test_a_list_asks_for_its_rows_conditions_in_one_bounded_request(client):
     assert got["submissions"] == {}
     for _ in range(20):
         answer(client, h)
+    fresh_content(client)
     with statements(client) as many:
         client.post("/api/v1/me/attempt-conditions", headers=h, json=body)
     assert len(many) == len(few) and len(few) <= 9, (len(few), len(many))

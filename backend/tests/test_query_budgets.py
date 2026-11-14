@@ -77,14 +77,18 @@ def learner(client, email, answers):
     return headers
 
 
-def measure(client, headers, method, path):
-    client.request(method, path, headers=headers)  # first view may create things (a plan)
-    # The process-wide snapshot of corrections and retirements reloads when it's over
-    # content_state.MAX_AGE_S old: two statements, once per 5 s per process, not per request. Fresh
-    # now, so the request below counts only its own. (Without this the count depended on timing:
-    # on a slow runner the reload fell inside one measurement and not the other; CI run 276.)
+def fresh_content(client):
+    """The process-wide snapshot of corrections and retirements reloads when it's over
+    content_state.MAX_AGE_S old: two statements, once per 5 s per process, not per request. Fresh
+    now, so a measurement counts only its own request. (Without this the count depended on timing:
+    on a slow runner the reload fell inside one measurement and not the other; CI run 276.)"""
     with client.app.state.session_factory() as db:
         content_state.refresh(db, force=True)
+
+
+def measure(client, headers, method, path):
+    client.request(method, path, headers=headers)  # first view may create things (a plan)
+    fresh_content(client)
     with statements(client) as seen:
         r = client.request(method, path, headers=headers)
     assert r.status_code == 200, r.text
@@ -131,6 +135,7 @@ def test_dashboard_statistics_never_load_whole_answers(client):
 def test_submitting_an_answer_is_a_bounded_number_of_statements(client):
     h = learner(client, "writer@example.com", 300)
     qid = questions_for(TRACK)[0].id
+    fresh_content(client)
     with statements(client) as seen:
         r = client.post(
             f"/api/v1/careers/{TRACK}/questions/{qid}/answers",

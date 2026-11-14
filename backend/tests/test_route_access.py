@@ -137,6 +137,9 @@ def seed(client, h):
     ids["target_id"] = client.post(
         "/api/v1/targets", headers=h, json={"title": f"Ward nurse {SECRET}", "description": "Work in a team."}
     ).json()["id"]
+    ids["requirement_id"] = client.get(f"/api/v1/targets/{ids['target_id']}", headers=h).json()[
+        "requirement_list"
+    ][0]["id"]
     ids["story_id"] = client.post(
         "/api/v1/me/stories",
         headers=h,

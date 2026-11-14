@@ -20934,6 +20934,91 @@
             }
           }
         }
+      },
+      "put": {
+        "tags": [
+          "targets"
+        ],
+        "summary": "Save the requirement set against the revision you loaded (409 stale_revision if it changed)",
+        "operationId": "save_requirements_api_v1_targets__target_id__requirements_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "target_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Target Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequirementSetIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TargetOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/targets/{target_id}/requirements/{requirement_id}": {
@@ -20978,6 +21063,373 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TargetOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/targets/{target_id}/requirements/revision/preview": {
+      "post": {
+        "tags": [
+          "targets"
+        ],
+        "summary": "What saving this requirement set would change: changed, added, removed, unchanged (nothing saved)",
+        "operationId": "preview_requirements_api_v1_targets__target_id__requirements_revision_preview_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "target_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Target Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequirementSetIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevisionPreview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/targets/{target_id}/requirements/{requirement_id}/history": {
+      "get": {
+        "tags": [
+          "targets"
+        ],
+        "summary": "Every recorded version of a requirement, removed ones too",
+        "operationId": "requirement_history_api_v1_targets__target_id__requirements__requirement_id__history_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "target_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Target Id"
+            }
+          },
+          {
+            "name": "requirement_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Requirement Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RequirementHistoryEntry"
+                  },
+                  "title": "Response Requirement History Api V1 Targets  Target Id  Requirements  Requirement Id  History Get"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/targets/{target_id}/experience/{entry_id}/requirements/{requirement_id}/reuse": {
+      "post": {
+        "tags": [
+          "targets"
+        ],
+        "summary": "Use this story for the requirement's current wording (recorded as a reuse)",
+        "operationId": "reuse_story_api_v1_targets__target_id__experience__entry_id__requirements__requirement_id__reuse_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "target_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Target Id"
+            }
+          },
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Entry Id"
+            }
+          },
+          {
+            "name": "requirement_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Requirement Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TargetOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/targets/{target_id}/actions/{action_id}/requirements/{requirement_id}/reuse": {
+      "post": {
+        "tags": [
+          "targets"
+        ],
+        "summary": "Use this accepted improvement for the requirement's current wording (recorded as a reuse)",
+        "operationId": "reuse_action_api_v1_targets__target_id__actions__action_id__requirements__requirement_id__reuse_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "target_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Target Id"
+            }
+          },
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Action Id"
+            }
+          },
+          {
+            "name": "requirement_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Requirement Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -21629,6 +22081,77 @@
         ],
         "title": "ActionAccept",
         "description": "Accept one suggested improvement. The suggestion is the identity: accepting it again (a double\nclick, another tab, a resend after a lost reply) returns the action it made, never a second one."
+      },
+      "ActionLink": {
+        "properties": {
+          "action_id": {
+            "type": "string",
+            "title": "Action Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "requirement_id": {
+            "type": "string",
+            "title": "Requirement Id"
+          },
+          "linked_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked Version",
+            "description": "The version in effect when it was accepted; null: not recorded"
+          },
+          "current_version": {
+            "type": "integer",
+            "title": "Current Version"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "current",
+              "earlier_wording",
+              "not_recorded",
+              "removed"
+            ],
+            "title": "Status"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "About the link, never the learner"
+          },
+          "reused_from": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reused From"
+          }
+        },
+        "type": "object",
+        "required": [
+          "action_id",
+          "title",
+          "requirement_id",
+          "linked_version",
+          "current_version",
+          "status",
+          "label",
+          "reused_from"
+        ],
+        "title": "ActionLink",
+        "description": "An accepted improvement that practises a question this requirement maps to, and the version\nof the requirement it was accepted against."
       },
       "ActionOut": {
         "properties": {
@@ -24001,6 +24524,21 @@
             },
             "type": "array",
             "title": "Requirement Ids"
+          },
+          "requirement_versions": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Requirement Versions",
+            "description": "Each linked requirement's version when this was answered (null: not recorded)"
           }
         },
         "type": "object",
@@ -28047,6 +28585,13 @@
             "type": "string",
             "title": "Id"
           },
+          "requirement_links": {
+            "items": {
+              "$ref": "#/components/schemas/RequirementLink"
+            },
+            "type": "array",
+            "title": "Requirement Links"
+          },
           "revision": {
             "type": "integer",
             "title": "Revision",
@@ -31734,6 +32279,42 @@
           "reason"
         ],
         "title": "LeftOut"
+      },
+      "LinkedAction": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title"
+        ],
+        "title": "LinkedAction"
+      },
+      "LinkedStory": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title"
+        ],
+        "title": "LinkedStory"
       },
       "LoginRequest": {
         "properties": {
@@ -37056,6 +37637,208 @@
         "title": "RequestOutcome",
         "description": "What a request sent with this key made, if anything (Volume 8, prompt 1)."
       },
+      "RequirementChange": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "title": "Index"
+          },
+          "requirement_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requirement Id"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "unchanged",
+              "cosmetic",
+              "changed",
+              "added",
+              "removed",
+              "restored"
+            ],
+            "title": "State"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "previous_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Text"
+          },
+          "version_from": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version From"
+          },
+          "version_to": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version To"
+          },
+          "stories": {
+            "items": {
+              "$ref": "#/components/schemas/LinkedStory"
+            },
+            "type": "array",
+            "title": "Stories",
+            "description": "Stories linked to it that this change affects"
+          },
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/LinkedAction"
+            },
+            "type": "array",
+            "title": "Actions",
+            "description": "Accepted improvements practising it that this change affects"
+          }
+        },
+        "type": "object",
+        "required": [
+          "index",
+          "requirement_id",
+          "state",
+          "text",
+          "previous_text",
+          "version_from",
+          "version_to",
+          "stories"
+        ],
+        "title": "RequirementChange"
+      },
+      "RequirementDraft": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 36
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "An existing requirement; omit for a new one"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "required_skill",
+              "preferred_skill",
+              "responsibility",
+              "experience",
+              "tool",
+              "competency"
+            ],
+            "title": "Category"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 2,
+            "title": "Text"
+          },
+          "removed": {
+            "type": "boolean",
+            "title": "Removed",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "category",
+          "text"
+        ],
+        "title": "RequirementDraft"
+      },
+      "RequirementHistoryEntry": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "original",
+              "added",
+              "changed",
+              "removed",
+              "restored"
+            ],
+            "title": "State"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "At"
+          },
+          "same_as": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Same As"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "state",
+          "text",
+          "category",
+          "at",
+          "same_as"
+        ],
+        "title": "RequirementHistoryEntry"
+      },
       "RequirementIn": {
         "properties": {
           "category": {
@@ -37100,6 +37883,67 @@
         ],
         "title": "RequirementIn"
       },
+      "RequirementLink": {
+        "properties": {
+          "requirement_id": {
+            "type": "string",
+            "title": "Requirement Id"
+          },
+          "linked_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked Version",
+            "description": "The version it was linked to; null: not recorded"
+          },
+          "current_version": {
+            "type": "integer",
+            "title": "Current Version"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "current",
+              "earlier_wording",
+              "not_recorded",
+              "removed"
+            ],
+            "title": "Status"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "About the link, never the learner, e.g. 'Linked to an earlier wording'"
+          },
+          "reused_from": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reused From",
+            "description": "Deliberately reused for the current wording, from this version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requirement_id",
+          "linked_version",
+          "current_version",
+          "status",
+          "label",
+          "reused_from"
+        ],
+        "title": "RequirementLink"
+      },
       "RequirementOut": {
         "properties": {
           "id": {
@@ -37121,6 +37965,12 @@
           "text": {
             "type": "string",
             "title": "Text"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "1, plus one for each substantive edit (docs/REQUIREMENT_VERSIONS.md)",
+            "default": 1
           },
           "origin": {
             "type": "string",
@@ -37248,6 +38098,38 @@
         },
         "type": "object",
         "title": "RequirementPatch"
+      },
+      "RequirementSetIn": {
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expected Revision"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RequirementDraft"
+            },
+            "type": "array",
+            "maxItems": 60,
+            "title": "Items"
+          },
+          "same_as": {
+            "items": {
+              "$ref": "#/components/schemas/SameAs"
+            },
+            "type": "array",
+            "title": "Same As",
+            "description": "Suggested matches you accepted; anything not here stays separate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "expected_revision",
+          "items"
+        ],
+        "title": "RequirementSetIn",
+        "description": "The whole requirement set as you want it, against the revision you loaded."
       },
       "RestoreBatch": {
         "properties": {
@@ -38941,6 +39823,49 @@
         ],
         "title": "ReviewerIdentity"
       },
+      "RevisionPreview": {
+        "properties": {
+          "summary": {
+            "type": "string",
+            "title": "Summary",
+            "description": "e.g. '2 changed, 1 added, 1 removed, 5 unchanged' (cosmetic edits count as unchanged)"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Counts"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/RequirementChange"
+            },
+            "type": "array",
+            "title": "Changes"
+          },
+          "suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/SameAsSuggestion"
+            },
+            "type": "array",
+            "title": "Suggestions"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          }
+        },
+        "type": "object",
+        "required": [
+          "summary",
+          "counts",
+          "changes",
+          "suggestions",
+          "revision"
+        ],
+        "title": "RevisionPreview"
+      },
       "RoundAnswer": {
         "properties": {
           "question_index": {
@@ -39263,6 +40188,57 @@
           "evidence"
         ],
         "title": "RubricScore"
+      },
+      "SameAs": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Index",
+            "description": "A new requirement's position in `items`"
+          },
+          "requirement_id": {
+            "type": "string",
+            "maxLength": 36,
+            "title": "Requirement Id",
+            "description": "The requirement being removed that it is the same as"
+          }
+        },
+        "type": "object",
+        "required": [
+          "index",
+          "requirement_id"
+        ],
+        "title": "SameAs"
+      },
+      "SameAsSuggestion": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "title": "Index"
+          },
+          "requirement_id": {
+            "type": "string",
+            "title": "Requirement Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question",
+            "description": "A question for you; nothing is linked unless you say so"
+          }
+        },
+        "type": "object",
+        "required": [
+          "index",
+          "requirement_id",
+          "text",
+          "question"
+        ],
+        "title": "SameAsSuggestion"
       },
       "SaveReplay": {
         "properties": {
@@ -43050,6 +44026,12 @@
             "type": "array",
             "title": "Requirement List"
           },
+          "requirements_revision": {
+            "type": "integer",
+            "title": "Requirements Revision",
+            "description": "The requirement set's revision, sent back when it's saved",
+            "default": 1
+          },
           "next_activity": {
             "anyOf": [
               {
@@ -43079,6 +44061,14 @@
             },
             "type": "array",
             "title": "Experience"
+          },
+          "action_links": {
+            "items": {
+              "$ref": "#/components/schemas/ActionLink"
+            },
+            "type": "array",
+            "title": "Action Links",
+            "description": "Accepted improvements practising a question a requirement maps to, with their version"
           },
           "days_to_interview": {
             "anyOf": [

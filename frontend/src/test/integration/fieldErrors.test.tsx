@@ -216,7 +216,7 @@ describe("the job posting editor", () => {
       description: "Responsibilities:\n- Triage", notes: null, extractor: "rule-based (no AI)", requirement_list: [],
       next_activity: { kind: "question", title: "Q", href: "/careers/registered-nurse/questions/e-good-0", why: "Why.", answered: false, best_score: null },
       targeted_session: { title: "Short", scope: "1.", round }, mock_interview: { title: "Mock", scope: "1.", round },
-      recent_attempts: [], experience: [], days_to_interview: null,
+      recent_attempts: [], experience: [], days_to_interview: null, requirements_revision: 1,
     } as Target;
     server.use(
       http.get(`${API}/api/v1/targets`, () => HttpResponse.json([])),

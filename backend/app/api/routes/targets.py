@@ -7,8 +7,11 @@ from app.schemas.common import error_responses
 from app.schemas.roles import (
     ExperienceEdit,
     ExperienceIn,
+    RequirementHistoryEntry,
     RequirementIn,
     RequirementPatch,
+    RequirementSetIn,
+    RevisionPreview,
     TargetIn,
     TargetOut,
     TargetPatch,
@@ -124,6 +127,88 @@ def patch_requirement(
     db: Session = Depends(get_db),
 ) -> TargetOut:
     return _svc(request, db).patch_requirement(user, target_id, requirement_id, body)
+
+
+@router.post(
+    "/{target_id}/requirements/revision/preview",
+    response_model=RevisionPreview,
+    responses=_ERRORS,
+    summary="What saving this requirement set would change: changed, added, removed, unchanged (nothing saved)",
+)
+def preview_requirements(
+    target_id: str,
+    body: RequirementSetIn,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> RevisionPreview:
+    return _svc(request, db).preview_requirements(user, target_id, body)
+
+
+@router.put(
+    "/{target_id}/requirements",
+    response_model=TargetOut,
+    responses=_ERRORS,
+    summary="Save the requirement set against the revision you loaded (409 stale_revision if it changed)",
+)
+def save_requirements(
+    target_id: str,
+    body: RequirementSetIn,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> TargetOut:
+    return _svc(request, db).save_requirements(user, target_id, body)
+
+
+@router.get(
+    "/{target_id}/requirements/{requirement_id}/history",
+    response_model=list[RequirementHistoryEntry],
+    responses=_ERRORS,
+    summary="Every recorded version of a requirement, removed ones too",
+)
+def requirement_history(
+    target_id: str,
+    requirement_id: str,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[RequirementHistoryEntry]:
+    return _svc(request, db).requirement_history(user, target_id, requirement_id)
+
+
+@router.post(
+    "/{target_id}/experience/{entry_id}/requirements/{requirement_id}/reuse",
+    response_model=TargetOut,
+    responses=_ERRORS,
+    summary="Use this story for the requirement's current wording (recorded as a reuse)",
+)
+def reuse_story(
+    target_id: str,
+    entry_id: str,
+    requirement_id: str,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> TargetOut:
+    return _svc(request, db).reuse_story(user, target_id, entry_id, requirement_id)
+
+
+@router.post(
+    "/{target_id}/actions/{action_id}/requirements/{requirement_id}/reuse",
+    response_model=TargetOut,
+    responses=_ERRORS,
+    summary="Use this accepted improvement for the requirement's current wording (recorded as a reuse)",
+)
+def reuse_action(
+    target_id: str,
+    action_id: str,
+    requirement_id: str,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> TargetOut:
+    return _svc(request, db).reuse_action(user, target_id, action_id, requirement_id)
 
 
 @router.post(

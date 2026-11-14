@@ -108,6 +108,9 @@ import type {
   ConditionsOut,
   ConditionsQuery,
   FollowUpOut,
+  RequirementHistoryEntry,
+  RequirementSetIn,
+  RevisionPreview,
   ReviewRequest,
   ReviewResponse,
   SavedItemRef,
@@ -424,6 +427,17 @@ export const api = {
     apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}/requirements`, { method: "POST", body }),
   patchRequirement: (id: string, rid: string, body: RequirementPatch) =>
     apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}/requirements/${encodeURIComponent(rid)}`, { method: "PATCH", body }),
+  /** Versioned requirements (docs/REQUIREMENT_VERSIONS.md): what a save would change, the save, history and reuse. */
+  previewRequirements: (id: string, body: RequirementSetIn) =>
+    apiRequest<RevisionPreview>(`/api/v1/targets/${encodeURIComponent(id)}/requirements/revision/preview`, { method: "POST", body }),
+  saveRequirements: (id: string, body: RequirementSetIn) =>
+    apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}/requirements`, { method: "PUT", body }),
+  requirementHistory: (id: string, rid: string) =>
+    apiRequest<RequirementHistoryEntry[]>(`/api/v1/targets/${encodeURIComponent(id)}/requirements/${encodeURIComponent(rid)}/history`),
+  reuseStory: (id: string, eid: string, rid: string) =>
+    apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}/experience/${encodeURIComponent(eid)}/requirements/${encodeURIComponent(rid)}/reuse`, { method: "POST" }),
+  reuseAction: (id: string, aid: string, rid: string) =>
+    apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}/actions/${encodeURIComponent(aid)}/requirements/${encodeURIComponent(rid)}/reuse`, { method: "POST" }),
   addExperience: (id: string, body: ExperienceInput) =>
     apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}/experience`, { method: "POST", body }),
   editExperience: (id: string, eid: string, body: ExperienceEdit) =>

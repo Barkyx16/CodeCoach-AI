@@ -46,9 +46,12 @@ from app.schemas.roles import (
     ExperienceIn,
     ExperienceOut,
     PracticeLink,
+    RequirementHistoryEntry,
     RequirementIn,
     RequirementOut,
     RequirementPatch,
+    RequirementSetIn,
+    RevisionPreview,
     SessionPlan,
     TargetIn,
     TargetOut,
@@ -57,6 +60,7 @@ from app.schemas.roles import (
 )
 from app.services.content import retired_problem_slugs
 from app.services.jd_extract import extract, map_skills
+from app.services.requirement_versions import RequirementVersions
 from app.services.stories import record_revision, snapshot
 
 MAX_TARGETS = 20
@@ -249,30 +253,83 @@ class RoleTargets:
         skills = (
             self._check_skills(t.track, body.skills) if body.skills is not None else map_skills(text, t.track)
         )
-        t.requirements.append(
-            TargetRequirement(
-                position=len(t.requirements),
-                category=body.category,
-                text=text,
-                origin="user",
-                quote=None,
-                skills=skills,
-            )
+        r = TargetRequirement(
+            position=len(t.requirements),
+            category=body.category,
+            text=text,
+            origin="user",
+            quote=None,
+            skills=skills,
+            version=1,
         )
+        t.requirements.append(r)
+        t.requirements_revision += 1
+        self.db.flush()
+        RequirementVersions(self.db, user).record(t, r, "added")
         self.db.commit()
         return self.get(user, t.id)
 
     def patch_requirement(self, user: User, target_id: str, req_id: str, body: RequirementPatch) -> TargetOut:
+        """One requirement at a time, versioned like a whole-set save (docs/REQUIREMENT_VERSIONS.md):
+        a cosmetic edit keeps the version, a substantive one makes the next, removal is recorded."""
         t = self._load(user, target_id)
         r = self._requirement(t, req_id)
-        if body.category is not None:
-            r.category = body.category
-        if body.text is not None:
-            r.text = body.text.strip()
-        if body.skills is not None:
-            r.skills = self._check_skills(t.track, body.skills)
+        versions = RequirementVersions(self.db, user)
+        t.requirements_revision += 1
+        skills = self._check_skills(t.track, body.skills) if body.skills is not None else None
+        if body.category is not None or body.text is not None:
+            versions.edit(
+                t,
+                r,
+                text=body.text if body.text is not None else r.text,
+                category=body.category if body.category is not None else r.category,
+                skills=skills,
+            )
+        if skills is not None:
+            r.skills = skills  # with no new wording, for the current version
         if body.removed is not None:
-            r.removed = body.removed
+            versions.set_removed(t, r, body.removed)
+        self.db.commit()
+        return self.get(user, t.id)
+
+    def preview_requirements(self, user: User, target_id: str, body: RequirementSetIn) -> RevisionPreview:
+        t = self._load(user, target_id)
+        return RequirementVersions(self.db, user).preview(t, body)
+
+    def save_requirements(self, user: User, target_id: str, body: RequirementSetIn) -> TargetOut:
+        """Save the whole set against the revision it was made from; a stale save is refused with
+        the saved set, so both can be shown."""
+        t = lock_for_update(self.db, self._load(user, target_id))
+        if body.expected_revision != t.requirements_revision:
+            raise ConflictError(
+                "These requirements changed since you opened them (maybe in another tab). Nothing was saved.",
+                code="stale_revision",
+                details={
+                    "current_revision": t.requirements_revision,
+                    "current": jsonable_encoder(self.get(user, t.id)),
+                },
+            )
+        RequirementVersions(self.db, user).apply(
+            t, body, max_requirements=MAX_REQUIREMENTS, skills_for=lambda text: map_skills(text, t.track)
+        )
+        self.db.commit()
+        return self.get(user, t.id)
+
+    def requirement_history(self, user: User, target_id: str, req_id: str) -> list[RequirementHistoryEntry]:
+        t = self._load(user, target_id)
+        return RequirementVersions(self.db, user).history(t, req_id)
+
+    def reuse_story(self, user: User, target_id: str, entry_id: str, req_id: str) -> TargetOut:
+        t = self._load(user, target_id)
+        e = lock_for_update(self.db, self._entry(user, t, entry_id))
+        RequirementVersions(self.db, user).reuse(t, e, req_id)
+        self.db.commit()
+        return self.get(user, t.id)
+
+    def reuse_action(self, user: User, target_id: str, action_id: str, req_id: str) -> TargetOut:
+        t = self._load(user, target_id)
+        versions = RequirementVersions(self.db, user)
+        versions.reuse_action(t, action_id, req_id)
         self.db.commit()
         return self.get(user, t.id)
 
@@ -286,8 +343,13 @@ class RoleTargets:
         )
         if n >= MAX_EXPERIENCE:
             raise AppError(f"Up to {MAX_EXPERIENCE} examples per target.", code="too_many_examples")
+        fields = self._experience_fields(t, body)
         entry = ExperienceEntry(
-            user_id=user.id, target_id=t.id, track=t.track, **self._experience_fields(t, body)
+            user_id=user.id,
+            target_id=t.id,
+            track=t.track,
+            requirement_versions=self._link_versions(t, None, fields["requirement_ids"]),
+            **fields,
         )
         self.db.add(entry)
         self.db.flush()
@@ -306,7 +368,9 @@ class RoleTargets:
                 details={"current_revision": e.revision, "current": jsonable_encoder(snapshot(e))},
             )
         before = snapshot(e)
-        for k, v in self._experience_fields(t, body).items():
+        fields = self._experience_fields(t, body)
+        e.requirement_versions = self._link_versions(t, e, fields["requirement_ids"])
+        for k, v in fields.items():
             setattr(e, k, v)
         e.updated_at = datetime.now(UTC)
         if snapshot(e) != before:
@@ -341,6 +405,12 @@ class RoleTargets:
             "result": body.result.strip(),
             "requirement_ids": list(dict.fromkeys(body.requirement_ids)),
         }
+
+    @staticmethod
+    def _link_versions(t: RoleTarget, e: ExperienceEntry | None, new_ids: list) -> dict:
+        return RequirementVersions.link_versions(
+            t, e.requirement_versions if e else None, list(e.requirement_ids or []) if e else [], new_ids
+        )
 
     # --- reads ------------------------------------------------------------------------------
 
@@ -524,6 +594,7 @@ class RoleTargets:
                     id=r.id,
                     category=r.category,
                     text=r.text,
+                    version=r.version,
                     origin=r.origin,
                     quote=r.quote,
                     quote_in_description=bool(r.quote) and _contains(t.description, r.quote or ""),
@@ -601,10 +672,13 @@ class RoleTargets:
             else "No requirement maps to questions in the bank yet, so there's nothing to build a mock interview from.",
             round=RoundStart(track=track, question_ids=m_ids, duration_minutes=15) if m_ids else None,
         )
-        relevant = set().union(*qids_by_req.values()) if qids_by_req else set()
+        versions = RequirementVersions(self.db, user)
         recent = []
         for a in answers:
-            if a.question_id not in relevant:
+            # The requirements it practised when it was answered, at the version then (the mapping of
+            # that version: a later rewording doesn't detach it).
+            linked = versions.linked_at(t, a.question_id, a.created_at)
+            if not linked:
                 continue
             asked = get_question(track, a.question_id)
             recent.append(
@@ -614,7 +688,8 @@ class RoleTargets:
                     score=a.score,
                     created_at=a.created_at,
                     href=f"/careers/{track}/questions/{a.question_id}?answer={a.id}",
-                    requirement_ids=[rid for rid, ids in qids_by_req.items() if a.question_id in ids],
+                    requirement_ids=list(linked),
+                    requirement_versions=linked,
                 )
             )
             if len(recent) >= 6:
@@ -632,6 +707,7 @@ class RoleTargets:
             notes=t.notes,
             extractor="rule-based (no AI)",
             requirement_list=reqs,
+            requirements_revision=t.requirements_revision,
             next_activity=nxt,
             targeted_session=session,
             mock_interview=mock,
@@ -644,12 +720,14 @@ class RoleTargets:
                     action=e.action,
                     result=e.result,
                     requirement_ids=list(e.requirement_ids),
+                    requirement_links=RequirementVersions.links(e, t),
                     revision=e.revision,
                     created_at=e.created_at,
                     updated_at=e.updated_at,
                 )
                 for e in experience
             ],
+            action_links=versions.action_links(t),
             days_to_interview=days if days is not None and days >= 0 else None,
         )
 

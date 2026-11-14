@@ -761,7 +761,18 @@ All under `/api/v1/targets` 🔒 and scoped to the owner (another user's id is a
   description keeps requirements and attempts. `DELETE /targets/{id}` removes the target only.
 - `POST /targets/{id}/extract` adds requirements found in the current description that aren't
   there yet. `POST /targets/{id}/requirements` adds one; `PATCH …/requirements/{rid}` corrects,
-  re-maps (`skills` must be the career's), removes or restores.
+  re-maps (`skills` must be the career's), removes or restores, versioned as below.
+- Versions (docs/REQUIREMENT_VERSIONS.md): each requirement has `version`; the target has
+  `requirements_revision`, `action_links` (accepted improvements practising a requirement, each
+  `{action_id, title, requirement_id, linked_version, current_version, status, label,
+  reused_from}`), and each example's `requirement_links` say the version it was linked to.
+  `POST …/requirements/revision/preview` `{expected_revision, items: [{id|null, category, text,
+  removed}], same_as: [{index, requirement_id}]}` → `{summary, counts, changes, suggestions,
+  revision}` (nothing stored); `PUT …/requirements` saves the same body (`409 stale_revision`
+  with `details.current`, the saved target, when the set changed since); `GET
+  …/requirements/{rid}/history` lists its recorded versions. `POST
+  …/experience/{eid}/requirements/{rid}/reuse` and `POST …/actions/{aid}/requirements/{rid}/reuse`
+  move a link to the current wording, recorded as a reuse.
 - `PUT /targets/{id}/experience/{eid}` takes an optional `expected_revision` (the story's revision, `ExperienceOut.revision`): if the story changed since, `409 stale_revision`, as in the story bank.
 - `POST|PUT|DELETE /targets/{id}/experience[/{eid}]`: your own examples, linkable only to this
   target's requirements. Targets, requirements and examples are in the data export and are

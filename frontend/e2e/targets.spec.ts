@@ -49,13 +49,16 @@ test("a nurse turns a posting into a workspace, corrects it, practises, and star
   await expect(page.getByText(/Problem:/)).toHaveCount(0); // nursing never falls back to coding
   await noViolations(page, "target workspace");
 
-  // Correct a requirement; it's saved.
+  // Correct a requirement: a change of meaning is shown before it's saved (docs/REQUIREMENT_VERSIONS.md).
   const meds = page.getByRole("article", { name: "Administer medications and monitor patient responses" });
   await meds.getByRole("button", { name: "Correct" }).click();
   await meds.getByLabel("Requirement").fill("Give medications safely and monitor responses");
-  // Reload only once the server has it (reloading straight after the click could cancel the save).
-  const corrected = page.waitForResponse((r) => /\/requirements\//.test(r.url()) && r.request().method() === "PATCH");
   await meds.getByRole("button", { name: "Save" }).click();
+  const review = meds.getByRole("region", { name: /^Before saving/ });
+  await expect(review).toContainText(/^1 changed, 0 added, 0 removed, \d+ unchanged/);
+  // Reload only once the server has it (reloading straight after the click could cancel the save).
+  const corrected = page.waitForResponse((r) => /\/requirements$/.test(r.url()) && r.request().method() === "PUT");
+  await review.getByRole("button", { name: "Save this change" }).click();
   expect((await corrected).ok()).toBe(true);
   await page.reload();
   await expect(page.getByRole("article", { name: "Give medications safely and monitor responses" })).toBeVisible();

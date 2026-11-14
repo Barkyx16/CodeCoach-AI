@@ -109,7 +109,7 @@ function target(): Target {
     next_activity: { kind: "question", title: "What good patient assessment looks like", href: "/careers/registered-nurse/questions/e-good-0", why: "Practises patient assessment.", answered: false, best_score: null },
     targeted_session: { title: "Short targeted session", scope: "1 question.", round },
     mock_interview: { title: "Mock interview for ED Nurse", scope: "1 question.", round: { ...round, duration_minutes: 15 } },
-    recent_attempts: [], experience: [], days_to_interview: null,
+    recent_attempts: [], experience: [], days_to_interview: null, requirements_revision: 1,
   } as Target;
 }
 

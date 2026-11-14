@@ -3920,7 +3920,8 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
+        /** Save the requirement set against the revision you loaded (409 stale_revision if it changed) */
+        put: operations["save_requirements_api_v1_targets__target_id__requirements_put"];
         /** Add your own requirement */
         post: operations["add_requirement_api_v1_targets__target_id__requirements_post"];
         delete?: never;
@@ -3944,6 +3945,74 @@ export interface paths {
         head?: never;
         /** Correct, re-map, remove or restore a requirement */
         patch: operations["patch_requirement_api_v1_targets__target_id__requirements__requirement_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}/requirements/revision/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What saving this requirement set would change: changed, added, removed, unchanged (nothing saved) */
+        post: operations["preview_requirements_api_v1_targets__target_id__requirements_revision_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}/requirements/{requirement_id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every recorded version of a requirement, removed ones too */
+        get: operations["requirement_history_api_v1_targets__target_id__requirements__requirement_id__history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}/experience/{entry_id}/requirements/{requirement_id}/reuse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Use this story for the requirement's current wording (recorded as a reuse) */
+        post: operations["reuse_story_api_v1_targets__target_id__experience__entry_id__requirements__requirement_id__reuse_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}/actions/{action_id}/requirements/{requirement_id}/reuse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Use this accepted improvement for the requirement's current wording (recorded as a reuse) */
+        post: operations["reuse_action_api_v1_targets__target_id__actions__action_id__requirements__requirement_id__reuse_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/targets/{target_id}/experience": {
@@ -4120,6 +4189,38 @@ export interface components {
              * @enum {string}
              */
             recurrence: "once" | "weekly";
+        };
+        /**
+         * ActionLink
+         * @description An accepted improvement that practises a question this requirement maps to, and the version
+         *     of the requirement it was accepted against.
+         */
+        ActionLink: {
+            /** Action Id */
+            action_id: string;
+            /** Title */
+            title: string;
+            /** Requirement Id */
+            requirement_id: string;
+            /**
+             * Linked Version
+             * @description The version in effect when it was accepted; null: not recorded
+             */
+            linked_version: number | null;
+            /** Current Version */
+            current_version: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "current" | "earlier_wording" | "not_recorded" | "removed";
+            /**
+             * Label
+             * @description About the link, never the learner
+             */
+            label: string;
+            /** Reused From */
+            reused_from: number | null;
         };
         /** ActionOut */
         ActionOut: {
@@ -5011,6 +5112,13 @@ export interface components {
             href: string;
             /** Requirement Ids */
             requirement_ids: string[];
+            /**
+             * Requirement Versions
+             * @description Each linked requirement's version when this was answered (null: not recorded)
+             */
+            requirement_versions?: {
+                [key: string]: number | null;
+            };
         };
         /** AuditEntry */
         AuditEntry: {
@@ -6731,6 +6839,8 @@ export interface components {
             requirement_ids?: string[];
             /** Id */
             id: string;
+            /** Requirement Links */
+            requirement_links?: components["schemas"]["RequirementLink"][];
             /**
              * Revision
              * @description This example is a story in the story bank: its revision there
@@ -8241,6 +8351,20 @@ export interface components {
              * @enum {string}
              */
             reason: "removed" | "unavailable";
+        };
+        /** LinkedAction */
+        LinkedAction: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+        };
+        /** LinkedStory */
+        LinkedStory: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -10355,6 +10479,74 @@ export interface components {
             /** Hint Level */
             hint_level?: number | null;
         };
+        /** RequirementChange */
+        RequirementChange: {
+            /** Index */
+            index: number;
+            /** Requirement Id */
+            requirement_id: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "unchanged" | "cosmetic" | "changed" | "added" | "removed" | "restored";
+            /** Text */
+            text: string;
+            /** Previous Text */
+            previous_text: string | null;
+            /** Version From */
+            version_from: number | null;
+            /** Version To */
+            version_to: number | null;
+            /**
+             * Stories
+             * @description Stories linked to it that this change affects
+             */
+            stories: components["schemas"]["LinkedStory"][];
+            /**
+             * Actions
+             * @description Accepted improvements practising it that this change affects
+             */
+            actions?: components["schemas"]["LinkedAction"][];
+        };
+        /** RequirementDraft */
+        RequirementDraft: {
+            /**
+             * Id
+             * @description An existing requirement; omit for a new one
+             */
+            id?: string | null;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "required_skill" | "preferred_skill" | "responsibility" | "experience" | "tool" | "competency";
+            /** Text */
+            text: string;
+            /**
+             * Removed
+             * @default false
+             */
+            removed: boolean;
+        };
+        /** RequirementHistoryEntry */
+        RequirementHistoryEntry: {
+            /** Version */
+            version: number;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "original" | "added" | "changed" | "removed" | "restored";
+            /** Text */
+            text: string;
+            /** Category */
+            category: string;
+            /** At */
+            at: string | null;
+            /** Same As */
+            same_as: string | null;
+        };
         /** RequirementIn */
         RequirementIn: {
             /**
@@ -10370,6 +10562,33 @@ export interface components {
              */
             skills?: string[] | null;
         };
+        /** RequirementLink */
+        RequirementLink: {
+            /** Requirement Id */
+            requirement_id: string;
+            /**
+             * Linked Version
+             * @description The version it was linked to; null: not recorded
+             */
+            linked_version: number | null;
+            /** Current Version */
+            current_version: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "current" | "earlier_wording" | "not_recorded" | "removed";
+            /**
+             * Label
+             * @description About the link, never the learner, e.g. 'Linked to an earlier wording'
+             */
+            label: string;
+            /**
+             * Reused From
+             * @description Deliberately reused for the current wording, from this version
+             */
+            reused_from: number | null;
+        };
         /** RequirementOut */
         RequirementOut: {
             /** Id */
@@ -10381,6 +10600,12 @@ export interface components {
             category: "required_skill" | "preferred_skill" | "responsibility" | "experience" | "tool" | "competency";
             /** Text */
             text: string;
+            /**
+             * Version
+             * @description 1, plus one for each substantive edit (docs/REQUIREMENT_VERSIONS.md)
+             * @default 1
+             */
+            version: number;
             /**
              * Origin
              * @enum {string}
@@ -10414,6 +10639,21 @@ export interface components {
             skills?: string[] | null;
             /** Removed */
             removed?: boolean | null;
+        };
+        /**
+         * RequirementSetIn
+         * @description The whole requirement set as you want it, against the revision you loaded.
+         */
+        RequirementSetIn: {
+            /** Expected Revision */
+            expected_revision: number;
+            /** Items */
+            items: components["schemas"]["RequirementDraft"][];
+            /**
+             * Same As
+             * @description Suggested matches you accepted; anything not here stays separate
+             */
+            same_as?: components["schemas"]["SameAs"][];
         };
         /** RestoreBatch */
         RestoreBatch: {
@@ -11101,6 +11341,24 @@ export interface components {
              */
             label: string;
         };
+        /** RevisionPreview */
+        RevisionPreview: {
+            /**
+             * Summary
+             * @description e.g. '2 changed, 1 added, 1 removed, 5 unchanged' (cosmetic edits count as unchanged)
+             */
+            summary: string;
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /** Changes */
+            changes: components["schemas"]["RequirementChange"][];
+            /** Suggestions */
+            suggestions: components["schemas"]["SameAsSuggestion"][];
+            /** Revision */
+            revision: number;
+        };
         /** RoundAnswer */
         RoundAnswer: {
             /**
@@ -11226,6 +11484,33 @@ export interface components {
              * @description A specific observation from the transcript or code
              */
             evidence: string;
+        };
+        /** SameAs */
+        SameAs: {
+            /**
+             * Index
+             * @description A new requirement's position in `items`
+             */
+            index: number;
+            /**
+             * Requirement Id
+             * @description The requirement being removed that it is the same as
+             */
+            requirement_id: string;
+        };
+        /** SameAsSuggestion */
+        SameAsSuggestion: {
+            /** Index */
+            index: number;
+            /** Requirement Id */
+            requirement_id: string;
+            /** Text */
+            text: string;
+            /**
+             * Question
+             * @description A question for you; nothing is linked unless you say so
+             */
+            question: string;
         };
         /**
          * SaveReplay
@@ -12698,6 +12983,12 @@ export interface components {
             extractor: string;
             /** Requirement List */
             requirement_list: components["schemas"]["RequirementOut"][];
+            /**
+             * Requirements Revision
+             * @description The requirement set's revision, sent back when it's saved
+             * @default 1
+             */
+            requirements_revision: number;
             next_activity: components["schemas"]["PracticeLink"] | null;
             targeted_session: components["schemas"]["SessionPlan"];
             mock_interview: components["schemas"]["SessionPlan"];
@@ -12705,6 +12996,11 @@ export interface components {
             recent_attempts: components["schemas"]["AttemptOut"][];
             /** Experience */
             experience: components["schemas"]["ExperienceOut"][];
+            /**
+             * Action Links
+             * @description Accepted improvements practising a question a requirement maps to, with their version
+             */
+            action_links?: components["schemas"]["ActionLink"][];
             /** Days To Interview */
             days_to_interview: number | null;
         };
@@ -28499,6 +28795,68 @@ export interface operations {
             };
         };
     };
+    save_requirements_api_v1_targets__target_id__requirements_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequirementSetIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     add_requirement_api_v1_targets__target_id__requirements_post: {
         parameters: {
             query?: never;
@@ -28576,6 +28934,247 @@ export interface operations {
                 "application/json": components["schemas"]["RequirementPatch"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    preview_requirements_api_v1_targets__target_id__requirements_revision_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequirementSetIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevisionPreview"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    requirement_history_api_v1_targets__target_id__requirements__requirement_id__history_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+                requirement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequirementHistoryEntry"][];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    reuse_story_api_v1_targets__target_id__experience__entry_id__requirements__requirement_id__reuse_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+                entry_id: string;
+                requirement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    reuse_action_api_v1_targets__target_id__actions__action_id__requirements__requirement_id__reuse_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+                action_id: string;
+                requirement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

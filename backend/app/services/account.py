@@ -23,6 +23,7 @@ from app.models import (
     PracticeSession,
     Problem,
     ProgressEvent,
+    RequirementVersion,
     ReviewItem,
     RoleTarget,
     ScenarioAttempt,
@@ -96,6 +97,13 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
         .where(ExperienceEntry.user_id == user.id)
         .order_by(ExperienceEntry.created_at, ExperienceEntry.id)
     ).all()
+    requirement_history: dict[str, list[RequirementVersion]] = {}
+    for v in db.scalars(
+        select(RequirementVersion)
+        .where(RequirementVersion.user_id == user.id)
+        .order_by(RequirementVersion.created_at, RequirementVersion.version)
+    ):
+        requirement_history.setdefault(v.requirement_id, []).append(v)
     retries = db.scalars(select(InterviewRetry).where(InterviewRetry.user_id == user.id)).all()
     queue = db.scalars(select(ReviewItem).where(ReviewItem.user_id == user.id)).all()
     scenario_attempts = db.scalars(
@@ -297,6 +305,7 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
                 "interview_date": t.interview_date.isoformat() if t.interview_date else None,
                 "notes": t.notes,
                 "archived": t.archived,
+                "requirements_revision": t.requirements_revision,
                 "requirements": [
                     {
                         **ids(r.id),
@@ -306,6 +315,19 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
                         "quote": r.quote,
                         "skills": r.skills,
                         "removed": r.removed,
+                        "version": r.version,
+                        # Every recorded state of it (docs/REQUIREMENT_VERSIONS.md); removed ones too.
+                        "history": [
+                            {
+                                "version": v.version,
+                                "state": v.state,
+                                "category": v.category,
+                                "text": v.text,
+                                "same_as": v.same_as,
+                                "at": iso(v.created_at),
+                            }
+                            for v in requirement_history.get(r.id, [])
+                        ],
                     }
                     for r in t.requirements
                 ],
@@ -412,6 +434,8 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
             {
                 "id": e.id,
                 **snapshot(e),
+                # The requirement version each link was made for (absent: not recorded).
+                "requirement_versions": e.requirement_versions or {},
                 "revision": e.revision,
                 "archived": e.archived,
                 "created_at": iso(e.created_at),

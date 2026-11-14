@@ -18,6 +18,8 @@ import { invalidProps, useFieldErrors } from "@/hooks/useFieldErrors";
 import { formDraftKey, isTextForm, useFormDraft } from "@/hooks/useFormDraft";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { formatDateTime } from "@/lib/format";
+import { ActionLinks, RequirementHistory, RequirementSetEditor } from "@/features/targets/RequirementVersions";
+import { useRequirementChange } from "@/features/targets/useRequirementChange";
 
 type Category = Requirement["category"];
 const GROUPS: { id: Category; label: string }[] = [
@@ -49,6 +51,7 @@ export function TargetWorkspace() {
 function Workspace({ t }: { t: Target }) {
   const update = useTargetMutation((body: Parameters<typeof api.updateTarget>[1]) => api.updateTarget(t.id, body));
   const [params, setParams] = useSearchParams();
+  const [editingSet, setEditingSet] = useState(false);
   const view = params.get("show") ?? "all"; // all | gaps | limited | removed
   const shown = t.requirement_list.filter((r) =>
     view === "removed" ? r.removed
@@ -90,7 +93,11 @@ function Workspace({ t }: { t: Target }) {
         <div className="stack">
           <Sessions t={t} />
           <section className="stack" aria-labelledby="req-title">
-            <div className="section-heading"><h2 className="section-title" id="req-title">Requirements</h2></div>
+            <div className="section-heading">
+              <h2 className="section-title" id="req-title">Requirements</h2>
+              {!editingSet && <Button size="sm" variant="secondary" onClick={() => setEditingSet(true)}>Edit requirements</Button>}
+            </div>
+            {editingSet && <RequirementSetEditor t={t} groups={GROUPS} onDone={() => setEditingSet(false)} />}
             <div className="practice-switch" role="group" aria-label="Show requirements">
               {(["all", "limited", "gaps", "removed"] as const).map((v) => (
                 <a key={v} href={`?show=${v}`} aria-current={view === v ? "page" : undefined}
@@ -165,8 +172,8 @@ function Sessions({ t }: { t: Target }) {
 
 function RequirementCard({ t, r }: { t: Target; r: Requirement }) {
   const location = useLocation();
-  const patch = useTargetMutation((body: Parameters<typeof api.patchRequirement>[2]) => api.patchRequirement(t.id, r.id, body));
   const [editing, setEditing] = useState(false);
+  const change = useRequirementChange(t, r, () => setEditing(false));
   const [text, setText] = useState(r.text);
   const [category, setCategory] = useState<Category>(r.category);
   return (
@@ -178,6 +185,8 @@ function RequirementCard({ t, r }: { t: Target; r: Requirement }) {
       <p className="subtle requirement__meta">
         {ORIGIN[r.origin]}{r.skills.length > 0 ? ` · Practises: ${r.skills.join(", ")}` : " · No matching skill in the question bank"}
       </p>
+      <RequirementHistory t={t} r={r} />
+      <ActionLinks t={t} r={r} />
       {r.quote && (
         <details className="requirement__source">
           <summary>Source text{r.quote_in_description ? "" : " (no longer in the description)"}</summary>
@@ -195,26 +204,27 @@ function RequirementCard({ t, r }: { t: Target; r: Requirement }) {
         </ul>
       )}
       {editing ? (
-        <form className="stack requirement__edit" onSubmit={(e: FormEvent) => { e.preventDefault(); patch.mutate({ text, category }, { onSuccess: () => setEditing(false) }); }}>
+        <form className="stack requirement__edit" onSubmit={(e: FormEvent) => { e.preventDefault(); void change.propose({ text, category }); }}>
           <label className="field"><span className="field__label">Requirement</span>
             <input className="input" value={text} minLength={2} maxLength={300} onChange={(e) => setText(e.target.value)} /></label>
           <label className="field"><span className="field__label">Group</span>
             <select className="select" value={category} onChange={(e) => setCategory(e.target.value as Category)}>
               {GROUPS.map((g) => <option key={g.id} value={g.id}>{g.label}</option>)}
             </select></label>
-          <div className="row"><Button type="submit" size="sm" variant="primary" loading={patch.isPending}>Save</Button><Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button></div>
+          <div className="row"><Button type="submit" size="sm" variant="primary" loading={change.busy}>Save</Button><Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button></div>
         </form>
       ) : (
         <div className="row requirement__actions">
           {r.removed
-            ? <Button size="sm" variant="ghost" loading={patch.isPending} onClick={() => patch.mutate({ removed: false })}>Restore</Button>
+            ? <Button size="sm" variant="ghost" loading={change.busy} onClick={() => void change.propose({ removed: false })}>Restore</Button>
             : <>
               <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>Correct</Button>
-              <Button size="sm" variant="ghost" loading={patch.isPending} onClick={() => patch.mutate({ removed: true })}>Remove</Button>
+              <Button size="sm" variant="ghost" loading={change.busy} onClick={() => void change.propose({ removed: true })}>Remove</Button>
             </>}
         </div>
       )}
-      <InlineError error={patch.error} />
+      {change.review}
+      <InlineError error={change.error} />
     </article>
   );
 }
@@ -247,13 +257,32 @@ function Attempts({ t }: { t: Target }) {
           {t.recent_attempts.map((a) => (
             <li key={a.answer_id}>
               <Link className="rec" to={a.href} state={{ from: location.pathname + location.search, fromLabel: "Back to this role" }}>
-                <strong>{a.question_title}</strong><span className="subtle">Scored {a.score}/100 · {formatDateTime(a.created_at)} · revisit feedback</span>
+                <strong>{a.question_title}</strong><span className="subtle">Scored {a.score}/100 · {formatDateTime(a.created_at)}{versionNote(t, a.requirement_versions)} · revisit feedback</span>
               </Link>
             </li>
           ))}
         </ul>
       )}
     </Card>
+  );
+}
+
+/** When an attempt was answered against an earlier wording of a requirement it practises, say which. */
+function versionNote(t: Target, versions: Record<string, number | null> | undefined): string {
+  for (const [rid, v] of Object.entries(versions ?? {})) {
+    const r = t.requirement_list.find((x) => x.id === rid);
+    if (r && typeof v === "number" && v < r.version) return ` · answered against an earlier wording of “${r.text}” (version ${v}; now ${r.version})`;
+  }
+  return "";
+}
+
+function ReuseButton({ t, entryId, requirementId }: { t: Target; entryId: string; requirementId: string }) {
+  const reuse = useTargetMutation(() => api.reuseStory(t.id, entryId, requirementId));
+  return (
+    <>
+      <Button size="sm" variant="ghost" loading={reuse.isPending} onClick={() => reuse.mutate(undefined)}>Use it for the current wording</Button>
+      <InlineError error={reuse.error} />
+    </>
   );
 }
 
@@ -271,7 +300,19 @@ function ExperienceSection({ t }: { t: Target }) {
           {e.situation && <p><span className="activity-card__label">Situation:</span> {e.situation}</p>}
           {e.action && <p><span className="activity-card__label">What I did:</span> {e.action}</p>}
           {e.result && <p><span className="activity-card__label">Result:</span> {e.result}</p>}
-          <p className="subtle">Shows: {(e.requirement_ids ?? []).map((id) => t.requirement_list.find((r) => r.id === id)?.text).filter(Boolean).join("; ") || "no requirement linked"}</p>
+          {(e.requirement_links ?? []).length === 0 ? <p className="subtle">Shows: no requirement linked</p> : (
+            <ul className="mini-list">
+              {(e.requirement_links ?? []).map((lk) => (
+                <li key={lk.requirement_id}>
+                  <span>Shows “{t.requirement_list.find((r) => r.id === lk.requirement_id)?.text}”</span>
+                  <span className="subtle"> · {lk.label}</span>
+                  {lk.status === "earlier_wording" && (
+                    <> <ReuseButton t={t} entryId={e.id} requirementId={lk.requirement_id} /></>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
           <span className="row">
             <Button size="sm" variant="ghost" onClick={() => setEditing(e)}>Edit</Button>
             <Link to={`/stories/${e.id}`}>Open in your story bank</Link>

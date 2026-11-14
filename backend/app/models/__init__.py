@@ -694,6 +694,8 @@ class RoleTarget(Base):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     archived: Mapped[bool] = mapped_column(Boolean, default=False)
     selected: Mapped[bool] = mapped_column(Boolean, default=False)  # the one active target
+    # The requirement set's revision: a save of the set names the one it was made from.
+    requirements_revision: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
     extractor: Mapped[str] = mapped_column(String(32), default="rule-based")
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, onupdate=utcnow)
@@ -716,8 +718,34 @@ class TargetRequirement(Base):
     quote: Mapped[str | None] = mapped_column(Text, nullable=True)  # the supporting posting text
     skills: Mapped[list] = mapped_column(JSONType, default=list)  # the career skills it maps to
     removed: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Its version: 1 as first saved, one more for each substantive edit (docs/REQUIREMENT_VERSIONS.md).
+    # A cosmetic edit (spacing, capitals, punctuation) keeps it.
+    version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
 
     target: Mapped[RoleTarget] = relationship(back_populates="requirements")
+
+
+class RequirementVersion(Base):
+    """One recorded state of a target's requirement: added, changed (a new version), removed or
+    restored, with its words then. History is only added to, never rewritten."""
+
+    __tablename__ = "requirement_versions"
+    __table_args__ = (Index("ix_requirement_versions_requirement", "requirement_id", "version"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    target_id: Mapped[str] = mapped_column(ForeignKey("role_targets.id", ondelete="CASCADE"))
+    requirement_id: Mapped[str] = mapped_column(String(36))
+    version: Mapped[int] = mapped_column(Integer)
+    state: Mapped[str] = mapped_column(String(12))  # added | changed | removed | restored | original
+    category: Mapped[str] = mapped_column(String(24))
+    text: Mapped[str] = mapped_column(String(300))
+    # The skills (so the bank questions) this version mapped to when it was recorded.
+    skills: Mapped[list | None] = mapped_column(JSONType, nullable=True)
+    set_revision: Mapped[int] = mapped_column(Integer)
+    # The removed requirement the learner said this one is (an accepted suggestion), if any.
+    same_as: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
 
 class ExperienceEntry(Base):
@@ -760,6 +788,9 @@ class ExperienceEntry(Base):
     revision: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
     archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     requirement_ids: Mapped[list] = mapped_column(JSONType, default=list)
+    # The version of each linked requirement when it was linked: {id: {"version": n, "reused_from":
+    # m or None}}. Missing for links made before versions were kept ("version not recorded").
+    requirement_versions: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
     # The create's request key: the same create sent again (its response was lost) returns this story.
     client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     # What the create that made this stood for (a digest, services/request_keys.py).
@@ -1798,6 +1829,9 @@ class AcceptedAction(Base):
     practice_href: Mapped[str | None] = mapped_column(String(300), nullable=True)
     recurrence: Mapped[str] = mapped_column(String(8), default="once")  # once | weekly
     done_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)  # one-off only
+    # Deliberate reuse for a job requirement's newer wording: {requirement id: {version, reused_from}}.
+    # Without it, the version is the one in effect when the action was accepted.
+    requirement_reuse: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
     revision: Mapped[int] = mapped_column(Integer, default=1)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
