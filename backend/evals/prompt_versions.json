@@ -1,6 +1,6 @@
 {
   "_doc": "Each coach prompt version and the fingerprint of the prompts and request settings it names (evals/meta.py:request_fingerprint). tests/test_eval_harness.py fails when the prompts change without a new version here.",
-  "current": "coach-2026-11-04c",
+  "current": "coach-2026-11-14",
   "versions": {
     "coach-2026-11-03": {
       "fingerprint": "f7a9c11481d697f2564299101984818644836f905a7094a304890a53c9de1586",
@@ -21,6 +21,11 @@
       "fingerprint": "937663a2a9979f2cee9cbaf31c13e5781d8882ed94ac61d5a9c95c264d632db8",
       "recorded": "2026-11-04",
       "notes": "Reply handling only; nothing asked changed (no prompt text, schema or setting). A reply that is valid against its schema but unusable (required text empty, a complexity with no Big-O notation, a failure explanation with no evidence or next step) falls back to the built-in coach, as does a failure explanation whose evidence quotes text its request didn't contain (in 04b its evidence was only dropped). The attempt hook receives each request's max_tokens, so the evaluation reserves its token budget before sending (Volume 4 brief 06 / prompt 08)."
+    },
+    "coach-2026-11-14": {
+      "fingerprint": "d585b042635c32f8447c9f4820cd1552659025fe2900c05efd1a5840bbe8a383",
+      "recorded": "2026-11-14",
+      "notes": "One wording change in what's asked: a code review with no judge verdict now reads 'Judge verdict: none given (this code may not have been judged)' instead of 'not judged yet (code execution is not available)', which was wrong whenever code execution was available, and is how a verdict the learner leaves out reads too (Volume 12 prompt 2, docs/COACH_CONTEXT.md). The static-analysis block's words moved to context_text.analysis_text, shared with the review preview, byte for byte as before. No schema, setting or system prompt changed."
     }
   }
 }

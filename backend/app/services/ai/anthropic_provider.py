@@ -36,6 +36,7 @@ from app.services.ai.base import (
     ProviderResult,
     ReviewContext,
 )
+from app.services.ai.context_text import analysis_text, verdict_text
 from app.services.ai.static_analysis import Analysis
 
 logger = logging.getLogger("codecoach.ai.anthropic")
@@ -49,7 +50,7 @@ MIN_ATTEMPT_S = 5.0  # no point starting a request with less time than this left
 _RETRY_STATUS = frozenset({408, 409})
 # Change with any prompt, prompt builder, token limit, effort or output schema; evaluation reports
 # record it, and evals/prompt_versions.json holds the fingerprint each version was recorded with.
-PROMPT_VERSION = "coach-2026-11-04c"
+PROMPT_VERSION = "coach-2026-11-14"
 T = TypeVar("T", bound=BaseModel)
 Effort = Literal["low", "medium", "high"]
 
@@ -130,16 +131,7 @@ def _problem_block(p: ProblemContext) -> str:
 
 
 def _analysis_block(a: Analysis) -> str:
-    findings = [
-        {"severity": f.severity, "category": f.category, "detail": f.detail, "line": f.line}
-        for f in a.findings
-    ]
-    return (
-        "<analysis>\n"
-        f"Heuristic complexity estimate: time {a.estimated_time}, space {a.estimated_space}\n"
-        f"Static findings (heuristic, may contain false positives): {json.dumps(findings)}\n"
-        "</analysis>"
-    )
+    return f"<analysis>\n{analysis_text(a)}\n</analysis>"
 
 
 # Big-O notation somewhere in the text ("O(n)", "O(n log n) time"); "banana" or "" is no answer.
@@ -243,7 +235,7 @@ class AnthropicCoach:
         return self._call(prompt, HintContent, max_tokens=2_000)
 
     def review(self, ctx: ReviewContext) -> ProviderResult[CodeReview]:
-        verdict = ctx.judge_status or "not judged yet (code execution is not available)"
+        verdict = verdict_text(ctx.judge_status)
         prompt = (
             f"{_problem_block(ctx.problem)}\n\n"
             f"<learner_code>\n{_numbered(ctx.code)}\n</learner_code>\n\n"

@@ -57,6 +57,7 @@ def request_fingerprint() -> str:
     from app.schemas.ai import CodeReview, FailureExplanation, HintContent
     from app.schemas.interview import InterviewerReply, InterviewEvaluation
     from app.services.ai import anthropic_provider as ap
+    from app.services.ai import context_text as ct
 
     parts = [
         ap.SYSTEM_PROMPT,
@@ -67,6 +68,9 @@ def request_fingerprint() -> str:
             inspect.getsource(f)
             for f in (ap._transcript_block, ap._problem_block, ap._analysis_block, ap._numbered)
         ),
+        # The learner's material as the coach reads it, shared with the preview (docs/COACH_CONTEXT.md).
+        *(inspect.getsource(f) for f in (ct.analysis_text, ct.verdict_text)),
+        ct.NO_VERDICT,
         *(
             inspect.getsource(getattr(ap.AnthropicCoach, m))
             for m in ("__init__", "hint", "review", "explain_failure", "interview_turn", "evaluate_interview")

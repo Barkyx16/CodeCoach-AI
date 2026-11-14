@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useAIHistory, useAIUsage, useHint, useReview } from "@/api/queries";
-import type { CodeReview, HintLevel, HintResponse, ReviewResponse } from "@/api/types";
+import { api } from "@/api/endpoints";
+import type { CodeReview, HintLevel, HintResponse, ReviewPreview, ReviewResponse } from "@/api/types";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { ActionError } from "@/components/ActionError";
@@ -14,6 +15,7 @@ import { useRetryWait } from "@/hooks/useCountdown";
 import { fingerprint, forgetIntent, keyForIntent, type IntentKind } from "@/lib/pendingIntents";
 import { Tabs } from "@/components/Tabs";
 import { FallbackNotice } from "@/components/FallbackNotice";
+import { CoachContext } from "@/features/workspace/CoachContext";
 
 const LEVELS: { level: HintLevel; name: string; blurb: string }[] = [
   { level: 1, name: "Nudge", blurb: "A question that points you in the right direction" },
@@ -152,34 +154,81 @@ function ReviewTab({ problemSlug, code, submissionId, onHighlightLine }: {
 }) {
   const review = useReview();
   const [result, setResult] = useState<ReviewResponse | null>(null);
+  // Check, then send (docs/COACH_CONTEXT.md): the preview shows exactly what the coach would read,
+  // and the review is sent bound to it, so it goes only if what's sent is what was shown.
+  const [preview, setPreview] = useState<{ data: ReviewPreview; code: string } | null>(null);
+  const [share, setShare] = useState(true);
+  const [checking, setChecking] = useState(false);
+  const [checkError, setCheckError] = useState<unknown>(null);
+  const [changed, setChanged] = useState<string | null>(null);
+  const [cancelled, setCancelled] = useState(false);
   const wait = useRetryWait(review.error);
   const { user } = useAuth();
-  // The same code, not answered yet (a lost response, even across a reload): the same key, so the
-  // server gives back the review it already made. Changed code, or "Review again" after an answer,
-  // is a new review.
+  // The same approved material, not answered yet (a lost response, even across a reload): the same
+  // key, so the server gives back the review it already made. Anything else is a new review.
   const earlier = useEarlierAction("review", problemSlug);
 
-  async function run() {
+  async function check(withVerdict = share) {
+    setChecking(true);
+    setCheckError(null);
+    setCancelled(false);
+    try {
+      const data = await api.reviewPreview({ problem_slug: problemSlug, source_code: code, submission_id: submissionId, share_verdict: withVerdict });
+      setPreview({ data, code });
+      setChanged(null);
+    } catch (e) {
+      setCheckError(e);
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  async function send() {
+    if (!preview) return;
     onHighlightLine(null);
     if (earlier.status !== "none") earlier.dismiss();
-    setResult(await keyed(user?.id, "review", problemSlug, fingerprint(problemSlug, code, submissionId), (key) =>
-      review.mutateAsync({ problem_slug: problemSlug, source_code: code, submission_id: submissionId, client_request_id: key })));
+    const approved = preview.data.context_fingerprint;
+    try {
+      setResult(await keyed(user?.id, "review", problemSlug, fingerprint(problemSlug, preview.code, submissionId, share ? 1 : 0, approved), (key) =>
+        review.mutateAsync({ problem_slug: problemSlug, source_code: preview.code, submission_id: submissionId, share_verdict: share, approved_context: approved, client_request_id: key })));
+      setPreview(null);
+    } catch (e) {
+      if (e instanceof ApiError && e.code === "context_changed") {
+        // Nothing was sent: show what would be sent now, to check before sending again.
+        const fresh = (e.details as { preview?: ReviewPreview } | undefined)?.preview;
+        if (fresh) setPreview({ data: fresh, code: preview.code });
+        setChanged("What the coach would read changed since you checked it, so nothing was sent. This is what it would read now.");
+        review.reset();
+      }
+    }
   }
 
   return (
     <div className="review stack">
-      <div className="row">
-        <Button variant="primary" loading={review.isPending} onClick={() => void run().catch(() => undefined)}
-          disabled={!code.trim() || wait > 0}>
-          {result ? "Review again" : "Review my code"}
-        </Button>
-        <span className="subtle">Checks correctness risks, edge cases, complexity and readability.</span>
-      </div>
+      {!preview && (
+        <div className="row">
+          <Button variant="primary" loading={checking} onClick={() => void check()}
+            disabled={!code.trim() || wait > 0}>
+            {result ? "Review again" : "Review my code"}
+          </Button>
+          <span className="subtle">You'll see exactly what the coach will read before anything is sent.</span>
+        </div>
+      )}
+      {cancelled && !preview && <p className="subtle" role="status">Cancelled. Nothing was sent.</p>}
+      <ActionError error={checkError} action="Checking what would be sent" onRetry={() => void check()} />
+      {preview && (
+        <CoachContext preview={preview.data} share={share} stale={preview.code !== code} changed={changed}
+          busy={review.isPending || checking}
+          onShare={(next) => { setShare(next); void check(next); }}
+          onSend={() => void send()}
+          onCancel={() => { setPreview(null); setChanged(null); setCancelled(true); }}
+          onCheckAgain={() => void check()} />
+      )}
       <EarlierActionNotice earlier={earlier} noun="code review"
         found={earlier.status === "found"
           ? <>It wasn't asked for again. <Link to={`/history/coaching/${earlier.outcome.id}`}>Open that review</Link>.</> : null} />
-      {!review.isPending && (
-        <ActionError error={review.error} action="The code review" repeatSafe onRetry={() => void run().catch(() => undefined)} />
+      {!review.isPending && preview && (
+        <ActionError error={review.error} action="The code review" repeatSafe onRetry={() => void send()} />
       )}
       {result && <ReviewResult data={result} onHighlightLine={onHighlightLine} />}
     </div>

@@ -3,6 +3,7 @@ provider fallback, and usage records. Routes stay thin; all policy lives here.""
 
 from __future__ import annotations
 
+import hmac
 import re
 import time
 from collections.abc import Callable
@@ -33,12 +34,16 @@ from app.schemas.ai import (
     AIUsage,
     CodeReview,
     Complexity,
+    ContextItem,
     ExplainFailureRequest,
     ExplainFailureResponse,
     FailureExplanation,
     HintContent,
     HintRequest,
     HintResponse,
+    LeftOut,
+    ReviewPreview,
+    ReviewPreviewRequest,
     ReviewRequest,
     ReviewResponse,
 )
@@ -55,6 +60,7 @@ from app.services.ai.base import (
     ReviewContext,
 )
 from app.services.ai.bounded import BoundedProvider
+from app.services.ai.context_text import analysis_text
 from app.services.ai.offline import OfflineCoach
 from app.services.ai.static_analysis import analyze
 from app.services.judge.views import public_result_view
@@ -81,20 +87,44 @@ _SECRET_PATTERNS = [
 ]
 
 
-def redact_secrets(code: str) -> str:
+def redact_secrets_counted(code: str) -> tuple[str, int]:
+    """The code with secret-looking strings replaced, and how many were (a string already replaced
+    by an earlier pattern isn't counted twice)."""
+    count = 0
+
+    def replaced(m: re.Match[str], to: str) -> str:
+        nonlocal count
+        if m.group(0) != to:
+            count += 1
+        return to
+
     for pattern in _SECRET_PATTERNS:
         if pattern.groups >= 2:
-            code = pattern.sub(lambda m: f'{m.group(1)}{m.group(2)}"[REDACTED]"', code)
+            code = pattern.sub(lambda m: replaced(m, f'{m.group(1)}{m.group(2)}"[REDACTED]"'), code)
         else:
-            code = pattern.sub("[REDACTED]", code)
-    return code
+            code = pattern.sub(lambda m: replaced(m, "[REDACTED]"), code)
+    return code, count
+
+
+def redact_secrets(code: str) -> str:
+    return redact_secrets_counted(code)[0]
+
+
+TRUNCATED = "\n// [truncated by CodeCoach: input exceeded the size limit]"
+
+
+def sanitize_code_report(code: str, max_chars: int) -> tuple[str, int, bool]:
+    """The code as the coach receives it, how many secret-looking strings were replaced, and
+    whether it was cut to the size limit."""
+    code, redacted = redact_secrets_counted(code.replace("\x00", ""))
+    truncated = len(code) > max_chars
+    if truncated:
+        code = code[:max_chars] + TRUNCATED
+    return code, redacted, truncated
 
 
 def sanitize_code(code: str, max_chars: int) -> str:
-    code = redact_secrets(code.replace("\x00", ""))
-    if len(code) > max_chars:
-        code = code[:max_chars] + "\n// [truncated by CodeCoach: input exceeded the size limit]"
-    return code
+    return sanitize_code_report(code, max_chars)[0]
 
 
 def build_provider(settings: Settings) -> CoachProvider:
@@ -127,15 +157,30 @@ def problem_context(problem: Problem) -> ProblemContext:
 
 
 def request_fingerprint(
-    action: AIAction, problem_id: int, hint_level: int | None, source_code: str, submission_id: str | None
+    action: AIAction,
+    problem_id: int,
+    hint_level: int | None,
+    source_code: str,
+    submission_id: str | None,
+    context: str | None = None,
 ) -> str:
     """What a keyed coaching request stands for, made on the server from validated inputs (never a
     browser-supplied hash): the action, problem, hint level, the code exactly as sent, and the
-    submission a review is about. Stored as a digest only; never shown or logged."""
-    return request_keys.fingerprint(
-        f"ai.{action.value}",
-        {"problem": problem_id, "level": hint_level, "code": source_code, "submission": submission_id},
-    )
+    submission a review is about. For a review sent against a preview, also the approved context
+    (its fingerprint and whether the verdict goes with it), so the same key can't later stand for
+    other material. Stored as a digest only; never shown or logged."""
+    payload: dict = {
+        "problem": problem_id,
+        "level": hint_level,
+        "code": source_code,
+        "submission": submission_id,
+    }
+    if context is not None:
+        payload["context"] = context
+    return request_keys.fingerprint(f"ai.{action.value}", payload)
+
+
+INSTRUCTIONS = "CodeCoach's own instructions to the coach, the same for everyone. They aren't shown here."
 
 
 def _turn_key(user_id: str) -> str:
@@ -315,23 +360,170 @@ class CoachService:
             )
         return self._hint_response(problem, req.level, result.content, result.provider)
 
+    # --- code review: what it reads, previewed and bound (docs/COACH_CONTEXT.md) ----------------
+
+    def _review_material(
+        self,
+        user: User,
+        problem: Problem,
+        source_code: str,
+        submission_id: str | None,
+        share_verdict: bool,
+        *,
+        strict: bool,
+    ) -> tuple[ReviewContext, ReviewPreview, str | None, str | None]:
+        """The review's context, built once, and the preview of exactly that context: the context,
+        the preview, the verdict to show the learner and the submission it's about.
+
+        `strict` (a preview, or a review sent without one): another account's or an unknown
+        submission is 404, the same for both. Not strict (a review sent against a preview): it's
+        checked again and, if it's gone, left out as unavailable; the preview it's compared with
+        then differs, so nothing is sent and the learner sees why."""
+        judge_status = None
+        used_submission = None
+        judged_at = None
+        verdict_unavailable = False
+        if submission_id:
+            submission = self.db.get(Submission, submission_id)
+            # Same answer for "doesn't exist" and "not yours": don't leak other users' ids.
+            if submission is None or submission.user_id != user.id or submission.problem_id != problem.id:
+                if strict:
+                    raise NotFoundError("Submission not found")
+                verdict_unavailable = True
+            else:
+                used_submission = submission.id
+                if submission.status.is_terminal:
+                    judge_status = submission.status.value
+                    judged_at = submission.judged_at or submission.created_at
+                    if submission.mode == SubmissionMode.RUN:
+                        # Don't let the coach treat a public-tests-only run as a full verdict.
+                        judge_status += " on public tests only (a Run; hidden tests were not executed)"
+        expected = problem.expected_complexity or {}
+        code, redacted, truncated = sanitize_code_report(source_code, self.settings.ai_max_code_chars)
+        analysis = analyze(
+            code,
+            signature=problem.signature,
+            starter_code=problem.starter_code,
+            expected_time=expected.get("time"),
+            constraints=list(problem.constraints),
+        )
+        sent_verdict = judge_status if share_verdict else None
+        ctx = ReviewContext(
+            problem=problem_context(problem), code=code, judge_status=sent_verdict, analysis=analysis
+        )
+        notes = []
+        if redacted:
+            notes.append(
+                f"{redacted} secret-looking string{'' if redacted == 1 else 's'} replaced with [REDACTED]."
+            )
+        if truncated:
+            notes.append(f"Cut to its first {self.settings.ai_max_code_chars:,} characters.")
+        lines = len(source_code.splitlines()) or 1
+        items = [
+            ContextItem(
+                key="code",
+                label="Your code",
+                source=f"As in the editor when you asked: {lines} line{'' if lines == 1 else 's'}. "
+                "Sent with line numbers added.",
+                text=ctx.code,
+                derived=False,
+                required=True,
+                why_required="A code review is of your code.",
+                notes=notes,
+            ),
+            ContextItem(
+                key="checks",
+                label="CodeCoach's own checks of your code",
+                source="Worked out from the code above on CodeCoach's server.",
+                text=analysis_text(analysis),
+                derived=True,
+                required=True,
+                why_required="They go with your code: the coach confirms or discards each one.",
+            ),
+        ]
+        left_out: list[LeftOut] = []
+        if sent_verdict is not None:
+            items.append(
+                ContextItem(
+                    key="verdict",
+                    label="The judge's verdict on your submission",
+                    source=f"Judged {judged_at.isoformat() if judged_at else 'earlier'}.",
+                    text=sent_verdict,
+                    derived=False,
+                    required=False,
+                )
+            )
+        elif judge_status is not None:
+            left_out.append(
+                LeftOut(key="verdict", label="The judge's verdict on your submission", reason="removed")
+            )
+        elif verdict_unavailable and share_verdict:
+            left_out.append(
+                LeftOut(key="verdict", label="The judge's verdict on your submission", reason="unavailable")
+            )
+        # The approval covers both what's sent and what was chosen (which submission, verdict or
+        # not), so a request can't keep the approval while pointing at something else.
+        fingerprint = request_keys.fingerprint(
+            "ai.review.context",
+            {
+                "problem": problem.slug,
+                "chosen": {"submission": submission_id, "share_verdict": share_verdict},
+                "sent": [[i.key, i.text] for i in items],
+            },
+        )
+        external = self.provider.name != "offline"
+        preview = ReviewPreview(
+            items=items,
+            left_out=left_out,
+            required_public=[
+                f"The problem “{problem.title}”: its statement, constraints, method signature and expected "
+                "complexity. Public, the same for everyone, and needed to review code against it."
+            ],
+            instructions=INSTRUCTIONS,
+            recipient=(
+                "Claude, by Anthropic: an outside service CodeCoach sends this to"
+                if external
+                else "The built-in coach, on CodeCoach's own server: nothing leaves it"
+            ),
+            recipient_kind="external" if external else "built_in",
+            fallback=(
+                "If it can't be reached, the built-in coach answers from this same material, and says so."
+                if external
+                else None
+            ),
+            remaining_today=max(0, self.settings.ai_daily_request_limit - self._used_today(user)),
+            context_fingerprint=fingerprint,
+        )
+        return ctx, preview, judge_status, used_submission
+
+    def review_preview(self, user: User, req: ReviewPreviewRequest) -> ReviewPreview:
+        """Exactly what a review would send. No provider call, no budget, nothing stored."""
+        problem = self._problem(req.problem_slug)
+        return self._review_material(
+            user, problem, req.source_code, req.submission_id, req.share_verdict, strict=True
+        )[1]
+
     def review(self, user: User, req: ReviewRequest) -> ReviewResponse:
         problem = self._problem(req.problem_slug)
-        judge_status = None
-        submission_id = None
-        if req.submission_id:
-            submission = self.db.get(Submission, req.submission_id)
-            # Same 404 for "doesn't exist" and "not yours": don't leak other users' ids.
-            if submission is None or submission.user_id != user.id or submission.problem_id != problem.id:
-                raise NotFoundError("Submission not found")
-            submission_id = submission.id
-            if submission.status.is_terminal:
-                judge_status = submission.status.value
-                if submission.mode == SubmissionMode.RUN:
-                    # Don't let the coach treat a public-tests-only run as a full verdict.
-                    judge_status += " on public tests only (a Run; hidden tests were not executed)"
+        bound = req.approved_context is not None
+        ctx, preview, judge_status, submission_id = self._review_material(
+            user, problem, req.source_code, req.submission_id, req.share_verdict, strict=not bound
+        )
         expected = problem.expected_complexity or {}
-        print_ = request_fingerprint(AIAction.REVIEW, problem.id, None, req.source_code, submission_id)
+        # Bound to a preview: the key stands for the approved material, so a resend after a lost
+        # response gets the first answer back and a different selection can't reuse it.
+        if bound:
+            context: str | None = f"{req.approved_context}:{int(req.share_verdict)}"
+        else:
+            context = None if req.share_verdict else "verdict-left-out"
+        print_ = request_fingerprint(
+            AIAction.REVIEW,
+            problem.id,
+            None,
+            req.source_code,
+            req.submission_id if bound else submission_id,
+            context,
+        )
         if (
             done := self._replayed(user, req.client_request_id, AIAction.REVIEW, problem, None, print_)
         ) is not None:
@@ -341,21 +533,14 @@ class CoachService:
                 judge_status=judge_status,
                 expected_complexity=Complexity(**expected) if expected else None,
             )
+        if bound and not hmac.compare_digest(preview.context_fingerprint, req.approved_context or ""):
+            raise ConflictError(
+                "What the coach would read changed since you checked it, so nothing was sent. "
+                "Check it again before sending.",
+                code="context_changed",
+                details={"preview": preview.model_dump(mode="json")},
+            )
         self.check_budget(user)
-
-        code = sanitize_code(req.source_code, self.settings.ai_max_code_chars)
-        ctx = ReviewContext(
-            problem=problem_context(problem),
-            code=code,
-            judge_status=judge_status,
-            analysis=analyze(
-                code,
-                signature=problem.signature,
-                starter_code=problem.starter_code,
-                expected_time=expected.get("time"),
-                constraints=list(problem.constraints),
-            ),
-        )
         result = self.call_with_fallback(lambda p: p.review(ctx))
         self.record_interaction(
             user,

@@ -7,7 +7,8 @@ import type {
   CareerAnalytics,
   Career,
   InterviewAnswer,
-  QuestionSummary, HintResponse, Page, ProblemDetail, ProblemSummary, Progress, ReviewResponse, Submission, TokenResponse, User, VerificationStatus } from "@/api/types";
+  QuestionSummary, HintResponse, Page, ProblemDetail, ProblemSummary, Progress, ReviewPreview,
+  ReviewResponse, Submission, TokenResponse, User, VerificationStatus } from "@/api/types";
 
 export const user: User = { id: "u-1", email: "ada@example.com", display_name: "Ada", is_guest: false, created_at: "2026-11-01T08:00:00Z", email_verified: true, career_track: "software-engineer", is_admin: false };
 
@@ -69,6 +70,32 @@ export const hint = (level: 1 | 2 | 3 | 4): HintResponse => ({
   content: { hint: `Hint text for level ${level}`, focus_area: "approach", encouragement: "Keep going." },
   max_level: 4, next_level_available: level < 4, provider: "offline", grounded: true,
 });
+
+/** What a code review would send (docs/COACH_CONTEXT.md): the code, its checks and, optionally, a verdict. */
+export function reviewPreview(over: { share?: boolean; code?: string; fingerprint?: string; external?: boolean } = {}): ReviewPreview {
+  const share = over.share ?? true;
+  return {
+    operation: "code_review",
+    items: [
+      { key: "code", label: "Your code", source: "As in the editor when you asked: 3 lines. Sent with line numbers added.",
+        text: over.code ?? "class Solution {\n  // token = \"[REDACTED]\"\n}", derived: false, required: true,
+        why_required: "A code review is of your code.", notes: ["1 secret-looking string replaced with [REDACTED]."] },
+      { key: "checks", label: "CodeCoach's own checks of your code", source: "Worked out from the code above on CodeCoach's server.",
+        text: "Heuristic complexity estimate: time O(n^2), space O(1)\nStatic findings (heuristic, may contain false positives): []",
+        derived: true, required: true, why_required: "They go with your code: the coach confirms or discards each one.", notes: [] },
+      ...(share ? [{ key: "verdict" as const, label: "The judge's verdict on your submission", source: "Judged 2026-11-14T10:42:00Z.",
+        text: "FAILED", derived: false, required: false, why_required: null, notes: [] }] : []),
+    ],
+    left_out: share ? [] : [{ key: "verdict", label: "The judge's verdict on your submission", reason: "removed" }],
+    required_public: ["The problem “Two Sum”: its statement, constraints, method signature and expected complexity. Public, the same for everyone, and needed to review code against it."],
+    instructions: "CodeCoach's own instructions to the coach, the same for everyone. They aren't shown here.",
+    recipient: over.external ? "Claude, by Anthropic: an outside service CodeCoach sends this to" : "The built-in coach, on CodeCoach's own server: nothing leaves it",
+    recipient_kind: over.external ? "external" : "built_in",
+    fallback: over.external ? "If it can't be reached, the built-in coach answers from this same material, and says so." : null,
+    remaining_today: 48,
+    context_fingerprint: over.fingerprint ?? (share ? "v1:with-verdict" : "v1:without-verdict"),
+  };
+}
 
 export const review: ReviewResponse = {
   review: {

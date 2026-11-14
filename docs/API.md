@@ -231,6 +231,7 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 | GET | `/api/v1/submissions/{id}` | 🔒 | Poll a submission |
 | GET | `/api/v1/me/submissions` | 🔒 | Attempt history |
 | POST | `/api/v1/ai/hint` | 🔒 | Progressive hint |
+| POST | `/api/v1/ai/review/preview` | 🔒 | What a review would send, exactly (no coach call, no budget) |
 | POST | `/api/v1/ai/review` | 🔒 | Structured code review |
 | POST | `/api/v1/ai/explain-failure` | 🔒 | Explain why a judged submission failed |
 | GET | `/api/v1/ai/usage` | 🔒 | Remaining AI budget |
@@ -627,7 +628,11 @@ ai_request_in_progress`. Both carry `details.retry_after_seconds` and `Retry-Aft
 {"problem_slug": "two-sum", "source_code": "class Solution { … }", "submission_id": null}
 ```
 `submission_id` (optional, must be yours) attaches the judge verdict once it exists. The AI is
-told the verdict is authoritative and must never contradict it.
+told the verdict is authoritative and must never contradict it. `share_verdict: false` leaves the
+verdict out. `approved_context` (the `context_fingerprint` from `POST /api/v1/ai/review/preview`,
+same body without the key) sends the review only if the material rebuilt now is exactly what was
+previewed; otherwise `409 context_changed` with the fresh preview in `details.preview`, and nothing
+is sent (docs/COACH_CONTEXT.md).
 ```json
 {
   "review": {

@@ -47,8 +47,15 @@ class LeakyHints(AnthropicCoach):
 
 @contextmanager
 def no_redaction() -> Iterator[None]:
-    """Learner code goes to the provider without secret redaction."""
-    with mock.patch("app.services.ai.service.sanitize_code", lambda code, max_chars: code[:max_chars]):
+    """Learner code goes to the provider without secret redaction (on every path: hints and failure
+    explanations through sanitize_code, the code review through sanitize_code_report)."""
+    with (
+        mock.patch("app.services.ai.service.sanitize_code", lambda code, max_chars: code[:max_chars]),
+        mock.patch(
+            "app.services.ai.service.sanitize_code_report",
+            lambda code, max_chars: (code[:max_chars], 0, False),
+        ),
+    ):
         yield
 
 

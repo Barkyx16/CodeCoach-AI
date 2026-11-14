@@ -10,7 +10,7 @@ import { learnHandlers } from "./learn";
 import { noteHandlers } from "./notes";
 import { scenarioHandlers } from "./scenarios";
 import { reviewFor } from "./review";
-import { activityFacets, activityItems, careers, executionStatus, nurseFormats, hint, makePlan, nurseAnalytics, nurseGoals, nurseAnswer, nurseQuestions, page, problems, progress, queuedSubmission, review, tokenResponse, twoSum, user, verificationStatus } from "./fixtures";
+import { activityFacets, activityItems, careers, executionStatus, nurseFormats, hint, makePlan, nurseAnalytics, nurseGoals, nurseAnswer, nurseQuestions, page, problems, progress, queuedSubmission, review, reviewPreview, tokenResponse, twoSum, user, verificationStatus } from "./fixtures";
 
 export const API = "http://localhost:8000";
 
@@ -93,6 +93,10 @@ export const handlers = [
   http.post(`${API}/api/v1/ai/hint`, async ({ request }) => {
     const body = (await request.json()) as { level: 1 | 2 | 3 | 4 };
     return HttpResponse.json(hint(body.level));
+  }),
+  http.post(`${API}/api/v1/ai/review/preview`, async ({ request }) => {
+    const body = (await request.json()) as { share_verdict?: boolean };
+    return HttpResponse.json(reviewPreview({ share: body.share_verdict !== false }));
   }),
   http.post(`${API}/api/v1/ai/review`, () => HttpResponse.json(review)),
   http.get(`${API}/api/v1/ai/usage`, () => HttpResponse.json({ used_today: 2, daily_limit: 50, remaining_today: 48, provider: "offline" })),

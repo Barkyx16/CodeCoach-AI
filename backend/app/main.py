@@ -287,6 +287,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         120, 60
     )  # per account: workspace searches a minute (typing is debounced)
     app.state.packet_limiter = limiter(30, 60)  # per account: packet previews a minute (docs/PACKET.md)
+    app.state.coach_preview_limiter = limiter(
+        60, 60
+    )  # per account: coach previews a minute (docs/COACH_CONTEXT.md)
     app.state.telemetry_limiter = SlidingWindowLimiter(120, 600.0)  # per account: 120 batches / 10 min
     app.state.metrics = Metrics() if settings.metrics_enabled else None
     app.state.traces = (

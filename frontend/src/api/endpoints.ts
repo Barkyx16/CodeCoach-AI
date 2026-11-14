@@ -103,6 +103,8 @@ import type {
   RestorePreview,
   ResumeOut,
   ReviewQueue,
+  ReviewPreview,
+  ReviewPreviewRequest,
   ReviewRequest,
   ReviewResponse,
   SavedItemRef,
@@ -379,6 +381,9 @@ export const api = {
   // AI coach
   hint: (body: HintRequest) => apiRequest<HintResponse>("/api/v1/ai/hint", { method: "POST", body }),
   review: (body: ReviewRequest) => apiRequest<ReviewResponse>("/api/v1/ai/review", { method: "POST", body }),
+  /** What a review would send, exactly; no provider call and no budget (docs/COACH_CONTEXT.md). */
+  reviewPreview: (body: ReviewPreviewRequest) =>
+    apiRequest<ReviewPreview>("/api/v1/ai/review/preview", { method: "POST", body }),
   explainFailure: (submissionId: string) =>
     apiRequest<ExplainFailureResponse>("/api/v1/ai/explain-failure", { method: "POST", body: { submission_id: submissionId } }),
   aiUsage: () => apiRequest<AIUsage>("/api/v1/ai/usage"),

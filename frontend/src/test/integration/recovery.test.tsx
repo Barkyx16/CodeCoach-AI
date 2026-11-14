@@ -150,8 +150,10 @@ describe("The coach: no second charge for a lost answer", () => {
     const { user } = renderApp("/problems/two-sum", { signedIn: true });
     await user.click(await screen.findByRole("tab", { name: "Code review" }, { timeout: 3000 }));
     await user.click(screen.getByRole("button", { name: "Review my code" }));
+    await user.click(await screen.findByRole("button", { name: "Send for review" }));
     await user.click(await screen.findByRole("button", { name: "Try again" }));
     await user.click(await screen.findByRole("button", { name: "Review again" }));
+    await user.click(await screen.findByRole("button", { name: "Send for review" }));
     await waitFor(() => expect(keys).toHaveLength(3));
     expect(keys[1]).toBe(keys[0]);
     expect(keys[2]).not.toBe(keys[0]);

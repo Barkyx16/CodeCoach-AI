@@ -57,6 +57,19 @@ class ReviewRequest(APIModel):
     problem_slug: str
     source_code: str = Field(min_length=1)
     submission_id: str | None = None
+    share_verdict: bool = Field(
+        default=True,
+        description="Send the judge's verdict on `submission_id` with the code (when it has one). "
+        "False leaves it out of what the coach reads.",
+    )
+    approved_context: str | None = Field(
+        default=None,
+        max_length=80,
+        description="The `context_fingerprint` from POST /ai/review/preview. The review is sent only if the "
+        "private context rebuilt now is exactly what was previewed; otherwise nothing is sent and the answer "
+        "is 409 `context_changed` with a fresh preview in `details.preview`. Without it, the review is sent "
+        "as before (no preview).",
+    )
     client_request_id: OptionalKey = Field(
         default=None,
         min_length=8,
@@ -65,6 +78,60 @@ class ReviewRequest(APIModel):
         description="One key per request: the same request sent again (its response was lost) gets the "
         "first answer back, with no second provider call and no second use of the daily budget. The same "
         "key for a different request is a 409 `idempotency_key_reused`.",
+    )
+
+
+class ReviewPreviewRequest(APIModel):
+    problem_slug: str
+    source_code: str = Field(min_length=1)
+    submission_id: str | None = None
+    share_verdict: bool = True
+
+
+class ContextItem(APIModel):
+    """One piece of your private material, exactly as the coach would read it."""
+
+    key: Literal["code", "checks", "verdict"]
+    label: str = Field(description="What it is, in plain words")
+    source: str = Field(description="Where it comes from and as of when")
+    text: str = Field(
+        description="Exactly what is sent: after secret-looking strings are replaced and long input cut"
+    )
+    derived: bool = Field(description="Worked out by CodeCoach from your material, not written by you")
+    required: bool
+    why_required: str | None = None
+    notes: list[str] = Field(
+        default_factory=list, description="What changed between your material and `text`"
+    )
+
+
+class LeftOut(APIModel):
+    key: Literal["verdict"]
+    label: str
+    reason: Literal["removed", "unavailable"] = Field(
+        description="removed: you left it out; unavailable: it no longer exists or isn't yours"
+    )
+
+
+class ReviewPreview(APIModel):
+    """What a code review would send, built the way the review builds it, with no provider call and
+    no use of the daily budget (docs/COACH_CONTEXT.md)."""
+
+    operation: Literal["code_review"] = "code_review"
+    items: list[ContextItem]
+    left_out: list[LeftOut]
+    required_public: list[str] = Field(description="Public material that is always sent, and why")
+    instructions: str = Field(description="One sentence about the coach's fixed instructions (not shown)")
+    recipient: str = Field(description="Who reads it")
+    recipient_kind: Literal["built_in", "external"]
+    fallback: str | None = Field(
+        description="Who answers, from the same material, if the coach can't be reached"
+    )
+    remaining_today: int = Field(
+        description="Coaching requests left in the last 24 hours; previews don't use one"
+    )
+    context_fingerprint: str = Field(
+        description="Send it back as `approved_context` to bind the review to this preview"
     )
 
 

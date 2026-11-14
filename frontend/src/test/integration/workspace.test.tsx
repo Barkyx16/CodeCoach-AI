@@ -83,6 +83,7 @@ describe("Problem workspace", () => {
     const { user } = renderApp("/problems/two-sum", { signedIn: true });
     await user.click(await screen.findByRole("tab", { name: "Code review" }));
     await user.click(screen.getByRole("button", { name: "Review my code" }));
+    await user.click(await screen.findByRole("button", { name: "Send for review" }));
     expect(await screen.findByText("Nested loops make this roughly O(n^2).")).toBeInTheDocument();
     expect(screen.getAllByText("target O(n)")).toHaveLength(2); // time and space targets
     expect(screen.getByRole("button", { name: "line 3" })).toBeInTheDocument();

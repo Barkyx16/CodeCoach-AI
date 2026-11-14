@@ -57,6 +57,9 @@ test("guest journey: try it, code, hints, review, submit, progress", async ({ pa
   // Structured review flags the nested loop and links to the line.
   await page.getByRole("tab", { name: "Code review" }).click();
   await page.getByRole("button", { name: "Review my code" }).click();
+  // What the coach will read is shown first; nothing is sent until it's approved.
+  await expect(page.getByRole("heading", { name: "What the coach will read" })).toBeVisible();
+  await page.getByRole("button", { name: "Send for review" }).click();
   await expect(page.getByText(/Nested loops make this roughly O\(n\^2\)/).first()).toBeVisible();
   await page.getByRole("button", { name: "line 3" }).click();
   await expect(page.locator(".editor-line--flagged")).toHaveCount(1);

@@ -3201,6 +3201,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ai/review/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What a code review would send to the coach, exactly (no provider call, no budget) */
+        post: operations["review_preview_api_v1_ai_review_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ai/explain-failure": {
         parameters: {
             query?: never;
@@ -5688,6 +5705,46 @@ export interface components {
              */
             changes: components["schemas"]["ContentChange"][];
         };
+        /**
+         * ContextItem
+         * @description One piece of your private material, exactly as the coach would read it.
+         */
+        ContextItem: {
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "code" | "checks" | "verdict";
+            /**
+             * Label
+             * @description What it is, in plain words
+             */
+            label: string;
+            /**
+             * Source
+             * @description Where it comes from and as of when
+             */
+            source: string;
+            /**
+             * Text
+             * @description Exactly what is sent: after secret-looking strings are replaced and long input cut
+             */
+            text: string;
+            /**
+             * Derived
+             * @description Worked out by CodeCoach from your material, not written by you
+             */
+            derived: boolean;
+            /** Required */
+            required: boolean;
+            /** Why Required */
+            why_required?: string | null;
+            /**
+             * Notes
+             * @description What changed between your material and `text`
+             */
+            notes?: string[];
+        };
         /** Conversion */
         Conversion: {
             /** From Currency */
@@ -7957,6 +8014,22 @@ export interface components {
             coverage_note: string;
             /** Careers With Units */
             careers_with_units: components["schemas"]["CareerCoverage"][];
+        };
+        /** LeftOut */
+        LeftOut: {
+            /**
+             * Key
+             * @constant
+             */
+            key: "verdict";
+            /** Label */
+            label: string;
+            /**
+             * Reason
+             * @description removed: you left it out; unavailable: it no longer exists or isn't yours
+             * @enum {string}
+             */
+            reason: "removed" | "unavailable";
         };
         /** LoginRequest */
         LoginRequest: {
@@ -10597,6 +10670,72 @@ export interface components {
             /** Note */
             note: string;
         };
+        /**
+         * ReviewPreview
+         * @description What a code review would send, built the way the review builds it, with no provider call and
+         *     no use of the daily budget (docs/COACH_CONTEXT.md).
+         */
+        ReviewPreview: {
+            /**
+             * Operation
+             * @default code_review
+             * @constant
+             */
+            operation: "code_review";
+            /** Items */
+            items: components["schemas"]["ContextItem"][];
+            /** Left Out */
+            left_out: components["schemas"]["LeftOut"][];
+            /**
+             * Required Public
+             * @description Public material that is always sent, and why
+             */
+            required_public: string[];
+            /**
+             * Instructions
+             * @description One sentence about the coach's fixed instructions (not shown)
+             */
+            instructions: string;
+            /**
+             * Recipient
+             * @description Who reads it
+             */
+            recipient: string;
+            /**
+             * Recipient Kind
+             * @enum {string}
+             */
+            recipient_kind: "built_in" | "external";
+            /**
+             * Fallback
+             * @description Who answers, from the same material, if the coach can't be reached
+             */
+            fallback: string | null;
+            /**
+             * Remaining Today
+             * @description Coaching requests left in the last 24 hours; previews don't use one
+             */
+            remaining_today: number;
+            /**
+             * Context Fingerprint
+             * @description Send it back as `approved_context` to bind the review to this preview
+             */
+            context_fingerprint: string;
+        };
+        /** ReviewPreviewRequest */
+        ReviewPreviewRequest: {
+            /** Problem Slug */
+            problem_slug: string;
+            /** Source Code */
+            source_code: string;
+            /** Submission Id */
+            submission_id?: string | null;
+            /**
+             * Share Verdict
+             * @default true
+             */
+            share_verdict: boolean;
+        };
         /** ReviewPublicTest */
         ReviewPublicTest: {
             /**
@@ -10704,6 +10843,17 @@ export interface components {
             source_code: string;
             /** Submission Id */
             submission_id?: string | null;
+            /**
+             * Share Verdict
+             * @description Send the judge's verdict on `submission_id` with the code (when it has one). False leaves it out of what the coach reads.
+             * @default true
+             */
+            share_verdict: boolean;
+            /**
+             * Approved Context
+             * @description The `context_fingerprint` from POST /ai/review/preview. The review is sent only if the private context rebuilt now is exactly what was previewed; otherwise nothing is sent and the answer is 409 `context_changed` with a fresh preview in `details.preview`. Without it, the review is sent as before (no preview).
+             */
+            approved_context?: string | null;
             /**
              * Client Request Id
              * @description One key per request: the same request sent again (its response was lost) gets the first answer back, with no second provider call and no second use of the daily budget. The same key for a different request is a 409 `idempotency_key_reused`.
@@ -25287,6 +25437,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReviewResponse"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    review_preview_api_v1_ai_review_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewPreview"];
                 };
             };
             /** @description Missing, invalid, expired or revoked access token */

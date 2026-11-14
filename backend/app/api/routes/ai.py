@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db, get_settings_dep
 from app.config import Settings
-from app.errors import NotFoundError
+from app.errors import NotFoundError, RateLimitedError
 from app.models import AIAction, AIInteraction, Problem, User
 from app.schemas.ai import (
     AIHistoryItem,
@@ -13,6 +13,8 @@ from app.schemas.ai import (
     ExplainFailureResponse,
     HintRequest,
     HintResponse,
+    ReviewPreview,
+    ReviewPreviewRequest,
     ReviewRequest,
     ReviewResponse,
 )
@@ -51,6 +53,26 @@ def review(
     body: ReviewRequest, user: User = Depends(get_current_user), coach: CoachService = Depends(get_coach)
 ) -> ReviewResponse:
     return coach.review(user, body)
+
+
+@router.post(
+    "/ai/review/preview",
+    response_model=ReviewPreview,
+    responses=_ERRORS,
+    summary="What a code review would send to the coach, exactly (no provider call, no budget)",
+)
+def review_preview(
+    body: ReviewPreviewRequest,
+    request: Request,
+    user: User = Depends(get_current_user),
+    coach: CoachService = Depends(get_coach),
+) -> ReviewPreview:
+    allowed, retry_after = request.app.state.coach_preview_limiter.hit(f"coach-preview:{user.id}")
+    if not allowed:
+        raise RateLimitedError.wait(
+            "That's a lot of previews in a minute. Try again in a moment.", retry_after
+        )
+    return coach.review_preview(user, body)
 
 
 @router.post(
