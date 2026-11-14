@@ -3644,6 +3644,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/careers/{slug}/analytics/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every answer in an analytics range: in the trend or why not, each compared with the one before it */
+        get: operations["career_chart_attempts_api_v1_me_careers__slug__analytics_attempts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/resume": {
         parameters: {
             query?: never;
@@ -4674,6 +4691,8 @@ export interface components {
             follows_up_answer_id?: string | null;
             /** @description The in-app help shown for this question and version before this answer (docs/ATTEMPT_CONDITIONS.md). It changes no score. */
             conditions?: components["schemas"]["AttemptConditions"] | null;
+            /** @description In a question's list of your answers: this answer compared with the one before it (none for the first) */
+            comparison?: components["schemas"]["AttemptComparison"] | null;
         };
         /** AnswerPerspective */
         AnswerPerspective: {
@@ -5071,6 +5090,43 @@ export interface components {
             /** @description Judge results only; null for careers without coding */
             coding: components["schemas"]["CodingEvidence"] | null;
         };
+        /**
+         * AttemptComparison
+         * @description One attempt compared with the one before it, by the one comparison contract
+         *     (app/careers/comparability.py; docs/COMPARING_ATTEMPTS.md). The same pair reads the same on
+         *     every page.
+         */
+        AttemptComparison: {
+            /**
+             * Against
+             * @description The earlier answer it's compared with (the one it revises, else the one before)
+             */
+            against: string;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "comparable" | "partially_comparable" | "incompatible" | "unknown";
+            /**
+             * Scores Comparable
+             * @description Whether the two scores may be set side by side as a change
+             */
+            scores_comparable: boolean;
+            /**
+             * Points Comparable
+             * @description Whether what was written (the points covered) compares
+             */
+            points_comparable: boolean;
+            /** Reasons */
+            reasons: components["schemas"]["ComparisonReason"][];
+            /** Explanation */
+            explanation: string;
+            /**
+             * Contract Version
+             * @description The version of the comparison rules that decided it
+             */
+            contract_version: number;
+        };
         /** AttemptConditions */
         AttemptConditions: {
             /**
@@ -5267,6 +5323,17 @@ export interface components {
             interviews: components["schemas"]["InterviewCounts"];
             /** Trends */
             trends: components["schemas"]["TrendSeries"][];
+            /**
+             * Not In Trend
+             * @description Answers in the range that the trend doesn't count, by reason
+             */
+            not_in_trend?: components["schemas"]["NotCounted"][];
+            /**
+             * Comparison Rules
+             * @description The comparison contract's version that decided this
+             * @default 1
+             */
+            comparison_rules: number;
             /** By Day */
             by_day: components["schemas"]["DayCount"][];
             /** Definitions */
@@ -5351,6 +5418,64 @@ export interface components {
             current_password: string;
             /** New Password */
             new_password: string;
+        };
+        /** ChartAttempt */
+        ChartAttempt: {
+            /** Answer Id */
+            answer_id: string;
+            /** Question Id */
+            question_id: string;
+            /** Question Title */
+            question_title: string;
+            /** Href */
+            href: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Score
+             * @description Its own score, on its own scale; never converted
+             */
+            score: number;
+            /**
+             * Scoring
+             * @description Long enough to score, too short, or not recorded (app/careers/eligibility.py)
+             * @enum {string}
+             */
+            scoring: "scored" | "too_short" | "unknown";
+            /** Scale */
+            scale: string;
+            /**
+             * Series
+             * @description The trend series it's in, or null when it isn't counted
+             */
+            series: string | null;
+            /**
+             * Not Counted
+             * @description Why it isn't in the trend, when it isn't
+             */
+            not_counted: string | null;
+            /** @description Compared with your answer before it to the same question, by the same contract as the question page and an interview retry */
+            comparison: components["schemas"]["AttemptComparison"] | null;
+        };
+        /** ChartAttempts */
+        ChartAttempts: {
+            /**
+             * Total
+             * @description Answers in the range
+             */
+            total: number;
+            /**
+             * In Chart
+             * @description Of those, in the trend (equals the trend's attempts)
+             */
+            in_chart: number;
+            /** Offset */
+            offset: number;
+            /** Items */
+            items: components["schemas"]["ChartAttempt"][];
         };
         /** Check */
         Check: {
@@ -5623,11 +5748,16 @@ export interface components {
             latest: components["schemas"]["AnswerOut"] | null;
             /**
              * Comparable
-             * @description Original and latest were scored by the same evaluator and rubric
+             * @description Whether the two scores may be set side by side as a change, by the comparison contract (docs/COMPARING_ATTEMPTS.md)
              */
             comparable: boolean;
-            /** Comparability Note */
+            /**
+             * Comparability Note
+             * @description The contract's explanation (or why there's nothing to compare)
+             */
             comparability_note: string;
+            /** @description The original and the latest retry, classified by the comparison contract */
+            classification?: components["schemas"]["AttemptComparison"] | null;
             /**
              * Improved
              * @description Points the latest attempt covers that the original missed
@@ -5769,6 +5899,21 @@ export interface components {
             };
             /** Review Status */
             review_status: string;
+        };
+        /** ComparisonReason */
+        ComparisonReason: {
+            /**
+             * Rule
+             * @description question, scale, source, rubric, question_version, scoring, format or help
+             */
+            rule: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "incompatible" | "unknown" | "partial_text" | "partial_conditions";
+            /** Text */
+            text: string;
         };
         /** ComparisonRubricItem */
         ComparisonRubricItem: {
@@ -8505,6 +8650,15 @@ export interface components {
              * @description Prioritize: in the case's own order
              */
             tasks?: components["schemas"]["TaskOut"][];
+        };
+        /** NotCounted */
+        NotCounted: {
+            /** Rule */
+            rule: string;
+            /** Reason */
+            reason: string;
+            /** Count */
+            count: number;
         };
         /** NoteIn */
         NoteIn: {
@@ -13429,7 +13583,10 @@ export interface components {
              * Format: date
              */
             week_start: string;
-            /** Answers */
+            /**
+             * Answers
+             * @description Answers averaged this week: the series' cohort, the average's denominator
+             */
             answers: number;
             /** Average Score */
             average_score: number | null;
@@ -13438,9 +13595,15 @@ export interface components {
         TrendSeries: {
             /**
              * Evaluator
-             * @description Scores are only compared within one evaluator and rubric version
+             * @description The series: the same scale, kind of evaluator and rubric (docs/COMPARING_ATTEMPTS.md)
              */
             evaluator: string;
+            /**
+             * Attempts
+             * @description Answers in this series in the range (the cohort)
+             * @default 0
+             */
+            attempts: number;
             /** Points */
             points: components["schemas"]["TrendPoint"][];
         };
@@ -27710,6 +27873,62 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CareerAnalytics"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    career_chart_attempts_api_v1_me_careers__slug__analytics_attempts_get: {
+        parameters: {
+            query?: {
+                /** @description Inclusive; omit for all time */
+                since?: string | null;
+                /** @description Inclusive; default today (UTC) */
+                until?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChartAttempts"];
                 };
             };
             /** @description Missing, invalid, expired or revoked access token */

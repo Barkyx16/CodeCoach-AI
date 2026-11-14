@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 
 import type { Comparison, Interview, InterviewReview } from "@/api/types";
 
-import { nurseAnswer, tokenResponse, user as baseUser } from "../fixtures";
+import { comparisonWith, nurseAnswer, tokenResponse, user as baseUser } from "../fixtures";
 import { renderApp } from "../render";
 import { API, server } from "../server";
 
@@ -168,6 +168,23 @@ describe("Retry and compare", () => {
     renderApp("/interviews/iv-r/retry/1", { signedIn: true });
     expect(await screen.findByText(/aren't directly comparable/)).toBeInTheDocument();
     expect(screen.getByText("Latest retry · 70/100")).toBeInTheDocument(); // no "+N" across evaluators
+  });
+  it("when the comparison rules can't tell, shows neither a score change nor a point-by-point comparison", async () => {
+    const latest = { ...nurseAnswer, id: "a-4", score: 72 };
+    const why = "Can't tell whether these compare: which rubric graded one of them wasn't recorded. (Comparison rules v1)";
+    server.use(
+      http.post(`${API}/api/v1/auth/refresh`, () => HttpResponse.json(tokenResponse({ user: nurse }))),
+      http.get(`${API}/api/v1/interviews/iv-r/questions/1/comparison`, () => HttpResponse.json(comparison({
+        retries: [latest], latest, comparable: false, score_change: null, comparability_note: why,
+        improved: ["Explains what you personally did"], classification: comparisonWith("a-1", "unknown", { explanation: why }),
+      }))),
+    );
+    renderApp("/interviews/iv-r/retry/1", { signedIn: true });
+    const result = await screen.findByRole("region", { name: "How your latest attempt compares" });
+    expect(within(result).getByText(why)).toBeInTheDocument();
+    expect(within(result).getByText("Latest retry · 72/100")).toBeInTheDocument();
+    expect(within(result).queryByText(/Explains what you personally did/)).not.toBeInTheDocument();
+    expect(within(result).getByText(/aren't compared point by point/)).toBeInTheDocument();
   });
 });
 

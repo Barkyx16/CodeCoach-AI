@@ -108,8 +108,13 @@ def test_retry_keeps_the_original_and_compares_on_the_same_rubric(client):
     c = client.post(f"/api/v1/interviews/{iv}/questions/0/retries", headers=h, json={"answer": STRONG}).json()
     assert c["original"]["answer"] == WEAK and c["original"]["score"] == original["score"]  # untouched
     assert c["latest"]["answer"] == STRONG and len(c["retries"]) == 1
-    assert c["comparable"] and "compare directly" in c["comparability_note"]
-    assert c["score_change"] == c["latest"]["score"] - c["original"]["score"] and c["score_change"] > 0
+    # The interview answer was too short to score: what was written compares, the numbers don't
+    # (docs/COMPARING_ATTEMPTS.md), and the timed interview is named as a different condition.
+    assert c["classification"]["outcome"] == "partially_comparable"
+    assert not c["comparable"] and c["score_change"] is None
+    assert (
+        "too short to score" in c["comparability_note"] and "timed mock interview" in c["comparability_note"]
+    )
     assert c["improved"] and not set(c["improved"]) & set(c["still_missing"])
     again = review(client, h, iv)
     assert again["items"][0]["retries"] == 1 and again["items"][0]["feedback"]["answer"] == WEAK
@@ -120,16 +125,29 @@ def test_retry_keeps_the_original_and_compares_on_the_same_rubric(client):
     assert skipped["original"] is None and "no original" in skipped["comparability_note"]
 
 
+def test_a_scoreable_original_and_retry_compare_with_the_conditions_named(client):
+    h = nurse(client)
+    first = STRONG.rsplit(" As a result", 1)[0] + " I stayed with him until the team arrived and handed over."
+    iv = round_with(client, h, [first, None, None, None, None])
+    c = client.post(f"/api/v1/interviews/{iv}/questions/0/retries", headers=h, json={"answer": STRONG}).json()
+    assert c["original"]["evidence_level"] == "sufficient" == c["latest"]["evidence_level"]
+    cl = c["classification"]
+    assert cl["outcome"] == "partially_comparable" and cl["scores_comparable"] and cl["contract_version"] == 1
+    assert [r["rule"] for r in cl["reasons"]] == ["format"]
+    assert c["comparable"] and c["score_change"] == c["latest"]["score"] - c["original"]["score"]
+    assert "answered in a timed mock interview, the later one as a retry" in c["comparability_note"]
+
+
 def test_a_changed_evaluator_is_disclosed_not_compared(client):
     h = nurse(client)
     iv = round_with(client, h, [WEAK, None, None, None, None])
     with client.app.state.session_factory() as db:
         a = db.query(PracticeAnswer).one()
-        a.feedback = {**a.feedback, "evaluator": "built-in (offline) · rubric v0"}
+        a.feedback = {**a.feedback, "rubric_version": "v0", "evaluator": "built-in (offline) · rubric v0"}
         db.commit()
     c = client.post(f"/api/v1/interviews/{iv}/questions/0/retries", headers=h, json={"answer": STRONG}).json()
     assert c["comparable"] is False and c["score_change"] is None
-    assert "aren't directly comparable" in c["comparability_note"]
+    assert "scored under different rubrics (v0 and " in c["comparability_note"]
 
 
 def test_retries_are_only_for_finished_rounds(client):

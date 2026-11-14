@@ -13,49 +13,17 @@ export function tryNumbers(newestFirst: InterviewAnswer[]): Map<string, number> 
   return new Map(newestFirst.map((a, i) => [a.id, newestFirst.length - i]));
 }
 
-/** The answer sent just before `answer` to the same question, if it's listed. */
-export function previousTry(newestFirst: InterviewAnswer[], answer: InterviewAnswer): InterviewAnswer | null {
-  const i = newestFirst.findIndex((a) => a.id === answer.id);
-  if (i >= 0) return newestFirst[i + 1] ?? null;
-  // Not listed yet (just sent, list still loading): the newest listed answer came before it.
-  return newestFirst.find((a) => a.created_at < answer.created_at) ?? null;
-}
-
-export type Comparison =
-  | { comparable: true; gained: string[]; lost: string[]; scoreFrom: number; scoreTo: number }
-  | { comparable: false; reasons: string[] };
-
 /**
- * Two tries are compared directly only when they were graded the same way: the same version of
- * the question, the same rubric and the same coach, and both long enough to score. Otherwise a
- * score difference could come from the grading, not the answer, so the reasons are given instead.
+ * What changed in the points covered between two tries. Whether two tries compare at all is never
+ * decided here: the server's comparison contract decides it (docs/COMPARING_ATTEMPTS.md), and this
+ * is used only when it says what was written compares.
  */
-export function compareTries(before: InterviewAnswer, after: InterviewAnswer): Comparison {
-  const reasons: string[] = [];
-  if (before.content_version !== after.content_version) {
-    reasons.push(`the question was changed in between (version ${before.content_version}, now ${after.content_version})`);
-  }
-  if (before.rubric_version !== after.rubric_version) {
-    reasons.push(`they were graded with different rubrics (${before.rubric_version} and ${after.rubric_version})`);
-  }
-  if (before.coach !== after.coach) {
-    reasons.push(`different coaches graded them (${before.coach} and ${after.coach})`);
-  }
-  if (before.evidence_level === "insufficient" || after.evidence_level === "insufficient") {
-    reasons.push("one of them was too short to score");
-  }
-  if (before.evidence_level === "unknown" || after.evidence_level === "unknown") {
-    reasons.push("how one of them was graded wasn't recorded");
-  }
-  if (reasons.length) return { comparable: false, reasons };
+export function pointsChange(before: InterviewAnswer, after: InterviewAnswer): { gained: string[]; lost: string[] } {
   const had = new Set(before.points.filter((p) => p.covered).map((p) => p.label));
   const has = new Set(after.points.filter((p) => p.covered).map((p) => p.label));
   return {
-    comparable: true,
     gained: after.points.filter((p) => p.covered && !had.has(p.label)).map((p) => p.label),
     lost: before.points.filter((p) => p.covered && !has.has(p.label)).map((p) => p.label),
-    scoreFrom: before.score,
-    scoreTo: after.score,
   };
 }
 

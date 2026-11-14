@@ -31,6 +31,7 @@ from app.schemas.common import Page, error_responses
 from app.schemas.followups import FollowUpOut
 from app.schemas.problem import DifficultyCounts
 from app.services import search
+from app.services.attempt_comparisons import AttemptComparisons, comparison_out
 from app.services.conditions import Conditions
 from app.services.followups import FollowUps
 from app.services.stories import check_story_owner
@@ -332,18 +333,27 @@ def my_answers(
 ) -> list[AnswerOut]:
     if get_question(_track_or_404(slug), question_id) is None:
         raise NotFoundError(f"Question '{question_id}' not found")
-    rows = db.scalars(
+    every = db.scalars(
         select(PracticeAnswer)
         .where(
             PracticeAnswer.user_id == user.id,
             PracticeAnswer.track == slug,
             PracticeAnswer.question_id == question_id,
         )
-        .order_by(PracticeAnswer.created_at.desc())
-        .limit(20)
+        .order_by(PracticeAnswer.created_at.desc(), PracticeAnswer.id.desc())
     ).all()
-    found = Conditions(db, user).for_answers(rows)
-    return [answer_out(r, found[r.id]) for r in rows]
+    rows = every[:20]
+    # Each compared with the one before it by the one contract (docs/COMPARING_ATTEMPTS.md); all of
+    # them are read so the oldest listed one still finds its earlier attempt.
+    compare = AttemptComparisons(db, user)
+    pairs = compare.with_previous(every)
+    out = []
+    for r in rows:
+        a = answer_out(r, compare.conditions[r.id])
+        if r.id in pairs:
+            a.comparison = comparison_out(*pairs[r.id])
+        out.append(a)
+    return out
 
 
 @router.get(

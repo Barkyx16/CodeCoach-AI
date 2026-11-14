@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.careers import CATALOG
 from app.careers.answers import answer_out, graded_answer
+from app.careers.comparability import classify
 from app.careers.questions import Question, get_question, is_retired
 from app.errors import ConflictError, NotFoundError, RateLimitedError
 from app.models import (
@@ -46,7 +47,7 @@ from app.schemas.review import (
     RetryIn,
     ReviewItem,
 )
-from app.services.activity import evaluator_key
+from app.services.attempt_comparisons import AttemptComparisons, comparison_out
 from app.services.question_rounds import QuestionRounds
 
 STATUS_LABEL = {
@@ -616,6 +617,7 @@ class InterviewReviews:
         still: list[str] = []
         newly: list[str] = []
         comparable = False
+        classification = None
         note = "No retry yet."
         if latest_out is not None:
             now = {p.label: p.covered for p in latest_out.points}
@@ -628,15 +630,16 @@ class InterviewReviews:
                 improved = [k for k, v in now.items() if v and not before.get(k, False)]
                 still = [k for k, v in now.items() if not v and not before.get(k, False)]
                 newly = [k for k, v in now.items() if not v and before.get(k, False)]
-                ka = evaluator_key(original.provider, original.feedback or {}) if original else ""
-                kb = evaluator_key(latest.provider, latest.feedback or {}) if latest else ""
-                comparable = ka == kb
-                note = (
-                    f"Both scored by {kb}, so the scores compare directly."
-                    if comparable
-                    else f"Scored by different evaluators ({ka} vs {kb}), so the scores aren't directly comparable; "
-                    "compare the points covered instead."
-                )
+                # The one comparison contract (docs/COMPARING_ATTEMPTS.md): the same rules as the
+                # question page and the progress chart.
+                assert original is not None and latest is not None
+                owner = self.db.get(User, s.user_id)  # already loaded with the request's sign-in
+                assert owner is not None
+                facts = AttemptComparisons(self.db, owner).facts([original, latest])
+                c = classify(facts[original.id], facts[latest.id])
+                classification = comparison_out(original.id, c)
+                comparable = c.scores_comparable
+                note = c.explanation
         return Comparison(
             question_title=q.title,
             prompt=q.prompt,
@@ -645,6 +648,7 @@ class InterviewReviews:
             latest=latest_out,
             comparable=comparable,
             comparability_note=note,
+            classification=classification,
             improved=improved,
             still_missing=still,
             newly_missing=newly,

@@ -6,6 +6,7 @@ import { Card } from "@/components/Card";
 import { WeeklyBars, type BarPoint } from "@/components/charts/WeeklyBars";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { ProgressBars } from "@/features/dashboard/ProgressBars";
+import { ChartAnswers } from "@/features/analytics/ChartAnswers";
 import { StatTile } from "@/features/dashboard/StatTile";
 
 function weekStart(day: string): string {
@@ -18,12 +19,14 @@ function weekLabel(iso: string): string {
   return `Week of ${new Date(`${iso}T00:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" })}`;
 }
 
-/** Every week in the range, so empty weeks show as gaps rather than disappearing. */
+/** Every week in the range, so empty weeks show as gaps rather than disappearing. The trend's own
+ * weeks count too: the daily counts cover at most a year, the trend all of the range. */
 function weeks(a: CareerAnalytics): string[] {
-  if (a.by_day.length === 0) return [];
+  const starts = [...a.by_day.map((d) => weekStart(d.day)), ...a.trends.flatMap((t) => t.points.map((p) => p.week_start))].sort();
+  if (starts.length === 0) return [];
   const out: string[] = [];
-  const d = new Date(`${weekStart(a.by_day[0]!.day)}T00:00:00Z`);
-  const end = weekStart(a.by_day.at(-1)!.day);
+  const d = new Date(`${starts[0]!}T00:00:00Z`);
+  const end = starts.at(-1)!;
   while (d.toISOString().slice(0, 10) <= end) {
     out.push(d.toISOString().slice(0, 10));
     d.setUTCDate(d.getUTCDate() + 7);
@@ -94,24 +97,40 @@ export function CareerAnalyticsView({ track, since, rangeLabel }: { track: strin
           </Card>
         </div>
         <div className="dashboard__col">
-          {a.trends.length === 0 ? (
-            <Card className="stack"><h2 className="section-title">Score trend</h2><p className="subtle">Not evaluated yet: no answers in this range.</p></Card>
-          ) : a.trends.map((t) => {
-            const byWeek = new Map(t.points.map((p) => [p.week_start, p]));
-            const points: BarPoint[] = allWeeks.map((w) => {
-              const p = byWeek.get(w);
-              return {
-                key: w, label: weekLabel(w), value: p?.average_score ?? null,
-                detail: p ? `${weekLabel(w)}: average ${p.average_score}/100 over ${p.answers} ${p.answers === 1 ? "answer" : "answers"}` : `${weekLabel(w)}: no answers`,
-              };
-            });
-            return (
-              <Card className="stack" key={t.evaluator}>
-                <WeeklyBars title="Average score per week" points={points} max={100} unit="Average score (0-100)" emptyText="No scored answers in this range." />
-                <p className="subtle">Scored by {t.evaluator}. {a.trends.length > 1 ? "Scores from different evaluators are shown separately and never combined." : "Scores measure rubric coverage, not correctness."}</p>
-              </Card>
-            );
-          })}
+          <Card className="stack">
+            <h2 className="section-title">Score trend</h2>
+            {a.trends.length === 0 ? (
+              <p className="subtle">{a.answers ? "No answers in this range can be compared yet." : "Not evaluated yet: no answers in this range."}</p>
+            ) : a.trends.map((t) => {
+              const byWeek = new Map(t.points.map((p) => [p.week_start, p]));
+              const points: BarPoint[] = allWeeks.map((w) => {
+                const p = byWeek.get(w);
+                return {
+                  key: w, label: weekLabel(w), value: p?.average_score ?? null,
+                  detail: p ? `${weekLabel(w)}: average ${p.average_score}/100 of ${p.answers} ${p.answers === 1 ? "answer" : "answers"}` : `${weekLabel(w)}: no answers counted`,
+                };
+              });
+              return (
+                <div className="stack-sm" key={t.evaluator}>
+                  {t.attempts < 2 ? (
+                    <p>Not enough comparable answers to show a trend: {t.attempts} in this range. It takes two.</p>
+                  ) : (
+                    <WeeklyBars title="Average score per week" points={points} max={100} unit="Average score (0-100)" emptyText="No scored answers in this range." />
+                  )}
+                  <p className="subtle">
+                    {t.evaluator}: {t.attempts} {t.attempts === 1 ? "answer" : "answers"} counted.{" "}
+                    {a.trends.length > 1 ? "Answers scored differently are shown separately and never combined." : "Scores measure rubric coverage, not correctness."}
+                  </p>
+                </div>
+              );
+            })}
+            {(a.not_in_trend ?? []).length > 0 && (
+              <p className="subtle">
+                Not in the trend: {(a.not_in_trend ?? []).map((n) => `${n.count} ${n.count === 1 ? "answer" : "answers"} (${n.reason})`).join("; ")}.
+              </p>
+            )}
+            <ChartAnswers track={track} since={since} />
+          </Card>
           <Card className="stack">
             <h2 className="section-title">Question types answered</h2>
             {a.kinds.length === 0 ? <p className="subtle">None yet.</p> : (

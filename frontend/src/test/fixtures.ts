@@ -1,4 +1,5 @@
 import type {
+  AttemptComparison,
   ActivityFacets,
   Goals,
   Plan,
@@ -198,7 +199,8 @@ export const nurseAnalytics: CareerAnalytics = {
   ],
   kinds: [{ value: "knowledge", label: "Knowledge", count: 2 }],
   interviews: { completed: 1, in_progress: 0, expired: 0, abandoned: 1 },
-  trends: [{ evaluator: "built-in (offline) · rubric v1", points: [{ week_start: today, answers: 2, average_score: 80 }] }],
+  trends: [{ evaluator: "Graded by fixed rules, rubric v10, scored 0-100", attempts: 2, points: [{ week_start: today, answers: 2, average_score: 80 }] }],
+  not_in_trend: [], comparison_rules: 1,
   by_day: [{ day: today, answers: 2, interviews: 1 }],
   definitions: { trend: "Weekly average score within one evaluator." },
 };
@@ -286,4 +288,19 @@ export function nurseFormats(level: string) {
     { id: "panel", title: "Panel interview (simulated)", practices: "Three simulated interviewers take turns.", available: true, unavailable_reason: null, follow_ups: 2,
       roles: PANEL_ROLES, structure: ["hiring_manager", "peer", "partner", "peer", "hiring_manager"].map((id, i) => slot(i + 1, "Varies by role", PANEL_ROLES.find((r) => r.id === id)!)) },
   ];
+}
+
+/** A comparison as the server's contract returns it (docs/COMPARING_ATTEMPTS.md). */
+export function comparisonWith(against: string, outcome: AttemptComparison["outcome"], over: Partial<AttemptComparison> = {}): AttemptComparison {
+  const LEAD: Record<AttemptComparison["outcome"], string> = {
+    comparable: "Comparable: the same question and version, rubric, evaluator and conditions",
+    partially_comparable: "Partly comparable",
+    incompatible: "Not comparable",
+    unknown: "Can't tell whether these compare",
+  };
+  return {
+    against, outcome,
+    scores_comparable: outcome === "comparable", points_comparable: outcome === "comparable" || outcome === "partially_comparable",
+    reasons: [], explanation: `${LEAD[outcome]}. (Comparison rules v1)`, contract_version: 1, ...over,
+  };
 }

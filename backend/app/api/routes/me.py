@@ -16,6 +16,7 @@ from app.schemas.activity import (
     ActivityStatus,
     ActivityType,
     CareerAnalytics,
+    ChartAttempts,
     ResumeOut,
 )
 from app.schemas.common import APIModel, Page, error_responses
@@ -147,6 +148,28 @@ def career_analytics(
         raise NotFoundError(f"Career '{slug}' not found")
     end = until or datetime.now(UTC).date()
     return _activity(request, db).career_analytics(user, slug, since, end)
+
+
+@router.get(
+    "/careers/{slug}/analytics/attempts",
+    response_model=ChartAttempts,
+    responses=error_responses(401, 404, 422),
+    summary="Every answer in an analytics range: in the trend or why not, each compared with the one before it",
+)
+def career_chart_attempts(
+    slug: str,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    since: date | None = Query(default=None, description="Inclusive; omit for all time"),
+    until: date | None = Query(default=None, description="Inclusive; default today (UTC)"),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=100),
+) -> ChartAttempts:
+    if slug not in CATALOG:
+        raise NotFoundError(f"Career '{slug}' not found")
+    end = until or datetime.now(UTC).date()
+    return _activity(request, db).chart_attempts(user, slug, since, end, offset, limit)
 
 
 @router.get(

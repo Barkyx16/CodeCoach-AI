@@ -75,14 +75,14 @@ describe("Unified History", () => {
 });
 
 describe("Career-aware Analytics", () => {
-  it("shows a nurse's own analytics with definitions, gaps and an evaluator-specific trend", async () => {
+  it("shows a nurse's own analytics with definitions, gaps and a trend per score basis with its count", async () => {
     asNurse();
     renderApp("/analytics", { signedIn: true });
     expect(await screen.findByRole("region", { name: /Registered Nurse summary, last 90 days/ })).toBeInTheDocument();
     expect(screen.getByLabelText("Career")).toHaveValue("registered-nurse");
     expect(screen.queryByText(/Acceptance rate/)).not.toBeInTheDocument(); // no coding stats for nurses
     expect(screen.getByText("Not practised yet")).toBeInTheDocument(); // not shown as zero
-    expect(screen.getByText(/Scored by built-in \(offline\) · rubric v1/)).toBeInTheDocument();
+    expect(screen.getByText(/Graded by fixed rules, rubric v10, scored 0-100: 2 answers counted\./)).toBeInTheDocument();
     expect(screen.getByText("1 ended early")).toBeInTheDocument();
     expect(screen.getByText("How these numbers are defined")).toBeInTheDocument();
   });

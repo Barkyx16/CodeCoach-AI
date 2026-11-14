@@ -29,6 +29,7 @@ import type {
   DemoOut,
   Career,
   CareerAnalytics,
+  ChartAttempts,
   CheckResult,
   Collection,
   CollectionSummary,
@@ -457,6 +458,9 @@ export const api = {
     apiRequest<ActivityFacets>("/api/v1/me/activity/facets", { query: { career } }),
   careerAnalytics: (track: string, since?: string) =>
     apiRequest<CareerAnalytics>(`/api/v1/me/careers/${encodeURIComponent(track)}/analytics`, { query: { since } }),
+  /** Every answer in an analytics range: in the trend or why not, each compared with the one before it. */
+  chartAttempts: (track: string, since: string | undefined, offset: number, limit = 50) =>
+    apiRequest<ChartAttempts>(`/api/v1/me/careers/${encodeURIComponent(track)}/analytics/attempts`, { query: { since, offset, limit } }),
   resume: () => apiRequest<ResumeOut>("/api/v1/me/resume"),
   aiHistoryItem: (id: string) => apiRequest<AIHistoryItem>(`/api/v1/me/ai-history/${encodeURIComponent(id)}`),
   /** What a request sent with this key made, if anything (read-only; 404: no record). */

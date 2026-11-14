@@ -168,8 +168,11 @@ def test_career_analytics_for_any_career_with_definitions(client):
     untouched = next(s for s in a["skills"] if s["skill"] == "triage")
     assert untouched["questions_answered"] == 0 and untouched["average_best_score"] is None  # not zero
     assert a["interviews"]["abandoned"] == 1 and a["interviews"]["completed"] == 0
-    assert len(a["trends"]) == 1 and a["trends"][0]["evaluator"].endswith(f"rubric {RUBRIC_VERSION}")
-    assert sum(p["answers"] for p in a["trends"][0]["points"]) == 3
+    assert len(a["trends"]) == 1 and f"rubric {RUBRIC_VERSION}," in a["trends"][0]["evaluator"]
+    # The trend counts its cohort (docs/COMPARING_ATTEMPTS.md); the rest are counted by reason.
+    in_trend = sum(p["answers"] for p in a["trends"][0]["points"])
+    assert in_trend == a["trends"][0]["attempts"]
+    assert in_trend + sum(n["count"] for n in a["not_in_trend"]) == 3
     assert sum(d["answers"] for d in a["by_day"]) == 3
     assert {"trend", "average_best_score", "skills"} <= set(a["definitions"])
     future = (datetime.now(UTC) + timedelta(days=2)).date().isoformat()

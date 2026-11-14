@@ -79,11 +79,13 @@ export function ComparisonView({ c }: { c: Comparison }) {
           <blockquote className="round-result__answer">{c.latest!.answer}</blockquote>
         </div>
       </div>
-      <div className="comparison__lists">
+      {c.classification && !c.classification.points_comparable ? (
+        <p className="subtle">What each covered is on its own feedback; they aren't compared point by point.</p>
+      ) : <div className="comparison__lists">
         <div><h3 className="assessment__h">Improved</h3>{c.improved.length ? <ul className="mini-list">{c.improved.map((p) => <li key={p}>✓ {p}</li>)}</ul> : <p className="subtle">Nothing new covered yet.</p>}</div>
         <div><h3 className="assessment__h">Still needs attention</h3>{c.still_missing.length ? <ul className="mini-list">{c.still_missing.map((p) => <li key={p}>○ {p}</li>)}</ul> : <p className="subtle">Nothing missing.</p>}</div>
         {c.newly_missing.length > 0 && <div><h3 className="assessment__h">Covered before, missing now</h3><ul className="mini-list">{c.newly_missing.map((p) => <li key={p}>! {p}</li>)}</ul></div>}
-      </div>
+      </div>}
       {c.retries.length > 1 && <p className="subtle">{c.retries.length} retries so far; the latest is shown. Every attempt stays in your History.</p>}
     </section>
   );

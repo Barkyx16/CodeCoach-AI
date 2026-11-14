@@ -26,13 +26,13 @@ from sqlalchemy import Select, and_, case, false, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.careers import CATALOG
+from app.careers.comparability import CONTRACT_VERSION, SOURCES, AttemptFacts, score_basis
 from app.careers.eligibility import (
     eligibility,
     eligibility_columns,
     feedback_eligibility,
     too_short_condition,
 )
-from app.careers.grading import RUBRIC_VERSION
 from app.careers.questions import get_question, questions_for
 from app.careers.skills import career_skills, question_skills, questions_by_skill
 from app.models import (
@@ -60,9 +60,12 @@ from app.schemas.activity import (
     ActivityTarget,
     ActivityType,
     CareerAnalytics,
+    ChartAttempt,
+    ChartAttempts,
     DayCount,
     FacetOption,
     InterviewCounts,
+    NotCounted,
     ResumeInterview,
     ResumeOut,
     ResumeProblem,
@@ -72,6 +75,12 @@ from app.schemas.activity import (
     TrendSeries,
 )
 from app.schemas.common import Page
+from app.services.attempt_comparisons import (
+    WRITTEN_SCALE,
+    AttemptComparisons,
+    comparison_out,
+    recorded_rubric,
+)
 
 TYPE_LABELS: dict[str, str] = {
     "problem_opened": "Problem opened",
@@ -117,9 +126,22 @@ INTERVIEW_STATUS = {
 CODING_TITLE = "Coding problems"
 
 
-def evaluator_key(provider: str, feedback: dict) -> str:
-    """Scores are only comparable within one evaluator and rubric version."""
-    return feedback.get("evaluator") or f"{provider} · rubric {RUBRIC_VERSION}"
+def chart_facts(row) -> AttemptFacts:
+    """The facts a trend needs (score basis only), from the analytics query's columns: as recorded,
+    never defaulted. Format and help don't decide a series, so they aren't read."""
+    fb = {"rubric_version": row.rubric_version, "evaluator": row.evaluator}
+    return AttemptFacts(
+        id="",
+        track="",
+        question_id=row.question_id,
+        question_version=1,
+        scale=WRITTEN_SCALE,
+        rubric=recorded_rubric(fb),
+        source=SOURCES.get(row.provider or ""),
+        scoring=eligibility(row.evidence_level, row.word_count),
+        format=None,
+        help=None,
+    )
 
 
 def career_title(career: str) -> str:
@@ -633,23 +655,68 @@ class ActivityService:
 
     # --- career analytics -------------------------------------------------------------------
 
-    def career_analytics(self, user: User, track: str, since: date | None, until: date) -> CareerAnalytics:
-        # Only the columns the statistics use. Loading whole rows decoded every answer's feedback
-        # JSON (and its text) just to read one field: about half the time at 2,000 answers
-        # (docs/PERFORMANCE.md, "Real journeys"). The evaluator is read with the database's JSON
-        # operator instead.
+    def _chart_rows(self, user: User, track: str, since: date | None, until: date) -> list:
+        """The columns a trend reads, for every answer in the range, oldest first: the same query for
+        the trend and its list, so both count the same cohort. Only these columns are read; the
+        feedback JSON isn't decoded (docs/PERFORMANCE.md, "Real journeys")."""
         stmt = select(
+            PracticeAnswer.id,
             PracticeAnswer.question_id,
             PracticeAnswer.score,
             PracticeAnswer.created_at,
             PracticeAnswer.provider,
             PracticeAnswer.feedback["evaluator"].as_string().label("evaluator"),
+            PracticeAnswer.feedback["rubric_version"].as_string().label("rubric_version"),
             *eligibility_columns(),
         ).where(PracticeAnswer.user_id == user.id, PracticeAnswer.track == track)
         stmt = stmt.where(PracticeAnswer.created_at < _start(until + timedelta(days=1)))
         if since:
             stmt = stmt.where(PracticeAnswer.created_at >= _start(since))
-        answers = list(self.db.execute(stmt.order_by(PracticeAnswer.created_at)).all())
+        return list(self.db.execute(stmt.order_by(PracticeAnswer.created_at, PracticeAnswer.id)).all())
+
+    def chart_attempts(
+        self, user: User, track: str, since: date | None, until: date, offset: int, limit: int
+    ) -> ChartAttempts:
+        """Every answer in the chart's range, newest first: in the trend or why not, each reachable,
+        each compared with the answer before it by the same contract as the question page."""
+        rows = self._chart_rows(user, track, since, until)[::-1]
+        bases = [score_basis(chart_facts(r)) for r in rows]
+        page = list(zip(rows, bases, strict=True))[offset : offset + limit]
+        # The earlier attempt may be outside the range: read every answer to these questions.
+        compare = AttemptComparisons(self.db, user)
+        pairs = compare.with_previous(compare.for_questions({(track, r.question_id) for r, _ in page}))
+        items = []
+        for r, (key, why) in page:
+            q = get_question(track, r.question_id)
+            pair = pairs.get(r.id)
+            items.append(
+                ChartAttempt(
+                    answer_id=r.id,
+                    question_id=r.question_id,
+                    question_title=q.title if q else r.question_id,
+                    href=f"/careers/{track}/questions/{r.question_id}?answer={r.id}",
+                    created_at=r.created_at,
+                    score=r.score,
+                    scoring=eligibility(r.evidence_level, r.word_count),
+                    scale=WRITTEN_SCALE,
+                    series=key,
+                    not_counted=None if key else (why.text if why else None),
+                    comparison=comparison_out(*pair) if pair else None,
+                )
+            )
+        return ChartAttempts(
+            total=len(rows),
+            in_chart=sum(1 for key, _ in bases if key is not None),
+            offset=offset,
+            items=items,
+        )
+
+    def career_analytics(self, user: User, track: str, since: date | None, until: date) -> CareerAnalytics:
+        # Only the columns the statistics use. Loading whole rows decoded every answer's feedback
+        # JSON (and its text) just to read one field: about half the time at 2,000 answers
+        # (docs/PERFORMANCE.md, "Real journeys"). The evaluator is read with the database's JSON
+        # operator instead.
+        answers = self._chart_rows(user, track, since, until)
         # Best scores only from answers long enough to score (eligibility.py); a question answered
         # only with too-short answers counts as answered, with no score in the average.
         answered_qs: set[str] = set()
@@ -690,24 +757,25 @@ class ActivityService:
         session_rows = self.db.execute(sstmt).all()
         istatus = Counter(INTERVIEW_STATUS[s] for s, _ in session_rows)
 
-        # Each week: every answer counts towards `answers`; the average uses only scoreable ones.
-        series: dict[str, dict[date, list[int | None]]] = defaultdict(lambda: defaultdict(list))
+        # The trend counts only the cohort the comparison contract allows in one series (the same
+        # scale, kind of evaluator and rubric, long enough to score; docs/COMPARING_ATTEMPTS.md).
+        # Each week's count is the average's denominator; the rest are counted by reason.
+        series: dict[str, dict[date, list[int]]] = defaultdict(lambda: defaultdict(list))
+        skipped: Counter[tuple[str, str]] = Counter()
         for a in answers:
+            key, why = score_basis(chart_facts(a))
+            if key is None:
+                assert why is not None
+                skipped[(why.rule, why.text)] += 1
+                continue
             day = a.created_at.date()
-            counted = eligibility(a.evidence_level, a.word_count) == "scored"
-            series[a.evaluator or evaluator_key(a.provider, {})][day - timedelta(days=day.weekday())].append(
-                a.score if counted else None
-            )
-
-        def average(v: list[int | None]) -> int | None:
-            scored = [x for x in v if x is not None]
-            return round(sum(scored) / len(scored)) if scored else None
-
+            series[key][day - timedelta(days=day.weekday())].append(a.score)
         trends = [
             TrendSeries(
                 evaluator=key,
+                attempts=sum(len(v) for v in weeks.values()),
                 points=[
-                    TrendPoint(week_start=w, answers=len(v), average_score=average(v))
+                    TrendPoint(week_start=w, answers=len(v), average_score=round(sum(v) / len(v)))
                     for w, v in sorted(weeks.items())
                 ],
             )
@@ -743,6 +811,8 @@ class ActivityService:
                 abandoned=istatus["abandoned"],
             ),
             trends=trends,
+            not_in_trend=[NotCounted(rule=r, reason=t, count=c) for (r, t), c in skipped.most_common()],
+            comparison_rules=CONTRACT_VERSION,
             by_day=by_day,
             definitions={
                 "questions_practiced": "Different questions you've answered at least once in this range.",
@@ -750,8 +820,9 @@ class ActivityService:
                 "strong_questions": "Questions whose best score in this range is 85 or more.",
                 "average_best_score": "For each skill: the average of your best score on each of its questions. "
                 "Scores measure how well an answer covers the rubric, not whether it is correct.",
-                "trend": "Weekly average score. Scores are only compared within one evaluator and rubric version; "
-                f"answers graded before versions were recorded used the built-in rubric {RUBRIC_VERSION}.",
+                "trend": "Weekly average score of the answers whose scores compare (docs/COMPARING_ATTEMPTS.md): "
+                "one series per scale, kind of evaluator and rubric, only answers long enough to score. An answer "
+                "whose rubric or scoring wasn't recorded isn't counted, and isn't guessed.",
                 "interviews": "Question rounds for this career started in this range, by how they ended.",
                 "skills": "Each question practises the career skills or tools it names, or one general competency "
                 "(working with people, judgment under pressure, leadership, motivation and fit, core knowledge).",
@@ -822,4 +893,4 @@ class ActivityService:
         return ResumeOut(interview=interview, unfinished_problem=unfinished, last_question=question)
 
 
-__all__ = ["ActivityFilters", "ActivityService", "career_title", "evaluator_key"]
+__all__ = ["ActivityFilters", "ActivityService", "career_title"]

@@ -19430,6 +19430,134 @@
         }
       }
     },
+    "/api/v1/me/careers/{slug}/analytics/attempts": {
+      "get": {
+        "tags": [
+          "progress"
+        ],
+        "summary": "Every answer in an analytics range: in the trend or why not, each compared with the one before it",
+        "operationId": "career_chart_attempts_api_v1_me_careers__slug__analytics_attempts_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Inclusive; omit for all time",
+              "title": "Since"
+            },
+            "description": "Inclusive; omit for all time"
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Inclusive; default today (UTC)",
+              "title": "Until"
+            },
+            "description": "Inclusive; default today (UTC)"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChartAttempts"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/resume": {
       "get": {
         "tags": [
@@ -23253,6 +23381,17 @@
               }
             ],
             "description": "The in-app help shown for this question and version before this answer (docs/ATTEMPT_CONDITIONS.md). It changes no score."
+          },
+          "comparison": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptComparison"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "In a question's list of your answers: this answer compared with the one before it (none for the first)"
           }
         },
         "type": "object",
@@ -24450,6 +24589,63 @@
         ],
         "title": "AssessmentOut"
       },
+      "AttemptComparison": {
+        "properties": {
+          "against": {
+            "type": "string",
+            "title": "Against",
+            "description": "The earlier answer it's compared with (the one it revises, else the one before)"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "comparable",
+              "partially_comparable",
+              "incompatible",
+              "unknown"
+            ],
+            "title": "Outcome"
+          },
+          "scores_comparable": {
+            "type": "boolean",
+            "title": "Scores Comparable",
+            "description": "Whether the two scores may be set side by side as a change"
+          },
+          "points_comparable": {
+            "type": "boolean",
+            "title": "Points Comparable",
+            "description": "Whether what was written (the points covered) compares"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/ComparisonReason"
+            },
+            "type": "array",
+            "title": "Reasons"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          },
+          "contract_version": {
+            "type": "integer",
+            "title": "Contract Version",
+            "description": "The version of the comparison rules that decided it"
+          }
+        },
+        "type": "object",
+        "required": [
+          "against",
+          "outcome",
+          "scores_comparable",
+          "points_comparable",
+          "reasons",
+          "explanation",
+          "contract_version"
+        ],
+        "title": "AttemptComparison",
+        "description": "One attempt compared with the one before it, by the one comparison contract\n(app/careers/comparability.py; docs/COMPARING_ATTEMPTS.md). The same pair reads the same on\nevery page."
+      },
       "AttemptConditions": {
         "properties": {
           "labels": {
@@ -24842,6 +25038,20 @@
             "type": "array",
             "title": "Trends"
           },
+          "not_in_trend": {
+            "items": {
+              "$ref": "#/components/schemas/NotCounted"
+            },
+            "type": "array",
+            "title": "Not In Trend",
+            "description": "Answers in the range that the trend doesn't count, by reason"
+          },
+          "comparison_rules": {
+            "type": "integer",
+            "title": "Comparison Rules",
+            "description": "The comparison contract's version that decided this",
+            "default": 1
+          },
           "by_day": {
             "items": {
               "$ref": "#/components/schemas/DayCount"
@@ -25042,6 +25252,133 @@
           "new_password"
         ],
         "title": "ChangePasswordRequest"
+      },
+      "ChartAttempt": {
+        "properties": {
+          "answer_id": {
+            "type": "string",
+            "title": "Answer Id"
+          },
+          "question_id": {
+            "type": "string",
+            "title": "Question Id"
+          },
+          "question_title": {
+            "type": "string",
+            "title": "Question Title"
+          },
+          "href": {
+            "type": "string",
+            "title": "Href"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "score": {
+            "type": "integer",
+            "title": "Score",
+            "description": "Its own score, on its own scale; never converted"
+          },
+          "scoring": {
+            "type": "string",
+            "enum": [
+              "scored",
+              "too_short",
+              "unknown"
+            ],
+            "title": "Scoring",
+            "description": "Long enough to score, too short, or not recorded (app/careers/eligibility.py)"
+          },
+          "scale": {
+            "type": "string",
+            "title": "Scale"
+          },
+          "series": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Series",
+            "description": "The trend series it's in, or null when it isn't counted"
+          },
+          "not_counted": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Not Counted",
+            "description": "Why it isn't in the trend, when it isn't"
+          },
+          "comparison": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptComparison"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Compared with your answer before it to the same question, by the same contract as the question page and an interview retry"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer_id",
+          "question_id",
+          "question_title",
+          "href",
+          "created_at",
+          "score",
+          "scoring",
+          "scale",
+          "series",
+          "not_counted",
+          "comparison"
+        ],
+        "title": "ChartAttempt"
+      },
+      "ChartAttempts": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Answers in the range"
+          },
+          "in_chart": {
+            "type": "integer",
+            "title": "In Chart",
+            "description": "Of those, in the trend (equals the trend's attempts)"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ChartAttempt"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "in_chart",
+          "offset",
+          "items"
+        ],
+        "title": "ChartAttempts"
       },
       "Check": {
         "properties": {
@@ -25668,11 +26005,23 @@
           "comparable": {
             "type": "boolean",
             "title": "Comparable",
-            "description": "Original and latest were scored by the same evaluator and rubric"
+            "description": "Whether the two scores may be set side by side as a change, by the comparison contract (docs/COMPARING_ATTEMPTS.md)"
           },
           "comparability_note": {
             "type": "string",
-            "title": "Comparability Note"
+            "title": "Comparability Note",
+            "description": "The contract's explanation (or why there's nothing to compare)"
+          },
+          "classification": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptComparison"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The original and the latest retry, classified by the comparison contract"
           },
           "improved": {
             "items": {
@@ -26035,6 +26384,36 @@
         ],
         "title": "ComparisonLesson",
         "description": "The question and the samples, before any reveal: no explanation."
+      },
+      "ComparisonReason": {
+        "properties": {
+          "rule": {
+            "type": "string",
+            "title": "Rule",
+            "description": "question, scale, source, rubric, question_version, scoring, format or help"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "incompatible",
+              "unknown",
+              "partial_text",
+              "partial_conditions"
+            ],
+            "title": "Kind"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rule",
+          "kind",
+          "text"
+        ],
+        "title": "ComparisonReason"
       },
       "ComparisonRubricItem": {
         "properties": {
@@ -32636,6 +33015,29 @@
         ],
         "title": "NodeView",
         "description": "The node the learner is on. Choice quality and feedback are only revealed after choosing."
+      },
+      "NotCounted": {
+        "properties": {
+          "rule": {
+            "type": "string",
+            "title": "Rule"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rule",
+          "reason",
+          "count"
+        ],
+        "title": "NotCounted"
       },
       "NoteIn": {
         "properties": {
@@ -45208,7 +45610,8 @@
           },
           "answers": {
             "type": "integer",
-            "title": "Answers"
+            "title": "Answers",
+            "description": "Answers averaged this week: the series' cohort, the average's denominator"
           },
           "average_score": {
             "anyOf": [
@@ -45235,7 +45638,13 @@
           "evaluator": {
             "type": "string",
             "title": "Evaluator",
-            "description": "Scores are only compared within one evaluator and rubric version"
+            "description": "The series: the same scale, kind of evaluator and rubric (docs/COMPARING_ATTEMPTS.md)"
+          },
+          "attempts": {
+            "type": "integer",
+            "title": "Attempts",
+            "description": "Answers in this series in the range (the cohort)",
+            "default": 0
           },
           "points": {
             "items": {

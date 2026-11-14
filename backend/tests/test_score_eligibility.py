@@ -183,8 +183,12 @@ def test_analytics_averages_and_trends_use_only_scoreable_answers(client):
     a = client.get(f"/api/v1/me/careers/{TRACK}/analytics", headers=h).json()
     long_score = _summaries(client, h)[_qid(0)]["best_scored"]
     week = [p for s in a["trends"] for p in s["points"]]
-    assert sum(p["answers"] for p in week) == 2  # both answers count as answers
-    assert [p["average_score"] for p in week] == [long_score]  # only the scoreable one in the average
+    assert a["answers"] == 2  # both count as answers
+    # The trend's count is its average's denominator: only the scoreable one; the other is counted
+    # apart, with why (docs/COMPARING_ATTEMPTS.md).
+    assert sum(p["answers"] for p in week) == 1
+    assert [p["average_score"] for p in week] == [long_score]
+    assert a["not_in_trend"] == [{"rule": "scoring", "reason": "too short to score", "count": 1}]
     for skill in a["skills"]:
         if skill["questions_answered"] and not skill["questions_scored"]:
             assert skill["average_best_score"] is None  # answered, but no score: not zero

@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 
 import type { InterviewAnswer } from "@/api/types";
 
-import { nurseAnswer, tokenResponse, user as baseUser } from "../fixtures";
+import { comparisonWith, nurseAnswer, tokenResponse, user as baseUser } from "../fixtures";
 import { renderApp } from "../render";
 import { API, server } from "../server";
 
@@ -191,12 +191,12 @@ describe("Revision links", () => {
   it("are shown from the stored link: in the list, and in the recap with the comparison", async () => {
     asNurse();
     capabilities(true);
-    const second: InterviewAnswer = { ...first, id: "t2", created_at: "2026-11-02T09:00:00Z", score: 81, revises_answer_id: "t1" };
+    const second: InterviewAnswer = { ...first, id: "t2", created_at: "2026-11-02T09:00:00Z", score: 81, revises_answer_id: "t1", comparison: comparisonWith("t1", "comparable") };
     answers([second, first]);
     renderApp(`${QUESTION}?answer=t2`, { signedIn: true });
     const recap = await screen.findByRole("region", { name: "What next" });
     expect(recap).toHaveTextContent("Try 2 revises try 1.");
-    expect(recap).toHaveTextContent(/Compared with try 1, which it revises \(same question version, rubric and coach\)/);
+    expect(recap).toHaveTextContent(/Compared with try 1, which it revises\. Comparable: the same question and version/);
     const list = screen.getByRole("heading", { name: "Your past answers" }).closest(".card") as HTMLElement;
     expect(within(list).getByRole("button", { name: /Try 2/ })).toHaveTextContent("revised from try 1");
     expect(within(list).getByRole("button", { name: /Try 1/ })).not.toHaveTextContent("revised from");

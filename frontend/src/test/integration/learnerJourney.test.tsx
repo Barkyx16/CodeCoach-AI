@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 
 import type { InterviewAnswer } from "@/api/types";
 
-import { nurseAnswer, tokenResponse, user as baseUser } from "../fixtures";
+import { comparisonWith, nurseAnswer, tokenResponse, user as baseUser } from "../fixtures";
 import { renderApp } from "../render";
 import { API, server } from "../server";
 
@@ -99,33 +99,55 @@ describe("Past answers keep their identity", () => {
 });
 
 describe("What next, after feedback", () => {
-  it("says what this try covered and compares it with the one before when both were graded the same way", async () => {
+  it("says what this try covered and compares it with the one before by the server's contract", async () => {
     asNurse();
-    listAnswers([try2, try1]);
+    listAnswers([{ ...try2, comparison: comparisonWith("t1", "comparable") }, try1]);
     const { user } = renderApp("/careers/registered-nurse/questions/e-good-0?answer=t2", { signedIn: true });
     const recap = await screen.findByRole("region", { name: "What next" });
     expect(recap).toHaveTextContent("Try 2 covered all 2 points the rubric looks for.");
-    expect(recap).toHaveTextContent(`Compared with try 1 (same question version, rubric and coach): now covers “${RESULT}”; score 58, now 81.`);
+    expect(recap).toHaveTextContent(`Compared with try 1. Comparable: the same question and version, rubric, evaluator and conditions. (Comparison rules v1) Now covers “${RESULT}”; score 58, now 81.`);
     await user.click(within(sidebar()).getByRole("button", { name: /Try 1/ }));
     expect(await screen.findByRole("region", { name: "What next" })).toHaveTextContent(`Try 1 covered 1 of 2 points the rubric looks for. To add: “${RESULT}”.`);
   });
 
   it("says plainly when two comparable tries cover the same points with the same score", async () => {
     asNurse();
-    listAnswers([{ ...try2, points: try1.points, score: 58 }, try1]);
+    listAnswers([{ ...try2, points: try1.points, score: 58, comparison: comparisonWith("t1", "comparable") }, try1]);
     renderApp("/careers/registered-nurse/questions/e-good-0?answer=t2", { signedIn: true });
     expect(await screen.findByRole("region", { name: "What next" }))
-      .toHaveTextContent("Compared with try 1 (same question version, rubric and coach): covers the same points; score 58 both times.");
+      .toHaveTextContent("(Comparison rules v1) Covers the same points; score 58 both times.");
   });
 
-  it("doesn't compare tries graded with different rubrics, and says why", async () => {
+  it("tries scored under different rubrics compare by what was written, not the numbers", async () => {
     asNurse();
-    listAnswers([{ ...try2, rubric_version: "v8" }, { ...try1, rubric_version: "v5" }]);
+    const why = "Partly comparable: scored under different rubrics (v5 and v8): compare what you wrote, not the numbers. (Comparison rules v1)";
+    listAnswers([{ ...try2, rubric_version: "v8", comparison: comparisonWith("t1", "partially_comparable", { explanation: why }) }, { ...try1, rubric_version: "v5" }]);
     renderApp("/careers/registered-nurse/questions/e-good-0?answer=t2", { signedIn: true });
     const recap = await screen.findByRole("region", { name: "What next" });
-    expect(recap).toHaveTextContent("Not directly comparable with try 1: they were graded with different rubrics (v5 and v8).");
+    expect(recap).toHaveTextContent(`Compared with try 1. ${why} Now covers “${RESULT}”.`);
     expect(recap).not.toHaveTextContent(/score 58, now 81/);
     expect(within(sidebar()).getByText(/graded with different rubric versions/)).toBeInTheDocument();
+  });
+
+  it("compares with the try the server names: the one it revises, not just the one before", async () => {
+    asNurse();
+    const try3 = { ...try2, id: "t3", created_at: "2026-11-03T09:00:00Z", revises_answer_id: "t1", comparison: comparisonWith("t1", "comparable") };
+    listAnswers([try3, { ...try2, comparison: comparisonWith("t1", "comparable") }, try1]);
+    renderApp("/careers/registered-nurse/questions/e-good-0?answer=t3", { signedIn: true });
+    const recap = await screen.findByRole("region", { name: "What next" });
+    expect(recap).toHaveTextContent("Compared with try 1, which it revises.");
+    expect(recap).toHaveTextContent("score 58, now 81.");
+  });
+
+  it("follows the server's classification, never its own: unknown shows no change at all", async () => {
+    asNurse();
+    // The two look alike on the page, but the contract couldn't tell: nothing is compared.
+    const why = "Can't tell whether these compare: which rubric graded one of them wasn't recorded. (Comparison rules v1)";
+    listAnswers([{ ...try2, comparison: comparisonWith("t1", "unknown", { explanation: why }) }, try1]);
+    renderApp("/careers/registered-nurse/questions/e-good-0?answer=t2", { signedIn: true });
+    const recap = await screen.findByRole("region", { name: "What next" });
+    expect(recap).toHaveTextContent(`Compared with try 1. ${why}`);
+    expect(recap).not.toHaveTextContent(/now covers|score 58|both times/i);
   });
 
   it("offers the next unanswered question at this level, or says there isn't one", async () => {

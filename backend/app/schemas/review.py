@@ -6,7 +6,7 @@ from typing import Literal
 from pydantic import Field
 
 from app.models import InterviewStatus
-from app.schemas.careers import AnswerOut
+from app.schemas.careers import AnswerOut, AttemptComparison
 from app.schemas.common import APIModel
 from app.schemas.interview import (
     AnswerSource,
@@ -134,8 +134,16 @@ class Comparison(APIModel):
     original: AnswerOut | None = Field(description="The answer given in the interview (never changed)")
     retries: list[AnswerOut] = Field(description="Every retry, oldest first")
     latest: AnswerOut | None
-    comparable: bool = Field(description="Original and latest were scored by the same evaluator and rubric")
-    comparability_note: str
+    comparable: bool = Field(
+        description="Whether the two scores may be set side by side as a change, by the comparison contract "
+        "(docs/COMPARING_ATTEMPTS.md)"
+    )
+    comparability_note: str = Field(
+        description="The contract's explanation (or why there's nothing to compare)"
+    )
+    classification: AttemptComparison | None = Field(
+        default=None, description="The original and the latest retry, classified by the comparison contract"
+    )
     improved: list[str] = Field(description="Points the latest attempt covers that the original missed")
     still_missing: list[str]
     newly_missing: list[str] = Field(description="Points the original covered that the latest misses")

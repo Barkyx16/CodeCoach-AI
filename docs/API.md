@@ -231,6 +231,7 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 | GET | `/api/v1/submissions/{id}` | 🔒 | Poll a submission |
 | GET | `/api/v1/me/submissions` | 🔒 | Attempt history |
 | GET | `/api/v1/careers/{slug}/questions/{question_id}/follow-up` | 🔒 | A reviewed follow-up question after repeated practice (docs/FOLLOW_UPS.md) |
+| GET | `/api/v1/me/careers/{slug}/analytics/attempts?since=&until=&offset=&limit≤100` | 🔒 | Every answer in an analytics range: in the trend or why not, each with its comparison with the answer before it (docs/COMPARING_ATTEMPTS.md) |
 | POST | `/api/v1/me/attempt-conditions` | 🔒 | The in-app help shown before each of up to 50 submissions and answers (docs/ATTEMPT_CONDITIONS.md) |
 | POST | `/api/v1/ai/hint` | 🔒 | Progressive hint |
 | POST | `/api/v1/ai/review/preview` | 🔒 | What a review would send, exactly (no coach call, no budget) |
@@ -1214,8 +1215,10 @@ interview sessions), so nothing is back-filled or counted twice. All scoped to t
 - `GET /api/v1/me/careers/{slug}/analytics` 🔒 `?since=&until=` works for any career, not just the
   user's current one: questions practised, answers, strong questions, per-skill coverage (with
   `average_best_score: null` when not practised), question types, interview outcomes, weekly
-  score trends **per evaluator and rubric version** (never merged), daily counts and
-  `definitions` for every metric.
+  score trends **per score basis** (the comparison contract, docs/COMPARING_ATTEMPTS.md: the same
+  scale, kind of evaluator and recorded rubric, long enough to score; never merged), where each
+  series' `attempts` and each week's `answers` are the average's denominator and `not_in_trend`
+  counts the rest by reason, daily counts and `definitions` for every metric.
 - `GET /api/v1/me/resume` 🔒 returns the interview in progress (with its real
   `seconds_remaining`), the latest submitted-but-unsolved problem and the last answered question.
 - `GET /api/v1/me/ai-history/{id}` 🔒 returns one saved hint, review or failure explanation.

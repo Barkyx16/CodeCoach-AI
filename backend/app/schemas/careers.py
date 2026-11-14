@@ -124,6 +124,30 @@ class FeedbackPoint(APIModel):
     )
 
 
+class ComparisonReason(APIModel):
+    rule: str = Field(
+        description="question, scale, source, rubric, question_version, scoring, format or help"
+    )
+    kind: Literal["incompatible", "unknown", "partial_text", "partial_conditions"]
+    text: str
+
+
+class AttemptComparison(APIModel):
+    """One attempt compared with the one before it, by the one comparison contract
+    (app/careers/comparability.py; docs/COMPARING_ATTEMPTS.md). The same pair reads the same on
+    every page."""
+
+    against: str = Field(
+        description="The earlier answer it's compared with (the one it revises, else the one before)"
+    )
+    outcome: Literal["comparable", "partially_comparable", "incompatible", "unknown"]
+    scores_comparable: bool = Field(description="Whether the two scores may be set side by side as a change")
+    points_comparable: bool = Field(description="Whether what was written (the points covered) compares")
+    reasons: list[ComparisonReason]
+    explanation: str
+    contract_version: int = Field(description="The version of the comparison rules that decided it")
+
+
 class AnswerOut(APIModel):
     id: str
     question_id: str
@@ -168,6 +192,11 @@ class AnswerOut(APIModel):
         default=None,
         description="The in-app help shown for this question and version before this answer "
         "(docs/ATTEMPT_CONDITIONS.md). It changes no score.",
+    )
+    comparison: AttemptComparison | None = Field(
+        default=None,
+        description="In a question's list of your answers: this answer compared with the one before it "
+        "(none for the first)",
     )
 
 

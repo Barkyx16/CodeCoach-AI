@@ -43,7 +43,7 @@ import { FeedbackCard } from "./FeedbackCard";
 import { SelfReviewGate } from "./SelfReviewGate";
 import { KIND_LABEL } from "./kinds";
 import { keyFor, sendSignature, type PendingSend } from "./sendKey";
-import { previousTry, tryNumbers } from "./tries";
+import { tryNumbers } from "./tries";
 
 const MAX_CHARS = 6000;
 const REFLECT_KEY = "codecoach.reflect-first";
@@ -160,9 +160,11 @@ function QuestionPageFor() {
   const listTo = [navState?.listFrom, navState?.from].find((path): path is string => !!path && /^\/problems(\?|$)/.test(path)) ?? backTo;
   const numbers = answers.data ? tryNumbers(answers.data) : null;
   const tryOf = (a: InterviewAnswer | null) => (a && numbers?.get(a.id)) ?? null;
-  // Compare with the try this one explicitly revises when it's listed, else with the one before it.
-  const parent = shown?.revises_answer_id ? answers.data?.find((a) => a.id === shown.revises_answer_id) ?? null : null;
-  const previous = parent ?? (shown && answers.data ? previousTry(answers.data, shown) : null);
+  // Which try this one is compared with, and how, is the server's comparison contract
+  // (docs/COMPARING_ATTEMPTS.md): the one it revises, else the one before it. Nothing is decided here.
+  const compared = shown ? answers.data?.find((a) => a.id === shown.id)?.comparison ?? null : null;
+  const previous = compared ? answers.data?.find((a) => a.id === compared.against) ?? null : null;
+  const parent = previous && shown?.revises_answer_id === previous.id ? previous : null;
   const rubrics = new Set(answers.data?.map((a) => a.rubric_version));
   const revisingFrom = revising ? answers.data?.find((a) => a.id === revising.fromId) ?? (sent?.id === revising.fromId ? sent : null) : null;
   const fromLabel = revisingFrom && tryOf(revisingFrom) ? `try ${tryOf(revisingFrom)}` : "your earlier answer";
@@ -381,7 +383,7 @@ function QuestionPageFor() {
                   title={isNew ? "Feedback" : `Feedback on ${tryOf(shown) ? `try ${tryOf(shown)}` : "your answer"} from ${timeAgo(shown.created_at)}`} />
               </div>
               {shown.conditions && <div className="card"><AttemptConditionsView conditions={shown.conditions} /></div>}
-              <AnswerRecap answer={shown} tryNo={tryOf(shown)} previous={previous} previousNo={tryOf(previous)} previousIsParent={!!parent}
+              <AnswerRecap answer={shown} tryNo={tryOf(shown)} previous={previous} previousNo={tryOf(previous)} previousIsParent={!!parent} compared={compared}
                 track={track} questionId={id} difficulty={q.difficulty as Difficulty} backTo={listTo}
                 canRevise={canRevise} onRevise={revise} />
               {isAuthenticated && <div className="focus-hide"><AnswerReviewPanel key={shown.id} answerId={shown.id} defaultOpen={reflected === shown.id} /></div>}
@@ -424,7 +426,7 @@ function QuestionPageFor() {
                   </li>
                 ))}
               </ul>
-              {rubrics.size > 1 && <p className="subtle">These were graded with different rubric versions, so their scores aren't directly comparable.</p>}
+              {rubrics.size > 1 && <p className="subtle">These were graded with different rubric versions: each try's comparison with the one before it says what compares.</p>}
             </Card>
           )}
           {isAuthenticated && user && answers.data && (

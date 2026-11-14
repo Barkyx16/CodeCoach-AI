@@ -36,6 +36,7 @@ from app.models import (
 from app.services.actions import Actions
 from app.services.answer_review import AnswerReview
 from app.services.applications import Applications
+from app.services.attempt_comparisons import AttemptComparisons, comparison_out
 from app.services.code_reviews import CodeReviews
 from app.services.comparisons import Comparisons
 from app.services.conditions import Conditions
@@ -154,6 +155,12 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
     finder = Conditions(db, user)
     sub_conditions = {k: v.model_dump(mode="json") for k, v in finder.for_submissions(subs).items()}
     answer_conditions = {k: v.model_dump(mode="json") for k, v in finder.for_answers(answers).items()}
+    # Each answer compared with the one before it, as the contract decided it at export time: the
+    # file keeps that classification and the rules' version (docs/COMPARING_ATTEMPTS.md).
+    answer_comparisons = {
+        k: comparison_out(*v).model_dump(mode="json")
+        for k, v in AttemptComparisons(db, user).with_previous(answers).items()
+    }
 
     return {
         "export_version": EXPORT_VERSION,
@@ -255,6 +262,7 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
                 "follows_up": a.follows_up_answer_id,
                 "created_at": iso(a.created_at),
                 "conditions": answer_conditions.get(a.id),
+                "comparison": answer_comparisons.get(a.id),
             }
             for a in answers
         ],

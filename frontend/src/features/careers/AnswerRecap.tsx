@@ -1,11 +1,11 @@
 import { Link } from "react-router-dom";
 
 import { useQuestions } from "@/api/queries";
-import type { Difficulty, InterviewAnswer, QuestionSummary } from "@/api/types";
+import type { AttemptComparison, Difficulty, InterviewAnswer, QuestionSummary } from "@/api/types";
 import { Button } from "@/components/Button";
 import { timeAgo } from "@/lib/format";
 
-import { compareTries, revisionTarget } from "./tries";
+import { pointsChange, revisionTarget } from "./tries";
 
 /** The library lists at most this many questions per request; no level holds more. */
 const LEVEL_PAGE = 100;
@@ -27,8 +27,10 @@ function list(labels: string[]): string {
  * (structure, not whether the details are right), how it compares with the try before when the two
  * were graded the same way, and a revision aimed at one missing point or the next question.
  */
-export function AnswerRecap({ answer, tryNo, previous, previousNo, previousIsParent = false, track, questionId, difficulty, backTo, canRevise, onRevise }: {
+export function AnswerRecap({ answer, tryNo, previous, previousNo, previousIsParent = false, compared, track, questionId, difficulty, backTo, canRevise, onRevise }: {
   answer: InterviewAnswer;
+  /** This try compared with `previous` by the server's contract (none while the list is loading). */
+  compared: AttemptComparison | null;
   tryNo: number | null;
   /** The try to compare with: the one this revises when it's listed, else the one before it. */
   previous: InterviewAnswer | null;
@@ -69,20 +71,25 @@ export function AnswerRecap({ answer, tryNo, previous, previousNo, previousIsPar
       ? `${which[0]!.toUpperCase()}${which.slice(1)} revises ${previousNo ? `try ${previousNo}` : `your answer from ${timeAgo(previous.created_at)}`}.`
       : `${which[0]!.toUpperCase()}${which.slice(1)} revises an earlier answer that isn't in this list.`;
 
+  // How this try compares with the one before it is the server's contract, word for word, the same
+  // as in the progress chart's list; only what changed in the points and scores is added here.
   let comparison: string | null = null;
-  if (previous) {
+  let changes: string | null = null;
+  if (previous && compared) {
     const before = (previousNo ? `try ${previousNo}` : `your answer from ${timeAgo(previous.created_at)}`) + (previousIsParent ? ", which it revises" : "");
-    const c = compareTries(previous, answer);
-    if (!c.comparable) {
-      comparison = `Not directly comparable with ${before}: ${c.reasons.join("; ")}.`;
-    } else {
-      const parts = [
-        c.gained.length ? `now covers ${list(c.gained)}` : null,
-        c.lost.length ? `no longer covers ${list(c.lost)}` : null,
-      ].filter(Boolean);
-      const score = c.scoreFrom === c.scoreTo ? `score ${c.scoreTo} both times` : `score ${c.scoreFrom}, now ${c.scoreTo}`;
-      comparison = `Compared with ${before} (same question version, rubric and coach): ${parts.length ? parts.join("; ") : "covers the same points"}; ${score}.`;
+    comparison = `Compared with ${before}. ${compared.explanation}`;
+    const parts: string[] = [];
+    if (compared.points_comparable) {
+      const c = pointsChange(previous, answer);
+      parts.push(c.gained.length || c.lost.length
+        ? [c.gained.length ? `now covers ${list(c.gained)}` : null, c.lost.length ? `no longer covers ${list(c.lost)}` : null].filter(Boolean).join("; ")
+        : "covers the same points");
     }
+    if (compared.scores_comparable) {
+      parts.push(previous.score === answer.score ? `score ${answer.score} both times` : `score ${previous.score}, now ${answer.score}`);
+    }
+    changes = parts.length ? `${parts.join("; ")}.` : null;
+    if (changes) changes = changes.charAt(0).toUpperCase() + changes.slice(1);
   }
 
   const revise = (
@@ -99,7 +106,7 @@ export function AnswerRecap({ answer, tryNo, previous, previousNo, previousIsPar
       <h2 className="section-title" id="recap-title">What next</h2>
       <p>{outcome}</p>
       {origin && <p className="subtle">{origin}</p>}
-      {comparison && <p className="subtle">{comparison}</p>}
+      {comparison && <p className="subtle answer-recap__comparison">{comparison}{changes ? <> {changes}</> : null}</p>}
       <div className="row answer-recap__actions">
         {canRevise && reviseFirst && revise}
         {nextLink}

@@ -5,6 +5,7 @@ from typing import Literal
 
 from pydantic import Field
 
+from app.schemas.careers import AttemptComparison
 from app.schemas.common import APIModel
 
 ActivityType = Literal["problem_opened", "code_submission", "coaching", "written_answer", "interview"]
@@ -81,13 +82,50 @@ class SkillStat(APIModel):
 
 class TrendPoint(APIModel):
     week_start: date
-    answers: int
+    answers: int = Field(
+        description="Answers averaged this week: the series' cohort, the average's denominator"
+    )
     average_score: int | None
 
 
 class TrendSeries(APIModel):
-    evaluator: str = Field(description="Scores are only compared within one evaluator and rubric version")
+    evaluator: str = Field(
+        description="The series: the same scale, kind of evaluator and rubric (docs/COMPARING_ATTEMPTS.md)"
+    )
+    attempts: int = Field(default=0, description="Answers in this series in the range (the cohort)")
     points: list[TrendPoint]
+
+
+class NotCounted(APIModel):
+    rule: str
+    reason: str
+    count: int
+
+
+class ChartAttempt(APIModel):
+    answer_id: str
+    question_id: str
+    question_title: str
+    href: str
+    created_at: datetime
+    score: int = Field(description="Its own score, on its own scale; never converted")
+    scoring: Literal["scored", "too_short", "unknown"] = Field(
+        description="Long enough to score, too short, or not recorded (app/careers/eligibility.py)"
+    )
+    scale: str
+    series: str | None = Field(description="The trend series it's in, or null when it isn't counted")
+    not_counted: str | None = Field(description="Why it isn't in the trend, when it isn't")
+    comparison: AttemptComparison | None = Field(
+        description="Compared with your answer before it to the same question, by the same contract as the "
+        "question page and an interview retry"
+    )
+
+
+class ChartAttempts(APIModel):
+    total: int = Field(description="Answers in the range")
+    in_chart: int = Field(description="Of those, in the trend (equals the trend's attempts)")
+    offset: int
+    items: list[ChartAttempt]
 
 
 class DayCount(APIModel):
@@ -118,6 +156,12 @@ class CareerAnalytics(APIModel):
     kinds: list[FacetOption]
     interviews: InterviewCounts
     trends: list[TrendSeries]
+    not_in_trend: list[NotCounted] = Field(
+        default_factory=list, description="Answers in the range that the trend doesn't count, by reason"
+    )
+    comparison_rules: int = Field(
+        default=1, description="The comparison contract's version that decided this"
+    )
     by_day: list[DayCount]
     definitions: dict[str, str]
 
