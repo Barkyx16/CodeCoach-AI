@@ -14,6 +14,8 @@ test("a nurse learns before practising: prerequisite, guided help, solution, che
   await page.locator("#main").getByRole("button", { name: "Create account" }).click();
   await page.getByRole("link", { name: "Do this later" }).click();
   await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click(); // the optional welcome
+  // It saves, then goes to the dashboard: a menu panel opened before that closes with the move.
+  await expect(page).toHaveURL(/\/dashboard$/);
 
   await navTo(page, "Lessons");
   await expect(page.getByRole("heading", { name: "Registered Nurse lessons" })).toBeVisible();
