@@ -8,6 +8,7 @@ from sqlalchemy import delete
 
 from app.models import AcceptedAction, PracticeSession
 from app.services import actions as actions_service
+from app.services.ics import escape
 from tests.conftest import auth_headers, register
 from tests.test_kits import event
 from tests.test_review import STRONG, WEAK, round_with
@@ -115,7 +116,18 @@ def test_rescheduling_moves_one_occurrence_with_one_calendar_event(client):
     ics = client.get("/api/v1/me/schedule/export.ics", headers=h, params={"ids": occ["id"]})
     assert ics.status_code == 200, ics.text
     assert ics.text.count("BEGIN:VEVENT") == 1 and "SEQUENCE:2" in ics.text
-    assert f"CodeCoach: {imp['title']}" in ics.text.replace("\r\n ", "")
+    # The calendar file escapes commas and semicolons in text (RFC 5545), so compare escaped.
+    assert f"CodeCoach: {escape(imp['title'])}" in ics.text.replace("\r\n ", "")
+    # A title with commas (some improvements have one, e.g. "Follows up, documents and prevents a
+    # repeat"): the same event, renamed, escaped (CI run 310 drew one).
+    renamed = client.patch(
+        f"{BASE}/{action['id']}",
+        headers=h,
+        json={"title": "Follows up, documents and prevents a repeat", "expected_revision": now["revision"]},
+    )
+    assert renamed.status_code == 200, renamed.text
+    ics = client.get("/api/v1/me/schedule/export.ics", headers=h, params={"ids": occ["id"]}).text
+    assert "CodeCoach: Follows up\\, documents and prevents a repeat" in ics.replace("\r\n ", "")
 
 
 def test_a_weekly_action_is_done_one_occurrence_at_a_time_and_undo_restores_it(client):
