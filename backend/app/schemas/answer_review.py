@@ -66,6 +66,17 @@ class FlagOut(APIModel):
     kind: Literal["unclear", "disagree"]
     note: str
     created_at: datetime
+    disputed: bool = Field(
+        default=False,
+        description="An 'I disagree' not reinstated: this point doesn't shape automatic recommendations "
+        "(docs/DISPUTES.md). The feedback and score stay as they were.",
+    )
+    disputed_at: datetime | None = Field(
+        default=None, description="When it became a dispute (not recorded before)"
+    )
+    reinstated_at: datetime | None = Field(
+        default=None, description="When the point was deliberately counted again"
+    )
 
 
 class EvaluationOut(APIModel):

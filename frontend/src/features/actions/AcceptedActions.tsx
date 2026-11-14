@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useId, useState } from "react";
+import { DisputedNote } from "@/features/plan/DisputedNote";
 import { Link } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
@@ -81,6 +82,7 @@ function ActionCard({ a }: { a: AcceptedAction }) {
         {!a.source.available && " That interview is no longer available; this is what its feedback said."}
       </p>
       <p className="accepted-action__why">{a.source.why}</p>
+      <DisputedNote note={a.disputed} kept />
       {(a.source.versions ?? []).length > 0 && (
         <p className="subtle">Answered on: {(a.source.versions ?? []).map((v) => `${v.question} (question version ${v.version})`).join("; ")}.</p>
       )}

@@ -122,7 +122,7 @@ describe("rubric transparency and self-review", () => {
       http.get(`${API}/api/v1/me/answers/a-1/review`, () => HttpResponse.json(review())),
       http.post(`${API}/api/v1/me/answers/a-1/flags`, async ({ request }) => {
         flagged = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json(review({ flags: [{ id: 1, criterion: answer.points[1]!.label, kind: "disagree", note: "I did say the result.", created_at: "2026-11-03T10:00:00Z" }] }));
+        return HttpResponse.json(review({ flags: [{ id: 1, criterion: answer.points[1]!.label, kind: "disagree", note: "I did say the result.", created_at: "2026-11-03T10:00:00Z", disputed: true, disputed_at: "2026-11-03T10:00:00Z", reinstated_at: null }] }));
       }),
     );
     const { user } = renderApp(URL, { signedIn: true });
@@ -137,6 +137,35 @@ describe("rubric transparency and self-review", () => {
     await user.click(screen.getByRole("button", { name: "Save flag" }));
     expect(await screen.findByText("You disagree")).toBeInTheDocument();
     expect(flagged).toEqual({ criterion: answer.points[1]!.label, kind: "disagree", note: "I did say the result." });
+  });
+
+  it("says what disagreeing does, and counting the point in the plan again is a deliberate, recorded button", async () => {
+    setup();
+    const label = answer.points[1]!.label;
+    const flagged = { id: 7, criterion: label, kind: "disagree" as const, note: "I did say the result.", created_at: "2026-11-03T10:00:00Z", disputed: true, disputed_at: "2026-11-03T10:00:00Z", reinstated_at: null };
+    let reinstated = 0;
+    server.use(
+      http.get(`${API}/api/v1/me/answers/a-1/review`, () => HttpResponse.json(review({ flags: [flagged] }))),
+      http.post(`${API}/api/v1/me/answers/a-1/flags/7/reinstate`, () => {
+        reinstated += 1;
+        return HttpResponse.json(review({ flags: [{ ...flagged, disputed: false, reinstated_at: "2026-11-05T09:00:00Z" }] }));
+      }),
+    );
+    const { user } = renderApp(URL, { signedIn: true });
+    await user.type(await screen.findByLabelText("Your answer"), "Last winter, on nights, a patient's oxygen dropped.");
+    await user.click(screen.getByRole("button", { name: "Get feedback" }));
+    await user.click(await screen.findByText("Your reflection, flags and checking again"));
+    expect(await screen.findByText("You disagree")).toBeInTheDocument();
+    expect(screen.getByText(/"I disagree" keeps that point out of your automatic plan until you count it again; your score and the feedback don't change\./)).toBeInTheDocument();
+    expect(screen.getByText(/Disputed on 3 November: this point doesn't shape your plan until you count it again\./)).toBeInTheDocument();
+    expect(reinstated).toBe(0); // nothing counts it again by itself
+    await user.click(screen.getByRole("button", { name: "Count it in my plan again" }));
+    expect(await screen.findByText(/Counted in your plan again since 5 November\./)).toBeInTheDocument();
+    expect(screen.getByText("You disagreed")).toBeInTheDocument();
+    expect(screen.getByText(/I did say the result\./)).toBeInTheDocument(); // the flag and its note stay
+    expect(screen.queryByRole("button", { name: "Count it in my plan again" })).not.toBeInTheDocument();
+    expect(reinstated).toBe(1);
+    expect(within(screen.getByRole("region", { name: "Feedback" })).getByLabelText("Score 92 out of 100, Strong")).toBeInTheDocument(); // unchanged
   });
 
   it("records a second evaluation beside the original when the rubric changed", async () => {

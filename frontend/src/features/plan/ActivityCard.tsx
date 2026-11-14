@@ -1,3 +1,4 @@
+import { DisputedNote } from "./DisputedNote";
 import { Link, useLocation } from "react-router-dom";
 
 import { ScheduleLink } from "@/features/schedule/ScheduleLink";
@@ -71,6 +72,7 @@ export function ActivityCard({ item, headingLevel = 3, compact = false, featured
       </div>
       <H className="activity-card__title" id={`act-${item.id}`}>{item.title}</H>
       <p className="activity-card__why"><span className="visually-hidden">Why: </span>{item.reason}</p>
+      <DisputedNote note={item.disputed} />
       {!compact && <p className="activity-card__done"><span className="activity-card__label">Done when:</span> {item.completion}</p>}
       {open && (
         <div className="activity-card__actions">

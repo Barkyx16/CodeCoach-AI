@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import Field
 
 from app.schemas.common import APIModel
+from app.schemas.disputes import DisputeNote
 
 Experience = Literal["new", "early", "mid", "senior"]
 Format = Literal["written", "voice", "coding"]
@@ -48,6 +49,14 @@ class RoundStart(APIModel):
     duration_minutes: int
 
 
+class Withheld(APIModel):
+    text: str = Field(description="One line: 'Not suggested: … you disputed this point on 3 November.'")
+    href: str
+    reinstated: bool = Field(
+        default=False, description="Reinstated since: it can be suggested again at the plan's next update"
+    )
+
+
 class PlanItemOut(APIModel):
     id: str
     position: int
@@ -65,6 +74,9 @@ class PlanItemOut(APIModel):
     can_replace: bool
     created_at: datetime
     resolved_at: datetime | None
+    disputed: DisputeNote | None = Field(
+        default=None, description="Derived from feedback you've disputed since (it stays; you decide)"
+    )
 
 
 class TodayOut(APIModel):
@@ -117,6 +129,9 @@ class PlanOut(APIModel):
     created_at: datetime
     changes: list[str] = Field(description="Why this version differs from the last one")
     items: list[PlanItemOut]
+    withheld: list[Withheld] = Field(
+        default_factory=list, description="Suggestions this version didn't make because of a dispute"
+    )
     progress: PlanProgress
     today: TodayOut
     assessment: AssessmentOut

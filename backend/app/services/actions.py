@@ -50,6 +50,9 @@ from app.schemas.actions import (
 )
 from app.schemas.common import SaveReplay
 from app.services import request_keys, update_receipts
+from app.services.disputes import Disputes
+from app.services.disputes import for_action as dispute_for_action
+from app.services.disputes import note as dispute_note
 from app.services.review import InterviewReviews
 from app.services.schedule import MAX_ENTRIES, Schedule
 
@@ -66,6 +69,12 @@ class Actions:
     def __init__(self, db: Session, user: User):
         self.db = db
         self.user = user
+        self._disputes: dict | None = None  # read once per request (docs/DISPUTES.md)
+
+    def _disputed(self, row: AcceptedAction):
+        if self._disputes is None:
+            self._disputes = Disputes(self.db, self.user.id).active()
+        return dispute_note(dispute_for_action(self.db, self._disputes, row))
 
     # --- reads ------------------------------------------------------------------------------------
 
@@ -175,6 +184,7 @@ class Actions:
             ),
             occurrences=occurrences,
             attempts_since=self._attempts_since(row),
+            disputed=self._disputed(row),
             revision=row.revision,
             save_replay=replay,
             created_at=row.created_at,

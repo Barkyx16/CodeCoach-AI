@@ -43,6 +43,9 @@ function ReviewBody({ answerId }: { answerId: string }) {
     setError(null);
     try {
       put(await fn());
+      // A dispute changes what's recommended (docs/DISPUTES.md): the plan, accepted improvements and
+      // the schedule read it again.
+      for (const key of [["me", "plan"], ["me", "actions"], ["me", "schedule"]]) void qc.invalidateQueries({ queryKey: key });
       return true;
     } catch (e) {
       setError(e);
@@ -103,7 +106,9 @@ function ReviewBody({ answerId }: { answerId: string }) {
 
       <div className="stack-sm">
         <h3 className="section-title">Something unclear, or you disagree?</h3>
-        <p className="subtle">Flags are private notes for you. A real problem with the question itself goes through "Report a problem" on the feedback.</p>
+        <p className="subtle">
+          Flags are private notes for you. "I disagree" keeps that point out of your automatic plan until you count it again; your score and the feedback don't change. A real problem with the question itself goes through "Report a problem" on the feedback.
+        </p>
         <ul className="answer-review__flags">
           {[...r.answer.points.map((p) => p.label), OVERALL].map((criterion) => {
             const f = flagFor(criterion);
@@ -111,10 +116,25 @@ function ReviewBody({ answerId }: { answerId: string }) {
               <li key={criterion}>
                 <span>{criterion === OVERALL ? "The feedback overall" : criterion}</span>
                 {f ? (
-                  <span className="row">
-                    <Badge tone="warning">{f.kind === "unclear" ? "Unclear to you" : "You disagree"}</Badge>
-                    {f.note && <span className="subtle">“{f.note}”</span>}
-                    <Button size="sm" variant="ghost" disabled={busy} onClick={() => void run(() => api.removeAnswerFlag(answerId, f.id))}>Remove flag</Button>
+                  <span className="stack-sm">
+                    <span className="row">
+                      <Badge tone="warning">{f.kind === "unclear" ? "Unclear to you" : f.disputed ? "You disagree" : "You disagreed"}</Badge>
+                      {f.note && <span className="subtle">“{f.note}”</span>}
+                      <Button size="sm" variant="ghost" disabled={busy} onClick={() => void run(() => api.removeAnswerFlag(answerId, f.id))}>Remove flag</Button>
+                    </span>
+                    {f.disputed && (
+                      <span className="row">
+                        <span className="subtle">
+                          Disputed{f.disputed_at ? ` on ${formatDay(f.disputed_at)}` : ""}: this point doesn't shape your plan until you count it again.
+                        </span>
+                        <Button size="sm" variant="secondary" disabled={busy} onClick={() => void run(() => api.reinstateAnswerFlag(answerId, f.id))}>
+                          Count it in my plan again
+                        </Button>
+                      </span>
+                    )}
+                    {f.kind === "disagree" && !f.disputed && f.reinstated_at && (
+                      <span className="subtle">Counted in your plan again since {formatDay(f.reinstated_at)}.</span>
+                    )}
                   </span>
                 ) : flagging === criterion ? (
                   <FlagForm busy={busy} onCancel={() => setFlagging(null)}
@@ -175,3 +195,8 @@ function FlagForm({ busy, onSave, onCancel }: { busy: boolean; onSave: (kind: "u
     </form>
   );
 }
+
+// The same day, worded the same way, as the plan's server-written lines ("on 3 November", the UTC
+// calendar day), so the flag and the plan never name different days (docs/DISPUTES.md).
+const DAY = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", timeZone: "UTC" });
+const formatDay = (iso: string) => DAY.format(new Date(iso));

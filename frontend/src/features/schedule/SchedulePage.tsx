@@ -126,6 +126,7 @@ function Entry({ e, tz, titles }: { e: ScheduleEntry; tz: string; titles: Map<st
         {!e.available && <span className="subtle"> · No longer available</span>}
         {e.conflicts.length > 0 && <span className="schedule-entry__conflict">Overlaps with {e.conflicts.map((c) => titles.get(c) ?? "another entry").join(", ")}. Nothing was moved; change one if you need to.</span>}
         {e.notes && <span className="subtle">{e.notes}</span>}
+        {e.disputed && <span className="subtle schedule-entry__disputed">{e.disputed.text} <Link to={e.disputed.href}>See the dispute</Link></span>}
         {e.kind === "application_event" && e.status === "scheduled" && (
           <span className="subtle schedule-entry__follow">
             {e.follows_interview

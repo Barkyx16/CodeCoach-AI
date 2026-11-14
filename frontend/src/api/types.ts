@@ -419,3 +419,5 @@ export type RequirementSetIn = S["RequirementSetIn"];
 export type RevisionPreview = S["RevisionPreview"];
 export type RequirementHistoryEntry = S["RequirementHistoryEntry"];
 export type ActionLink = S["ActionLink"];
+export type DisputeNote = S["DisputeNote"];
+export type Withheld = S["Withheld"];

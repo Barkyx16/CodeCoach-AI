@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import Field
 
 from app.schemas.common import APIModel, OptionalKey, SaveReplay, save_replay_field, update_key_field
+from app.schemas.disputes import DisputeNote
 
 Recurrence = Literal["once", "weekly"]
 MAX_WEEKS = 8
@@ -74,6 +75,10 @@ class ActionOut(APIModel):
     occurrences: list[OccurrenceOut]
     attempts_since: int | None = Field(
         description="Practice of its target since you accepted it (null when that can't be counted)"
+    )
+    disputed: DisputeNote | None = Field(
+        default=None,
+        description="It came from a feedback point you've disputed since. It stays as it is: you decide (docs/DISPUTES.md)",
     )
     revision: int
     save_replay: SaveReplay | None = save_replay_field()

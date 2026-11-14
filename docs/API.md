@@ -922,7 +922,13 @@ Rubric transparency and self-review for written answers ([RUBRIC_TRANSPARENCY.md
   before_feedback}` → the review. Never changes the answer or its score; `400 unknown_criterion`
   for a rating on a point the answer doesn't have.
 - `POST …/flags {criterion (a point's label or "Overall"), kind: unclear|disagree, note}` (one per
-  criterion; saving again updates it), `DELETE …/flags/{flag_id}`.
+  criterion; saving again updates it), `DELETE …/flags/{flag_id}`. Each flag has `disputed`
+  (an "I disagree" not counted again), `disputed_at` (`null` for flags from before it was
+  recorded) and `reinstated_at`.
+- `POST …/flags/{flag_id}/reinstate` 🔒 → the review: counts a disputed point in the plan again
+  (docs/DISPUTES.md). The flag and its note stay. Sending it again, or for a flag that isn't a
+  standing dispute, changes nothing and returns the review; another account's answer or flag is
+  `404`.
 - `POST …/evaluations {reason}` → a new evaluation stored beside the original, only when the
   rubric or the question's version changed since the last one; otherwise `409 no_reevaluation`
   with the reason (the built-in coach is deterministic). At most three per answer.
@@ -1190,7 +1196,12 @@ Deterministic rules over recorded evidence (`app/services/roadmap.py` documents 
   `follow_up`, `session_minutes`, `note`) sized to `minutes`, `progress`, and `assessment`
   (`self_reported`, `evaluated`, `coding` kept separate; `state: building_baseline |
   baseline_ready`). Reading the plan marks items done from evidence recorded after they were
-  planned; completed work or changed goals produce a new version.
+  planned; completed work or changed goals produce a new version. Each item has `disputed`
+  (`{text, href, answer_id, criterion}` when it was derived from feedback the learner disputes,
+  else `null`), and the plan `withheld` (`[{text, href, reinstated}]`: what this version didn't
+  suggest because of a dispute, one line each). The same `disputed` note is on accepted actions
+  (`GET /me/actions`) and schedule entries (`GET /me/schedule`) derived from a disputed point;
+  they're never removed or cancelled for it (docs/DISPUTES.md).
 - `POST /api/v1/me/plan/items/{id}/skip | replace | reviewed` 🔒: skip records `skipped` (never
   done); replace swaps in another activity of the same kind and skill; `reviewed` is only for
   "review feedback" items (`409 not_self_reportable` otherwise). Closed items are `409`.

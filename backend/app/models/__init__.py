@@ -648,6 +648,8 @@ class PracticePlan(Base):
     track: Mapped[str] = mapped_column(String(64))
     version: Mapped[int] = mapped_column(Integer)
     changes: Mapped[list] = mapped_column(JSONType, default=list)  # why this version differs
+    # Suggestions this version didn't make because of a dispute: [{text, href}] (docs/DISPUTES.md).
+    withheld: Mapped[list | None] = mapped_column(JSONType, nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
     items: Mapped[list[PlanItem]] = relationship(
@@ -670,6 +672,9 @@ class PlanItem(Base):
     target: Mapped[dict] = mapped_column(JSONType, default=dict)  # question/problem ids, difficulty
     status: Mapped[str] = mapped_column(String(16), default="pending")  # pending|done|skipped|replaced
     evidence: Mapped[dict | None] = mapped_column(JSONType, nullable=True)  # what completed it
+    # What it was derived from: [{answer_id, criterion}] (a feedback point, or "Overall" for the
+    # answer's score and feedback as a whole). None: not recorded (items from before this).
+    derived_from: Mapped[list | None] = mapped_column(JSONType, nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     resolved_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
 
@@ -1654,6 +1659,10 @@ class AnswerFlag(Base):
     kind: Mapped[str] = mapped_column(String(12))  # unclear | disagree
     note: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    # A dispute is an "I disagree" flag that hasn't been reinstated (docs/DISPUTES.md): when it
+    # became one, and when the learner deliberately counted the point again. Not recorded before.
+    disputed_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    reinstated_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
 
 
 class AnswerEvaluation(Base):

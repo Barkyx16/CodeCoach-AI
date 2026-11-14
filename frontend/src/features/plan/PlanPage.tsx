@@ -46,6 +46,20 @@ export function PlanPage() {
               {done.map((i) => <ActivityCard key={i.id} item={i} compact />)}
             </section>
           )}
+          {(p.withheld ?? []).length > 0 && (
+            <section className="stack-sm" aria-labelledby="withheld-title">
+              <h2 className="section-title" id="withheld-title">Not suggested ({(p.withheld ?? []).length})</h2>
+              <p className="subtle">Left out because of feedback you disputed, not because there's nothing to practise.</p>
+              <ul className="mini-list plan-withheld">
+                {(p.withheld ?? []).map((w) => (
+                  <li key={w.text}>
+                    {w.text} <Link to={w.href}>See the dispute</Link>
+                    {w.reinstated && <span className="subtle"> You've counted it again since: it can come back when your plan next updates.</span>}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           {aside.length > 0 && (
             <section className="stack" aria-labelledby="aside-title">
               <h2 className="section-title" id="aside-title">Set aside ({aside.length})</h2>

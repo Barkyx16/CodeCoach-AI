@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import Field
 
 from app.schemas.common import APIModel, OptionalKey
+from app.schemas.disputes import DisputeNote
 
 ScheduleKind = Literal["plan_item", "review_item", "question", "problem", "application_event", "drill"]
 # What an entry can be. An accepted action's occurrences (docs/ACCEPTED_ACTIONS.md) are made from the
@@ -83,6 +84,11 @@ class EntryOut(APIModel):
         default=False,
         description="Interview preparation the learner chose to keep relative to its interview. It still "
         "never moves by itself: a reschedule offers a preview, and only selected entries move.",
+    )
+    disputed: DisputeNote | None = Field(
+        default=None,
+        description="What it's for came from feedback you've disputed since: labelled, never moved or "
+        "cancelled (docs/DISPUTES.md)",
     )
 
 

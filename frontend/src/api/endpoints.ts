@@ -628,6 +628,9 @@ export const api = {
     apiRequest<AnswerReview>(`/api/v1/me/answers/${encodeURIComponent(id)}/self-review`, { method: "PUT", body }),
   addAnswerFlag: (id: string, body: AnswerFlagIn) =>
     apiRequest<AnswerReview>(`/api/v1/me/answers/${encodeURIComponent(id)}/flags`, { method: "POST", body }),
+  /** Count a point you disputed in your plan again (recorded; the flag and its note stay). */
+  reinstateAnswerFlag: (id: string, flagId: number) =>
+    apiRequest<AnswerReview>(`/api/v1/me/answers/${encodeURIComponent(id)}/flags/${flagId}/reinstate`, { method: "POST" }),
   removeAnswerFlag: (id: string, flagId: number) =>
     apiRequest<AnswerReview>(`/api/v1/me/answers/${encodeURIComponent(id)}/flags/${flagId}`, { method: "DELETE" }),
   reevaluateAnswer: (id: string, reason: string) =>

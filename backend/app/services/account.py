@@ -295,11 +295,14 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
                         "status": i.status,
                         "evidence": i.evidence,
                         "target": i.target,
+                        # The answers and feedback points it was derived from (docs/DISPUTES.md).
+                        "derived_from": i.derived_from,
                         "planned_at": iso(i.created_at),
                         "resolved_at": iso(i.resolved_at),
                     }
                     for i in p.items
                 ],
+                "withheld": [w["text"] for w in p.withheld or []],
             }
             for p in plans
         ],

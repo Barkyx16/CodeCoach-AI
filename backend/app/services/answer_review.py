@@ -197,7 +197,16 @@ class AnswerReview:
 
     @staticmethod
     def _flag_out(f: AnswerFlag) -> FlagOut:
-        return FlagOut(id=f.id, criterion=f.criterion, kind=f.kind, note=f.note, created_at=f.created_at)
+        return FlagOut(
+            id=f.id,
+            criterion=f.criterion,
+            kind=f.kind,
+            note=f.note,
+            created_at=f.created_at,
+            disputed_at=f.disputed_at,
+            reinstated_at=f.reinstated_at,
+            disputed=f.kind == "disagree" and f.reinstated_at is None,
+        )
 
     @staticmethod
     def _evaluation_out(e: AnswerEvaluation, answer: str) -> EvaluationOut:
@@ -259,8 +268,26 @@ class AnswerReview:
         if f is None:
             f = AnswerFlag(answer_id=a.id, user_id=self.user.id, criterion=body.criterion)
             self.db.add(f)
+        now = datetime.now(UTC)
+        was_dispute = f.kind == "disagree" and f.reinstated_at is None
+        if body.kind == "disagree" and not was_dispute:
+            # It becomes a dispute now (docs/DISPUTES.md): this point stops shaping the plan.
+            f.disputed_at, f.reinstated_at = now, None
+        elif body.kind != "disagree" and was_dispute:
+            f.reinstated_at = now  # changed to "unclear": counted again, deliberately
         f.kind, f.note = body.kind, _clean(body.note)
         self.db.commit()
+        return self.review(a.id)
+
+    def reinstate(self, answer_id: str, flag_id: int) -> AnswerReviewOut:
+        """Count a disputed point again: deliberate, recorded, and nothing else does it."""
+        a = self._answer(answer_id)
+        f = self.db.get(AnswerFlag, flag_id)
+        if f is None or f.answer_id != a.id:
+            raise NotFoundError("Flag not found")
+        if f.kind == "disagree" and f.reinstated_at is None:
+            f.reinstated_at = datetime.now(UTC)
+            self.db.commit()
         return self.review(a.id)
 
     def remove_flag(self, answer_id: str, flag_id: int) -> AnswerReviewOut:
@@ -314,6 +341,9 @@ class AnswerReview:
                     "kind": f.kind,
                     "note": f.note,
                     "created_at": f.created_at.isoformat(),
+                    # A dispute and its reinstatement (docs/DISPUTES.md); not recorded before.
+                    "disputed_at": f.disputed_at.isoformat() if f.disputed_at else None,
+                    "reinstated_at": f.reinstated_at.isoformat() if f.reinstated_at else None,
                 }
                 for f in self.db.scalars(select(AnswerFlag).where(AnswerFlag.user_id == uid))
             ],

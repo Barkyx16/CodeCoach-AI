@@ -106,7 +106,10 @@ look. Nothing here is turned into a label about the person, a prediction or a sc
 ## Disagreeing
 
 - **Flag** any point (or the feedback overall) as "unclear" or "I disagree", with a private
-  note. One flag per point; it can be changed or removed. Flags don't change the result.
+  note. One flag per point; it can be changed or removed. Flags don't change the result: the
+  feedback, the score and any verdict stay as they were. An "I disagree" is a **dispute**: until
+  the learner counts the point again (a button on the flag), it doesn't shape what the plan
+  suggests, and anything derived from it is labelled (docs/DISPUTES.md).
 - **Report a problem** (the existing content-report flow, already on the feedback) is for real
   problems with the question itself.
 - **Check again** runs only when it could change something: the built-in coach is

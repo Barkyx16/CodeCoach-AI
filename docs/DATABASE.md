@@ -283,7 +283,8 @@ or `problem` + slug), not a foreign key, so a report outlives a renamed or retir
   the account): `went_well`, `improve`, `ratings` (JSON, by criterion label), `skipped`,
   `before_feedback`, `updated_at`.
 - `answer_flags`: one per answer and criterion (unique): `kind` (unclear|disagree), private
-  `note`.
+  `note`, `disputed_at` (when it became "I disagree") and `reinstated_at` (when the learner
+  counted the point again; docs/DISPUTES.md).
 - `answer_evaluations`: later evaluations of an answer (the original stays on
   `practice_answers`): `rubric_version`, `content_version`, `score`, `feedback` (JSON), `reason`.
 - `practice_answers.feedback` now also stores `evidence` per point, `evidence_level` and
@@ -493,6 +494,7 @@ The cases are code (`backend/app/offers`, docs/OFFER_REHEARSAL.md), not rows.
 | `e5c9a2b7d103` attempt conditions | Adds nullable `content_version` to `ai_interactions` and `submissions`: the coding problem's version when a hint was shown and an attempt was made (docs/ATTEMPT_CONDITIONS.md). Older rows stay null; both tables' row-level security covers the columns; downgrade drops them |
 | `f7d1b3e5a209` follow-up answers | Adds `practice_answers.follows_up_answer_id` (nullable, indexed, ON DELETE SET NULL): the earlier answer to a related question that this one followed up (docs/FOLLOW_UPS.md). Existing answers stay unlinked; row-level security covers it; downgrade drops it |
 | `a8e2c4f6b310` requirement versions | Adds `target_requirements.version` (default 1), `role_targets.requirements_revision` (default 1, checked when the set is saved), `experience_entries.requirement_versions` and `accepted_actions.requirement_reuse` (nullable JSON: a link's version and any deliberate reuse), and `requirement_versions`, one row per recorded state of a requirement (original, added, changed, removed, restored) with its words, group and skills then, owner-only, under row-level security, deleted with the target and the account (docs/REQUIREMENT_VERSIONS.md). Existing requirements stay version 1 and existing links say "version not recorded"; nothing existing is rewritten; downgrade drops all five |
+| `b9f3d5e7a421` feedback disputes | Adds `answer_flags.disputed_at` and `reinstated_at` (nullable timestamps), `plan_items.derived_from` (nullable JSON: the `{answer_id, criterion}` pairs an activity came from) and `practice_plans.withheld` (nullable JSON: what a version didn't suggest because of a dispute). Existing flags have no dispute date ("the date wasn't recorded") and existing activities no derivation, so they're never labelled; nothing existing is rewritten; covered by the tables' existing row-level security; downgrade drops all four (docs/DISPUTES.md) |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

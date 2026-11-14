@@ -51,6 +51,9 @@ from app.schemas.schedule import (
 from app.services import request_keys
 from app.services.applications import not_over
 from app.services.content import is_problem_retired
+from app.services.disputes import Disputes, for_plan_item
+from app.services.disputes import for_action as dispute_for_action
+from app.services.disputes import note as dispute_note
 from app.services.ics import IcsEvent, calendar
 from app.services.timeutil import local_to_utc, parse_hhmm, zone
 
@@ -70,6 +73,24 @@ class Schedule:
     def __init__(self, db: Session, user: User):
         self.db = db
         self.user = user
+        self._disputes: dict | None = None  # read once per request (docs/DISPUTES.md)
+
+    def _disputed(self, e: ScheduleEntry):
+        """An occurrence of something derived from feedback since disputed: labelled, never moved,
+        cancelled or deleted (docs/DISPUTES.md)."""
+        if e.kind not in ("plan_item", "accepted_action"):
+            return None
+        if self._disputes is None:
+            self._disputes = Disputes(self.db, self.user.id).active()
+        if not self._disputes:
+            return None
+        if e.kind == "plan_item":
+            item = self.db.get(PlanItem, e.ref)
+            return dispute_note(for_plan_item(self._disputes, item)) if item is not None else None
+        action = self.db.get(AcceptedAction, e.ref)
+        if action is None or action.user_id != self.user.id:
+            return None
+        return dispute_note(dispute_for_action(self.db, self._disputes, action))
 
     # --- settings -----------------------------------------------------------------------------
 
@@ -256,6 +277,7 @@ class Schedule:
             notes=e.notes,
             created_at=e.created_at,
             follows_interview=e.anchor_at is not None,
+            disputed=self._disputed(e),
         )
 
     @staticmethod

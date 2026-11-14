@@ -2072,6 +2072,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/answers/{answer_id}/flags/{flag_id}/reinstate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Count a point you disputed again in your plan (recorded; the flag and its note stay) */
+        post: operations["reinstate_flag_api_v1_me_answers__answer_id__flags__flag_id__reinstate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/answers/{answer_id}/flags/{flag_id}": {
         parameters: {
             query?: never;
@@ -4272,6 +4289,8 @@ export interface components {
              * @description Practice of its target since you accepted it (null when that can't be counted)
              */
             attempts_since: number | null;
+            /** @description It came from a feedback point you've disputed since. It stays as it is: you decide (docs/DISPUTES.md) */
+            disputed?: components["schemas"]["DisputeNote"] | null;
             /** Revision */
             revision: number;
             /** @description Only on a save recovered by its key: see SaveReplay */
@@ -6443,6 +6462,26 @@ export interface components {
             /** Evidence */
             evidence?: components["schemas"]["EvidenceLink"][];
         };
+        /**
+         * DisputeNote
+         * @description Something derived from feedback the learner disputed. It stays; the learner decides.
+         */
+        DisputeNote: {
+            /**
+             * Text
+             * @description e.g. 'Based on feedback you disputed on 3 November: “Gives a result”.'
+             */
+            text: string;
+            /**
+             * Href
+             * @description The answer whose feedback was disputed
+             */
+            href: string;
+            /** Answer Id */
+            answer_id: string;
+            /** Criterion */
+            criterion: string;
+        };
         /** DoneIn */
         DoneIn: {
             /** Done */
@@ -6701,6 +6740,8 @@ export interface components {
              * @default false
              */
             follows_interview: boolean;
+            /** @description What it's for came from feedback you've disputed since: labelled, never moved or cancelled (docs/DISPUTES.md) */
+            disputed?: components["schemas"]["DisputeNote"] | null;
         };
         /** ErrorBody */
         ErrorBody: {
@@ -7400,6 +7441,22 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Disputed
+             * @description An 'I disagree' not reinstated: this point doesn't shape automatic recommendations (docs/DISPUTES.md). The feedback and score stay as they were.
+             * @default false
+             */
+            disputed: boolean;
+            /**
+             * Disputed At
+             * @description When it became a dispute (not recorded before)
+             */
+            disputed_at?: string | null;
+            /**
+             * Reinstated At
+             * @description When the point was deliberately counted again
+             */
+            reinstated_at?: string | null;
         };
         /** FollowInterviewIn */
         FollowInterviewIn: {
@@ -9638,6 +9695,8 @@ export interface components {
             created_at: string;
             /** Resolved At */
             resolved_at: string | null;
+            /** @description Derived from feedback you've disputed since (it stays; you decide) */
+            disputed?: components["schemas"]["DisputeNote"] | null;
         };
         /** PlanOut */
         PlanOut: {
@@ -9659,6 +9718,11 @@ export interface components {
             changes: string[];
             /** Items */
             items: components["schemas"]["PlanItemOut"][];
+            /**
+             * Withheld
+             * @description Suggestions this version didn't make because of a dispute
+             */
+            withheld?: components["schemas"]["Withheld"][];
             progress: components["schemas"]["PlanProgress"];
             today: components["schemas"]["TodayOut"];
             assessment: components["schemas"]["AssessmentOut"];
@@ -14215,6 +14279,22 @@ export interface components {
             id: string;
             /** Text */
             text: string;
+        };
+        /** Withheld */
+        Withheld: {
+            /**
+             * Text
+             * @description One line: 'Not suggested: … you disputed this point on 3 November.'
+             */
+            text: string;
+            /** Href */
+            href: string;
+            /**
+             * Reinstated
+             * @description Reinstated since: it can be suggested again at the plan's next update
+             * @default false
+             */
+            reinstated: boolean;
         };
         /** WorkSampleAttemptIn */
         WorkSampleAttemptIn: {
@@ -21740,6 +21820,56 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    reinstate_flag_api_v1_me_answers__answer_id__flags__flag_id__reinstate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                answer_id: string;
+                flag_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnswerReviewOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

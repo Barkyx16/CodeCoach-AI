@@ -72,7 +72,10 @@ from app.schemas.roadmap import (
     RoundStart,
     SelfRating,
     TodayOut,
+    Withheld,
 )
+from app.services.disputes import OVERALL, Dispute, Disputes, covering, first_disputed
+from app.services.disputes import note as dispute_note
 from app.services.learn import Learn
 from app.services.progress import ProgressService
 
@@ -111,6 +114,16 @@ def _now() -> datetime:
     return datetime.now(UTC)
 
 
+def _withheld(what: str, d: Dispute, why: str) -> dict[str, str]:
+    """One line for a suggestion the plan didn't make because of a dispute (docs/DISPUTES.md)."""
+    return {
+        "text": f"Not suggested: {what}: {why}.",
+        "href": d.href,
+        "answer_id": d.answer_id,
+        "criterion": d.criterion,
+    }
+
+
 def _aware(dt: datetime) -> datetime:
     return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
 
@@ -124,6 +137,9 @@ class Spec:
     completion: str
     minutes: int
     target: dict[str, Any] = field(default_factory=dict)
+    # What it was derived from (docs/DISPUTES.md): [{answer_id, criterion}], criterion a feedback
+    # point's label or "Overall" (that answer's score and feedback as a whole).
+    derived: list[dict[str, str]] = field(default_factory=list)
 
     @property
     def key(self) -> tuple[str, str]:
@@ -149,6 +165,14 @@ class Evidence:
     # Every question with at least one answer (including answers too short to score, which have
     # no entry in `best`: app/careers/eligibility.py).
     answered: set[str] = field(default_factory=set)
+    # Disputes (docs/DISPUTES.md): an answer whose feedback as a whole is disputed doesn't count
+    # above; these keep what it would have been, to say what wasn't suggested and why.
+    disputes: dict[tuple[str, str], Dispute] = field(default_factory=dict)
+    best_answer: dict[str, str] = field(default_factory=dict)  # question -> the answer with `best`
+    best_all: dict[str, int] = field(default_factory=dict)  # with disputed answers counted
+    answered_all: set[str] = field(default_factory=set)
+    disputed_question: dict[str, Dispute] = field(default_factory=dict)
+    withheld: list[dict[str, str]] = field(default_factory=list)  # filled while generating
 
 
 class Roadmap:
@@ -223,7 +247,9 @@ class Roadmap:
 
     # --- evidence ---------------------------------------------------------------------------
 
-    def _evidence(self, user: User, track: str) -> Evidence:
+    def _evidence(
+        self, user: User, track: str, disputes: dict[tuple[str, str], Dispute] | None = None
+    ) -> Evidence:
         # Ids and scores only: the plan needs one answer's feedback (at most two, for weak
         # questions), loaded by id below. Loading every whole row decoded all their feedback JSON
         # (docs/PERFORMANCE.md, "Real journeys").
@@ -234,13 +260,27 @@ class Roadmap:
             .where(PracticeAnswer.user_id == user.id, PracticeAnswer.track == track)
             .order_by(PracticeAnswer.created_at)
         ).all()
+        disputes = disputes or {}
         best: dict[str, int] = {}
+        best_answer: dict[str, str] = {}
+        best_all: dict[str, int] = {}
         latest: dict[str, str] = {}
         answered: set[str] = set()
+        answered_all: set[str] = set()
+        disputed_question: dict[str, Dispute] = {}
         for answer_id, question_id, score, level, words in rows:
+            answered_all.add(question_id)
+            scored = eligibility(level, words) == "scored"
+            if scored:
+                best_all[question_id] = max(best_all.get(question_id, 0), score)
+            overall = disputes.get((answer_id, OVERALL))
+            if overall is not None:
+                # Its feedback as a whole is disputed: it doesn't shape the plan (its score stays).
+                disputed_question.setdefault(question_id, overall)
+                continue
             answered.add(question_id)
-            if eligibility(level, words) == "scored":
-                best[question_id] = max(best.get(question_id, 0), score)
+            if scored and score > best.get(question_id, -1):
+                best[question_id], best_answer[question_id] = score, answer_id
             latest[question_id] = answer_id
         sessions = self.db.scalars(
             select(PracticeSession).where(
@@ -275,6 +315,11 @@ class Roadmap:
             last_voice=max(spoken) if spoken else None,
             learn_passed=Learn(self.db).passed_units(user),
             answered=answered,
+            disputes=disputes,
+            best_answer=best_answer,
+            best_all=best_all,
+            answered_all=answered_all,
+            disputed_question=disputed_question,
         )
 
     # --- generation -------------------------------------------------------------------------
@@ -331,6 +376,15 @@ class Roadmap:
             *sorted(((s, q) for q, s in ev.best.items() if s < WEAK and q not in used), key=lambda x: x[0]),
             *((None, q) for q in sorted(ev.answered - set(ev.best) - used)),
         ][:2]
+        # Weak only because of answers whose feedback is disputed: not suggested, and said so.
+        weak_ids = {q for _, q in weak}
+        for qid in sorted(ev.disputed_question):
+            would_be = ev.best_all.get(qid, WEAK) < WEAK or qid not in ev.best_all
+            if qid in weak_ids or qid in used or not would_be:
+                continue
+            q, d = get_question(track, qid), ev.disputed_question[qid]
+            if q is not None:
+                ev.withheld.append(_withheld(f"retrying “{q.title}”", d, f"you disputed {d.what} {d.when}"))
         reviews: list[Spec] = []
         retries: list[Spec] = []
         for score, qid in weak:
@@ -339,9 +393,19 @@ class Roadmap:
             last = self.db.get(PracticeAnswer, last_id) if last_id else None
             if q is None or last is None:
                 continue
-            missed = [
-                p["label"].lower() for p in (last.feedback or {}).get("points", []) if not p.get("covered")
-            ]
+            labels = [p["label"] for p in (last.feedback or {}).get("points", []) if not p.get("covered")]
+            # A point the learner disputes isn't cited (nor used to choose anything); the next ones are.
+            for label in labels[:2]:
+                hit = covering(ev.disputes, last.id, label)
+                if hit is not None:
+                    ev.withheld.append(
+                        _withheld(
+                            f"adding “{label}” to “{q.title}”", hit, f"you disputed this point {hit.when}"
+                        )
+                    )
+            cited = [lb for lb in labels if covering(ev.disputes, last.id, lb) is None][:2]
+            missed = [lb.lower() for lb in cited]
+            basis = [{"answer_id": ev.best_answer.get(qid) or last.id, "criterion": OVERALL}]
             skill = question_skills(q)[0]
             if not reviews:
                 reviews.append(
@@ -358,6 +422,7 @@ class Roadmap:
                         "Open your feedback and mark it reviewed. This one is self-reported.",
                         4,
                         {"question_id": qid, "answer_id": last.id},
+                        [{"answer_id": last.id, "criterion": OVERALL}],
                     )
                 )
             retries.append(
@@ -374,6 +439,7 @@ class Roadmap:
                     "Submit a new answer to this question. Your earlier answers stay saved.",
                     6,
                     {"question_id": qid},
+                    [*basis, *({"answer_id": last.id, "criterion": lb} for lb in cited)],
                 )
             )
             used.add(qid)
@@ -382,10 +448,13 @@ class Roadmap:
         skills = career_skills(track)
         by_skill = questions_by_skill(track)
         stats: dict[str, list[int]] = defaultdict(list)
+        stat_answers: dict[str, list[str]] = defaultdict(list)
         for qid, s in ev.best.items():
             q = get_question(track, qid)
             for sk in question_skills(q) if q else ():
                 stats[sk].append(s)
+                if qid in ev.best_answer:
+                    stat_answers[sk].append(ev.best_answer[qid])
         chosen = [s for s in (goal.focus_areas if goal else []) if s in skills]
         unpractised = [s for s in skills if not stats[s] and by_skill.get(s) and s not in chosen]
         lowest = sorted(
@@ -413,15 +482,25 @@ class Roadmap:
                     "Submit an answer to this question. Any score counts; the score shows what to do next.",
                     6,
                     {"question_id": q.id},
+                    []
+                    if s in chosen or not stats[s]
+                    else [{"answer_id": a, "criterion": OVERALL} for a in stat_answers[s]],
                 )
             )
             used.add(q.id)
 
         # A short lesson before retrying a weak skill (or for a chosen focus skill), when one exists.
         lessons: list[Spec] = []
-        for skill, why in [
-            *((r.skill, "your answers in it are below 70") for r in retries),
-            *((s, "you asked for help with it") for s in chosen),
+        for skill, why, derived in [
+            *(
+                (
+                    r.skill,
+                    "your answers in it are below 70",
+                    [d for d in r.derived if d["criterion"] == OVERALL],
+                )
+                for r in retries
+            ),
+            *((s, "you asked for help with it", []) for s in chosen),
         ]:
             unit = next(
                 (u for u in units_for(track) if u.skill == skill and u.id not in ev.learn_passed), None
@@ -436,6 +515,7 @@ class Roadmap:
                         "Pass the lesson's comprehension check. Reading it alone doesn't count.",
                         unit.minutes,
                         {"unit_id": unit.id},
+                        derived,
                     )
                 )
 
@@ -556,8 +636,14 @@ class Roadmap:
         self, user: User, track: str, prev: PracticePlan | None, changes: list[str]
     ) -> PracticePlan:
         goal = self._goal(user, track)
-        ev = self._evidence(user, track)
-        specs = self._generate(user, track, goal, ev, self._avoid(user, track))
+        # Worked out from the disputes as they stand, and checked again just before it's published:
+        # a dispute made meanwhile (another tab, another device) is respected (docs/DISPUTES.md).
+        for _ in range(3):
+            disputes = Disputes(self.db, user.id).active(track)
+            ev = self._evidence(user, track, disputes)
+            specs = self._generate(user, track, goal, ev, self._avoid(user, track))
+            if set(Disputes(self.db, user.id).active(track)) == set(disputes):
+                break
         plan = PracticePlan(
             user_id=user.id,
             track=track,
@@ -575,10 +661,12 @@ class Roadmap:
                     completion=s.completion,
                     minutes=s.minutes,
                     target=s.target,
+                    derived_from=s.derived,
                     status="pending",
                     created_at=_now(),
                 )
             )
+        plan.withheld = ev.withheld
         if prev is not None:
             old = {
                 (
@@ -877,7 +965,7 @@ class Roadmap:
         if item.kind not in ("question", "voice", "coding"):
             raise ConflictError("This activity has no alternative to swap in.", code="no_alternative")
         track = item.plan.track
-        ev = self._evidence(user, track)
+        ev = self._evidence(user, track, Disputes(self.db, user.id).active(track))
         taken = {
             str(i.target.get("question_id") or i.target.get("problem_slug"))
             for i in item.plan.items
@@ -938,7 +1026,7 @@ class Roadmap:
 
     # --- output -----------------------------------------------------------------------------
 
-    def _item_out(self, track: str, i: PlanItem) -> PlanItemOut:
+    def _item_out(self, track: str, i: PlanItem, disputes: dict[tuple[str, str], Dispute]) -> PlanItemOut:
         t = i.target or {}
         href: str | None = None
         rnd: RoundStart | None = None
@@ -973,6 +1061,7 @@ class Roadmap:
             can_replace=i.kind in ("question", "voice", "coding") and i.status == "pending",
             created_at=i.created_at,
             resolved_at=i.resolved_at,
+            disputed=dispute_note(first_disputed(disputes, i.derived_from)),
         )
 
     def _today(self, items: list[PlanItemOut], minutes: int) -> TodayOut:
@@ -1059,8 +1148,9 @@ class Roadmap:
 
     def _out(self, user: User, track: str, plan: PracticePlan, minutes: int) -> PlanOut:
         goal = self._goal(user, track)
+        disputes = Disputes(self.db, user.id).active(track)
         items = [
-            self._item_out(track, i)
+            self._item_out(track, i, disputes)
             for i in sorted(plan.items, key=lambda i: (i.position, _aware(i.created_at)))
         ]
         week = _now() - timedelta(days=7)
@@ -1074,7 +1164,7 @@ class Roadmap:
                 PlanItem.resolved_at >= week,
             )
         ).all()
-        ev = self._evidence(user, track)
+        ev = self._evidence(user, track, disputes)
         days = (goal.target_date - _now().date()).days if goal and goal.target_date else None
         return PlanOut(
             track=track,
@@ -1082,6 +1172,14 @@ class Roadmap:
             version=plan.version,
             created_at=plan.created_at,
             changes=list(plan.changes or []),
+            withheld=[
+                Withheld(
+                    text=w["text"],
+                    href=w["href"],
+                    reinstated=(w.get("answer_id"), w.get("criterion")) not in disputes,
+                )
+                for w in plan.withheld or []
+            ],
             items=items,
             progress=PlanProgress(
                 done_this_week=len(recent),
@@ -1100,4 +1198,5 @@ class Roadmap:
         )
 
     def item_out(self, item: PlanItem) -> PlanItemOut:
-        return self._item_out(item.plan.track, item)
+        track = item.plan.track
+        return self._item_out(track, item, Disputes(self.db, item.plan.user_id).active(track))

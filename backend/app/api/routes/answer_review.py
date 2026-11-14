@@ -70,6 +70,18 @@ def add_flag(
     return AnswerReview(db, user).add_flag(answer_id, body)
 
 
+@router.post(
+    "/me/answers/{answer_id}/flags/{flag_id}/reinstate",
+    response_model=AnswerReviewOut,
+    responses=error_responses(401, 404),
+    summary="Count a point you disputed again in your plan (recorded; the flag and its note stay)",
+)
+def reinstate_flag(
+    answer_id: str, flag_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> AnswerReviewOut:
+    return AnswerReview(db, user).reinstate(answer_id, flag_id)
+
+
 @router.delete(
     "/me/answers/{answer_id}/flags/{flag_id}",
     response_model=AnswerReviewOut,

@@ -10814,6 +10814,82 @@
         }
       }
     },
+    "/api/v1/me/answers/{answer_id}/flags/{flag_id}/reinstate": {
+      "post": {
+        "tags": [
+          "careers"
+        ],
+        "summary": "Count a point you disputed again in your plan (recorded; the flag and its note stay)",
+        "operationId": "reinstate_flag_api_v1_me_answers__answer_id__flags__flag_id__reinstate_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "answer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Answer Id"
+            }
+          },
+          {
+            "name": "flag_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Flag Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnswerReviewOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/answers/{answer_id}/flags/{flag_id}": {
       "delete": {
         "tags": [
@@ -22368,6 +22444,17 @@
             "title": "Attempts Since",
             "description": "Practice of its target since you accepted it (null when that can't be counted)"
           },
+          "disputed": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DisputeNote"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "It came from a feedback point you've disputed since. It stays as it is: you decide (docs/DISPUTES.md)"
+          },
           "revision": {
             "type": "integer",
             "title": "Revision"
@@ -27676,6 +27763,37 @@
         ],
         "title": "Dimension"
       },
+      "DisputeNote": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "e.g. 'Based on feedback you disputed on 3 November: \u201cGives a result\u201d.'"
+          },
+          "href": {
+            "type": "string",
+            "title": "Href",
+            "description": "The answer whose feedback was disputed"
+          },
+          "answer_id": {
+            "type": "string",
+            "title": "Answer Id"
+          },
+          "criterion": {
+            "type": "string",
+            "title": "Criterion"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "href",
+          "answer_id",
+          "criterion"
+        ],
+        "title": "DisputeNote",
+        "description": "Something derived from feedback the learner disputed. It stays; the learner decides."
+      },
       "DoneIn": {
         "properties": {
           "done": {
@@ -28287,6 +28405,17 @@
             "title": "Follows Interview",
             "description": "Interview preparation the learner chose to keep relative to its interview. It still never moves by itself: a reschedule offers a preview, and only selected entries move.",
             "default": false
+          },
+          "disputed": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DisputeNote"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What it's for came from feedback you've disputed since: labelled, never moved or cancelled (docs/DISPUTES.md)"
           }
         },
         "type": "object",
@@ -29835,6 +29964,38 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "disputed": {
+            "type": "boolean",
+            "title": "Disputed",
+            "description": "An 'I disagree' not reinstated: this point doesn't shape automatic recommendations (docs/DISPUTES.md). The feedback and score stay as they were.",
+            "default": false
+          },
+          "disputed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Disputed At",
+            "description": "When it became a dispute (not recorded before)"
+          },
+          "reinstated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reinstated At",
+            "description": "When the point was deliberately counted again"
           }
         },
         "type": "object",
@@ -35454,6 +35615,17 @@
               }
             ],
             "title": "Resolved At"
+          },
+          "disputed": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DisputeNote"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Derived from feedback you've disputed since (it stays; you decide)"
           }
         },
         "type": "object",
@@ -35510,6 +35682,14 @@
             },
             "type": "array",
             "title": "Items"
+          },
+          "withheld": {
+            "items": {
+              "$ref": "#/components/schemas/Withheld"
+            },
+            "type": "array",
+            "title": "Withheld",
+            "description": "Suggestions this version didn't make because of a dispute"
           },
           "progress": {
             "$ref": "#/components/schemas/PlanProgress"
@@ -47119,6 +47299,31 @@
           "text"
         ],
         "title": "WhiteboardPromptRequirement"
+      },
+      "Withheld": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "One line: 'Not suggested: \u2026 you disputed this point on 3 November.'"
+          },
+          "href": {
+            "type": "string",
+            "title": "Href"
+          },
+          "reinstated": {
+            "type": "boolean",
+            "title": "Reinstated",
+            "description": "Reinstated since: it can be suggested again at the plan's next update",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "href"
+        ],
+        "title": "Withheld"
       },
       "WorkSampleAttemptIn": {
         "properties": {
