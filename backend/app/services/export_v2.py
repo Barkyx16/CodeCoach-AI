@@ -1,13 +1,14 @@
 """Account export, version 2: the version 1 document plus identities and typed links.
 
-Version 2 is opt-in (`GET /api/v1/me/export?version=2`); version 1 stays the default and is what
-restore reads. Every record keeps all of its version 1 fields unchanged. Records that others point
+Version 2 is opt-in (`GET /api/v1/me/export?version=2`); version 1 stays the default. Restore
+reads both, and from version 2 also brings back accepted improvements by id (Volume 14, prompt 5). Every record keeps all of its version 1 fields unchanged. Records that others point
 to gain an `id`, and records that point to others gain `links`: typed references, each with a
 state saying what the file can tell about its target. See docs/BACKUP_FORMAT.md.
 
 Identity scope: an id is the record's id in this account, unique per record type within one file.
-It's opaque: not stable across accounts, never a credential or proof of ownership, and never used
-by restore (restored records always get new ids).
+It's opaque: not stable across accounts, never a credential or proof of ownership. Restore gives
+restored records new ids, except accepted improvements and their occurrences, which keep theirs so
+the records that name them find them again (docs/BACKUP_FORMAT.md).
 
 Reference states:
 - `present`: the target is in this file, with that type and id.
@@ -81,7 +82,7 @@ def export_v2(db: Session, user: User) -> dict:
     doc["export_version"] = EXPORT_VERSION_2
     doc["identities"] = {
         "scope": "unique per record type within this file; opaque; not stable across accounts",
-        "restore": "not supported for version 2; restore reads version 1",
+        "restore": "read like version 1; accepted improvements and their occurrences are restored with their ids",
         "states": list(STATES),
     }
     apps = doc["applications"]

@@ -45,6 +45,9 @@ from app.schemas.kits import (
 from app.services import update_receipts
 from app.services.story_freshness import Prepared, StoryFreshness, digest, digest_of, forget
 
+# An accepted improvement deleted since the kit chose it (docs/ACCEPTED_ACTIONS.md).
+REMOVED = "An improvement you removed"
+
 _CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
 COMMON_BEFORE = ["Confirm the date, time and time zone"]
@@ -333,7 +336,7 @@ class Kits:
                         id=c["id"],
                         origin="action",
                         action_id=c.get("action_id"),
-                        text="An improvement that's no longer available",
+                        text=REMOVED,
                         hidden=c.get("hidden", False),
                     )
                 )
@@ -369,6 +372,7 @@ class Kits:
                         ),
                         occurrences_total=len(entries),
                         href=action.practice_href,
+                        archived=action.archived_at is not None,
                     ),
                 )
             )

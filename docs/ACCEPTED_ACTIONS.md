@@ -137,20 +137,48 @@ submission drops out.
   "That interview is no longer available" (retention follows the interview's own rules; the action
   holds a snapshot, not the answers).
 - Exported in "Your data" (`accepted_actions`, with occurrences; version 2 adds ids and links:
-  docs/BACKUP_FORMAT.md) and counted in the data summary. Deleted with the account. Not restored
-  from a backup yet: accept them again from the review.
+  docs/BACKUP_FORMAT.md) and counted in the data summary. Deleted with the account. Restored from a
+  version 2 backup, with their occurrences, under their own ids ("Archive and delete", below).
 - No reminders or notifications beyond the schedule's existing calendar file.
+
+## Archive and delete
+
+Volume 14, prompt 5. An improvement you've finished with can be put down or removed, each shown
+first by the plan that carries it out (docs/LIFECYCLE.md): **Archive…** and **Delete…** on its card.
+
+| | Archive | Delete |
+|---|---|---|
+| The improvement | Off the plan's list (under **Archived**), the schedule and Today; kept, in the export | Deleted, with its notes and marks of done |
+| Its occurrences (done and not yet) | Kept, with their marks of done; off the schedule while it's archived | Deleted |
+| A kit's checklist that names it | Kept, labelled **Archived** | Kept, as "An improvement you removed" |
+| The target requirements it's listed with | Still listed | Unlinked (the requirement stays) |
+| The suggestion in the interview's review | Still shown as accepted | Kept; it can be accepted again as a new improvement |
+| Practice you did with it | Kept and still counted | Kept and still counted |
+
+- **Unarchive** brings it back as it was, with its occurrences; it can't be scheduled while it's
+  archived (`409 action_archived`). Marks of done are history: archiving never unmarks them.
+- Carried out as previewed: a scope that changed since (a week scheduled meanwhile) is `409
+  impact_changed` with the new list, nothing done; a retried key answers with what was done; another
+  account's improvement is 404.
+- **Restore**: a version 2 backup brings a deleted improvement back with the same id, its
+  occurrences with theirs and their marks of done, so a kit that still names it shows it again
+  (docs/BACKUP_FORMAT.md). One whose interview isn't in this account is skipped (interviews aren't
+  restored, so there'd be nothing to link it to); one already there is a duplicate.
+- Backups CodeCoach made before a delete keep a copy until they age out, and a calendar file you
+  downloaded keeps its events; the preview says so.
 
 ## API
 
 `/api/v1/me/actions`: `GET` (list), `POST` (accept: `{source: {interview_id, key}, recurrence}`),
 `GET`/`PATCH /{id}`, `POST /{id}/complete`, `/{id}/reopen`, `/{id}/occurrences` (schedule),
-`/{id}/occurrences/{entry_id}/complete` and `/reopen`.
+`/{id}/occurrences/{entry_id}/complete` and `/reopen`; `GET /{id}/archive-preview` and `POST
+/{id}/archive` (`{expected_fingerprint, client_request_id?}`), `POST /{id}/unarchive`, `GET
+/{id}/delete-preview` and `POST /{id}/delete`.
 
 ## Limits
 
 - One source (replay improvements). Reflection next steps and other feedback aren't actions yet.
-- No delete or archive for an action yet; mark it done instead.
+- Restoring needs a version 2 backup and the interview it came from in the same account.
 - "Practised since" counts retries of the question or submissions of the problem it points at; for
   an improvement without a practice target it isn't counted.
 - Completion is the learner's word; linked evidence is shown as a count, never as completion.

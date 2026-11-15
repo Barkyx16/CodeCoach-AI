@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { RelatedPractice } from "./RelatedPractice";
 import { DisputedNote } from "@/features/plan/DisputedNote";
 import { Link } from "react-router-dom";
@@ -13,6 +13,7 @@ import { Button } from "@/components/Button";
 import { InlineError } from "@/components/States";
 import { VersionConflict } from "@/components/VersionConflict";
 import { formatDay } from "@/features/applications/dates";
+import { ImpactPreview } from "@/features/lifecycle/ImpactPreview";
 import { savedVersion } from "@/lib/conflict";
 import { useRequestKey } from "@/lib/requestKey";
 
@@ -25,23 +26,38 @@ import { useRequestKey } from "@/lib/requestKey";
 export function AcceptedActions() {
   const actions = useActions();
   const ids = useId();
+  // What an archive or a delete did, said where the list is (a deleted one's card is gone).
+  const [outcome, setOutcome] = useState<string | null>(null);
+  const outcomeNote = useRef<HTMLParagraphElement>(null);
+  useEffect(() => { if (outcome) outcomeNote.current?.focus(); }, [outcome]);
+  const said = (message: string) => setOutcome(message);
   if (actions.isPending) return null;
   if (actions.isError) return <InlineError error={actions.error} />;
-  const open = actions.data.filter((a) => a.status === "open");
-  const done = actions.data.filter((a) => a.status === "done");
+  const current = actions.data.filter((a) => !a.archived_at);
+  const open = current.filter((a) => a.status === "open");
+  const done = current.filter((a) => a.status === "done");
+  const archived = actions.data.filter((a) => a.archived_at);
   return (
     <section id="accepted-actions" className="card stack-sm accepted-actions" aria-labelledby={`${ids}-title`}>
       <h2 className="section-title" id={`${ids}-title`}>Improvements you accepted ({open.length})</h2>
+      {outcome && <p className="banner banner--success" role="status" tabIndex={-1} ref={outcomeNote}>{outcome}</p>}
       {actions.data.length === 0 ? (
         <p className="subtle">None yet. Accept an improvement from an interview review and it shows here, on your schedule and in an interview kit's checklist.</p>
       ) : (
         <>
           <p className="subtle">Beside your plan, not part of it. Marking one done is your word: it changes no score.</p>
-          {open.length > 0 && <ul className="accepted-actions__list">{open.map((a) => <ActionCard key={a.id} a={a} />)}</ul>}
+          {open.length > 0 && <ul className="accepted-actions__list">{open.map((a) => <ActionCard key={a.id} a={a} onOutcome={said} />)}</ul>}
           {done.length > 0 && (
             <details>
               <summary>Done ({done.length})</summary>
-              <ul className="accepted-actions__list">{done.map((a) => <ActionCard key={a.id} a={a} />)}</ul>
+              <ul className="accepted-actions__list">{done.map((a) => <ActionCard key={a.id} a={a} onOutcome={said} />)}</ul>
+            </details>
+          )}
+          {archived.length > 0 && (
+            <details>
+              <summary>Archived ({archived.length})</summary>
+              <p className="subtle">Off your plan, your schedule and Today, kept with their marks of done. Unarchive one to bring it back.</p>
+              <ul className="accepted-actions__list">{archived.map((a) => <ActionCard key={a.id} a={a} onOutcome={said} />)}</ul>
             </details>
           )}
         </>
@@ -50,12 +66,24 @@ export function AcceptedActions() {
   );
 }
 
-function ActionCard({ a }: { a: AcceptedAction }) {
+function ActionCard({ a, onOutcome }: { a: AcceptedAction; onOutcome: (message: string) => void }) {
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [editing, setEditing] = useState(false);
   const [scheduling, setScheduling] = useState(false);
+  // Archive or delete: the plan that carries it out, shown first (docs/LIFECYCLE.md).
+  const [putting, setPutting] = useState<"archive" | "delete" | null>(null);
+  const archived = Boolean(a.archived_at);
+  const loadImpact = useCallback(
+    () => (putting === "delete" ? api.actionDeletePreview(a.id) : api.actionArchivePreview(a.id)),
+    [a.id, putting],
+  );
+  const runImpact = useCallback(
+    (fingerprint: string, key: string) => (putting === "delete" ? api.deleteActionAsPreviewed : api.archiveActionAsPreviewed)(
+      a.id, { expected_fingerprint: fingerprint, client_request_id: key }),
+    [a.id, putting],
+  );
   const live = a.occurrences.filter((o) => o.status !== "cancelled");
   const weekly = a.recurrence === "weekly";
   const run = async (fn: () => Promise<unknown>) => {
@@ -113,13 +141,23 @@ function ActionCard({ a }: { a: AcceptedAction }) {
             {a.status === "done" ? "Mark not done" : "Mark done"}
           </Button>
         )}
-        {(weekly || live.length === 0) && (
+        {!archived && (weekly || live.length === 0) && (
           <Button size="sm" variant="ghost" aria-expanded={scheduling} onClick={() => setScheduling((v) => !v)}>
             {weekly ? "Add weeks to your schedule" : "Schedule it"}
           </Button>
         )}
         <Button size="sm" variant="ghost" aria-expanded={editing} aria-label={`Edit: ${a.title}`} onClick={() => setEditing((v) => !v)}>Edit</Button>
+        {archived
+          ? <Button size="sm" variant="ghost" loading={busy} aria-label={`Unarchive: ${a.title}`}
+              onClick={() => void run(async () => { await api.unarchiveAction(a.id); onOutcome(`Unarchived ${a.title}: it's back on your plan and schedule.`); })}>Unarchive</Button>
+          : <Button size="sm" variant="ghost" aria-expanded={putting === "archive"} aria-label={`Archive: ${a.title}`} onClick={() => setPutting((p) => (p === "archive" ? null : "archive"))}>Archive…</Button>}
+        <Button size="sm" variant="ghost" aria-expanded={putting === "delete"} aria-label={`Delete: ${a.title}`} onClick={() => setPutting((p) => (p === "delete" ? null : "delete"))}>Delete…</Button>
       </span>
+      {putting && (
+        <ImpactPreview key={putting} load={loadImpact} run={runImpact} danger={putting === "delete"}
+          onCancel={() => setPutting(null)}
+          onDone={(out) => { setPutting(null); onOutcome(out.message); invalidateActionViews(qc); }} />
+      )}
       {scheduling && <ScheduleForm a={a} onDone={() => setScheduling(false)} />}
       {editing && <EditForm key={a.revision} a={a} onDone={() => setEditing(false)} />}
       <InlineError error={error} />

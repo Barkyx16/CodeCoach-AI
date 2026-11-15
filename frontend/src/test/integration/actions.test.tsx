@@ -262,7 +262,7 @@ describe("An accepted improvement on an interview kit's checklist", () => {
     checklist: [
       { id: "s-0", text: "Confirm the date, time and time zone", origin: "suggested", done: false, hidden: false },
       { id: "k-a", origin: "action", action_id: "act-1", text: TITLE, done: false, hidden: false,
-        action: { id: "act-1", title: TITLE, recurrence: "once", done: false, occurrences_done: 0, occurrences_total: 0, href: "/interviews/iv-r/retry/1" } },
+        action: { id: "act-1", title: TITLE, recurrence: "once", done: false, occurrences_done: 0, occurrences_total: 0, href: "/interviews/iv-r/retry/1", archived: false } },
     ],
     questions: [], stories: [], target_title: null, saved: true, revision: 3, rescheduled_from: null, missing_stories: 0, save_replay: null, ...over,
   });

@@ -9,8 +9,9 @@ refused with the new plan, never carried out silently. A keyed request sent agai
 is answered with what was done (a receipt), never done twice. Only the learner's own records are
 ever read: another account's id is "not found", the same as one that doesn't exist.
 
-Adopted by deleting an application, archiving a note (Volume 12, prompt 9), and deleting a story,
-deleting a note (with its undo window) and archiving a target (Volume 13, prompt 5).
+Adopted by deleting an application, archiving a note (Volume 12, prompt 9), deleting a story,
+deleting a note (with its undo window) and archiving a target (Volume 13, prompt 5), and archiving
+or deleting an accepted improvement (Volume 14, prompt 5).
 """
 
 from __future__ import annotations
@@ -717,6 +718,218 @@ class Lifecycle:
             archive_target_now(t)
             t.updated_at = datetime.now(UTC)
         return self._finish(impact, body, f"Archived {impact.title}. Unarchive it any time.")
+
+    # --- accepted improvements (Volume 14, prompt 5; docs/ACCEPTED_ACTIONS.md) -------------------
+
+    def _action(self, action_id: str) -> AcceptedAction:
+        a = self.db.get(AcceptedAction, action_id)
+        if a is None or a.user_id != self.user.id:
+            raise NotFoundError("Action not found")
+        return a
+
+    def _action_reach(self, a: AcceptedAction) -> tuple[list[ScheduleEntry], list[InterviewKit], list]:
+        """What an accepted improvement reaches: its occurrences, the kits whose checklist names it,
+        and the target requirements it's listed with (worked out from what it practises)."""
+        from app.services.requirement_versions import RequirementVersions
+
+        uid = self.user.id
+        occurrences = list(
+            self.db.scalars(
+                select(ScheduleEntry)
+                .where(
+                    ScheduleEntry.user_id == uid,
+                    ScheduleEntry.kind == "accepted_action",
+                    ScheduleEntry.ref == a.id,
+                )
+                .order_by(ScheduleEntry.on_date, ScheduleEntry.created_at)
+            )
+        )
+        kits = [
+            k
+            for k in self.db.scalars(select(InterviewKit).where(InterviewKit.user_id == uid))
+            if any(c.get("origin") == "action" and c.get("action_id") == a.id for c in k.checklist or [])
+        ]
+        versions = RequirementVersions(self.db, self.user)
+        links = []
+        for t in self.db.scalars(
+            select(RoleTarget).where(RoleTarget.user_id == uid).order_by(RoleTarget.created_at)
+        ):
+            links += [(t, link) for link in versions.action_links(t) if link.action_id == a.id]
+        return occurrences, kits, links
+
+    def _kit_title(self, k: InterviewKit) -> str:
+        ev = self.db.get(ApplicationEvent, k.event_id)
+        return f"Kit for {ev.title}" if ev is not None else "An interview-day kit"
+
+    def _occurrence_effect(
+        self, a: AcceptedAction, e: ScheduleEntry, effect: EffectKind, note: str
+    ) -> Effect:
+        done = (a.done_at if a.recurrence == "once" else e.completed_at) is not None
+        state = "cancelled" if e.status == "cancelled" else "done" if done else "not done yet"
+        return _effect(effect, "occurrence", f"{e.on_date.isoformat()} ({state})", e.id, note)
+
+    def plan_archive_action(self, action_id: str) -> Impact:
+        a = self._action(action_id)
+        occurrences, kits, links = self._action_reach(a)
+        effects: list[Effect] = []
+        if a.archived_at is None:
+            effects.append(
+                _effect(
+                    "archived",
+                    "accepted improvement",
+                    a.title,
+                    a.id,
+                    "Off your plan, your schedule and Today. Unarchive it any time and it comes back as it "
+                    "was; nothing is deleted.",
+                )
+            )
+        for e in occurrences:
+            effects.append(
+                self._occurrence_effect(
+                    a,
+                    e,
+                    "kept",
+                    "Off your schedule while it's archived; it comes back when you unarchive it. Marks of done "
+                    "are kept.",
+                )
+            )
+        for k in kits:
+            effects.append(
+                _effect(
+                    "kept", "kit checklist item", self._kit_title(k), k.event_id, "Stays, labelled archived."
+                )
+            )
+        for t, link in links:
+            effects.append(
+                _effect(
+                    "kept",
+                    "requirement link",
+                    f"{t.title}: a requirement it practises",
+                    link.requirement_id,
+                    "Still listed with the requirement.",
+                )
+            )
+        effects.append(self._suggestion_effect(a, "The interview's review still shows it as accepted."))
+        return Impact(
+            action="archive_action",
+            target_id=a.id,
+            title=a.title,
+            summary="Archive this improvement"
+            if a.archived_at is None
+            else "This improvement is already archived",
+            effects=effects,
+            notes=[
+                "Archiving isn't deleting: everything listed stays, comes back when you unarchive it, and is in "
+                "your data export. A calendar file you downloaded earlier keeps its copy of the occurrences."
+            ],
+            fingerprint=fingerprint("archive_action", a.id, effects),
+        )
+
+    def _suggestion_effect(self, a: AcceptedAction, note: str) -> Effect:
+        src = a.source or {}
+        return _effect(
+            "kept",
+            "suggestion",
+            f"{src.get('label', a.title)}, in {src.get('interview_title', 'an interview')}'s review",
+            a.source_id,
+            note,
+        )
+
+    def archive_action(self, action_id: str, body: LifecycleIn | None) -> LifecycleOutcome:
+        if (done := self._replay(body, "archive_action", action_id)) is not None:
+            return done
+        impact = self.plan_archive_action(action_id)
+        self._check(impact, body)
+        a = self._action(action_id)
+        if a.archived_at is None:
+            a.archived_at = datetime.now(UTC)
+            a.updated_at = a.archived_at
+        return self._finish(impact, body, f"Archived {impact.title}. Unarchive it any time.")
+
+    def unarchive_action(self, action_id: str) -> None:
+        """Back on the plan, the schedule and Today, with its occurrences as they were."""
+        a = self._action(action_id)
+        if a.archived_at is not None:
+            a.archived_at = None
+            a.updated_at = datetime.now(UTC)
+            self.db.commit()
+
+    def plan_delete_action(self, action_id: str) -> Impact:
+        a = self._action(action_id)
+        occurrences, kits, links = self._action_reach(a)
+        effects: list[Effect] = [
+            _effect(
+                "deleted",
+                "accepted improvement",
+                a.title,
+                a.id,
+                "With its notes and its marks of done.",
+            )
+        ]
+        for e in occurrences:
+            effects.append(self._occurrence_effect(a, e, "deleted", "Removed from your schedule."))
+        for k in kits:
+            effects.append(
+                _effect(
+                    "kept",
+                    "kit checklist item",
+                    self._kit_title(k),
+                    k.event_id,
+                    "Stays on the kit's checklist as “An improvement you removed”.",
+                )
+            )
+        for t, link in links:
+            effects.append(
+                _effect(
+                    "unlinked",
+                    "requirement link",
+                    f"{t.title}: a requirement it practises",
+                    link.requirement_id,
+                    "No longer listed with the requirement; the requirement stays.",
+                )
+            )
+        effects.append(
+            self._suggestion_effect(
+                a, "It stays in the interview's review, and you can accept it again as a new improvement."
+            )
+        )
+        effects.append(
+            _effect(
+                "kept",
+                "practice",
+                "Answers and submissions you practised it with",
+                None,
+                "They stay in your history and still count.",
+            )
+        )
+        return Impact(
+            action="delete_action",
+            target_id=a.id,
+            title=a.title,
+            summary="Delete this improvement",
+            effects=effects,
+            notes=[
+                "Deleting can't be undone here. A data export (version 2) you downloaded earlier can bring it "
+                "back with its occurrences; backups CodeCoach made earlier keep a copy until they age out."
+            ],
+            fingerprint=fingerprint("delete_action", a.id, effects),
+        )
+
+    def delete_action(self, action_id: str, body: LifecycleIn | None) -> LifecycleOutcome:
+        if (done := self._replay(body, "delete_action", action_id)) is not None:
+            return done
+        impact = self.plan_delete_action(action_id)
+        self._check(impact, body)
+        a = self._action(action_id)
+        self.db.execute(
+            delete(ScheduleEntry).where(
+                ScheduleEntry.user_id == self.user.id,
+                ScheduleEntry.kind == "accepted_action",
+                ScheduleEntry.ref == a.id,
+            )
+        )
+        self.db.delete(a)
+        return self._finish(impact, body, f"Deleted {impact.title}.")
 
     # --- shared -------------------------------------------------------------------------------------
 

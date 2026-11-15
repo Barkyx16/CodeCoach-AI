@@ -114,7 +114,7 @@ def test_version_2_links_records_and_says_what_each_link_points_to(client):
     assert r.status_code == 200 and r.headers["cache-control"] == "no-store"
     assert r.headers["content-disposition"] == 'attachment; filename="codecoach-data-v2.json"'
     doc = r.json()
-    assert doc["export_version"] == 2 and doc["identities"]["restore"].startswith("not supported")
+    assert doc["export_version"] == 2 and doc["identities"]["restore"].startswith("read like version 1")
     s1, s2, s3 = x["stories"]
     ev1, ev2 = x["events"]
 
@@ -235,26 +235,29 @@ def test_the_validator_finds_each_kind_of_broken_reference(client):
     assert {i["rule"] for i in validate_export({**good, "export_version": 1})} == {"not_version_2"}
 
 
-def test_restore_refuses_version_2_before_writing_anything(client):
+def test_restore_reads_version_2_as_version_1_and_refuses_unknown_versions_before_writing(client):
+    """Since Volume 14, prompt 5, restore reads version 2 (it adds accepted improvements, by id); a
+    version it doesn't know is still refused before anything is read or written."""
     h = nurse(client, "restore@example.com")
     linked_account(client, h)
     raw = client.get("/api/v1/me/export", headers=h, params={"version": 2}).content
+    v1 = client.get("/api/v1/me/export", headers=h).content
+    j = {**h, "Content-Type": "application/json"}
+    two = client.post("/api/v1/me/restore/preview", headers=j, content=raw)
+    one = client.post("/api/v1/me/restore/preview", headers=j, content=v1)
+    assert two.status_code == one.status_code == 200
+    found = {c["key"]: c["found"] for c in one.json()["categories"]}
+    assert {c["key"]: c["found"] for c in two.json()["categories"] if c["key"] in found} == found
+    doc = json.loads(raw)
+    doc["export_version"] = 3
     with client.app.state.session_factory() as db:
         before = db.scalar(select(func.count()).select_from(Note))
     for path, params in (("/api/v1/me/restore/preview", {}), ("/api/v1/me/restore", {"categories": "notes"})):
-        r = client.post(path, headers={**h, "Content-Type": "application/json"}, params=params, content=raw)
+        r = client.post(path, headers=j, params=params, content=json.dumps(doc))
         assert r.status_code == 400 and r.json()["error"]["code"] == "unsupported_version"
-        assert "version 2" in r.json()["error"]["message"] and r.json()["error"]["details"] == {
-            "supported": [1]
-        }
+        assert r.json()["error"]["details"] == {"supported": [1, 2]}
     with client.app.state.session_factory() as db:
         assert db.scalar(select(func.count()).select_from(Note)) == before
-    # Version 1 is still read.
-    v1 = client.get("/api/v1/me/export", headers=h).content
-    ok = client.post(
-        "/api/v1/me/restore/preview", headers={**h, "Content-Type": "application/json"}, content=v1
-    )
-    assert ok.status_code == 200
 
 
 def test_the_cli_check_is_read_only_and_reports_problems(client, tmp_path, capsys):

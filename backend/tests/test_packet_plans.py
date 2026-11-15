@@ -197,7 +197,7 @@ def test_an_improvement_no_longer_available_is_said_in_the_kit_and_a_deleted_one
         db.delete(db.get(AcceptedAction, action["id"]))
         db.commit()
     out = packet(client, h, [{"type": "kit", "id": ev["id"]}, {"type": "action", "id": action["id"]}]).json()
-    assert "[ ] An improvement that's no longer available" in item(out, "kit")["sections"][0]["text"]
+    assert "[ ] An improvement you removed" in item(out, "kit")["sections"][0]["text"]
     assert out["unavailable"] == [
         {"type": "action", "id": action["id"], "reason": "Not found: it may have been deleted."}
     ]

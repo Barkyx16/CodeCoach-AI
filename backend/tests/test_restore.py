@@ -157,7 +157,7 @@ def test_files_that_are_not_backups_are_refused_with_reasons(client):
     assert (
         old.status_code == 400
         and old.json()["error"]["code"] == "unsupported_version"
-        and old.json()["error"]["details"] == {"supported": [1]}
+        and old.json()["error"]["details"] == {"supported": [1, 2]}
     )
     big = preview(
         client, h, b'{"export_version": 1, "notes": "' + b"x" * (restore_module.MAX_BYTES + 10) + b'"}'
@@ -175,6 +175,7 @@ def test_files_that_are_not_backups_are_refused_with_reasons(client):
         "stories": 0,
         "bookmarks": 0,
         "applications": 0,
+        "accepted_actions": 0,  # read from version 2 files (Volume 14, prompt 5)
     }
     assert (
         body["ignored_fields"] == 1

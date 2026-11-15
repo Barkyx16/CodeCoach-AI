@@ -311,6 +311,7 @@ function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
                           onChange={(e) => void toggleAction(c.action!.id, e.target.checked)} />{c.text}</label>
                       ) : <span className="subtle">{c.text}</span>}
                       <Badge>Accepted improvement</Badge>
+                      {c.action?.archived && <Badge tone="neutral">Archived</Badge>}
                       <Link className="subtle" to="/plan#accepted-actions" state={fromHere}>On your plan</Link>
                       {c.action_id && <RelatedPractice actionId={c.action_id} />}
                       <Button size="sm" variant="ghost" aria-label={`Hide “${c.text}”`} onClick={() => set("checklist", kit.checklist.map((x, j) => (j === i ? { ...x, hidden: true } : x)))}>Hide</Button>
@@ -462,6 +463,7 @@ function actionItem(a: AcceptedAction): Kit["checklist"][number] {
     action: {
       id: a.id, title: a.title, recurrence: a.recurrence, done: a.status === "done", href: a.practice_href ?? null,
       occurrences_done: live.filter((o) => o.completed_at).length, occurrences_total: live.length,
+      archived: Boolean(a.archived_at),
     },
   };
 }
@@ -471,7 +473,7 @@ function AddAction({ kit, onAdd }: { kit: Kit; onAdd: (a: AcceptedAction) => voi
   const actions = useActions();
   const [choice, setChoice] = useState("");
   const here = new Set(kit.checklist.map((c) => c.action_id).filter(Boolean));
-  const open = (actions.data ?? []).filter((a) => a.status === "open" && !here.has(a.id));
+  const open = (actions.data ?? []).filter((a) => a.status === "open" && !a.archived_at && !here.has(a.id));
   if (open.length === 0) return null;
   return (
     <div className="row">

@@ -169,6 +169,7 @@ class Actions:
             recurrence="weekly" if row.recurrence == "weekly" else "once",
             status="done" if row.recurrence == "once" and row.done_at is not None else "open",
             done_at=row.done_at,
+            archived_at=row.archived_at,
             source=ActionSource(
                 kind=KIND,
                 interview_id=row.source_id,
@@ -415,6 +416,11 @@ class Actions:
         """Occurrences on the schedule: one for a one-off, one a week for a weekly action. Each is
         its own schedule entry (its own calendar event); moving one later keeps its id."""
         row = self._find(action_id, lock=True)
+        if row.archived_at is not None:
+            raise ConflictError(
+                "This improvement is archived. Unarchive it to put it on your schedule.",
+                code="action_archived",
+            )
         weeks = body.weeks if row.recurrence == "weekly" else 1
         if row.recurrence == "once" and body.weeks != 1:
             raise AppError("A one-off action is scheduled once.", code="once_scheduled_once")
@@ -520,7 +526,25 @@ class Actions:
                         "improvement": a.source.label,
                         "feedback": a.source.why,
                         "question_versions": [v.model_dump() for v in a.source.versions],
+                        # Version 2: what a restore needs to make it again (docs/BACKUP_FORMAT.md).
+                        **(
+                            {
+                                "key": a.source.key,
+                                "interview_title": a.source.interview_title,
+                                "interview_date": a.source.interview_date.isoformat()
+                                if a.source.interview_date
+                                else None,
+                                "practice_label": a.practice_label,
+                            }
+                            if with_ids
+                            else {}
+                        ),
                     },
+                    **(
+                        {"archived_at": a.archived_at.isoformat() if a.archived_at else None}
+                        if with_ids
+                        else {}
+                    ),
                     "occurrences": [
                         {
                             **({"schedule_entry": o.id} if with_ids else {}),

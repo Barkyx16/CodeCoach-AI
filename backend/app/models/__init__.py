@@ -1885,6 +1885,9 @@ class AcceptedAction(Base):
     practice_href: Mapped[str | None] = mapped_column(String(300), nullable=True)
     recurrence: Mapped[str] = mapped_column(String(8), default="once")  # once | weekly
     done_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)  # one-off only
+    # Archived (Volume 14, prompt 5): kept with its occurrences and marks of done, but off the
+    # plan, the schedule and Today until it's unarchived.
+    archived_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     # Deliberate reuse for a job requirement's newer wording: {requirement id: {version, reused_from}}.
     # Without it, the version is the one in effect when the action was accepted.
     requirement_reuse: Mapped[dict | None] = mapped_column(JSONType, nullable=True)

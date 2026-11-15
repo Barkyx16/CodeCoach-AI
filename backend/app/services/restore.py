@@ -2,12 +2,13 @@
 
 The contract (see docs/BACKUP_FORMAT.md):
 
-- A JSON object with `export_version` 1, at most 5 MB. Nothing else is accepted: no archives, no
+- A JSON object with `export_version` 1 or 2, at most 5 MB. Nothing else is accepted: no archives, no
   paths, nothing executable.
 - Additive only, into the signed-in account. Ids, account details and timestamps in the file are
   never trusted: records get new ids and belong to whoever is signed in.
-- Restorable: notes, stories, bookmarks, and applications with their events. Everything else is
-  listed as not restored, with the reason: account details and roles; practice results and any
+- Restorable: notes, stories, bookmarks, and applications with their events; from a version 2
+  file (which keeps ids), accepted improvements with their occurrences, under their own ids
+  (Volume 14, prompt 5). Everything else is listed as not restored, with the reason: account details and roles; practice results and any
   evaluation (they can't be verified from a file, so an edited backup can't create a passing
   verdict or a score); and shares, sessions and the schedule (they could expose data or trigger
   something).
@@ -23,6 +24,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import uuid
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -37,6 +39,7 @@ from app.careers.questions import get_question
 from app.drills import BY_ID as DRILLS
 from app.errors import AppError, NotFoundError
 from app.models import (
+    AcceptedAction,
     Application,
     ApplicationEvent,
     ApplicationStageChange,
@@ -45,7 +48,11 @@ from app.models import (
     ImportBatch,
     ImportedRecord,
     Note,
+    PracticeSession,
     Problem,
+    RoleTarget,
+    ScheduleEntry,
+    TargetRequirement,
     User,
 )
 from app.schemas.applications import ApplicationCreate, ApplicationEventIn
@@ -57,7 +64,8 @@ from app.services.notes import MAX_NOTES, Notebook, clean_tags
 from app.services.stories import MAX_STORIES, record_revision
 from app.services.timeutil import local_to_utc
 
-SUPPORTED_VERSIONS = (1,)
+SUPPORTED_VERSIONS = (1, 2)
+MAX_OCCURRENCES = 52  # a weekly improvement scheduled for a year
 MAX_BYTES = 5 * 1024 * 1024
 MAX_PER_CATEGORY = 2000
 CATEGORIES: dict[str, str] = {
@@ -65,6 +73,7 @@ CATEGORIES: dict[str, str] = {
     "stories": "Stories",
     "bookmarks": "Bookmarks",
     "applications": "Applications and their events",
+    "accepted_actions": "Accepted improvements, with their occurrences (version 2 files)",
 }
 _ACCOUNT = "Account details, sign-in and roles are never restored. Your account stays exactly as it is."
 _RESULTS = (
@@ -97,7 +106,6 @@ NOT_RESTORED: dict[str, str] = {
     "offer_rehearsals": _RESULTS,
     "offer_comparisons": "Offer comparisons aren't restored from a file: they hold pay you entered privately; re-enter them.",
     "kit_templates": "Kit templates aren't restored yet: save them again from a kit.",
-    "accepted_actions": "Accepted improvements aren't restored yet: accept them again from the interview review.",
     "source_reviews": "Decisions about changed stories aren't restored: they belong to kits and links that aren't restored yet.",
     # A note's "Mark reviewed" travels inside the note (notes[].source_reviews); a restored note
     # keeps the version it was captured from, so it asks again if its source changed since.
@@ -121,6 +129,18 @@ def _sha(parts: Any) -> str:
 
 def _s(v: Any) -> str:
     return v.strip() if isinstance(v, str) else ""
+
+
+def _when(v: Any) -> datetime | None:
+    """A timestamp from the file, or None if it isn't one (never in the future)."""
+    if not isinstance(v, str):
+        return None
+    try:
+        t = datetime.fromisoformat(v)
+    except ValueError:
+        return None
+    t = t if t.tzinfo else t.replace(tzinfo=UTC)
+    return min(t, datetime.now(UTC))
 
 
 # --- fingerprints: identity (for duplicates) and full (for "unchanged since import") ------------
@@ -187,6 +207,24 @@ def application_identity(employer: str, role_title: str, applied_on: Any, link: 
     )
 
 
+def action_identity(source_kind: str, source_id: str, source_key: str) -> str:
+    """An accepted improvement is the same one if it came from the same suggestion (its source)."""
+    return _sha(["accepted_action", source_kind, source_id, source_key])
+
+
+def action_full(a: AcceptedAction, occurrences: list[ScheduleEntry]) -> str:
+    return _sha(
+        [
+            a.title,
+            a.notes,
+            a.recurrence,
+            a.done_at,
+            a.archived_at,
+            sorted((e.id, str(e.on_date), e.status, str(e.completed_at)) for e in occurrences),
+        ]
+    )
+
+
 def application_full(a: Application) -> str:
     return _sha(
         [
@@ -238,16 +276,9 @@ class Restore:
                 "This doesn't look like a CodeCoach backup: it has no export_version.", code="not_a_backup"
             )
         version = data["export_version"]
-        if version == 2:  # checked before anything is read or written: nothing is partly restored
-            raise AppError(
-                "This is a version 2 export (with links between records). Restoring version 2 isn't "
-                "supported yet; nothing was changed. Download a version 1 export to restore.",
-                code="unsupported_version",
-                details={"supported": list(SUPPORTED_VERSIONS)},
-            )
         if version not in SUPPORTED_VERSIONS:
             raise AppError(
-                f"Backups of version {version!r} can't be read; this version of CodeCoach reads version 1.",
+                f"Backups of version {version!r} can't be read; this version of CodeCoach reads versions 1 and 2.",
                 code="unsupported_version",
                 details={"supported": list(SUPPORTED_VERSIONS)},
             )
@@ -276,11 +307,17 @@ class Restore:
                 Application.employer, Application.role_title, Application.applied_on, Application.link
             ).where(Application.user_id == uid)
         ).all()
+        actions = self.db.execute(
+            select(AcceptedAction.source_kind, AcceptedAction.source_id, AcceptedAction.source_key).where(
+                AcceptedAction.user_id == uid
+            )
+        ).all()
         return {
             "notes": {note_identity(*r) for r in notes},
             "stories": {story_identity(*r) for r in stories},
             "bookmarks": {bookmark_identity(*r) for r in marks},
             "applications": {application_identity(*r) for r in apps},
+            "accepted_actions": {action_identity(*r) for r in actions},
         }
 
     def _plan(self, data: dict) -> _Plan:
@@ -308,7 +345,11 @@ class Restore:
                 if not isinstance(row, dict):
                     plan.skipped[cat]["Not a record"] += 1
                     continue
-                checked = getattr(self, f"_check_{cat}")(row, plan)
+                checked = (
+                    self._check_accepted_actions(row, plan, data)
+                    if cat == "accepted_actions"
+                    else getattr(self, f"_check_{cat}")(row, plan)
+                )
                 if isinstance(checked, str):
                     plan.skipped[cat][checked] += 1
                     continue
@@ -505,6 +546,154 @@ class Restore:
 
     # --- preview ----------------------------------------------------------------------------------
 
+    def _check_accepted_actions(self, row: dict, plan: _Plan, data: dict) -> dict | str:
+        """An accepted improvement from a version 2 file: its interview must be one of this
+        account's (interviews aren't restored, so one from elsewhere would point at nothing); its id
+        is kept unless something else already has it; its occurrences come with it, from the file's
+        schedule entries by id. Nothing about done-ness is invented: marks of done are as the file
+        says, on dates the file gives."""
+        if data.get("export_version") != 2 or not isinstance(row.get("id"), str):
+            return "Restored from a version 2 export only (it keeps the ids that link it)"
+        raw_src = row.get("source")
+        src: dict[str, Any] = raw_src if isinstance(raw_src, dict) else {}
+        interview, key = src.get("interview"), src.get("key")
+        if (
+            src.get("kind") != "interview_improvement"
+            or not isinstance(interview, str)
+            or not isinstance(key, str)
+        ):
+            return "Its suggestion isn't named (an export from before version 2 kept it)"
+        if len(row["id"]) > 36 or len(interview) > 36 or len(key) > 200:
+            return "Not a valid record"
+        if (
+            self.db.scalar(
+                select(func.count())
+                .select_from(PracticeSession)
+                .where(PracticeSession.id == interview, PracticeSession.user_id == self.user.id)
+            )
+            or 0
+        ) == 0:
+            return "Its interview isn't in this account, so there's nothing to link it to"
+        title = _s(row.get("title"))[:200]
+        if not title:
+            return "Not a valid record"
+        recurrence = "weekly" if row.get("recurrence") == "weekly" else "once"
+        entries = {
+            e.get("id"): e
+            for e in ((data.get("schedule") or {}).get("entries") or [])
+            if isinstance(e, dict) and e.get("kind") == "accepted_action"
+        }
+        occurrences = []
+        for o in (row.get("occurrences") or [])[:MAX_OCCURRENCES]:
+            if not isinstance(o, dict) or not isinstance(o.get("schedule_entry"), str):
+                continue
+            e = entries.get(o["schedule_entry"], {})
+            try:
+                on = datetime.fromisoformat(str(o.get("date"))).date()
+            except ValueError:
+                continue
+            occurrences.append(
+                {
+                    "id": o["schedule_entry"][:36],
+                    "on_date": on,
+                    "all_day": bool(e.get("all_day", True)) if e else True,
+                    "local_time": e.get("time") if isinstance(e.get("time"), str) else None,
+                    "timezone": e.get("timezone") if isinstance(e.get("timezone"), str) else None,
+                    "duration_min": e.get("duration_min") if isinstance(e.get("duration_min"), int) else 30,
+                    "status": "cancelled" if o.get("status") == "cancelled" else "scheduled",
+                    "completed_at": _when(o.get("completed_at")) if recurrence == "weekly" else None,
+                }
+            )
+        raw_reuse = row.get("requirement_reuse")
+        reuse: dict[str, Any] = raw_reuse if isinstance(raw_reuse, dict) else {}
+        return {
+            "identity": action_identity("interview_improvement", interview, key),
+            "id": row["id"],
+            "interview": interview,
+            "key": key,
+            "title": title,
+            "notes": _s(row.get("notes"))[:4000],
+            "recurrence": recurrence,
+            "done_at": _when(row.get("done_at")) if recurrence == "once" else None,
+            "archived_at": _when(row.get("archived_at")),
+            "practice": row.get("practice") if isinstance(row.get("practice"), str) else None,
+            "source": {
+                "label": _s(src.get("improvement"))[:200] or title,
+                "why": _s(src.get("feedback"))[:2000],
+                "versions": [
+                    {"question": v["question"], "version": v["version"]}
+                    for v in src.get("question_versions") or []
+                    if isinstance(v, dict)
+                    and isinstance(v.get("question"), str)
+                    and isinstance(v.get("version"), int)
+                ],
+                "interview_title": _s(src.get("interview_title"))[:200] or "An interview",
+                "interview_date": src.get("interview_date")
+                if isinstance(src.get("interview_date"), str)
+                else None,
+                "practice_label": src.get("practice_label")
+                if isinstance(src.get("practice_label"), str)
+                else None,
+            },
+            "reuse": {k: v for k, v in reuse.items() if isinstance(k, str) and isinstance(v, dict)},
+            "occurrences": occurrences,
+        }
+
+    def _add_accepted_actions(self, item: dict) -> tuple[str, str, str]:
+        from app.services.schedule import Schedule
+
+        uid = self.user.id
+        # Its own id, unless something else has it (then a new one: nothing about the other is said).
+        aid = item["id"] if self.db.get(AcceptedAction, item["id"]) is None else None
+        mine = set(
+            self.db.scalars(
+                select(TargetRequirement.id)
+                .join(RoleTarget, RoleTarget.id == TargetRequirement.target_id)
+                .where(RoleTarget.user_id == uid, TargetRequirement.id.in_(list(item["reuse"]) or [""]))
+            )
+        )
+        a = AcceptedAction(
+            **({"id": aid} if aid else {}),
+            user_id=uid,
+            source_kind="interview_improvement",
+            source_id=item["interview"],
+            source_key=item["key"],
+            source={k: v for k, v in item["source"].items() if v is not None},
+            title=item["title"],
+            notes=item["notes"],
+            practice_href=item["practice"],
+            recurrence=item["recurrence"],
+            done_at=item["done_at"],
+            archived_at=item["archived_at"],
+            requirement_reuse={k: v for k, v in item["reuse"].items() if k in mine} or None,
+        )
+        self.db.add(a)
+        self.db.flush()
+        schedule = Schedule(self.db, self.user)
+        made: list[ScheduleEntry] = []
+        for o in item["occurrences"]:
+            e = ScheduleEntry(
+                **({"id": o["id"]} if self.db.get(ScheduleEntry, o["id"]) is None else {}),
+                user_id=uid,
+                uid=f"{uuid.uuid4()}@codecoach",
+                kind="accepted_action",
+                ref=a.id,
+                title=a.title,
+                duration_min=max(5, min(int(o["duration_min"]), 600)),
+                notes="",
+                status=o["status"],
+                sequence=0,
+                completed_at=o["completed_at"],
+            )
+            try:
+                schedule._apply_time(e, o["on_date"], o["all_day"], o["local_time"], o["timezone"], None)
+            except AppError:
+                schedule._apply_time(e, o["on_date"], True, None, None, None)  # a time it can't read: all day
+            self.db.add(e)
+            made.append(e)
+        self.db.flush()
+        return "accepted_action", a.id, action_full(a, made)
+
     def _already(self, sha: str, categories: list[str]) -> ImportBatch | None:
         rows = self.db.scalars(
             select(ImportBatch).where(
@@ -553,7 +742,13 @@ class Restore:
         samples = []
         for a in adds[:5]:
             b = a.get("body")
-            samples.append(getattr(b, "title", None) or getattr(b, "role_title", None) or a.get("ref") or "")
+            samples.append(
+                getattr(b, "title", None)
+                or getattr(b, "role_title", None)
+                or a.get("ref")
+                or a.get("title")
+                or ""
+            )
         return RestoreCategory(
             key=key,
             label=CATEGORIES[key],
@@ -788,6 +983,10 @@ class Restore:
             elif r.kind == "bookmark":
                 row = self.db.get(Bookmark, r.record_id)
                 current = r.fingerprint if row is not None else None
+            elif r.kind == "accepted_action":
+                row = self.db.get(AcceptedAction, r.record_id)
+                occ = self._occurrences(r.record_id) if row is not None else []
+                current = action_full(row, occ) if row is not None else None
             else:
                 row = self.db.get(Application, r.record_id)
                 current = application_full(row) if row is not None else None
@@ -798,6 +997,10 @@ class Restore:
             else:
                 if r.kind == "note":
                     row.deleted_at = datetime.now(UTC)  # the notebook's own soft delete
+                elif r.kind == "accepted_action":
+                    for e in self._occurrences(row.id):
+                        self.db.delete(e)
+                    self.db.delete(row)
                 else:
                     self.db.delete(row)
                 removed += 1
@@ -805,6 +1008,17 @@ class Restore:
         b.removal = {"removed": removed, "kept_edited": kept, "already_gone": gone}
         self.db.commit()
         return self._batch_out(b)
+
+    def _occurrences(self, action_id: str) -> list[ScheduleEntry]:
+        return list(
+            self.db.scalars(
+                select(ScheduleEntry).where(
+                    ScheduleEntry.user_id == self.user.id,
+                    ScheduleEntry.kind == "accepted_action",
+                    ScheduleEntry.ref == action_id,
+                )
+            )
+        )
 
     def export(self) -> list[dict]:
         return [

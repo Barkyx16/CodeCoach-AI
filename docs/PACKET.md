@@ -68,7 +68,7 @@ dropped silently:
 
 A deleted improvement, or another account's improvement or kit, is "Not found: it may have been
 deleted." An improvement deleted since a kit chose it stays on the kit's checklist as "An
-improvement that's no longer available", as the kit page shows it.
+improvement you removed", as the kit page shows it.
 
 A question you haven't answered says "You haven't answered this question, so there's no answer or
 feedback to include." if you asked for those parts.

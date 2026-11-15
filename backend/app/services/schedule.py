@@ -313,7 +313,20 @@ class Schedule:
         )
         if not include_cancelled:
             q = q.where(ScheduleEntry.status == "scheduled")
-        return list(self.db.scalars(q.order_by(ScheduleEntry.on_date, ScheduleEntry.starts_at)).all())
+        rows = list(self.db.scalars(q.order_by(ScheduleEntry.on_date, ScheduleEntry.starts_at)).all())
+        # An archived improvement's occurrences are off the schedule and Today until it's unarchived
+        # (docs/ACCEPTED_ACTIONS.md, "Archive and delete").
+        archived = self._archived_actions() if any(e.kind == "accepted_action" for e in rows) else set()
+        return [e for e in rows if not (e.kind == "accepted_action" and e.ref in archived)]
+
+    def _archived_actions(self) -> set[str]:
+        return set(
+            self.db.scalars(
+                select(AcceptedAction.id).where(
+                    AcceptedAction.user_id == self.user.id, AcceptedAction.archived_at.is_not(None)
+                )
+            )
+        )
 
     def between(self, start: date, end: date, include_cancelled: bool = False) -> list[EntryOut]:
         rows = self._range(start, end, include_cancelled)

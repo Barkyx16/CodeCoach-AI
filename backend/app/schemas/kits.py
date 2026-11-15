@@ -28,6 +28,10 @@ class KitAction(APIModel):
     occurrences_done: int
     occurrences_total: int = Field(description="Scheduled occurrences, not counting cancelled ones")
     href: str | None
+    archived: bool = Field(
+        default=False,
+        description="Archived: off the plan and schedule, kept here (unarchive it from the plan)",
+    )
 
 
 class ChecklistItem(APIModel):

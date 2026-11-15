@@ -75,6 +75,10 @@ class ActionOut(APIModel):
         description="A one-off is done when you say so; a weekly action stays open (each occurrence is done or not)"
     )
     done_at: datetime | None
+    archived_at: datetime | None = Field(
+        default=None,
+        description="Archived: off the plan, the schedule and Today, kept with its occurrences (unarchive to bring it back)",
+    )
     source: ActionSource
     occurrences: list[OccurrenceOut]
     attempts_since: int | None = Field(

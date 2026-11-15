@@ -9,9 +9,10 @@ or copy someone else's.
 
 - One JSON object, UTF-8, at most **5 MB**. No archives, paths or attachments are read, and nothing
   in it is executed.
-- `export_version` (an integer) says which format it is. **Version 1** is the default and the only
-  one restore reads; version 2 (below) adds links between records and is refused by restore, like
-  any other value, with the supported versions listed and nothing changed.
+- `export_version` (an integer) says which format it is. **Version 1** is the default; version 2
+  (below) adds links between records. Restore reads both (version 2 since Volume 14, prompt 5, which
+  also brings back accepted improvements by id); any other value is refused with the supported
+  versions listed and nothing changed.
   Older version-1 files that lack newer sections (for example `stories`) are fine: missing
   sections are simply empty.
 - `exported_at` (ISO 8601) is informational.
@@ -87,12 +88,15 @@ keys, sign-in tokens, password hashes, share secrets or server settings.
 | `stories` | New stories (all the STAR fields, versions, competencies, tags), with a first saved version | The same title, situation, action and result | A career that doesn't exist is dropped from the story |
 | `bookmarks` | Bookmarks on questions, problems or drills | The same item is already bookmarked | Skipped, with the reason |
 | `applications` | Applications with their interview events, and a first stage-history entry "Restored from a backup" | The same employer, role, date applied and link | A time that's ambiguous or invalid in its time zone keeps the date only |
+| `accepted_actions` (version 2 files only) | Accepted improvements with their notes, recurrence, marks of done and archive date, under the id in the file, and their occurrences from `schedule.entries` (date, time, time zone, length, status and marks of done), under theirs; requirement reuse only for requirements in this account (Volume 14, prompt 5) | One from the same suggestion (interview and improvement key) is already there | Its interview isn't in this account: skipped with the reason. An id already used elsewhere gets a new one |
 
 Each record is checked against the same limits as the app's own forms (lengths, `http(s)` links,
 allowed stages and kinds). A record that fails is skipped and counted with its reason; unknown
 fields inside a record are ignored and counted. Ids, owner ids, revision numbers and timestamps in
 the file are never used: restored records get new ids, belong to the signed-in account, and are
-dated now.
+dated now. The exception is accepted improvements from a version 2 file: they keep their ids (so
+the kits and requirement links that name them find them again) and their marks of done (never later
+than now), but still belong to the signed-in account and need its interview.
 
 ## What restore never reads
 
@@ -101,7 +105,7 @@ dated now.
 | `profile`, `onboarding` | Account details, sign-in and roles are never restored. The account stays exactly as it is, whatever the file says (an `is_admin` in a file changes nothing). |
 | `submissions`, `practice_sessions`, `answers`, `ai_interactions`, `drill_attempts`, `whiteboard`, `code_reviews`, `test_design_runs`, `work_samples`, `comparisons`, `offer_rehearsals`, `offer_comparisons` (not restored: re-enter them), `scenario_attempts`, `learn_events`, `answer_reviews`, plans, goals and the review queue | Practice results and evaluations can't be verified from a file, so an edited backup can't create a passing verdict, a score, progress or readiness. |
 | `shares`, `shared_feedback`, `schedule`, sessions | They could share data or start something (links, sessions, reminders). |
-| `targets`, `collections`, `interview_kits`, `kit_templates`, `accepted_actions`, `interview_reflections`, `content_reports` | Not restorable yet (they depend on other records by id); listed in the preview. |
+| `targets`, `collections`, `interview_kits`, `kit_templates`, `interview_reflections`, `content_reports` | Not restorable yet (they depend on other records by id); listed in the preview. `accepted_actions` in a version 1 file (no ids) are listed as skipped: restore them from a version 2 file. |
 | Anything else | Not recognised, ignored, and listed. |
 
 ## How a restore runs

@@ -790,6 +790,15 @@ export const api = {
       `/api/v1/me/actions/${encodeURIComponent(id)}/occurrences/${encodeURIComponent(entryId)}/${done ? "complete" : "reopen"}`,
       { method: "POST" },
     ),
+  // Archive and delete, previewed (docs/ACCEPTED_ACTIONS.md, "Archive and delete").
+  actionArchivePreview: (id: string) => apiRequest<Impact>(`/api/v1/me/actions/${encodeURIComponent(id)}/archive-preview`),
+  archiveActionAsPreviewed: (id: string, body: LifecycleIn) =>
+    apiRequest<LifecycleOutcome>(`/api/v1/me/actions/${encodeURIComponent(id)}/archive`, { method: "POST", body }),
+  unarchiveAction: (id: string) =>
+    apiRequest<AcceptedAction>(`/api/v1/me/actions/${encodeURIComponent(id)}/unarchive`, { method: "POST" }),
+  actionDeletePreview: (id: string) => apiRequest<Impact>(`/api/v1/me/actions/${encodeURIComponent(id)}/delete-preview`),
+  deleteActionAsPreviewed: (id: string, body: LifecycleIn) =>
+    apiRequest<LifecycleOutcome>(`/api/v1/me/actions/${encodeURIComponent(id)}/delete`, { method: "POST", body }),
   saveKit: (appId: string, eventId: string, body: KitUpdate) =>
     apiRequest<Kit>(`/api/v1/me/applications/${encodeURIComponent(appId)}/events/${encodeURIComponent(eventId)}/kit`, { method: "PUT", body }),
 

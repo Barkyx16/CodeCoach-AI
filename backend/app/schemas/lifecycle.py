@@ -9,7 +9,13 @@ from app.schemas.common import APIModel, OptionalKey
 
 EffectKind = Literal["archived", "deleted", "unlinked", "kept", "unavailable"]
 LifecycleAction = Literal[
-    "delete_application", "archive_note", "delete_story", "delete_note", "archive_target"
+    "delete_application",
+    "archive_note",
+    "delete_story",
+    "delete_note",
+    "archive_target",
+    "archive_action",
+    "delete_action",
 ]
 
 

@@ -5,14 +5,17 @@ made unavailable. The list comes from the same planning function that then carri
 (Volume 12, prompt 9).
 
 - The planner: `backend/app/services/lifecycle.py` (`Lifecycle.plan_delete_application`,
-  `plan_archive_note`, `plan_delete_story`, `plan_delete_note`, `plan_archive_target`, and the
-  matching `delete_application`, `archive_note`, `delete_story`, `delete_note`, `archive_target`).
+  `plan_archive_note`, `plan_delete_story`, `plan_delete_note`, `plan_archive_target`,
+  `plan_archive_action`, `plan_delete_action`, and the matching `delete_application`,
+  `archive_note`, `delete_story`, `delete_note`, `archive_target`, `archive_action`, `delete_action`).
 - The preview: `frontend/src/features/lifecycle/ImpactPreview.tsx`, on the application page
-  (**Delete…**), the note page (**Archive…** and **Delete…**), the story page (**Delete…**) and the
-  target workspace (**Archive…**).
+  (**Delete…**), the note page (**Archive…** and **Delete…**), the story page (**Delete…**), the
+  target workspace (**Archive…**) and each accepted improvement on the plan page (**Archive…** and
+  **Delete…**).
 - Scope so far: **deleting an application** and **archiving a note** (Volume 12, prompt 9);
   **deleting a story**, **deleting a note** (with its undo window) and **archiving a target**
-  (Volume 13, prompt 5). Other lifecycle actions (archiving a story or an application, account
+  (Volume 13, prompt 5); **archiving** and **deleting an accepted improvement** (Volume 14, prompt
+  5; docs/ACCEPTED_ACTIONS.md, "Archive and delete"). Other lifecycle actions (archiving a story or an application, account
   deletion) keep their own confirmations for now and adopt the planner later, one at a time.
 - The older routes carry out the same plan, as it is when they're called: `DELETE
   /me/stories/{id}`, `DELETE /me/notes/{id}` and `PATCH /targets/{id}` with `archived: true` do
@@ -125,6 +128,20 @@ Undo brought it back different; it's kept now. A deleted note isn't in the expor
 
 Archiving is reversible: **Unarchive** brings it back as it was (not as the active target). A target
 that's already archived previews "This target is already archived" with everything kept.
+
+### Archiving and deleting an accepted improvement
+
+| What | Archive | Delete |
+|---|---|---|
+| The improvement | archived: off the plan's list, the schedule and Today | deleted, with its notes and marks of done |
+| Each occurrence, done or not | kept, with its marks of done | deleted |
+| A kit's checklist item naming it | kept, labelled archived | kept, as "An improvement you removed" |
+| A target requirement it's listed with | kept, still listed | unlinked |
+| The interview review's suggestion | kept, still accepted | kept; it can be accepted again |
+| Practice done with it | kept | kept |
+
+**Unarchive** brings it back with its occurrences. A deleted one comes back from a version 2 backup
+with the same ids (docs/BACKUP_FORMAT.md).
 
 ## What can't bring it back
 

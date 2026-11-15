@@ -428,7 +428,7 @@ class Packets:
                     )
                     lines.append(f"[{'x' if c.done else ' '}] {budget.own(c.text)}{extra}")
                 elif c.origin == "action":
-                    lines.append(f"[ ] {c.text}")  # "An improvement that's no longer available"
+                    lines.append(f"[ ] {c.text}")  # "An improvement you removed"
                 else:
                     lines.append(f"[{'x' if c.done else ' '}] {budget.own(c.text)}")
             sections.append(budget.section("your_kit", "Checklist", "\n".join(lines), provenance))
