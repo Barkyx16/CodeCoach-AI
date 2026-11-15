@@ -27,7 +27,10 @@ JOURNEYS = [
     # +2 (Volume 13, prompt 1): the plan looks for practice since its version (answers, rounds);
     # docs/PLAN_UPDATES.md. 25 on PostgreSQL today.
     ("plan", "GET", "/api/v1/me/plan", 26),
-    ("reviews", "GET", "/api/v1/me/reviews", 4),
+    # +1 (Volume 14, prompt 9): which feedback you disputed, so a review saved only from disputed
+    # feedback isn't scheduled (one statement, the same with any history); docs/DISPUTES.md. 5 on
+    # PostgreSQL today (3 on SQLite, which has no row-level security settings to send).
+    ("reviews", "GET", "/api/v1/me/reviews", 5),
     ("resume", "GET", "/api/v1/me/resume", 6),
 ]
 FEEDBACK = re.compile(r"practice_answers\.feedback")
