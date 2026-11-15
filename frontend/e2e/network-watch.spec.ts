@@ -138,16 +138,18 @@ test.describe("which explanation a waiting request matches", () => {
     try {
       await page.goto(`${s.origin}/`);
       const w = (await NetworkWatch.attach(page, Date.now()))!;
-      await page.evaluate(() => {
-        void fetch("/slow");
-        setTimeout(() => { const t = Date.now(); while (Date.now() - t < 2500) { /* the page is busy */ } }, 50);
-      });
-      await page.waitForTimeout(600);
+      await page.evaluate(() => { void fetch("/hold?h5"); });
+      await expect.poll(() => [...w.entries.values()].some((e) => e.path === "/hold" && e.onNetwork)).toBe(true);
+      // The page busy for 2.5 s inside an evaluation that isn't awaited: the probe's own evaluation
+      // waits behind it, however slow the machine (CI run 322's earlier version used a page timer
+      // and a fixed wait, and once probed after the page was free again).
+      const busy = page.evaluate(() => { const t = Date.now(); while (Date.now() - t < 2500) { /* the page is busy */ } }).catch(() => undefined);
+      await page.waitForTimeout(100);
       const { waiting, ms } = await w.report(null, 0);
-      expect(waiting.find((l) => l.startsWith("GET /slow"))).toMatch(/H5 the page's main thread is blocked \(it didn't answer in 500 ms\)/);
+      expect(waiting.find((l) => l.startsWith("GET /hold"))).toMatch(/H5 the page's main thread is blocked \(it didn't answer in 500 ms\)/);
       expect(waiting).toContain("(the page's main thread didn't answer in 500 ms)");
       expect(ms + w.setupMs).toBeLessThan(1000);
-      await page.waitForTimeout(2500); // let the page finish before it closes
+      await busy; // let the page finish before it closes
     } finally {
       s.close();
     }

@@ -328,6 +328,13 @@ The failed test in the reproduction reported "network diagnostics took 15 ms".
 **The first full run with it** (desktop, 160 passed, 5 judge tests skipped) recorded "[slow]" in two
 tests, both the preflight case above, before it was handled: no request reached 5 s otherwise.
 
+**Offline tests aren't watched.** A second DevTools session with network events on keeps the page
+online for Chrome whatever Playwright's offline emulation says: each new document, `navigator.onLine`
+was true again, and CI run 322 failed three offline specs (`e2e/offline.spec.ts`, on the preview
+build) that way. So the fixture stops a test's watches just before its context first goes offline,
+and starts none for the rest of that test; its diagnostics say so and list Playwright's own waiting
+requests, without explanations. Only that spec goes offline.
+
 **Not done:** no retry, longer timeout or "flaky" mark hides a stall; nothing changed in the app.
 
 ### Command palette (Volume 10, prompt 1)

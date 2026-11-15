@@ -87,8 +87,25 @@ export class NetworkWatch {
   private readonly early = new Set<string>(); // extraInfo seen before its request
   private readonly lastEnd = new Map<number, number>(); // connection id -> Chrome seconds it last finished a response
   setupMs = 0;
+  private cdp: CDPSession | null = null;
+  /** Closed by `detach` (the test went offline): what it saw stops there. */
+  detached = false;
 
   private constructor(private readonly page: Page, readonly started: number) {}
+
+  /**
+   * Stops watching: the DevTools session is closed. A second session with network events on undoes
+   * Playwright's offline emulation (each new document, the page is online again for Chrome:
+   * `navigator.onLine` stayed true and the offline specs failed on CI run 322), so the fixture calls
+   * this before a test's context first goes offline, and that test's diagnostics fall back to
+   * Playwright's own events.
+   */
+  async detach(): Promise<void> {
+    const cdp = this.cdp;
+    this.cdp = null;
+    this.detached = true;
+    await cdp?.detach().catch(() => undefined);
+  }
 
   /** Null where Chrome's protocol isn't available (another browser): the old waiting list stays. */
   static async attach(page: Page, started: number): Promise<NetworkWatch | null> {
@@ -100,6 +117,7 @@ export class NetworkWatch {
       return null;
     }
     const w = new NetworkWatch(page, started);
+    w.cdp = cdp;
     cdp.on("Network.requestWillBeSent", (e) => {
       const where = split(e.request.url);
       if (!where) return;

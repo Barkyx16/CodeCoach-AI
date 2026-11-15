@@ -107,11 +107,12 @@ export const test = base.extend<{ failureDiagnostics: void }>({
       const pages: Page[] = [];
       const watches: { tab: string; w: NetworkWatch | null }[] = [];
       const attaching: Promise<void>[] = [];
+      let offlineOnce = false; // set once the context goes offline (below)
       // Every tab of the test's browser context; lines from a second tab start with "[tab 2]".
       const watch = (p: Page) => {
         pages.push(p);
         const tab = pages.length === 1 ? "" : `[tab ${pages.length}] `;
-        attaching.push(NetworkWatch.attach(p, started).then((w) => { watches.push({ tab, w }); }));
+        attaching.push((offlineOnce ? Promise.resolve(null) : NetworkWatch.attach(p, started)).then((w) => { watches.push({ tab, w }); }));
         p.on("request", (r) => { if (isInteresting(r.url())) sent.set(r, Date.now()); });
         p.on("requestfinished", (r) => { sent.delete(r); });
         p.on("response", (r) => {
@@ -133,6 +134,17 @@ export const test = base.extend<{ failureDiagnostics: void }>({
       watch(page);
       context.on("page", watch);
       await Promise.all(attaching);
+      // Offline emulation and a watch's own DevTools session don't mix (NetworkWatch.detach): before
+      // the context first goes offline, the watches stop, and none start for the rest of the test.
+      const setOffline = context.setOffline.bind(context);
+      context.setOffline = async (offline: boolean) => {
+        if (offline && !offlineOnce) {
+          offlineOnce = true;
+          await Promise.all(attaching);
+          await Promise.all(watches.map(({ w }) => w?.detach()));
+        }
+        await setOffline(offline);
+      };
 
       await use();
 
@@ -140,7 +152,7 @@ export const test = base.extend<{ failureDiagnostics: void }>({
       const t0 = Date.now();
       await Promise.all(attaching);
       const failed = testInfo.status !== testInfo.expectedStatus;
-      const live = watches.filter((x): x is { tab: string; w: NetworkWatch } => x.w !== null);
+      const live = watches.filter((x): x is { tab: string; w: NetworkWatch } => x.w !== null && !x.w.detached);
       const slowOnes = live.some(({ w }) => [...w.entries.values()].some((e) => (w.endOf(e) ?? Date.now()) - e.sentAt >= SLOW_MS));
       const reports = failed || slowOnes
         ? await Promise.all(live.map(async ({ tab, w }) => ({ tab, r: await w.report(new ServerLog(ACCESS_LOG, API_URL, started)) })))
@@ -159,6 +171,7 @@ export const test = base.extend<{ failureDiagnostics: void }>({
       const body = [
         "== network and console (last lines) ==", ...lines.slice(-MAX_LINES),
         "== requests still waiting, and why (docs/NAVIGATION.md, \"Requests that never reach the API\") ==",
+        ...(offlineOnce ? ["(this test went offline, so Chrome's network events weren't watched: the list is Playwright's own, without explanations)"] : []),
         ...(pending.length ? pending : ["(none)"]),
         openConnections({ api: PORTS.api, web: PORTS.web }),
         "== API requests the server started during this test and hasn't finished ==", ...serverOpen(started),
