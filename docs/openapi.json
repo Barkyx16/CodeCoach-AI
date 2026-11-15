@@ -17626,6 +17626,42 @@
         ]
       }
     },
+    "/api/v1/me/packet/reflections": {
+      "get": {
+        "tags": [
+          "packet"
+        ],
+        "summary": "Your real-interview reflections you can put in a packet, the most recent interview first, with only whether each has private details",
+        "operationId": "packet_reflections_api_v1_me_packet_reflections_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PacketReflectionList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/me/data-summary": {
       "get": {
         "tags": [
@@ -38900,7 +38936,8 @@
               "note",
               "story",
               "action",
-              "kit"
+              "kit",
+              "reflection"
             ],
             "title": "Type"
           },
@@ -38909,7 +38946,7 @@
             "maxLength": 200,
             "minLength": 1,
             "title": "Id",
-            "description": "A question as track/question_id; a note, story or accepted improvement id; a kit by its interview event's id"
+            "description": "A question as track/question_id; a note, story or accepted improvement id; a kit or a reflection by its interview event's id"
           },
           "parts": {
             "items": {
@@ -38918,7 +38955,7 @@
             "type": "array",
             "maxItems": 10,
             "title": "Parts",
-            "description": "Which parts to include (empty: the usual ones). question: question, your_answer, feedback. note: note, reflection, excerpt. story: situation, task, action, result, reflection, short_version, long_version. action: improvement, schedule, notes. kit: checklist, questions, and only when chosen meeting_link, interviewers, notes"
+            "description": "Which parts to include (empty: the usual ones). question: question, your_answer, feedback. note: note, reflection, excerpt. story: situation, task, action, result, reflection, short_version, long_version. action: improvement, schedule, notes. kit: checklist, questions, and only when chosen meeting_link, interviewers, notes. reflection: questions, went_well, do_differently, follow_ups, stories, and only when chosen observations, interviewers"
           }
         },
         "type": "object",
@@ -38937,7 +38974,8 @@
               "note",
               "story",
               "action",
-              "kit"
+              "kit",
+              "reflection"
             ],
             "title": "Type"
           },
@@ -39090,6 +39128,105 @@
         ],
         "title": "PacketOut"
       },
+      "PacketReflectionChoice": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "application_id": {
+            "type": "string",
+            "title": "Application Id"
+          },
+          "event_title": {
+            "type": "string",
+            "title": "Event Title"
+          },
+          "role_title": {
+            "type": "string",
+            "title": "Role Title"
+          },
+          "employer": {
+            "type": "string",
+            "title": "Employer"
+          },
+          "on_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On Date"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "has_observations": {
+            "type": "boolean",
+            "title": "Has Observations",
+            "description": "Your private observations: left out unless chosen"
+          },
+          "has_interviewers": {
+            "type": "boolean",
+            "title": "Has Interviewers",
+            "description": "The interview's kit names its interviewers: left out unless chosen"
+          },
+          "has_contact_details": {
+            "type": "boolean",
+            "title": "Has Contact Details",
+            "description": "Its text looks like it holds an email address or phone number: removed unless you keep contact details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event_id",
+          "application_id",
+          "event_title",
+          "role_title",
+          "employer",
+          "on_date",
+          "updated_at",
+          "has_observations",
+          "has_interviewers",
+          "has_contact_details"
+        ],
+        "title": "PacketReflectionChoice",
+        "description": "A real-interview reflection you can put in a packet (docs/PACKET.md): which interview, and only\nwhether it has private details, never what they are."
+      },
+      "PacketReflectionList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PacketReflectionChoice"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "How many reflections you have"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit",
+            "description": "At most this many are offered, the most recent interviews first"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit"
+        ],
+        "title": "PacketReflectionList"
+      },
       "PacketSection": {
         "properties": {
           "kind": {
@@ -39101,7 +39238,8 @@
               "your_note",
               "your_story",
               "your_plan",
-              "your_kit"
+              "your_kit",
+              "your_reflection"
             ],
             "title": "Kind",
             "description": "question: authored material from the library; your_*: what you wrote or planned (an accepted improvement is a plan, never an achievement); automated_feedback: what the coach said about an answer (not a grade from a person)"
@@ -39144,7 +39282,8 @@
               "note",
               "story",
               "action",
-              "kit"
+              "kit",
+              "reflection"
             ],
             "title": "Type"
           },

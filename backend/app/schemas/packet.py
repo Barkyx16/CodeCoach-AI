@@ -11,7 +11,7 @@ from app.schemas.common import APIModel
 
 PACKET_ITEMS = 20  # at most, per packet
 
-ItemType = Literal["question", "note", "story", "action", "kit"]
+ItemType = Literal["question", "note", "story", "action", "kit", "reflection"]
 QUESTION_PARTS = ("question", "your_answer", "feedback")
 NOTE_PARTS = ("note", "reflection", "excerpt")
 STORY_PARTS = ("situation", "task", "action", "result", "reflection", "short_version", "long_version")
@@ -22,12 +22,27 @@ ACTION_PARTS = ("improvement", "schedule", "notes")
 # interviewers' names and your private notes only when chosen, part by part.
 KIT_PARTS = ("checklist", "questions", "meeting_link", "interviewers", "notes")
 KIT_PRIVATE_PARTS = ("meeting_link", "interviewers", "notes")
+# A real-interview reflection (Volume 14, prompt 8): what you were asked, what went well, what to
+# do differently, what you said you'd follow up and the stories you used by default; what you
+# noticed (your private observations) and the interviewers' names (from the interview's kit) only
+# when chosen, part by part.
+REFLECTION_PARTS = (
+    "questions",
+    "went_well",
+    "do_differently",
+    "follow_ups",
+    "stories",
+    "observations",
+    "interviewers",
+)
+REFLECTION_PRIVATE_PARTS = ("observations", "interviewers")
 PARTS: dict[str, tuple[str, ...]] = {
     "question": QUESTION_PARTS,
     "note": NOTE_PARTS,
     "story": STORY_PARTS,
     "action": ACTION_PARTS,
     "kit": KIT_PARTS,
+    "reflection": REFLECTION_PARTS,
 }
 DEFAULT_PARTS: dict[str, tuple[str, ...]] = {
     "question": ("question",),
@@ -35,8 +50,10 @@ DEFAULT_PARTS: dict[str, tuple[str, ...]] = {
     "story": ("situation", "task", "action", "result"),
     "action": ("improvement", "schedule"),
     "kit": ("checklist", "questions"),
+    "reflection": ("questions", "went_well", "do_differently", "follow_ups", "stories"),
 }
 PACKET_KITS = 1  # one interview's kit per packet
+PACKET_REFLECTIONS_LISTED = 30  # reflections offered for choosing, the most recent interviews first
 
 
 class PacketItemIn(APIModel):
@@ -44,8 +61,8 @@ class PacketItemIn(APIModel):
     id: str = Field(
         min_length=1,
         max_length=200,
-        description="A question as track/question_id; a note, story or accepted improvement id; a kit by its "
-        "interview event's id",
+        description="A question as track/question_id; a note, story or accepted improvement id; a kit or a "
+        "reflection by its interview event's id",
     )
     parts: list[str] = Field(
         default_factory=list,
@@ -53,7 +70,8 @@ class PacketItemIn(APIModel):
         description="Which parts to include (empty: the usual ones). question: question, your_answer, feedback. "
         "note: note, reflection, excerpt. story: situation, task, action, result, reflection, short_version, "
         "long_version. action: improvement, schedule, notes. kit: checklist, questions, and only when chosen "
-        "meeting_link, interviewers, notes",
+        "meeting_link, interviewers, notes. reflection: questions, went_well, do_differently, follow_ups, stories, "
+        "and only when chosen observations, interviewers",
     )
 
     @model_validator(mode="after")
@@ -78,7 +96,14 @@ class PacketIn(APIModel):
 
 
 SectionKind = Literal[
-    "question", "your_answer", "automated_feedback", "your_note", "your_story", "your_plan", "your_kit"
+    "question",
+    "your_answer",
+    "automated_feedback",
+    "your_note",
+    "your_story",
+    "your_plan",
+    "your_kit",
+    "your_reflection",
 ]
 
 
@@ -137,3 +162,30 @@ class PacketKitChoice(APIModel):
     has_meeting_link: bool
     has_interviewers: bool
     has_notes: bool
+
+
+class PacketReflectionChoice(APIModel):
+    """A real-interview reflection you can put in a packet (docs/PACKET.md): which interview, and only
+    whether it has private details, never what they are."""
+
+    event_id: str
+    application_id: str
+    event_title: str
+    role_title: str
+    employer: str
+    on_date: date | None
+    updated_at: datetime
+    has_observations: bool = Field(description="Your private observations: left out unless chosen")
+    has_interviewers: bool = Field(
+        description="The interview's kit names its interviewers: left out unless chosen"
+    )
+    has_contact_details: bool = Field(
+        description="Its text looks like it holds an email address or phone number: removed unless you keep "
+        "contact details"
+    )
+
+
+class PacketReflectionList(APIModel):
+    items: list[PacketReflectionChoice]
+    total: int = Field(description="How many reflections you have")
+    limit: int = Field(description="At most this many are offered, the most recent interviews first")

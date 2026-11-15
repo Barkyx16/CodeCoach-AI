@@ -21,6 +21,11 @@ file; nothing is generated or stored on the server, so there's no file to guess,
   with the weeks you scheduled and marked done, never as an achievement; a kit gives its checklist
   (accepted improvements by id, read now) and questions to ask, and its meeting link, interviewers'
   names and your private notes only when chosen, part by part.
+- Real-interview reflections (Volume 14, prompt 8) are read live too (app/services/reflections.py's
+  record), part by part: what you were asked, what went well, what to do differently, what you said
+  you'd follow up and the stories you used (each read now by id, or "deleted since"); what you
+  noticed and the interviewers' names (from that interview's kit) only when chosen. Placed in the
+  same packet as that interview's kit, it goes beside the kit and doesn't repeat it.
 - Honest: a choice that can't be included (deleted, retired, repeated, not found) is listed with
   its reason, never silently dropped. An empty choice is refused: nothing is chosen for you.
 """
@@ -44,6 +49,7 @@ from app.models import (
     ApplicationEvent,
     ExperienceEntry,
     InterviewKit,
+    InterviewReflection,
     Note,
     PracticeAnswer,
     User,
@@ -54,11 +60,15 @@ from app.schemas.packet import (
     DEFAULT_PARTS,
     KIT_PRIVATE_PARTS,
     PACKET_KITS,
+    PACKET_REFLECTIONS_LISTED,
+    REFLECTION_PRIVATE_PARTS,
     PacketIn,
     PacketItemIn,
     PacketItemOut,
     PacketKitChoice,
     PacketOut,
+    PacketReflectionChoice,
+    PacketReflectionList,
     PacketSection,
     PacketUnavailable,
 )
@@ -92,6 +102,17 @@ PRIVATE_LEFT_OUT = {
     "interviewers": "The interviewers' names aren't included: choose \u201cInterviewers\u201d to add them.",
     "notes": "Your private kit notes aren't included: choose \u201cPrivate notes\u201d to add them.",
 }
+
+
+REFLECTION_LEFT_OUT = {
+    "observations": "What you noticed isn't included: choose \u201cWhat you noticed\u201d to add it.",
+    "interviewers": "The interviewers' names aren't included: choose \u201cInterviewers\u201d to add them.",
+}
+STORY_DELETED = "A story you linked was deleted from your story bank since."
+
+
+def _looks_like_contact(*texts: str) -> bool:
+    return any(_EMAIL.search(t) or _PHONE.search(t) for t in texts if t)
 
 
 class _Budget:
@@ -136,6 +157,11 @@ class Packets:
         unavailable: list[PacketUnavailable] = []
         seen: set[tuple[str, str]] = set()
         kits = 0
+        # The kit that will be in this packet, if any (the first one chosen that exists): a
+        # reflection on the same interview goes beside it and doesn't repeat it.
+        kit_event = next(
+            (c.id for c in body.items if c.type == "kit" and self._kit_missing(c.id) is None), None
+        )
         for choice in body.items:
             key = (choice.type, choice.id)
             if key in seen:
@@ -164,6 +190,8 @@ class Packets:
                 made = self._story(choice, parts, budget)
             elif choice.type == "action":
                 made = self._action(choice, parts, budget)
+            elif choice.type == "reflection":
+                made = self._reflection(choice, parts, budget, beside_kit=choice.id == kit_event)
             else:
                 made = self._kit(choice, parts, budget)
                 if not isinstance(made, str):
@@ -172,6 +200,7 @@ class Packets:
                 unavailable.append(PacketUnavailable(type=choice.type, id=choice.id, reason=made))
             else:
                 items.append(made)
+        items = self._beside_kits(items)
         title = body.title.strip() or "My practice packet"
         digest = hashlib.sha256(
             json.dumps(
@@ -484,3 +513,167 @@ class Packets:
             )
             for kit, ev, app in rows
         ]
+
+    # --- real-interview reflections (Volume 14, prompt 8) ------------------------------------------
+
+    @staticmethod
+    def _beside_kits(items: list[PacketItemOut]) -> list[PacketItemOut]:
+        """A reflection on the interview whose kit is in the packet goes right after that kit."""
+        kits = {i.id for i in items if i.type == "kit"}
+        beside = {i.id: i for i in items if i.type == "reflection" and i.id in kits}
+        out: list[PacketItemOut] = []
+        for i in items:
+            if i.type == "reflection" and i.id in beside:
+                continue
+            out.append(i)
+            if i.type == "kit" and i.id in beside:
+                out.append(beside[i.id])
+        return out
+
+    def _reflection_row(
+        self, event_id: str
+    ) -> tuple[InterviewReflection, ApplicationEvent, Application] | None:
+        r = self.db.get(InterviewReflection, event_id)
+        if r is None or r.user_id != self.user.id:
+            return None
+        found = self._event(event_id)
+        return (r, found[0], found[1]) if found else None
+
+    def _reflection(
+        self, choice: PacketItemIn, parts: list[str], budget: _Budget, *, beside_kit: bool
+    ) -> PacketItemOut | str:
+        row = self._reflection_row(choice.id)
+        if row is None:
+            return NOT_FOUND
+        r, ev, app = row
+        on = r.event_on or ev.on_date
+        when = f", {_long_day(on)}" if on else ""
+        provenance = (
+            f"Your reflection on {r.event_title} ({r.role_title} at {r.employer}{when}), revision {r.revision}, "
+            f"saved {_day(r.updated_at)}; read {_long_day(datetime.now(UTC))}. Your own words, not an "
+            "assessment of how it went."
+        )
+        sections: list[PacketSection | None] = []
+        if "questions" in parts:
+            lines = [f"- {budget.own(q)}" for q in r.questions or [] if q.strip()]
+            if r.topics:
+                lines.append("Topics: " + ", ".join(budget.own(t) for t in r.topics))
+            sections.append(
+                budget.section("your_reflection", "What you were asked", "\n".join(lines), provenance)
+            )
+        if "went_well" in parts:
+            sections.append(
+                budget.section("your_reflection", "What went well", budget.own(r.clear), provenance)
+            )
+        if "do_differently" in parts:
+            lines = [budget.own(r.difficult)] if r.difficult.strip() else []
+            if r.practice:
+                lines.append("What you want to practise:")
+                lines += [f"- {budget.own(p)}" for p in r.practice if p.strip()]
+            sections.append(
+                budget.section("your_reflection", "What to do differently", "\n".join(lines), provenance)
+            )
+        if "follow_ups" in parts:
+            sections.append(
+                budget.section(
+                    "your_reflection", "What you said you'd follow up", budget.own(r.follow_ups), provenance
+                )
+            )
+        if "stories" in parts and r.story_ids:
+            lines = []
+            for sid in r.story_ids:
+                e = self.db.get(ExperienceEntry, sid)
+                if e is None or e.user_id != self.user.id:
+                    lines.append(f"- {STORY_DELETED}")
+                    continue
+                state = ", archived" if e.archived else ""
+                lines.append(f"- {budget.own(e.title)} (your story, revision {e.revision}{state}, read now)")
+                if (e.short_version or "").strip():
+                    lines.append(f"  {budget.own(e.short_version)}")
+            sections.append(
+                budget.section("your_reflection", "Stories you used", "\n".join(lines), provenance)
+            )
+        if "observations" in parts and r.observations:
+            label = {"observed": "What happened", "interpretation": "What you thought it meant"}
+            lines = [
+                f"- {label.get(o.get('kind', ''), 'Noted')}: {budget.own(str(o.get('text', '')))}"
+                for o in r.observations
+                if isinstance(o, dict) and str(o.get("text", "")).strip()
+            ]
+            sections.append(
+                budget.section("your_reflection", "What you noticed", "\n".join(lines), provenance)
+            )
+        kit = self.db.get(InterviewKit, ev.id)
+        interviewers = list(kit.interviewers or []) if kit is not None and kit.user_id == self.user.id else []
+        notes: list[str] = []
+        if beside_kit:
+            notes.append(
+                "This interview's kit is beside this reflection in the packet, so it isn't repeated here."
+            )
+        elif "interviewers" in parts and interviewers:
+            names = [
+                f"- {budget.own(str(i.get('name') or '')) or 'Name not recorded'}"
+                + (f" ({budget.own(str(i.get('role')))})" if i.get("role") else "")
+                for i in interviewers
+                if isinstance(i, dict)
+            ]
+            sections.append(
+                budget.section(
+                    "your_reflection", "Interviewers (from the interview's kit)", "\n".join(names), provenance
+                )
+            )
+        present = {
+            "observations": bool(r.observations),
+            "interviewers": bool(interviewers) and not beside_kit,
+        }
+        notes += [REFLECTION_LEFT_OUT[p] for p in REFLECTION_PRIVATE_PARTS if present[p] and p not in parts]
+        kept = [x for x in sections if x]
+        if not kept:
+            return "Nothing to include from it with the parts chosen (they're empty)."
+        title = f"Reflection on {r.event_title}: {r.role_title} at {r.employer}"
+        return PacketItemOut(type="reflection", id=ev.id, title=title, sections=kept, notes=notes)
+
+    def reflections(self) -> PacketReflectionList:
+        """Your real-interview reflections, the most recent interview first, with only whether each has
+        private details (never what they are)."""
+        base = (
+            select(InterviewReflection, ApplicationEvent, Application)
+            .join(ApplicationEvent, ApplicationEvent.id == InterviewReflection.event_id)
+            .join(Application, Application.id == ApplicationEvent.application_id)
+            .where(InterviewReflection.user_id == self.user.id, Application.user_id == self.user.id)
+        )
+        total = len(self.db.execute(base.with_only_columns(InterviewReflection.event_id)).all())
+        rows = self.db.execute(
+            base.order_by(ApplicationEvent.on_date.desc(), InterviewReflection.updated_at.desc()).limit(
+                PACKET_REFLECTIONS_LISTED
+            )
+        ).all()
+        kits = {
+            k.event_id: k
+            for k in self.db.scalars(
+                select(InterviewKit).where(
+                    InterviewKit.user_id == self.user.id,
+                    InterviewKit.event_id.in_([ev.id for _, ev, _ in rows] or [""]),
+                )
+            )
+        }
+        items = []
+        for r, ev, app in rows:
+            kit = kits.get(ev.id)
+            texts = [r.clear, r.difficult, r.follow_ups, *(r.questions or []), *(r.practice or [])]
+            texts += [str(o.get("text", "")) for o in r.observations or [] if isinstance(o, dict)]
+            items.append(
+                PacketReflectionChoice(
+                    event_id=ev.id,
+                    application_id=app.id,
+                    event_title=r.event_title,
+                    role_title=r.role_title,
+                    employer=r.employer,
+                    on_date=r.event_on or ev.on_date,
+                    updated_at=r.updated_at,
+                    has_observations=bool(r.observations),
+                    has_interviewers=bool(kit is not None and kit.interviewers),
+                    has_contact_details=_looks_like_contact(*texts),
+                )
+            )
+        return PacketReflectionList(items=items, total=total, limit=PACKET_REFLECTIONS_LISTED)

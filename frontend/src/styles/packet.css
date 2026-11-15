@@ -1,7 +1,7 @@
 /* A practice packet (docs/PACKET.md) */
 .packet-page__layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-4); align-items: start; }
 @media (max-width: 760px) { .packet-page__layout { grid-template-columns: minmax(0, 1fr); } }
-.packet-page__choose, .packet-page__parts { border: 0; padding: 0; margin: 0; min-width: 0; }
+.packet-page__choose, .packet-page__parts { border: 0; padding: 0; margin: 0; min-width: 0; overflow-wrap: anywhere; }
 .packet-page__choose .checkbox input, .packet-page__parts .checkbox input { flex-shrink: 0; }
 .packet-page__parts { display: flex; flex-wrap: wrap; gap: 0 var(--space-3); }
 .packet-page__order { margin: 0; padding-left: 1.2em; display: grid; gap: var(--space-3); }

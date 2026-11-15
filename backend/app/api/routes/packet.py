@@ -7,7 +7,7 @@ from app.api.deps import get_current_user, get_db
 from app.errors import RateLimitedError
 from app.models import User
 from app.schemas.common import error_responses
-from app.schemas.packet import PacketIn, PacketKitChoice, PacketOut
+from app.schemas.packet import PacketIn, PacketKitChoice, PacketOut, PacketReflectionList
 from app.services.packet import Packets
 
 router = APIRouter(tags=["packet"])
@@ -45,3 +45,16 @@ def packet_kits(
     user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> list[PacketKitChoice]:
     return Packets(db, user).kits()
+
+
+@router.get(
+    "/api/v1/me/packet/reflections",
+    response_model=PacketReflectionList,
+    responses=error_responses(401),
+    summary="Your real-interview reflections you can put in a packet, the most recent interview first, with only "
+    "whether each has private details",
+)
+def packet_reflections(
+    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> PacketReflectionList:
+    return Packets(db, user).reflections()

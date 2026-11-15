@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
-import { useActions, useBookmarks, useNotes, usePacketKits, useStories } from "@/api/queries";
+import { useActions, useBookmarks, useNotes, usePacketKits, usePacketReflections, useStories } from "@/api/queries";
 import type { Packet } from "@/api/types";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
@@ -14,20 +14,25 @@ import { LOCAL_FILE, packetFilename, packetText, SOURCE_LABEL, TYPE_LABEL } from
 const MAX_ITEMS = 20;
 /** One interview's kit per packet (docs/PACKET.md). */
 const MAX_KITS = 1;
-type Kind = "question" | "note" | "story" | "action" | "kit";
+type Kind = "question" | "note" | "story" | "action" | "kit" | "reflection";
 const PART_LABEL: Record<Kind, [string, string][]> = {
   question: [["question", "The question and tips"], ["your_answer", "Your latest answer"], ["feedback", "Automated feedback on it"]],
   note: [["note", "Note"], ["reflection", "Reflection"], ["excerpt", "The excerpt it quotes"]],
   story: [["situation", "Situation"], ["task", "Task"], ["action", "Action"], ["result", "Result"], ["reflection", "Reflection"], ["short_version", "Short version"], ["long_version", "Longer version"]],
   action: [["improvement", "What you planned"], ["schedule", "Your schedule for it"], ["notes", "Your notes on it"]],
   kit: [["checklist", "Checklist"], ["questions", "Questions to ask"], ["meeting_link", "Meeting link"], ["interviewers", "Interviewers"], ["notes", "Private notes"]],
+  reflection: [["questions", "What you were asked"], ["went_well", "What went well"], ["do_differently", "What to do differently"], ["follow_ups", "What you said you'd follow up"], ["stories", "Stories you used"], ["observations", "What you noticed"], ["interviewers", "Interviewers"]],
 };
 const DEFAULT_PARTS: Record<Kind, string[]> = {
   question: ["question"], note: ["note"], story: ["situation", "task", "action", "result"],
   action: ["improvement", "schedule"], kit: ["checklist", "questions"],
+  reflection: ["questions", "went_well", "do_differently", "follow_ups", "stories"],
 };
-/** A kit's parts that are only ever in a packet when chosen, one by one. */
-const PRIVATE_KIT_PARTS = new Set(["meeting_link", "interviewers", "notes"]);
+/** Parts that are only ever in a packet when chosen, one by one (a kit's, and a reflection's). */
+const PRIVATE_PARTS: Partial<Record<Kind, Set<string>>> = {
+  kit: new Set(["meeting_link", "interviewers", "notes"]),
+  reflection: new Set(["observations", "interviewers"]),
+};
 
 interface Chosen { type: Kind; id: string; title: string; parts: string[] }
 
@@ -44,6 +49,7 @@ export function PacketPage() {
   const stories = useStories({});
   const actions = useActions();
   const kits = usePacketKits();
+  const reflections = usePacketReflections();
   const [chosen, setChosen] = useState<Chosen[]>([]);
   const [title, setTitle] = useState("My practice packet");
   const [keepContact, setKeepContact] = useState(false);
@@ -122,14 +128,14 @@ export function PacketPage() {
         <div>
           <p className="eyebrow">PRIVATE · MADE ON YOUR DEVICE</p>
           <h1 className="page__title">Practice packet</h1>
-          <p className="page__subtitle">Choose questions, notes, stories, the improvements you accepted and one interview's kit, and their order. Preview the packet, then save it as a text file or print it (or save it as a PDF).</p>
+          <p className="page__subtitle">Choose questions, notes, stories, the improvements you accepted, one interview's kit and your real-interview reflections, and their order. Preview the packet, then save it as a text file or print it (or save it as a PDF).</p>
         </div>
       </div>
       <div className="stack">
         <p className="banner banner--info no-print" role="note">
           The file is made on this device from the preview you see: it isn't stored in your account, sent, emailed or shared. It isn't a
-          backup either (that's <Link to="/settings/data">Your data</Link>). A kit's meeting link, interviewers and private notes are only in it
-          if you choose them, one by one. Never in a packet: applications, offer terms, recordings, account details, or a coding problem's tests.
+          backup either (that's <Link to="/settings/data">Your data</Link>). A kit's meeting link, interviewers and private notes, and what
+          you noticed in a reflection, are only in it if you choose them, one by one. Never in a packet: applications, offer terms, recordings, account details, or a coding problem's tests.
         </p>
         <div className="packet-page__layout no-print">
           <Card className="stack-sm">
@@ -151,6 +157,14 @@ export function PacketPage() {
                 type: "kit" as const, id: k.event_id, title: `${k.event_title}: ${k.role_title} at ${k.employer}`,
                 hint: privateHint(k),
               }))} isChosen={isChosen} full={full} blocked={kitChosen ? "One kit per packet." : undefined} onToggle={toggle} />
+            <ChooseList legend="Your real-interview reflections" empty={<>None yet. Reflect on an interview from its application.</>}
+              rows={(reflections.data?.items ?? []).map((r) => ({
+                type: "reflection" as const, id: r.event_id, title: `Reflection on ${r.event_title}: ${r.role_title} at ${r.employer}${r.on_date ? ` (${r.on_date})` : ""}`,
+                hint: reflectionHint(r),
+              }))} isChosen={isChosen} full={full} onToggle={toggle} />
+            {reflections.data && reflections.data.total > reflections.data.items.length && (
+              <p className="subtle">{reflections.data.total - reflections.data.items.length} more {reflections.data.total - reflections.data.items.length === 1 ? "isn't" : "aren't"} listed: the {reflections.data.limit} most recent interviews are offered.</p>
+            )}
             {full && <p className="subtle">Up to {MAX_ITEMS} in one packet.</p>}
           </Card>
           <Card className="stack-sm">
@@ -174,7 +188,7 @@ export function PacketPage() {
                       <legend className="visually-hidden">Parts of {c.title}</legend>
                       {PART_LABEL[c.type].map(([part, label]) => (
                         <label key={part} className="checkbox"><input type="checkbox" checked={c.parts.includes(part)} onChange={(e) => setParts(i, part, e.target.checked)} />
-                          {label}{c.type === "kit" && PRIVATE_KIT_PARTS.has(part) ? <>{" "}<span className="subtle">(only if you choose it)</span></> : null}</label>
+                          {label}{PRIVATE_PARTS[c.type]?.has(part) ? <>{" "}<span className="subtle">(only if you choose it)</span></> : null}</label>
                       ))}
                     </fieldset>
                     {c.parts.length === 0 && <p className="subtle">Choose at least one part, or remove it.</p>}
@@ -229,6 +243,14 @@ function privateHint(k: { has_meeting_link: boolean; has_interviewers: boolean; 
   if (parts.length === 0) return undefined;
   const list = parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
   return `Has ${list}: left out unless you choose them.`;
+}
+
+function reflectionHint(r: { has_observations: boolean; has_interviewers: boolean; has_contact_details: boolean }): string | undefined {
+  const parts = [r.has_observations && "what you noticed", r.has_interviewers && "interviewers' names (in its kit)"].filter(Boolean);
+  const out: string[] = [];
+  if (parts.length) out.push(`Has ${parts.join(" and ")}: left out unless you choose them.`);
+  if (r.has_contact_details) out.push("Looks like it has an email address or phone number: removed unless you keep them.");
+  return out.join(" ") || undefined;
 }
 
 function ChooseList({ legend, rows, empty, isChosen, full, blocked, onToggle }: {

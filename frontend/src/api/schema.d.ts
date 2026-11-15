@@ -3450,6 +3450,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/packet/reflections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your real-interview reflections you can put in a packet, the most recent interview first, with only whether each has private details */
+        get: operations["packet_reflections_api_v1_me_packet_reflections_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/data-summary": {
         parameters: {
             query?: never;
@@ -10561,15 +10578,15 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "question" | "note" | "story" | "action" | "kit";
+            type: "question" | "note" | "story" | "action" | "kit" | "reflection";
             /**
              * Id
-             * @description A question as track/question_id; a note, story or accepted improvement id; a kit by its interview event's id
+             * @description A question as track/question_id; a note, story or accepted improvement id; a kit or a reflection by its interview event's id
              */
             id: string;
             /**
              * Parts
-             * @description Which parts to include (empty: the usual ones). question: question, your_answer, feedback. note: note, reflection, excerpt. story: situation, task, action, result, reflection, short_version, long_version. action: improvement, schedule, notes. kit: checklist, questions, and only when chosen meeting_link, interviewers, notes
+             * @description Which parts to include (empty: the usual ones). question: question, your_answer, feedback. note: note, reflection, excerpt. story: situation, task, action, result, reflection, short_version, long_version. action: improvement, schedule, notes. kit: checklist, questions, and only when chosen meeting_link, interviewers, notes. reflection: questions, went_well, do_differently, follow_ups, stories, and only when chosen observations, interviewers
              */
             parts?: string[];
         };
@@ -10579,7 +10596,7 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "question" | "note" | "story" | "action" | "kit";
+            type: "question" | "note" | "story" | "action" | "kit" | "reflection";
             /** Id */
             id: string;
             /** Title */
@@ -10648,6 +10665,60 @@ export interface components {
              */
             digest: string;
         };
+        /**
+         * PacketReflectionChoice
+         * @description A real-interview reflection you can put in a packet (docs/PACKET.md): which interview, and only
+         *     whether it has private details, never what they are.
+         */
+        PacketReflectionChoice: {
+            /** Event Id */
+            event_id: string;
+            /** Application Id */
+            application_id: string;
+            /** Event Title */
+            event_title: string;
+            /** Role Title */
+            role_title: string;
+            /** Employer */
+            employer: string;
+            /** On Date */
+            on_date: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Has Observations
+             * @description Your private observations: left out unless chosen
+             */
+            has_observations: boolean;
+            /**
+             * Has Interviewers
+             * @description The interview's kit names its interviewers: left out unless chosen
+             */
+            has_interviewers: boolean;
+            /**
+             * Has Contact Details
+             * @description Its text looks like it holds an email address or phone number: removed unless you keep contact details
+             */
+            has_contact_details: boolean;
+        };
+        /** PacketReflectionList */
+        PacketReflectionList: {
+            /** Items */
+            items: components["schemas"]["PacketReflectionChoice"][];
+            /**
+             * Total
+             * @description How many reflections you have
+             */
+            total: number;
+            /**
+             * Limit
+             * @description At most this many are offered, the most recent interviews first
+             */
+            limit: number;
+        };
         /** PacketSection */
         PacketSection: {
             /**
@@ -10655,7 +10726,7 @@ export interface components {
              * @description question: authored material from the library; your_*: what you wrote or planned (an accepted improvement is a plan, never an achievement); automated_feedback: what the coach said about an answer (not a grade from a person)
              * @enum {string}
              */
-            kind: "question" | "your_answer" | "automated_feedback" | "your_note" | "your_story" | "your_plan" | "your_kit";
+            kind: "question" | "your_answer" | "automated_feedback" | "your_note" | "your_story" | "your_plan" | "your_kit" | "your_reflection";
             /** Heading */
             heading: string;
             /** Text */
@@ -10678,7 +10749,7 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "question" | "note" | "story" | "action" | "kit";
+            type: "question" | "note" | "story" | "action" | "kit" | "reflection";
             /** Id */
             id: string;
             /** Reason */
@@ -28217,6 +28288,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PacketKitChoice"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    packet_reflections_api_v1_me_packet_reflections_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PacketReflectionList"];
                 };
             };
             /** @description Missing, invalid, expired or revoked access token */

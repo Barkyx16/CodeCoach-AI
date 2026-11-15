@@ -800,6 +800,10 @@ export function usePacketKits() {
   return useQuery({ queryKey: ["me", "packet-kits"], queryFn: api.packetKits, staleTime: 0 });
 }
 
+export function usePacketReflections() {
+  return useQuery({ queryKey: ["me", "packet-reflections"], queryFn: api.packetReflections, staleTime: 0 });
+}
+
 export function useActions(enabled = true) {
   return useQuery({ queryKey: ["me", "actions"], queryFn: api.actions, staleTime: 0, enabled });
 }
