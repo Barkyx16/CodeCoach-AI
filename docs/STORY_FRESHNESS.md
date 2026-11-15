@@ -6,8 +6,9 @@ and changes only when the learner decides (Volume 12, prompt 8).
 
 - The rules: `backend/app/services/story_freshness.py` (`assess`, `decide`, `CONTENT_FIELDS`).
 - Kits: `backend/app/services/kits.py`; requirement links: `backend/app/services/roles.py`.
-- Scope: stories, behind kits and requirement links. Notes and question content come later, one at
-  a time.
+- Scope: stories, behind kits and requirement links (Volume 12, prompt 8); notes captured from a
+  question, a lesson or a coding problem (Volume 13, prompt 6, "Notes" below:
+  `backend/app/services/note_freshness.py`). Saved questions and collections come later.
 
 ## Two kinds of version, kept apart
 
@@ -91,6 +92,40 @@ the usual stale-save choice when it saves.
 - Rewrite a story, a kit's other content, or the history of decisions.
 - Guess: preparation from before revisions were recorded stays "unknown" until the learner chooses.
 
+## Notes
+
+A note captured from a question, a lesson or a coding problem keeps the source's version it was
+captured from (`notes.source_version`: a question's or lesson's version, a coding problem's test
+version). When the source has a newer version that matters, the note says so; the note itself is
+never changed, and its snapshot (the excerpt) is never refreshed.
+
+| Source | A change that asks | What's shown |
+|---|---|---|
+| Question | A published correction marked significant. A typo fix is published as not significant and never asks ("Up to date: … only for typos or wording marked minor"). | Title and question side by side, as captured (or last reviewed) and now, with each correction's note. |
+| Lesson | Any new version (lessons don't mark typo fixes). | The lesson's own note for each newer version; it doesn't keep its earlier wording, so the page says it can't be shown side by side. |
+| Coding problem | Any new test version (its statement and tests are corrected together in its seed files). | That it changed; there's no earlier wording to show. |
+| Interview | Not versioned: no notice. | |
+
+- **States.** `current`; `needs_review` ("The question changed since you captured this note
+  (version 1, now 2). Review whether your note still fits."); `unknown` (captured before versions
+  were recorded: "Whether the question changed since isn't known …", never "up to date"); `retired`
+  (said with its reason; the note still opens); `unavailable` (it left the library).
+- **Mark reviewed** records the version the learner was shown (`source_reviews`: holder_kind note,
+  decision reviewed, from the version seen before, to the one shown, with a digest of that
+  version's wording), once: a repeat or a second tab adds nothing, and two at once are one row
+  (unique). It clears the notice until the source changes again in a way that asks. If the source
+  changed again while the learner was looking, the review is for the version shown and the newer
+  one is said ("changed again since you marked it reviewed at version 2 (now version 3)"). A note
+  whose version isn't known can be marked reviewed too; later changes are then said.
+- **The notebook** marks such notes "Source updated" and filters to them (`source_updated=true`;
+  the page's "Source updated" checkbox, kept in the URL as `updated=1`). The note page shows the
+  notice above the snapshot.
+- **Data.** Reviews go with the note (removed when it's purged after its undo window; an Undo
+  keeps them) and with the account; only the learner's own are read. The export carries each
+  note's captured version and its reviews (`notes[].source_reviews`); the top-level
+  `source_reviews` stays decisions about stories. A backup restore keeps a note's captured version
+  but not its reviews, so a restored note asks again if its source changed since.
+
 ## API and data
 
 - `POST /api/v1/me/applications/{app}/events/{event}/kit/stories/{story}/review`
@@ -103,3 +138,5 @@ the usual stale-save choice when it saves.
   [{field, before, after}], lineage: [{decision, from_revision, to_revision, at, text}]}`.
 - The export carries each kit's `stories_as_prepared`, each link's story revision, and every
   decision (`source_reviews`). They aren't restored from a backup file (kits and targets aren't yet).
+- Notes: `POST /api/v1/me/notes/{id}/source-review {reviewed_version}` → the note's `freshness`
+  (docs/API.md, "Notebook"); `GET /me/notes?source_updated=true`.

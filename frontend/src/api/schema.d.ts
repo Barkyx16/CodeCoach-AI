@@ -1186,6 +1186,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/notes/{note_id}/source-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark the note's changed source reviewed, for the version you were shown (the note isn't changed) */
+        post: operations["review_source_api_v1_me_notes__note_id__source_review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/notes/{note_id}/delete-preview": {
         parameters: {
             query?: never;
@@ -9358,6 +9375,59 @@ export interface components {
             /** Count */
             count: number;
         };
+        /**
+         * NoteFreshness
+         * @description Whether the note's source changed since it was captured (docs/STORY_FRESHNESS.md, "Notes").
+         *     The note itself never changes.
+         */
+        NoteFreshness: {
+            /**
+             * State
+             * @description current (nothing to review), needs_review (a newer version that matters), unknown (captured before versions were recorded), retired, unavailable (it left the library)
+             * @enum {string}
+             */
+            state: "current" | "needs_review" | "unknown" | "retired" | "unavailable";
+            /** Text */
+            text: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "question" | "lesson" | "problem";
+            /**
+             * Captured Version
+             * @description The source's version when the note was captured
+             */
+            captured_version: number | null;
+            /**
+             * Reviewed Version
+             * @description The latest version you marked reviewed
+             */
+            reviewed_version: number | null;
+            /** Current Version */
+            current_version: number | null;
+            /**
+             * Changes
+             * @description What changed, as captured and now (questions keep both)
+             */
+            changes?: components["schemas"]["FieldChange"][];
+            /**
+             * Change Notes
+             * @description What the content says changed in each newer version
+             */
+            change_notes?: string[];
+            /**
+             * Comparable
+             * @description The content keeps its earlier wording, so the change can be shown
+             * @default false
+             */
+            comparable: boolean;
+            /**
+             * Reviews
+             * @description Your reviews, newest first
+             */
+            reviews?: components["schemas"]["NoteReview"][];
+        };
         /** NoteIn */
         NoteIn: {
             /**
@@ -9424,8 +9494,16 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            /**
+             * Source Updated
+             * @description Its source has a newer version that matters, not yet reviewed
+             * @default false
+             */
+            source_updated: boolean;
             /** @description Only on a save recovered by its key: see SaveReplay */
             save_replay?: components["schemas"]["SaveReplay"] | null;
+            /** @description Its source's version now, against the one captured (versioned sources) */
+            freshness?: components["schemas"]["NoteFreshness"] | null;
             /** Body */
             body: string;
             /** Reflection */
@@ -9487,6 +9565,34 @@ export interface components {
             /** Archived */
             archived?: boolean | null;
         };
+        /** NoteReview */
+        NoteReview: {
+            /**
+             * From Version
+             * @description The version you'd seen before (captured or last reviewed)
+             */
+            from_version: number | null;
+            /**
+             * To Version
+             * @description The version you were shown when you marked it reviewed
+             */
+            to_version: number;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Text */
+            text: string;
+        };
+        /** NoteSourceReviewIn */
+        NoteSourceReviewIn: {
+            /**
+             * Reviewed Version
+             * @description The source's version you were shown. A newer one since isn't reviewed silently: the notice stays for it.
+             */
+            reviewed_version: number;
+        };
         /** NoteSummary */
         NoteSummary: {
             /** Id */
@@ -9514,6 +9620,12 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            /**
+             * Source Updated
+             * @description Its source has a newer version that matters, not yet reviewed
+             * @default false
+             */
+            source_updated: boolean;
         };
         /** OccurrenceOut */
         OccurrenceOut: {
@@ -18829,6 +18941,8 @@ export interface operations {
                 /** @description Notes on one item (with source_type) */
                 source_id?: string | null;
                 status?: "active" | "archived" | "all";
+                /** @description Only notes whose source has a newer version to review */
+                source_updated?: boolean;
                 page?: number;
                 page_size?: number;
             };
@@ -19189,6 +19303,59 @@ export interface operations {
             };
             /** @description Conflict with current state */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    review_source_api_v1_me_notes__note_id__source_review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteSourceReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteFreshness"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

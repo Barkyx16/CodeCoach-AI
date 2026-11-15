@@ -841,13 +841,16 @@ on these endpoints.
 
 All under `/api/v1/me/notes` 🔒; a note is only ever visible to its owner (anyone else gets 404).
 
-- `GET /me/notes?q=&career=&source_type=question|problem|lesson|interview&source_id=&tag=&status=active|archived|all`
+- `GET /me/notes?q=&career=&source_type=question|problem|lesson|interview&source_id=&tag=&status=active|archived|all&source_updated=`
   → `{items, total, page, page_size, tags, careers, pinned_limit}`; pinned notes first, then most
-  recently updated. Search covers titles, text, reflections and tags.
+  recently updated. Search covers titles, text, reflections and tags. Each item says
+  `source_updated` (its source has a newer version that matters, not yet reviewed);
+  `source_updated=true` lists only those (docs/STORY_FRESHNESS.md, "Notes").
 - `POST /me/notes {title, body, reflection, tags, source?: {type, id, track?, question_index?}, excerpt?, excerpt_kind?: quote|code, client_request_id?}`
   → `201`. A repeat with the same `client_request_id` (unique per account) returns the note the
-  first one made, so an autosave retry after a lost response creates nothing twice. The source must exist (interviews must be yours); its id, version (when one exists)
-  and title are stored, and `excerpt` is a snapshot. Bounds: title 200, body 20,000, reflection
+  first one made, so an autosave retry after a lost response creates nothing twice. The source must exist (interviews must be yours); its id, version (a
+  question's or lesson's version, a coding problem's test version; interviews have none) and title
+  are stored, and `excerpt` is a snapshot. Bounds: title 200, body 20,000, reflection
   5,000, excerpt 4,000 characters, 12 tags.
 - `GET|PATCH|DELETE /me/notes/{id}`. Text changes need `base_revision`; if the note changed since,
   the answer is `409 note_conflict` with `details.current` (the saved note) and nothing is
@@ -861,6 +864,14 @@ All under `/api/v1/me/notes` 🔒; a note is only ever visible to its owner (any
   `{expected_fingerprint, client_request_id?}` → `LifecycleOutcome` (archived and unpinned; a
   changed scope is `409 impact_changed`). Setting `archived` with `PATCH` does the same change
   (docs/LIFECYCLE.md).
+- A note from a question, a lesson or a coding problem has `freshness` = `{state: current |
+  needs_review | unknown | retired | unavailable, text, kind, captured_version, reviewed_version,
+  current_version, changes: [{field, before, after}], change_notes, comparable, reviews: [{from_version,
+  to_version, at, text}]}`. `POST /me/notes/{id}/source-review {reviewed_version}` → that
+  `freshness`: "Mark reviewed" for the version shown, recorded once (a repeat or a second tab adds
+  nothing); a newer version since stays to review; a version that doesn't exist yet is `400
+  invalid_version`; a note without a versioned source is `400 not_versioned`. The note itself
+  (text, excerpt, revision, `updated_at`) isn't changed.
 - `POST /me/notes/{id}/key-points` → `{points, method}`: a deterministic, non-AI helper that
   lists the note's own action or lesson sentences. Nothing is saved until the client sends them
   as `key_points` in a `PATCH`.

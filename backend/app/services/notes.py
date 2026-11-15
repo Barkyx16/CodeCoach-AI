@@ -34,6 +34,7 @@ from app.schemas.notes import (
     MAX_TAG,
     DeletedOut,
     KeyPoints,
+    NoteFreshness,
     NoteIn,
     NoteOut,
     NotePage,
@@ -45,6 +46,7 @@ from app.schemas.notes import (
 )
 from app.services import request_keys, update_receipts
 from app.services.lifecycle import Lifecycle, archive_note_now
+from app.services.note_freshness import NoteFreshnessService, forget_notes, problem_versions
 
 UNDO_WINDOW = timedelta(minutes=10)
 MAX_NOTES = 2_000
@@ -87,12 +89,14 @@ class Notebook:
             q = get_question(src.track or "", src.id) if src.track in CATALOG else None
             if q is None:
                 raise NotFoundError("That question isn't in the library")
-            return src.id, src.track, None, q.title
+            # The version it was captured from, so a later correction can be said (docs/STORY_FRESHNESS.md).
+            return src.id, src.track, str(q.version), q.title
         if src.type == "problem":
             title = self.db.scalar(select(Problem.title).where(Problem.slug == src.id))
             if title is None:
                 raise NotFoundError("That problem isn't in the library")
-            return src.id, None, None, title
+            version = problem_versions(self.db, {src.id}).get(src.id)
+            return src.id, None, str(version) if version else None, title
         if src.type == "lesson":
             u = get_unit(src.id)
             if u is None:
@@ -141,11 +145,17 @@ class Notebook:
 
     def _purge(self, user: User) -> None:
         cutoff = _now() - UNDO_WINDOW
-        self.db.execute(
-            delete(Note).where(
-                Note.user_id == user.id, Note.deleted_at.is_not(None), Note.deleted_at < cutoff
+        gone = list(
+            self.db.scalars(
+                select(Note.id).where(
+                    Note.user_id == user.id, Note.deleted_at.is_not(None), Note.deleted_at < cutoff
+                )
             )
         )
+        if not gone:
+            return
+        forget_notes(self.db, user.id, gone)  # its source reviews go with it
+        self.db.execute(delete(Note).where(Note.user_id == user.id, Note.id.in_(gone)))
         self.db.commit()
 
     def _note(self, user: User, note_id: str) -> Note:
@@ -154,7 +164,7 @@ class Notebook:
             raise NotFoundError("Note not found")
         return n
 
-    def _summary(self, n: Note) -> NoteSummary:
+    def _summary(self, n: Note, source_updated: bool = False) -> NoteSummary:
         return NoteSummary(
             id=n.id,
             title=n.title or "Untitled note",
@@ -166,11 +176,19 @@ class Notebook:
             revision=n.revision,
             created_at=n.created_at,
             updated_at=n.updated_at,
+            source_updated=source_updated,
         )
 
     def out(self, n: Note) -> NoteOut:
+        fresh = NoteFreshnessService(self.db, n.user_id)
+        freshness = (
+            fresh.assess(n, fresh.reviews([n.id]).get(n.id, []), fresh.problems_for([n]))
+            if n.source_type in ("question", "lesson", "problem")
+            else None
+        )
         return NoteOut(
-            **self._summary(n).model_dump(),
+            **self._summary(n, freshness is not None and freshness.state == "needs_review").model_dump(),
+            freshness=freshness,
             body=n.body,
             reflection=n.reflection,
             excerpt=n.excerpt,
@@ -193,6 +211,7 @@ class Notebook:
         page: int,
         source_id: str | None = None,
         page_size: int,
+        source_updated: bool = False,
     ) -> NotePage:
         self._purge(user)
         rows = list(
@@ -203,6 +222,18 @@ class Notebook:
             ).all()
         )
         live = [n for n in rows if status == "all" or n.archived == (status == "archived")]
+        # Notes whose source has a newer version that matters, not yet reviewed (one query for the
+        # reviews, one for coding problems' versions when there are any).
+        versioned = [n for n in live if n.source_type in ("question", "lesson", "problem")]
+        fresh = NoteFreshnessService(self.db, user.id)
+        reviews = fresh.reviews([n.id for n in versioned])
+        problems = fresh.problems_for(versioned)
+        updated = {
+            n.id
+            for n in versioned
+            if (f := fresh.assess(n, reviews.get(n.id, []), problems, detail=False)) is not None
+            and f.state == "needs_review"
+        }
         tags = Counter(t for n in live for t in (n.tags or []))
         careers = Counter(n.source_track for n in live if n.source_track)
         words = [w for w in (q or "").lower().split() if w]
@@ -216,6 +247,7 @@ class Notebook:
                 and (not career or n.source_track == career)
                 and (not source_type or n.source_type == source_type)
                 and (not tag or tag in (n.tags or []))
+                and (not source_updated or n.id in updated)
                 and (
                     not source_id
                     or n.source_id == source_id
@@ -227,7 +259,7 @@ class Notebook:
         hits.sort(key=lambda n: not n.pinned)  # stable: pinned first, then most recently updated
         start = (page - 1) * page_size
         return NotePage(
-            items=[self._summary(n) for n in hits[start : start + page_size]],
+            items=[self._summary(n, n.id in updated) for n in hits[start : start + page_size]],
             total=len(hits),
             page=page,
             page_size=page_size,
@@ -459,6 +491,12 @@ class Notebook:
         n.deleted_at = None
         self.db.commit()
         return self.out(n)
+
+    def mark_source_reviewed(self, user: User, note_id: str, reviewed_version: int) -> NoteFreshness:
+        """ "Mark reviewed" for the source version shown (docs/STORY_FRESHNESS.md, "Notes"). The note
+        itself isn't touched: not its text, its excerpt, its revision or when it was updated."""
+        n = self._note(user, note_id)
+        return NoteFreshnessService(self.db, user.id).mark_reviewed(n, reviewed_version)
 
     def key_points(self, user: User, note_id: str) -> KeyPoints:
         n = self._note(user, note_id)

@@ -138,6 +138,7 @@ export type UnitProgress = S["UnitProgress"];
 export type CheckResult = S["CheckResult"];
 
 export type Note = S["NoteOut"];
+export type NoteFreshness = S["NoteFreshness"];
 export type NoteSummary = S["NoteSummary"];
 export type NotePage = S["NotePage"];
 export type NoteInput = S["NoteIn"];

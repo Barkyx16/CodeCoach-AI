@@ -10,10 +10,12 @@ from app.schemas.lifecycle import Impact, LifecycleIn, LifecycleOutcome
 from app.schemas.notes import (
     DeletedOut,
     KeyPoints,
+    NoteFreshness,
     NoteIn,
     NoteOut,
     NotePage,
     NotePatch,
+    NoteSourceReviewIn,
     NoteStatus,
     SourceType,
 )
@@ -39,6 +41,9 @@ def list_notes(
         default=None, max_length=120, description="Notes on one item (with source_type)"
     ),
     status: NoteStatus = Query(default="active"),
+    source_updated: bool = Query(
+        default=False, description="Only notes whose source has a newer version to review"
+    ),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
 ) -> NotePage:
@@ -52,6 +57,7 @@ def list_notes(
         status=status,
         page=page,
         page_size=page_size,
+        source_updated=source_updated,
     )
 
 
@@ -107,6 +113,21 @@ def update_note(
     note_id: str, body: NotePatch, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> NoteOut:
     return Notebook(db).update(user, note_id, body)
+
+
+@router.post(
+    "/{note_id}/source-review",
+    response_model=NoteFreshness,
+    responses=error_responses(401, 404, 422),
+    summary="Mark the note's changed source reviewed, for the version you were shown (the note isn't changed)",
+)
+def review_source(
+    note_id: str,
+    body: NoteSourceReviewIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> NoteFreshness:
+    return Notebook(db).mark_source_reviewed(user, note_id, body.reviewed_version)
 
 
 @router.get(

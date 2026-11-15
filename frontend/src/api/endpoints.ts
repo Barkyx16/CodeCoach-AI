@@ -83,6 +83,7 @@ import type {
   MyExploreResult,
   MyReport,
   Note,
+  NoteFreshness,
   NoteInput,
   NotePage,
   NotePatch,
@@ -252,6 +253,8 @@ export interface NoteFilters {
   source_id?: string;
   tag?: string;
   status?: "active" | "archived" | "all";
+  /** Only notes whose source has a newer version to review (docs/STORY_FRESHNESS.md, "Notes"). */
+  source_updated?: boolean;
   page?: number;
   page_size?: number;
 }
@@ -567,6 +570,8 @@ export const api = {
   noteDeletePreview: (id: string) => apiRequest<Impact>(`/api/v1/me/notes/${encodeURIComponent(id)}/delete-preview`),
   deleteNoteAsPreviewed: (id: string, body: LifecycleIn) =>
     apiRequest<LifecycleOutcome>(`/api/v1/me/notes/${encodeURIComponent(id)}/delete`, { method: "POST", body }),
+  reviewNoteSource: (id: string, reviewedVersion: number) =>
+    apiRequest<NoteFreshness>(`/api/v1/me/notes/${encodeURIComponent(id)}/source-review`, { method: "POST", body: { reviewed_version: reviewedVersion } }),
   restoreNote: (id: string) => apiRequest<Note>(`/api/v1/me/notes/${encodeURIComponent(id)}/restore`, { method: "POST" }),
   keyPoints: (id: string) => apiRequest<KeyPoints>(`/api/v1/me/notes/${encodeURIComponent(id)}/key-points`, { method: "POST" }),
 

@@ -46,3 +46,9 @@
 @media (pointer: coarse) {
   .note-editor__modes .link-button, .revision-list > li > .link-button { min-height: 2.75rem; }
 }
+
+/* A note's source changed since it was captured (docs/STORY_FRESHNESS.md, "Notes"). */
+.note-freshness__field { margin: 0; font-size: var(--text-sm); }
+.note-freshness__sides { display: grid; gap: var(--space-2); grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); }
+.note-freshness__sides > div { min-width: 0; }
+.explore-filter--check { display: flex; align-items: center; gap: var(--space-2); align-self: end; min-height: 2.5rem; color: var(--color-text); }

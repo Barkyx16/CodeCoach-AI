@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import Field
 
 from app.schemas.common import APIModel, OptionalKey, SaveReplay, save_replay_field, update_key_field
+from app.schemas.freshness import FieldChange
 
 SourceType = Literal["question", "problem", "lesson", "interview"]
 NoteStatus = Literal["active", "archived", "all"]
@@ -81,6 +82,46 @@ class SourceOut(APIModel):
     career_title: str | None
 
 
+class NoteReview(APIModel):
+    from_version: int | None = Field(description="The version you'd seen before (captured or last reviewed)")
+    to_version: int = Field(description="The version you were shown when you marked it reviewed")
+    at: datetime
+    text: str
+
+
+class NoteFreshness(APIModel):
+    """Whether the note's source changed since it was captured (docs/STORY_FRESHNESS.md, "Notes").
+    The note itself never changes."""
+
+    state: Literal["current", "needs_review", "unknown", "retired", "unavailable"] = Field(
+        description="current (nothing to review), needs_review (a newer version that matters), unknown "
+        "(captured before versions were recorded), retired, unavailable (it left the library)"
+    )
+    text: str
+    kind: Literal["question", "lesson", "problem"]
+    captured_version: int | None = Field(description="The source's version when the note was captured")
+    reviewed_version: int | None = Field(description="The latest version you marked reviewed")
+    current_version: int | None
+    changes: list[FieldChange] = Field(
+        default_factory=list, description="What changed, as captured and now (questions keep both)"
+    )
+    change_notes: list[str] = Field(
+        default_factory=list, description="What the content says changed in each newer version"
+    )
+    comparable: bool = Field(
+        default=False, description="The content keeps its earlier wording, so the change can be shown"
+    )
+    reviews: list[NoteReview] = Field(default_factory=list, description="Your reviews, newest first")
+
+
+class NoteSourceReviewIn(APIModel):
+    reviewed_version: int = Field(
+        ge=1,
+        description="The source's version you were shown. A newer one since isn't reviewed silently: the "
+        "notice stays for it.",
+    )
+
+
 class NoteSummary(APIModel):
     id: str
     title: str
@@ -92,10 +133,16 @@ class NoteSummary(APIModel):
     revision: int
     created_at: datetime
     updated_at: datetime
+    source_updated: bool = Field(
+        default=False, description="Its source has a newer version that matters, not yet reviewed"
+    )
 
 
 class NoteOut(NoteSummary):
     save_replay: SaveReplay | None = save_replay_field()
+    freshness: NoteFreshness | None = Field(
+        default=None, description="Its source's version now, against the one captured (versioned sources)"
+    )
     body: str
     reflection: str
     excerpt: str | None

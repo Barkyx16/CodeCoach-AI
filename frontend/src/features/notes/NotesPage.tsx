@@ -33,6 +33,7 @@ export function NotesPage() {
     source_type: isSource(rawSource) ? rawSource : undefined,
     tag: params.get("tag") || undefined,
     status: isStatus(rawStatus) ? rawStatus : "active",
+    source_updated: params.get("updated") === "1" || undefined,
     page: 1,
     page_size: 100,
   };
@@ -64,7 +65,7 @@ export function NotesPage() {
   }
 
   const data = notes.data;
-  const active = Boolean(filters.q || filters.career || filters.source_type || filters.tag || filters.status !== "active");
+  const active = Boolean(filters.q || filters.career || filters.source_type || filters.tag || filters.status !== "active" || filters.source_updated);
   return (
     <div className="page notes-page">
       <div className="page__header">
@@ -128,6 +129,10 @@ export function NotesPage() {
             <option value="all">All</option>
           </select>
         </label>
+        <label className="explore-filter explore-filter--check">
+          <input type="checkbox" checked={Boolean(filters.source_updated)} onChange={(e) => update({ updated: e.target.checked ? "1" : "" })} />
+          <span>Source updated</span>
+        </label>
       </div>
 
       {notes.isPending ? <LoadingState label="Loading notes…" />
@@ -147,6 +152,7 @@ export function NotesPage() {
                     <Link to={`/notes/${n.id}`} state={{ from: `${location.pathname}${location.search}`, fromLabel: "Back to your notebook" }} className="notes-list__title">{n.title}</Link>
                     {n.pinned && <Badge tone="info">Pinned</Badge>}
                     {n.archived && <Badge>Archived</Badge>}
+                    {n.source_updated && <Badge tone="warning">Source updated</Badge>}
                   </div>
                   {n.snippet && <p className="subtle notes-list__snippet">{n.snippet}</p>}
                   <p className="notes-list__meta subtle">

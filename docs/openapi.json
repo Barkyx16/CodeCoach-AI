@@ -5398,6 +5398,18 @@
             }
           },
           {
+            "name": "source_updated",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Only notes whose source has a newer version to review",
+              "default": false,
+              "title": "Source Updated"
+            },
+            "description": "Only notes whose source has a newer version to review"
+          },
+          {
             "name": "page",
             "in": "query",
             "required": false,
@@ -5889,6 +5901,83 @@
           },
           "409": {
             "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/notes/{note_id}/source-review": {
+      "post": {
+        "tags": [
+          "notes"
+        ],
+        "summary": "Mark the note's changed source reviewed, for the version you were shown (the note isn't changed)",
+        "operationId": "review_source_api_v1_me_notes__note_id__source_review_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "note_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Note Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoteSourceReviewIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteFreshness"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
             "content": {
               "application/json": {
                 "schema": {
@@ -35315,6 +35404,111 @@
         ],
         "title": "NotCounted"
       },
+      "NoteFreshness": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "current",
+              "needs_review",
+              "unknown",
+              "retired",
+              "unavailable"
+            ],
+            "title": "State",
+            "description": "current (nothing to review), needs_review (a newer version that matters), unknown (captured before versions were recorded), retired, unavailable (it left the library)"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "question",
+              "lesson",
+              "problem"
+            ],
+            "title": "Kind"
+          },
+          "captured_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Captured Version",
+            "description": "The source's version when the note was captured"
+          },
+          "reviewed_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed Version",
+            "description": "The latest version you marked reviewed"
+          },
+          "current_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Version"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/FieldChange"
+            },
+            "type": "array",
+            "title": "Changes",
+            "description": "What changed, as captured and now (questions keep both)"
+          },
+          "change_notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Change Notes",
+            "description": "What the content says changed in each newer version"
+          },
+          "comparable": {
+            "type": "boolean",
+            "title": "Comparable",
+            "description": "The content keeps its earlier wording, so the change can be shown",
+            "default": false
+          },
+          "reviews": {
+            "items": {
+              "$ref": "#/components/schemas/NoteReview"
+            },
+            "type": "array",
+            "title": "Reviews",
+            "description": "Your reviews, newest first"
+          }
+        },
+        "type": "object",
+        "required": [
+          "state",
+          "text",
+          "kind",
+          "captured_version",
+          "reviewed_version",
+          "current_version"
+        ],
+        "title": "NoteFreshness",
+        "description": "Whether the note's source changed since it was captured (docs/STORY_FRESHNESS.md, \"Notes\").\nThe note itself never changes."
+      },
       "NoteIn": {
         "properties": {
           "title": {
@@ -35467,6 +35661,12 @@
             "format": "date-time",
             "title": "Updated At"
           },
+          "source_updated": {
+            "type": "boolean",
+            "title": "Source Updated",
+            "description": "Its source has a newer version that matters, not yet reviewed",
+            "default": false
+          },
           "save_replay": {
             "anyOf": [
               {
@@ -35477,6 +35677,17 @@
               }
             ],
             "description": "Only on a save recovered by its key: see SaveReplay"
+          },
+          "freshness": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NoteFreshness"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Its source's version now, against the one captured (versioned sources)"
           },
           "body": {
             "type": "string",
@@ -35723,6 +35934,59 @@
         "type": "object",
         "title": "NotePatch"
       },
+      "NoteReview": {
+        "properties": {
+          "from_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Version",
+            "description": "The version you'd seen before (captured or last reviewed)"
+          },
+          "to_version": {
+            "type": "integer",
+            "title": "To Version",
+            "description": "The version you were shown when you marked it reviewed"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "from_version",
+          "to_version",
+          "at",
+          "text"
+        ],
+        "title": "NoteReview"
+      },
+      "NoteSourceReviewIn": {
+        "properties": {
+          "reviewed_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Reviewed Version",
+            "description": "The source's version you were shown. A newer one since isn't reviewed silently: the notice stays for it."
+          }
+        },
+        "type": "object",
+        "required": [
+          "reviewed_version"
+        ],
+        "title": "NoteSourceReviewIn"
+      },
       "NoteSummary": {
         "properties": {
           "id": {
@@ -35775,6 +36039,12 @@
             "type": "string",
             "format": "date-time",
             "title": "Updated At"
+          },
+          "source_updated": {
+            "type": "boolean",
+            "title": "Source Updated",
+            "description": "Its source has a newer version that matters, not yet reviewed",
+            "default": false
           }
         },
         "type": "object",

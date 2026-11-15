@@ -419,7 +419,10 @@ The cases are code (`backend/app/offers`, docs/OFFER_REHEARSAL.md), not rows.
 - `source_reviews`: the learner's decisions about a story that changed after a kit or a requirement
   link was prepared from it: `holder_kind` (kit | requirement_link), `holder_id`, `source_id` (the
   story), `from_revision`, `to_revision` (the one reviewed), `to_digest`, `decision` (refreshed |
-  kept), `created_at`; one per holder, story, revision and decision (unique). Owner-only under
+  kept), `created_at`; one per holder, story, revision and decision (unique). A note's "Mark
+  reviewed" for a changed source is a row too: `holder_kind` note, `source_kind` question | lesson |
+  problem, `source_id` the library key (up to 160 characters since `e3a7c9b5d118`), decision
+  reviewed; removed with the note when it's purged. Owner-only under
   row-level security; deleted with the account. Only added to.
 
 ### Schedule
@@ -519,6 +522,8 @@ The cases are code (`backend/app/offers`, docs/OFFER_REHEARSAL.md), not rows.
 | `a8e2c4f6b310` requirement versions | Adds `target_requirements.version` (default 1), `role_targets.requirements_revision` (default 1, checked when the set is saved), `experience_entries.requirement_versions` and `accepted_actions.requirement_reuse` (nullable JSON: a link's version and any deliberate reuse), and `requirement_versions`, one row per recorded state of a requirement (original, added, changed, removed, restored) with its words, group and skills then, owner-only, under row-level security, deleted with the target and the account (docs/REQUIREMENT_VERSIONS.md). Existing requirements stay version 1 and existing links say "version not recorded"; nothing existing is rewritten; downgrade drops all five |
 | `b9f3d5e7a421` feedback disputes | Adds `answer_flags.disputed_at` and `reinstated_at` (nullable timestamps), `plan_items.derived_from` (nullable JSON: the `{answer_id, criterion}` pairs an activity came from) and `practice_plans.withheld` (nullable JSON: what a version didn't suggest because of a dispute). Existing flags have no dispute date ("the date wasn't recorded") and existing activities no derivation, so they're never labelled; nothing existing is rewritten; covered by the tables' existing row-level security; downgrade drops all four (docs/DISPUTES.md) |
 | `c1d4e6a8b532` source reviews | Adds `source_reviews` (decisions about a changed story behind a kit or a requirement link: refreshed to the revision reviewed, or kept; unique per holder, story, revision and decision; owner-only under row-level security; cascades with the account) and `interview_kits.story_snapshots` (nullable JSON: each chosen story as prepared). Requirement links record the story's revision and digest in the existing `experience_entries.requirement_versions` JSON. Kits and links from before have none: their freshness is read from the story's kept revisions or is unknown, never guessed; nothing existing is rewritten; downgrade drops both (docs/STORY_FRESHNESS.md) |
+| `d2e5f7a9c643` lifecycle receipts | Adds `lifecycle_receipts` (what a keyed archive or delete did, by kind and id, and the create keys of deleted records), outside row-level security like `update_receipts`, purged after 7 days; nothing existing changes; downgrade drops it (docs/LIFECYCLE.md) |
+| `e3a7c9b5d118` note source reviews | Widens `source_reviews.source_id` from 36 to 160 characters, so a note's "Mark reviewed" can name its source by library key (docs/STORY_FRESHNESS.md, "Notes"). Every row stays as it is; downgrade narrows it back and refuses if a longer key is stored |
 
 Migration files never import application code: `migrations/env.py` renders app-specific
 column types (like `UTCDateTime`) as plain SQLAlchemy types, so old migrations keep running

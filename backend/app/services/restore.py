@@ -99,6 +99,8 @@ NOT_RESTORED: dict[str, str] = {
     "kit_templates": "Kit templates aren't restored yet: save them again from a kit.",
     "accepted_actions": "Accepted improvements aren't restored yet: accept them again from the interview review.",
     "source_reviews": "Decisions about changed stories aren't restored: they belong to kits and links that aren't restored yet.",
+    # A note's "Mark reviewed" travels inside the note (notes[].source_reviews); a restored note
+    # keeps the version it was captured from, so it asks again if its source changed since.
     "answer_reviews": _RESULTS,
     "targets": "Job targets aren't restored yet; their requirements link to postings by id.",
     "collections": "Collections aren't restored yet. Bookmarks are.",

@@ -42,7 +42,8 @@ export function makeNote(over: Partial<Note> = {}): Note {
   const now = new Date().toISOString();
   return {
     id: `n-${++noteStore.seq}`, title: "Untitled note", snippet: "", tags: [], source: null, pinned: false, archived: false,
-    revision: 1, created_at: now, updated_at: now, body: "", reflection: "", excerpt: null, excerpt_kind: null, key_points: null, ...over,
+    revision: 1, created_at: now, updated_at: now, body: "", reflection: "", excerpt: null, excerpt_kind: null, key_points: null,
+    source_updated: false, freshness: null, ...over,
   };
 }
 
@@ -58,7 +59,8 @@ export const noteHandlers = [
       .filter((n) => status === "all" || n.archived === (status === "archived"))
       .filter((n) => words.every((w) => `${n.title} ${n.body} ${n.reflection} ${n.tags.join(" ")}`.toLowerCase().includes(w)))
       .filter((n) => !p.get("tag") || n.tags.includes(p.get("tag")!))
-      .filter((n) => !p.get("source_id") || n.source?.id === p.get("source_id"));
+      .filter((n) => !p.get("source_id") || n.source?.id === p.get("source_id"))
+      .filter((n) => p.get("source_updated") !== "true" || n.source_updated);
     const tags = new Map<string, number>();
     for (const n of noteStore.notes) for (const t of n.tags) tags.set(t, (tags.get(t) ?? 0) + 1);
     return HttpResponse.json({

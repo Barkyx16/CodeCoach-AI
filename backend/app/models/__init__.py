@@ -822,7 +822,9 @@ class SourceReview(Base):
     """A deliberate decision about a changed source behind a piece of preparation
     (docs/STORY_FRESHNESS.md): refreshed to the revision the learner reviewed, or kept as prepared.
     Only added to, never changed. A kit's chosen story: holder_kind "kit", holder_id the event; a
-    requirement link: "requirement_link", the requirement."""
+    requirement link: "requirement_link", the requirement; a note's source (Volume 13, prompt 6):
+    "note", the note, source_kind its source type and source_id its library key, decision
+    "reviewed"."""
 
     __tablename__ = "source_reviews"
     __table_args__ = (
@@ -833,14 +835,14 @@ class SourceReview(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    holder_kind: Mapped[str] = mapped_column(String(20))  # kit | requirement_link
+    holder_kind: Mapped[str] = mapped_column(String(20))  # kit | requirement_link | note
     holder_id: Mapped[str] = mapped_column(String(64))
-    source_kind: Mapped[str] = mapped_column(String(16))  # story
-    source_id: Mapped[str] = mapped_column(String(36))
+    source_kind: Mapped[str] = mapped_column(String(16))  # story | question | lesson | problem
+    source_id: Mapped[str] = mapped_column(String(160))
     from_revision: Mapped[int | None] = mapped_column(Integer, nullable=True)  # as prepared (null: unknown)
     to_revision: Mapped[int] = mapped_column(Integer)  # the revision the learner reviewed
     to_digest: Mapped[str] = mapped_column(String(64))  # its content then
-    decision: Mapped[str] = mapped_column(String(12))  # refreshed | kept
+    decision: Mapped[str] = mapped_column(String(12))  # refreshed | kept | reviewed (a note)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
 

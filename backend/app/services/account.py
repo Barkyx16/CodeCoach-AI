@@ -43,6 +43,7 @@ from app.services.conditions import Conditions
 from app.services.drills import Drills
 from app.services.kit_templates import KitTemplates
 from app.services.kits import Kits
+from app.services.note_freshness import NoteFreshnessService
 from app.services.offer_comparisons import OfferComparisons
 from app.services.offers import Offers
 from app.services.onboarding import Onboarding
@@ -114,6 +115,7 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
     notes = db.scalars(
         select(Note).where(Note.user_id == user.id, Note.deleted_at.is_(None)).order_by(Note.created_at)
     ).all()
+    note_reviews = NoteFreshnessService(db, user.id).export([n.id for n in notes])
     learn_events = db.scalars(
         select(LearnEvent).where(LearnEvent.user_id == user.id).order_by(LearnEvent.created_at)
     ).all()
@@ -434,6 +436,8 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
                 ),
                 "excerpt": n.excerpt,
                 "key_points": n.key_points,
+                # "Mark reviewed" for a changed source, oldest first (docs/STORY_FRESHNESS.md, "Notes").
+                "source_reviews": note_reviews.get(n.id, []),
                 "pinned": n.pinned,
                 "archived": n.archived,
                 "created_at": iso(n.created_at),

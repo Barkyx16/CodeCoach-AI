@@ -34,7 +34,7 @@ def test_capture_from_each_source_keeps_a_stable_reference_and_snapshot(client):
         "type": "question",
         "id": "e-good-0",
         "track": NURSE,
-        "version": None,
+        "version": "1",  # the version it was captured from (docs/STORY_FRESHNESS.md, "Notes")
         "title": "What good patient assessment looks like",
         "href": f"/careers/{NURSE}/questions/e-good-0",
         "available": True,

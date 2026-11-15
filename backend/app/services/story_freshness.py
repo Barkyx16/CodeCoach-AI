@@ -125,7 +125,7 @@ class StoryFreshness:
             }
             for r in self.db.scalars(
                 select(SourceReview)
-                .where(SourceReview.user_id == self.user_id)
+                .where(SourceReview.user_id == self.user_id, SourceReview.source_kind == "story")
                 .order_by(SourceReview.created_at, SourceReview.id)
             )
         ]

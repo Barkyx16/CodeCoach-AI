@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
 import { useNote } from "@/api/queries";
-import type { KeyPoints, LifecycleOutcome, Note } from "@/api/types";
+import type { KeyPoints, LifecycleOutcome, Note, NoteFreshness } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { BackLink } from "@/components/BackLink";
 import { Badge } from "@/components/Badge";
@@ -18,6 +18,7 @@ import { formatDateTime, timeAgo } from "@/lib/format";
 import { CodeBlock } from "@/features/learn/UnitParts";
 
 import { ImpactPreview } from "@/features/lifecycle/ImpactPreview";
+import { SourceFreshness } from "@/features/notes/SourceFreshness";
 import { EarlierActionNotice } from "@/features/recovery/EarlierActionNotice";
 import { useEarlierAction } from "@/features/recovery/useEarlierAction";
 
@@ -62,6 +63,9 @@ function NoteScreen({ note }: { note: Note | null }) {
   const [flagError, setFlagError] = useState<unknown>(null);
   const [points, setPoints] = useState<KeyPoints | null>(null);
   const [pointsError, setPointsError] = useState<unknown>(null);
+  // "Mark reviewed" for a changed source: its answer, until the note is read again.
+  const [reviewed, setReviewed] = useState<{ id: string; freshness: NoteFreshness } | null>(null);
+  const freshness = current && reviewed?.id === current.id ? reviewed.freshness : current?.freshness ?? null;
   // Deleting shows what it does first too, with how long Undo lasts.
   const [previewDelete, setPreviewDelete] = useState(false);
   // Archiving shows what it does first, from the plan that archives it (docs/LIFECYCLE.md).
@@ -129,6 +133,16 @@ function NoteScreen({ note }: { note: Note | null }) {
                 {current.source.version ? `version ${current.source.version} when captured` : "no version recorded"}
               </p>
             </Card>
+          )}
+          {current && freshness && (
+            <SourceFreshness
+              noteId={current.id}
+              freshness={freshness}
+              onReviewed={(f) => {
+                setReviewed({ id: current.id, freshness: f });
+                void qc.invalidateQueries({ queryKey: ["me", "notes"] });
+              }}
+            />
           )}
           {current?.excerpt && (
             <Card className="stack-sm">

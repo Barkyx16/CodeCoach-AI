@@ -164,8 +164,9 @@ def test_a_failing_step_fails_the_run_and_its_database_is_still_dropped():
 
 
 def _make_what_the_head_migration_adds(conn) -> str:
-    """At the previous revision, create one thing the head migration adds (a table, else a column),
-    so its real upgrade fails. Found by comparing the models with the database, so it follows
+    """At the previous revision, create one thing the head migration adds (a table, else a column;
+    for a migration that only changes a column's type, a view that depends on it), so its real
+    upgrade fails. Found by comparing the models with the database, so it follows
     whichever migration is the head; returns the name to look for in the failure."""
     import app.models  # noqa: F401  (every model registered on Base.metadata)
     from app.db.session import Base
@@ -182,7 +183,16 @@ def _make_what_the_head_migration_adds(conn) -> str:
             if column.name not in have:
                 conn.execute(text(f'ALTER TABLE "{table}" ADD COLUMN "{column.name}" text'))
                 return column.name
-    raise AssertionError("the head migration adds no table or column: sabotage it some other way")
+    # A migration that only changes a column's type (e.g. widens a varchar): a view on that column
+    # makes PostgreSQL refuse to change it ("cannot alter type of a column used by a view").
+    for table in sorted(Base.metadata.tables):
+        have = {c["name"]: c["type"] for c in present.get_columns(table)}
+        for column in Base.metadata.tables[table].columns:
+            now, want = getattr(have.get(column.name), "length", None), getattr(column.type, "length", None)
+            if column.name in have and now is not None and want is not None and now != want:
+                conn.execute(text(f'CREATE VIEW "sabotage_{table}" AS SELECT "{column.name}" FROM "{table}"'))
+                return column.name
+    raise AssertionError("the head migration adds or changes no table or column: sabotage it some other way")
 
 
 @needs_admin
