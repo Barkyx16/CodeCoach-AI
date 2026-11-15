@@ -141,10 +141,12 @@ test.describe("which explanation a waiting request matches", () => {
       await page.evaluate(() => { void fetch("/hold?h5"); });
       await expect.poll(() => [...w.entries.values()].some((e) => e.path === "/hold" && e.onNetwork)).toBe(true);
       // The page busy for 2.5 s inside an evaluation that isn't awaited: the probe's own evaluation
-      // waits behind it, however slow the machine (CI run 322's earlier version used a page timer
-      // and a fixed wait, and once probed after the page was free again).
+      // waits behind it. Nothing else may touch the page meanwhile: with tracing on (as in CI), every
+      // Playwright page call, page.waitForTimeout included, first snapshots the page and so waits for
+      // it to be free; CI runs 322 and 323 probed only after the busy loop ended. So the pause is
+      // Node's own timer.
       const busy = page.evaluate(() => { const t = Date.now(); while (Date.now() - t < 2500) { /* the page is busy */ } }).catch(() => undefined);
-      await page.waitForTimeout(100);
+      await new Promise((resolve) => setTimeout(resolve, 100));
       const { waiting, ms } = await w.report(null, 0);
       expect(waiting.find((l) => l.startsWith("GET /hold"))).toMatch(/H5 the page's main thread is blocked \(it didn't answer in 500 ms\)/);
       expect(waiting).toContain("(the page's main thread didn't answer in 500 ms)");

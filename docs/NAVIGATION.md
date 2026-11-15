@@ -328,6 +328,13 @@ The failed test in the reproduction reported "network diagnostics took 15 ms".
 **The first full run with it** (desktop, 160 passed, 5 judge tests skipped) recorded "[slow]" in two
 tests, both the preflight case above, before it was handled: no request reached 5 s otherwise.
 
+**Tracing and a busy page.** With tracing on (CI records a trace for every test), each Playwright
+page call, `page.waitForTimeout` included, first snapshots the page, so it waits while the page's
+main thread is busy. The forced H5 example therefore pauses with Node's own timer between blocking
+the page and probing it; with `page.waitForTimeout` there, CI runs 322 and 323 probed only after the
+page was free again (reproduced locally with tracing on: 2 of 2 failed; with the fix, 15 of 15
+passed with tracing on). The probe itself races Node's 500 ms timer, so tracing can't delay it.
+
 **Offline tests aren't watched.** A second DevTools session with network events on keeps the page
 online for Chrome whatever Playwright's offline emulation says: each new document, `navigator.onLine`
 was true again, and CI run 322 failed three offline specs (`e2e/offline.spec.ts`, on the preview
