@@ -7,7 +7,7 @@ from app.api.deps import get_current_user, get_db
 from app.errors import RateLimitedError
 from app.models import User
 from app.schemas.common import error_responses
-from app.schemas.packet import PacketIn, PacketOut
+from app.schemas.packet import PacketIn, PacketKitChoice, PacketOut
 from app.services.packet import Packets
 
 router = APIRouter(tags=["packet"])
@@ -17,7 +17,8 @@ router = APIRouter(tags=["packet"])
     "/api/v1/me/packet/preview",
     response_model=PacketOut,
     responses=error_responses(401, 422, 429),
-    summary="Assemble the questions, notes and stories you chose, in your order, for a preview "
+    summary="Assemble the questions, notes, stories, accepted improvements and kit you chose, in your order, "
+    "for a preview "
     "(nothing is stored, sent or shared; the file is made on your device from this preview)",
 )
 def preview_packet(
@@ -32,3 +33,15 @@ def preview_packet(
             "That's a lot of packets in a minute. Try again in a moment.", retry_after
         )
     return Packets(db, user).preview(body)
+
+
+@router.get(
+    "/api/v1/me/packet/kits",
+    response_model=list[PacketKitChoice],
+    responses=error_responses(401),
+    summary="Your saved interview-day kits you can put in a packet (one per packet), the most recent first",
+)
+def packet_kits(
+    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> list[PacketKitChoice]:
+    return Packets(db, user).kits()

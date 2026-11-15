@@ -303,6 +303,7 @@ export type KitAction = S["KitAction"];
 export type PacketIn = S["PacketIn"];
 export type PacketItemIn = S["PacketItemIn"];
 export type Packet = S["PacketOut"];
+export type PacketKitChoice = S["PacketKitChoice"];
 export type KitTemplateSummary = S["KitTemplateSummary"];
 export type KitTemplateCreate = S["KitTemplateCreate"];
 export type KitTemplateUpdate = S["KitTemplateUpdate"];

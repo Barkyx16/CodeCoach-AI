@@ -793,6 +793,11 @@ export function useRelatedPractice(actionId: string) {
   return useQuery({ queryKey: ["me", "actions", actionId, "practice"], queryFn: () => api.actionPractice(actionId), staleTime: 0 });
 }
 
+/** Saved interview-day kits a packet can include (one per packet; docs/PACKET.md). */
+export function usePacketKits() {
+  return useQuery({ queryKey: ["me", "packet-kits"], queryFn: api.packetKits, staleTime: 0 });
+}
+
 export function useActions(enabled = true) {
   return useQuery({ queryKey: ["me", "actions"], queryFn: api.actions, staleTime: 0, enabled });
 }

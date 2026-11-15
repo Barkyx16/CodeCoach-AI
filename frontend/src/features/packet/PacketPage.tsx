@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
-import { useBookmarks, useNotes, useStories } from "@/api/queries";
+import { useActions, useBookmarks, useNotes, usePacketKits, useStories } from "@/api/queries";
 import type { Packet } from "@/api/types";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
@@ -12,13 +12,22 @@ import { LOCAL_FILE, packetFilename, packetText, SOURCE_LABEL, TYPE_LABEL } from
 
 /** At most this many items, the server's limit (docs/PACKET.md). */
 const MAX_ITEMS = 20;
-type Kind = "question" | "note" | "story";
+/** One interview's kit per packet (docs/PACKET.md). */
+const MAX_KITS = 1;
+type Kind = "question" | "note" | "story" | "action" | "kit";
 const PART_LABEL: Record<Kind, [string, string][]> = {
   question: [["question", "The question and tips"], ["your_answer", "Your latest answer"], ["feedback", "Automated feedback on it"]],
   note: [["note", "Note"], ["reflection", "Reflection"], ["excerpt", "The excerpt it quotes"]],
   story: [["situation", "Situation"], ["task", "Task"], ["action", "Action"], ["result", "Result"], ["reflection", "Reflection"], ["short_version", "Short version"], ["long_version", "Longer version"]],
+  action: [["improvement", "What you planned"], ["schedule", "Your schedule for it"], ["notes", "Your notes on it"]],
+  kit: [["checklist", "Checklist"], ["questions", "Questions to ask"], ["meeting_link", "Meeting link"], ["interviewers", "Interviewers"], ["notes", "Private notes"]],
 };
-const DEFAULT_PARTS: Record<Kind, string[]> = { question: ["question"], note: ["note"], story: ["situation", "task", "action", "result"] };
+const DEFAULT_PARTS: Record<Kind, string[]> = {
+  question: ["question"], note: ["note"], story: ["situation", "task", "action", "result"],
+  action: ["improvement", "schedule"], kit: ["checklist", "questions"],
+};
+/** A kit's parts that are only ever in a packet when chosen, one by one. */
+const PRIVATE_KIT_PARTS = new Set(["meeting_link", "interviewers", "notes"]);
 
 interface Chosen { type: Kind; id: string; title: string; parts: string[] }
 
@@ -33,6 +42,8 @@ export function PacketPage() {
   const marks = useBookmarks();
   const notes = useNotes({ status: "active", page_size: 50 });
   const stories = useStories({});
+  const actions = useActions();
+  const kits = usePacketKits();
   const [chosen, setChosen] = useState<Chosen[]>([]);
   const [title, setTitle] = useState("My practice packet");
   const [keepContact, setKeepContact] = useState(false);
@@ -59,7 +70,8 @@ export function PacketPage() {
 
   const isChosen = (type: Kind, id: string) => chosen.some((c) => c.type === type && c.id === id);
   const toggle = (type: Kind, id: string, itemTitle: string, on: boolean) => setChosen((now) => on
-    ? (now.length >= MAX_ITEMS || now.some((c) => c.type === type && c.id === id) ? now : [...now, { type, id, title: itemTitle, parts: DEFAULT_PARTS[type] }])
+    ? (now.length >= MAX_ITEMS || now.some((c) => c.type === type && c.id === id) || (type === "kit" && now.filter((c) => c.type === "kit").length >= MAX_KITS)
+      ? now : [...now, { type, id, title: itemTitle, parts: DEFAULT_PARTS[type] }])
     : now.filter((c) => !(c.type === type && c.id === id)));
   const move = (i: number, by: -1 | 1) => setChosen((now) => {
     const next = [...now];
@@ -99,7 +111,10 @@ export function PacketPage() {
   }
 
   const questions = (marks.data ?? []).filter((b) => b.item_type === "question" && b.available);
+  const allActions = actions.data ?? [];
+  const offeredActions = allActions.slice(0, MAX_ITEMS);
   const full = chosen.length >= MAX_ITEMS;
+  const kitChosen = chosen.some((c) => c.type === "kit");
   const emptyParts = chosen.some((c) => c.parts.length === 0);
   return (
     <div className="page packet-page">
@@ -107,14 +122,14 @@ export function PacketPage() {
         <div>
           <p className="eyebrow">PRIVATE · MADE ON YOUR DEVICE</p>
           <h1 className="page__title">Practice packet</h1>
-          <p className="page__subtitle">Choose questions, notes and stories, and their order. Preview the packet, then save it as a text file or print it (or save it as a PDF).</p>
+          <p className="page__subtitle">Choose questions, notes, stories, the improvements you accepted and one interview's kit, and their order. Preview the packet, then save it as a text file or print it (or save it as a PDF).</p>
         </div>
       </div>
       <div className="stack">
         <p className="banner banner--info no-print" role="note">
           The file is made on this device from the preview you see: it isn't stored in your account, sent, emailed or shared. It isn't a
-          backup either (that's <Link to="/settings/data">Your data</Link>). Never in a packet: meeting links, interview kits, applications,
-          offer terms, recordings, account details, or a coding problem's tests.
+          backup either (that's <Link to="/settings/data">Your data</Link>). A kit's meeting link, interviewers and private notes are only in it
+          if you choose them, one by one. Never in a packet: applications, offer terms, recordings, account details, or a coding problem's tests.
         </p>
         <div className="packet-page__layout no-print">
           <Card className="stack-sm">
@@ -126,6 +141,16 @@ export function PacketPage() {
               rows={(notes.data?.items ?? []).map((n) => ({ type: "note" as const, id: n.id, title: n.title || "Untitled note" }))} isChosen={isChosen} full={full} onToggle={toggle} />
             <ChooseList legend="Your stories" empty={<>No stories yet.</>}
               rows={(stories.data ?? []).map((s) => ({ type: "story" as const, id: s.id, title: s.title }))} isChosen={isChosen} full={full} onToggle={toggle} />
+            <ChooseList legend="Improvements you accepted" empty={<>None yet. Accept one from an interview's review.</>}
+              rows={offeredActions.map((a) => ({ type: "action" as const, id: a.id, title: a.title }))} isChosen={isChosen} full={full} onToggle={toggle} />
+            {allActions.length > offeredActions.length && (
+              <p className="subtle">{allActions.length - offeredActions.length} more {allActions.length - offeredActions.length === 1 ? "isn't" : "aren't"} listed: a packet holds up to {MAX_ITEMS} items, so the {MAX_ITEMS} most recent are offered.</p>
+            )}
+            <ChooseList legend="One interview's kit" empty={<>No saved kits yet.</>}
+              rows={(kits.data ?? []).map((k) => ({
+                type: "kit" as const, id: k.event_id, title: `${k.event_title}: ${k.role_title} at ${k.employer}`,
+                hint: privateHint(k),
+              }))} isChosen={isChosen} full={full} blocked={kitChosen ? "One kit per packet." : undefined} onToggle={toggle} />
             {full && <p className="subtle">Up to {MAX_ITEMS} in one packet.</p>}
           </Card>
           <Card className="stack-sm">
@@ -148,7 +173,8 @@ export function PacketPage() {
                     <fieldset className="packet-page__parts">
                       <legend className="visually-hidden">Parts of {c.title}</legend>
                       {PART_LABEL[c.type].map(([part, label]) => (
-                        <label key={part} className="checkbox"><input type="checkbox" checked={c.parts.includes(part)} onChange={(e) => setParts(i, part, e.target.checked)} />{label}</label>
+                        <label key={part} className="checkbox"><input type="checkbox" checked={c.parts.includes(part)} onChange={(e) => setParts(i, part, e.target.checked)} />
+                          {label}{c.type === "kit" && PRIVATE_KIT_PARTS.has(part) ? <>{" "}<span className="subtle">(only if you choose it)</span></> : null}</label>
                       ))}
                     </fieldset>
                     {c.parts.length === 0 && <p className="subtle">Choose at least one part, or remove it.</p>}
@@ -198,12 +224,21 @@ export function PacketPage() {
   );
 }
 
-function ChooseList({ legend, rows, empty, isChosen, full, onToggle }: {
+function privateHint(k: { has_meeting_link: boolean; has_interviewers: boolean; has_notes: boolean }): string | undefined {
+  const parts = [k.has_meeting_link && "a meeting link", k.has_interviewers && "interviewers' names", k.has_notes && "private notes"].filter(Boolean);
+  if (parts.length === 0) return undefined;
+  const list = parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+  return `Has ${list}: left out unless you choose them.`;
+}
+
+function ChooseList({ legend, rows, empty, isChosen, full, blocked, onToggle }: {
   legend: string;
-  rows: { type: Kind; id: string; title: string }[];
+  rows: { type: Kind; id: string; title: string; hint?: string }[];
   empty: React.ReactNode;
   isChosen: (type: Kind, id: string) => boolean;
   full: boolean;
+  /** Why nothing more from this list can be chosen (e.g. one kit per packet). */
+  blocked?: string;
   onToggle: (type: Kind, id: string, title: string, on: boolean) => void;
 }) {
   return (
@@ -213,10 +248,12 @@ function ChooseList({ legend, rows, empty, isChosen, full, onToggle }: {
         const on = isChosen(r.type, r.id);
         return (
           <label key={r.id} className="checkbox">
-            <input type="checkbox" checked={on} disabled={!on && full} onChange={(e) => onToggle(r.type, r.id, r.title, e.target.checked)} />{r.title}
+            <input type="checkbox" checked={on} disabled={!on && (full || Boolean(blocked))} onChange={(e) => onToggle(r.type, r.id, r.title, e.target.checked)} />{r.title}
+            {r.hint && <>{" "}<span className="subtle">{r.hint}</span></>}
           </label>
         );
       })}
+      {blocked && rows.length > 1 && <p className="subtle">{blocked}</p>}
     </fieldset>
   );
 }

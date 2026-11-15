@@ -76,6 +76,7 @@ import type {
   KitTemplateUpdate,
   KitUpdate,
   Packet,
+  PacketKitChoice,
   PacketIn,
   LearnCatalog,
   LearnUnit,
@@ -757,6 +758,7 @@ export const api = {
     apiRequest<Kit>(`/api/v1/me/applications/${encodeURIComponent(appId)}/events/${encodeURIComponent(eventId)}/kit/stories/${encodeURIComponent(storyId)}/kept`, { method: "DELETE" }),
   // a practice packet (docs/PACKET.md): assembled for a preview, nothing stored
   previewPacket: (body: PacketIn) => apiRequest<Packet>("/api/v1/me/packet/preview", { method: "POST", body }),
+  packetKits: () => apiRequest<PacketKitChoice[]>("/api/v1/me/packet/kits"),
   // your kit templates (docs/TEMPLATES.md)
   kitTemplates: () => apiRequest<KitTemplateSummary[]>("/api/v1/me/kit-templates"),
   kitTemplate: (id: string) => apiRequest<KitTemplate>(`/api/v1/me/kit-templates/${encodeURIComponent(id)}`),

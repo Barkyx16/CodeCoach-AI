@@ -3221,8 +3221,25 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Assemble the questions, notes and stories you chose, in your order, for a preview (nothing is stored, sent or shared; the file is made on your device from this preview) */
+        /** Assemble the questions, notes, stories, accepted improvements and kit you chose, in your order, for a preview (nothing is stored, sent or shared; the file is made on your device from this preview) */
         post: operations["preview_packet_api_v1_me_packet_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/packet/kits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your saved interview-day kits you can put in a packet (one per packet), the most recent first */
+        get: operations["packet_kits_api_v1_me_packet_kits_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -10170,15 +10187,15 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "question" | "note" | "story";
+            type: "question" | "note" | "story" | "action" | "kit";
             /**
              * Id
-             * @description A question as track/question_id; a note or story id
+             * @description A question as track/question_id; a note, story or accepted improvement id; a kit by its interview event's id
              */
             id: string;
             /**
              * Parts
-             * @description Which parts to include (empty: the usual ones). question: question, your_answer, feedback. note: note, reflection, excerpt. story: situation, task, action, result, reflection, short_version, long_version
+             * @description Which parts to include (empty: the usual ones). question: question, your_answer, feedback. note: note, reflection, excerpt. story: situation, task, action, result, reflection, short_version, long_version. action: improvement, schedule, notes. kit: checklist, questions, and only when chosen meeting_link, interviewers, notes
              */
             parts?: string[];
         };
@@ -10188,7 +10205,7 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "question" | "note" | "story";
+            type: "question" | "note" | "story" | "action" | "kit";
             /** Id */
             id: string;
             /** Title */
@@ -10200,6 +10217,30 @@ export interface components {
              * @description Parts you chose that aren't there, and why
              */
             notes?: string[];
+        };
+        /**
+         * PacketKitChoice
+         * @description A saved interview-day kit you can put in a packet (docs/PACKET.md).
+         */
+        PacketKitChoice: {
+            /** Event Id */
+            event_id: string;
+            /** Application Id */
+            application_id: string;
+            /** Event Title */
+            event_title: string;
+            /** Role Title */
+            role_title: string;
+            /** Employer */
+            employer: string;
+            /** On Date */
+            on_date: string | null;
+            /** Has Meeting Link */
+            has_meeting_link: boolean;
+            /** Has Interviewers */
+            has_interviewers: boolean;
+            /** Has Notes */
+            has_notes: boolean;
         };
         /** PacketOut */
         PacketOut: {
@@ -10237,10 +10278,10 @@ export interface components {
         PacketSection: {
             /**
              * Kind
-             * @description question: authored material from the library; your_*: what you wrote; automated_feedback: what the coach said about an answer (not a grade from a person)
+             * @description question: authored material from the library; your_*: what you wrote or planned (an accepted improvement is a plan, never an achievement); automated_feedback: what the coach said about an answer (not a grade from a person)
              * @enum {string}
              */
-            kind: "question" | "your_answer" | "automated_feedback" | "your_note" | "your_story";
+            kind: "question" | "your_answer" | "automated_feedback" | "your_note" | "your_story" | "your_plan" | "your_kit";
             /** Heading */
             heading: string;
             /** Text */
@@ -10263,7 +10304,7 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "question" | "note" | "story";
+            type: "question" | "note" | "story" | "action" | "kit";
             /** Id */
             id: string;
             /** Reason */
@@ -27037,6 +27078,35 @@ export interface operations {
             };
             /** @description Rate limit or AI budget exceeded */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    packet_kits_api_v1_me_packet_kits_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PacketKitChoice"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

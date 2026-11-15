@@ -7,8 +7,12 @@ export const SOURCE_LABEL: Record<Packet["items"][number]["sections"][number]["k
   your_note: "Yours",
   your_story: "Yours",
   automated_feedback: "Automated feedback",
+  your_plan: "Your plan",
+  your_kit: "Yours",
 };
-export const TYPE_LABEL: Record<Packet["items"][number]["type"], string> = { question: "Question", note: "Your note", story: "Your story" };
+export const TYPE_LABEL: Record<Packet["items"][number]["type"], string> = {
+  question: "Question", note: "Your note", story: "Your story", action: "Accepted improvement", kit: "Interview kit",
+};
 
 export const LOCAL_FILE = "Made on your device from the preview you saw. It isn't stored in your account, sent or shared.";
 

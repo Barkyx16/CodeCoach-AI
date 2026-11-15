@@ -94,6 +94,7 @@ export const handlers = [
     const body = (await request.json()) as { level: 1 | 2 | 3 | 4 };
     return HttpResponse.json(hint(body.level));
   }),
+  http.get(`${API}/api/v1/me/packet/kits`, () => HttpResponse.json([])),
   http.get(`${API}/api/v1/me/actions/:id/practice`, ({ params }) => HttpResponse.json({
     action_id: params.id, count: 0, items: [], origin: null, linked: true, disputed: null,
     note: "Practice linked to this improvement since you accepted it, found by stored links only.",

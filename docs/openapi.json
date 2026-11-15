@@ -16654,7 +16654,7 @@
         "tags": [
           "packet"
         ],
-        "summary": "Assemble the questions, notes and stories you chose, in your order, for a preview (nothing is stored, sent or shared; the file is made on your device from this preview)",
+        "summary": "Assemble the questions, notes, stories, accepted improvements and kit you chose, in your order, for a preview (nothing is stored, sent or shared; the file is made on your device from this preview)",
         "operationId": "preview_packet_api_v1_me_packet_preview_post",
         "requestBody": {
           "content": {
@@ -16699,6 +16699,46 @@
           },
           "429": {
             "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/packet/kits": {
+      "get": {
+        "tags": [
+          "packet"
+        ],
+        "summary": "Your saved interview-day kits you can put in a packet (one per packet), the most recent first",
+        "operationId": "packet_kits_api_v1_me_packet_kits_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PacketKitChoice"
+                  },
+                  "type": "array",
+                  "title": "Response Packet Kits Api V1 Me Packet Kits Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
             "content": {
               "application/json": {
                 "schema": {
@@ -37401,7 +37441,9 @@
             "enum": [
               "question",
               "note",
-              "story"
+              "story",
+              "action",
+              "kit"
             ],
             "title": "Type"
           },
@@ -37410,7 +37452,7 @@
             "maxLength": 200,
             "minLength": 1,
             "title": "Id",
-            "description": "A question as track/question_id; a note or story id"
+            "description": "A question as track/question_id; a note, story or accepted improvement id; a kit by its interview event's id"
           },
           "parts": {
             "items": {
@@ -37419,7 +37461,7 @@
             "type": "array",
             "maxItems": 10,
             "title": "Parts",
-            "description": "Which parts to include (empty: the usual ones). question: question, your_answer, feedback. note: note, reflection, excerpt. story: situation, task, action, result, reflection, short_version, long_version"
+            "description": "Which parts to include (empty: the usual ones). question: question, your_answer, feedback. note: note, reflection, excerpt. story: situation, task, action, result, reflection, short_version, long_version. action: improvement, schedule, notes. kit: checklist, questions, and only when chosen meeting_link, interviewers, notes"
           }
         },
         "type": "object",
@@ -37436,7 +37478,9 @@
             "enum": [
               "question",
               "note",
-              "story"
+              "story",
+              "action",
+              "kit"
             ],
             "title": "Type"
           },
@@ -37472,6 +37516,68 @@
           "sections"
         ],
         "title": "PacketItemOut"
+      },
+      "PacketKitChoice": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "application_id": {
+            "type": "string",
+            "title": "Application Id"
+          },
+          "event_title": {
+            "type": "string",
+            "title": "Event Title"
+          },
+          "role_title": {
+            "type": "string",
+            "title": "Role Title"
+          },
+          "employer": {
+            "type": "string",
+            "title": "Employer"
+          },
+          "on_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On Date"
+          },
+          "has_meeting_link": {
+            "type": "boolean",
+            "title": "Has Meeting Link"
+          },
+          "has_interviewers": {
+            "type": "boolean",
+            "title": "Has Interviewers"
+          },
+          "has_notes": {
+            "type": "boolean",
+            "title": "Has Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event_id",
+          "application_id",
+          "event_title",
+          "role_title",
+          "employer",
+          "on_date",
+          "has_meeting_link",
+          "has_interviewers",
+          "has_notes"
+        ],
+        "title": "PacketKitChoice",
+        "description": "A saved interview-day kit you can put in a packet (docs/PACKET.md)."
       },
       "PacketOut": {
         "properties": {
@@ -37536,10 +37642,12 @@
               "your_answer",
               "automated_feedback",
               "your_note",
-              "your_story"
+              "your_story",
+              "your_plan",
+              "your_kit"
             ],
             "title": "Kind",
-            "description": "question: authored material from the library; your_*: what you wrote; automated_feedback: what the coach said about an answer (not a grade from a person)"
+            "description": "question: authored material from the library; your_*: what you wrote or planned (an accepted improvement is a plan, never an achievement); automated_feedback: what the coach said about an answer (not a grade from a person)"
           },
           "heading": {
             "type": "string",
@@ -37577,7 +37685,9 @@
             "enum": [
               "question",
               "note",
-              "story"
+              "story",
+              "action",
+              "kit"
             ],
             "title": "Type"
           },
