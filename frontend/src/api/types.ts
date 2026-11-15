@@ -435,3 +435,5 @@ export type RequirementHistoryEntry = S["RequirementHistoryEntry"];
 export type ActionLink = S["ActionLink"];
 export type DisputeNote = S["DisputeNote"];
 export type Withheld = S["Withheld"];
+export type RelatedPractice = S["RelatedPractice"];
+export type RelatedAttempt = S["RelatedAttempt"];

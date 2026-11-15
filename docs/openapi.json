@@ -15168,6 +15168,73 @@
         }
       }
     },
+    "/api/v1/me/actions/{action_id}/practice": {
+      "get": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "Practice related to it since you accepted it, by stored links (docs/ACCEPTED_ACTIONS.md)",
+        "operationId": "practice_api_v1_me_actions__action_id__practice_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Action Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelatedPractice"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/actions/{action_id}/complete": {
       "post": {
         "tags": [
@@ -39685,6 +39752,207 @@
           "password"
         ],
         "title": "RegisterRequest"
+      },
+      "RelatedAttempt": {
+        "properties": {
+          "answer_id": {
+            "type": "string",
+            "title": "Answer Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "retry",
+              "follow_up"
+            ],
+            "title": "Kind"
+          },
+          "question_id": {
+            "type": "string",
+            "title": "Question Id"
+          },
+          "question_title": {
+            "type": "string",
+            "title": "Question Title"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score",
+            "description": "Its own score; none when it was too short to score (never zero)"
+          },
+          "scoring": {
+            "type": "string",
+            "enum": [
+              "scored",
+              "too_short",
+              "unknown"
+            ],
+            "title": "Scoring"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptConditions"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "comparison": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptComparison"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How it compares with the attempt the improvement came from, by the one comparison rule (none when that attempt isn't there any more)"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note",
+            "description": "A follow-up: it's a different question, never a retry"
+          },
+          "href": {
+            "type": "string",
+            "title": "Href"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer_id",
+          "kind",
+          "question_id",
+          "question_title",
+          "created_at",
+          "score",
+          "scoring",
+          "comparison",
+          "href"
+        ],
+        "title": "RelatedAttempt",
+        "description": "One attempt linked to an accepted improvement by a stored link (docs/ACCEPTED_ACTIONS.md,\n\"Related practice\"): a retry of the question it came from, or a follow-up to that question."
+      },
+      "RelatedOrigin": {
+        "properties": {
+          "answer_id": {
+            "type": "string",
+            "title": "Answer Id"
+          },
+          "question_title": {
+            "type": "string",
+            "title": "Question Title"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "scoring": {
+            "type": "string",
+            "enum": [
+              "scored",
+              "too_short",
+              "unknown"
+            ],
+            "title": "Scoring"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer_id",
+          "question_title",
+          "score",
+          "scoring"
+        ],
+        "title": "RelatedOrigin"
+      },
+      "RelatedPractice": {
+        "properties": {
+          "action_id": {
+            "type": "string",
+            "title": "Action Id"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RelatedAttempt"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "Oldest first; each with its own score, nothing averaged"
+          },
+          "origin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RelatedOrigin"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The attempt the improvement came from, if it's still there"
+          },
+          "linked": {
+            "type": "boolean",
+            "title": "Linked",
+            "description": "False when this kind of improvement has no practice link yet"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          },
+          "disputed": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DisputeNote"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "action_id",
+          "count",
+          "items",
+          "origin",
+          "linked",
+          "note"
+        ],
+        "title": "RelatedPractice"
       },
       "RepeatedArea": {
         "properties": {

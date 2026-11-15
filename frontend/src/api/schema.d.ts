@@ -2920,6 +2920,23 @@ export interface paths {
         patch: operations["update_api_v1_me_actions__action_id__patch"];
         trace?: never;
     };
+    "/api/v1/me/actions/{action_id}/practice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Practice related to it since you accepted it, by stored links (docs/ACCEPTED_ACTIONS.md) */
+        get: operations["practice_api_v1_me_actions__action_id__practice_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/actions/{action_id}/complete": {
         parameters: {
             query?: never;
@@ -11179,6 +11196,85 @@ export interface components {
              * @example registered-nurse
              */
             career_track?: string | null;
+        };
+        /**
+         * RelatedAttempt
+         * @description One attempt linked to an accepted improvement by a stored link (docs/ACCEPTED_ACTIONS.md,
+         *     "Related practice"): a retry of the question it came from, or a follow-up to that question.
+         */
+        RelatedAttempt: {
+            /** Answer Id */
+            answer_id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "retry" | "follow_up";
+            /** Question Id */
+            question_id: string;
+            /** Question Title */
+            question_title: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Score
+             * @description Its own score; none when it was too short to score (never zero)
+             */
+            score: number | null;
+            /**
+             * Scoring
+             * @enum {string}
+             */
+            scoring: "scored" | "too_short" | "unknown";
+            conditions?: components["schemas"]["AttemptConditions"] | null;
+            /** @description How it compares with the attempt the improvement came from, by the one comparison rule (none when that attempt isn't there any more) */
+            comparison: components["schemas"]["AttemptComparison"] | null;
+            /**
+             * Note
+             * @description A follow-up: it's a different question, never a retry
+             */
+            note?: string | null;
+            /** Href */
+            href: string;
+        };
+        /** RelatedOrigin */
+        RelatedOrigin: {
+            /** Answer Id */
+            answer_id: string;
+            /** Question Title */
+            question_title: string;
+            /** Score */
+            score: number | null;
+            /**
+             * Scoring
+             * @enum {string}
+             */
+            scoring: "scored" | "too_short" | "unknown";
+        };
+        /** RelatedPractice */
+        RelatedPractice: {
+            /** Action Id */
+            action_id: string;
+            /** Count */
+            count: number;
+            /**
+             * Items
+             * @description Oldest first; each with its own score, nothing averaged
+             */
+            items: components["schemas"]["RelatedAttempt"][];
+            /** @description The attempt the improvement came from, if it's still there */
+            origin: components["schemas"]["RelatedOrigin"] | null;
+            /**
+             * Linked
+             * @description False when this kind of improvement has no practice link yet
+             */
+            linked: boolean;
+            /** Note */
+            note: string;
+            disputed?: components["schemas"]["DisputeNote"] | null;
         };
         /** RepeatedArea */
         RepeatedArea: {
@@ -25604,6 +25700,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    practice_api_v1_me_actions__action_id__practice_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RelatedPractice"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

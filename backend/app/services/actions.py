@@ -191,6 +191,13 @@ class Actions:
             updated_at=row.updated_at,
         )
 
+    def related_practice(self, action_id: str):
+        """Practice linked to it since it was accepted (app/services/related_practice.py)."""
+        from app.services.related_practice import RelatedPracticeFinder
+
+        row = self._find(action_id)
+        return RelatedPracticeFinder(self.db, self.user).for_action(row, self._disputed(row))
+
     def mine(self, status: str = "all") -> list[ActionOut]:
         rows = self.db.scalars(
             select(AcceptedAction)
@@ -477,10 +484,21 @@ class Actions:
             row.id: row.requirement_reuse or {}
             for row in self.db.scalars(select(AcceptedAction).where(AcceptedAction.user_id == self.user.id))
         }
+        from app.services.related_practice import RelatedPracticeFinder
+
+        finder = RelatedPracticeFinder(self.db, self.user)
+        rows = {
+            r.id: r
+            for r in self.db.scalars(select(AcceptedAction).where(AcceptedAction.user_id == self.user.id))
+        }
         for a in self.mine():
+            rel = finder.related(rows[a.id])
+            related = [x.id for _, x in rel[1]] if rel else []
             out.append(
                 {
                     **({"id": a.id} if with_ids else {}),
+                    # Practice linked to it since it was accepted (docs/ACCEPTED_ACTIONS.md), by answer id.
+                    **({"related_attempts": related} if with_ids else {"related_practice": len(related)}),
                     "title": a.title,
                     "notes": a.notes,
                     "recurrence": a.recurrence,

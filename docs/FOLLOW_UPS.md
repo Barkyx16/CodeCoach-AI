@@ -53,6 +53,14 @@ answered" lists it beside the original with its own score and in-app help; score
 merged or averaged, and a result either way is more evidence, not a verdict ("mastered" is never
 said). The export carries the link (`follows_up`).
 
+## Under an accepted improvement
+
+A follow-up whose earlier answer is an interview answer an improvement was accepted from (or one of
+its retries) is listed under that improvement's **Related practice** (docs/ACCEPTED_ACTIONS.md), by
+that stored link only: with its own question's title, its own score, and "A different question
+about the same thing: not a retry, so its score isn't set beside the original's." It never marks the
+improvement done and never says it worked.
+
 ## Limits
 
 Five relationships in two careers. Wider coverage is content work: each new pair needs the same

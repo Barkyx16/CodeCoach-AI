@@ -213,6 +213,7 @@ NOT_WALKED = {
     "/api/v1/me/offer-comparisons/{comparison_id}": "test_offer_comparisons.py",
     "/api/v1/me/kit-templates/{template_id}": "test_kit_templates.py",
     "/api/v1/me/actions/{action_id}": "test_actions.py",
+    "/api/v1/me/actions/{action_id}/practice": "test_related_practice.py",
 }
 
 

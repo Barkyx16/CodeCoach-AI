@@ -128,7 +128,7 @@ describe("Improvements you accepted, beside the plan", () => {
     expect(section).toHaveTextContent(`“${TITLE}”.`);
     expect(section).toHaveTextContent("Say “I” for your own actions. Missing in 1 of 1 answers.");
     expect(section).toHaveTextContent("A hard shift (question version 2)");
-    expect(section).toHaveTextContent("Not practised since you accepted it.");
+    expect(await within(section).findByText("Related practice since you accepted it (0)")).toBeInTheDocument();
     expect(section).toHaveTextContent("Marking one done is your word: it changes no score.");
     expect(within(section).getByRole("link", { name: "Move it on your schedule" })).toHaveAttribute("href", "/schedule");
     expect(within(section).getByRole("link", { name: "Retry “A hard shift”" })).toHaveAttribute("href", "/interviews/iv-r/retry/1");
@@ -174,6 +174,55 @@ describe("Improvements you accepted, beside the plan", () => {
   });
 });
 
+describe("Related practice for an accepted improvement (Volume 13, prompt 4)", () => {
+  const practice = {
+    action_id: "act-1", count: 3, linked: true, disputed: null,
+    note: "Practice linked to this improvement since you accepted it, found by stored links only: retries of the question it came from, and follow-ups to it. Each keeps its own score. Whether it helped isn't judged, and marking the improvement done is yours.",
+    origin: { answer_id: "a-1", question_title: "A hard shift", score: 72, scoring: "scored" },
+    items: [
+      { answer_id: "r-1", kind: "retry", question_id: "e-time-0", question_title: "A hard shift", created_at: now, score: 64, scoring: "scored",
+        conditions: null, note: null, href: "/careers/registered-nurse/questions/e-time-0?answer=r-1",
+        comparison: { against: "a-1", outcome: "partially_comparable", scores_comparable: true, points_comparable: true, reasons: [], contract_version: 1,
+          explanation: "Partly comparable: the conditions differed. The scores are on the same rubric, so both are shown. (Comparison rules v1)" } },
+      { answer_id: "f-1", kind: "follow_up", question_id: "e-time-1", question_title: "A shift that went wrong", created_at: now, score: 41, scoring: "scored",
+        conditions: null, href: "/careers/registered-nurse/questions/e-time-1?answer=f-1",
+        note: "A different question about the same thing: not a retry, so its score isn't set beside the original's.",
+        comparison: { against: "a-1", outcome: "incompatible", scores_comparable: false, points_comparable: false, reasons: [], contract_version: 1,
+          explanation: "Not comparable: they answer different questions. (Comparison rules v1)" } },
+      { answer_id: "r-2", kind: "retry", question_id: "e-time-0", question_title: "A hard shift", created_at: now, score: null, scoring: "too_short",
+        conditions: null, note: null, href: "/careers/registered-nurse/questions/e-time-0?answer=r-2",
+        comparison: { against: "a-1", outcome: "partially_comparable", scores_comparable: false, points_comparable: true, reasons: [], contract_version: 1,
+          explanation: "Partly comparable: one was too short to score: compare what you wrote, not the numbers. (Comparison rules v1)" } },
+    ],
+  };
+
+  it("lists each attempt with its own score, a lower one as lower, and never ticks the action", async () => {
+    record();
+    server.use(
+      http.post(`${API}/api/v1/auth/refresh`, () => HttpResponse.json(tokenResponse({ user: nurse }))),
+      http.get(`${API}/api/v1/me/actions`, () => HttpResponse.json([action()])),
+      http.get(`${API}/api/v1/me/actions/act-1/practice`, () => HttpResponse.json(practice)),
+    );
+    const { user } = renderApp("/plan", { signedIn: true });
+    const section = await screen.findByRole("region", { name: "Improvements you accepted (1)" }, { timeout: 3000 });
+    await user.click(await within(section).findByText("Related practice since you accepted it (3)"));
+    const items = within(section.querySelector<HTMLElement>(".related-practice")!).getAllByRole("listitem");
+    expect(items).toHaveLength(3);
+    expect(items[0]).toHaveTextContent("Retry: A hard shift");
+    expect(items[0]).toHaveTextContent("64/100, lower than the 72/100 it came from");
+    expect(items[1]).toHaveTextContent("Follow-up: A shift that went wrong");
+    expect(items[1]).toHaveTextContent("41/100");
+    expect(items[1]).toHaveTextContent("A different question about the same thing: not a retry");
+    expect(items[1]).not.toHaveTextContent("lower than"); // a different question's score isn't set beside it
+    expect(items[2]).toHaveTextContent("too short to score");
+    expect(items[2]).not.toHaveTextContent("0/100");
+    expect(within(items[0]!).getByRole("link", { name: "Retry: A hard shift" })).toHaveAttribute("href", "/careers/registered-nurse/questions/e-time-0?answer=r-1");
+    expect(section).not.toHaveTextContent(/worked|improved/i);
+    expect(within(section).getByRole("button", { name: /Mark done/ })).toBeInTheDocument(); // still open: the learner's to tick
+    expect(sent).toEqual([]); // reading it changed nothing
+  });
+});
+
 describe("An accepted improvement on an interview kit's checklist", () => {
   const kit = (over: Partial<Kit> = {}): Kit => ({
     event_id: "e1", application_id: "a1", role_title: "Ward nurse", employer: "Mercy General", event_title: "Panel interview", event_kind: "interview",
@@ -206,6 +255,8 @@ describe("An accepted improvement on an interview kit's checklist", () => {
     const { user } = renderApp("/applications/a1/events/e1/kit", { signedIn: true });
     const item = await screen.findByRole("checkbox", { name: TITLE }, { timeout: 3000 });
     expect(screen.getByText("Accepted improvement")).toBeInTheDocument();
+    // The same related practice as on the plan, from the same request (Volume 13, prompt 4).
+    expect(await screen.findByText("Related practice since you accepted it (0)")).toBeInTheDocument();
     await user.click(item);
     await waitFor(() => expect(sent.map((s) => s.path)).toEqual(["/api/v1/me/actions/act-1/complete"]));
     expect(await screen.findByRole("checkbox", { name: TITLE })).toBeChecked();

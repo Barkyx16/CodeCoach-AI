@@ -19,8 +19,8 @@ keep their own flow (docs/INTERVIEW_WORKFLOW.md); other sources can follow one a
 | **Completion** | "I did this" | A one-off: `accepted_actions.done_at`. A weekly action: each occurrence's `completed_at` | The learner says so |
 
 On screen: the review shows **Accept "…" as an action** (and, once accepted, "Accepted as an
-action. See it on your plan"); the action shows where it came from, how many times its target was
-practised since (an attempt count, never a claim that it was done), its occurrences, and a
+action. See it on your plan"); the action shows where it came from, the practice related to it
+since (below: evidence, never a claim that it was done or that it helped), its occurrences, and a
 **Mark done** that is labelled as the learner's word. Completing an action changes no score and
 says nothing about mastery.
 
@@ -73,6 +73,43 @@ Name and notes are saved against the revision the page loaded. A stale save is r
 (`409 stale_revision`) with the saved action in `details.current`, and the page shows both
 versions with "Keep mine" and "Use the saved one". A save whose reply was lost, sent again with
 its key, is answered as saved (update receipts, docs/RECOVERY.md).
+
+## Related practice (Volume 13, prompt 4)
+
+On the plan's accepted improvements and on a kit checklist's improvement item: **Related practice
+since you accepted it (2)**, opening a short list (`GET /api/v1/me/actions/{id}/practice`; both
+pages show the same component reading this one endpoint, and neither keeps a copy).
+
+- **Found only through stored links**, never by wording or by question alone: retries of the
+  question the improvement came from in its source interview (`interview_retries` for that session
+  and question index), and follow-ups to it (answers whose `follows_up_answer_id` is the original
+  answer or one of its retries). Answering the same question on its own page, or another question,
+  isn't related. Improvements whose practice isn't a retry of one question say "This kind of
+  improvement has no practice linked to it yet".
+- **Since it was accepted**: practice from before counts for nothing here (a follow-up made since,
+  to a retry made before, does count).
+- **Each attempt on its own**: what it was (Retry or Follow-up, with its own question's title), its
+  date, its own score or "too short to score" (never zero), and the comparison rule's verdict
+  against the attempt the improvement came from (docs/COMPARING_ATTEMPTS.md). A retry whose score
+  compares says "lower than", "higher than" or "the same as" the original's; a follow-up is a
+  different question, says so, and its score is never set beside the original's. Nothing is
+  averaged.
+- **Evidence, not a tick**: none of it marks the action done, moves an occurrence or changes the
+  schedule; the list never says an improvement "worked". A disputed point's action still lists its
+  practice, labelled.
+- **Live**: read each time, so a deleted answer drops out and the count is one fewer (a follow-up
+  whose earlier answer was deleted is unlinked, docs/FOLLOW_UPS.md, and drops out too).
+- **Export**: each action carries `related_attempts` (answer ids, oldest first) in the version 2
+  export, and `related_practice` (the count) in version 1. Another account's answers never appear,
+  and another account's action is 404.
+
+Tests: `backend/tests/test_related_practice.py`, `frontend/src/test/integration/actions.test.tsx`,
+`frontend/e2e/related-practice.spec.ts` (against the real API).
+Negative controls (each caught): matching by question instead of stored links; practice before
+acceptance counted; another account's action readable; evidence ticking the action; a follow-up
+shown as a retry; "too short" shown as a score; a disputed action unlabelled; the export without
+the attempts; and on the pages, no list on the plan or in the kit, a follow-up's score set beside
+the original's, "too short" shown as zero.
 
 ## Lifecycle and privacy
 

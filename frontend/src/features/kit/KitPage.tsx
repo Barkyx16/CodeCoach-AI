@@ -26,6 +26,7 @@ import { FreshnessReview, type Decision } from "@/features/stories/FreshnessRevi
 import { recoveredSave, savedVersion } from "@/lib/conflict";
 import { externalHref } from "@/lib/links";
 import { useRequestKey } from "@/lib/requestKey";
+import { RelatedPractice } from "@/features/actions/RelatedPractice";
 
 const newId = () => `u-${crypto.randomUUID().slice(0, 8)}`;
 
@@ -311,6 +312,7 @@ function KitEditor({ initial, live }: { initial: Kit; live: Kit }) {
                       ) : <span className="subtle">{c.text}</span>}
                       <Badge>Accepted improvement</Badge>
                       <Link className="subtle" to="/plan#accepted-actions" state={fromHere}>On your plan</Link>
+                      {c.action_id && <RelatedPractice actionId={c.action_id} />}
                       <Button size="sm" variant="ghost" aria-label={`Hide “${c.text}”`} onClick={() => set("checklist", kit.checklist.map((x, j) => (j === i ? { ...x, hidden: true } : x)))}>Hide</Button>
                     </>
                   ) : (

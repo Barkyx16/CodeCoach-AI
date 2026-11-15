@@ -788,6 +788,11 @@ export function useKitTemplate(id: string | undefined) {
 
 /** Improvements you accepted (docs/ACCEPTED_ACTIONS.md): one action each, shared by the plan,
  * the schedule and kits. */
+/** One list for the plan and the kit: neither keeps a copy. */
+export function useRelatedPractice(actionId: string) {
+  return useQuery({ queryKey: ["me", "actions", actionId, "practice"], queryFn: () => api.actionPractice(actionId), staleTime: 0 });
+}
+
 export function useActions(enabled = true) {
   return useQuery({ queryKey: ["me", "actions"], queryFn: api.actions, staleTime: 0, enabled });
 }

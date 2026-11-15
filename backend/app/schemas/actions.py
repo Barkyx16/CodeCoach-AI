@@ -6,7 +6,9 @@ from typing import Literal
 
 from pydantic import Field
 
+from app.schemas.careers import AttemptComparison
 from app.schemas.common import APIModel, OptionalKey, SaveReplay, save_replay_field, update_key_field
+from app.schemas.conditions import AttemptConditions
 from app.schemas.disputes import DisputeNote
 
 Recurrence = Literal["once", "weekly"]
@@ -118,3 +120,44 @@ class OccurrencesIn(APIModel):
         pattern=r"^[A-Za-z0-9_-]+$",
         description="Sending the same request again (its reply was lost) returns the occurrences it made",
     )
+
+
+class RelatedAttempt(APIModel):
+    """One attempt linked to an accepted improvement by a stored link (docs/ACCEPTED_ACTIONS.md,
+    "Related practice"): a retry of the question it came from, or a follow-up to that question."""
+
+    answer_id: str
+    kind: Literal["retry", "follow_up"]
+    question_id: str
+    question_title: str
+    created_at: datetime
+    score: int | None = Field(description="Its own score; none when it was too short to score (never zero)")
+    scoring: Literal["scored", "too_short", "unknown"]
+    conditions: AttemptConditions | None = None
+    comparison: AttemptComparison | None = Field(
+        description="How it compares with the attempt the improvement came from, by the one comparison rule "
+        "(none when that attempt isn't there any more)"
+    )
+    note: str | None = Field(
+        default=None, description="A follow-up: it's a different question, never a retry"
+    )
+    href: str
+
+
+class RelatedOrigin(APIModel):
+    answer_id: str
+    question_title: str
+    score: int | None
+    scoring: Literal["scored", "too_short", "unknown"]
+
+
+class RelatedPractice(APIModel):
+    action_id: str
+    count: int
+    items: list[RelatedAttempt] = Field(description="Oldest first; each with its own score, nothing averaged")
+    origin: RelatedOrigin | None = Field(
+        description="The attempt the improvement came from, if it's still there"
+    )
+    linked: bool = Field(description="False when this kind of improvement has no practice link yet")
+    note: str
+    disputed: DisputeNote | None = None

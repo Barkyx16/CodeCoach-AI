@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useId, useState } from "react";
+import { RelatedPractice } from "./RelatedPractice";
 import { DisputedNote } from "@/features/plan/DisputedNote";
 import { Link } from "react-router-dom";
 
@@ -87,11 +88,7 @@ function ActionCard({ a }: { a: AcceptedAction }) {
         <p className="subtle">Answered on: {(a.source.versions ?? []).map((v) => `${v.question} (question version ${v.version})`).join("; ")}.</p>
       )}
       {a.notes && <p>{a.notes}</p>}
-      {a.attempts_since !== null && a.attempts_since !== undefined && (
-        <p className="subtle">
-          {a.attempts_since === 0 ? "Not practised since you accepted it." : `Practised ${a.attempts_since} time${a.attempts_since === 1 ? "" : "s"} since you accepted it.`}
-        </p>
-      )}
+      <RelatedPractice actionId={a.id} />
       {!weekly && live[0] && (
         <p className="subtle">On your schedule: {formatDay(live[0].on_date)}. <Link to="/schedule">Move it on your schedule</Link></p>
       )}

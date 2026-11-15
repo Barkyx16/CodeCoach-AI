@@ -1,6 +1,7 @@
 /** One function per backend endpoint. See docs/API.md for behavior and error codes. */
 import { apiRequest } from "./client";
 import type {
+  RelatedPractice,
   AcceptedAction,
   Impact,
   LifecycleIn,
@@ -754,6 +755,8 @@ export const api = {
   // improvements you accepted (docs/ACCEPTED_ACTIONS.md): one action each, shown by the plan, schedule and kit
   actions: () => apiRequest<AcceptedAction[]>("/api/v1/me/actions"),
   action: (id: string) => apiRequest<AcceptedAction>(`/api/v1/me/actions/${encodeURIComponent(id)}`),
+  /** Practice related to an accepted improvement since it was accepted, by stored links (docs/ACCEPTED_ACTIONS.md). */
+  actionPractice: (id: string) => apiRequest<RelatedPractice>(`/api/v1/me/actions/${encodeURIComponent(id)}/practice`),
   acceptAction: (body: ActionAccept) => apiRequest<AcceptedAction>("/api/v1/me/actions", { method: "POST", body }),
   updateAction: (id: string, body: ActionUpdate) =>
     apiRequest<AcceptedAction>(`/api/v1/me/actions/${encodeURIComponent(id)}`, { method: "PATCH", body }),

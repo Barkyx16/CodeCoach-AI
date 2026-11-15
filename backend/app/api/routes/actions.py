@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.models import User
-from app.schemas.actions import ActionAccept, ActionOut, ActionUpdate, OccurrencesIn
+from app.schemas.actions import ActionAccept, ActionOut, ActionUpdate, OccurrencesIn, RelatedPractice
 from app.schemas.common import error_responses
 from app.services.actions import Actions
 
@@ -49,6 +49,18 @@ def accept(
 )
 def get(action_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> ActionOut:
     return Actions(db, user).get(action_id)
+
+
+@router.get(
+    "/{action_id}/practice",
+    response_model=RelatedPractice,
+    responses=error_responses(401, 404),
+    summary="Practice related to it since you accepted it, by stored links (docs/ACCEPTED_ACTIONS.md)",
+)
+def practice(
+    action_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> RelatedPractice:
+    return Actions(db, user).related_practice(action_id)
 
 
 @router.patch(

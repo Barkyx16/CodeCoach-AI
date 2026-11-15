@@ -139,8 +139,9 @@ hashes changed (the commits were replayed on top of the fixes).
 
 - One path, one career: a registered nurse. The coach-context step is absent for it (above); the
   "Hint shown" assistance label isn't on it; the judge isn't used.
-- The follow-up isn't linked to the accepted improvement (they're separate features); the journey
-  links them only by order.
+- The journey links the follow-up and the accepted improvement only by order. Since Volume 13, prompt 4, a
+  follow-up to the improvement's question is listed under its Related practice (docs/ACCEPTED_ACTIONS.md);
+  the recorded journey above predates that and doesn't check it.
 - The practice packet can't hold accepted improvements, so the final material is the interview-day
   kit.
 - Phone size is Chromium emulating a Pixel 7, not a real phone; no screen reader, Safari or Firefox.
