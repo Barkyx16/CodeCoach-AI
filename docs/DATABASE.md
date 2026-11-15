@@ -105,6 +105,16 @@ from the career catalog, so they're referenced by `(track, question_id)`, not a 
 | `follows_up_submission_id` | FK → submissions (SET NULL) null, indexed | Set once when the submission is made from a reviewed follow-up offer: this account's passed submission of the related problem it follows (docs/FOLLOW_UPS.md, "Coding problems"). Never used to combine or compare the two verdicts |
 | `created_at`, `updated_at` | timestamptz | Composite index `(user_id, created_at)` for history pages |
 
+### `dismissed_suggestions`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | varchar(36) PK | UUID4 |
+| `user_id` | FK → users (cascade), indexed | Owner-only under row-level security |
+| `key` | varchar(200) | The suggestion, unique per account: `question-follow-up:<track>/<from>><to>`, `problem-follow-up:<from>><to>`, `plan-change:<track>@<version>` |
+| `kind` | varchar(24) | `question_follow_up`, `problem_follow_up` or `plan_change` |
+| `offered_on` | varchar(200) null | The page it was offered on |
+| `dismissed_at` | timestamptz | The first time it was dismissed |
+
 ### `refresh_tokens`
 | Column | Type | Notes |
 |---|---|---|

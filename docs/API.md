@@ -234,6 +234,9 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 | GET | `/api/v1/careers/{slug}/questions/{question_id}/follow-up` | 🔒 | A reviewed follow-up question after repeated practice (docs/FOLLOW_UPS.md) |
 | GET | `/api/v1/problems/{slug}/follow-ups` | 🔒 | A reviewed follow-up problem after a judged submission passed, and the follow-ups submitted from it (docs/FOLLOW_UPS.md, "Coding problems") |
 | POST | `/api/v1/problems/{slug}/follow-ups/{to_slug}/dismiss` | 🔒 | Not now: kept with the account, so it stays dismissed on every device |
+| GET | `/api/v1/me/dismissals` | 🔒 | Suggestions you dismissed with "Not now", in plain words (docs/FOLLOW_UPS.md, "Not now") |
+| POST | `/api/v1/me/dismissals` | 🔒 | Dismiss suggestions by key (the same one twice is one record) |
+| DELETE | `/api/v1/me/dismissals?key=` | 🔒 | Offer a dismissed suggestion again; it then follows its own rules |
 | GET | `/api/v1/me/careers/{slug}/analytics/attempts?since=&until=&offset=&limit≤100` | 🔒 | Every answer in an analytics range: in the trend or why not, each with its comparison with the answer before it (docs/COMPARING_ATTEMPTS.md) |
 | POST | `/api/v1/me/attempt-conditions` | 🔒 | The in-app help shown before each of up to 50 submissions, answers, drill attempts, scenario runs and whiteboard attempts (docs/ATTEMPT_CONDITIONS.md) |
 | POST | `/api/v1/ai/hint` | 🔒 | Progressive hint |

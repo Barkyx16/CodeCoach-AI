@@ -4281,6 +4281,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/dismissals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What you said “Not now” to, newest first, each in plain words */
+        get: operations["list_dismissals_api_v1_me_dismissals_get"];
+        put?: never;
+        /** Dismiss suggestions (the same one twice is one record); returns the whole list */
+        post: operations["dismiss_api_v1_me_dismissals_post"];
+        /** Offer a dismissed suggestion again (it then follows its own rules) */
+        delete: operations["offer_again_api_v1_me_dismissals_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/search": {
         parameters: {
             query?: never;
@@ -7200,6 +7219,56 @@ export interface components {
             /** Evidence */
             evidence?: components["schemas"]["EvidenceLink"][];
         };
+        /** DismissBatch */
+        DismissBatch: {
+            /** Items */
+            items: components["schemas"]["DismissIn"][];
+        };
+        /** DismissIn */
+        DismissIn: {
+            /**
+             * Key
+             * @description The suggestion: "question-follow-up:<track>/<from>><to>", "problem-follow-up:<from>><to>" or "plan-change:<track>@<version>"
+             */
+            key: string;
+            /**
+             * Offered On
+             * @description The page it was offered on
+             */
+            offered_on?: string | null;
+        };
+        /** Dismissed */
+        Dismissed: {
+            /** Key */
+            key: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "question_follow_up" | "problem_follow_up" | "plan_change";
+            /**
+             * Label
+             * @description What it was, in plain words
+             */
+            label: string;
+            /**
+             * Note
+             * @description What offering it again will do, when that isn't simply offering it
+             */
+            note?: string | null;
+            /** Offered On */
+            offered_on?: string | null;
+            /**
+             * Dismissed At
+             * Format: date-time
+             */
+            dismissed_at: string;
+        };
+        /** DismissedList */
+        DismissedList: {
+            /** Items */
+            items: components["schemas"]["Dismissed"][];
+        };
         /**
          * DisputeNote
          * @description Something derived from feedback the learner disputed. It stays; the learner decides.
@@ -8396,6 +8465,12 @@ export interface components {
              * @description Follow-ups you answered after this question
              */
             answered: components["schemas"]["FollowUpAnswered"][];
+            /**
+             * Dismissed
+             * @description Follow-ups you said “Not now” to (kept with your account; Settings can offer them again)
+             * @default 0
+             */
+            dismissed: number;
         };
         /** FollowUpQuestion */
         FollowUpQuestion: {
@@ -31649,6 +31724,133 @@ export interface operations {
             };
             /** @description Missing, invalid, expired or revoked access token */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_dismissals_api_v1_me_dismissals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DismissedList"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    dismiss_api_v1_me_dismissals_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DismissBatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DismissedList"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    offer_again_api_v1_me_dismissals_delete: {
+        parameters: {
+            query: {
+                key: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

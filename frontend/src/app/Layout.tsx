@@ -15,6 +15,7 @@ import { isPaletteShortcut } from "./commands";
 import { Icon } from "@/components/Icon";
 import { LeaveGuard } from "./LeaveGuard";
 import { Reminders } from "@/features/schedule/Reminders";
+import { DismissalCarryOver } from "@/features/dismissals/DismissalCarryOver";
 import { WhatsNewLink } from "@/features/whatsnew/WhatsNewLink";
 import { TourFinishReconciler } from "@/features/onboarding/TourFinishReconciler";
 import { PlanReturn } from "@/features/plan/PlanReturn";
@@ -225,6 +226,7 @@ export function Layout() {
       <AppStatus />
       <LeaveGuard />
       <Reminders />
+      <DismissalCarryOver />
       {isAuthenticated && <TourFinishReconciler />}
       {signedOutReason && !isAuthenticated && <SessionEndedBanner reason={signedOutReason} />}
       <main id="main" className="app__main" tabIndex={-1}>

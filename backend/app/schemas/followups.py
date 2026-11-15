@@ -49,3 +49,7 @@ class FollowUpOut(APIModel):
     scored_answers: int = Field(description="Your answers to this question long enough to score")
     offers: list[FollowUpQuestion]
     answered: list[FollowUpAnswered] = Field(description="Follow-ups you answered after this question")
+    dismissed: int = Field(
+        default=0,
+        description="Follow-ups you said “Not now” to (kept with your account; Settings can offer them again)",
+    )

@@ -1224,8 +1224,8 @@ class OnboardingState(Base):
     created on first use. It records only the learner's choices about the introduction (never
     answer text): whether the guided tour was started, paused, finished or skipped and at which
     step, which start they chose, which careers' format introductions they've seen, and which
-    banners they dismissed (also a reviewed follow-up problem's offer: "problem-follow-up:<from>><to>",
-    so it stays dismissed on every device). Whether they've done a real activity is worked out from their actual
+    banners they dismissed. Dismissed suggestions (follow-ups, the plan's change notice) are kept in
+    `dismissed_suggestions` instead. Whether they've done a real activity is worked out from their actual
     answers and submissions, not stored here."""
 
     __tablename__ = "user_onboarding"
@@ -1246,6 +1246,23 @@ class OnboardingState(Base):
     tour_started_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     tour_finished_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
+class DismissedSuggestion(Base):
+    """A suggestion the learner said "not now" to, kept with the account so every device respects it
+    and Settings can offer it again (Volume 15, prompt 2; docs/FOLLOW_UPS.md, "Not now"). `key` names
+    the suggestion, not the item it was offered on: "question-follow-up:<track>/<from>><to>",
+    "problem-follow-up:<from>><to>", "plan-change:<track>@<version>". Deleted with the account."""
+
+    __tablename__ = "dismissed_suggestions"
+    __table_args__ = (UniqueConstraint("user_id", "key", name="uq_dismissed_suggestion"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    key: Mapped[str] = mapped_column(String(200))
+    kind: Mapped[str] = mapped_column(String(24))  # question_follow_up | problem_follow_up | plan_change
+    offered_on: Mapped[str | None] = mapped_column(String(200), nullable=True)  # the page it was offered on
+    dismissed_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
 
 class Application(Base):

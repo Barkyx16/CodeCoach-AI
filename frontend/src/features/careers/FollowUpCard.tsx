@@ -1,32 +1,41 @@
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
 import type { FollowUpOut } from "@/api/types";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
+import { ActionError } from "@/components/ActionError";
 import { conditionsSummary } from "@/features/conditions/summary";
+import { dismissalsKey, questionFollowUpKey } from "@/features/dismissals/dismissals";
 import { timeAgo } from "@/lib/format";
 
 /**
  * A reviewed follow-up question (docs/FOLLOW_UPS.md): after repeated practice here, an optional,
  * different question about the same thing. Never "new to you" (only what this app saw), never
  * "mastered", and follow-ups you answered stay beside this question's answers with their own
- * scores, never combined.
+ * scores, never combined. "Not now" is kept with the account, so it holds on every device, and
+ * Settings can offer it again (docs/FOLLOW_UPS.md, "Not now").
  */
-export function FollowUpCard({ track, questionId, userId, latestAnswerId, answeredCount }: {
-  track: string; questionId: string; userId: string; latestAnswerId: string | null; answeredCount: number;
+export function FollowUpCard({ track, questionId, latestAnswerId, answeredCount }: {
+  track: string; questionId: string; latestAnswerId: string | null; answeredCount: number;
 }) {
+  const queryClient = useQueryClient();
   const q = useQuery<FollowUpOut>({
     queryKey: ["me", "follow-up", track, questionId, answeredCount],
     queryFn: () => api.followUp(track, questionId),
     enabled: answeredCount > 0,
   });
-  const [dismissed, setDismissed] = useState<string[]>(() => readDismissed(userId));
+  const notNow = useMutation({
+    mutationFn: (to: string) => api.dismiss([{ key: questionFollowUpKey(track, questionId, to), offered_on: window.location.pathname }]),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["me", "follow-up", track, questionId] });
+      void queryClient.invalidateQueries({ queryKey: dismissalsKey });
+    },
+  });
   if (!q.data) return null;
   const data = q.data;
-  const offers = data.offers.filter((o) => !dismissed.includes(dismissKey(track, questionId, o.question_id)));
+  const offers = data.offers.filter((o) => !(notNow.isSuccess && notNow.variables === o.question_id));
   const showNone = data.status === "none" && data.scored_answers >= data.threshold;
   if (!offers.length && !showNone && !data.answered.length) return null;
   return (
@@ -46,14 +55,12 @@ export function FollowUpCard({ track, questionId, userId, latestAnswerId, answer
           <p><strong>Different:</strong> {o.difference}</p>
           <p className="subtle">{o.exposure}.</p>
           <span className="row">
-            <Button size="sm" variant="ghost" onClick={() => {
-              const next = [...dismissed, dismissKey(track, questionId, o.question_id)];
-              setDismissed(next);
-              writeDismissed(userId, next);
-            }}>Not now</Button>
+            <Button size="sm" variant="ghost" loading={notNow.isPending && notNow.variables === o.question_id}
+              onClick={() => notNow.mutate(o.question_id)}>Not now</Button>
           </span>
         </div>
       ))}
+      {notNow.error && <ActionError error={notNow.error} action="Saving “Not now”" />}
       {data.answered.length > 0 && (
         <>
           <h3 className="section-title">Follow-ups you answered</h3>
@@ -76,23 +83,3 @@ export function FollowUpCard({ track, questionId, userId, latestAnswerId, answer
   );
 }
 
-const dismissKey = (track: string, from: string, to: string) => `${track}/${from}>${to}`;
-const storageKey = (userId: string) => `codecoach.followups.dismissed.v1.${userId}`;
-
-function readDismissed(userId: string): string[] {
-  try {
-    const raw = window.localStorage.getItem(storageKey(userId));
-    const parsed: unknown = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === "string").slice(0, 200) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeDismissed(userId: string, keys: string[]) {
-  try {
-    window.localStorage.setItem(storageKey(userId), JSON.stringify(keys.slice(-200)));
-  } catch {
-    /* storage refused: the offer is just hidden for this visit */
-  }
-}

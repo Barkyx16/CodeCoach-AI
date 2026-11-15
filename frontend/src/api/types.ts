@@ -436,6 +436,9 @@ export type ConditionsQuery = S["ConditionsQuery"];
 export type FollowUpOut = S["FollowUpOut"];
 /** A reviewed follow-up coding problem (docs/FOLLOW_UPS.md, "Coding problems"). */
 export type ProblemFollowUpsOut = S["ProblemFollowUpsOut"];
+/** A suggestion dismissed with "Not now", kept with the account (docs/FOLLOW_UPS.md, "Not now"). */
+export type Dismissed = S["Dismissed"];
+export type DismissedList = S["DismissedList"];
 export type ProblemFollowUpOffer = S["ProblemFollowUpOffer"];
 export type ProblemFollowUpDone = S["ProblemFollowUpDone"];
 export type FollowUpOf = S["FollowUpOf"];

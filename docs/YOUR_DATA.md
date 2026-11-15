@@ -73,6 +73,12 @@ the Danger zone lists these same counts, read by the same code (`data_summary`),
 that won't be sent, the links that stop working, the devices signed out, and when copies in
 earlier backups age out (docs/LIFECYCLE.md, "Deleting the account"). It reads at phone width.
 
+Suggestions you dismissed with "Not now" are kept with your account too (Volume 15, prompt 2;
+docs/FOLLOW_UPS.md, "Not now"): Settings lists them and can offer any of them again, the export
+carries them, and deleting the account removes them. A follow-up question's "Not now" and "Your
+plan changed" used to be kept in this browser only; on the first signed-in page load they're moved
+to the account and cleared from the browser.
+
 ## Where your words go when they're processed
 
 - **The AI coach**: with the built-in coach, nothing is sent to an AI provider. With an outside

@@ -431,7 +431,7 @@ function QuestionPageFor() {
           )}
           {isAuthenticated && user && answers.data && (
             <div className="focus-hide">
-              <FollowUpCard track={track} questionId={id} userId={user.id} latestAnswerId={answers.data[0]?.id ?? null} answeredCount={answers.data.length} />
+              <FollowUpCard track={track} questionId={id} latestAnswerId={answers.data[0]?.id ?? null} answeredCount={answers.data.length} />
             </div>
           )}
         </aside>

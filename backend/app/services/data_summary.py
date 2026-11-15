@@ -141,6 +141,13 @@ CATEGORIES: tuple[Category, ...] = (
         ("user_onboarding", "schedule_settings"),
     ),
     Category(
+        "dismissed",
+        "account",
+        "Suggestions you dismissed with “Not now”",
+        ("dismissed_suggestions",),
+        note="Settings lists them and can offer any of them again.",
+    ),
+    Category(
         "restores",
         "account",
         "Restores from a backup file",

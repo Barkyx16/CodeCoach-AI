@@ -123,6 +123,7 @@ import type {
   ConditionsQuery,
   FollowUpOut,
   ProblemFollowUpsOut,
+  DismissedList,
   RequirementHistoryEntry,
   RequirementSetIn,
   RevisionPreview,
@@ -390,6 +391,12 @@ export const api = {
     apiRequest<InterviewAnswer[]>(`/api/v1/careers/${encodeURIComponent(track)}/questions/${encodeURIComponent(id)}/answers`),
   trackProgress: (track: string) =>
     apiRequest<TrackProgress>(`/api/v1/careers/${encodeURIComponent(track)}/progress`),
+  /** What you said "Not now" to, kept with the account (docs/FOLLOW_UPS.md, "Not now"). */
+  dismissals: () => apiRequest<DismissedList>("/api/v1/me/dismissals"),
+  dismiss: (items: { key: string; offered_on?: string | null }[]) =>
+    apiRequest<DismissedList>("/api/v1/me/dismissals", { method: "POST", body: { items } }),
+  offerAgain: (key: string) =>
+    apiRequest<void>(`/api/v1/me/dismissals?key=${encodeURIComponent(key)}`, { method: "DELETE" }),
   /** A reviewed, different coding problem offered after a judged submission of this one passed. */
   problemFollowUps: (slug: string) =>
     apiRequest<ProblemFollowUpsOut>(`/api/v1/problems/${encodeURIComponent(slug)}/follow-ups`),

@@ -40,6 +40,7 @@ from app.services.attempt_comparisons import AttemptComparisons, comparison_out
 from app.services.code_reviews import CodeReviews
 from app.services.comparisons import Comparisons
 from app.services.conditions import Conditions
+from app.services.dismissals import Dismissals
 from app.services.drills import Drills
 from app.services.explore import IN_COLLECTION, SAVED
 from app.services.kit_templates import KitTemplates
@@ -539,6 +540,7 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
         "applications": Applications(db, user).export(with_ids=with_ids),
         # Your choices about the first-session introduction (no answer text is part of it).
         "onboarding": Onboarding(db, user).export(),
+        "dismissed_suggestions": Dismissals(db, user).export(),
         # Problems you reported in questions or feedback, and what happened (no internal notes).
         "content_reports": [
             {

@@ -4,20 +4,19 @@ Only this account's submissions decide what it's offered: a follow-up is offered
 submission of the problem passed (a run never counts), only for a reviewed pair
 (app/content/problem_followups.py), never for a retired problem, and only while the learner hasn't
 attempted the second problem at all ("Not previously attempted in this app"). Dismissing it is kept
-with the account, so it stays dismissed on every device. A submission made from the offer records
+with the account (app/services/dismissals.py), so it stays dismissed on every device, and Settings
+can offer it again. A submission made from the offer records
 the passed one it followed, once; its verdict is its own and is never set beside the first.
 """
 
 from __future__ import annotations
-
-from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.content.problem_followups import follow_up_between, follow_ups_from
 from app.errors import AppError, NotFoundError
-from app.models import OnboardingState, Problem, Submission, SubmissionMode, SubmissionStatus, User
+from app.models import Problem, Submission, SubmissionMode, SubmissionStatus, User
 from app.schemas.problem_followups import (
     FollowUpOf,
     ProblemFollowUpDone,
@@ -25,13 +24,14 @@ from app.schemas.problem_followups import (
     ProblemFollowUpsOut,
 )
 from app.services.content import is_problem_retired
+from app.services.dismissals import Dismissals, problem_key
 from app.services.followups import NOT_ATTEMPTED
 
 NOT_COMBINED = "Its own verdict, not combined with this problem's or compared with it."
 
 
 def dismissal_key(from_slug: str, to_slug: str) -> str:
-    return f"problem-follow-up:{from_slug}>{to_slug}"
+    return problem_key(from_slug, to_slug)
 
 
 class ProblemFollowUps:
@@ -70,8 +70,7 @@ class ProblemFollowUps:
         )
 
     def _dismissed(self) -> set[str]:
-        row = self.db.get(OnboardingState, self.user.id)
-        return set(row.dismissed or []) if row else set()
+        return Dismissals(self.db, self.user).keys()
 
     def offer(self, slug: str) -> ProblemFollowUpsOut:
         problem = self._problem(slug)
@@ -157,15 +156,7 @@ class ProblemFollowUps:
     def dismiss(self, slug: str, to_slug: str) -> ProblemFollowUpsOut:
         if follow_up_between(slug, to_slug) is None:
             raise NotFoundError("No reviewed follow-up links these problems")
-        row = self.db.get(OnboardingState, self.user.id)
-        if row is None:
-            row = OnboardingState(user_id=self.user.id, dismissed=[])
-            self.db.add(row)
-        key = dismissal_key(slug, to_slug)
-        if key not in (row.dismissed or []):
-            row.dismissed = [*(row.dismissed or []), key]
-            row.updated_at = datetime.now(UTC)
-        self.db.commit()
+        Dismissals(self.db, self.user).add(dismissal_key(slug, to_slug), offered_on=f"/problems/{slug}")
         return self.offer(slug)
 
     def check_link(self, problem: Problem, follows_up_id: str | None) -> str | None:

@@ -121,6 +121,45 @@ journey (docs/PREPARATION_JOURNEY.md): after the resubmission passes in the sand
 under the result (in the Code tab at phone size), and "Two Sum in a Sorted Array" is solved and
 judged for real, its verdict recorded as the judge gave it.
 
+## Not now
+
+Volume 15, prompt 2. "Not now" on a follow-up question or a follow-up coding problem, and "Got it" on
+the plan's "Your plan changed", are kept **with the account** (`dismissed_suggestions`, migration
+`c9a4e2f6d871`, owner-only under row-level security, deleted with the account), so a dismissal made
+on one device holds on every other. A key names the suggestion, not the item it was offered on:
+`question-follow-up:<track>/<from>><to>`, `problem-follow-up:<from>><to>`,
+`plan-change:<track>@<version>`. So practising the question again doesn't bring a dismissed
+follow-up back, and dismissing one follow-up leaves the question's others offered. A key that names
+no suggestion this app offers is refused (400 `invalid_dismissal`); the same one twice is one record,
+keeping its first time.
+
+- `GET /api/v1/me/dismissals` lists them, newest first, in plain words ("A related question: Keeping
+  patients' families informed (after "Keeping patients informed")"), with what offering one again
+  will do when that isn't simply offering it ("You've tried this problem since, so it won't be
+  offered again.").
+- `POST /api/v1/me/dismissals` dismisses (a list of keys, each with the page it was offered on);
+  `DELETE /api/v1/me/dismissals?key=` offers it again. Offered again, a suggestion follows its own
+  rules. Another account's are never read or changed (404).
+- **Settings → Suggestions you dismissed** lists them with **Offer it again**.
+- The follow-up question's offer is filtered by the server (`dismissed` says how many), so every
+  client respects it; the follow-up problem's offer always was.
+- **Carried over once.** Before this, a follow-up question's "Not now" and "Your plan changed" were
+  kept only in the browser (localStorage). On the first signed-in page load, what this browser kept
+  for this account is sent to the account, one key at a time, then cleared from the browser; a key
+  the server refuses (a relationship that no longer exists) is cleared too, and a lost connection
+  keeps it for next time. "Your plan changed" was remembered per browser, not per account, so its
+  marker goes to whichever account signs in first on that browser.
+- The export carries them (`dismissed_suggestions`: key, kind, page, when), and the data summary
+  counts them ("Suggestions you dismissed with "Not now""). A follow-up problem's dismissal kept in
+  the introduction's onboarding row before moves here with the migration (and back on downgrade).
+
+Reminders stay per session, deliberately: they're "shown" markers, not dismissals.
+
+Checked by `backend/tests/test_dismissals.py` (9, SQLite and PostgreSQL, the migration's move
+included; 6 negative controls, all caught), `dismissals.test.tsx` (5) and `followUps.test.tsx` (4
+negative controls, all caught), and `e2e/dismissals.spec.ts`: dismissed in one browser context, not
+offered in a second signed-in one, listed in Settings there, offered again there, and back on both.
+
 ## Limits
 
 Five relationships in two careers, and five coding pairs, Java only. Wider coverage is content

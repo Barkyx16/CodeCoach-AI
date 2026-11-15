@@ -101,6 +101,7 @@ ADDED_TABLES: dict[str, tuple[str, ...]] = {
     "d4a8b6c1f2e3": ("accepted_actions",),
     "a8e2c4f6b310": ("requirement_versions",),
     "c1d4e6a8b532": ("source_reviews",),
+    "c9a4e2f6d871": ("dismissed_suggestions",),
 }
 PROTECTED_TABLES: tuple[str, ...] = BASE_TABLES + tuple(t for added in ADDED_TABLES.values() for t in added)
 

@@ -1,8 +1,11 @@
 import { useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
+import { dismissalsKey, useDismissals } from "@/features/dismissals/dismissals";
+import { formatDateTime } from "@/lib/format";
 import { useAIUsage, useCapabilities, useMyReports, useShares } from "@/api/queries";
 import type { Impact, User } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
@@ -38,6 +41,7 @@ const SECTIONS: { id: string; label: string; icon: IconName }[] = [
   { id: "display", label: "Display & reading", icon: "book" },
   { id: "editor", label: "Editor", icon: "code" },
   { id: "device", label: "Offline & app", icon: "download" },
+  { id: "suggestions", label: "Suggestions", icon: "spark" },
   { id: "privacy", label: "Privacy & data", icon: "shield" },
   { id: "danger", label: "Danger zone", icon: "alert" },
 ];
@@ -112,6 +116,9 @@ export function SettingsPage() {
           </Section>
           <Section id="device" title="Offline & app" description="Installing CodeCoach and using it without a connection on this device.">
             <DeviceRows />
+          </Section>
+          <Section id="suggestions" title="Suggestions" description="Related questions and problems, and plan notices, you said “Not now” to. They stay dismissed on every device until you offer them again.">
+            <DismissedRow />
           </Section>
           <Section id="privacy" title="Privacy & data" description="What the AI coach sees, and a copy of everything we store.">
             <YourDataRow userId={user.id} />
@@ -591,6 +598,47 @@ function ReportsRow() {
           <Link className="btn btn--secondary btn--md" to="/reports">See your reports</Link>
           {reports.data && <span className="subtle">{reports.data.length === 0 ? "None yet" : `${open} open of ${reports.data.length}`}</span>}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** Volume 15, prompt 2 (docs/FOLLOW_UPS.md, "Not now"): what was dismissed, kept with the account. */
+function DismissedRow() {
+  const queryClient = useQueryClient();
+  const list = useDismissals();
+  const again = useMutation({
+    mutationFn: (key: string) => api.offerAgain(key),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: dismissalsKey });
+      void queryClient.invalidateQueries({ queryKey: ["me", "follow-up"] });
+      void queryClient.invalidateQueries({ queryKey: ["me", "problem-follow-ups"] });
+    },
+  });
+  const items = list.data?.items ?? [];
+  return (
+    <div className="setting" role="group" aria-labelledby="dismissed-title">
+      <RowIntro icon="spark" id="dismissed-title" title="Not now">
+        Offered again, each follows its own rules: a related problem you've tried since isn't offered again.
+      </RowIntro>
+      <div className="setting__body">
+        {list.isPending ? <p className="subtle">Loading…</p> : list.error ? <InlineError error={list.error} /> : items.length === 0 ? (
+          <p className="subtle">Nothing dismissed.</p>
+        ) : (
+          <ul className="mini-list dismissed-list" aria-label="Suggestions you dismissed">
+            {items.map((d) => (
+              <li key={d.key} className="stack-sm">
+                <span>{d.label}</span>
+                <span className="subtle">Dismissed {formatDateTime(d.dismissed_at)}{d.note ? `. ${d.note}` : ""}</span>
+                <span className="row">
+                  <Button size="sm" variant="secondary" loading={again.isPending && again.variables === d.key}
+                    aria-label={`Offer it again: ${d.label}`} onClick={() => again.mutate(d.key)}>Offer it again</Button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {again.error && <InlineError error={again.error} />}
       </div>
     </div>
   );

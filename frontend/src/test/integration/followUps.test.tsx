@@ -20,18 +20,25 @@ const out = (over: Partial<FollowUpOut> = {}): FollowUpOut => ({
   offers: [{ track: "registered-nurse", question_id: "e-inform-2", title: "Keeping patients' families informed", version: 2,
     objective: "Keeping people informed through a normal day", difference: "Same communication habit, a different audience: patients' families instead of patients",
     exposure: "Not previously attempted in this app", attempts: 0 }],
-  answered: [], ...over,
+  answered: [], dismissed: 0, ...over,
 });
 
 function setup(followUp: FollowUpOut) {
   asNurse();
   localStorage.clear();
-  const asked = { n: 0 };
+  const asked = { n: 0, dismissed: [] as string[] };
   server.use(
     http.get(`${API}/api/v1/careers/:track/questions/:id/answers`, () => HttpResponse.json(past)),
-    http.get(`${API}/api/v1/careers/:track/questions/:id/follow-up`, () => {
+    http.get(`${API}/api/v1/careers/:track/questions/:id/follow-up`, ({ params }) => {
       asked.n += 1;
-      return HttpResponse.json(followUp);
+      // As the server does: a dismissal kept with the account filters the offer on every device.
+      const kept = followUp.offers.filter((o) => !asked.dismissed.includes(`question-follow-up:${String(params.track)}/${String(params.id)}>${o.question_id}`));
+      return HttpResponse.json({ ...followUp, offers: kept, dismissed: followUp.offers.length - kept.length });
+    }),
+    http.post(`${API}/api/v1/me/dismissals`, async ({ request }) => {
+      const body = (await request.json()) as { items: { key: string }[] };
+      asked.dismissed.push(...body.items.map((i) => i.key));
+      return HttpResponse.json({ items: [] });
     }),
   );
   return asked;
@@ -52,11 +59,13 @@ describe("A reviewed follow-up question", () => {
     expect((await card()).textContent).not.toMatch(/new to you|never seen|mastered/i);
   });
 
-  it("can be dismissed, and stays dismissed in this browser", async () => {
+  it("can be dismissed: Not now is kept with the account, so a fresh load doesn't offer it", async () => {
     const asked = setup(out());
     const { user, unmount } = renderApp(URL, { signedIn: true });
     await user.click(within(await card()).getByRole("button", { name: "Not now" }));
     await waitFor(() => expect(screen.queryByRole("heading", { name: "A related question" })).not.toBeInTheDocument());
+    expect(asked.dismissed).toEqual(["question-follow-up:registered-nurse/m-pressure-0>e-inform-2"]);
+    expect(Object.keys(localStorage).filter((k) => k.includes("followups"))).toEqual([]); // nothing kept in this browser
     unmount();
     const before = asked.n;
     renderApp(URL, { signedIn: true });

@@ -21,6 +21,7 @@ from app.errors import AppError, NotFoundError
 from app.models import PracticeAnswer, User
 from app.schemas.followups import FollowUpAnswered, FollowUpOut, FollowUpQuestion
 from app.services.conditions import Conditions
+from app.services.dismissals import Dismissals, question_key
 
 NOT_ATTEMPTED = "Not previously attempted in this app"
 
@@ -88,13 +89,18 @@ class FollowUps:
                 "An optional, different question about the same thing, to see whether what you practised "
                 "carries over. Your answers here stay as they are."
             )
+        # "Not now" is kept with the account (app/services/dismissals.py): a dismissed follow-up isn't
+        # offered on any device; the others still are.
+        dismissed = Dismissals(self.db, self.user).keys()
+        kept = [o for o in offers if question_key(track, question_id, o.question_id) not in dismissed]
         return FollowUpOut(
             status=status,
             message=message,
             threshold=THRESHOLD,
             scored_answers=scored,
-            offers=offers,
+            offers=kept,
             answered=answered,
+            dismissed=len(offers) - len(kept),
         )
 
     def _answered(self, mine: list[PracticeAnswer]) -> list[FollowUpAnswered]:
