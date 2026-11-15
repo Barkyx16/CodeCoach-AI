@@ -35367,10 +35367,11 @@
             "enum": [
               "answer",
               "retry",
-              "round"
+              "round",
+              "submission"
             ],
             "title": "Kind",
-            "description": "A written answer, an answer revising an earlier one, or a finished question round"
+            "description": "A written answer, an answer revising an earlier one, a finished question round, or a judged coding submission"
           },
           "title": {
             "type": "string",
@@ -35386,7 +35387,23 @@
               }
             ],
             "title": "Score",
-            "description": "An answer's score; none for a round"
+            "description": "An answer's score; none for a round or a submission"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "passed",
+                  "not passed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdict",
+            "description": "A submission's verdict, as judged"
           },
           "href": {
             "type": "string",
@@ -38239,6 +38256,18 @@
             "title": "Rounds",
             "description": "Question rounds finished since this version that no activity used"
           },
+          "submissions": {
+            "type": "integer",
+            "title": "Submissions",
+            "description": "Judged coding submissions since this version that no activity used",
+            "default": 0
+          },
+          "not_passed": {
+            "type": "integer",
+            "title": "Not Passed",
+            "description": "How many of those didn't pass",
+            "default": 0
+          },
           "entries": {
             "items": {
               "$ref": "#/components/schemas/NewEvidence"
@@ -40852,6 +40881,14 @@
             ],
             "description": "The attempt the improvement came from, if it's still there"
           },
+          "submissions": {
+            "items": {
+              "$ref": "#/components/schemas/RelatedSubmission"
+            },
+            "type": "array",
+            "title": "Submissions",
+            "description": "For an improvement from a coding interview: judged submissions of its problem since it was accepted, oldest first"
+          },
           "linked": {
             "type": "boolean",
             "title": "Linked",
@@ -40882,6 +40919,109 @@
           "note"
         ],
         "title": "RelatedPractice"
+      },
+      "RelatedSubmission": {
+        "properties": {
+          "submission_id": {
+            "type": "string",
+            "title": "Submission Id"
+          },
+          "problem_slug": {
+            "type": "string",
+            "title": "Problem Slug"
+          },
+          "problem_title": {
+            "type": "string",
+            "title": "Problem Title"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SubmissionStatus"
+          },
+          "passed_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Passed Count"
+          },
+          "total_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Count"
+          },
+          "hidden_passed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hidden Passed"
+          },
+          "hidden_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hidden Total"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptConditions"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "compared": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SubmissionComparison"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "href": {
+            "type": "string",
+            "title": "Href"
+          }
+        },
+        "type": "object",
+        "required": [
+          "submission_id",
+          "problem_slug",
+          "problem_title",
+          "created_at",
+          "status",
+          "href"
+        ],
+        "title": "RelatedSubmission",
+        "description": "A judged submission of the problem a coding interview's improvement came from, made since it\nwas accepted (a stored link: the interview names its problem). Its own verdict, compared with\nthe submission before it by the one comparison rule; never set beside the interview itself."
       },
       "RepeatedArea": {
         "properties": {
@@ -41494,6 +41634,14 @@
             },
             "type": "array",
             "title": "Practice"
+          },
+          "submissions": {
+            "items": {
+              "$ref": "#/components/schemas/RequirementSubmission"
+            },
+            "type": "array",
+            "title": "Submissions",
+            "description": "Your latest judged submissions (at most 3) to the problems this requirement offers"
           }
         },
         "type": "object",
@@ -41606,6 +41754,40 @@
         ],
         "title": "RequirementSetIn",
         "description": "The whole requirement set as you want it, against the revision you loaded."
+      },
+      "RequirementSubmission": {
+        "properties": {
+          "submission_id": {
+            "type": "string",
+            "title": "Submission Id"
+          },
+          "problem_title": {
+            "type": "string",
+            "title": "Problem Title"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SubmissionStatus"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "href": {
+            "type": "string",
+            "title": "Href"
+          }
+        },
+        "type": "object",
+        "required": [
+          "submission_id",
+          "problem_title",
+          "status",
+          "created_at",
+          "href"
+        ],
+        "title": "RequirementSubmission",
+        "description": "One of the learner's latest judged submissions to a problem this requirement offers, with its\nverdict as judged (Volume 14, prompt 2)."
       },
       "RestoreBatch": {
         "properties": {

@@ -6,10 +6,12 @@ from typing import Literal
 
 from pydantic import Field
 
+from app.models import SubmissionStatus
 from app.schemas.careers import AttemptComparison
 from app.schemas.common import APIModel, OptionalKey, SaveReplay, save_replay_field, update_key_field
 from app.schemas.conditions import AttemptConditions
 from app.schemas.disputes import DisputeNote
+from app.schemas.submission import SubmissionComparison
 
 Recurrence = Literal["once", "weekly"]
 MAX_WEEKS = 8
@@ -144,6 +146,25 @@ class RelatedAttempt(APIModel):
     href: str
 
 
+class RelatedSubmission(APIModel):
+    """A judged submission of the problem a coding interview's improvement came from, made since it
+    was accepted (a stored link: the interview names its problem). Its own verdict, compared with
+    the submission before it by the one comparison rule; never set beside the interview itself."""
+
+    submission_id: str
+    problem_slug: str
+    problem_title: str
+    created_at: datetime
+    status: SubmissionStatus
+    passed_count: int | None = None
+    total_count: int | None = None
+    hidden_passed: int | None = None
+    hidden_total: int | None = None
+    conditions: AttemptConditions | None = None
+    compared: SubmissionComparison | None = None
+    href: str
+
+
 class RelatedOrigin(APIModel):
     answer_id: str
     question_title: str
@@ -157,6 +178,11 @@ class RelatedPractice(APIModel):
     items: list[RelatedAttempt] = Field(description="Oldest first; each with its own score, nothing averaged")
     origin: RelatedOrigin | None = Field(
         description="The attempt the improvement came from, if it's still there"
+    )
+    submissions: list[RelatedSubmission] = Field(
+        default_factory=list,
+        description="For an improvement from a coding interview: judged submissions of its problem since it "
+        "was accepted, oldest first",
     )
     linked: bool = Field(description="False when this kind of improvement has no practice link yet")
     note: str

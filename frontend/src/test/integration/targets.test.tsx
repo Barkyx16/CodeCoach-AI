@@ -446,3 +446,22 @@ describe("Archiving a target shows what it hides and keeps first (docs/LIFECYCLE
     expect(calls.filter((c) => c.method === "PATCH")).toEqual([]); // the preview's plan did it, not an edit
   });
 });
+
+describe("A requirement's latest submissions (Volume 14, prompt 2)", () => {
+  it("lists the judged submissions to the problems it offers, each with its verdict", async () => {
+    const t = makeTarget();
+    targetServer({
+      requirement_list: [{ ...t.requirement_list[0]!, submissions: [
+        { submission_id: "s-2", problem_title: "Two Sum", status: "PASSED", created_at: now, href: "/history/submissions/s-2" },
+        { submission_id: "s-1", problem_title: "Two Sum", status: "FAILED", created_at: now, href: "/history/submissions/s-1" },
+      ] }, ...t.requirement_list.slice(1)],
+    });
+    renderApp("/targets/t-1", { signedIn: true });
+    const list = await screen.findByRole("list", { name: "Your latest submissions for Perform patient assessment and triage" });
+    const items = within(list).getAllByRole("listitem");
+    expect(items).toHaveLength(2);
+    expect(within(items[0]!).getByRole("link", { name: "Submitted: Two Sum" })).toHaveAttribute("href", "/history/submissions/s-2");
+    expect(items[0]).toHaveTextContent("Passed");
+    expect(items[1]).toHaveTextContent("Failed");
+  });
+});

@@ -14,7 +14,7 @@ const asNurse = () => server.use(http.post(`${API}/api/v1/auth/refresh`, () => H
 
 const NEWS: PlanNews = {
   text: "1 answer since this plan, below 70.",
-  answers: 1, retries: 0, below: 1, rounds: 0,
+  answers: 1, retries: 0, below: 1, rounds: 0, submissions: 0, not_passed: 0,
   entries: [{ kind: "answer", title: "Infection control on a busy ward", score: 52, href: "/careers/registered-nurse/questions/e-infection-1?answer=a1" }],
   not_counted: ["1 answer too short to score isn’t counted."],
 };
@@ -116,5 +116,21 @@ describe("New practice the plan doesn't use yet", () => {
     const again = await screen.findByRole("region", { name: "Today's practice" });
     await within(again).findByText(/Session estimate/);
     expect(within(again).queryByRole("button", { name: "Update my plan" })).not.toBeInTheDocument();
+  });
+});
+
+describe("A judged submission as new evidence (Volume 14, prompt 2)", () => {
+  it("is named with its verdict, as judged", async () => {
+    const news: PlanNews = {
+      text: "1 submission (not passed) since this plan.", answers: 0, retries: 0, below: 0, rounds: 0, submissions: 1, not_passed: 1,
+      entries: [{ kind: "submission", title: "Two Sum", score: null, verdict: "not passed", href: "/history/submissions/s-1" }], not_counted: [],
+    };
+    serve(v(1, news));
+    const { user } = renderApp("/plan", { signedIn: true });
+    const region = await screen.findByRole("region", { name: /1 submission \(not passed\) since this plan\./ });
+    await user.click(within(region).getByText("What's new (1)"));
+    expect(within(region).getByRole("link", { name: "Submission: Two Sum" })).toHaveAttribute("href", "/history/submissions/s-1");
+    expect(region).toHaveTextContent("· not passed");
+    expect(region.textContent).not.toMatch(/improv|better/i);
   });
 });

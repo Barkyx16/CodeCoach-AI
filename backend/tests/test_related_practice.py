@@ -95,7 +95,7 @@ def test_a_lower_follow_up_is_shown_as_lower_and_nothing_is_averaged(client):
     p = practice(client, h, action["id"])
     [item] = p["items"]
     assert item["score"] == low["score"] < origin["score"]
-    assert set(p) == {"action_id", "count", "items", "origin", "linked", "note", "disputed"}
+    assert set(p) == {"action_id", "count", "items", "submissions", "origin", "linked", "note", "disputed"}
 
 
 def test_unrelated_answers_and_earlier_practice_never_count(client):

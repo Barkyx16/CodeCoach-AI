@@ -7,7 +7,8 @@ import { api } from "@/api/endpoints";
 import { useStartInterview, useTarget, useTargetMutation } from "@/api/queries";
 import type { Experience, LifecycleOutcome, Requirement, StoryLinksReviewIn, Target } from "@/api/types";
 import { BackLink } from "@/components/BackLink";
-import { Badge } from "@/components/Badge";
+import { Badge, StatusBadge } from "@/components/Badge";
+import { formatDay } from "@/features/applications/dates";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Icon } from "@/components/Icon";
@@ -229,6 +230,17 @@ function RequirementCard({ t, r }: { t: Target; r: Requirement }) {
           <summary>Source text{r.quote_in_description ? "" : " (no longer in the description)"}</summary>
           <blockquote>{r.quote}</blockquote>
         </details>
+      )}
+      {!r.removed && (r.submissions ?? []).length > 0 && (
+        <ul className="requirement__practice" aria-label={`Your latest submissions for ${r.text}`}>
+          {(r.submissions ?? []).map((s) => (
+            <li key={s.submission_id}>
+              <Link to={s.href} state={{ from: location.pathname + location.search, fromLabel: "Back to this role" }}>Submitted: {s.problem_title}</Link>
+              <span className="subtle"> · </span><StatusBadge status={s.status} />
+              <span className="subtle"> · <time dateTime={s.created_at}>{formatDay(s.created_at.slice(0, 10))}</time></span>
+            </li>
+          ))}
+        </ul>
       )}
       {!r.removed && r.practice.length > 0 && (
         <ul className="requirement__practice">

@@ -5,6 +5,7 @@ from typing import Literal
 
 from pydantic import Field, field_validator
 
+from app.models import SubmissionStatus
 from app.schemas.common import APIModel
 from app.schemas.freshness import Freshness, SourceReviewIn
 from app.schemas.roadmap import RoundStart
@@ -72,6 +73,17 @@ class PracticeLink(APIModel):
     best_score: int | None = None
 
 
+class RequirementSubmission(APIModel):
+    """One of the learner's latest judged submissions to a problem this requirement offers, with its
+    verdict as judged (Volume 14, prompt 2)."""
+
+    submission_id: str
+    problem_title: str
+    status: SubmissionStatus
+    created_at: datetime
+    href: str
+
+
 class Coverage(APIModel):
     level: Literal["practised", "some", "limited", "gap"]
     label: str
@@ -96,6 +108,10 @@ class RequirementOut(APIModel):
     removed: bool
     coverage: Coverage
     practice: list[PracticeLink]
+    submissions: list[RequirementSubmission] = Field(
+        default_factory=list,
+        description="Your latest judged submissions (at most 3) to the problems this requirement offers",
+    )
 
 
 class AttemptOut(APIModel):

@@ -90,10 +90,12 @@ DEFAULT_WEEKLY_MINUTES = 60
 
 @dataclass
 class _Used:
-    """Evidence that already completed an item: answer ids and round (session) ids."""
+    """Evidence that already completed an item: answer ids, round (session) ids and judged
+    submission ids."""
 
     answers: set[str]
     sessions: set[str]
+    submissions: set[str] = field(default_factory=set)
 
 
 # Rounds are matched before single answers, so a round claims the answers inside it.
@@ -137,9 +139,24 @@ def _plural(n: int, one: str, many: str) -> str:
     return f"{n} {one if n == 1 else many}"
 
 
-def news_text(answers: int, retries: int, below: int, rounds: int, since: str) -> str:
+def _submissions_text(submissions: int, not_passed: int) -> str:
+    """ "1 submission (not passed)", "3 submissions (2 not passed)", "2 submissions (both passed)"."""
+    text = _plural(submissions, "submission", "submissions")
+    if submissions == 1:
+        return text + (" (not passed)" if not_passed else " (passed)")
+    if not_passed == 0:
+        return text + (" (both passed)" if submissions == 2 else " (all passed)")
+    if not_passed == submissions:
+        return text + (" (neither passed)" if submissions == 2 else " (none passed)")
+    return text + f" ({not_passed} not passed)"
+
+
+def news_text(
+    answers: int, retries: int, below: int, rounds: int, since: str, submissions: int = 0, not_passed: int = 0
+) -> str:
     """One line for what's new: "2 answers since this plan, one below 70." Counts only: it says
-    what was done and how it scored, never that anything improved."""
+    what was done and how it scored (a submission: passed or not, as judged), never that anything
+    improved."""
     parts: list[str] = []
     if answers:
         if retries == answers:
@@ -152,8 +169,14 @@ def news_text(answers: int, retries: int, below: int, rounds: int, since: str) -
             parts.append(_plural(answers, "answer", "answers"))
     if rounds:
         parts.append(_plural(rounds, "finished round", "finished rounds"))
-    text = " and ".join(parts) + f" since {since}"
-    if below:
+    if submissions:
+        parts.append(_submissions_text(submissions, not_passed))
+    text = ", ".join(parts[:-1]) + (" and " if len(parts) > 1 else "") + parts[-1] + f" since {since}"
+    if below and submissions:
+        text += (
+            ", the answer below 70" if answers == 1 else f", {_plural(below, 'answer', 'answers')} below 70"
+        )
+    elif below:
         if answers == 1:
             text += ", below 70"
         elif below == answers:
@@ -208,6 +231,8 @@ class Evidence:
     answered_all: set[str] = field(default_factory=set)
     disputed_question: dict[str, Dispute] = field(default_factory=dict)
     withheld: list[dict[str, str]] = field(default_factory=list)  # filled while generating
+    # Submissions to read as if they didn't exist (the plan without what's new: Roadmap._news).
+    left_out_submissions: set[str] = field(default_factory=set)
 
 
 class Roadmap:
@@ -375,6 +400,7 @@ class Roadmap:
             best_all=best_all,
             answered_all=answered_all,
             disputed_question=disputed_question,
+            left_out_submissions=set(leave_out.submissions) if leave_out is not None else set(),
         )
 
     # --- generation -------------------------------------------------------------------------
@@ -599,7 +625,7 @@ class Roadmap:
                 if self.judge_enabled
                 else "Submit an attempt. This server can't run code, so it's saved without a verdict."
             )
-            for rec in ProgressService(self.db).recommend(user, limit=2):
+            for rec in ProgressService(self.db).recommend(user, limit=2, leave_out=ev.left_out_submissions):
                 if rec.slug in used:
                     continue
                 coding.append(
@@ -817,6 +843,8 @@ class Roadmap:
                 used.sessions.add(ev["session_id"])
                 if "answer_ids" not in ev:
                     legacy.append(ev["session_id"])
+            if ev.get("submission_id"):
+                used.submissions.add(ev["submission_id"])
         if legacy:
             used.answers.update(self._round_answers(legacy))
         return used
@@ -1017,11 +1045,33 @@ class Roadmap:
             ).all()
             if r.id not in used.sessions
         ]
-        if not fresh and not rounds:
+        # Judged submissions no activity used (Volume 14, prompt 2): a verdict on the learner's code.
+        # Runs (public tests only) and attempts only saved aren't evidence.
+        subs = (
+            [
+                (sub, problem)
+                for sub, problem in self.db.execute(
+                    select(Submission, Problem)
+                    .join(Problem, Problem.id == Submission.problem_id)
+                    .where(
+                        Submission.user_id == user.id,
+                        Submission.mode == SubmissionMode.SUBMIT,
+                        Submission.status.in_(JUDGED),
+                        Submission.created_at >= since,
+                        Problem.kind == "problem",
+                    )
+                    .order_by(Submission.created_at)
+                ).all()
+                if sub.id not in used.submissions
+            ]
+            if CATALOG[track].has_coding
+            else []
+        )
+        if not fresh and not rounds and not subs:
             return None
         goal = self._goal(user, track)
         avoid = self._avoid(user, track)
-        leave_out = _Used({a[0] for a in fresh}, {r.id for r in rounds})
+        leave_out = _Used({a[0] for a in fresh}, {r.id for r in rounds}, {sub.id for sub, _ in subs})
         with_new = self._generate(user, track, goal, replace(ev, withheld=[]), avoid)
         without = self._generate(user, track, goal, self._evidence(user, track, disputes, leave_out), avoid)
         if {s.key for s in with_new} == {s.key for s in without}:
@@ -1049,6 +1099,17 @@ class Roadmap:
                     href=f"/interviews/{r.id}",
                 )
             )
+        for sub, problem in subs:
+            entries.append(
+                NewEvidence(
+                    kind="submission",
+                    title=problem.title,
+                    score=None,
+                    verdict="passed" if sub.status == SubmissionStatus.PASSED else "not passed",
+                    href=f"/history/submissions/{sub.id}",
+                )
+            )
+        not_passed = sum(sub.status != SubmissionStatus.PASSED for sub, _ in subs)
         retries = sum(a[3] for a in fresh)
         below = sum(a[2] < WEAK for a in fresh)
         not_counted = []
@@ -1061,11 +1122,13 @@ class Roadmap:
                 f"{_plural(disputed, 'answer', 'answers')} whose feedback you disputed {'isn’t' if disputed == 1 else 'aren’t'} counted."
             )
         return PlanNews(
-            text=news_text(len(fresh), retries, below, len(rounds), "this plan"),
+            text=news_text(len(fresh), retries, below, len(rounds), "this plan", len(subs), not_passed),
             answers=len(fresh),
             retries=retries,
             below=below,
             rounds=len(rounds),
+            submissions=len(subs),
+            not_passed=not_passed,
             entries=entries[:10],
             not_counted=not_counted,
         )
@@ -1091,7 +1154,15 @@ class Roadmap:
             why.insert(
                 0,
                 "Updated when you asked: "
-                + news_text(n.answers, n.retries, n.below, n.rounds, f"version {plan.version}"),
+                + news_text(
+                    n.answers,
+                    n.retries,
+                    n.below,
+                    n.rounds,
+                    f"version {plan.version}",
+                    n.submissions,
+                    n.not_passed,
+                ),
             )
         self.db.flush()
         try:

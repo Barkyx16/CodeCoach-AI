@@ -1,7 +1,7 @@
 import type { APIRequestContext } from "@playwright/test";
 
 import { expect, test } from "./fixtures";
-import { BASELINE, JUDGE_NEEDED, NOT_LINKED, PROBLEM, PROBLEM_TITLE, RESUBMISSION, SE_TRACK, paste, type Sub } from "./engineer-journey";
+import { BASELINE, CODE_NOTE, JUDGE_NEEDED, PROBLEM, PROBLEM_TITLE, RESUBMISSION, SE_TRACK, paste, type Sub } from "./engineer-journey";
 import { API_URL } from "./ports";
 import { api, newAccount, signIn, type Account } from "./preparation-journey";
 
@@ -122,10 +122,13 @@ test.describe("with the real judge", () => {
     // Compared with the first: the help differed (the hint was before the first only), so partly.
     const compared = page.getByRole("region", { name: "Compared with your previous submission" });
     await expect(compared).toContainText(/^Compared with your previous submission.*Failed.*Passed.*Partly comparable: the in-app help differed: before the earlier one, hint shown; before the later one, none recorded/);
-    // The improvement doesn't claim the resubmission as its evidence: no practice is linked to it.
+    // Both were submitted before the improvement was accepted: neither is its practice (Volume 14,
+    // prompt 2: only submissions since it was accepted count).
     await page.goto("/plan");
     const accepted = page.getByRole("region", { name: "Improvements you accepted (1)" });
-    await expect(accepted.getByText(NOT_LINKED)).toBeVisible();
+    await accepted.getByText("Related practice since you accepted it (0)").click();
+    await expect(accepted.locator(".related-practice")).toContainText("Nothing yet.");
+    await expect(accepted.locator(".related-practice")).toContainText(CODE_NOTE);
     await expect(accepted).not.toContainText(/improv(ed|ement shown)|better than/i);
   });
 });

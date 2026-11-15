@@ -755,7 +755,9 @@ All under `/api/v1/targets` 🔒 and scoped to the owner (another user's id is a
   (`app/services/jd_extract.py`); the text is never executed or treated as instructions.
 - `GET /targets/{id}`: the target with `requirement_list` (each `{category, text, origin:
   explicit|inferred|user, quote, quote_in_description, skills, removed, coverage: {level:
-  practised|some|limited|gap, label, …}, practice: [{kind, title, href, why}]}`),
+  practised|some|limited|gap, label, …}, practice: [{kind, title, href, why}], submissions:
+  [{submission_id, problem_title, status, created_at, href}]}`: the latest three judged submissions to
+  the problems it offers, Volume 14, prompt 2),
   `next_activity`, `targeted_session` and `mock_interview` (`{title, scope, round}` for
   `POST /interviews`), `recent_attempts`, `experience`.
 - `PATCH /targets/{id}` edits fields, `archived`, or `selected` (one active target); editing the

@@ -123,11 +123,15 @@ class PlanProgress(APIModel):
 
 
 class NewEvidence(APIModel):
-    kind: Literal["answer", "retry", "round"] = Field(
-        description="A written answer, an answer revising an earlier one, or a finished question round"
+    kind: Literal["answer", "retry", "round", "submission"] = Field(
+        description="A written answer, an answer revising an earlier one, a finished question round, or a "
+        "judged coding submission"
     )
     title: str
-    score: int | None = Field(description="An answer's score; none for a round")
+    score: int | None = Field(description="An answer's score; none for a round or a submission")
+    verdict: Literal["passed", "not passed"] | None = Field(
+        default=None, description="A submission's verdict, as judged"
+    )
     href: str
 
 
@@ -140,6 +144,10 @@ class PlanNews(APIModel):
     retries: int = Field(description="How many of those revise an earlier answer")
     below: int = Field(description="How many of those scored below 70")
     rounds: int = Field(description="Question rounds finished since this version that no activity used")
+    submissions: int = Field(
+        default=0, description="Judged coding submissions since this version that no activity used"
+    )
+    not_passed: int = Field(default=0, description="How many of those didn't pass")
     entries: list[NewEvidence] = Field(description="Them, oldest first (at most 10)")
     not_counted: list[str] = Field(
         default_factory=list,

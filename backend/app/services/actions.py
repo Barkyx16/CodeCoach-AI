@@ -494,11 +494,18 @@ class Actions:
         for a in self.mine():
             rel = finder.related(rows[a.id])
             related = [x.id for _, x in rel[1]] if rel else []
+            # A coding interview's improvement: judged submissions of its problem since (Volume 14, prompt 2).
+            code = [x.id for x in (finder.related_submissions(rows[a.id]) or [])] if rel is None else []
             out.append(
                 {
                     **({"id": a.id} if with_ids else {}),
-                    # Practice linked to it since it was accepted (docs/ACCEPTED_ACTIONS.md), by answer id.
-                    **({"related_attempts": related} if with_ids else {"related_practice": len(related)}),
+                    # Practice linked to it since it was accepted (docs/ACCEPTED_ACTIONS.md), by answer id
+                    # and, for a coding interview's improvement, by submission id.
+                    **(
+                        {"related_attempts": related, "related_submissions": code}
+                        if with_ids
+                        else {"related_practice": len(related) + len(code)}
+                    ),
                     "title": a.title,
                     "notes": a.notes,
                     "recurrence": a.recurrence,

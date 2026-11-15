@@ -35,6 +35,7 @@ from app.models import (
 )
 from app.schemas.careers import AttemptComparison, ComparisonReason
 from app.schemas.conditions import AttemptConditions
+from app.schemas.submission import ComparedSubmission, SubmissionComparison
 from app.services.conditions import RECORDED_FROM, Conditions, problem_versions
 
 # Written answers are graded 0-100 by the coach (app/careers/grading.py): the scale belongs to the
@@ -76,6 +77,25 @@ def comparison_out(against: str, c: Classification) -> AttemptComparison:
         reasons=[ComparisonReason(rule=r.rule, kind=r.kind, text=r.text) for r in c.reasons],
         explanation=c.explanation,
         contract_version=c.contract_version,
+    )
+
+
+def compared_view(previous: Submission, classification: Classification) -> SubmissionComparison:
+    """A submission's comparison as shown: the earlier one's verdict and counts, and the classification."""
+    from app.services.judge.views import public_result_view
+
+    r = public_result_view(previous)
+    return SubmissionComparison(
+        previous=ComparedSubmission(
+            id=previous.id,
+            status=previous.status,
+            created_at=previous.created_at,
+            passed_count=r.passed_count if r else None,
+            total_count=r.total_count if r else None,
+            hidden_passed=r.hidden_passed if r else None,
+            hidden_total=r.hidden_total if r else None,
+        ),
+        comparison=comparison_out(previous.id, classification),
     )
 
 

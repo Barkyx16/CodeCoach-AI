@@ -169,7 +169,7 @@ judge's verdicts as the judge reported them (`judged`).
 | 7 | Feedback review: a coding interview | built-in coach | A coding interview on the same problem, finished; its feedback's "Work on next" lists the built-in interviewer's lowest rubric skills |
 | 8 | An accepted improvement | | The first of them accepted as a weekly action, from that interview |
 | 9 | Its calendar placement | | The plan schedules two weeks; the schedule shows it in the first week, not yet done |
-| 10 | A resubmission, judged for real | real judge | A correct solution, judged in the sandbox; its own help reads "No in-app help recorded" (a hint belongs to the attempt after it). **Compared** with the baseline by the one comparison rule (since Volume 14, prompt 1; docs/COMPARING_ATTEMPTS.md, "Coding submissions"): under the result, "Partly comparable: the in-app help differed: before the earlier one, hint shown; before the later one, none recorded. The counts are from the same tests, so both are shown", both verdicts as judged; History lists both with their own help and the comparison on the later one; the improvement says "This kind of improvement has no practice linked to it yet: mark it done when you've done it." rather than claiming the resubmission, and the requirement reads what the server says ("Some practice") |
+| 10 | A resubmission, judged for real | real judge | A correct solution, judged in the sandbox; its own help reads "No in-app help recorded" (a hint belongs to the attempt after it). **Compared** with the baseline by the one comparison rule (since Volume 14, prompt 1; docs/COMPARING_ATTEMPTS.md, "Coding submissions"): under the result, "Partly comparable: the in-app help differed: before the earlier one, hint shown; before the later one, none recorded. The counts are from the same tests, so both are shown", both verdicts as judged; History lists both with their own help and the comparison on the later one; the improvement's related practice lists the resubmission ("Submission: Two Sum", passed, since Volume 14, prompt 2: the coding interview names its problem), without ticking it; and the requirement reads what the server says ("Some practice") and lists both submissions, newest first, with their verdicts |
 | 11 | Final preparation material | | An application, an interview and its kit; the checklist reads the same action ("Problem solving · 0 of 2 weeks done") and the printable pack lists it |
 | 12 | Found again | | After a reload, and after a fresh sign-in in another browser: both submissions with their verdicts and the baseline's hint, and the kit; then by the API with a new token: the requirement ids, both submissions' verdicts, the action (its interview and two occurrences), the review's link to it and the kit's |
 | 13 | No secret in the logs | | The API's access log doesn't contain the canary typed into the code and the kit's notes |
@@ -185,7 +185,7 @@ checked at phone width by their own specs.
 | Branch | What it checks | Negative control (caught) |
 |---|---|---|
 | Code changed after the preview | By the API, the preview's fingerprint with other code is 409 `context_changed`, with what the coach would read now, and nothing is used; in the browser, a review request that leaves with other code than the preview showed (as a stale tab would send it) is refused: "What the coach would read changed since you checked it, so nothing was sent. This is what it would read now.", the new code shown, no review | the fingerprint comparison in `services/ai/service.py` removed |
-| A judged resubmission | After a hint, a failed and a passing submission (both judged) and an improvement from a coding interview: History gives each its own help ("Hint shown" once, "No in-app help recorded" once), the resubmission's page its own verdict and its comparison with the first ("Partly comparable: the in-app help differed …"), and the plan says no practice is linked to the improvement | a hint counted for every later attempt (`services/conditions.py`); an improvement with no stored link reported as linked with nothing found (`services/related_practice.py`) |
+| A judged resubmission | After a hint, a failed and a passing submission (both judged) and then an improvement from a coding interview: History gives each its own help ("Hint shown" once, "No in-app help recorded" once), the resubmission's page its own verdict and its comparison with the first ("Partly comparable: the in-app help differed …"), and the improvement's related practice has none (both came before it was accepted) | a hint counted for every later attempt (`services/conditions.py`); an improvement with no stored link reported as linked with nothing found (`services/related_practice.py`) |
 | Another account's submission | Its page says "This submission isn't available"; the API says 404 `not_found`; a code review or a failure explanation preview naming it is 404; its conditions aren't returned; the owner still has it | the submission found by its id alone (`api/routes/submissions.py`) |
 
 The changed-code and another-account branches don't need the judge and run in every e2e run; the
@@ -242,10 +242,9 @@ saying why.
 - The nurse's path: one career, a registered nurse. The coach-context step is absent for it (above);
   the "Hint shown" assistance label isn't on it (the software engineer's journey has it); the judge
   isn't used.
-- The software engineer's path: one problem (Two Sum), Java only. An improvement from a coding
-  interview has no practice linked to it, so nothing ties the resubmission to the improvement except
-  the learner. (Coding submissions are compared since Volume 14, prompt 1; the record above, made
-  before that, says "not compared".) The target's requirement links to the problem, not to the submissions.
+- The software engineer's path: one problem (Two Sum), Java only. (Coding submissions are compared
+  since Volume 14, prompt 1, and listed under the coding interview's improvement and the requirement
+  since prompt 2; a record made before those says "not compared" and "no practice linked".)
 - The journey links the follow-up and the accepted improvement only by order. Since Volume 13, prompt 4, a
   follow-up to the improvement's question is listed under its Related practice (docs/ACCEPTED_ACTIONS.md);
   the recorded journey above predates that and doesn't check it.

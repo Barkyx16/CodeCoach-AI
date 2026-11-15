@@ -111,6 +111,23 @@ shown as a retry; "too short" shown as a score; a disputed action unlabelled; th
 the attempts; and on the pages, no list on the plan or in the kit, a follow-up's score set beside
 the original's, "too short" shown as zero.
 
+### Coding interviews' improvements (Volume 14, prompt 2)
+
+An improvement accepted from a **coding** interview ("Problem solving", "Testing", …) points at the
+interview's problem. Its related practice is the learner's **judged submissions of that problem made
+since it was accepted** (`RelatedPracticeFinder.related_submissions`): a stored link, since the
+interview records its problem; never a guess by topic or title. Runs (public tests only), attempts
+only saved, the judge's own failures, other problems and other accounts' submissions aren't listed.
+
+Each is listed as "Submission: Two Sum", with its date, its verdict, its counts and its comparison
+with the submission before it (docs/COMPARING_ATTEMPTS.md, "Coding submissions"), under the note
+"Submissions of the interview's problem since you accepted this, found by a stored link (the
+interview names its problem). Each keeps its own verdict, compared with the submission before it.
+Whether it helped isn't judged, and marking the improvement done is yours." Nothing ticks the action
+or an occurrence. The API gives them as `submissions` beside `items`; the version 2 export carries
+them by id as `related_submissions` (the first export counts them in `related_practice`). A deleted
+submission drops out.
+
 ## Lifecycle and privacy
 
 - Owner-only: every query is filtered by the account first, and on PostgreSQL row-level security

@@ -52,6 +52,7 @@ from app.schemas.roles import (
     RequirementOut,
     RequirementPatch,
     RequirementSetIn,
+    RequirementSubmission,
     RevisionPreview,
     SessionPlan,
     StoryLinksReviewIn,
@@ -526,9 +527,9 @@ class RoleTargets:
         )
         sub_rows = (
             self.db.execute(
-                select(Submission.problem_id, Submission.status).where(
-                    Submission.user_id == user.id, Submission.mode == SubmissionMode.SUBMIT
-                )
+                select(Submission.id, Submission.problem_id, Submission.status, Submission.created_at)
+                .where(Submission.user_id == user.id, Submission.mode == SubmissionMode.SUBMIT)
+                .order_by(Submission.created_at.desc(), Submission.id.desc())
             ).all()
             if profile.has_coding
             else []
@@ -536,7 +537,7 @@ class RoleTargets:
         judged: dict[int, int] = defaultdict(int)
         passed: set[int] = set()
         attempted: set[int] = set()
-        for pid, status in sub_rows:
+        for _sid, pid, status, _at in sub_rows:
             attempted.add(pid)
             if status in JUDGED:
                 judged[pid] += 1
@@ -629,6 +630,20 @@ class RoleTargets:
                         best_score=best.get(q.id),
                     )
                 )
+            # The latest judged submissions to these problems, newest first (Volume 14, prompt 2): the
+            # attempts themselves, since a passed problem leaves the practice links.
+            titles = {p.id: p.title for p in probs}
+            latest = [
+                RequirementSubmission(
+                    submission_id=sid,
+                    problem_title=titles[pid],
+                    status=status,
+                    created_at=at,
+                    href=f"/history/submissions/{sid}",
+                )
+                for sid, pid, status, at in sub_rows
+                if pid in titles and status in JUDGED
+            ][:3]
             for p in [p for p in probs if p.id not in passed][:2]:
                 practice.append(
                     PracticeLink(
@@ -648,6 +663,7 @@ class RoleTargets:
                     quote=r.quote,
                     quote_in_description=bool(r.quote) and _contains(t.description, r.quote or ""),
                     skills=list(r.skills),
+                    submissions=latest,
                     removed=r.removed,
                     practice=practice,
                     coverage=Coverage(

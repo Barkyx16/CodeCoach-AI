@@ -9352,17 +9352,22 @@ export interface components {
         NewEvidence: {
             /**
              * Kind
-             * @description A written answer, an answer revising an earlier one, or a finished question round
+             * @description A written answer, an answer revising an earlier one, a finished question round, or a judged coding submission
              * @enum {string}
              */
-            kind: "answer" | "retry" | "round";
+            kind: "answer" | "retry" | "round" | "submission";
             /** Title */
             title: string;
             /**
              * Score
-             * @description An answer's score; none for a round
+             * @description An answer's score; none for a round or a submission
              */
             score: number | null;
+            /**
+             * Verdict
+             * @description A submission's verdict, as judged
+             */
+            verdict?: ("passed" | "not passed") | null;
             /** Href */
             href: string;
         };
@@ -10546,6 +10551,18 @@ export interface components {
              */
             rounds: number;
             /**
+             * Submissions
+             * @description Judged coding submissions since this version that no activity used
+             * @default 0
+             */
+            submissions: number;
+            /**
+             * Not Passed
+             * @description How many of those didn't pass
+             * @default 0
+             */
+            not_passed: number;
+            /**
              * Entries
              * @description Them, oldest first (at most 10)
              */
@@ -11550,6 +11567,11 @@ export interface components {
             /** @description The attempt the improvement came from, if it's still there */
             origin: components["schemas"]["RelatedOrigin"] | null;
             /**
+             * Submissions
+             * @description For an improvement from a coding interview: judged submissions of its problem since it was accepted, oldest first
+             */
+            submissions?: components["schemas"]["RelatedSubmission"][];
+            /**
              * Linked
              * @description False when this kind of improvement has no practice link yet
              */
@@ -11557,6 +11579,38 @@ export interface components {
             /** Note */
             note: string;
             disputed?: components["schemas"]["DisputeNote"] | null;
+        };
+        /**
+         * RelatedSubmission
+         * @description A judged submission of the problem a coding interview's improvement came from, made since it
+         *     was accepted (a stored link: the interview names its problem). Its own verdict, compared with
+         *     the submission before it by the one comparison rule; never set beside the interview itself.
+         */
+        RelatedSubmission: {
+            /** Submission Id */
+            submission_id: string;
+            /** Problem Slug */
+            problem_slug: string;
+            /** Problem Title */
+            problem_title: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            status: components["schemas"]["SubmissionStatus"];
+            /** Passed Count */
+            passed_count?: number | null;
+            /** Total Count */
+            total_count?: number | null;
+            /** Hidden Passed */
+            hidden_passed?: number | null;
+            /** Hidden Total */
+            hidden_total?: number | null;
+            conditions?: components["schemas"]["AttemptConditions"] | null;
+            compared?: components["schemas"]["SubmissionComparison"] | null;
+            /** Href */
+            href: string;
         };
         /** RepeatedArea */
         RepeatedArea: {
@@ -11812,6 +11866,11 @@ export interface components {
             coverage: components["schemas"]["Coverage"];
             /** Practice */
             practice: components["schemas"]["PracticeLink"][];
+            /**
+             * Submissions
+             * @description Your latest judged submissions (at most 3) to the problems this requirement offers
+             */
+            submissions?: components["schemas"]["RequirementSubmission"][];
         };
         /** RequirementPatch */
         RequirementPatch: {
@@ -11838,6 +11897,25 @@ export interface components {
              * @description Suggested matches you accepted; anything not here stays separate
              */
             same_as?: components["schemas"]["SameAs"][];
+        };
+        /**
+         * RequirementSubmission
+         * @description One of the learner's latest judged submissions to a problem this requirement offers, with its
+         *     verdict as judged (Volume 14, prompt 2).
+         */
+        RequirementSubmission: {
+            /** Submission Id */
+            submission_id: string;
+            /** Problem Title */
+            problem_title: string;
+            status: components["schemas"]["SubmissionStatus"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Href */
+            href: string;
         };
         /** RestoreBatch */
         RestoreBatch: {

@@ -29,14 +29,21 @@ Since the version was made, and not used by any activity in it:
   alone or inside a round. An answer that explicitly revises an earlier one is counted as a
   **retry**.
 - **Finished question rounds** (a baseline, a practice round or a mock interview).
+- **Judged coding submissions** (Volume 14, prompt 2), for a career with coding: submissions (not
+  runs, which check the public tests only) that the judge gave a verdict on, named with it: "1
+  submission (not passed) since this plan.", "3 submissions (2 not passed)", "2 submissions (both
+  passed)". Attempts only saved (no judge on the server) and the judge's own failures aren't
+  verdicts, so they aren't counted. A submission that completed a coding activity in the version is
+  that activity's, not new. To see whether they change anything, the coding recommender reads the
+  learner's submissions with these left out (`ProgressService.recommend(leave_out=...)`).
 
 Not counted, and named as not counted when an update is offered:
 
 - answers too short to score ("1 answer too short to score isn’t counted.");
 - answers whose feedback as a whole the learner disputed (docs/DISPUTES.md).
 
-Not counted at all yet: coding attempts (they follow later), accepted improvements (they have their
-own section of the plan page and the planner doesn't choose from them), lessons, reflections.
+Not counted at all yet: accepted improvements (they have their own section of the plan page and
+the planner doesn't choose from them), lessons, reflections.
 
 ## Whether it changes anything
 
@@ -105,7 +112,8 @@ the update as everywhere else: the version is built by the same `_new_version`.
 
 ## Limits
 
-- Coding attempts aren't new evidence yet; they still complete a coding activity as before.
+- A judged submission's verdict is said as passed or not passed; the counts and the comparison are
+  on the submission's own page.
 - Whether the plan would change is decided by which activities are chosen, not their order or the
   numbers in their reasons.
 - A dispute or its reinstatement isn't "new practice": it shows on the plan at once (labels) and

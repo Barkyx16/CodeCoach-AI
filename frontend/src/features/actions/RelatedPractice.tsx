@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 
 import { useRelatedPractice } from "@/api/queries";
 import type { RelatedAttempt, RelatedPractice as Practice } from "@/api/types";
+import { StatusBadge } from "@/components/Badge";
 import { formatDay } from "@/features/applications/dates";
 
 function scoreText(a: RelatedAttempt): string {
@@ -21,9 +22,10 @@ function against(a: RelatedAttempt, p: Practice): string | null {
 
 /**
  * Practice related to an accepted improvement since it was accepted (docs/ACCEPTED_ACTIONS.md):
- * retries of its question and follow-ups to it, found by stored links, each with its own score and
- * how it compares. Evidence only: it never ticks the action or says the improvement worked. The plan
- * and the kit both show this, from the same request.
+ * retries of its question and follow-ups to it, or, for a coding interview's improvement, judged
+ * submissions of its problem (Volume 14, prompt 2), found by stored links, each with its own score or
+ * verdict and how it compares. Evidence only: it never ticks the action or says the improvement
+ * worked. The plan and the kit both show this, from the same request.
  */
 export function RelatedPractice({ actionId }: { actionId: string }) {
   const q = useRelatedPractice(actionId);
@@ -49,6 +51,15 @@ export function RelatedPractice({ actionId }: { actionId: string }) {
               </li>
             );
           })}
+          {(p.submissions ?? []).map((s) => (
+            <li key={s.submission_id}>
+              <Link to={s.href}>Submission: {s.problem_title}</Link>
+              {", "}<time dateTime={s.created_at}>{formatDay(s.created_at.slice(0, 10))}</time>
+              {" · "}<StatusBadge status={s.status} />
+              {s.passed_count != null && s.total_count != null && <span className="subtle"> {s.passed_count} of {s.total_count} tests passed</span>}
+              {s.compared && <span className="subtle"> {s.compared.comparison.explanation}</span>}
+            </li>
+          ))}
         </ol>
       )}
       <p className="subtle">{p.note}</p>

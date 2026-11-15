@@ -19,13 +19,12 @@ from app.models import (
 from app.schemas.common import Page, error_responses
 from app.schemas.conditions import AttemptConditions
 from app.schemas.submission import (
-    ComparedSubmission,
     SubmissionComparison,
     SubmissionCreate,
     SubmissionDetail,
     SubmissionListItem,
 )
-from app.services.attempt_comparisons import AttemptComparisons, comparison_out
+from app.services.attempt_comparisons import AttemptComparisons, compared_view
 from app.services.conditions import Conditions, problem_version
 from app.services.content import is_problem_retired
 from app.services.judge.backends import ExecutionDisabledError, JudgeUnavailableError
@@ -34,22 +33,6 @@ from app.services.judge.views import public_result_view
 
 router = APIRouter(prefix="/api/v1", tags=["submissions"])
 _ERRORS = error_responses(400, 401, 404, 422, 429, 503)
-
-
-def compared_view(previous: Submission, classification) -> SubmissionComparison:
-    r = public_result_view(previous)
-    return SubmissionComparison(
-        previous=ComparedSubmission(
-            id=previous.id,
-            status=previous.status,
-            created_at=previous.created_at,
-            passed_count=r.passed_count if r else None,
-            total_count=r.total_count if r else None,
-            hidden_passed=r.hidden_passed if r else None,
-            hidden_total=r.hidden_total if r else None,
-        ),
-        comparison=comparison_out(previous.id, classification),
-    )
 
 
 def to_detail(

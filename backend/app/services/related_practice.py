@@ -30,11 +30,14 @@ from app.models import (
     InterviewTurn,
     PracticeAnswer,
     PracticeSession,
+    Submission,
+    SubmissionMode,
     TurnRole,
     User,
 )
-from app.schemas.actions import RelatedAttempt, RelatedOrigin, RelatedPractice
-from app.services.attempt_comparisons import AttemptComparisons, comparison_out
+from app.schemas.actions import RelatedAttempt, RelatedOrigin, RelatedPractice, RelatedSubmission
+from app.services.attempt_comparisons import VERDICTS, AttemptComparisons, compared_view, comparison_out
+from app.services.conditions import Conditions
 
 _RETRY = re.compile(r"^/interviews/([^/]+)/retry/(\d+)$")
 NOTE = (
@@ -43,6 +46,11 @@ NOTE = (
     "and marking the improvement done is yours."
 )
 UNLINKED = "This kind of improvement has no practice linked to it yet: mark it done when you've done it."
+CODE_NOTE = (
+    "Submissions of the interview's problem since you accepted this, found by a stored link (the interview "
+    "names its problem). Each keeps its own verdict, compared with the submission before it. Whether it "
+    "helped isn't judged, and marking the improvement done is yours."
+)
 FOLLOW_UP_NOTE = (
     "A different question about the same thing: not a retry, so its score isn't set beside the original's."
 )
@@ -121,8 +129,76 @@ class RelatedPracticeFinder:
         found.sort(key=lambda x: (_aware(x[1].created_at), x[1].id))
         return origin, found
 
+    def coding_problem(self, row: AcceptedAction) -> int | None:
+        """The problem of the coding interview the improvement came from (a stored link), if it came
+        from one."""
+        if row.source_kind != "interview_improvement":
+            return None
+        return self.db.scalar(
+            select(PracticeSession.problem_id).where(
+                PracticeSession.id == row.source_id, PracticeSession.user_id == self.user.id
+            )
+        )
+
+    def related_submissions(self, row: AcceptedAction) -> list[Submission] | None:
+        """Judged submissions (not runs) of that problem since the improvement was accepted, oldest
+        first; None when the improvement didn't come from a coding interview."""
+        problem_id = self.coding_problem(row)
+        if problem_id is None:
+            return None
+        since = _aware(row.created_at)
+        rows = self.db.scalars(
+            select(Submission)
+            .where(
+                Submission.user_id == self.user.id,
+                Submission.problem_id == problem_id,
+                Submission.mode == SubmissionMode.SUBMIT,
+                Submission.status.in_(VERDICTS),
+            )
+            .order_by(Submission.created_at, Submission.id)
+        ).all()
+        return [s for s in rows if _aware(s.created_at) >= since]
+
+    def _code_practice(self, row: AcceptedAction, subs: list[Submission], disputed) -> RelatedPractice:
+        from app.services.judge.views import public_result_view
+
+        pairs = AttemptComparisons(self.db, self.user).submissions_with_previous(subs)
+        help = Conditions(self.db, self.user).for_submissions(subs)
+        items = []
+        for s in subs:
+            r = public_result_view(s)
+            pair = pairs.get(s.id)
+            items.append(
+                RelatedSubmission(
+                    submission_id=s.id,
+                    problem_slug=s.problem.slug,
+                    problem_title=s.problem.title,
+                    created_at=s.created_at,
+                    status=s.status,
+                    passed_count=r.passed_count if r else None,
+                    total_count=r.total_count if r else None,
+                    hidden_passed=r.hidden_passed if r else None,
+                    hidden_total=r.hidden_total if r else None,
+                    conditions=help.get(s.id),
+                    compared=compared_view(*pair) if pair else None,
+                    href=f"/history/submissions/{s.id}",
+                )
+            )
+        return RelatedPractice(
+            action_id=row.id,
+            count=len(items),
+            items=[],
+            submissions=items,
+            origin=None,
+            linked=True,
+            note=CODE_NOTE,
+            disputed=disputed,
+        )
+
     def for_action(self, row: AcceptedAction, disputed=None) -> RelatedPractice:
         rel = self.related(row)
+        if rel is None and (subs := self.related_submissions(row)) is not None:
+            return self._code_practice(row, subs, disputed)
         if rel is None:
             return RelatedPractice(
                 action_id=row.id,

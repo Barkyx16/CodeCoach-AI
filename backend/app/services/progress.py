@@ -101,7 +101,9 @@ class ProgressService:
     def __init__(self, db: Session):
         self.db = db
 
-    def _facts(self, user: User) -> dict[int, _ProblemFacts]:
+    def _facts(self, user: User, leave_out: set[str] | None = None) -> dict[int, _ProblemFacts]:
+        """`leave_out`: submissions to read as if they didn't exist (the plan without what's new since
+        a version, to see whether that changes anything: Roadmap._news)."""
         # Debugging exercises (kind "debug") are in History, not in problem progress or recommendations.
         problems = self.db.scalars(
             select(Problem).where(Problem.kind == "problem").order_by(Problem.order_index)
@@ -114,7 +116,7 @@ class ProgressService:
             .order_by(Submission.created_at)
         ):
             f = facts.get(sub.problem_id)
-            if f is None:
+            if f is None or (leave_out and sub.id in leave_out):
                 continue
             f.submissions += 1
             f.last_status = sub.status
@@ -241,9 +243,14 @@ class ProgressService:
         ][:limit]
 
     def recommend(
-        self, user: User, *, limit: int = 5, facts: dict[int, _ProblemFacts] | None = None
+        self,
+        user: User,
+        *,
+        limit: int = 5,
+        facts: dict[int, _ProblemFacts] | None = None,
+        leave_out: set[str] | None = None,
     ) -> list[Recommendation]:
-        facts = facts if facts is not None else self._facts(user)
+        facts = facts if facts is not None else self._facts(user, leave_out)
         retired = retired_problem_slugs()  # never recommended; still counted in history
         values = [f for f in facts.values() if f.problem.slug not in retired]
         picks: list[Recommendation] = []

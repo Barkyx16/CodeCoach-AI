@@ -9,7 +9,7 @@ import { describeError } from "@/lib/errors";
 
 interface Notice { version: number; text: string }
 
-const KIND = { answer: "Answer", retry: "Retry", round: "Round" } as const;
+const KIND = { answer: "Answer", retry: "Retry", round: "Round", submission: "Submission" } as const;
 
 /**
  * Practice this plan version doesn't use yet that would change it (docs/PLAN_UPDATES.md): one line
@@ -56,6 +56,7 @@ export function PlanNews({ plan, minutes, compact = false }: { plan: Plan; minut
                   <li key={e.href}>
                     <Link to={e.href}>{KIND[e.kind]}: {e.title}</Link>
                     {e.score !== null && e.score !== undefined && <span className="subtle"> · {e.score}/100</span>}
+                    {e.verdict && <span className="subtle"> · {e.verdict}</span>}
                   </li>
                 ))}
               </ul>

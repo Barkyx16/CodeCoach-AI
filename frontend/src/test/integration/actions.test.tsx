@@ -174,6 +174,37 @@ describe("Improvements you accepted, beside the plan", () => {
   });
 });
 
+describe("Coding practice for a coding interview's improvement (Volume 14, prompt 2)", () => {
+  it("lists judged submissions of its problem, each with its verdict, counts and comparison, and never ticks the action", async () => {
+    record();
+    const explanation = "Partly comparable: the in-app help differed: before the earlier one, hint shown; before the later one, none recorded. The counts are from the same tests, so both are shown. (Comparison rules v1)";
+    server.use(
+      http.get(`${API}/api/v1/me/actions`, () => HttpResponse.json([action()])),
+      http.get(`${API}/api/v1/me/actions/act-1/practice`, () => HttpResponse.json({
+        action_id: "act-1", count: 1, linked: true, disputed: null, origin: null, items: [],
+        note: "Submissions of the interview's problem since you accepted this, found by a stored link (the interview names its problem). Each keeps its own verdict, compared with the submission before it. Whether it helped isn't judged, and marking the improvement done is yours.",
+        submissions: [{
+          submission_id: "s-2", problem_slug: "two-sum", problem_title: "Two Sum", created_at: now, status: "PASSED",
+          passed_count: 7, total_count: 7, hidden_passed: 4, hidden_total: 4, conditions: null, href: "/history/submissions/s-2",
+          compared: {
+            previous: { id: "s-1", status: "FAILED", created_at: now, passed_count: 2, total_count: 7, hidden_passed: 0, hidden_total: 4 },
+            comparison: { against: "s-1", outcome: "partially_comparable", scores_comparable: true, points_comparable: true, reasons: [], explanation, contract_version: 1 },
+          },
+        }],
+      })),
+    );
+    const { user } = renderApp("/plan", { signedIn: true });
+    const section = await screen.findByRole("region", { name: "Improvements you accepted (1)" }, { timeout: 3000 });
+    await user.click(await within(section).findByText("Related practice since you accepted it (1)"));
+    const [item] = within(section.querySelector<HTMLElement>(".related-practice")!).getAllByRole("listitem");
+    expect(within(item!).getByRole("link", { name: "Submission: Two Sum" })).toHaveAttribute("href", "/history/submissions/s-2");
+    expect(item).toHaveTextContent("Passed 7 of 7 tests passed");
+    expect(item).toHaveTextContent(explanation);
+    expect(section).toHaveTextContent("Whether it helped isn't judged, and marking the improvement done is yours.");
+    expect(within(section).queryByRole("checkbox", { checked: true })).not.toBeInTheDocument();
+  });
+});
+
 describe("Related practice for an accepted improvement (Volume 13, prompt 4)", () => {
   const practice = {
     action_id: "act-1", count: 3, linked: true, disputed: null,

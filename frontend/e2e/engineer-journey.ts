@@ -56,7 +56,8 @@ class Solution {
         throw new IllegalArgumentException("no pair");
     }
 }`;
-export const NOT_LINKED = "This kind of improvement has no practice linked to it yet: mark it done when you've done it.";
+/** A coding interview's improvement lists submissions of its problem (Volume 14, prompt 2). */
+export const CODE_NOTE = "Submissions of the interview's problem since you accepted this, found by a stored link (the interview names its problem).";
 export const JUDGE_NEEDED = "needs the real judge: set E2E_JUDGE=1 (Docker, gVisor and the sandbox image). Without it this journey stops rather than record a verdict nobody judged";
 
 interface Result {
@@ -349,15 +350,26 @@ async function run(rec: Recorder, page: Page, context: BrowserContext, browser: 
     await expect(rows.filter({ hasText: "In-app help: Hint shown" })).toHaveCount(1);
     await expect(rows.filter({ hasText: "In-app help: No in-app help recorded" })).toHaveCount(1);
     await expect(rows.filter({ hasText: "with the one before" })).toHaveCount(1);
+    check("History lists both with their own help and the comparison on the later one");
+    // The improvement from the coding interview lists it: a submission of the interview's problem
+    // made since it was accepted, with its verdict and comparison. Nothing is ticked.
     await page.goto("/plan");
-    await expect(page.getByRole("region", { name: "Improvements you accepted (1)" }).getByText(NOT_LINKED)).toBeVisible();
-    check(`History lists both with their own help and the comparison on the later one; the improvement says "${NOT_LINKED}"`);
+    const accepted = page.getByRole("region", { name: "Improvements you accepted (1)" });
+    await accepted.getByText("Related practice since you accepted it (1)").click();
+    const related = accepted.locator(".related-practice");
+    await expect(related.getByRole("link", { name: `Submission: ${PROBLEM_TITLE}` })).toHaveAttribute("href", `/history/submissions/${sub.id}`);
+    await expect(related).toContainText(`Passed ${r.passed_count} of ${r.total_count} tests passed`);
+    await expect(related).toContainText(CODE_NOTE);
+    check(`the improvement's related practice lists the resubmission ("Submission: ${PROBLEM_TITLE}", passed), not ticked`);
     const t = await api<{ requirement_list: { text: string; coverage: { label: string } }[] }>(request, acct.auth, "get", `/api/v1/targets/${targetId}`);
     const coverage = t.requirement_list.find((x) => x.text === REQ_DSA)!.coverage.label;
     rec.facts.requirement_coverage = coverage;
     await page.goto(`/targets/${targetId}`);
     await expect(page.getByRole("article", { name: REQ_DSA })).toContainText(coverage);
-    check(`the requirement now reads "${coverage}"`);
+    const latest = page.getByRole("list", { name: `Your latest submissions for ${REQ_DSA}` });
+    await expect(latest.getByRole("listitem")).toHaveCount(2);
+    await expect(latest.getByRole("listitem").first()).toContainText("Passed");
+    check(`the requirement now reads "${coverage}" and lists both submissions, newest first, with their verdicts`);
   }, ["real judge"]);
 
   await rec.step("Final preparation material", async (check) => {
