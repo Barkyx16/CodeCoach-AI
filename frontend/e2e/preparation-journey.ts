@@ -62,8 +62,14 @@ interface Step {
   outcome: StepOutcome;
   checks: string[];
   uses?: StepUses[];
+  /** Where the step's change was made and where it was read back (the two-device journey). */
+  made_on?: Device;
+  read_on?: Device[];
   note?: string;
 }
+
+/** The browser context a step ran in: a desktop window or a phone-sized one, same account. */
+export type Device = "desktop" | "phone";
 
 /** One verdict exactly as the judge reported it (the API's copy of the runner's result). */
 export interface JudgeVerdict {
@@ -96,8 +102,12 @@ export class Recorder {
 
   constructor(private info: TestInfo, private kind: string) {}
 
-  async step(name: string, run: (check: (what: string) => void) => Promise<void>, uses?: StepUses[]): Promise<void> {
-    const s: Step = { n: this.steps.length + 1, name, outcome: "failed", checks: [], ...(uses ? { uses } : {}) };
+  async step(name: string, run: (check: (what: string) => void) => Promise<void>, uses?: StepUses[],
+    where?: { made?: Device; read?: Device[] }): Promise<void> {
+    const s: Step = {
+      n: this.steps.length + 1, name, outcome: "failed", checks: [], ...(uses ? { uses } : {}),
+      ...(where?.made ? { made_on: where.made } : {}), ...(where?.read ? { read_on: where.read } : {}),
+    };
     this.steps.push(s);
     this.current = s;
     await run((what) => s.checks.push(what));
@@ -162,7 +172,7 @@ export async function api<T>(request: APIRequestContext, auth: Record<string, st
 }
 
 /** Answers the round on screen; an interviewer's follow-up, if one comes, is skipped. */
-async function answerRound(page: Page, answers: string[]): Promise<void> {
+export async function answerRound(page: Page, answers: string[]): Promise<void> {
   for (const [i, text] of answers.entries()) {
     await expect(page.getByText(new RegExp(`QUESTION ${i + 1} OF ${answers.length}`))).toBeVisible();
     await page.getByLabel("Your answer", { exact: true }).fill(text);

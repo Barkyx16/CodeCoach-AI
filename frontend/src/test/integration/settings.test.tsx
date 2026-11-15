@@ -215,7 +215,7 @@ describe("Settings", () => {
     const { user } = renderApp("/settings", { signedIn: true });
     const option = await screen.findByRole("checkbox", { name: /Include links between records/ });
     expect(option).not.toBeChecked(); // version 1 by default
-    expect(option.closest("label")).toHaveTextContent("it can't be restored yet");
+    expect(option.closest("label")).toHaveTextContent("keeps the ids that restoring collections and accepted improvements needs");
     expect(screen.getByText(/It includes private details you keep out of printouts/)).toBeInTheDocument();
     await user.click(option);
     await user.click(screen.getByRole("button", { name: "Download my data" }));

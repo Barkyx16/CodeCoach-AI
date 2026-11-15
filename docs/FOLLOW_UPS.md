@@ -33,9 +33,8 @@ Each pair has the same rubric points in the bank; the review checked both prompt
   comparable with each other: the offer is about practice, not a change in score. Before that,
   nothing is shown.
 - **Only this account's answers** decide it; another account's practice never does.
-- **Optional:** "Not now" hides it in this browser (`codecoach.followups.dismissed.v1.<account>`,
-  pairs of question ids only; kept when you sign out, and listed on Your data under "Also on this
-  device").
+- **Optional:** "Not now" hides it on every device you use, kept with the account (see
+  [Not now](#not-now) below; before Volume 15, prompt 2 it was kept in this browser only).
 - **Retired and revised:** a retired follow-up isn't offered; a revised one shows its current
   version, and earlier answers keep the version they were written against.
 

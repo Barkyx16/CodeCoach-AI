@@ -8,7 +8,8 @@ practising this way helps anyone learn.
 There are two: a registered nurse's (written answers, checked by the built-in coach's fixed rules)
 and, since Volume 13, prompt 10, [a software engineer's](#the-software-engineers-journey) (code
 judged in the gVisor sandbox, with approved coach context). Together they cover both kinds of
-practice.
+practice. Since Volume 15, prompt 10, [a third](#two-devices-and-a-restore) follows one account
+across two devices and a backup and restore.
 
 - The journey: `frontend/e2e/preparation-journey.ts`, run by `preparation-journey.spec.ts`
   (desktop) and `preparation-journey-mobile.spec.ts` (a Pixel 7 phone).
@@ -255,6 +256,62 @@ was accepted. The requirement read "Some practice" after the resubmission. Negat
 each caught (above). Without `E2E_JUDGE`, the two judge-free branches passed and the rest skipped,
 saying why.
 
+## Two devices and a restore
+
+Volume 15, prompt 10. One account on a desktop window and a phone-sized one (Chromium emulating a
+Pixel 7, its own browser context and sign-in) and then through a backup: what's chosen, saved and
+dismissed on one is the same on the other, by id, and a version 2 backup brings the collection and
+the accepted improvement back with their ids, versions and reviews, and its undo takes them away
+again. Both contexts stay open from the phone's first step to the end, so each change made on one is
+read on the other after a reload, not after a new sign-in. The record names the device that made
+each change (`made_on`) and the one that read it back (`read_on`).
+
+- The journey: `frontend/e2e/device-journey.ts`, run by `device-journey.spec.ts` (the desktop
+  project; it opens the phone context itself).
+- Where it runs: CI's end-to-end job, in its normal run and then twice more on fresh accounts
+  (`--repeat-each=2`), printing each run's record as a `[journey-record]` line and keeping
+  `test-results/journey/` as the `device-journey-record` artifact.
+
+| # | Step | Made on → read on | What it checks |
+|---|---|---|---|
+| 1 | Two questions saved to a collection | desktop | Both added to a new collection from their pages; by the API, its id, its items' ids and the version each was added at |
+| 2 | Answered twice, the second compared with the first | desktop | Try 2 is set beside try 1 ("Compared with try 1. …"), by the comparison contract |
+| 3 | A follow-up question dismissed with Not now | desktop | "A related question" offered the follow-up; Not now took it away; by the API, one dismissal kept with the account |
+| 4 | An improvement accepted | desktop | A three-question round answered on the desktop; the first point of its "Work on next" accepted |
+| 5 | The phone reads the same | desktop → phone | The collection with the same two questions in order, both tries, the follow-up not offered, the one improvement; by the API with the phone's own sign-in, the same item ids, dismissal key, improvement id and answer ids |
+| 6 | An answer on the phone, seen on the desktop after a reload, both open | phone → desktop | The phone answers the second question while the desktop has its page open; after a reload the desktop lists the phone's answer and score |
+| 7 | A question in the collection corrected, and marked reviewed | phone → desktop | An admin (granted from the command line) corrects the second question; the phone's collection badges it "Source updated" and marks it reviewed at the new version; the desktop's copy shows it reviewed |
+| 8 | A version 2 backup downloaded | desktop | Settings' "Include links between records (format version 2)" and "Download my data": the file carries the collection and the improvement by id |
+| 9 | The collection and the improvement deleted | phone → desktop | Each deleted on the phone after its own confirmation; the desktop, after a reload, finds the collection gone |
+| 10 | Restored from the file | desktop → phone | The preview offers the collection and the improvement as "1 new" each and nothing else; one restore batch, applied; by the API, the collection with the same id, item ids, order, added-at versions and review, and the improvement with the same id and source; the phone, after a reload, has both (still reviewed) |
+| 11 | The restore undone | desktop → phone | "Remove what this added" removes both and keeps none; the batch is recorded as removed; by the API both are gone; the phone, after a reload, finds the collection gone; the dismissal still holds (a restore never touches it) |
+| 12 | No secret in the logs | | The API's access log contains neither the canary typed into the desktop's answer nor the one typed into the phone's |
+
+Every phone step checks the page doesn't scroll sideways at the phone's width.
+
+**What isn't checked from the page, and what is instead.** Ids aren't on the page, so each id is
+read by the API (step 5 with a second sign-in, the phone's own). The improvement's acceptance needs
+an interview, made through the API and answered on the desktop's page. The admin's correction is
+made through the API by an account granted from the command line, as an admin would.
+
+**Found on the way.** Settings still said a version 2 download "can't be restored yet, so keep a
+standard download for that", but since Volume 14, prompt 5 and Volume 15, prompt 6 it's the only
+file that restores accepted improvements and collections: the label now says it keeps the ids
+those need.
+
+### Its record
+
+**In CI**: pending, the end-to-end job of the run on the commit that adds the journey; the next
+commit records it here.
+
+**Before CI** (the development check, not the record): this machine, on 15 November 2026, through
+the e2e launcher, twice in a row on fresh accounts: 12 of 12 steps each, each step's device named;
+the collection was restored with its two item ids, both added at version 1 (the second at version 2
+in the second run: the corrections are shared content and accumulate), and its review at the
+version the correction made (2, then 3). The whole browser suite on the same tree: 202 passed, 8
+skipped (they need the real judge or are the opt-in controls audit) and one failed because the disk
+filled up (`ENOSPC`); with space freed, that spec passed on its own (8 of 8).
+
 ## Limits
 
 - The nurse's path: one career, a registered nurse. The coach-context step is absent for it (above);
@@ -269,5 +326,8 @@ saying why.
 - The practice packet can't hold accepted improvements, so the final material is the interview-day
   kit.
 - Phone size is Chromium emulating a Pixel 7, not a real phone; no screen reader, Safari or Firefox.
+- Two devices and a restore: one account, one restore of one file into the same account (a restore
+  into another account is `e2e/restore.spec.ts`); the two contexts share one browser process, so it
+  proves the account and the server, not two machines' networks.
 - The e2e server logs warnings only; traces are checked by the backend test, not in the browser run.
 - It proves this integration path on this candidate, not universal correctness or learning effect.

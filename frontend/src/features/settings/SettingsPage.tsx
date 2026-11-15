@@ -759,7 +759,7 @@ function DataRow() {
         <label className="checkbox">
           <input type="checkbox" checked={linked} onChange={(e) => setLinked(e.target.checked)} />
           Include links between records (format version 2). It shows which interview, story or note each record
-          points to; it can't be restored yet, so keep a standard download for that.
+          points to, and keeps the ids that restoring collections and accepted improvements needs.
         </label>
         <div className="setting__actions">
           <Button onClick={() => void download()} loading={form.busy} disabled={exportWait > 0}><Icon name="download" size={16} />Download my data</Button>

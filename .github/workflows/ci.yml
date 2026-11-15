@@ -201,6 +201,24 @@ jobs:
         env:
           CI: "true"
           PYTHON: python
+      - name: One account on two devices and through a restore, twice on fresh accounts
+        # docs/PREPARATION_JOURNEY.md, "Two devices and a restore": its record (each step's checks,
+        # which device made each change and which read it back, the ids) is printed as
+        # "[journey-record]" lines and kept as an artifact.
+        working-directory: frontend
+        env:
+          CI: "true"
+          PYTHON: python
+        run: npm run e2e -- e2e/device-journey.spec.ts --project=desktop --repeat-each=2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: device-journey-record
+          path: |
+            frontend/test-results/journey/
+            frontend/test-results/e2e-provenance.json
+          retention-days: 30
+          if-no-files-found: warn
       - name: The production web image's Content-Security-Policy, from the browser (bad URLs fail the build; real flows pass; foreign fetches and scripts are refused)
         run: scripts/rehearse_web_csp.sh
         env:
