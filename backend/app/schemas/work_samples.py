@@ -6,6 +6,7 @@ from typing import Any
 from pydantic import Field
 
 from app.schemas.common import APIModel, OptionalKey, SaveReplay, save_replay_field, update_key_field
+from app.schemas.conditions import AttemptConditions
 
 MAX_SECTION = 4000
 
@@ -78,6 +79,9 @@ class WorkSampleAttemptOut(APIModel):
     )
     revision_of: str | None
     created_at: datetime
+    conditions: AttemptConditions | None = Field(
+        default=None, description="The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
+    )
 
 
 class WorkSampleAttemptSummary(APIModel):
@@ -87,3 +91,6 @@ class WorkSampleAttemptSummary(APIModel):
     total: int
     revision_of: str | None
     created_at: datetime
+    conditions: AttemptConditions | None = Field(
+        default=None, description="The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
+    )

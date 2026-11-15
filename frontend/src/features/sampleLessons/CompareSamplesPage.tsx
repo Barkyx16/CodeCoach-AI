@@ -13,6 +13,8 @@ import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { formatDateTime } from "@/lib/format";
 import { dropCopy, useCopySince, writeCopy } from "@/lib/deviceCopies";
+import { AttemptConditionsView } from "@/features/conditions/AttemptConditions";
+import { conditionsSummary } from "@/features/conditions/summary";
 
 type Kind = "strength" | "gap";
 interface Mark { kind: Kind; reason: string }
@@ -219,6 +221,7 @@ function Compare({ lesson }: { lesson: ComparisonLesson }) {
             ))}
           </ol>
           <p className="subtle">{(result.feedback as unknown as ComparisonFeedback).method}{result.revealed_early ? " This reading was sent after the explanation was shown." : ""}</p>
+          <AttemptConditionsView conditions={result.conditions} />
         </section>
       )}
 
@@ -248,7 +251,7 @@ function Compare({ lesson }: { lesson: ComparisonLesson }) {
             {readings.data.map((r) => (
               <li key={r.id}>
                 <button type="button" className="link-button" onClick={async () => { const full = await api.sampleReading(r.id).catch(() => null); if (full) { setResult(full); focusAfter.current = "cmp-result"; } }}>{formatDateTime(r.created_at)}</button>
-                <span className="subtle"> · {r.selections} excerpt{r.selections === 1 ? "" : "s"}, {r.matches} matching the explanation{r.revealed_early ? " · after the explanation" : ""} · version {r.lesson_version}</span>
+                <span className="subtle"> · {r.selections} excerpt{r.selections === 1 ? "" : "s"}, {r.matches} matching the explanation{r.revealed_early ? " · after the explanation" : ""} · version {r.lesson_version}{r.conditions ? ` · In-app help: ${conditionsSummary(r.conditions)}` : ""}</span>
               </li>
             ))}
           </ul>

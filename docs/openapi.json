@@ -29502,6 +29502,17 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptConditions"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
           }
         },
         "type": "object",
@@ -29549,6 +29560,17 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptConditions"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
           }
         },
         "type": "object",
@@ -29898,6 +29920,27 @@
             },
             "type": "object",
             "title": "Whiteboard Attempts"
+          },
+          "code_review_attempts": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AttemptConditions"
+            },
+            "type": "object",
+            "title": "Code Review Attempts"
+          },
+          "comparison_attempts": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AttemptConditions"
+            },
+            "type": "object",
+            "title": "Comparison Attempts"
+          },
+          "work_sample_attempts": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AttemptConditions"
+            },
+            "type": "object",
+            "title": "Work Sample Attempts"
           }
         },
         "type": "object",
@@ -29948,6 +29991,30 @@
             "type": "array",
             "maxItems": 50,
             "title": "Whiteboard Attempt Ids"
+          },
+          "code_review_attempt_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Code Review Attempt Ids"
+          },
+          "comparison_attempt_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Comparison Attempt Ids"
+          },
+          "work_sample_attempt_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Work Sample Attempt Ids"
           }
         },
         "type": "object",
@@ -44549,6 +44616,17 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptConditions"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
           }
         },
         "type": "object",
@@ -44599,6 +44677,17 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptConditions"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
           }
         },
         "type": "object",
@@ -52900,6 +52989,17 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptConditions"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
           }
         },
         "type": "object",
@@ -52952,6 +53052,17 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptConditions"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
           }
         },
         "type": "object",

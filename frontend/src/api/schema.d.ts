@@ -6581,6 +6581,8 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** @description The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md) */
+            conditions?: components["schemas"]["AttemptConditions"] | null;
         };
         /** ComparisonAttemptSummary */
         ComparisonAttemptSummary: {
@@ -6599,6 +6601,8 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** @description The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md) */
+            conditions?: components["schemas"]["AttemptConditions"] | null;
         };
         /** ComparisonDoc */
         ComparisonDoc: {
@@ -6749,6 +6753,18 @@ export interface components {
             whiteboard_attempts?: {
                 [key: string]: components["schemas"]["AttemptConditions"];
             };
+            /** Code Review Attempts */
+            code_review_attempts?: {
+                [key: string]: components["schemas"]["AttemptConditions"];
+            };
+            /** Comparison Attempts */
+            comparison_attempts?: {
+                [key: string]: components["schemas"]["AttemptConditions"];
+            };
+            /** Work Sample Attempts */
+            work_sample_attempts?: {
+                [key: string]: components["schemas"]["AttemptConditions"];
+            };
         };
         /**
          * ConditionsQuery
@@ -6766,6 +6782,12 @@ export interface components {
             scenario_attempt_ids?: string[];
             /** Whiteboard Attempt Ids */
             whiteboard_attempt_ids?: string[];
+            /** Code Review Attempt Ids */
+            code_review_attempt_ids?: string[];
+            /** Comparison Attempt Ids */
+            comparison_attempt_ids?: string[];
+            /** Work Sample Attempt Ids */
+            work_sample_attempt_ids?: string[];
         };
         /** ContentChange */
         ContentChange: {
@@ -12811,6 +12833,8 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** @description The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md) */
+            conditions?: components["schemas"]["AttemptConditions"] | null;
         };
         /** ReviewAttemptSummary */
         ReviewAttemptSummary: {
@@ -12831,6 +12855,8 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** @description The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md) */
+            conditions?: components["schemas"]["AttemptConditions"] | null;
         };
         /** ReviewDraftIn */
         ReviewDraftIn: {
@@ -16115,6 +16141,8 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** @description The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md) */
+            conditions?: components["schemas"]["AttemptConditions"] | null;
         };
         /** WorkSampleAttemptSummary */
         WorkSampleAttemptSummary: {
@@ -16133,6 +16161,8 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** @description The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md) */
+            conditions?: components["schemas"]["AttemptConditions"] | null;
         };
         /**
          * WorkSampleBrief

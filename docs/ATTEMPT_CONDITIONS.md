@@ -4,7 +4,8 @@ Each coding attempt and each career written answer says which in-app help was sh
 (Volume 12, prompt 3). It's worked out when read from records the app already keeps; there's no
 separate help log. An answer given in an interview round records it when the answer is saved, with
 the round's format (Volume 13, prompt 3; below). Drill attempts, scenario runs and whiteboard
-attempts say it too, from 15 Nov 2026 (Volume 14, prompt 4; below).
+attempts say it too, from 15 Nov 2026 (Volume 14, prompt 4; below), and so do code-review
+exercises, sample-answer comparisons and work samples (Volume 15, prompt 3; below).
 
 ## Every format, and what it records
 
@@ -16,9 +17,11 @@ attempts say it too, from 15 Nov 2026 (Volume 14, prompt 4; below).
 | Communication drills | Learn lessons that prepare the drill (the STAR lesson prepares "Answer with a concrete example") | 15 Nov 2026 | lesson reads, by the drill's version (its rubric's) |
 | Branching scenarios | Learn lessons that prepare the scenario (the prioritizing and SBAR lessons prepare "Two call lights at once") | 15 Nov 2026 | lesson reads, by the scenario's version; assessed runs and "try another approach" explorations counted apart |
 | Whiteboards | None: no lesson prepares a system-design prompt, and the prompt's points are shown to everyone with it | 15 Nov 2026 | (nothing to find: "No in-app help recorded") |
+| Code-review exercises | The exercise's authored review, shown before the review was written ("Solution revealed"); Learn lessons that prepare the exercise (none yet) | 15 Nov 2026 (the authored review shown first: always kept) | the attempt's own `after_reveal`; lesson reads, by the exercise's version |
+| Sample-answer comparisons | The comparison's explanation, opened before the reading was sent ("Solution revealed"); Learn lessons that prepare it (the STAR lesson prepares "Specific evidence or general claims?") | 15 Nov 2026 (the explanation opened first: always kept) | the attempt's own `revealed_early`, as the page reported it when sending; lesson reads, by the comparison's version |
+| Work samples | None: no lesson prepares a brief yet, and each section's hint is shown to everyone with the brief | 15 Nov 2026 | (nothing to find: "No in-app help recorded") |
 
-Code-review exercises, sample-answer comparisons, work samples, debugging exercises, offer
-comparisons and story help don't record conditions yet (below).
+Debugging exercises, offer comparisons and story help don't record conditions yet (below).
 
 ## The labels
 
@@ -27,7 +30,7 @@ Exactly these, as the server gives them:
 | Label | Means |
 |---|---|
 | **Hint shown** | A hint (levels 1-3) for this coding problem, or a Learn lesson that prepares for this written question, was shown since the previous attempt |
-| **Solution revealed** | The level 4 hint for this coding problem was shown since the previous attempt: the app warns that it explains the full solution |
+| **Solution revealed** | The level 4 hint for this coding problem was shown since the previous attempt (the app warns that it explains the full solution); or, for a code-review exercise or a sample-answer comparison, its own answer (the authored review, the explanation) was shown before the attempt |
 | **No in-app help recorded** | Nothing above was recorded for this attempt |
 | **Not recorded** | An attempt from before recording began (14 Nov 2026) with nothing to go on, or one whose earlier help can't be matched to a version. Never "none" |
 
@@ -115,6 +118,42 @@ every format uses:
   of them wasn't recorded), in the comparison contract's words; nothing else in it changes.
 - Feedback, outcomes and debriefs are exactly as before; the conditions change no score or verdict.
 
+## Code reviews, sample-answer comparisons and work samples
+
+Volume 15, prompt 3. Two kinds of help, by the rule every format uses:
+
+- **The format's own answer, shown first.** A code-review exercise sends its authored review only
+  when asked (or after a review is sent); a review written after that says **Solution revealed**
+  ("The authored review was shown before this was written"). A comparison's explanation can be
+  opened before the reading is sent, after a confirmation; a reading sent after that says
+  **Solution revealed** ("The explanation was opened before this was sent"). Both attempts have
+  always stored this (`after_reveal`, `revealed_early`), so it's shown for every attempt, older ones
+  too. Its time is the attempt's: the reveal's own time isn't kept. Unlike a hint, the authored
+  review stays seen: every later review of the same exercise says so, as it always has.
+- **A Learn lesson that prepares it**, read before the attempt and since the previous one, at the
+  attempt's version: **Hint shown**, for the first attempt after the read only. The STAR lesson
+  prepares "Specific evidence or general claims?" (reviewed: both teach showing what you did rather
+  than claiming a quality); no lesson prepares a code-review exercise or a work-sample brief yet. A
+  work sample's section hints are shown to everyone with the brief, like a question's tips, so
+  they're not help.
+
+Attempts from before 15 Nov 2026 with nothing found are **Not recorded** (with the date), never "No
+in-app help recorded". Shown under each attempt's result and in its row in the format's list of
+your attempts ("In-app help: Solution revealed"); `POST /api/v1/me/attempt-conditions` takes
+`code_review_attempt_ids`, `comparison_attempt_ids` and `work_sample_attempt_ids` (50 of each;
+another account's are left out); the export gives each attempt its `id` and `conditions`. Feedback,
+counts and the authored review are exactly as before.
+
+Checked by `backend/tests/test_review_formats_conditions.py` (8): the lesson link is real; the
+authored review and the explanation shown first, on the attempt and its list row; a lesson read
+counts for the first comparison after it only, and not for a different comparison; a work sample has
+none to show after every lesson; older attempts are "Not recorded" unless their own flag says more;
+another account's reads never count and its attempts are left out; the export. The code-review,
+comparison and work-sample unit tests check the pages. Negative controls (each caught): each reveal
+ignored, every comparison marked revealed, the lesson link removed, another account's attempts
+returned, the export without conditions; on the pages, a review's, a reading's or a work-sample row's
+conditions left out.
+
 ## Not observed
 
 - Help outside the app: other sites, books, people, AI tools. It's unknown and never inferred.
@@ -126,9 +165,10 @@ every format uses:
 
 ## Not covered yet
 
-Covered: coding attempts, career written answers, interview rounds, drills, scenarios and
-whiteboards. Next, each with what it would use: code-review exercises (`after_reveal` is already
-kept), sample-answer comparisons (`revealed_early`), work samples and the coding interviewer.
+Covered: coding attempts, career written answers, interview rounds, drills, scenarios,
+whiteboards, code-review exercises, sample-answer comparisons and work samples. Next: debugging
+exercises (asking for the explanation and reference repair isn't recorded), offer comparisons, story
+help and the coding interviewer.
 
 ## Checked by tests (interview rounds)
 

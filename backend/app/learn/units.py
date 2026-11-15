@@ -497,7 +497,9 @@ STAR = Unit(
     review=_NURSE_REVIEW,
     scope_note=_NURSE_SCOPE,
     question_ids=("e-time-0",),
-    prepares=("drill:example",),
+    # Reviewed 15 Nov 2026: the comparison "Specific evidence or general claims?" asks for what this
+    # lesson teaches, showing what you did rather than claiming a quality.
+    prepares=("drill:example", "comparison:cmp-specific-evidence"),
 )
 
 SBAR = Unit(

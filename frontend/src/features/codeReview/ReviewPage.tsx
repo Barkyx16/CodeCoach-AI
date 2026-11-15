@@ -19,6 +19,8 @@ import { recoveredSave, savedVersion } from "@/lib/conflict";
 import { formatArgs, formatDateTime, formatValue, timeAgo } from "@/lib/format";
 import { useCopySince, writeCopy } from "@/lib/deviceCopies";
 import { useRequestKey } from "@/lib/requestKey";
+import { AttemptConditionsView } from "@/features/conditions/AttemptConditions";
+import { conditionsSummary } from "@/features/conditions/summary";
 
 import { CodeView, ComparisonView, ReferenceView } from "./Comparison";
 import { where } from "./where";
@@ -367,6 +369,7 @@ function Review({ exercise, initial }: { exercise: ReviewExercise; initial: Revi
             <ComparisonView findings={attempt.findings} summary={attempt.summary} feedback={attempt.feedback as unknown as ReviewFeedback}
               reference={attempt.reference} afterReveal={attempt.after_reveal} />
           ) : reference && <ReferenceView reference={reference} heading="What the author of this exercise found" />}
+          {attempt && <AttemptConditionsView conditions={attempt.conditions} />}
           <p>Revise your findings above and send again if you like: the comparison is by where a finding points, not its wording.</p>
         </section>
       )}
@@ -380,7 +383,8 @@ function Review({ exercise, initial }: { exercise: ReviewExercise; initial: Revi
                 <Link to={`/code-reviews/attempts/${a.id}`}>{formatDateTime(a.created_at)}</Link>
                 <span className="subtle"> · {a.findings} finding{a.findings === 1 ? "" : "s"}
                   {a.defects_total ? ` · points at ${a.defects_raised} of ${a.defects_total} authored defect${a.defects_total === 1 ? "" : "s"}` : " · no authored defect"}
-                  {a.after_reveal ? " · after reading the authored review" : ""} · version {a.exercise_version}</span>
+                  {a.after_reveal ? " · after reading the authored review" : ""} · version {a.exercise_version}
+                  {a.conditions ? ` · In-app help: ${conditionsSummary(a.conditions)}` : ""}</span>
               </li>
             ))}
           </ul>

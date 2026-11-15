@@ -8,11 +8,19 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
-import type { ReviewAttempt, ReviewDraft, ReviewExercise, ReviewReference } from "@/api/types";
+import type { AttemptConditions, ReviewAttempt, ReviewDraft, ReviewExercise, ReviewReference } from "@/api/types";
 
 import { user as baseUser } from "../fixtures";
 import { renderApp } from "../render";
 import { API, server } from "../server";
+
+const NOTE = "Only help shown in CodeCoach is recorded.";
+const revealedConditions = (detail: string): AttemptConditions => ({
+  labels: ["Solution revealed"], recorded_from: "2026-11-15", note: NOTE, round: null,
+  help: [{ label: "Solution revealed", detail, at: "2026-11-15T09:00:00Z" }],
+});
+const noHelp: AttemptConditions = { labels: ["No in-app help recorded"], recorded_from: "2026-11-15", note: NOTE, help: [], round: null };
+
 
 const code = [
   "class Solution {",
@@ -229,5 +237,22 @@ describe("code-review practice", () => {
     expect(await screen.findByRole("note")).toHaveTextContent("corrected after you started (version 1 → 2)");
     expect(screen.getByText("Moved to line 7 to follow the code you cited.")).toBeInTheDocument();
     expect(screen.getByText("The code you cited isn't in the corrected version. Check this finding's lines.")).toBeInTheDocument();
+  });
+
+  it("says the help before each review: the authored review shown first, on the review's page and in the list (Volume 15, prompt 3)", async () => {
+    const revealed = { ...sent, after_reveal: true, conditions: revealedConditions("The authored review was shown before this was written") };
+    serve(emptyDraft, revealed);
+    server.use(http.get(`${API}/api/v1/me/code-reviews/${exercise.slug}/attempts`, () => HttpResponse.json([
+      { id: "rev-2", exercise_version: 1, findings: 2, defects_raised: 1, defects_total: 1, after_reveal: true, created_at: "2026-11-15T10:00:00Z", conditions: revealed.conditions },
+      { id: "rev-1", exercise_version: 1, findings: 2, defects_raised: 1, defects_total: 1, after_reveal: false, created_at: "2026-11-15T09:30:00Z", conditions: noHelp },
+    ])));
+    const page = renderApp("/code-reviews/attempts/rev-1", { signedIn: true });
+    expect((await screen.findByText(/In-app help before this attempt:/)).closest("p")).toHaveTextContent("In-app help before this attempt: Solution revealed");
+    expect(screen.getByText(/The authored review was shown before this was written/)).toBeInTheDocument();
+    page.unmount();
+    renderApp(`/code-reviews/${exercise.slug}`, { signedIn: true });
+    const earlier = (await screen.findByRole("heading", { name: "Your earlier reviews" })).closest("section")!;
+    expect(earlier).toHaveTextContent("In-app help: Solution revealed");
+    expect(earlier).toHaveTextContent("In-app help: No in-app help recorded");
   });
 });

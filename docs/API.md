@@ -238,7 +238,7 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 | POST | `/api/v1/me/dismissals` | 🔒 | Dismiss suggestions by key (the same one twice is one record) |
 | DELETE | `/api/v1/me/dismissals?key=` | 🔒 | Offer a dismissed suggestion again; it then follows its own rules |
 | GET | `/api/v1/me/careers/{slug}/analytics/attempts?since=&until=&offset=&limit≤100` | 🔒 | Every answer in an analytics range: in the trend or why not, each with its comparison with the answer before it (docs/COMPARING_ATTEMPTS.md) |
-| POST | `/api/v1/me/attempt-conditions` | 🔒 | The in-app help shown before each of up to 50 submissions, answers, drill attempts, scenario runs and whiteboard attempts (docs/ATTEMPT_CONDITIONS.md) |
+| POST | `/api/v1/me/attempt-conditions` | 🔒 | The in-app help shown before each of up to 50 submissions, answers, drill attempts, scenario runs, whiteboard attempts, code reviews, comparison readings and work-sample attempts (docs/ATTEMPT_CONDITIONS.md) |
 | POST | `/api/v1/ai/hint` | 🔒 | Progressive hint |
 | POST | `/api/v1/ai/review/preview` | 🔒 | What a review would send, exactly (no coach call, no budget) |
 | POST | `/api/v1/ai/review` | 🔒 | Structured code review |

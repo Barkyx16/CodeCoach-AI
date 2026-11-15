@@ -18,6 +18,12 @@ Worked out when read, from records the app already keeps: no separate help log.
   attempt's version, as "Hint shown". A lesson read records the version of what it prepares from
   15 Nov 2026 (`learn_events.detail`); an earlier read matches only what has never had another
   version. No lesson prepares a whiteboard prompt, so a whiteboard attempt has none to show.
+- A code-review exercise, a sample-answer comparison or a work sample (Volume 15, prompt 3): the Learn
+  lessons that prepare it, by the same rule, and the format's own answer when it was shown before the
+  attempt, which the attempt has always stored: a code review written after the authored review was
+  shown (`after_reveal`), a comparison sent after its explanation was opened (`revealed_early`), each
+  "Solution revealed". A work sample's section hints are shown to everyone with the brief, so they're
+  not help (like a question's tips); no lesson prepares a brief yet.
 
 Help is matched by question and version and belongs to the first attempt after it (in the same
 mode): an attempt shows the help since the previous one. Help opened afterwards belongs to the
@@ -41,6 +47,8 @@ from app.learn import UNIT_INDEX, Unit, units_for
 from app.models import (
     AIAction,
     AIInteraction,
+    CodeReviewAttempt,
+    ComparisonAttempt,
     ContentVersion,
     DrillAttempt,
     InterviewStatus,
@@ -53,6 +61,7 @@ from app.models import (
     TestCase,
     User,
     WhiteboardAttempt,
+    WorkSampleAttempt,
 )
 from app.schemas.ai import HINT_LEVEL_NAMES
 from app.schemas.conditions import AttemptConditions, HelpShown, RoundConditions
@@ -93,11 +102,15 @@ def problem_versions(db: Session, problem_ids: set[int]) -> dict[int, int]:
 
 def practice_version(ref: str) -> int | None:
     """The version now of what a lesson prepares ("scenario:<id>", "drill:<id>",
-    "whiteboard:<id>"), or None if there's no such thing."""
+    "whiteboard:<id>", "code_review:<slug>", "comparison:<id>", "work_sample:<id>"), or None if
+    there's no such thing."""
+    from app.comparisons import BY_ID as COMPARISONS
     from app.drills import BY_ID as DRILLS
     from app.drills import RUBRIC_VERSION as DRILL_VERSION
+    from app.reviews import BY_SLUG as REVIEWS
     from app.scenarios import get_scenario
     from app.whiteboard import BY_ID as PROMPTS
+    from app.worksamples import BY_ID as BRIEFS
 
     kind, _, cid = ref.partition(":")
     if kind == "scenario":
@@ -108,6 +121,15 @@ def practice_version(ref: str) -> int | None:
     if kind == "whiteboard":
         p = PROMPTS.get(cid)
         return p.version if p is not None else None
+    if kind == "code_review":
+        ex = REVIEWS.get(cid)
+        return ex.version if ex is not None else None
+    if kind == "comparison":
+        ls = COMPARISONS.get(cid)
+        return ls.version if ls is not None else None
+    if kind == "work_sample":
+        b = BRIEFS.get(cid)
+        return b.version if b is not None else None
     return None
 
 
@@ -449,6 +471,58 @@ class Conditions:
             [(r.id, f"whiteboard:{r.prompt_id}", r.prompt_version, r.created_at, "") for r in rows], earlier
         )
 
+    def for_code_reviews(self, rows: Iterable[CodeReviewAttempt]) -> dict[str, AttemptConditions]:
+        """Lessons that prepare the exercise, and its authored review when it was shown first."""
+        rows = list(rows)
+        earlier = self._times(
+            CodeReviewAttempt, CodeReviewAttempt.exercise_slug, {r.exercise_slug for r in rows}
+        )
+        shown = {
+            r.id: [
+                HelpShown(
+                    label="Solution revealed",
+                    detail="The authored review was shown before this was written",
+                    at=r.created_at,
+                )
+            ]
+            for r in rows
+            if r.after_reveal
+        }
+        return self._practice(
+            [(r.id, f"code_review:{r.exercise_slug}", r.exercise_version, r.created_at, "") for r in rows],
+            earlier,
+            shown,
+        )
+
+    def for_comparisons(self, rows: Iterable[ComparisonAttempt]) -> dict[str, AttemptConditions]:
+        """Lessons that prepare the comparison, and its explanation when it was opened first."""
+        rows = list(rows)
+        earlier = self._times(ComparisonAttempt, ComparisonAttempt.lesson_id, {r.lesson_id for r in rows})
+        shown = {
+            r.id: [
+                HelpShown(
+                    label="Solution revealed",
+                    detail="The explanation was opened before this was sent",
+                    at=r.created_at,
+                )
+            ]
+            for r in rows
+            if r.revealed_early
+        }
+        return self._practice(
+            [(r.id, f"comparison:{r.lesson_id}", r.lesson_version, r.created_at, "") for r in rows],
+            earlier,
+            shown,
+        )
+
+    def for_work_samples(self, rows: Iterable[WorkSampleAttempt]) -> dict[str, AttemptConditions]:
+        """Lessons that prepare the brief (none yet). Its section hints are shown to everyone."""
+        rows = list(rows)
+        earlier = self._times(WorkSampleAttempt, WorkSampleAttempt.brief_id, {r.brief_id for r in rows})
+        return self._practice(
+            [(r.id, f"work_sample:{r.brief_id}", r.brief_version, r.created_at, "") for r in rows], earlier
+        )
+
     def _times(
         self, model, content_col, ids: set[str], mode_col=None
     ) -> dict[tuple[str, str], list[datetime]]:
@@ -469,9 +543,11 @@ class Conditions:
         self,
         items: list[tuple[str, str, int, datetime, str]],
         earlier: dict[tuple[str, str], list[datetime]],
+        stored: dict[str, list[HelpShown]] | None = None,
     ) -> dict[str, AttemptConditions]:
         """(id, ref, version, made at, mode) → the lessons preparing `ref` read since the previous
-        attempt at it (in the same mode), before this one, while it was at this version."""
+        attempt at it (in the same mode), before this one, while it was at this version; plus any
+        help the attempt itself stored (`stored`, by id)."""
         if not items:
             return {}
         refs = {ref for _, ref, _, _, _ in items}
@@ -493,7 +569,7 @@ class Conditions:
             at = _aware(made)
             cid = ref.partition(":")[2]
             since = max((t for t in earlier.get((cid, mode), []) if t < at), default=None)
-            shown: list[HelpShown] = []
+            shown: list[HelpShown] = list((stored or {}).get(item_id, []))
             unknown = False
             for u in units.values():
                 if ref not in u.prepares:

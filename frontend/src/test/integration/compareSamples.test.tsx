@@ -8,11 +8,19 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
-import type { ComparisonAttempt, ComparisonLesson } from "@/api/types";
+import type { AttemptConditions, ComparisonAttempt, ComparisonLesson } from "@/api/types";
 
 import { user as baseUser } from "../fixtures";
 import { renderApp } from "../render";
 import { API, server } from "../server";
+
+const NOTE = "Only help shown in CodeCoach is recorded.";
+const revealedConditions = (detail: string): AttemptConditions => ({
+  labels: ["Solution revealed"], recorded_from: "2026-11-15", note: NOTE, round: null,
+  help: [{ label: "Solution revealed", detail, at: "2026-11-15T09:00:00Z" }],
+});
+const noHelp: AttemptConditions = { labels: ["No in-app help recorded"], recorded_from: "2026-11-15", note: NOTE, help: [], round: null };
+
 
 const ID = "cmp-specific-evidence";
 const lesson: ComparisonLesson = {
@@ -182,5 +190,29 @@ describe("compare sample answers", () => {
     await user.click(screen.getByRole("button", { name: "Compare with the explanation" }));
     await waitFor(() => expect(sends).toHaveLength(1));
     expect(sends[0]!.choice).toBeNull();
+  });
+
+  it("says the help before a reading: the explanation opened first, under the result and in the list (Volume 15, prompt 3)", async () => {
+    serve();
+    server.use(
+      http.post(`${API}/api/v1/me/comparisons/:id/attempts`, async ({ request }) => {
+        const body = (await request.json()) as Sent;
+        sends.push(body);
+        return HttpResponse.json(attemptFor(body, { conditions: body.revealed_early ? revealedConditions("The explanation was opened before this was sent") : noHelp }), { status: 201 });
+      }),
+      http.get(`${API}/api/v1/me/comparisons/:id/attempts`, () => HttpResponse.json([
+        { id: "cmp-att-9", lesson_version: 1, selections: 1, matches: 1, revealed_early: true, created_at: "2026-11-15T09:00:00Z", conditions: revealedConditions("The explanation was opened before this was sent") },
+      ])),
+    );
+    const { user } = renderApp(`/compare/${ID}`, { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Show the explanation now" }));
+    await user.click(screen.getByRole("button", { name: "Show the explanation" }));
+    await user.click(screen.getAllByRole("button", { name: "Strength" })[0]!);
+    await user.type(screen.getByLabelText("Why is it a strength?"), "it sounds confident enough");
+    await user.click(screen.getByRole("button", { name: "Compare with the explanation" }));
+    const result = (await screen.findByRole("heading", { name: "Your reading and the explanation" })).closest("section")!;
+    expect(within(result).getByText(/In-app help before this attempt:/).closest("p")).toHaveTextContent("In-app help before this attempt: Solution revealed");
+    expect(within(result).getByText(/The explanation was opened before this was sent/)).toBeInTheDocument();
+    expect(await screen.findByText(/In-app help: Solution revealed/)).toBeInTheDocument();
   });
 });

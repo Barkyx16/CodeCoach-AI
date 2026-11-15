@@ -17,6 +17,8 @@ import { recoveredSave, savedVersion } from "@/lib/conflict";
 import { formatDateTime, timeAgo } from "@/lib/format";
 import { useCopySince, writeCopy } from "@/lib/deviceCopies";
 import { useRequestKey } from "@/lib/requestKey";
+import { AttemptConditionsView } from "@/features/conditions/AttemptConditions";
+import { conditionsSummary } from "@/features/conditions/summary";
 
 import { Debrief } from "./Debrief";
 
@@ -228,6 +230,7 @@ function Writer({ brief, initial }: { brief: WorkSampleBrief; initial: WorkSampl
             <p className="subtle">Written against version {shown.brief_version} of this brief; it's version {shown.current_version} now.</p>
           )}
           <Debrief attempt={shown} />
+          <AttemptConditionsView conditions={shown.conditions} />
         </section>
       )}
 
@@ -240,7 +243,7 @@ function Writer({ brief, initial }: { brief: WorkSampleBrief; initial: WorkSampl
                 <button type="button" className="link-button" onClick={async () => { const full = await api.workSampleAttempt(a.id).catch(() => null); if (full) { setShown(full); focusAfter.current = "ws-feedback"; } }}>
                   {formatDateTime(a.created_at)}
                 </button>
-                <span className="subtle"> · covers {a.covered} of {a.total} points{a.revision_of ? " · a revision" : ""} · version {a.brief_version}</span>
+                <span className="subtle"> · covers {a.covered} of {a.total} points{a.revision_of ? " · a revision" : ""} · version {a.brief_version}{a.conditions ? ` · In-app help: ${conditionsSummary(a.conditions)}` : ""}</span>
               </li>
             ))}
           </ul>

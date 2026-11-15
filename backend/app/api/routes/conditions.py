@@ -6,7 +6,17 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
-from app.models import DrillAttempt, PracticeAnswer, ScenarioAttempt, Submission, User, WhiteboardAttempt
+from app.models import (
+    CodeReviewAttempt,
+    ComparisonAttempt,
+    DrillAttempt,
+    PracticeAnswer,
+    ScenarioAttempt,
+    Submission,
+    User,
+    WhiteboardAttempt,
+    WorkSampleAttempt,
+)
 from app.schemas.common import error_responses
 from app.schemas.conditions import ConditionsOut, ConditionsQuery
 from app.services.conditions import Conditions
@@ -54,4 +64,7 @@ def attempt_conditions(
         drill_attempts=finder.for_drills(mine(DrillAttempt, body.drill_attempt_ids)),
         scenario_attempts=finder.for_scenarios(mine(ScenarioAttempt, body.scenario_attempt_ids)),
         whiteboard_attempts=finder.for_whiteboards(mine(WhiteboardAttempt, body.whiteboard_attempt_ids)),
+        code_review_attempts=finder.for_code_reviews(mine(CodeReviewAttempt, body.code_review_attempt_ids)),
+        comparison_attempts=finder.for_comparisons(mine(ComparisonAttempt, body.comparison_attempt_ids)),
+        work_sample_attempts=finder.for_work_samples(mine(WorkSampleAttempt, body.work_sample_attempt_ids)),
     )

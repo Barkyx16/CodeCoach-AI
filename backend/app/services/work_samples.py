@@ -30,6 +30,7 @@ from app.schemas.work_samples import (
     WorkSampleSummary,
 )
 from app.services import update_receipts
+from app.services.conditions import Conditions
 from app.worksamples import BRIEFS, BY_ID, Brief
 from app.worksamples.feedback import evaluate, words
 
@@ -205,6 +206,7 @@ class WorkSamples:
 
     def _out(self, a: WorkSampleAttempt) -> WorkSampleAttemptOut:
         current = BY_ID.get(a.brief_id)
+        found = Conditions(self.db, self._me).for_work_samples([a])
         snap: dict[str, Any] = a.snapshot
         labels = {s["id"]: s["label"] for s in snap.get("sections", [])} or {"message": "Message"}
         return WorkSampleAttemptOut(
@@ -220,6 +222,7 @@ class WorkSamples:
             reference=snap["reference"],
             revision_of=a.revision_of,
             created_at=a.created_at,
+            conditions=found[a.id],
         )
 
     def attempts(self, brief_id: str) -> list[WorkSampleAttemptSummary]:
@@ -229,6 +232,7 @@ class WorkSamples:
             .where(WorkSampleAttempt.user_id == self._me.id, WorkSampleAttempt.brief_id == brief_id)
             .order_by(WorkSampleAttempt.created_at.desc())
         ).all()
+        found = Conditions(self.db, self._me).for_work_samples(rows)
         return [
             WorkSampleAttemptSummary(
                 id=a.id,
@@ -237,6 +241,7 @@ class WorkSamples:
                 total=a.feedback.get("total", 0),
                 revision_of=a.revision_of,
                 created_at=a.created_at,
+                conditions=found[a.id],
             )
             for a in rows
         ]
@@ -249,6 +254,8 @@ class WorkSamples:
 
     def export(self) -> dict[str, Any]:
         me = self._me.id
+        rows = self.db.scalars(select(WorkSampleAttempt).where(WorkSampleAttempt.user_id == me)).all()
+        found = Conditions(self.db, self._me).for_work_samples(rows)
         return {
             "drafts": [
                 {"brief": d.brief_id, "sections": d.sections, "revision": d.revision}
@@ -256,6 +263,8 @@ class WorkSamples:
             ],
             "attempts": [
                 {
+                    "id": a.id,
+                    "conditions": found[a.id].model_dump(mode="json"),
                     "brief": a.brief_id,
                     "brief_version": a.brief_version,
                     "sections": a.sections,
@@ -263,6 +272,6 @@ class WorkSamples:
                     "revision_of": a.revision_of,
                     "created_at": a.created_at.isoformat(),
                 }
-                for a in self.db.scalars(select(WorkSampleAttempt).where(WorkSampleAttempt.user_id == me))
+                for a in rows
             ],
         }

@@ -6,6 +6,7 @@ from typing import Any, Literal
 from pydantic import Field
 
 from app.schemas.common import APIModel
+from app.schemas.conditions import AttemptConditions
 
 
 class ComparisonSummary(APIModel):
@@ -75,6 +76,9 @@ class ComparisonAttemptOut(APIModel):
     explanation: dict[str, Any]
     revealed_early: bool
     created_at: datetime
+    conditions: AttemptConditions | None = Field(
+        default=None, description="The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
+    )
 
 
 class ComparisonAttemptSummary(APIModel):
@@ -84,3 +88,6 @@ class ComparisonAttemptSummary(APIModel):
     matches: int
     revealed_early: bool
     created_at: datetime
+    conditions: AttemptConditions | None = Field(
+        default=None, description="The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
+    )

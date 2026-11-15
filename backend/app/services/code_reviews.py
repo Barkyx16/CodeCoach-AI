@@ -39,6 +39,7 @@ from app.schemas.code_reviews import (
 )
 from app.schemas.common import SaveReplay
 from app.services import update_receipts
+from app.services.conditions import Conditions
 
 MAX_ATTEMPTS_PER_EXERCISE = 50
 _CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
@@ -336,6 +337,7 @@ class CodeReviews:
 
     def _out(self, a: CodeReviewAttempt) -> ReviewAttemptOut:
         current = BY_SLUG.get(a.exercise_slug)
+        found = Conditions(self.db, self._me).for_code_reviews([a])
         return ReviewAttemptOut(
             id=a.id,
             slug=a.exercise_slug,
@@ -350,6 +352,7 @@ class CodeReviews:
             feedback=a.feedback,
             after_reveal=a.after_reveal,
             created_at=a.created_at,
+            conditions=found[a.id],
         )
 
     def attempts(self, slug: str) -> list[ReviewAttemptSummary]:
@@ -359,6 +362,7 @@ class CodeReviews:
             .where(CodeReviewAttempt.user_id == self._me.id, CodeReviewAttempt.exercise_slug == slug)
             .order_by(CodeReviewAttempt.created_at.desc())
         ).all()
+        found = Conditions(self.db, self._me).for_code_reviews(rows)
         return [
             ReviewAttemptSummary(
                 id=a.id,
@@ -368,6 +372,7 @@ class CodeReviews:
                 defects_total=a.feedback.get("defects_total", 0),
                 after_reveal=a.after_reveal,
                 created_at=a.created_at,
+                conditions=found[a.id],
             )
             for a in rows
         ]
@@ -380,6 +385,8 @@ class CodeReviews:
 
     def export(self) -> dict[str, Any]:
         me = self._me.id
+        rows = self.db.scalars(select(CodeReviewAttempt).where(CodeReviewAttempt.user_id == me)).all()
+        found = Conditions(self.db, self._me).for_code_reviews(rows)
         return {
             "drafts": [
                 {
@@ -394,6 +401,8 @@ class CodeReviews:
             ],
             "attempts": [
                 {
+                    "id": a.id,
+                    "conditions": found[a.id].model_dump(mode="json"),
                     "exercise": a.exercise_slug,
                     "exercise_version": a.exercise_version,
                     "code_reviewed": a.snapshot.get("code"),
@@ -403,6 +412,6 @@ class CodeReviews:
                     "after_reveal": a.after_reveal,
                     "created_at": a.created_at.isoformat(),
                 }
-                for a in self.db.scalars(select(CodeReviewAttempt).where(CodeReviewAttempt.user_id == me))
+                for a in rows
             ],
         }

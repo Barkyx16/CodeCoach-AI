@@ -7,11 +7,15 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
-import type { WorkSampleAttempt, WorkSampleBrief, WorkSampleDraft, WorkSampleFeedback } from "@/api/types";
+import type { AttemptConditions, WorkSampleAttempt, WorkSampleBrief, WorkSampleDraft, WorkSampleFeedback } from "@/api/types";
 
 import { user as baseUser } from "../fixtures";
 import { renderApp } from "../render";
 import { API, server } from "../server";
+
+const NOTE = "Only help shown in CodeCoach is recorded.";
+const noHelp: AttemptConditions = { labels: ["No in-app help recorded"], recorded_from: "2026-11-15", note: NOTE, help: [], round: null };
+
 
 const ID = "ws-incident-update";
 const brief: WorkSampleBrief = {
@@ -153,5 +157,24 @@ describe("work samples", () => {
     await user.click(screen.getByRole("button", { name: "Save draft" }));
     expect(await screen.findByRole("region", { name: "Edit conflict" })).toHaveTextContent("Newer, from the other tab.");
     expect(screen.getByLabelText(/^Next update/)).toHaveValue("At 10:30 UTC.");
+  });
+
+  it("says the help before an attempt, under its feedback and in the list (Volume 15, prompt 3)", async () => {
+    serve();
+    server.use(
+      http.post(`${API}/api/v1/me/work-samples/${ID}/attempts`, async ({ request }) => {
+        const body = (await request.json()) as (typeof sends)[number];
+        sends.push(body);
+        const made = attempt({ id: "att-1", sections: body.sections, conditions: noHelp });
+        listed = [{ id: made.id, brief_version: 1, covered: 2, total: 3, revision_of: null, created_at: made.created_at, conditions: noHelp } as (typeof listed)[number]];
+        return HttpResponse.json(made, { status: 201 });
+      }),
+    );
+    const { user } = renderApp(`/work-samples/${ID}`, { signedIn: true });
+    await user.type(await screen.findByLabelText(/^What's happening/), "Card payments at checkout are failing since 09:12 UTC.");
+    await user.click(screen.getByRole("button", { name: "Get feedback" }));
+    const fb = (await screen.findByRole("heading", { name: /^Feedback on/ })).closest("section")!;
+    expect(within(fb).getByText(/In-app help before this attempt:/).closest("p")).toHaveTextContent("In-app help before this attempt: No in-app help recorded");
+    expect(await screen.findByText(/In-app help: No in-app help recorded/)).toBeInTheDocument();
   });
 });

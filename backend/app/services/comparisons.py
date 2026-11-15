@@ -22,6 +22,7 @@ from app.schemas.comparisons import (
     ComparisonLesson,
     ComparisonSummary,
 )
+from app.services.conditions import Conditions
 
 MAX_ATTEMPTS_PER_LESSON = 50
 MIN_REASON_WORDS = 3
@@ -137,6 +138,7 @@ class Comparisons:
 
     def _out(self, a: ComparisonAttempt) -> ComparisonAttemptOut:
         current = BY_ID.get(a.lesson_id)
+        found = Conditions(self._db, self._me).for_comparisons([a])
         snap = a.snapshot
         return ComparisonAttemptOut.model_validate(
             {
@@ -154,6 +156,7 @@ class Comparisons:
                 "explanation": snap["explanation"],
                 "revealed_early": a.revealed_early,
                 "created_at": a.created_at,
+                "conditions": found[a.id],
             }
         )
 
@@ -164,6 +167,7 @@ class Comparisons:
             .where(ComparisonAttempt.user_id == self._me.id, ComparisonAttempt.lesson_id == lesson_id)
             .order_by(ComparisonAttempt.created_at.desc())
         ).all()
+        found = Conditions(self._db, self._me).for_comparisons(rows)
         return [
             ComparisonAttemptSummary(
                 id=a.id,
@@ -172,6 +176,7 @@ class Comparisons:
                 matches=a.feedback.get("counts", {}).get("matches", 0),
                 revealed_early=a.revealed_early,
                 created_at=a.created_at,
+                conditions=found[a.id],
             )
             for a in rows
         ]
@@ -183,8 +188,14 @@ class Comparisons:
         return self._out(a)
 
     def export(self) -> list[dict[str, Any]]:
+        rows = self._db.scalars(
+            select(ComparisonAttempt).where(ComparisonAttempt.user_id == self._me.id)
+        ).all()
+        found = Conditions(self._db, self._me).for_comparisons(rows)
         return [
             {
+                "id": a.id,
+                "conditions": found[a.id].model_dump(mode="json"),
                 "lesson": a.lesson_id,
                 "lesson_version": a.lesson_version,
                 "selections": a.selections,
@@ -193,7 +204,5 @@ class Comparisons:
                 "feedback": a.feedback,
                 "created_at": a.created_at.isoformat(),
             }
-            for a in self._db.scalars(
-                select(ComparisonAttempt).where(ComparisonAttempt.user_id == self._me.id)
-            )
+            for a in rows
         ]

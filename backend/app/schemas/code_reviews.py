@@ -7,6 +7,7 @@ from pydantic import Field, model_validator
 
 from app.models import Difficulty
 from app.schemas.common import APIModel, OptionalKey, SaveReplay, save_replay_field, update_key_field
+from app.schemas.conditions import AttemptConditions
 
 MAX_FINDINGS = 20
 
@@ -132,6 +133,9 @@ class ReviewAttemptOut(APIModel):
     feedback: dict
     after_reveal: bool = Field(description="Written after the authored review had been seen")
     created_at: datetime
+    conditions: AttemptConditions | None = Field(
+        default=None, description="The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
+    )
 
 
 class ReviewAttemptSummary(APIModel):
@@ -142,3 +146,6 @@ class ReviewAttemptSummary(APIModel):
     defects_total: int
     after_reveal: bool
     created_at: datetime
+    conditions: AttemptConditions | None = Field(
+        default=None, description="The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
+    )
