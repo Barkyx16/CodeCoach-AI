@@ -53,12 +53,37 @@ export const iso = (d: Date) =>
 // --- the record ------------------------------------------------------------------------------------
 
 export type StepOutcome = "passed" | "failed" | "absent";
+/** What a step ran on, beside the app itself: the code judge in its gVisor sandbox, or the built-in
+ * coach (AI_PROVIDER=offline). Nothing here stands in for either. */
+export type StepUses = "real judge" | "built-in coach";
 interface Step {
   n: number;
   name: string;
   outcome: StepOutcome;
   checks: string[];
+  uses?: StepUses[];
   note?: string;
+}
+
+/** One verdict exactly as the judge reported it (the API's copy of the runner's result). */
+export interface JudgeVerdict {
+  step: string;
+  submission_id: string;
+  mode: string;
+  status: string;
+  status_detail: string | null;
+  passed_count: number | null;
+  total_count: number | null;
+  hidden_passed: number | null;
+  hidden_total: number | null;
+  /** The judge's time inside the learner's method across all tests, ms (null when it gave none). */
+  runtime_ms: number | null;
+  /** Each public test's time as the judge reported it, ms. */
+  public_runtime_ms: (number | null)[];
+  /** From the request to the verdict, by the server's clock (created_at to updated_at), ms. */
+  queued_to_verdict_ms: number;
+  /** From pressing Submit to the verdict on screen, by the test's clock, ms. */
+  seen_after_ms: number | null;
 }
 
 /** What the journey did, step by step, written to test-results/journey/ for the journey record. */
@@ -66,12 +91,13 @@ export class Recorder {
   steps: Step[] = [];
   ids: Record<string, string | string[] | number | null> = {};
   facts: Record<string, string | number | boolean | null> = {};
+  judged: JudgeVerdict[] = [];
   private current: Step | null = null;
 
   constructor(private info: TestInfo, private kind: string) {}
 
-  async step(name: string, run: (check: (what: string) => void) => Promise<void>): Promise<void> {
-    const s: Step = { n: this.steps.length + 1, name, outcome: "failed", checks: [] };
+  async step(name: string, run: (check: (what: string) => void) => Promise<void>, uses?: StepUses[]): Promise<void> {
+    const s: Step = { n: this.steps.length + 1, name, outcome: "failed", checks: [], ...(uses ? { uses } : {}) };
     this.steps.push(s);
     this.current = s;
     await run((what) => s.checks.push(what));
@@ -83,15 +109,23 @@ export class Recorder {
     this.steps.push({ n: this.steps.length + 1, name, outcome: "absent", checks: [], note });
   }
 
-  write(): void {
+  record() {
+    return {
+      kind: this.kind, project: this.info.project.name, repeat: this.info.repeatEachIndex,
+      finished: this.current === null && this.steps.every((s) => s.outcome !== "failed"),
+      steps: this.steps, ids: this.ids, facts: this.facts, ...(this.judged.length ? { judged: this.judged } : {}),
+    };
+  }
+
+  /** Writes the record to test-results/journey/; `print` also puts it in the log, one
+   * "[journey-record]" line, for a CI job whose files aren't kept. */
+  write(print = false): void {
     const dir = path.join("test-results", "journey");
     mkdirSync(dir, { recursive: true });
     const file = path.join(dir, `${this.kind}-${this.info.project.name}-r${this.info.repeatEachIndex}.json`);
-    writeFileSync(file, JSON.stringify({
-      kind: this.kind, project: this.info.project.name, repeat: this.info.repeatEachIndex,
-      finished: this.current === null && this.steps.every((s) => s.outcome !== "failed"),
-      steps: this.steps, ids: this.ids, facts: this.facts,
-    }, null, 2));
+    const record = this.record();
+    writeFileSync(file, JSON.stringify(record, null, 2));
+    if (print) process.stdout.write(`\n[journey-record] ${JSON.stringify(record)}\n`);
   }
 }
 
@@ -99,9 +133,9 @@ export class Recorder {
 
 export interface Account { email: string; auth: Record<string, string> }
 
-export async function newAccount(request: APIRequestContext, prefix: string): Promise<Account> {
+export async function newAccount(request: APIRequestContext, prefix: string, track: string = TRACK): Promise<Account> {
   const email = `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
-  const reg = await request.post(`${API_URL}/api/v1/auth/register`, { data: { email, password: PASSWORD, career_track: TRACK } });
+  const reg = await request.post(`${API_URL}/api/v1/auth/register`, { data: { email, password: PASSWORD, career_track: track } });
   expect(reg.status(), "register").toBe(201);
   return { email, auth: { Authorization: `Bearer ${((await reg.json()) as { access_token: string }).access_token}` } };
 }

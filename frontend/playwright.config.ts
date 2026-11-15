@@ -10,7 +10,8 @@ import { API_URL, E2E_DATABASE_URL, INSTANCE_LABEL, PORT_OFFSET, PORTS, PREVIEW_
  */
 const python = process.env.PYTHON ?? "python";
 // E2E_JUDGE=1 also starts the isolated runner and enables code execution (needs Docker + gVisor
-// + the codecoach-java-sandbox:21 image). Only e2e/judge.spec.ts depends on it.
+// + the codecoach-java-sandbox:21 image). Only e2e/judge.spec.ts and the software engineer's journey
+// (e2e/engineer-*.spec.ts) depend on it.
 const judge = process.env.E2E_JUDGE === "1";
 const runnerToken = "e2e-runner-token-0123456789abcdef0123456789";
 // Each server runs through scripts/e2e-owned.mjs, which records its process group for the run

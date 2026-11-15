@@ -5,6 +5,11 @@ interview, checked end to end in a browser against the real API (Volume 12, prom
 the path it exercises on the candidate it ran on: not that everything else works, and not that
 practising this way helps anyone learn.
 
+There are two: a registered nurse's (written answers, checked by the built-in coach's fixed rules)
+and, since Volume 13, prompt 10, [a software engineer's](#the-software-engineers-journey) (code
+judged in the gVisor sandbox, with approved coach context). Together they cover both kinds of
+practice.
+
 - The journey: `frontend/e2e/preparation-journey.ts`, run by `preparation-journey.spec.ts`
   (desktop) and `preparation-journey-mobile.spec.ts` (a Pixel 7 phone).
 - The branches: `frontend/e2e/preparation-branches.spec.ts` (desktop).
@@ -135,10 +140,112 @@ need Docker, gVisor and the sandbox image) and the opt-in controls audit.
 An earlier candidate with the same journey code, `66e9418`, gave the same results before those
 hashes changed (the commits were replayed on top of the fixes).
 
+## The software engineer's journey
+
+The parts the nurse's journey couldn't use: approved coach context and the real judge (Volume 13,
+prompt 10). A software engineer on a fresh synthetic account; each step checks what the learner sees
+and records the ids it made, what it ran on (`uses`: the real judge, the built-in coach) and the
+judge's verdicts as the judge reported them (`judged`).
+
+- The journey: `frontend/e2e/engineer-journey.ts`, run by `engineer-journey.spec.ts` (desktop) and,
+  for the steps with a phone layout of their own, `engineer-journey-mobile.spec.ts` (a Pixel 7).
+- The branches: `frontend/e2e/engineer-branches.spec.ts` (desktop).
+- Where it runs: CI's sandbox job, which installs gVisor and builds the sandbox image, runs all three
+  twice on fresh accounts (`--repeat-each=2`) with `E2E_JUDGE=1`, prints each run's record as a
+  `[journey-record]` line and keeps `test-results/journey/` with `e2e-provenance.json` as the
+  `engineer-journey-record` artifact. Elsewhere the journeys skip, saying they need the real judge
+  (Docker, gVisor and the sandbox image). With `E2E_JUDGE=1` but no ready judge, the first step
+  fails with the judge's state and the record says `stopped`: no verdict is ever recorded that the
+  sandbox didn't give.
+
+| # | Step | Uses | What it checks (as the learner sees it) |
+|---|---|---|---|
+| 1 | The judge is ready | | `/capabilities`: code execution on, the judge `ready`, the coach `offline` |
+| 2 | A target requirement | | A posting with "Strong knowledge of data structures and algorithms" becomes a requirement, not practised yet, offering "Problem: Two Sum · Coding practice for arrays, hash maps"; the link opens the workspace |
+| 3 | Approved coach context: a hint | built-in coach | Checking shows the code the coach will read for a level 1 hint (nudge) and uses nothing; the request then sent carries the preview's fingerprint and exactly the code it showed; the hint is shown and one request is used |
+| 4 | A coding baseline, judged for real | real judge | Submitted in the workspace and judged in the sandbox: the verdict, tests passed, hidden tests passed and time in the method, as the results panel shows them |
+| 5 | Its recorded help | | The submission's page says "In-app help before this attempt: Hint shown" with "Level 1 hint (nudge)" (docs/ATTEMPT_CONDITIONS.md) |
+| 6 | An approved code review | built-in coach | The preview lists what the coach will read; the review request carries its fingerprint and the code it showed, is answered (200, "What's working") and uses one request |
+| 7 | Feedback review: a coding interview | built-in coach | A coding interview on the same problem, finished; its feedback's "Work on next" lists the built-in interviewer's lowest rubric skills |
+| 8 | An accepted improvement | | The first of them accepted as a weekly action, from that interview |
+| 9 | Its calendar placement | | The plan schedules two weeks; the schedule shows it in the first week, not yet done |
+| 10 | A resubmission, judged for real | real judge | A correct solution, judged in the sandbox; its own help reads "No in-app help recorded" (a hint belongs to the attempt after it). **Not compared**: coding submissions have no comparison verdict (docs/COMPARING_ATTEMPTS.md), so History lists both with their own verdict and help, the improvement says "This kind of improvement has no practice linked to it yet: mark it done when you've done it." rather than claiming the resubmission, and the requirement reads what the server says ("Some practice") |
+| 11 | Final preparation material | | An application, an interview and its kit; the checklist reads the same action ("Problem solving · 0 of 2 weeks done") and the printable pack lists it |
+| 12 | Found again | | After a reload, and after a fresh sign-in in another browser: both submissions with their verdicts and the baseline's hint, and the kit; then by the API with a new token: the requirement ids, both submissions' verdicts, the action (its interview and two occurrences), the review's link to it and the kit's |
+| 13 | No secret in the logs | | The API's access log doesn't contain the canary typed into the code and the kit's notes |
+
+**At phone size** (`engineer-journey-mobile.spec.ts`): the workspace's own phone layout, its
+Problem, Code and Coach tabs. A hint checked then asked for in the Coach tab, the baseline and the
+resubmission judged from the Code tab, an approved code review in the Coach tab, and the baseline's
+recorded help with no sideways scroll. The other steps' pages are the desktop ones in one column,
+checked at phone width by their own specs.
+
+### Its branches
+
+| Branch | What it checks | Negative control (caught) |
+|---|---|---|
+| Code changed after the preview | By the API, the preview's fingerprint with other code is 409 `context_changed`, with what the coach would read now, and nothing is used; in the browser, a review request that leaves with other code than the preview showed (as a stale tab would send it) is refused: "What the coach would read changed since you checked it, so nothing was sent. This is what it would read now.", the new code shown, no review | the fingerprint comparison in `services/ai/service.py` removed |
+| A judged resubmission | After a hint, a failed and a passing submission (both judged) and an improvement from a coding interview: History gives each its own help ("Hint shown" once, "No in-app help recorded" once), the resubmission's page its own verdict, and the plan says no practice is linked to the improvement | a hint counted for every later attempt (`services/conditions.py`); an improvement with no stored link reported as linked with nothing found (`services/related_practice.py`) |
+| Another account's submission | Its page says "This submission isn't available"; the API says 404 `not_found`; a code review or a failure explanation preview naming it is 404; its conditions aren't returned; the owner still has it | the submission found by its id alone (`api/routes/submissions.py`) |
+
+The changed-code and another-account branches don't need the judge and run in every e2e run; the
+resubmission branch skips without it.
+
+### What's real and what's substituted
+
+- **The judge**: real. The API's worker sends each submission to the runner, which runs it in the
+  sandbox image under gVisor (`runsc`), with no network. The verdicts are the API's copy of the
+  runner's result, recorded as given: status, its detail, tests passed and total, hidden tests
+  passed and total, the time in the method across the tests and per public test, both as the judge
+  reported them; and, by the server's clock, the time from the request to the verdict.
+- **The coach**: the built-in offline coach (`AI_PROVIDER=offline`), labelled as such in every
+  preview; no outside AI provider is called. The coding interview's interviewer is the built-in one.
+- **That the coach was sent what it showed**: proved by the request the page sent, not by the
+  server: the API doesn't expose what was sent (by design). The server's side, that a request not
+  matching its preview is refused, is the changed-code branch; the byte-for-byte check is in
+  `backend/tests/test_coach_context.py`.
+- **Email, database, time**: as for the nurse's journey (above).
+
+### How to run it
+
+Needs Docker with gVisor and the sandbox image (`docker build -t codecoach-java-sandbox:21
+runner/sandbox-image`):
+
+```bash
+cd frontend
+E2E_JUDGE=1 E2E_PORT_OFFSET=60 npm run e2e -- e2e/engineer-journey.spec.ts e2e/engineer-branches.spec.ts e2e/engineer-journey-mobile.spec.ts --repeat-each=2 --trace off
+```
+
+### Its record
+
+**In CI**: pending, the sandbox job of the run on the commit that adds the journey. The next commit
+records that run, its commit and the verdicts here.
+
+**Before CI** (not the record; the development check): a Linux container with gVisor (`runsc`,
+`4.19.0-gvisor`) and the sandbox image, on 15 November 2026, on `626276c` plus the journey's files
+(the runner named them). All three specs twice: 10 passed, `real_judge: true`, nothing changed
+during the run. Both desktop runs: the same 13 steps passed with the same checks; both phone runs
+the same 6.
+
+| Submission | Verdict | Tests | Hidden | In the method | Request to verdict |
+|---|---|---|---|---|---|
+| Baseline (desktop, both runs; phone, both runs) | FAILED, "Some tests failed." | 2 of 7 | 0 of 4 | 1 ms | 3.7-4.2 s |
+| Resubmission (desktop, both runs; phone, both runs) | PASSED, "All tests passed." | 7 of 7 | 4 of 4 | 1-2 ms | 3.8-4.0 s |
+
+The coding interview's feedback listed "Problem solving; Code quality" both times; "Problem solving"
+was accepted. The requirement read "Some practice" after the resubmission. Negative controls: 4,
+each caught (above). Without `E2E_JUDGE`, the two judge-free branches passed and the rest skipped,
+saying why.
+
 ## Limits
 
-- One path, one career: a registered nurse. The coach-context step is absent for it (above); the
-  "Hint shown" assistance label isn't on it; the judge isn't used.
+- The nurse's path: one career, a registered nurse. The coach-context step is absent for it (above);
+  the "Hint shown" assistance label isn't on it (the software engineer's journey has it); the judge
+  isn't used.
+- The software engineer's path: one problem (Two Sum), Java only. Coding submissions aren't
+  compared with each other (no comparison verdict exists for them yet), and an improvement from a
+  coding interview has no practice linked to it, so nothing ties the resubmission to the improvement
+  except the learner. The target's requirement links to the problem, not to the submissions.
 - The journey links the follow-up and the accepted improvement only by order. Since Volume 13, prompt 4, a
   follow-up to the improvement's question is listed under its Related practice (docs/ACCEPTED_ACTIONS.md);
   the recorded journey above predates that and doesn't check it.

@@ -289,6 +289,25 @@ jobs:
           E2E_JUDGE: "1"
         # Through the launcher, like every other e2e run: it owns and stops what the run starts.
         run: npm run e2e -- e2e/judge.spec.ts
+      - name: A software engineer's journey, judged for real, twice on fresh accounts
+        # docs/PREPARATION_JOURNEY.md, "The software engineer's journey": its record (each step's
+        # outcome, the judge's verdicts and timings, ids) is printed as "[journey-record]" lines and
+        # kept as an artifact, with the commit it ran on (e2e-provenance.json).
+        working-directory: frontend
+        env:
+          CI: "true"
+          PYTHON: python
+          E2E_JUDGE: "1"
+        run: npm run e2e -- e2e/engineer-journey.spec.ts e2e/engineer-branches.spec.ts e2e/engineer-journey-mobile.spec.ts --repeat-each=2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: engineer-journey-record
+          path: |
+            frontend/test-results/journey/
+            frontend/test-results/e2e-provenance.json
+          retention-days: 30
+          if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
