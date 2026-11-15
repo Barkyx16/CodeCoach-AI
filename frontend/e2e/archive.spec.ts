@@ -54,15 +54,16 @@ test("archive and restore a comparison; an application with an interview coming 
   expect([after.revision, after.archived]).toEqual([comp.revision, false]); // the same comparison, unchanged
 
   await page.goto(`/applications/${app.id}`);
-  await page.getByRole("button", { name: "Archive", exact: true }).click();
-  const ask = page.getByRole("group", { name: "Archive with an interview coming up" });
-  await expect(ask).toContainText("It doesn't cancel the interview or change the stage");
+  await page.getByRole("button", { name: "Archive…", exact: true }).click();
+  const ask = page.getByRole("group", { name: "What this will do" });
+  await expect(page.getByText(/is still to come\. Archiving doesn't cancel the interview or change the stage\./)).toBeVisible();
+  await expect(ask).toContainText("Interview event:");
   for (const theme of ["dark", "light"]) {
     await setTheme(page, theme);
     const scan = await new AxeBuilder({ page }).include(".application-page").analyze();
     expect(scan.violations.map((v) => v.id), `application, ${theme}`).toEqual([]);
   }
-  await ask.getByRole("button", { name: "Archive anyway" }).click();
+  await ask.getByRole("button", { name: "Archive this application" }).click();
   await expect(page.getByText(/APPLICATION · ARCHIVED/)).toBeVisible();
   const archived = (await (await request.get(`${API_URL}/api/v1/me/applications/${app.id}`, { headers: auth })).json()) as { stage: string; archived: boolean };
   expect([archived.stage, archived.archived]).toEqual(["interviewing", true]);

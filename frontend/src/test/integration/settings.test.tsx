@@ -117,22 +117,77 @@ describe("Settings", () => {
     await waitFor(() => expect(auth).toBe("Bearer rotated-token"));
   });
 
-  it("deletes the account only after typing DELETE, then signs out", async () => {
+  // Volume 14, prompt 6 (docs/LIFECYCLE.md): the list first, from the privacy page's own counts;
+  // the delete is bound to it; the typed confirmation stays.
+  const accountPlan = (notes = 3, fingerprint = "account-1") => ({
+    action: "delete_account", target_id: "u1", title: "Your account", summary: "Delete my account and everything in it",
+    effects: [
+      { effect: "deleted", kind: "records", title: `Notes: ${notes}`, id: "notes", note: null },
+      { effect: "deleted", kind: "records", title: "Stories: 2", id: "stories", note: null },
+      { effect: "deleted", kind: "email not sent yet", title: "1 email waiting to be sent", id: "email_jobs", note: "Cancelled: never sent." },
+      { effect: "deleted", kind: "shared link", title: "1 link you shared", id: "shares", note: "They stop working at once." },
+      { effect: "deleted", kind: "signed-in device", title: "2 devices signed in", id: "sessions", note: "Every device is signed out." },
+    ],
+    notes: ["Backups CodeCoach made before now keep a copy until they age out: with the default rotation (docs/BACKUP.md), the last of them by 2027-02-01."], fingerprint,
+  });
+
+  it("shows what would be deleted first, then deletes only after typing DELETE, and signs out", async () => {
     let body: unknown = null;
-    server.use(http.delete(`${API}/api/v1/auth/me`, async ({ request }) => {
-      body = await request.json();
-      return new HttpResponse(null, { status: 204 });
-    }));
+    server.use(
+      http.get(`${API}/api/v1/auth/me/delete-preview`, () => HttpResponse.json(accountPlan())),
+      http.delete(`${API}/api/v1/auth/me`, async ({ request }) => {
+        body = await request.json();
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
     const { user, router } = renderApp("/settings", { signedIn: true });
     const button = await screen.findByRole("button", { name: "Delete my account" });
     const danger = within(screen.getByRole("form", { name: "Delete account" }));
     await user.type(danger.getByLabelText("Password"), "CorrectHorse42");
-    expect(button).toBeDisabled();
     await user.type(danger.getByLabelText('Type "DELETE" to confirm'), "DELETE");
+    expect(button).toBeDisabled(); // no confirm box without the list
+    await user.click(danger.getByRole("button", { name: "Show what would be deleted" }));
+    const list = await danger.findByRole("group", { name: "What deleting your account does" });
+    expect(list).toHaveTextContent("Notes: 3");
+    expect(list).toHaveTextContent("Cancelled: never sent.");
+    expect(list).toHaveTextContent("They stop working at once.");
+    expect(list).toHaveTextContent("Every device is signed out.");
+    expect(list).toHaveTextContent("keep a copy until they age out: with the default rotation (docs/BACKUP.md), the last of them by 2027-02-01");
+    expect(button).toBeEnabled();
     await user.click(button);
     await waitFor(() => expect(router.state.location.pathname).toBe("/"));
-    expect(body).toEqual({ password: "CorrectHorse42", confirm: "DELETE" });
+    expect(body).toEqual({ password: "CorrectHorse42", confirm: "DELETE", expected_fingerprint: "account-1" });
     expect(await screen.findByRole("link", { name: "Sign in" })).toBeInTheDocument();
+  });
+
+  it("something added since the list is refused with the new list, and nothing is deleted", async () => {
+    const bodies: unknown[] = [];
+    server.use(
+      http.get(`${API}/api/v1/auth/me/delete-preview`, () => HttpResponse.json(accountPlan())),
+      http.delete(`${API}/api/v1/auth/me`, async ({ request }) => {
+        bodies.push(await request.json());
+        if (bodies.length === 1) {
+          return HttpResponse.json({ error: { code: "impact_changed", message: "Changed", request_id: "r", details: { current: accountPlan(4, "account-2") } } }, { status: 409 });
+        }
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    const { user, router } = renderApp("/settings", { signedIn: true });
+    const danger = within(await screen.findByRole("form", { name: "Delete account" }));
+    await user.click(danger.getByRole("button", { name: "Show what would be deleted" }));
+    await danger.findByText("Notes: 3");
+    await user.type(danger.getByLabelText("Password"), "CorrectHorse42");
+    await user.type(danger.getByLabelText('Type "DELETE" to confirm'), "DELETE");
+    await user.click(danger.getByRole("button", { name: "Delete my account" }));
+    expect(await danger.findByText(/Something changed since you looked\. Nothing was deleted/)).toBeInTheDocument();
+    expect(danger.getByText("Notes: 4")).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/settings"); // still signed in
+    await user.click(danger.getByRole("button", { name: "Delete my account" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/"));
+    expect(bodies).toEqual([
+      expect.objectContaining({ expected_fingerprint: "account-1" }),
+      expect.objectContaining({ expected_fingerprint: "account-2" }),
+    ]);
   });
 
   it("downloads an export of the user's data", async () => {

@@ -338,7 +338,8 @@ export const api = {
     }),
   changePassword: (body: { current_password: string; new_password: string }) =>
     apiRequest<TokenResponse>("/api/v1/auth/password", { method: "POST", body }),
-  deleteAccount: (body: { password?: string; confirm: string }) =>
+  accountDeletePreview: () => apiRequest<Impact>("/api/v1/auth/me/delete-preview"),
+  deleteAccount: (body: { password?: string; confirm: string; expected_fingerprint?: string }) =>
     apiRequest<void>("/api/v1/auth/me", { method: "DELETE", body }),
   exportData: (version: 1 | 2 = 1) =>
     // Everything the account holds: allowed longer than an ordinary read.
@@ -614,6 +615,9 @@ export const api = {
   story: (id: string) => apiRequest<Story>(`/api/v1/me/stories/${encodeURIComponent(id)}`),
   createStory: (body: StoryCreate) => apiRequest<Story>("/api/v1/me/stories", { method: "POST", body }),
   updateStory: (id: string, body: StoryUpdate) => apiRequest<Story>(`/api/v1/me/stories/${encodeURIComponent(id)}`, { method: "PATCH", body }),
+  storyArchivePreview: (id: string) => apiRequest<Impact>(`/api/v1/me/stories/${encodeURIComponent(id)}/archive-preview`),
+  archiveStoryAsPreviewed: (id: string, body: LifecycleIn) =>
+    apiRequest<LifecycleOutcome>(`/api/v1/me/stories/${encodeURIComponent(id)}/archive-as-previewed`, { method: "POST", body }),
   archiveStory: (id: string, archived: boolean) =>
     apiRequest<Story>(`/api/v1/me/stories/${encodeURIComponent(id)}/${archived ? "archive" : "unarchive"}`, { method: "POST" }),
   storyDeletePreview: (id: string) => apiRequest<Impact>(`/api/v1/me/stories/${encodeURIComponent(id)}/delete-preview`),
@@ -636,6 +640,9 @@ export const api = {
   updateApplication: (id: string, body: ApplicationUpdate) => apiRequest<Application>(`/api/v1/me/applications/${encodeURIComponent(id)}`, { method: "PATCH", body }),
   setApplicationStage: (id: string, body: { stage: ApplicationStage; note: string; correction: boolean }) =>
     apiRequest<Application>(`/api/v1/me/applications/${encodeURIComponent(id)}/stage`, { method: "POST", body }),
+  applicationArchivePreview: (id: string) => apiRequest<Impact>(`/api/v1/me/applications/${encodeURIComponent(id)}/archive-preview`),
+  archiveApplicationAsPreviewed: (id: string, body: LifecycleIn) =>
+    apiRequest<LifecycleOutcome>(`/api/v1/me/applications/${encodeURIComponent(id)}/archive-as-previewed`, { method: "POST", body }),
   archiveApplication: (id: string, archived: boolean) =>
     apiRequest<Application>(`/api/v1/me/applications/${encodeURIComponent(id)}/${archived ? "archive" : "unarchive"}`, { method: "POST" }),
   deleteApplication: (id: string) => apiRequest<void>(`/api/v1/me/applications/${encodeURIComponent(id)}`, { method: "DELETE" }),

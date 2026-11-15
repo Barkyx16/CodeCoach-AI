@@ -43,6 +43,14 @@ there; nothing on the server changes, and export and deletion stay in Settings.
 
 `DELETE /api/v1/auth/me` (Settings → Danger zone: your password plus typing DELETE):
 
+0. **The list first** (Volume 14, prompt 6; docs/LIFECYCLE.md, "Deleting the account"): **Show
+   what would be deleted** lists every category with something in it and its count (the privacy
+   view's own counts), the emails waiting to be sent (cancelled: never sent), the links you shared
+   that still open (they stop working at once), the signed-in devices (all signed out), and what
+   remains: backups made before now keep a copy until they age out, by a stated date (the first
+   day of the third month after, with the default rotation and nightly backups; later if backups
+   stop or the server keeps more). The delete is disabled until the list is shown, and it's bound
+   to it: anything added or removed since is refused with the new list, and nothing is deleted.
 1. The account row is deleted. Every owned row goes with it in the same transaction, including
    pending emails, shares (their links die at once), drafts saved to the account, AI feedback,
    restore imports and sign-in sessions. Every access token stops working.
@@ -85,6 +93,8 @@ log line already shipped elsewhere.
 |---|---|
 | Deletion removes every row of yours and nothing of anyone else's | `tests/test_account.py::test_delete_removes_every_row_and_nothing_else` |
 | A deleted owner's share links stop working; feedback you gave stays anonymised | `tests/test_shares.py::test_export_and_account_deletion` |
+| The deletion list's counts equal what goes; a change since the list is refused; afterwards sign-in fails, the link is gone and no queued email is left | `tests/test_archive_and_account_previews.py`, `e2e/account-deletion.spec.ts` |
+| The stated backup age-out date is never earlier than the rotation's | `tests/test_archive_and_account_previews.py::test_the_age_out_date_matches_the_rotation_itself` |
 | Exports contain only your records, and no keys, tokens or credentials | `tests/test_export_v2.py` (other accounts' ids absent; `password`, `refresh_token`, `access_token`, `token_version`, `client_request_id` absent) |
 | The data summary counts only your rows, reads no content, and covers every table holding a learner's rows | `tests/test_data_summary.py` |
 | Removing a device copy removes only that key, and a page still open doesn't write it back | `src/lib/deviceCopies.test.tsx`, `src/test/integration/yourData.test.tsx`, `e2e/your-data.spec.ts` |

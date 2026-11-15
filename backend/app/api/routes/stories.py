@@ -74,7 +74,8 @@ def update_story(
 def archive_story(
     story_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> StoryOut:
-    return Stories(db).set_archived(user, story_id, True)
+    Lifecycle(db, user).archive_story(story_id, None)  # the same plan the preview shows
+    return Stories(db).get(user, story_id)
 
 
 @router.post(
@@ -173,3 +174,27 @@ def assist_story(
     story_id: str, body: StoryAssistIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> StoryAssistOut:
     return Stories(db).assist(user, story_id, body)
+
+
+@router.get(
+    "/{story_id}/archive-preview",
+    response_model=Impact,
+    responses=error_responses(401, 404),
+    summary="What archiving it would keep and hide (nothing is changed; archiving is reversible)",
+)
+def archive_story_preview(
+    story_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> Impact:
+    return Lifecycle(db, user).plan_archive_story(story_id)
+
+
+@router.post(
+    "/{story_id}/archive-as-previewed",
+    response_model=LifecycleOutcome,
+    responses=error_responses(401, 404, 409, 422),
+    summary="Archive it as previewed: a changed scope is refused (409 impact_changed) with the new preview",
+)
+def archive_story_as_previewed(
+    story_id: str, body: LifecycleIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> LifecycleOutcome:
+    return Lifecycle(db, user).archive_story(story_id, body)

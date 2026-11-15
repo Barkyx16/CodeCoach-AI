@@ -16,6 +16,9 @@ LifecycleAction = Literal[
     "archive_target",
     "archive_action",
     "delete_action",
+    "archive_story",
+    "archive_application",
+    "delete_account",
 ]
 
 

@@ -176,6 +176,13 @@ class DeleteAccountRequest(APIModel):
         default=None, max_length=128, description="Required for email/password accounts; omitted for guests"
     )
     confirm: str = Field(description='Must be the word "DELETE" to prevent accidents', examples=["DELETE"])
+    expected_fingerprint: str | None = Field(
+        default=None,
+        min_length=16,
+        max_length=64,
+        description="The `fingerprint` of GET /auth/me/delete-preview: refused (409 impact_changed) with the new "
+        "list if what would go changed since",
+    )
 
 
 class UserOut(APIModel):

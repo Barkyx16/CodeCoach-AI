@@ -62,6 +62,12 @@ function Detail({ a }: { a: Application }) {
     done(await api.archiveApplication(a.id, archived));
     void qc.invalidateQueries({ queryKey: ["me", "recent-work"] });
   };
+  // Archiving shows what it keeps and takes off the schedule first (docs/LIFECYCLE.md).
+  const loadArchive = useCallback(() => api.applicationArchivePreview(a.id), [a.id]);
+  const runArchive = useCallback(
+    (fingerprint: string, key: string) => api.archiveApplicationAsPreviewed(a.id, { expected_fingerprint: fingerprint, client_request_id: key }),
+    [a.id],
+  );
   const done = (next: Application) => {
     qc.setQueryData(["me", "application", next.id], next);
     void qc.invalidateQueries({ queryKey: ["me", "applications"] });
@@ -96,9 +102,9 @@ function Detail({ a }: { a: Application }) {
             <h2 className="section-title">Keep or remove</h2>
             <p className="subtle">Archiving hides it from your board; nothing is lost. Deleting removes it, its events and its history, and each event's interview kit and reflection. Your stories, notes and schedule entries stay.</p>
             <span className="row">
-              <Button size="sm" aria-expanded={a.next_event && !a.archived ? confirmArchive : undefined}
-                onClick={() => { setPreviewDelete(false); if (a.archived) void setArchived(false); else if (a.next_event) setConfirmArchive(true); else void setArchived(true); }}>
-                {a.archived ? "Unarchive" : "Archive"}
+              <Button size="sm" aria-expanded={a.archived ? undefined : confirmArchive}
+                onClick={() => { setPreviewDelete(false); if (a.archived) void setArchived(false); else setConfirmArchive((v) => !v); }}>
+                {a.archived ? "Unarchive" : "Archive…"}
               </Button>
               <Button size="sm" variant="danger" aria-expanded={previewDelete} onClick={() => { setConfirmArchive(false); setPreviewDelete((v) => !v); }}>
                 Delete…
@@ -117,17 +123,25 @@ function Detail({ a }: { a: Application }) {
                 }}
               />
             )}
-            {confirmArchive && a.next_event && (
-              <div className="banner banner--warning stack-sm" role="group" aria-label="Archive with an interview coming up">
-                <p>
-                  {a.next_event.title}{a.next_event.on_date ? ` on ${formatDay(a.next_event.on_date)}` : ""} is still to come. Archiving takes
-                  this application off your board and your upcoming interviews. It doesn't cancel the interview or change the stage, and
-                  anything already on your schedule stays.
-                </p>
-                <span className="row">
-                  <Button size="sm" onClick={() => void setArchived(true)}>Archive anyway</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setConfirmArchive(false)}>Keep it active</Button>
-                </span>
+            {confirmArchive && !a.archived && (
+              <div className="stack-sm">
+                {a.next_event && (
+                  <p className="banner banner--warning">
+                    {a.next_event.title}{a.next_event.on_date ? ` on ${formatDay(a.next_event.on_date)}` : ""} is still to come. Archiving doesn't
+                    cancel the interview or change the stage.
+                  </p>
+                )}
+                <ImpactPreview
+                  load={loadArchive}
+                  run={runArchive}
+                  onCancel={() => setConfirmArchive(false)}
+                  onDone={async () => {
+                    setConfirmArchive(false);
+                    done(await api.application(a.id));
+                    void qc.invalidateQueries({ queryKey: ["me", "recent-work"] });
+                    void qc.invalidateQueries({ queryKey: ["me", "schedule"] });
+                  }}
+                />
               </div>
             )}
           </Card>

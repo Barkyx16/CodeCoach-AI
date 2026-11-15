@@ -317,7 +317,23 @@ class Schedule:
         # An archived improvement's occurrences are off the schedule and Today until it's unarchived
         # (docs/ACCEPTED_ACTIONS.md, "Archive and delete").
         archived = self._archived_actions() if any(e.kind == "accepted_action" for e in rows) else set()
-        return [e for e in rows if not (e.kind == "accepted_action" and e.ref in archived)]
+        # Likewise an archived application's interview events (Volume 14, prompt 6).
+        hidden = self._archived_events() if any(e.kind == "application_event" for e in rows) else set()
+        return [
+            e
+            for e in rows
+            if not (e.kind == "accepted_action" and e.ref in archived)
+            and not (e.kind == "application_event" and e.ref in hidden)
+        ]
+
+    def _archived_events(self) -> set[str]:
+        return set(
+            self.db.scalars(
+                select(ApplicationEvent.id)
+                .join(Application, Application.id == ApplicationEvent.application_id)
+                .where(Application.user_id == self.user.id, Application.archived.is_(True))
+            )
+        )
 
     def _archived_actions(self) -> set[str]:
         return set(

@@ -336,7 +336,7 @@ class RequirementVersions:
             )
         ):
             for rid in e.requirement_ids or []:
-                out.setdefault(rid, []).append(LinkedStory(id=e.id, title=e.title))
+                out.setdefault(rid, []).append(LinkedStory(id=e.id, title=e.title, archived=e.archived))
         return out
 
     @staticmethod

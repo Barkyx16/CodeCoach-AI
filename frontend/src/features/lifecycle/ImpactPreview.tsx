@@ -76,6 +76,26 @@ export function ImpactPreview({ load, run, danger = false, onDone, onCancel }: {
       {changed && (
         <p className="banner banner--warning">What this affects changed since you looked. Nothing was done: check the list again.</p>
       )}
+      <ImpactList impact={impact} />
+      {!actionable && <p>{impact.summary}. Nothing would change.</p>}
+      {(impact.notes ?? []).map((n) => <p key={n} className="subtle">{n}</p>)}
+      <span className="row">
+        {actionable && (
+          <Button size="sm" variant={danger ? "danger" : "primary"} loading={busy} onClick={() => void go(impact)}>
+            {impact.summary}
+          </Button>
+        )}
+        <Button size="sm" variant="ghost" disabled={busy} onClick={onCancel}>{actionable ? "Cancel" : "Close"}</Button>
+      </span>
+      <InlineError error={runError} />
+    </div>
+  );
+}
+
+/** The plan's items grouped by what happens to them, in the order a learner weighs them. */
+export function ImpactList({ impact }: { impact: Impact }) {
+  return (
+    <>
       {GROUPS.map((g) => {
         const items = impact.effects.filter((e) => e.effect === g.effect);
         if (items.length === 0) return null;
@@ -93,17 +113,6 @@ export function ImpactPreview({ load, run, danger = false, onDone, onCancel }: {
           </div>
         );
       })}
-      {!actionable && <p>{impact.summary}. Nothing would change.</p>}
-      {(impact.notes ?? []).map((n) => <p key={n} className="subtle">{n}</p>)}
-      <span className="row">
-        {actionable && (
-          <Button size="sm" variant={danger ? "danger" : "primary"} loading={busy} onClick={() => void go(impact)}>
-            {impact.summary}
-          </Button>
-        )}
-        <Button size="sm" variant="ghost" disabled={busy} onClick={onCancel}>{actionable ? "Cancel" : "Close"}</Button>
-      </span>
-      <InlineError error={runError} />
-    </div>
+    </>
   );
 }

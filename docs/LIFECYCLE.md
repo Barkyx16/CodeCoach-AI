@@ -6,20 +6,27 @@ made unavailable. The list comes from the same planning function that then carri
 
 - The planner: `backend/app/services/lifecycle.py` (`Lifecycle.plan_delete_application`,
   `plan_archive_note`, `plan_delete_story`, `plan_delete_note`, `plan_archive_target`,
-  `plan_archive_action`, `plan_delete_action`, and the matching `delete_application`,
-  `archive_note`, `delete_story`, `delete_note`, `archive_target`, `archive_action`, `delete_action`).
+  `plan_archive_action`, `plan_delete_action`, `plan_archive_story`, `plan_archive_application`,
+  `plan_delete_account`, and the matching `delete_application`, `archive_note`, `delete_story`,
+  `delete_note`, `archive_target`, `archive_action`, `delete_action`, `archive_story` and
+  `archive_application`; the account's delete stays in `DELETE /auth/me`, bound to its plan).
 - The preview: `frontend/src/features/lifecycle/ImpactPreview.tsx`, on the application page
-  (**Delete…**), the note page (**Archive…** and **Delete…**), the story page (**Delete…**), the
-  target workspace (**Archive…**) and each accepted improvement on the plan page (**Archive…** and
-  **Delete…**).
-- Scope so far: **deleting an application** and **archiving a note** (Volume 12, prompt 9);
-  **deleting a story**, **deleting a note** (with its undo window) and **archiving a target**
-  (Volume 13, prompt 5); **archiving** and **deleting an accepted improvement** (Volume 14, prompt
-  5; docs/ACCEPTED_ACTIONS.md, "Archive and delete"). Other lifecycle actions (archiving a story or an application, account
-  deletion) keep their own confirmations for now and adopt the planner later, one at a time.
+  (**Archive…** and **Delete…**), the note page (**Archive…** and **Delete…**), the story page
+  (**Archive…** and **Delete…**), the target workspace (**Archive…**) and each accepted improvement
+  on the plan page (**Archive…** and **Delete…**); its list (`ImpactList`) in Settings → Danger
+  zone (**Show what would be deleted**), reached from the privacy view's **Delete my account**.
+- Scope: **deleting an application** and **archiving a note** (Volume 12, prompt 9); **deleting a
+  story**, **deleting a note** (with its undo window) and **archiving a target** (Volume 13, prompt
+  5); **archiving** and **deleting an accepted improvement** (Volume 14, prompt 5;
+  docs/ACCEPTED_ACTIONS.md, "Archive and delete"); **archiving a story**, **archiving an
+  application** and **deleting the account** (Volume 14, prompt 6). No lifecycle action in the app
+  happens without its list first. **Unarchive** and a note's **Undo** have none: they put back
+  what the list said was kept.
 - The older routes carry out the same plan, as it is when they're called: `DELETE
-  /me/stories/{id}`, `DELETE /me/notes/{id}` and `PATCH /targets/{id}` with `archived: true` do
-  exactly what the preview would list.
+  /me/stories/{id}`, `DELETE /me/notes/{id}`, `PATCH /targets/{id}` with `archived: true`, and
+  `POST /me/stories/{id}/archive` and `/me/applications/{id}/archive` do exactly what the preview
+  would list. `DELETE /auth/me` without `expected_fingerprint` (an older client) deletes as it
+  always did; with it, it's refused when the list changed.
 
 ## One plan, used twice
 
@@ -143,6 +150,68 @@ that's already archived previews "This target is already archived" with everythi
 **Unarchive** brings it back with its occurrences. A deleted one comes back from a version 2 backup
 with the same ids (docs/BACKUP_FORMAT.md).
 
+### Archiving a story
+
+| What | Effect |
+|---|---|
+| The story | archived: out of the story bank's list (under Archived); it still opens, in the export |
+| Each link to a target's requirement | kept: still linked; the target labels the story archived |
+| Each interview-day kit that chose it | kept: it keeps what it prepared from the story, and shows the story as archived |
+| Applications that list it | kept: still listed, marked archived |
+| Reflections that name it | kept |
+| Practice answers that rehearsed it | kept: each keeps its text and score, and still names it |
+
+Nothing is unlinked, so **Unarchive** brings it back exactly as it was (the same list, previewed
+again, is identical; `test_archiving_a_story_lists_what_keeps_it_and_unarchive_brings_it_back`).
+
+### Archiving an application
+
+| What | Effect |
+|---|---|
+| The application | archived: out of the applications list, the board and the upcoming list; still opens |
+| Each interview event | kept, with its date and stage |
+| Each event's interview-day kit and reflection | kept, as prepared |
+| Schedule entries for its events | kept, but **off the schedule and Today while it's archived**; back when you unarchive it |
+| Offer comparisons that name it | kept: they still compare it |
+
+An interview still to come gets a warning above the list: archiving doesn't cancel it or change the
+stage. Until this prompt, an archived application's interviews stayed on the schedule and Today;
+now its events' entries are hidden there (`backend/app/services/schedule.py`, `_archived_events`)
+and come back unchanged on **Unarchive** (`test_archiving_an_application_takes_its_interviews_off_the_schedule_until_unarchived`).
+A calendar file downloaded earlier keeps its events.
+
+### Deleting the account
+
+The list comes first (Settings → Danger zone → **Show what would be deleted**); the password and
+typing DELETE stay, and **Delete my account** is disabled until the list is shown. The delete
+carries the list's fingerprint: anything added or removed since is refused with the new list
+("Something changed since you looked. Nothing was deleted"), and nothing is deleted.
+
+| What | Effect |
+|---|---|
+| The account: email, name, career and password hash | deleted |
+| Every category on the privacy view with something in it, with its count (`Notes: 3`, …) | deleted: the counts are the privacy view's own (`data_summary`), not a second tally, and equal what is removed (`test_the_account_preview_counts_equal_what_goes_and_a_change_since_is_refused`) |
+| Emails waiting to be sent (pending, sending or held) | deleted: "Cancelled: never sent." (the outbox rows go with the account, so the worker can't pick them up; one already being sent finds no account and sends nothing) |
+| Links you shared that still open (closed ones included: closing only stops feedback) | deleted: "They stop working at once." |
+| Signed-in devices (each sign-in family) | deleted: "Every device is signed out." |
+
+And what remains, said as notes:
+
+- "This can't be undone, and CodeCoach can't restore it for you."
+- Backups made before now keep a copy until they age out: with the default rotation
+  (docs/BACKUP.md) and nightly backups, the last of them by the first day of the third month after
+  the deletion (`backups_age_out_by`; for 15 November 2026, 2027-02-01). That's the worst case,
+  when no backup runs after the deletion before the month ends; it's checked against the rotation
+  code itself (`test_the_age_out_date_matches_the_rotation_itself`). If backups stop, or the server
+  keeps more, copies stay longer, and the note says so. It never says backups vanish at once.
+- A data export you downloaded is yours to delete.
+
+Afterwards signing in fails, the old token is refused and a shared link answers 404
+(`test_after_deleting_as_previewed_sign_in_fails_the_link_is_gone_and_no_email_is_left`;
+`frontend/e2e/account-deletion.spec.ts`, at desktop and phone width). What deletion removes didn't
+change, with one correction found by the preview: the list first counted only links that weren't
+closed, though a closed link still opens; it now counts every link that isn't revoked or expired.
+
 ## What can't bring it back
 
 - **A retried request** (`client_request_id`): the first one leaves a receipt; the same key again
@@ -159,7 +228,9 @@ with the same ids (docs/BACKUP_FORMAT.md).
   Two deletes at once: the second waits for the first (a row lock on PostgreSQL), then answers with
   the first's receipt if it's the same request, or 404.
 - Nothing runs in the background for an application, a note, a story or a target (no judge run, no
-  queued email), so there's nothing in flight to finish later.
+  queued email), so there's nothing in flight to finish later. For the account, queued emails go
+  with it and a judge result that arrives later is discarded (docs/PRIVACY.md, "Deletion, step by
+  step").
 
 ## Privacy and retention
 
@@ -206,6 +277,15 @@ practice are kept." has focus, and **Unarchive** (no preview: it hides nothing) 
   `LifecycleOutcome`
 - `GET /api/v1/targets/{id}/archive-preview` → `Impact`; `POST /api/v1/targets/{id}/archive` →
   `LifecycleOutcome`
+- `GET /api/v1/me/stories/{id}/archive-preview` → `Impact`; `POST
+  /api/v1/me/stories/{id}/archive-as-previewed` `{expected_fingerprint, client_request_id?}` →
+  `LifecycleOutcome` (the older `POST .../archive` still returns the story)
+- `GET /api/v1/me/applications/{id}/archive-preview` → `Impact`; `POST
+  /api/v1/me/applications/{id}/archive-as-previewed` → `LifecycleOutcome` (the older `POST
+  .../archive` still returns the application)
+- `GET /api/v1/auth/me/delete-preview` → `Impact`; `DELETE /api/v1/auth/me` `{password, confirm,
+  expected_fingerprint?}` → 204 (409 `impact_changed` with `details.current`, 400 without DELETE,
+  401 with the wrong password)
 - `Impact` = `{action, target_id, title, summary, effects: [{effect, kind, title, id, note}], notes,
   fingerprint}`; `LifecycleOutcome` adds `done_at`, `replayed`, `message` and `restorable_until`
   (a deleted note only).

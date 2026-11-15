@@ -135,8 +135,10 @@ test("track an application from saved to interviewing, with history, events, lin
   await expect(stranger.getByRole("heading", { level: 1, name: "This application isn't available" })).toBeVisible(); // the same words as a deleted one
   await other.close();
 
-  // Archive: out of the board, kept in the archive.
-  await page.getByRole("button", { name: "Archive" }).click();
+  // Archive: what it keeps first, then out of the board, kept in the archive.
+  await page.getByRole("button", { name: "Archive…" }).click();
+  await page.getByRole("group", { name: "What this will do" }).getByRole("button", { name: "Archive this application" }).click();
+  await expect(page.getByText(/APPLICATION · ARCHIVED/)).toBeVisible();
   await page.goto("/applications");
   await expect(page.getByRole("link", { name: "Senior ward nurse" })).toHaveCount(0);
   await page.getByLabel("Show archived").click(); // the filter is in the address; it settles a moment later

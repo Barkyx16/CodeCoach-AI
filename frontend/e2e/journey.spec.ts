@@ -149,6 +149,8 @@ test("account journey: register, filter library, sign out, sign in", async ({ pa
   await expect(page.getByRole("banner").getByText("Ada L.")).toBeVisible();
   await page.screenshot({ path: "e2e/screenshots/09-settings.png", fullPage: true });
   const danger = page.getByRole("form", { name: "Delete account" });
+  await danger.getByRole("button", { name: "Show what would be deleted" }).click(); // the list first
+  await expect(danger.getByRole("group", { name: "What deleting your account does" })).toContainText("Every device is signed out.");
   await danger.getByLabel("Password", { exact: true }).fill("CorrectHorse42");
   await danger.getByLabel('Type "DELETE" to confirm').fill("DELETE");
   await danger.getByRole("button", { name: "Delete my account" }).click();

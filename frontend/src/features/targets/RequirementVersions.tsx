@@ -160,7 +160,7 @@ export function ChangeList({ preview }: { preview: RevisionPreview }) {
           <li key={`${c.index}-${c.requirement_id ?? "new"}`}>
             <strong>{STATE[c.state]}:</strong> “{c.text}”
             {c.previous_text && c.state === "changed" && <> (was “{c.previous_text}”{c.version_from ? `, version ${c.version_from} → ${c.version_to}` : ""})</>}.
-            {c.stories.length > 0 && <span className="subtle"> Stories linked to it: {c.stories.map((s) => s.title).join(", ")}.</span>}
+            {c.stories.length > 0 && <span className="subtle"> Stories linked to it: {c.stories.map((s) => s.archived ? `${s.title} (archived)` : s.title).join(", ")}.</span>}
             {(c.actions ?? []).length > 0 && <span className="subtle"> Accepted improvements practising it: {(c.actions ?? []).map((a) => a.title).join(", ")}.</span>}
             {c.state === "changed" && (c.stories.length > 0 || (c.actions ?? []).length > 0) && (
               <span className="subtle"> They stay linked to the earlier wording until you reuse them.</span>

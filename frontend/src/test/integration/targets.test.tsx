@@ -60,7 +60,7 @@ function targetServer(over: Partial<Target> = {}) {
     }),
     http.post(`${API}/api/v1/targets/t-1/experience`, async ({ request }) => {
       const body = await record(request, "experience");
-      target = { ...target, experience: [{ id: "x-1", revision: 1, created_at: now, updated_at: now, situation: "", action: "", result: "", requirement_ids: [], ...(body as object), title: String(body.title) }] };
+      target = { ...target, experience: [{ id: "x-1", archived: false, revision: 1, created_at: now, updated_at: now, situation: "", action: "", result: "", requirement_ids: [], ...(body as object), title: String(body.title) }] };
       return HttpResponse.json(target);
     }),
     http.post(`${API}/api/v1/interviews`, async ({ request }) => { await record(request, "interview"); return HttpResponse.json({ id: "round-t" }, { status: 201 }); }),
@@ -126,7 +126,7 @@ function previewOf(target: Target, body: RequirementSetIn): RevisionPreview {
       index, requirement_id: r?.id ?? null, state, text: item.text,
       previous_text: r && state !== "unchanged" ? r.text : null,
       version_from: r?.version ?? null, version_to: r ? (state === "changed" ? r.version + 1 : r.version) : 1,
-      stories: affected ? target.experience.filter((e) => (e.requirement_ids ?? []).includes(r.id)).map((e) => ({ id: e.id, title: e.title })) : [],
+      stories: affected ? target.experience.filter((e) => (e.requirement_ids ?? []).includes(r.id)).map((e) => ({ id: e.id, title: e.title, archived: e.archived })) : [],
       actions: affected ? (target.action_links ?? []).filter((a) => a.requirement_id === r.id).map((a) => ({ id: a.action_id, title: a.title })) : [],
     };
   });
@@ -225,7 +225,7 @@ describe("Prepare for this role", () => {
 });
 
 describe("Versioned requirements", () => {
-  const story = { id: "x-1", revision: 1, created_at: now, updated_at: now, title: "Night shift escalation", situation: "", action: "", result: "", requirement_ids: ["r-1"],
+  const story = { id: "x-1", archived: false, revision: 1, created_at: now, updated_at: now, title: "Night shift escalation", situation: "", action: "", result: "", requirement_ids: ["r-1"],
     requirement_links: [{ requirement_id: "r-1", linked_version: 1, current_version: 2, status: "earlier_wording" as const, label: "Linked to an earlier wording (version 1; now version 2)", reused_from: null }] };
   const actionLink = { action_id: "a-1", title: "Lead with the outcome", requirement_id: "r-1", linked_version: 1, current_version: 2, status: "earlier_wording" as const, label: "Linked to an earlier wording (version 1; now version 2)", reused_from: null };
   const versioned = (): Partial<Target> => ({
@@ -368,7 +368,7 @@ describe("Story freshness on requirement links (docs/STORY_FRESHNESS.md)", () =>
     requirement_id: rid, linked_version: 1, current_version: 1, status: "current" as const, label: "Linked to the current wording (version 1)", reused_from: null, story_freshness: f,
   });
   const story = {
-    id: "x-1", revision: 2, created_at: now, updated_at: now, title: "Night shift escalation", situation: "", action: "", result: "Stable within the hour.",
+    id: "x-1", archived: false, revision: 2, created_at: now, updated_at: now, title: "Night shift escalation", situation: "", action: "", result: "Stable within the hour.",
     requirement_ids: ["r-1", "r-3"], requirement_links: [link("r-1", needs), link("r-3", needs)],
   };
 
@@ -463,5 +463,20 @@ describe("A requirement's latest submissions (Volume 14, prompt 2)", () => {
     expect(within(items[0]!).getByRole("link", { name: "Submitted: Two Sum" })).toHaveAttribute("href", "/history/submissions/s-2");
     expect(items[0]).toHaveTextContent("Passed");
     expect(items[1]).toHaveTextContent("Failed");
+  });
+});
+
+describe("A story archived in the story bank, on its target", () => {
+  it("stays linked to its requirement, labelled archived (Volume 14, prompt 6)", async () => {
+    targetServer({
+      experience: [{
+        id: "x-9", archived: true, revision: 1, created_at: now, updated_at: now, title: "Two call lights", situation: "", action: "", result: "",
+        requirement_ids: ["r-1"], requirement_links: [{ requirement_id: "r-1", linked_version: 1, current_version: 1, status: "current", label: "Linked to the current wording", reused_from: null }],
+      }],
+    });
+    renderApp("/targets/t-1", { signedIn: true });
+    const example = (await screen.findByText("Two call lights", undefined, { timeout: 3000 })).closest(".experience") as HTMLElement;
+    expect(example).toHaveTextContent("Two call lights · archived in your story bank, still linked");
+    expect(example).toHaveTextContent("Shows “Perform patient assessment and triage”");
   });
 });

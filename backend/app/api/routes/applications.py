@@ -98,7 +98,8 @@ def set_stage(
 def archive(
     app_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> ApplicationOut:
-    return Applications(db, user).set_archived(app_id, True)
+    Lifecycle(db, user).archive_application(app_id, None)  # the same plan the preview shows
+    return Applications(db, user).get(app_id)
 
 
 @router.post(
@@ -248,3 +249,27 @@ def prep_shift(
     db: Session = Depends(get_db),
 ) -> PrepShiftResult:
     return Schedule(db, user).prep_shift(app_id, event_id, body)
+
+
+@router.get(
+    "/{app_id}/archive-preview",
+    response_model=Impact,
+    responses=error_responses(401, 404),
+    summary="What archiving it would keep and take off the schedule (nothing is changed; reversible)",
+)
+def archive_preview(
+    app_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> Impact:
+    return Lifecycle(db, user).plan_archive_application(app_id)
+
+
+@router.post(
+    "/{app_id}/archive-as-previewed",
+    response_model=LifecycleOutcome,
+    responses=error_responses(401, 404, 409, 422),
+    summary="Archive it as previewed: a changed scope is refused (409 impact_changed) with the new preview",
+)
+def archive_as_previewed(
+    app_id: str, body: LifecycleIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> LifecycleOutcome:
+    return Lifecycle(db, user).archive_application(app_id, body)

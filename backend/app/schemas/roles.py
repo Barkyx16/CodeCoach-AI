@@ -169,6 +169,9 @@ class StoryLinksReviewIn(SourceReviewIn):
 
 class ExperienceOut(ExperienceIn):
     id: str
+    archived: bool = Field(
+        default=False, description="Archived in the story bank: still linked, labelled archived"
+    )
     requirement_links: list[RequirementLink] = Field(default_factory=list)
     revision: int = Field(
         default=1, description="This example is a story in the story bank: its revision there"
@@ -271,6 +274,7 @@ class RequirementSetIn(APIModel):
 class LinkedStory(APIModel):
     id: str
     title: str
+    archived: bool = False
 
 
 class RequirementChange(APIModel):

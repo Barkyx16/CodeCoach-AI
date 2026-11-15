@@ -10,17 +10,18 @@ is answered with what was done (a receipt), never done twice. Only the learner's
 ever read: another account's id is "not found", the same as one that doesn't exist.
 
 Adopted by deleting an application, archiving a note (Volume 12, prompt 9), deleting a story,
-deleting a note (with its undo window) and archiving a target (Volume 13, prompt 5), and archiving
-or deleting an accepted improvement (Volume 14, prompt 5).
+deleting a note (with its undo window) and archiving a target (Volume 13, prompt 5), archiving
+or deleting an accepted improvement (Volume 14, prompt 5), and archiving a story or an application
+and deleting the account (Volume 14, prompt 6).
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm import Session
 
@@ -931,6 +932,278 @@ class Lifecycle:
         self.db.delete(a)
         return self._finish(impact, body, f"Deleted {impact.title}.")
 
+    # --- archiving a story or an application, deleting the account (Volume 14, prompt 6) --------
+
+    def plan_archive_story(self, story_id: str) -> Impact:
+        st = self._story(story_id)
+        uid = self.user.id
+        effects: list[Effect] = []
+        if not st.archived:
+            effects.append(
+                _effect(
+                    "archived",
+                    "story",
+                    st.title,
+                    st.id,
+                    "Out of your story bank's list (under Archived); it still opens, and Unarchive brings it "
+                    "back as it was.",
+                )
+            )
+        for rid in st.requirement_ids or []:
+            r = self.db.scalar(
+                select(TargetRequirement)
+                .join(RoleTarget, RoleTarget.id == TargetRequirement.target_id)
+                .where(RoleTarget.user_id == uid, TargetRequirement.id == rid)
+            )
+            if r is not None:
+                effects.append(
+                    _effect(
+                        "kept",
+                        "requirement link",
+                        f"Its link to “{r.text}”",
+                        r.id,
+                        "Still linked; the target labels the story archived.",
+                    )
+                )
+        events = {
+            e.id: e.title
+            for e in self.db.scalars(
+                select(ApplicationEvent)
+                .join(Application, Application.id == ApplicationEvent.application_id)
+                .where(Application.user_id == uid)
+            )
+        }
+        for k in self._holding_story(InterviewKit, st.id):
+            effects.append(
+                _effect(
+                    "kept",
+                    "interview-day kit",
+                    f"Kit for {events.get(k.event_id, 'an interview')}",
+                    k.event_id,
+                    "Keeps what it prepared from this story; it shows the story as archived.",
+                )
+            )
+        for a in self._holding_story(Application, st.id):
+            effects.append(
+                _effect(
+                    "kept",
+                    "application",
+                    f"{a.role_title} at {a.employer}",
+                    a.id,
+                    "Still lists it, marked archived.",
+                )
+            )
+        for r in self._holding_story(InterviewReflection, st.id):
+            effects.append(
+                _effect("kept", "reflection", f"Reflection on {r.event_title}", r.event_id, "Still names it.")
+            )
+        for ans in self.db.scalars(
+            select(PracticeAnswer).where(PracticeAnswer.user_id == uid, PracticeAnswer.story_id == st.id)
+        ):
+            effects.append(
+                _effect(
+                    "kept",
+                    "practice answer",
+                    "An answer that rehearsed it",
+                    ans.id,
+                    "Keeps its text and score, and still names it.",
+                )
+            )
+        return Impact(
+            action="archive_story",
+            target_id=st.id,
+            title=st.title,
+            summary="Archive this story" if not st.archived else "This story is already archived",
+            effects=effects,
+            notes=[
+                "Archiving isn't deleting: everything listed stays, and the story is in your data export."
+            ],
+            fingerprint=fingerprint("archive_story", st.id, effects),
+        )
+
+    def archive_story(self, story_id: str, body: LifecycleIn | None) -> LifecycleOutcome:
+        if (done := self._replay(body, "archive_story", story_id)) is not None:
+            return done
+        impact = self.plan_archive_story(story_id)
+        self._check(impact, body)
+        st = self._story(story_id)
+        if not st.archived:
+            st.archived = True
+            st.updated_at = datetime.now(UTC)
+        return self._finish(impact, body, f"Archived {impact.title}. Unarchive it any time.")
+
+    def plan_archive_application(self, app_id: str) -> Impact:
+        a = self._application(app_id)
+        uid = self.user.id
+        events = sorted(
+            a.events, key=lambda e: (e.on_date is None, e.on_date or datetime.min.date(), e.title)
+        )
+        event_ids = [e.id for e in events]
+        effects: list[Effect] = []
+        if not a.archived:
+            effects.append(
+                _effect(
+                    "archived",
+                    "application",
+                    f"{a.role_title} at {a.employer}",
+                    a.id,
+                    "Out of your applications list (under Archived); it still opens, and Unarchive brings it "
+                    "back as it was.",
+                )
+            )
+        for e in events:
+            effects.append(_effect("kept", "interview event", e.title, e.id, "Kept with it."))
+        if event_ids:
+            for k in self.db.scalars(
+                select(InterviewKit).where(InterviewKit.event_id.in_(event_ids), InterviewKit.user_id == uid)
+            ):
+                title = next((e.title for e in events if e.id == k.event_id), "an interview")
+                effects.append(
+                    _effect("kept", "interview-day kit", f"Kit for {title}", k.event_id, "Kept as prepared.")
+                )
+            for r in self.db.scalars(
+                select(InterviewReflection).where(
+                    InterviewReflection.application_id == a.id, InterviewReflection.user_id == uid
+                )
+            ):
+                effects.append(
+                    _effect("kept", "reflection", f"Reflection on {r.event_title}", r.event_id, "Kept.")
+                )
+            for entry in self.db.scalars(
+                select(ScheduleEntry).where(
+                    ScheduleEntry.user_id == uid,
+                    ScheduleEntry.kind == "application_event",
+                    ScheduleEntry.ref.in_(event_ids),
+                    ScheduleEntry.status == "scheduled",
+                )
+            ):
+                effects.append(
+                    _effect(
+                        "kept",
+                        "schedule entry",
+                        f"{entry.title} ({entry.on_date.isoformat()})",
+                        entry.id,
+                        "Off your schedule and Today while it's archived; back when you unarchive it.",
+                    )
+                )
+        for c in self._comparisons_naming(a.id):
+            effects.append(
+                _effect(
+                    "kept", "offer comparison", c.title or "An offer comparison", c.id, "Still compares it."
+                )
+            )
+        return Impact(
+            action="archive_application",
+            target_id=a.id,
+            title=f"{a.role_title} at {a.employer}",
+            summary="Archive this application" if not a.archived else "This application is already archived",
+            effects=effects,
+            notes=[
+                "Archiving isn't deleting: everything listed stays, comes back when you unarchive it, and is in "
+                "your data export. A calendar file you downloaded earlier keeps its events."
+            ],
+            fingerprint=fingerprint("archive_application", a.id, effects),
+        )
+
+    def archive_application(self, app_id: str, body: LifecycleIn | None) -> LifecycleOutcome:
+        if (done := self._replay(body, "archive_application", app_id)) is not None:
+            return done
+        impact = self.plan_archive_application(app_id)
+        self._check(impact, body)
+        a = self._application(app_id)
+        if not a.archived:
+            a.archived = True
+            a.updated_at = datetime.now(UTC)
+        return self._finish(impact, body, f"Archived {impact.title}. Unarchive it any time.")
+
+    def plan_delete_account(self, now: datetime | None = None) -> Impact:
+        """Everything that goes with the account, by kind and count (the privacy page's own counts),
+        what it stops (emails not yet sent, shared links, signed-in devices) and what remains."""
+        from app.models import EmailJob, RefreshToken, Share
+        from app.services.data_summary import data_summary
+
+        uid = self.user.id
+        now = now or datetime.now(UTC)
+        effects: list[Effect] = []
+        for row in data_summary(self.db, self.user):
+            if row["key"] == "account":
+                effects.append(
+                    _effect("deleted", "account", "Your account: email, name, career and password hash", uid)
+                )
+            elif row["count"]:
+                effects.append(_effect("deleted", "records", f"{row['label']}: {row['count']}", row["key"]))
+        pending = (
+            self.db.scalar(
+                select(func.count())
+                .select_from(EmailJob)
+                .where(EmailJob.user_id == uid, EmailJob.status.in_(["pending", "sending", "held"]))
+            )
+            or 0
+        )
+        if pending:
+            effects.append(
+                _effect(
+                    "deleted",
+                    "email not sent yet",
+                    f"{_plural(pending, 'email')} waiting to be sent",
+                    "email_jobs",
+                    "Cancelled: never sent.",
+                )
+            )
+        # A closed link still opens (it only stops feedback); a revoked or expired one already doesn't.
+        live_shares = (
+            self.db.scalar(
+                select(func.count())
+                .select_from(Share)
+                .where(Share.owner_id == uid, Share.revoked_at.is_(None), Share.expires_at > now)
+            )
+            or 0
+        )
+        if live_shares:
+            effects.append(
+                _effect(
+                    "deleted",
+                    "shared link",
+                    f"{_plural(live_shares, 'link')} you shared",
+                    "shares",
+                    "They stop working at once.",
+                )
+            )
+        devices = (
+            self.db.scalar(
+                select(func.count(func.distinct(RefreshToken.family_id))).where(
+                    RefreshToken.user_id == uid,
+                    RefreshToken.revoked_at.is_(None),
+                    RefreshToken.expires_at > now,
+                )
+            )
+            or 0
+        )
+        effects.append(
+            _effect(
+                "deleted",
+                "signed-in device",
+                f"{_plural(devices, 'device')} signed in" if devices else "This device",
+                "sessions",
+                "Every device is signed out.",
+            )
+        )
+        until = backups_age_out_by(now)
+        return Impact(
+            action="delete_account",
+            target_id=uid,
+            title="Your account",
+            summary="Delete my account and everything in it",
+            effects=effects,
+            notes=[
+                "This can't be undone, and CodeCoach can't restore it for you.",
+                "Backups CodeCoach made before now keep a copy until they age out: with the default rotation "
+                f"(docs/BACKUP.md), the last of them by {until.isoformat()}. If the server keeps more, longer.",
+                "A data export you downloaded is yours: delete it yourself if you don't want it.",
+            ],
+            fingerprint=fingerprint("delete_account", uid, effects),
+        )
+
     # --- shared -------------------------------------------------------------------------------------
 
     def _replay(self, body: LifecycleIn | None, action: str, target_id: str) -> LifecycleOutcome | None:
@@ -1041,6 +1314,19 @@ def deleted_earlier(db: Session, user: User, key: str | None, kind: str = "appli
             "deleted, so it isn't made again.",
             code="deleted_earlier",
         )
+
+
+def backups_age_out_by(now: datetime) -> date:
+    """With the default rotation (docs/BACKUP.md: every backup of the last 24 hours, the newest of
+    each of the last 7 days, 4 weeks and 3 months that have one) and nightly backups, the last
+    backup holding something deleted at `now` is gone by the first day of the third month after:
+    at worst it's this month's newest (no backup ran after the deletion before the month ended),
+    which leaves when three later months have a backup. If backups stop, or the server keeps
+    more, copies stay longer; the note says so."""
+    year, month = now.year, now.month + 3
+    if month > 12:
+        year, month = year + 1, month - 12
+    return date(year, month, 1)
 
 
 def purge(db: Session, now: datetime | None = None) -> int:

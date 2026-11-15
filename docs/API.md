@@ -222,6 +222,7 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 | POST | `/api/v1/auth/logout` | 🔒 | Revoke all of this user's tokens |
 | POST | `/api/v1/auth/password` | 🔒 | Change password → new token |
 | PATCH | `/api/v1/auth/me` | 🔒 | Update display name |
+| GET | `/api/v1/auth/me/delete-preview` | 🔒 | What deleting the account removes, stops and leaves (an `Impact`) |
 | DELETE | `/api/v1/auth/me` | 🔒 | Permanently delete the account and all data |
 | GET | `/api/v1/me/export` | 🔒 | Download all of your data (JSON) |
 | GET | `/api/v1/problems` | – | List / filter / search problems |
@@ -409,13 +410,21 @@ Single use, valid for `PASSWORD_RESET_TTL_MINUTES` (default 30). Sets the passwo
 every session** (access tokens and refresh cookies). `400 invalid_reset_token` if it's unknown,
 used, superseded or expired; `422` if the password breaks the rules.
 
+#### `GET /api/v1/auth/me/delete-preview` 🔒 → `200`
+An `Impact` (docs/LIFECYCLE.md, "Deleting the account"): every privacy-view category with something
+in it, as `records` effects titled `label: count`; emails not yet sent (cancelled), links that still
+open (they stop working), signed-in devices (signed out); and in `notes`, what remains, with the date
+the last earlier backup ages out. Nothing is changed.
+
 #### `DELETE /api/v1/auth/me` 🔒 → `204`
 ```json
-{"password": "CorrectHorse42", "confirm": "DELETE"}
+{"password": "CorrectHorse42", "confirm": "DELETE", "expected_fingerprint": "…"}
 ```
 `confirm` must be exactly `DELETE` (`400 confirmation_required` otherwise). `password` is
 required for email/password accounts (`401 invalid_credentials` if wrong) and omitted for
-guests. Submissions, results, AI feedback, interviews and activity are deleted in the same
+guests. `expected_fingerprint` (optional, for older clients) is the preview's: if anything changed
+since, `409 impact_changed` with the new preview in `details.current`, and nothing is deleted.
+Submissions, results, AI feedback, interviews and activity are deleted in the same
 transaction (database `ON DELETE CASCADE`), and all tokens stop working. The email can be
 registered again afterwards.
 
@@ -1090,7 +1099,9 @@ anyone else). Nothing is sent or submitted anywhere.
 - `PATCH …/{id} {fields…, clear: [link|applied_on|next_action_due|target_id]}` → details.
 - `POST …/{id}/stage {stage: saved|applied|interviewing|offer|closed|withdrawn, note, correction}`
   → appended to the history; the same stage again is a no-op.
-- `POST …/{id}/archive`, `…/unarchive`; `DELETE …/{id}` (`204`).
+- `POST …/{id}/archive`, `…/unarchive`; `DELETE …/{id}` (`204`). `GET …/{id}/archive-preview` →
+  `Impact` and `POST …/{id}/archive-as-previewed` `{expected_fingerprint, client_request_id?}` →
+  `LifecycleOutcome` archive it as previewed; `…/archive` carries out the same plan as it is now.
 - `GET …/{id}/delete-preview` → `Impact`: every record deleting it would delete, unlink, keep or
   make unavailable, by kind and title, with a `fingerprint`; nothing is changed. `POST …/{id}/delete`
   `{expected_fingerprint, client_request_id?}` → `LifecycleOutcome`: carries out the same plan,
@@ -1125,7 +1136,9 @@ Job-target examples (`/targets/{id}/experience`) are the same stories.
   (`details.current_revision`) if it changed since. Nothing changed: no new revision.
 - `POST …/{id}/archive` and `…/unarchive`; `DELETE …/{id}` (`204`; answers that rehearsed it are
   kept). `GET …/{id}/delete-preview` → `Impact` and `POST …/{id}/delete` `{expected_fingerprint,
-  client_request_id?}` → `LifecycleOutcome` delete it as previewed (docs/LIFECYCLE.md).
+  client_request_id?}` → `LifecycleOutcome` delete it as previewed (docs/LIFECYCLE.md). `GET
+  …/{id}/archive-preview` → `Impact` and `POST …/{id}/archive-as-previewed` archive it as previewed;
+  `…/archive` carries out the same plan as it is now.
 - `GET …/{id}/revisions` → every saved version, newest first; `POST
   …/{id}/revisions/{n}/restore {expected_revision}` → saved as a new version.
 - `POST …/{id}/assist {action: check|shorten|clarity, situation?, task?, action_text?, result?,

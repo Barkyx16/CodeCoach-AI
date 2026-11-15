@@ -38,9 +38,11 @@ from app.schemas.auth import (
     VerifyLinkOut,
 )
 from app.schemas.common import error_responses
+from app.schemas.lifecycle import Impact, LifecycleIn
 from app.services import create_intents, email_verification, outbox, password_reset
 from app.services import refresh as refresh_tokens
 from app.services.auth import hash_password, issue_access_token, needs_rehash, verify_password
+from app.services.lifecycle import Lifecycle
 from app.services.rate_limit import client_key
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
@@ -721,6 +723,16 @@ def update_me(
     return user
 
 
+@router.get(
+    "/me/delete-preview",
+    response_model=Impact,
+    responses=error_responses(401),
+    summary="What deleting your account would remove, stop and leave behind (nothing is changed)",
+)
+def delete_me_preview(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> Impact:
+    return Lifecycle(db, user).plan_delete_account()
+
+
 @router.delete(
     "/me",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -740,6 +752,13 @@ def delete_me(
         raise AppError('Type "DELETE" to confirm.', code="confirmation_required")
     if not user.is_guest and not verify_password(user.password_hash, body.password or ""):
         raise UnauthorizedError("Password is incorrect", code="invalid_credentials")
+    if body.expected_fingerprint is not None:
+        # Bound to the list the learner read (docs/LIFECYCLE.md): something added or removed since is
+        # refused with the new list, and nothing is deleted.
+        Lifecycle(db, user)._check(
+            Lifecycle(db, user).plan_delete_account(),
+            LifecycleIn(expected_fingerprint=body.expected_fingerprint),
+        )
     # Submissions, results, AI interactions, interview sessions/turns and progress events are
     # removed by ON DELETE CASCADE foreign keys, in the same transaction.
     db.delete(user)  # refresh tokens are removed by ON DELETE CASCADE too

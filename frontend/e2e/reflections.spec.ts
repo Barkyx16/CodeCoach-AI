@@ -85,10 +85,12 @@ test("reflect, recover, choose steps, record an outcome, and find it again", asy
   await page.goto(appUrl);
   await expect(page.locator(".page__header")).toContainText("Offer");
 
-  // Archive it: the interview is still to come, so it asks first (nothing is cancelled); the
-  // reflection is still there, and search finds it.
-  await page.getByRole("button", { name: "Archive", exact: true }).click();
-  await page.getByRole("group", { name: "Archive with an interview coming up" }).getByRole("button", { name: "Archive anyway" }).click();
+  // Archive it: what it keeps first (the reflection among them), with a warning that the
+  // interview still to come isn't cancelled; the reflection is still there, and search finds it.
+  await page.getByRole("button", { name: "Archive…", exact: true }).click();
+  const plan = page.getByRole("group", { name: "What this will do" });
+  await expect(plan).toContainText("Reflection: Reflection on Panel interview");
+  await plan.getByRole("button", { name: "Archive this application" }).click();
   await expect(page.getByText(/APPLICATION · ARCHIVED/)).toBeVisible();
   await page.goto("/reflections?q=medication");
   await page.getByRole("link", { name: /Panel interview: Ward nurse at Mercy General/ }).click();

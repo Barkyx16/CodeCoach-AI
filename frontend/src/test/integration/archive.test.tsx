@@ -2,13 +2,14 @@
  * Archive as a presentation lifecycle (Volume 11, prompt 4; docs/ARCHIVE.md): offer comparisons
  * get Active and Archived views with counts; archiving takes one out of the active list (focus moves
  * on, and the page says nothing was deleted), Restore brings it back; an archived comparison opens
- * with a banner and Restore; an application with an interview still to come asks before archiving
- * and says nothing is cancelled. Nothing but the archive flag is ever sent.
+ * with a banner and Restore; archiving an application shows the server's plan first (Volume 14,
+ * prompt 6), with a warning when an interview is still to come that nothing is cancelled. Nothing
+ * but the archive is ever sent.
  */
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { delay, http, HttpResponse } from "msw";
 
-import type { Application, OfferComparison, OfferComparisonSummary } from "@/api/types";
+import type { Application, Impact, OfferComparison, OfferComparisonSummary } from "@/api/types";
 
 import { renderApp } from "../render";
 import { API, server } from "../server";
@@ -100,44 +101,71 @@ describe("Archiving an application with an interview still to come", () => {
     target: null, archived: false, next_event: null, updated_at: now(), link: null, notes: "", notes_revision: 1, stories: [], events: [], history: [], created_at: now(), ...over,
   });
   const event = { id: "e1", kind: "interview" as const, title: "Panel interview", on_date: "2026-12-15", local_time: null, timezone: null, starts_at: null, notes: "", created_at: now() };
+  // The server's plan (Volume 14, prompt 6; docs/LIFECYCLE.md): what it keeps, and what leaves the schedule.
+  const plan = (withEvent: boolean): Impact => ({
+    action: "archive_application", target_id: "a1", title: "Ward nurse at Mercy General", summary: "Archive this application",
+    effects: [
+      { effect: "archived", kind: "application", title: "Ward nurse at Mercy General", id: "a1", note: "Out of your applications list (under Archived)." },
+      ...(withEvent ? [
+        { effect: "kept" as const, kind: "interview event", title: "Panel interview", id: "e1", note: "Kept with it." },
+        { effect: "kept" as const, kind: "schedule entry", title: "Panel interview (2026-12-15)", id: "s1", note: "Off your schedule and Today while it's archived; back when you unarchive it." },
+      ] : []),
+    ],
+    notes: ["Archiving isn't deleting."], fingerprint: withEvent ? "archive-with-event" : "archive-alone",
+  });
 
   function serveApp(a: Application) {
     let current = a;
+    const bodies: unknown[] = [];
     server.use(
       http.get(`${API}/api/v1/me/applications/a1`, () => HttpResponse.json(current)),
+      http.get(`${API}/api/v1/me/applications/a1/archive-preview`, () => HttpResponse.json(plan(a.events.length > 0))),
+      http.post(`${API}/api/v1/me/applications/a1/archive-as-previewed`, async ({ request }) => {
+        bodies.push(await request.json());
+        current = { ...current, archived: true };
+        const p = plan(a.events.length > 0);
+        return HttpResponse.json({ ...p, done_at: now(), message: "Archived Ward nurse at Mercy General.", replayed: false, restorable_until: null });
+      }),
       http.post(`${API}/api/v1/me/applications/a1/:action`, ({ params }) => {
         current = { ...current, archived: params.action === "archive" };
         return HttpResponse.json(current);
       }),
     );
+    return bodies;
   }
 
-  it("asks first, says the interview isn't cancelled, and Keep it active sends nothing", async () => {
-    serveApp(app({ events: [event], next_event: event }));
+  it("shows what it keeps first, says the interview isn't cancelled, and Cancel sends nothing", async () => {
+    const bodies = serveApp(app({ events: [event], next_event: event }));
     trackWrites();
     const { user } = renderApp("/applications/a1", { signedIn: true });
-    await user.click(await screen.findByRole("button", { name: "Archive" }, { timeout: 3000 }));
-    const ask = screen.getByRole("group", { name: "Archive with an interview coming up" });
-    expect(ask).toHaveTextContent(/Panel interview on .*15.* is still to come\./);
-    expect(ask).toHaveTextContent("It doesn't cancel the interview or change the stage, and anything already on your schedule stays.");
-    await user.click(within(ask).getByRole("button", { name: "Keep it active" }));
-    expect(screen.queryByRole("group", { name: "Archive with an interview coming up" })).not.toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Archive…" }, { timeout: 3000 }));
+    const preview = await screen.findByRole("group", { name: "What this will do" });
+    expect(screen.getByText(/Panel interview on .*15.* is still to come\. Archiving doesn't cancel the interview or change the stage\./)).toBeInTheDocument();
+    expect(preview).toHaveTextContent("Off your schedule and Today while it's archived; back when you unarchive it.");
+    await user.click(within(preview).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("group", { name: "What this will do" })).not.toBeInTheDocument();
     await act(() => new Promise((r) => setTimeout(r, 50)));
     expect(writes).toEqual([]);
 
-    await user.click(screen.getByRole("button", { name: "Archive" }));
-    await user.click(within(screen.getByRole("group", { name: "Archive with an interview coming up" })).getByRole("button", { name: "Archive anyway" }));
+    await user.click(screen.getByRole("button", { name: "Archive…" }));
+    await user.click(within(await screen.findByRole("group", { name: "What this will do" })).getByRole("button", { name: "Archive this application" }));
     expect(await screen.findByText(/APPLICATION · ARCHIVED/)).toBeInTheDocument();
-    expect(writes).toEqual(["POST /api/v1/me/applications/a1/archive"]); // the stage isn't touched
+    expect(writes).toEqual(["POST /api/v1/me/applications/a1/archive-as-previewed"]); // the stage isn't touched
+    expect(bodies).toEqual([expect.objectContaining({ expected_fingerprint: "archive-with-event" })]);
   });
 
-  it("archives at once when nothing is coming up", async () => {
+  it("with nothing coming up, shows the plan without the warning and archives as previewed", async () => {
     serveApp(app());
     trackWrites();
     const { user } = renderApp("/applications/a1", { signedIn: true });
-    await user.click(await screen.findByRole("button", { name: "Archive" }, { timeout: 3000 }));
+    await user.click(await screen.findByRole("button", { name: "Archive…" }, { timeout: 3000 }));
+    const preview = await screen.findByRole("group", { name: "What this will do" });
+    expect(screen.queryByText(/is still to come/)).not.toBeInTheDocument();
+    await user.click(within(preview).getByRole("button", { name: "Archive this application" }));
     expect(await screen.findByText(/APPLICATION · ARCHIVED/)).toBeInTheDocument();
-    expect(screen.queryByRole("group", { name: "Archive with an interview coming up" })).not.toBeInTheDocument();
-    expect(writes).toEqual(["POST /api/v1/me/applications/a1/archive"]);
+    expect(writes).toEqual(["POST /api/v1/me/applications/a1/archive-as-previewed"]);
+    // Unarchive needs no list: it puts back what archiving kept.
+    await user.click(screen.getByRole("button", { name: "Unarchive" }));
+    await waitFor(() => expect(writes.at(-1)).toBe("POST /api/v1/me/applications/a1/unarchive"));
   });
 });

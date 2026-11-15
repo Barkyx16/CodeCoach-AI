@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
+import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
 import { useAIUsage, useCapabilities, useMyReports, useShares } from "@/api/queries";
-import type { User } from "@/api/types";
+import type { Impact, User } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
@@ -22,6 +23,7 @@ import { VoiceSettings } from "@/features/voice/VoiceSettings";
 import { RETENTION_POINTS } from "@/features/privacy/retention";
 import { countLocalWork } from "@/auth/localWork";
 import { DeviceRows } from "./DeviceSection";
+import { ImpactList } from "@/features/lifecycle/ImpactPreview";
 import { EditorPreferencesControls } from "./EditorPreferencesControls";
 
 /**
@@ -656,10 +658,23 @@ function DeleteAccountRow() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const form = useFormState();
+  // What goes, what stops and what remains, read before the typed confirmation, and the delete is
+  // bound to it (docs/LIFECYCLE.md): something added since is refused with the new list.
+  const [impact, setImpact] = useState<Impact | null>(null);
+  const [changed, setChanged] = useState(false);
+  const [listError, setListError] = useState<unknown>(null);
+  const showList = () => { setListError(null); api.accountDeletePreview().then(setImpact, setListError); };
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
+    if (!impact) return;
     void form.run(async () => {
-      await api.deleteAccount({ password: user?.is_guest ? undefined : password, confirm });
+      try {
+        await api.deleteAccount({ password: user?.is_guest ? undefined : password, confirm, expected_fingerprint: impact.fingerprint });
+      } catch (err) {
+        const current = err instanceof ApiError && err.code === "impact_changed" ? (err.details as { current?: Impact } | null)?.current : null;
+        if (current) { setImpact(current); setChanged(true); return; }
+        throw err;
+      }
       forget(); // a deliberate sign-out: the route guard sends the user home
     }, "");
   };
@@ -670,6 +685,19 @@ function DeleteAccountRow() {
         It can't be undone. <a href="#privacy" onClick={(e) => { if (jumpTo("privacy")) e.preventDefault(); }}>Download your data</a> first if you want a copy.
       </RowIntro>
       <div className="setting__body">
+        {!impact ? (
+          <span className="row">
+            <Button type="button" variant="secondary" onClick={showList}>Show what would be deleted</Button>
+          </span>
+        ) : (
+          <div className="impact stack-sm" role="group" aria-labelledby="delete-list-title">
+            <h3 id="delete-list-title" className="impact__title">What deleting your account does</h3>
+            {changed && <p className="banner banner--warning">Something changed since you looked. Nothing was deleted: check the list again.</p>}
+            <ImpactList impact={impact} />
+            {(impact.notes ?? []).map((n) => <p key={n} className="subtle">{n}</p>)}
+          </div>
+        )}
+        <InlineError error={listError} />
         {!user?.is_guest && (
           <Field label="Password" type="password" autoComplete="current-password" value={password}
             onChange={(e) => setPassword(e.target.value)} />
@@ -679,7 +707,7 @@ function DeleteAccountRow() {
         <InlineError error={form.error} />
         <div className="setting__actions">
           <Button type="submit" variant="danger" loading={form.busy}
-            disabled={confirm !== "DELETE" || (!user?.is_guest && !password)}>
+            disabled={!impact || confirm !== "DELETE" || (!user?.is_guest && !password)}>
             <Icon name="trash" size={16} />Delete my account
           </Button>
         </div>

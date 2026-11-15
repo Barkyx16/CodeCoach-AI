@@ -384,6 +384,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/me/delete-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What deleting your account would remove, stop and leave behind (nothing is changed) */
+        get: operations["delete_me_preview_api_v1_auth_me_delete_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/problems": {
         parameters: {
             query?: never;
@@ -1753,6 +1770,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/stories/{story_id}/archive-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What archiving it would keep and hide (nothing is changed; archiving is reversible) */
+        get: operations["archive_story_preview_api_v1_me_stories__story_id__archive_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/stories/{story_id}/archive-as-previewed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive it as previewed: a changed scope is refused (409 impact_changed) with the new preview */
+        post: operations["archive_story_as_previewed_api_v1_me_stories__story_id__archive_as_previewed_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/applications": {
         parameters: {
             query?: never;
@@ -1962,6 +2013,40 @@ export interface paths {
          * @description 409 interview_changed if the interview moved again since the preview; 409 prep_not_movable (nothing moved) if a chosen entry changed or can't move. A resend after a lost response reports those entries as already aligned (nothing moves twice).
          */
         post: operations["prep_shift_api_v1_me_applications__app_id__events__event_id__prep_shift_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/archive-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What archiving it would keep and take off the schedule (nothing is changed; reversible) */
+        get: operations["archive_preview_api_v1_me_applications__app_id__archive_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/applications/{app_id}/archive-as-previewed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive it as previewed: a changed scope is refused (409 impact_changed) with the new preview */
+        post: operations["archive_as_previewed_api_v1_me_applications__app_id__archive_as_previewed_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6877,6 +6962,11 @@ export interface components {
              * @example DELETE
              */
             confirm: string;
+            /**
+             * Expected Fingerprint
+             * @description The `fingerprint` of GET /auth/me/delete-preview: refused (409 impact_changed) with the new list if what would go changed since
+             */
+            expected_fingerprint?: string | null;
         };
         /** DeletedOut */
         DeletedOut: {
@@ -7605,6 +7695,12 @@ export interface components {
             requirement_ids?: string[];
             /** Id */
             id: string;
+            /**
+             * Archived
+             * @description Archived in the story bank: still linked, labelled archived
+             * @default false
+             */
+            archived: boolean;
             /** Requirement Links */
             requirement_links?: components["schemas"]["RequirementLink"][];
             /**
@@ -8511,7 +8607,7 @@ export interface components {
              * Action
              * @enum {string}
              */
-            action: "delete_application" | "archive_note" | "delete_story" | "delete_note" | "archive_target" | "archive_action" | "delete_action";
+            action: "delete_application" | "archive_note" | "delete_story" | "delete_note" | "archive_target" | "archive_action" | "delete_action" | "archive_story" | "archive_application" | "delete_account";
             /** Target Id */
             target_id: string;
             /** Title */
@@ -9368,7 +9464,7 @@ export interface components {
              * Action
              * @enum {string}
              */
-            action: "delete_application" | "archive_note" | "delete_story" | "delete_note" | "archive_target" | "archive_action" | "delete_action";
+            action: "delete_application" | "archive_note" | "delete_story" | "delete_note" | "archive_target" | "archive_action" | "delete_action" | "archive_story" | "archive_application" | "delete_account";
             /** Target Id */
             target_id: string;
             /** Title */
@@ -9447,6 +9543,11 @@ export interface components {
             id: string;
             /** Title */
             title: string;
+            /**
+             * Archived
+             * @default false
+             */
+            archived: boolean;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -16967,6 +17068,35 @@ export interface operations {
             };
         };
     };
+    delete_me_preview_api_v1_auth_me_delete_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Impact"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     list_problems_api_v1_problems_get: {
         parameters: {
             query?: {
@@ -21770,6 +21900,117 @@ export interface operations {
             };
         };
     };
+    archive_story_preview_api_v1_me_stories__story_id__archive_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Impact"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_story_as_previewed_api_v1_me_stories__story_id__archive_as_previewed_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LifecycleIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LifecycleOutcome"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     list_applications_api_v1_me_applications_get: {
         parameters: {
             query?: {
@@ -22674,6 +22915,117 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    archive_preview_api_v1_me_applications__app_id__archive_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Impact"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_as_previewed_api_v1_me_applications__app_id__archive_as_previewed_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LifecycleIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LifecycleOutcome"];
                 };
             };
             /** @description Missing, invalid, expired or revoked access token */

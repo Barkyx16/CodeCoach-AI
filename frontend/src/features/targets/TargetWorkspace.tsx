@@ -380,7 +380,7 @@ function ExperienceSection({ t }: { t: Target }) {
       <p className="subtle">Short notes on real things you've done, linked to the requirements they show. Written by you; nothing is added or rewritten for you. Each one is also in <Link to="/stories">your story bank</Link>, where you can add the task, a reflection and more.</p>
       {t.experience.map((e) => editing !== e && (
         <div key={e.id} className="experience">
-          <strong>{e.title}</strong>
+          <strong>{e.title}</strong>{e.archived && <span className="subtle"> · archived in your story bank, still linked</span>}
           {e.situation && <p><span className="activity-card__label">Situation:</span> {e.situation}</p>}
           {e.action && <p><span className="activity-card__label">What I did:</span> {e.action}</p>}
           {e.result && <p><span className="activity-card__label">Result:</span> {e.result}</p>}

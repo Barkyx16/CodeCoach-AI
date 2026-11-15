@@ -161,6 +161,13 @@ describe("Your data", () => {
     const danger = screen.getByRole("region", { name: "Danger zone" });
     expect(within(danger).getByRole("button", { name: "Delete my account" })).toBeDisabled();
     expect(within(danger).getByLabelText("Password")).toBeInTheDocument();
+    // The list of what goes comes first, from the same counts this page shows (Volume 14, prompt 6).
+    server.use(http.get(`${API}/api/v1/auth/me/delete-preview`, () => HttpResponse.json({
+      action: "delete_account", target_id: "u1", title: "Your account", summary: "Delete your account",
+      effects: [{ effect: "deleted", kind: "records", title: "Notes: 2", id: "notes", note: null }], notes: [], fingerprint: "f".repeat(32),
+    })));
+    await user.click(within(danger).getByRole("button", { name: "Show what would be deleted" }));
+    expect(await within(danger).findByText("Notes: 2")).toBeInTheDocument();
     router.navigate("/settings/data");
     await user.click(await screen.findByRole("link", { name: "Download my data" }));
     await waitFor(() => expect(screen.getByRole("heading", { name: "Privacy & data" })).toHaveFocus());

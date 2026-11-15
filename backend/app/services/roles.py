@@ -785,6 +785,7 @@ class RoleTargets:
                     situation=e.situation,
                     action=e.action,
                     result=e.result,
+                    archived=e.archived,
                     requirement_ids=list(e.requirement_ids),
                     requirement_links=self._link_freshness(fresh, e, RequirementVersions.links(e, t)),
                     revision=e.revision,

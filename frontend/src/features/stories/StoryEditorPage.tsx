@@ -246,6 +246,20 @@ function Editor({ story, live, gone }: { story: Story | null; live: Story | null
     setNotice(archived ? "Archived. It's hidden from your list until you unarchive it." : "Back in your list.");
   }
 
+  // Archiving and deleting show what they do first, from the plans that do them (docs/LIFECYCLE.md).
+  const [previewArchive, setPreviewArchive] = useState(false);
+  const loadArchive = useCallback(() => api.storyArchivePreview(saved?.id ?? ""), [saved?.id]);
+  const runArchive = useCallback(
+    (fingerprint: string, key: string) => api.archiveStoryAsPreviewed(saved?.id ?? "", { expected_fingerprint: fingerprint, client_request_id: key }),
+    [saved?.id],
+  );
+  async function archivedAsPreviewed() {
+    if (!saved) return;
+    setPreviewArchive(false);
+    replaceWith(await api.story(saved.id));
+    tell("archived", saved.id);
+    setNotice("Archived. It's hidden from your list until you unarchive it; everything that used it keeps it.");
+  }
   // Deleting shows what it does first, from the plan that deletes it (docs/LIFECYCLE.md).
   const [previewDelete, setPreviewDelete] = useState(false);
   const savedId = saved?.id ?? "";
@@ -453,9 +467,14 @@ function Editor({ story, live, gone }: { story: Story | null; live: Story | null
             <Card className="stack-sm">
               <h2 className="section-title">Keep or remove</h2>
               <span className="row">
-                <Button size="sm" onClick={() => void archive(!saved.archived)}>{saved.archived ? "Unarchive" : "Archive"}</Button>
-                <Button size="sm" variant="danger" aria-expanded={previewDelete} onClick={() => setPreviewDelete((v) => !v)}>Delete…</Button>
+                {saved.archived
+                  ? <Button size="sm" onClick={() => void archive(false)}>Unarchive</Button>
+                  : <Button size="sm" aria-expanded={previewArchive} onClick={() => { setPreviewDelete(false); setPreviewArchive((v) => !v); }}>Archive…</Button>}
+                <Button size="sm" variant="danger" aria-expanded={previewDelete} onClick={() => { setPreviewArchive(false); setPreviewDelete((v) => !v); }}>Delete…</Button>
               </span>
+              {previewArchive && !saved.archived && (
+                <ImpactPreview load={loadArchive} run={runArchive} onCancel={() => setPreviewArchive(false)} onDone={() => void archivedAsPreviewed()} />
+              )}
               {previewDelete && <ImpactPreview danger load={loadDelete} run={runDelete} onCancel={() => setPreviewDelete(false)} onDone={removed} />}
             </Card>
           )}

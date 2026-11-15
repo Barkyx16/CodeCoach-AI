@@ -35,9 +35,11 @@ the application takes its kits out of active views), interviews, answers, attemp
   from answers that used it; an archived application stays linked from offer comparisons.
 - **Active views leave archived records out**: lists, "Continue your work" (including the kits of an
   archived application) and search (unless "Include archived" is ticked).
-- **Something still to come.** Archiving an application with an interview not yet over asks first and
-  says what happens: it leaves the board and the upcoming list; the interview isn't cancelled, the
-  stage doesn't change, and anything already on your schedule stays.
+- **Something still to come.** Archiving an application shows what it keeps first (docs/LIFECYCLE.md,
+  "Archiving an application"); with an interview not yet over, a warning above the list says it
+  isn't cancelled and the stage doesn't change. It leaves the board and the upcoming list, and its
+  events' schedule entries are off the schedule and Today until you unarchive it (since Volume 14,
+  prompt 6; before, they stayed).
 - **Deleting is different.** Delete is separate, can't be undone, and follows the account's retention
   rules: archive doesn't revive or keep anything deleted. Restoring a deleted record isn't possible.
 - **Exports** say which records are archived (`archived` on notes, stories, applications, targets and

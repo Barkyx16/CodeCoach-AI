@@ -68,6 +68,11 @@ Export, restore and deletion stay where they are: the page links to Settings' **
 **Restore from a backup** and **Danger zone** (password and "DELETE"), and Settings now moves focus
 to the section a link names. No new way to export or delete.
 
+Deleting the account shows its list first (Volume 14, prompt 6): **Show what would be deleted** in
+the Danger zone lists these same counts, read by the same code (`data_summary`), plus the emails
+that won't be sent, the links that stop working, the devices signed out, and when copies in
+earlier backups age out (docs/LIFECYCLE.md, "Deleting the account"). It reads at phone width.
+
 ## Where your words go when they're processed
 
 - **The AI coach**: with the built-in coach, nothing is sent to an AI provider. With an outside
