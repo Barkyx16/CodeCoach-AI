@@ -59,6 +59,7 @@ function DisputedRow({ item }: { item: ReviewQueueItem }) {
         <strong>{item.title}</strong>
         <span className="subtle">{item.career_title}</span>
       </div>
+      {item.criterion && <p className="subtle">Saved for “{item.criterion}”.</p>}
       <p className="subtle">{item.why}</p>
       <div className="row queue-row__actions">
         {item.dispute && <Link className="btn btn--secondary btn--sm" to={item.dispute.href}>Count it again (see the dispute)</Link>}
@@ -79,6 +80,7 @@ function QueueRow({ item }: { item: ReviewQueueItem }) {
         <strong>{item.title}</strong>
         <span className="subtle">{item.career_title}{item.last_score !== null && item.last_score !== undefined ? ` · last ${item.last_score}/100` : ""}</span>
       </div>
+      {item.criterion && <p className="subtle">Saved for “{item.criterion}”.</p>}
       <p className="subtle">{item.why}</p>
       <div className="row queue-row__actions">
         <Link className="btn btn--primary btn--sm" to={item.href} state={{ from: "/reviews", fromLabel: "Back to the review queue" }}>Answer it now</Link>

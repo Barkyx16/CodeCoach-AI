@@ -764,7 +764,9 @@ Newest first. `response` holds the exact `content` (hints), `review` (reviews) o
 - `GET|POST /api/v1/me/reviews`, `POST /api/v1/me/reviews/{id}/snooze {days: 1|3|7}`,
   `DELETE /api/v1/me/reviews/{id}` 🔒: the spaced review queue. Items move along 1, 3, 7, 14, 30
   days only when the question is answered again (85+ moves up, below 70 resets to 1 day); every
-  item says why it's due. Nothing is sent anywhere.
+  item says why it's due. Nothing is sent anywhere. `POST` takes an optional `criterion`: the one
+  feedback point the item is saved for. Each item carries `criterion` and `recounted` (set when a
+  dispute changed when it's due; docs/DISPUTES.md, "The review queue").
 
 ### Target roles ("Prepare for this role")
 

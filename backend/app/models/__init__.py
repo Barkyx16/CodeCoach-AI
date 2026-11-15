@@ -909,6 +909,9 @@ class ReviewItem(Base):
     scheduled_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)  # when due_at was last set
     last_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     reviews: Mapped[int] = mapped_column(Integer, default=0)
+    # The one feedback point it was saved for (a summary's improvement), or null: the whole answer.
+    # A dispute on that point holds it like a dispute overall (docs/DISPUTES.md, Volume 15, prompt 9).
+    criterion: Mapped[str | None] = mapped_column(String(200), nullable=True)
     snoozed: Mapped[bool] = mapped_column(Boolean, default=False)
     removed: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)

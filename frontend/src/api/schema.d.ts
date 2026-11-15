@@ -13030,6 +13030,11 @@ export interface components {
             question_id: string;
             /** Session Id */
             session_id?: string | null;
+            /**
+             * Criterion
+             * @description The one feedback point it's saved for (a summary's improvement); a dispute on that point then holds it like a dispute on the whole feedback
+             */
+            criterion?: string | null;
         };
         /** ReviewAttemptIn */
         ReviewAttemptIn: {
@@ -13389,6 +13394,16 @@ export interface components {
             snoozed: boolean;
             /** @description Disputed: why it's here comes only from feedback you disputed (it's under `disputed`, not scheduled); or, on a scheduled item, one of its reasons does (it keeps the others) */
             dispute?: components["schemas"]["DisputeNote"] | null;
+            /**
+             * Criterion
+             * @description The one feedback point it was saved for, or null for the whole answer: a dispute on that point holds it like a dispute on the whole feedback
+             */
+            criterion?: string | null;
+            /**
+             * Recounted
+             * @description Set when a dispute changed when it's due: the ladder was recounted without the disputed scores, and this says what changed (it's also the last sentence of `why`)
+             */
+            recounted?: string | null;
         };
         /** ReviewReference */
         ReviewReference: {

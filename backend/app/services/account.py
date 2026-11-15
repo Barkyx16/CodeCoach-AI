@@ -53,7 +53,7 @@ from app.services.onboarding import Onboarding
 from app.services.reflections import Reflections
 from app.services.restore import Restore
 from app.services.review import disputed_point_keys
-from app.services.review_queue import ReviewQueueService
+from app.services.review_queue import QueueRead, ReviewQueueService
 from app.services.schedule import Schedule
 from app.services.shares import status_of
 from app.services.stories import snapshot
@@ -114,7 +114,8 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
         requirement_history.setdefault(v.requirement_id, []).append(v)
     retries = db.scalars(select(InterviewRetry).where(InterviewRetry.user_id == user.id)).all()
     queue = db.scalars(select(ReviewItem).where(ReviewItem.user_id == user.id)).all()
-    withheld_reviews = ReviewQueueService(db).withheld_ids(user)
+    # Active items as the queue shows them: the ladder recounted when a dispute applies.
+    review_reads = {r.row.id: r for r in ReviewQueueService(db).ladders(user)}
     scenario_attempts = db.scalars(
         select(ScenarioAttempt).where(ScenarioAttempt.user_id == user.id).order_by(ScenarioAttempt.created_at)
     ).all()
@@ -163,6 +164,25 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
 
     def iso(dt: datetime | None) -> str | None:
         return dt.isoformat() if dt else None
+
+    def review_row(q: ReviewItem, read: QueueRead | None) -> dict:  # None: a removed item
+        ladder = read.ladder if read is not None else None
+        return {
+            "career": q.track,
+            "question": q.question_id,
+            # As the queue shows it: recounted without disputed scores when a dispute applies
+            # (docs/DISPUTES.md, "The review queue"); a removed item as it was left.
+            "due_at": iso(ladder.due_at if ladder else q.due_at),
+            "step": ladder.step if ladder else q.step,
+            "last_score": ladder.last_score if ladder else q.last_score,
+            "reviews": ladder.reviews if ladder else q.reviews,
+            "removed": q.removed,
+            "created_at": iso(q.created_at),
+            "saved_for_point": q.criterion,
+            "recounted": bool(ladder and ladder.left_out),
+            # Not scheduled: every reason it's in the queue is feedback you disputed.
+            "left_out_disputed": bool(read is not None and read.withheld),
+        }
 
     # The in-app help shown before each attempt, worked out the way the app shows it
     # (docs/ATTEMPT_CONDITIONS.md). A description, never a change to a verdict or score.
@@ -389,21 +409,7 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
             }
             for r in retries
         ],
-        "review_queue": [
-            {
-                "career": q.track,
-                "question": q.question_id,
-                "due_at": iso(q.due_at),
-                "step": q.step,
-                "last_score": q.last_score,
-                "reviews": q.reviews,
-                "removed": q.removed,
-                "created_at": iso(q.created_at),
-                # Not scheduled: every reason it's in the queue is feedback you disputed.
-                "left_out_disputed": q.id in withheld_reviews,
-            }
-            for q in queue
-        ],
+        "review_queue": [review_row(q, review_reads.get(q.id)) for q in queue],
         "bookmarks": [
             {
                 "type": b.item_type,

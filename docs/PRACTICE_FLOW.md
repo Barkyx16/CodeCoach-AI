@@ -34,7 +34,10 @@ new pieces reuse `ActivityCard`, `MoreOptions`, `Button`, `Icon` and live in `sr
 - **Schedule** entries reference a plan item by `(kind="plan_item", ref=item id)`. They have
   `client_request_id` idempotency per request, but nothing stops two entries for the same item.
 - **Review queue** (`/me/reviews`, ladder 1/3/7/14/30 days) is separate from the plan's own
-  "review" activities.
+  "review" activities. Every answer since an item was last scheduled moves its ladder, in order;
+  when a dispute applies to one of its answers, the ladder shown is recounted from its answers
+  without that score and says what changed (docs/DISPUTES.md, "The review queue", Volume 15,
+  prompt 9). Today and the schedule read the queue's own reading, so they agree with it.
 - **Weekly minutes** are the estimated minutes of activities completed in the last 7 days (UTC),
   not timed practice.
 

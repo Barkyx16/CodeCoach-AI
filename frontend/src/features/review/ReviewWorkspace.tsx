@@ -141,6 +141,7 @@ function Review({ iv, r }: { iv: Interview; r: InterviewReview }) {
                       ? <Link className="btn btn--secondary btn--sm review__practice" to={`/interviews/${r.id}/retry/${imp.practice.retry_index}`}>{imp.practice.label}</Link>
                       : imp.practice.href && <Link className="btn btn--secondary btn--sm review__practice" to={imp.practice.href}>{imp.practice.label}</Link>}
                     <AcceptImprovement interviewId={r.id} improvementKey={imp.key} actionId={imp.action_id} title={imp.title} />
+                    <SavePointForReview r={r} improvementKey={imp.key} point={imp.title} retryIndex={imp.practice.retry_index} />
                   </li>
                 ))}
               </ol>
@@ -248,6 +249,30 @@ function DimensionRow({ d, onEvidence }: { d: InterviewReview["overall"][number]
         </p>
       )}
     </li>
+  );
+}
+
+/** Save the question a point's retry targets, for that point: a dispute on the point then holds it
+ * like a dispute on the whole feedback (docs/DISPUTES.md, "The review queue"). */
+function SavePointForReview({ r, improvementKey, point, retryIndex }: {
+  r: InterviewReview; improvementKey: string; point: string; retryIndex?: number | null;
+}) {
+  const item = retryIndex === null || retryIndex === undefined ? undefined : r.items.find((i) => i.index === retryIndex);
+  const save = useReviewQueueMutation(() => api.addReview({
+    track: r.track ?? "", question_id: item?.question_id ?? "", session_id: r.id, criterion: point,
+  }));
+  if (r.kind !== "questions" || !r.track || !improvementKey.startsWith("point:") || !item?.question_id) return null;
+  if (save.isSuccess) {
+    return <p className="subtle" role="status">Saved for review, for “{point}”: if you dispute that point, it's held back.</p>;
+  }
+  if (item.in_review_queue) return <p className="subtle">“{item.title}” is already in your review queue.</p>;
+  return (
+    <div className="stack-sm">
+      <Button size="sm" variant="ghost" loading={save.isPending} onClick={() => save.mutate(undefined)}>
+        Save this point for review
+      </Button>
+      <InlineError error={save.error} />
+    </div>
   );
 }
 

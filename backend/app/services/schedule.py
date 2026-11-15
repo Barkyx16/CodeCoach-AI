@@ -377,17 +377,12 @@ class Schedule:
         soon = datetime.now(UTC) + timedelta(days=14)
         from app.services.review_queue import ReviewQueueService
 
-        withheld = ReviewQueueService(self.db).withheld_ids(self.user)  # the queue's own rule
-        for r in self.db.scalars(
-            select(ReviewItem)
-            .where(
-                ReviewItem.user_id == self.user.id, ReviewItem.removed.is_(False), ReviewItem.due_at <= soon
-            )
-            .order_by(ReviewItem.due_at)
-            .limit(20)
-        ):
+        # The queue's own reading: its ladder (recounted when a dispute applies) and what it holds back.
+        reads = ReviewQueueService(self.db).ladders(self.user)
+        for read in [x for x in reads if not x.withheld and x.ladder.due_at <= soon][:20]:
+            r = read.row
             q = get_question(r.track, r.question_id)
-            if q is not None and r.id not in withheld:
+            if q is not None:
                 out.append(
                     SchedulableOut(
                         kind="review_item",

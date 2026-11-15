@@ -45268,6 +45268,19 @@
               }
             ],
             "title": "Session Id"
+          },
+          "criterion": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Criterion",
+            "description": "The one feedback point it's saved for (a summary's improvement); a dispute on that point then holds it like a dispute on the whole feedback"
           }
         },
         "type": "object",
@@ -46174,6 +46187,30 @@
               }
             ],
             "description": "Disputed: why it's here comes only from feedback you disputed (it's under `disputed`, not scheduled); or, on a scheduled item, one of its reasons does (it keeps the others)"
+          },
+          "criterion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Criterion",
+            "description": "The one feedback point it was saved for, or null for the whole answer: a dispute on that point holds it like a dispute on the whole feedback"
+          },
+          "recounted": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recounted",
+            "description": "Set when a dispute changed when it's due: the ladder was recounted without the disputed scores, and this says what changed (it's also the last sentence of `why`)"
           }
         },
         "type": "object",

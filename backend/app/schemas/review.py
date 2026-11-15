@@ -180,6 +180,12 @@ class ReviewAdd(APIModel):
     track: str = Field(max_length=64)
     question_id: str = Field(max_length=64)
     session_id: str | None = Field(default=None, max_length=36)
+    criterion: str | None = Field(
+        default=None,
+        max_length=200,
+        description="The one feedback point it's saved for (a summary's improvement); a dispute on that point "
+        "then holds it like a dispute on the whole feedback",
+    )
 
 
 class SnoozeIn(APIModel):
@@ -204,6 +210,16 @@ class ReviewQueueItem(APIModel):
         default=None,
         description="Disputed: why it's here comes only from feedback you disputed (it's under `disputed`, not "
         "scheduled); or, on a scheduled item, one of its reasons does (it keeps the others)",
+    )
+    criterion: str | None = Field(
+        default=None,
+        description="The one feedback point it was saved for, or null for the whole answer: a dispute on that "
+        "point holds it like a dispute on the whole feedback",
+    )
+    recounted: str | None = Field(
+        default=None,
+        description="Set when a dispute changed when it's due: the ladder was recounted without the disputed "
+        "scores, and this says what changed (it's also the last sentence of `why`)",
     )
 
 
