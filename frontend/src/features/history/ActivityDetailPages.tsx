@@ -12,6 +12,7 @@ import { isGone } from "@/lib/errors";
 import { formatDateTime } from "@/lib/format";
 import { AttemptConditionsView } from "@/features/conditions/AttemptConditions";
 import { SubmissionCompared } from "@/features/workspace/SubmissionCompared";
+import { FollowsUpNote } from "@/features/workspace/ProblemFollowUps";
 import { ReviewResult } from "@/features/workspace/CoachPanel";
 import { FailureExplanationView } from "@/features/workspace/FailureExplanation";
 
@@ -55,6 +56,7 @@ export function SubmissionDetailPage() {
         )}
       </Card>
       {s.compared && <Card className="stack"><SubmissionCompared current={s} compared={s.compared} /></Card>}
+      {s.follows_up && <Card className="stack"><h2 className="section-title">A follow-up</h2><FollowsUpNote of={s.follows_up} /></Card>}
       {s.conditions && <Card className="stack"><h2 className="section-title">In-app help</h2><AttemptConditionsView conditions={s.conditions} /></Card>}
       <Card className="stack">
         {s.starting_code != null && (

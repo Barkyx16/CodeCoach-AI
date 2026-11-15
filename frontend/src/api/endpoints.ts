@@ -122,6 +122,7 @@ import type {
   ConditionsOut,
   ConditionsQuery,
   FollowUpOut,
+  ProblemFollowUpsOut,
   RequirementHistoryEntry,
   RequirementSetIn,
   RevisionPreview,
@@ -389,6 +390,12 @@ export const api = {
     apiRequest<InterviewAnswer[]>(`/api/v1/careers/${encodeURIComponent(track)}/questions/${encodeURIComponent(id)}/answers`),
   trackProgress: (track: string) =>
     apiRequest<TrackProgress>(`/api/v1/careers/${encodeURIComponent(track)}/progress`),
+  /** A reviewed, different coding problem offered after a judged submission of this one passed. */
+  problemFollowUps: (slug: string) =>
+    apiRequest<ProblemFollowUpsOut>(`/api/v1/problems/${encodeURIComponent(slug)}/follow-ups`),
+  /** Kept with the account, so it stays dismissed on every device. */
+  dismissProblemFollowUp: (slug: string, to: string) =>
+    apiRequest<ProblemFollowUpsOut>(`/api/v1/problems/${encodeURIComponent(slug)}/follow-ups/${encodeURIComponent(to)}/dismiss`, { method: "POST" }),
   problem: (slug: string, signal?: AbortSignal) =>
     apiRequest<ProblemDetail>(`/api/v1/problems/${encodeURIComponent(slug)}`, { signal }),
   // Public copies (no credentials), for "Save for offline": nothing personal can be included.

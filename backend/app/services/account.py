@@ -213,6 +213,9 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
                 },
                 "conditions": sub_conditions.get(s.id),
                 "comparison": sub_comparisons.get(s.id),
+                # Made from a reviewed follow-up offer: the passed submission of a different problem it
+                # followed (docs/FOLLOW_UPS.md); its verdict is its own.
+                "follows_up_submission_id": s.follows_up_submission_id,
             }
             for s in subs
         ],

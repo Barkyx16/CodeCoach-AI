@@ -1818,6 +1818,149 @@
         }
       }
     },
+    "/api/v1/problems/{slug}/follow-ups": {
+      "get": {
+        "tags": [
+          "problems"
+        ],
+        "summary": "A reviewed, different problem offered after a judged submission of this one passed (yours only)",
+        "operationId": "problem_follow_ups_api_v1_problems__slug__follow_ups_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemFollowUpsOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/problems/{slug}/follow-ups/{to_slug}/dismiss": {
+      "post": {
+        "tags": [
+          "problems"
+        ],
+        "summary": "Don't offer this follow-up again (kept with your account, on every device)",
+        "operationId": "dismiss_problem_follow_up_api_v1_problems__slug__follow_ups__to_slug__dismiss_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "to_slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "To Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemFollowUpsOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/careers": {
       "get": {
         "tags": [
@@ -33287,6 +33430,39 @@
         "title": "FollowUpAnswered",
         "description": "A follow-up you answered, kept beside the answer it followed: its own record and score."
       },
+      "FollowUpOf": {
+        "properties": {
+          "submission_id": {
+            "type": "string",
+            "title": "Submission Id"
+          },
+          "problem_slug": {
+            "type": "string",
+            "title": "Problem Slug"
+          },
+          "problem_title": {
+            "type": "string",
+            "title": "Problem Title"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SubmissionStatus"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "submission_id",
+          "problem_slug",
+          "problem_title",
+          "status",
+          "text"
+        ],
+        "title": "FollowUpOf",
+        "description": "On a follow-up's own page: the different problem it followed, and that it isn't compared."
+      },
       "FollowUpOut": {
         "properties": {
           "status": {
@@ -40609,6 +40785,158 @@
           "hint_levels"
         ],
         "title": "ProblemDetail"
+      },
+      "ProblemFollowUpDone": {
+        "properties": {
+          "submission_id": {
+            "type": "string",
+            "title": "Submission Id"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SubmissionStatus"
+          },
+          "passed_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Passed Count"
+          },
+          "total_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Count"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "follows_up_submission_id": {
+            "type": "string",
+            "title": "Follows Up Submission Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "submission_id",
+          "slug",
+          "title",
+          "status",
+          "passed_count",
+          "total_count",
+          "created_at",
+          "follows_up_submission_id"
+        ],
+        "title": "ProblemFollowUpDone",
+        "description": "A follow-up you submitted, with its own verdict: never combined with the first problem's."
+      },
+      "ProblemFollowUpOffer": {
+        "properties": {
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "difficulty": {
+            "type": "string",
+            "title": "Difficulty"
+          },
+          "shares": {
+            "type": "string",
+            "title": "Shares",
+            "description": "The idea the two problems share (reviewed content)"
+          },
+          "difference": {
+            "type": "string",
+            "title": "Difference",
+            "description": "How this one differs"
+          },
+          "exposure": {
+            "type": "string",
+            "title": "Exposure",
+            "description": "\"Not previously attempted in this app\": only then is it offered"
+          },
+          "from_submission_id": {
+            "type": "string",
+            "title": "From Submission Id",
+            "description": "Your passed submission it would follow up"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slug",
+          "title",
+          "difficulty",
+          "shares",
+          "difference",
+          "exposure",
+          "from_submission_id"
+        ],
+        "title": "ProblemFollowUpOffer"
+      },
+      "ProblemFollowUpsOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "none",
+              "not_yet",
+              "offered",
+              "done"
+            ],
+            "title": "Status",
+            "description": "none: no reviewed related problem; not_yet: until a judged submission of this one passes; offered; done: each was attempted or dismissed"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "offers": {
+            "items": {
+              "$ref": "#/components/schemas/ProblemFollowUpOffer"
+            },
+            "type": "array",
+            "title": "Offers"
+          },
+          "answered": {
+            "items": {
+              "$ref": "#/components/schemas/ProblemFollowUpDone"
+            },
+            "type": "array",
+            "title": "Answered",
+            "description": "Follow-ups you submitted from this problem, each with its own verdict, not combined"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "message",
+          "offers",
+          "answered"
+        ],
+        "title": "ProblemFollowUpsOut"
       },
       "ProblemStatus": {
         "properties": {
@@ -48997,6 +49325,19 @@
             "description": "`submit`: judge against all tests and record the attempt. `run`: public tests only, for quick feedback; never counts as an attempt.",
             "default": "submit"
           },
+          "follows_up_submission_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 36
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Follows Up Submission Id",
+            "description": "Made from a reviewed follow-up offer (docs/FOLLOW_UPS.md): your passed submission of the problem this one follows. Stored once, on a submit; its verdict stays its own"
+          },
           "client_request_id": {
             "anyOf": [
               {
@@ -49132,6 +49473,17 @@
               }
             ],
             "description": "Once judged: the previous judged submission of the same problem and mode, and how the two compare. None when there's no earlier one, or while this one is being judged"
+          },
+          "follows_up": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FollowUpOf"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A follow-up to a different problem (docs/FOLLOW_UPS.md): which one, never compared with it"
           }
         },
         "type": "object",

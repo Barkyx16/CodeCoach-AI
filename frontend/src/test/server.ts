@@ -96,6 +96,7 @@ export const handlers = [
   }),
   http.get(`${API}/api/v1/me/packet/kits`, () => HttpResponse.json([])),
   http.get(`${API}/api/v1/me/packet/reflections`, () => HttpResponse.json({ items: [], total: 0, limit: 30 })),
+  http.get(`${API}/api/v1/problems/:slug/follow-ups`, () => HttpResponse.json({ status: "none", message: "No reviewed related problem is linked to this one yet.", offers: [], answered: [] })),
   http.get(`${API}/api/v1/me/actions/:id/practice`, ({ params }) => HttpResponse.json({
     action_id: params.id, count: 0, items: [], origin: null, linked: true, disputed: null,
     note: "Practice linked to this improvement since you accepted it, found by stored links only.",

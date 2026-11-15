@@ -13,8 +13,9 @@ import { Recorder, api, iso, newAccount, signIn, signInApi, type Account, type J
  * is what's sent → a coding baseline judged in the sandbox → its recorded help → an approved code
  * review (the request carries the preview's fingerprint and the code it showed) → a coding
  * interview's feedback → an accepted improvement → its calendar placement → a resubmission judged
- * in the sandbox, shown with its own verdict (coding submissions aren't compared) → the
- * interview-day kit. Each id is found again after a reload and a fresh sign-in, and a canary typed
+ * in the sandbox, compared with the baseline by the one comparison rule → the reviewed related
+ * problem it offers, solved and judged in the sandbox with its own verdict (Volume 14, prompt 10) →
+ * the interview-day kit. Each id is found again after a reload and a fresh sign-in, and a canary typed
  * by the learner is never in the API's log. The judge's verdicts are recorded as it gave them.
  *
  * It needs the real judge (E2E_JUDGE=1: Docker, gVisor and the sandbox image). Without it the specs
@@ -39,6 +40,22 @@ export const BASELINE = `class Solution {
         return new int[] {0, 1};
     }
 }`;
+/** The reviewed follow-up to Two Sum (app/content/problem_followups.py; docs/FOLLOW_UPS.md, "Coding problems"). */
+export const FOLLOW_UP = "two-sum-sorted";
+export const FOLLOW_UP_TITLE = "Two Sum in a Sorted Array";
+/** The learner's two-pointer answer to it (1-based indices, as the problem asks). */
+export const FOLLOW_UP_CODE = `class Solution {
+    public int[] twoSumSorted(int[] nums, int target) {
+        int lo = 0, hi = nums.length - 1;
+        while (lo < hi) {
+            int sum = nums[lo] + nums[hi];
+            if (sum == target) return new int[] {lo + 1, hi + 1};
+            if (sum < target) lo++; else hi--;
+        }
+        throw new IllegalArgumentException("no pair");
+    }
+}`;
+export const OFFER_SAYS = "An optional, different problem that shares one idea with this one. Its verdict will be its own: it isn't combined with this one's, and passing it doesn't by itself show that anything was learned.";
 /** A synthetic marker typed by the learner; it must never reach a log, a trace or an email. */
 export const SE_CANARY = "CANARY-engineer-4c1d8-not-a-real-secret";
 export const RESUBMISSION = `import java.util.HashMap;
@@ -68,6 +85,7 @@ export interface Sub {
   id: string; mode: string; status: string; status_detail: string | null; is_terminal: boolean;
   created_at: string; updated_at: string; result: Result | null; conditions: { labels: string[] } | null;
   compared?: { previous: { id: string; status: string }; comparison: { outcome: string; explanation: string } } | null;
+  follows_up?: { submission_id: string; problem_slug: string; text: string } | null;
 }
 interface Preview { context_fingerprint: string; items: { key: string; label: string; text: string }[]; recipient_kind: string }
 interface Action { id: string; title: string; source: Record<string, unknown>; occurrences: { id: string }[] }
@@ -329,6 +347,12 @@ async function run(rec: Recorder, page: Page, context: BrowserContext, browser: 
     rec.ids.resubmission = sub.id;
     rec.judged.push(verdict("A resubmission, judged for real", sub, seenMs));
     const r = sub.result!;
+    // Passed and judged: the reviewed related problem is offered under the result.
+    const offer = page.getByRole("region", { name: "Submission results" }).getByRole("region", { name: "A related problem" });
+    await expect(offer).toContainText(OFFER_SAYS);
+    await expect(offer.getByRole("link", { name: FOLLOW_UP_TITLE })).toHaveAttribute("href", `/problems/${FOLLOW_UP}?followUpOf=${sub.id}`);
+    await expect(offer).toContainText("Not previously attempted in this app.");
+    check(`once it passed, "${FOLLOW_UP_TITLE}" is offered under the result: "Not previously attempted in this app"`);
     check(`judged in the sandbox: ${sub.status}, ${r.passed_count}/${r.total_count} tests passed (hidden ${r.hidden_passed}/${r.hidden_total}), ${r.runtime_ms ?? "no"} ms in the method`);
     expect(sub.conditions?.labels).toEqual(["No in-app help recorded"]);
     check(`its help is its own: "No in-app help recorded" (the hint belonged to the attempt after it)`);
@@ -370,6 +394,39 @@ async function run(rec: Recorder, page: Page, context: BrowserContext, browser: 
     await expect(latest.getByRole("listitem")).toHaveCount(2);
     await expect(latest.getByRole("listitem").first()).toContainText("Passed");
     check(`the requirement now reads "${coverage}" and lists both submissions, newest first, with their verdicts`);
+  }, ["real judge"]);
+
+  await rec.step("A related problem, judged for real", async (check) => {
+    // Offered beside the problem too (no result on screen after the visit to History and the plan).
+    await page.goto(`/problems/${PROBLEM}`);
+    const offer = page.getByRole("region", { name: "Problem description" }).getByRole("region", { name: "A related problem" });
+    await offer.getByRole("link", { name: FOLLOW_UP_TITLE }).click();
+    await expect(page).toHaveURL(new RegExp(`/problems/${FOLLOW_UP}\\?followUpOf=${resubmissionId}$`));
+    await expect(page.getByRole("region", { name: "A follow-up problem" })).toContainText("gets its own verdict, not combined with it");
+    await expect(page.locator(".monaco-editor")).toBeVisible();
+    await paste(page, FOLLOW_UP_CODE);
+    const { sub, seenMs } = await submitAndJudge(page, request, acct, "All tests passed. Nice work.");
+    expect(sub.status).toBe("PASSED");
+    await expectResultShown(page, sub);
+    rec.ids.follow_up_submission = sub.id;
+    rec.judged.push(verdict("A related problem, judged for real", sub, seenMs));
+    const r = sub.result!;
+    check(`judged in the sandbox: ${sub.status}, ${r.passed_count}/${r.total_count} tests passed (hidden ${r.hidden_passed}/${r.hidden_total}), ${r.runtime_ms ?? "no"} ms in the method`);
+    expect(sub.follows_up?.submission_id).toBe(resubmissionId);
+    expect(sub.compared ?? null).toBeNull();
+    await expect(page.getByTestId("follows-up")).toContainText(`A follow-up to ${PROBLEM_TITLE}, a different problem. Its own verdict, not combined with that problem's or compared with it.`);
+    await expect(page.getByRole("region", { name: "Compared with your previous submission" })).toHaveCount(0);
+    check("it records the passed resubmission it follows, says its verdict is its own, and isn't compared with a different problem's");
+
+    // The first problem lists it with its own verdict, and doesn't offer it again (attempted now).
+    await page.goto(`/problems/${PROBLEM}`);
+    const listed = page.getByRole("region", { name: "Follow-ups you submitted" });
+    await expect(listed.getByRole("link", { name: FOLLOW_UP_TITLE })).toHaveAttribute("href", `/history/submissions/${sub.id}`);
+    await expect(listed).toContainText(`${r.passed_count} of ${r.total_count} tests passed`);
+    await expect(page.getByRole("region", { name: "A related problem" })).toHaveCount(0);
+    const doc = await api<{ submissions: { id: string; follows_up_submission_id: string | null }[] }>(request, acct.auth, "get", "/api/v1/me/export");
+    expect(doc.submissions.find((s) => s.id === sub.id)?.follows_up_submission_id).toBe(resubmissionId);
+    check(`"${PROBLEM_TITLE}" lists it under "Follow-ups you submitted" with its verdict and offers it no more; the export carries the link`);
   }, ["real judge"]);
 
   await rec.step("Final preparation material", async (check) => {

@@ -27,6 +27,7 @@ import { GuidedTour } from "@/features/onboarding/GuidedTour";
 
 import { CodeEditor } from "./CodeEditor";
 import { ProblemStatement } from "./ProblemStatement";
+import { ProblemFollowUps } from "./ProblemFollowUps";
 import { SubmissionPanel } from "./SubmissionPanel";
 import { useDraft, type SaveState } from "./useDraft";
 import { CODING_LIBRARY, WorkspaceFrame } from "./WorkspaceFrame";
@@ -110,6 +111,9 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
   const [showSettings, setShowSettings] = useState(false);
   const settingsId = useId();
   const judging = !!submission.data?.execution_enabled && !submission.data.is_terminal;
+  // A judged submission that passed is on screen: a related problem may be offered under it.
+  const passedHere = submission.data?.is_terminal && submission.data.status === "PASSED" && submission.data.mode === "submit"
+    ? submission.data.id : null;
 
   const goSignIn = () => navigate("/login", { state: { from: `/problems/${problem.slug}` } });
 
@@ -121,6 +125,9 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
     if (replace && offeredCode) draft.setCode(offeredCode);
     navigate(location.pathname + location.search, { replace: true, state: null });
   };
+  // Opened from a reviewed follow-up offer (docs/FOLLOW_UPS.md, "Coding problems"): the first
+  // submission made here records the passed one it follows. Later ones are ordinary attempts.
+  const followUpOf = new URLSearchParams(location.search).get("followUpOf");
 
   async function send(body: SubmissionCreate) {
     setPendingMode(body.mode ?? "submit");
@@ -130,6 +137,7 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
       setUnconfirmed(null);
       setSubmissionId(created.id);
       if (isNarrow) setMobileTab("code");
+      if (body.follows_up_submission_id) navigate(location.pathname, { replace: true, state: location.state });
     } catch (e) {
       // Only a lost connection leaves it unknown whether the server got the request. Any other
       // answer is definite: nothing is pending, so the record of it goes.
@@ -157,7 +165,10 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
     // Written down before sending: the same code and mode reuses an unresolved key (from before a
     // reload, or another tab), so the server makes it once; changed code is a new submission.
     const { key } = keyForIntent(user!.id, "submission", problem.slug, fingerprint(problem.slug, mode, draft.code));
-    await send({ problem_slug: problem.slug, language: "java", source_code: draft.code, mode, client_request_id: key });
+    await send({
+      problem_slug: problem.slug, language: "java", source_code: draft.code, mode, client_request_id: key,
+      ...(mode === "submit" && followUpOf ? { follows_up_submission_id: followUpOf } : {}),
+    });
   }
 
   /** The coach's review is the way on when code can't run: bring it into view. */
@@ -221,6 +232,7 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
         after={<>{problem.kind === "debug" && <DebugBrief problem={problem} />}<div className="focus-hide display-contents">
           <LearnLinks query={{ problem_slug: problem.slug }} from={{ from: `/problems/${problem.slug}`, fromLabel: "Back to the problem" }} />
           {isAuthenticated && <SaveControls item={savedRef} title={problem.title} />}
+          {isAuthenticated && <ProblemFollowUps slug={problem.slug} part={passedHere ? "answered" : "both"} refreshKey={passedHere} />}
           {isAuthenticated && <NoteCapture source={{ type: "problem", id: problem.slug }} excerpt={draft.code} excerptKind="code" excerptLabel="your current code" />}
           <SaveOffline kind="problem" itemKey={problem.slug} label="problem" />
         </div></>} />
@@ -232,6 +244,12 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
   );
   const editor = (
     <div className="editor-pane" data-tour="editor">
+      {followUpOf && (
+        <div className="banner banner--info" role="region" aria-label="A follow-up problem">
+          <span>A follow-up to your passed submission of a related problem. That one stays as it is; your submission here gets its own verdict, not combined with it.</span>
+          {" "}<Link to={location.pathname} replace>Practise it on its own instead</Link>
+        </div>
+      )}
       {offeredCode && (
         <div className="banner banner--info load-offer" role="region" aria-label="Open past code">
           <span>Open the code you submitted{offer?.loadFrom ? ` on ${offer.loadFrom}` : ""}? It replaces what's in the editor now{draft.isModified ? " (your current draft)" : ""}.</span>
@@ -293,6 +311,7 @@ function Workspace({ problem }: { problem: NonNullable<ReturnType<typeof useProb
       <SubmissionPanel submission={submission.data} error={submission.error} onHighlightLine={jumpToLine}
         editorCode={draft.code} onCheckAgain={() => void submission.refetch()} checking={submission.isFetching} />
       {problem.kind === "debug" && <DebugDebrief problem={problem} submission={submission.data} />}
+      {isAuthenticated && passedHere && <ProblemFollowUps slug={problem.slug} part="offer" refreshKey={passedHere} />}
     </section>
   );
   const coach = (

@@ -491,6 +491,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/problems/{slug}/follow-ups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A reviewed, different problem offered after a judged submission of this one passed (yours only) */
+        get: operations["problem_follow_ups_api_v1_problems__slug__follow_ups_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/problems/{slug}/follow-ups/{to_slug}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Don't offer this follow-up again (kept with your account, on every device) */
+        post: operations["dismiss_problem_follow_up_api_v1_problems__slug__follow_ups__to_slug__dismiss_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/careers": {
         parameters: {
             query?: never;
@@ -8320,6 +8354,21 @@ export interface components {
             follows_up_answer_id: string;
             conditions?: components["schemas"]["AttemptConditions"] | null;
         };
+        /**
+         * FollowUpOf
+         * @description On a follow-up's own page: the different problem it followed, and that it isn't compared.
+         */
+        FollowUpOf: {
+            /** Submission Id */
+            submission_id: string;
+            /** Problem Slug */
+            problem_slug: string;
+            /** Problem Title */
+            problem_title: string;
+            status: components["schemas"]["SubmissionStatus"];
+            /** Text */
+            text: string;
+        };
         /** FollowUpOut */
         FollowUpOut: {
             /**
@@ -11311,6 +11360,77 @@ export interface components {
             kind: "problem" | "debug";
             /** @description Only for a debugging exercise (kind 'debug') */
             lab?: components["schemas"]["LabBrief"] | null;
+        };
+        /**
+         * ProblemFollowUpDone
+         * @description A follow-up you submitted, with its own verdict: never combined with the first problem's.
+         */
+        ProblemFollowUpDone: {
+            /** Submission Id */
+            submission_id: string;
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+            status: components["schemas"]["SubmissionStatus"];
+            /** Passed Count */
+            passed_count: number | null;
+            /** Total Count */
+            total_count: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Follows Up Submission Id */
+            follows_up_submission_id: string;
+        };
+        /** ProblemFollowUpOffer */
+        ProblemFollowUpOffer: {
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+            /** Difficulty */
+            difficulty: string;
+            /**
+             * Shares
+             * @description The idea the two problems share (reviewed content)
+             */
+            shares: string;
+            /**
+             * Difference
+             * @description How this one differs
+             */
+            difference: string;
+            /**
+             * Exposure
+             * @description "Not previously attempted in this app": only then is it offered
+             */
+            exposure: string;
+            /**
+             * From Submission Id
+             * @description Your passed submission it would follow up
+             */
+            from_submission_id: string;
+        };
+        /** ProblemFollowUpsOut */
+        ProblemFollowUpsOut: {
+            /**
+             * Status
+             * @description none: no reviewed related problem; not_yet: until a judged submission of this one passes; offered; done: each was attempted or dismissed
+             * @enum {string}
+             */
+            status: "none" | "not_yet" | "offered" | "done";
+            /** Message */
+            message: string;
+            /** Offers */
+            offers: components["schemas"]["ProblemFollowUpOffer"][];
+            /**
+             * Answered
+             * @description Follow-ups you submitted from this problem, each with its own verdict, not combined
+             */
+            answered: components["schemas"]["ProblemFollowUpDone"][];
         };
         /** ProblemStatus */
         ProblemStatus: {
@@ -14605,6 +14725,11 @@ export interface components {
              */
             mode: components["schemas"]["SubmissionMode"];
             /**
+             * Follows Up Submission Id
+             * @description Made from a reviewed follow-up offer (docs/FOLLOW_UPS.md): your passed submission of the problem this one follows. Stored once, on a submit; its verdict stays its own
+             */
+            follows_up_submission_id?: string | null;
+            /**
              * Client Request Id
              * @description Idempotency key chosen by the client: resending the same request (e.g. after a network error) returns the original submission instead of judging twice
              */
@@ -14655,6 +14780,8 @@ export interface components {
             lab_version?: number | null;
             /** @description Once judged: the previous judged submission of the same problem and mode, and how the two compare. None when there's no earlier one, or while this one is being judged */
             compared?: components["schemas"]["SubmissionComparison"] | null;
+            /** @description A follow-up to a different problem (docs/FOLLOW_UPS.md): which one, never compared with it */
+            follows_up?: components["schemas"]["FollowUpOf"] | null;
         };
         /** SubmissionListItem */
         SubmissionListItem: {
@@ -17424,6 +17551,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LabExplanation"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    problem_follow_ups_api_v1_problems__slug__follow_ups_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemFollowUpsOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dismiss_problem_follow_up_api_v1_problems__slug__follow_ups__to_slug__dismiss_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                to_slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemFollowUpsOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description Not found (also returned for resources owned by another user) */

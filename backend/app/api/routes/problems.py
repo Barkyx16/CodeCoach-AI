@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from app.api.deps import get_db, get_optional_user
+from app.api.deps import get_current_user, get_db, get_optional_user
 from app.errors import NotFoundError
 from app.models import Difficulty, Problem, ProgressEvent, ProgressEventType, TestVisibility, User
 from app.schemas.common import Page, error_responses
@@ -19,8 +19,10 @@ from app.schemas.problem import (
     PublicTestCase,
     TopicCount,
 )
+from app.schemas.problem_followups import ProblemFollowUpsOut
 from app.services import search
 from app.services.content import retired_problem_slugs
+from app.services.problem_followups import ProblemFollowUps
 
 router = APIRouter(prefix="/api/v1", tags=["problems"])
 
@@ -210,3 +212,30 @@ def get_lab_explanation(slug: str, db: Session = Depends(get_db)) -> LabExplanat
         reference_repair=lab["reference_repair"],
         follow_up=lab["follow_up"],
     )
+
+
+# --- reviewed follow-up problems (Volume 14, prompt 10; docs/FOLLOW_UPS.md) --------------------------
+
+
+@router.get(
+    "/problems/{slug}/follow-ups",
+    response_model=ProblemFollowUpsOut,
+    responses=error_responses(401, 404),
+    summary="A reviewed, different problem offered after a judged submission of this one passed (yours only)",
+)
+def problem_follow_ups(
+    slug: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> ProblemFollowUpsOut:
+    return ProblemFollowUps(db, user).offer(slug)
+
+
+@router.post(
+    "/problems/{slug}/follow-ups/{to_slug}/dismiss",
+    response_model=ProblemFollowUpsOut,
+    responses=error_responses(401, 404),
+    summary="Don't offer this follow-up again (kept with your account, on every device)",
+)
+def dismiss_problem_follow_up(
+    slug: str, to_slug: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> ProblemFollowUpsOut:
+    return ProblemFollowUps(db, user).dismiss(slug, to_slug)

@@ -15,6 +15,7 @@ import { formatArgs, formatValue, timeAgo } from "@/lib/format";
 import { Icon } from "@/components/Icon";
 
 import { FailureExplanationView } from "./FailureExplanation";
+import { FollowsUpNote } from "./ProblemFollowUps";
 import { SubmissionCompared } from "./SubmissionCompared";
 import { FeedbackKind } from "@/components/FeedbackKind";
 
@@ -84,6 +85,7 @@ export function SubmissionPanel({ submission, error, onHighlightLine, editorCode
           The editor has changed since; {isRun ? "run" : "submit"} again to check the current code.
         </p>
       )}
+      {submission.follows_up && <FollowsUpNote of={submission.follows_up} />}
       {statusText && <p className="subtle" role="status">{statusText}</p>}
       {error != null && (
         <p className="subtle" role="status">

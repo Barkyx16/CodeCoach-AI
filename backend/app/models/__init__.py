@@ -351,6 +351,13 @@ class Submission(Base):
     # The problem's version when this attempt was made (docs/ATTEMPT_CONDITIONS.md); `test_version`
     # is only set once it's judged. None on attempts from before it was recorded.
     content_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Made from a reviewed follow-up offer (docs/FOLLOW_UPS.md, "Coding problems"): the learner's own
+    # passed submission of the problem it follows, set once when it's made. Its verdict stays its own.
+    follows_up_submission_id: Mapped[str | None] = mapped_column(
+        ForeignKey("submissions.id", ondelete="SET NULL", name="fk_submissions_follows_up"),
+        nullable=True,
+        index=True,
+    )
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, onupdate=utcnow)
 
@@ -1217,7 +1224,8 @@ class OnboardingState(Base):
     created on first use. It records only the learner's choices about the introduction (never
     answer text): whether the guided tour was started, paused, finished or skipped and at which
     step, which start they chose, which careers' format introductions they've seen, and which
-    banners they dismissed. Whether they've done a real activity is worked out from their actual
+    banners they dismissed (also a reviewed follow-up problem's offer: "problem-follow-up:<from>><to>",
+    so it stays dismissed on every device). Whether they've done a real activity is worked out from their actual
     answers and submissions, not stored here."""
 
     __tablename__ = "user_onboarding"

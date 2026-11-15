@@ -1,6 +1,6 @@
 import { expect, test } from "./fixtures";
 import {
-  BASELINE, JUDGE_NEEDED, PROBLEM, RESUBMISSION, SE_TRACK, expectResultShown, judgeReady, paste, submitAndJudge, verdict,
+  BASELINE, FOLLOW_UP, FOLLOW_UP_TITLE, JUDGE_NEEDED, PROBLEM, RESUBMISSION, SE_TRACK, expectResultShown, judgeReady, paste, submitAndJudge, verdict,
 } from "./engineer-journey";
 import { Recorder, api, newAccount, signIn } from "./preparation-journey";
 
@@ -90,6 +90,13 @@ test("the software engineer's judged steps at phone size", async ({ page, contex
       const ids = (Array.isArray(subs) ? subs : subs.items).map((s) => s.id);
       expect(ids).toEqual(expect.arrayContaining([baselineId, sub.id]));
       check(`judged in the sandbox: ${sub.status}, ${sub.result!.passed_count}/${sub.result!.total_count}, with its own help ("No in-app help recorded")`);
+      // In the Code tab, under the result: the reviewed related problem (Volume 14, prompt 10).
+      const offer = page.getByRole("region", { name: "Submission results" }).getByRole("region", { name: "A related problem" });
+      await expect(offer.getByRole("link", { name: FOLLOW_UP_TITLE })).toHaveAttribute("href", `/problems/${FOLLOW_UP}?followUpOf=${sub.id}`);
+      await offer.scrollIntoViewIfNeeded();
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow).toBeLessThanOrEqual(0);
+      check(`"${FOLLOW_UP_TITLE}" is offered under the result in the Code tab, with no sideways scroll`);
     }, ["real judge"]);
   } finally {
     rec.write(true);

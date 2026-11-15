@@ -18,6 +18,7 @@ from app.models import (
 )
 from app.schemas.common import Page, error_responses
 from app.schemas.conditions import AttemptConditions
+from app.schemas.problem_followups import FollowUpOf
 from app.schemas.submission import (
     SubmissionComparison,
     SubmissionCreate,
@@ -30,6 +31,7 @@ from app.services.content import is_problem_retired
 from app.services.judge.backends import ExecutionDisabledError, JudgeUnavailableError
 from app.services.judge.health import MESSAGES
 from app.services.judge.views import public_result_view
+from app.services.problem_followups import ProblemFollowUps, follow_up_of
 
 router = APIRouter(prefix="/api/v1", tags=["submissions"])
 _ERRORS = error_responses(400, 401, 404, 422, 429, 503)
@@ -40,6 +42,7 @@ def to_detail(
     execution_enabled: bool,
     conditions: AttemptConditions | None = None,
     compared: SubmissionComparison | None = None,
+    follows_up: FollowUpOf | None = None,
 ) -> SubmissionDetail:
     result = public_result_view(sub)
     return SubmissionDetail(
@@ -60,6 +63,7 @@ def to_detail(
         lab_version=sub.lab_version,
         conditions=conditions,
         compared=compared,
+        follows_up=follows_up,
     )
 
 
@@ -106,8 +110,16 @@ def create_submission(
         if state != "ready" and reason != "queue_delayed":
             # Run is for quick feedback; queueing it behind an outage helps no one. Submit still queues.
             raise JudgeUnavailableError(MESSAGES[reason])
+    # Made from a reviewed follow-up offer: the passed submission it follows, checked and stored once
+    # (a run doesn't carry the link: it isn't an attempt).
+    follows_up_id = (
+        ProblemFollowUps(db, user).check_link(problem, body.follows_up_submission_id)
+        if body.mode == SubmissionMode.SUBMIT
+        else None
+    )
     backend.admit(db, user)
     sub = Submission(
+        follows_up_submission_id=follows_up_id,
         user_id=user.id,
         problem_id=problem.id,
         language=body.language,
@@ -137,7 +149,7 @@ def create_submission(
         db.add(ProgressEvent(user_id=user.id, problem_id=problem.id, event_type=ProgressEventType.SUBMITTED))
     db.commit()
     db.refresh(sub)
-    return to_detail(sub, backend.enabled)
+    return to_detail(sub, backend.enabled, follows_up=follow_up_of(db, sub))
 
 
 def _by_request_id(db: Session, user: User, key: str) -> Submission | None:
@@ -188,6 +200,7 @@ def get_submission(
         request.app.state.execution_backend.enabled,
         Conditions(db, user).for_submission(sub),
         compared_view(*pair) if pair else None,
+        follow_up_of(db, sub),
     )
 
 

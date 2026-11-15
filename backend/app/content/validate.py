@@ -159,6 +159,18 @@ def _followups(report: Report, retired: set[tuple[str, str]]) -> None:
     report.counts["follow-ups"] = len(RELATIONSHIPS)
 
 
+def _problem_followups(report: Report, seeds: dict[str, dict]) -> None:
+    """Reviewed follow-up problems (docs/FOLLOW_UPS.md, "Coding problems"): both in the bank with a
+    reference solution, reviewed, each pair once."""
+    from app.content.problem_followups import PAIRS, problems
+
+    def exists(slug: str) -> bool:
+        return slug in seeds and (REFERENCE_DIR / f"{slug}.java").exists()
+
+    report.errors.extend(problems(PAIRS, exists))
+    report.counts["problem follow-ups"] = len(PAIRS)
+
+
 def _scenarios(report: Report) -> None:
     for scenario in SCENARIO_INDEX.values():
         try:
@@ -640,6 +652,7 @@ def run(db: Session | None, *, run_reference: bool = False, record: bool = False
                 report.warnings.append(f"problem {slug}: in the database but not in the seed files")
     _learn(report, retired, set(seeds))
     _followups(report, retired)
+    _problem_followups(report, seeds)
     _scenarios(report)
 
     if run_reference:

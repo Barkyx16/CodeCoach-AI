@@ -102,6 +102,7 @@ from the career catalog, so they're referenced by `(track, question_id)`, not a 
 | `attempts` | integer (default 0) | Judge attempts; only infrastructure failures are retried |
 | `judge_started_at`, `judged_at` | timestamptz null | Claim time (used for crashed-worker recovery) and verdict time |
 | `test_version` | integer null | Version of the test set that produced the verdict |
+| `follows_up_submission_id` | FK → submissions (SET NULL) null, indexed | Set once when the submission is made from a reviewed follow-up offer: this account's passed submission of the related problem it follows (docs/FOLLOW_UPS.md, "Coding problems"). Never used to combine or compare the two verdicts |
 | `created_at`, `updated_at` | timestamptz | Composite index `(user_id, created_at)` for history pages |
 
 ### `refresh_tokens`

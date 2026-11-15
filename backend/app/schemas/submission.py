@@ -6,6 +6,7 @@ from app.models import SubmissionMode, SubmissionStatus
 from app.schemas.careers import AttemptComparison
 from app.schemas.common import APIModel, OptionalKey
 from app.schemas.conditions import AttemptConditions
+from app.schemas.problem_followups import FollowUpOf
 
 
 class SubmissionCreate(APIModel):
@@ -16,6 +17,12 @@ class SubmissionCreate(APIModel):
         default=SubmissionMode.SUBMIT,
         description="`submit`: judge against all tests and record the attempt. "
         "`run`: public tests only, for quick feedback; never counts as an attempt.",
+    )
+    follows_up_submission_id: str | None = Field(
+        default=None,
+        max_length=36,
+        description="Made from a reviewed follow-up offer (docs/FOLLOW_UPS.md): your passed submission of the "
+        "problem this one follows. Stored once, on a submit; its verdict stays its own",
     )
     client_request_id: OptionalKey = Field(
         default=None,
@@ -113,6 +120,10 @@ class SubmissionDetail(SubmissionOut):
         default=None,
         description="Once judged: the previous judged submission of the same problem and mode, and how "
         "the two compare. None when there's no earlier one, or while this one is being judged",
+    )
+    follows_up: FollowUpOf | None = Field(
+        default=None,
+        description="A follow-up to a different problem (docs/FOLLOW_UPS.md): which one, never compared with it",
     )
 
 
